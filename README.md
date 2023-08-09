@@ -3,11 +3,15 @@
 </h1>
 
 
-Here is space for our logo. 
+<div align="center">
+  <img alt="MedModels Logo" src="./images/medmodels_logo.svg"><br>
+</div>
 
-
-![Code Style](https://img.shields.io/badge/code_style-black-black.svg)
-
+<div align="center">
+  <img alt="Code Style" src="https://img.shields.io/badge/code_style-black-black.svg">
+  <img alt="Python Versions" src="https://img.shields.io/badge/python-3.9%20%7C%203.10-blue">
+  <img alt="MedModels License" src="https://img.shields.io/github/license/limebit/open-medmodels.svg">
+</div>
 
 
 ## Table of Contents 
