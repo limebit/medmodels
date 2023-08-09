@@ -19,6 +19,7 @@
 - [What is MedModels?](#what-is-medmodels)
 - [Who is MedModels aimed at?](#who-is-medmodels-aimed-at)
 - [What does MedModels offer?](what-does-medmodels-offer)
+- [How do you get MedModels?](how-do-you-get-medmodels)
 
 ## Why do you need MedModels?
 The use of medical data in connection with AI is a rapidly growing field of research. 
@@ -48,3 +49,13 @@ MedModels is aimed at a wide range of users, including medical care institutions
 * **Explainable AI** 
 <br/> Counterfactual explanations and other techniques make black box forecasts comprehensible and interpretable. 
 
+## How do you get MedModels?
+Limebit hosts the official open source code on GitHub at: ...
+
+We recommend to use `pip` to install the latest version of MedModels:
+```
+pip install open-medmodels
+```
+
+
+For detailed information on how to use MedModels, please read the [MedModels documentation](https://www.medmodels.de/documentation). 
