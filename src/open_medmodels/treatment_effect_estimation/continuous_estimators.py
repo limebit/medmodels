@@ -21,15 +21,15 @@ def average_treatment_effect(
     the ATE for a treated set with N and a control set with M elements is computed as
     follows:
     .. math::
-         \text{ATE} = \frac {1}{N} \sum_i y_1(i) - \frac {1}{M} \sum_j y_0(j),
+         \text{ATE} = \frac {1}{N} \\sum_i y_1(i) - \frac {1}{M} \\sum_j y_0(j),
 
     where y_1(i), y_0(j) are outcome values for one treated and control observation each
 
     For the matched set the formula stays:
 
     .. math::
-         \text{ATE} = \frac {1}{N} \sum_i y_1(i) - \frac {1}{M} \sum_j y_0(j)
-                    = \frac {1}{N} (\sum_i y_1(i) - y_0(i)) if N = M
+         \text{ATE} = \frac {1}{N} \\sum_i y_1(i) - \frac {1}{M} \\sum_j y_0(j)
+                    = \frac {1}{N} (\\sum_i y_1(i) - y_0(i)) if N = M
 
     :param treated_set: treated set of patients
     :type treated_set: pd.DataFrame
