@@ -1,0 +1,40 @@
+{
+  "name": "Open Medmodels Devcontainer",
+  "dockerComposeFile": "docker-compose.devcontainer.yml",
+  "service": "devcontainer",
+  "workspaceFolder": "/open-medmodels",
+  "containerUser": "vscode",
+  "initializeCommand": "find ~/.ssh/ -type f -exec grep -l 'PRIVATE' {} \\; | xargs ssh-add",
+  "postStartCommand": "make install-dev",
+  "features": {
+    "ghcr.io/devcontainers/features/common-utils": {
+      "configureZshAsDefaultShell": true,
+      "username": "vscode",
+      "installZsh": true,
+      "installOhMyZsh": true,
+      "upgradePackages": true
+    },
+    "ghcr.io/devcontainers/features/git-lfs:1": {}
+  },
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "terminal.integrated.fontFamily": "MesloLGS NF",
+        "terminal.integrated.defaultProfile.linux": "zsh",
+        "workbench.colorCustomizations": {
+          "terminal.background": "#121212"
+        }
+      },
+      "extensions": [
+        "ms-python.python",
+        "charliermarsh.ruff",
+        "bungcip.better-toml",
+        "EditorConfig.EditorConfig",
+        "eamodio.gitlens",
+        "ms-vsliveshare.vsliveshare",
+        "ms-vscode.makefile-tools",
+        "njpwerner.autodocstring"
+      ]
+    }
+  }
+}
