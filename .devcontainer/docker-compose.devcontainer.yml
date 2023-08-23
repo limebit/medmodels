@@ -1,0 +1,13 @@
+version: "3.9"
+
+services:
+  devcontainer:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        USE_POWERLEVEL10K: ${USE_POWERLEVEL10K:-false}
+    container_name: open_medmodels_devcontainer
+    volumes:
+      - ..:/open-medmodels:cached
+    command: /bin/sh -c "while sleep 1000; do :; done"
