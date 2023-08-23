@@ -23,7 +23,7 @@
 
 ## Why do you need MedModels?
 The use of medical data in connection with AI is a rapidly growing field of research. 
-However, there is a significant gap between the methodology that is published in scientific papers and the techniques that are used in the medical industry. MedModels closes this gap by offering all users an intuitive framework that provides the methods from current research publications in a directly usable manner.  
+However, there is a significant gap between the methodology that is published in scientific papers and the techniques that are used in the medical industry. Currently, companies have to adapt the latest findings to their individual set-up. With MedModels, we close this gap by offering all users an intuitive Python framework that provides the methods from current research publications in a directly usable manner.  
 
 
 ## What is MedModels? 
@@ -43,7 +43,7 @@ MedModels is aimed at a wide range of users, including medical care institutions
 * **Medical Data Synthesis**
 <br/> Generative synthetic patient data closes data gaps and makes representative patient data available while ensuring data privacy. 
 * **Medical Concept Embeddings**
-<br/> Medical concpet embeddings pre-process medical raw data into compact representations that depict temporal and causal relationships of the concepts (e.g., diagnosis, treatment, medications, ...).
+<br/> Medical concept embeddings pre-process medical raw data into compact representations that depict temporal and causal relationships of the concepts (e.g., diagnosis, treatment, medications, ...).
 * **Predictive Modeling**
 <br/> Machine learning models predict individual patient-level risks (e.g., diagnostics, events, treatment chances, ...) based on EHR data. 
 * **Explainable AI** 
