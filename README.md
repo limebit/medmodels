@@ -54,7 +54,7 @@ Limebit hosts the official open source code on GitHub at: ...
 
 We recommend to use `pip` to install the latest version of MedModels:
 ```
-pip install open-medmodels
+pip install medmodels
 ```
 
 
