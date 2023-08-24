@@ -10,7 +10,7 @@
 <div align="center">
   <img alt="Code Style" src="https://img.shields.io/badge/code_style-black-black.svg">
   <img alt="Python Versions" src="https://img.shields.io/badge/python-3.9%20%7C%203.10-blue">
-  <img alt="MedModels License" src="https://img.shields.io/github/license/limebit/open-medmodels.svg">
+  <img alt="MedModels License" src="https://img.shields.io/github/license/limebit/medmodels.svg">
 </div>
 
 
@@ -18,8 +18,8 @@
 - [Why do you need MedModels?](#why-do-you-need-medmodels)
 - [What is MedModels?](#what-is-medmodels)
 - [Who is MedModels aimed at?](#who-is-medmodels-aimed-at)
-- [What does MedModels offer?](what-does-medmodels-offer)
-- [How do you get MedModels?](how-do-you-get-medmodels)
+- [What does MedModels offer?](#what-does-medmodels-offer)
+- [How do you get MedModels?](#how-do-you-get-medmodels)
 
 ## Why do you need MedModels?
 The use of medical data in connection with AI is a rapidly growing field of research. 
