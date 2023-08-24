@@ -7,7 +7,7 @@ services:
       dockerfile: Dockerfile
       args:
         USE_POWERLEVEL10K: ${USE_POWERLEVEL10K:-false}
-    container_name: open_medmodels_devcontainer
+    container_name: medmodels_devcontainer
     volumes:
-      - ..:/open-medmodels:cached
+      - ..:/medmodels:cached
     command: /bin/sh -c "while sleep 1000; do :; done"

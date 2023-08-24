@@ -2,7 +2,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier
 import numpy as np
-from open_medmodels.matching.algorithms.classic_distance_models import nearest_neighbor
+from medmodels.matching.algorithms.classic_distance_models import nearest_neighbor
 
 
 def calculate_propensity(

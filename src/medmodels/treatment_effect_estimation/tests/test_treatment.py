@@ -2,9 +2,9 @@ import unittest
 import numpy as np
 import pandas as pd
 
-from open_medmodels.dataclass.dataclass import MedRecord
-from open_medmodels.dataclass.utils import df_to_nodes, df_to_edges
-from open_medmodels.treatment_effect_estimation.treatment_effect import TreatmentEffect
+from medmodels.dataclass.dataclass import MedRecord
+from medmodels.dataclass.utils import df_to_nodes, df_to_edges
+from medmodels.treatment_effect_estimation.treatment_effect import TreatmentEffect
 
 
 class TestTreatmentEffect(unittest.TestCase):

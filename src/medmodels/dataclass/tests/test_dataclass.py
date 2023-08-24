@@ -2,8 +2,8 @@ import numpy as np
 import pandas as pd
 import unittest
 
-from open_medmodels.dataclass.dataclass import MedRecord
-from open_medmodels.dataclass.utils import df_to_nodes, df_to_edges
+from medmodels.dataclass.dataclass import MedRecord
+from medmodels.dataclass.utils import df_to_nodes, df_to_edges
 
 
 class TestDataClass(unittest.TestCase):

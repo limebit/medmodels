@@ -37,5 +37,5 @@ clean:
 	rm -rf .venv
 	rm -rf .pytest_cache
 	rm -rf .ruff_cache
-	rm -rf ./src/open_medmodels.egg-info
+	rm -rf ./src/medmodels.egg-info
 	find ./src -name __pycache__ -type d -exec rm -r {} +

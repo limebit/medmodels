@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from open_medmodels.dataclass.utils import (
+from medmodels.dataclass.utils import (
     df_to_nodes,
     df_to_edges,
     align_types,

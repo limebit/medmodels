@@ -1,5 +1,5 @@
 import unittest
-from open_medmodels.matching.algorithms import propensity_score as ps
+from medmodels.matching.algorithms import propensity_score as ps
 import numpy as np
 import pandas as pd
 from sklearn.datasets import load_iris

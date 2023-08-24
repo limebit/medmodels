@@ -1,7 +1,7 @@
 import unittest
 import pandas as pd
 import numpy as np
-from open_medmodels.matching import evaluation
+from medmodels.matching import evaluation
 
 
 class TestEvaluation(unittest.TestCase):

@@ -6,7 +6,7 @@ import pandas as pd
 from collections import defaultdict
 from typing import List, Dict
 from dataclasses import dataclass, make_dataclass, field
-from open_medmodels.dataclass.utils import parse_criteria
+from medmodels.dataclass.utils import parse_criteria
 
 
 class MedRecord:

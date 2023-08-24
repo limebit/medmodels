@@ -1,5 +1,5 @@
 import unittest
-from open_medmodels.matching import metrics
+from medmodels.matching import metrics
 import numpy as np
 
 

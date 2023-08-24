@@ -1,7 +1,7 @@
 import unittest
 import numpy as np
 import pandas as pd
-import open_medmodels.treatment_effect_estimation.continuous_estimators as ce
+import medmodels.treatment_effect_estimation.continuous_estimators as ce
 
 
 class TestContinuousEstimators(unittest.TestCase):

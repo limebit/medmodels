@@ -1,8 +1,8 @@
 {
-  "name": "Open Medmodels Devcontainer",
+  "name": "Medmodels Devcontainer",
   "dockerComposeFile": "docker-compose.devcontainer.yml",
   "service": "devcontainer",
-  "workspaceFolder": "/open-medmodels",
+  "workspaceFolder": "/medmodels",
   "containerUser": "vscode",
   "initializeCommand": "find ~/.ssh/ -type f -exec grep -l 'PRIVATE' {} \\; | xargs ssh-add",
   "postStartCommand": "make install-dev",

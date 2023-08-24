@@ -1,6 +1,6 @@
 from typing import Set
 
-from open_medmodels.dataclass.dataclass import MedRecord
+from medmodels.dataclass.dataclass import MedRecord
 
 
 class Matching:

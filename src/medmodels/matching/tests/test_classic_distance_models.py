@@ -1,5 +1,5 @@
 import unittest
-from open_medmodels.matching.algorithms import classic_distance_models as cdm
+from medmodels.matching.algorithms import classic_distance_models as cdm
 import numpy as np
 import pandas as pd
 

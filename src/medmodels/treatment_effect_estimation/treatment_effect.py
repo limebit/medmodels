@@ -1,8 +1,8 @@
 import numpy as np
 import pandas as pd
 from typing import List, Tuple, Type
-from open_medmodels.dataclass.dataclass import MedRecord
-from open_medmodels.matching.matching import Matching
+from medmodels.dataclass.dataclass import MedRecord
+from medmodels.matching.matching import Matching
 
 TREATMENT_ALL = "treatment_all"
 CRITERIA_ALL = "criteria_all"

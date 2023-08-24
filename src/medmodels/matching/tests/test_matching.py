@@ -1,6 +1,6 @@
 import unittest
-from open_medmodels.dataclass.dataclass import MedRecord
-from open_medmodels.matching.matching import Matching
+from medmodels.dataclass.dataclass import MedRecord
+from medmodels.matching.matching import Matching
 
 
 class TestMatching(unittest.TestCase):

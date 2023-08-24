@@ -1,5 +1,5 @@
 import unittest
-from open_medmodels.matching.covariates import covariates_preprocessing as cp
+from medmodels.matching.covariates import covariates_preprocessing as cp
 import numpy as np
 import pandas as pd
 
