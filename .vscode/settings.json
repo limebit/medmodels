@@ -1,23 +1,27 @@
 {
-  "python.formatting.blackPath": "${workspaceFolder}/.venv/bin/black",
   "editor.formatOnSave": true,
   "editor.formatOnPaste": true,
   "editor.autoIndent": "advanced",
   "files.associations": {
     "setup.cfg": "ini",
+    "rust-toolchain": "toml"
   },
+  "evenBetterToml.schema.enabled": false,
   "editor.rulers": [
     88
   ],
+  "[rust]": {
+    "editor.rulers": [
+      100
+    ]
+  },
   "files.trimTrailingWhitespace": true,
   "files.insertFinalNewline": true,
-  "python.linting.enabled": true,
   "python.terminal.activateEnvironment": true,
-  "python.linting.pylintEnabled": false,
-  "python.linting.flake8Enabled": false,
-  "python.linting.banditEnabled": false,
-  "python.formatting.provider": "black",
   "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
   "python.terminal.activateEnvInCurrentTerminal": true,
-  "autoDocstring.docstringFormat": "sphinx"
+  "autoDocstring.docstringFormat": "sphinx",
+  "[python]": {
+    "editor.defaultFormatter": "ms-python.black-formatter"
+  }
 }
