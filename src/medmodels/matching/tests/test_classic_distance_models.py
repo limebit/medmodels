@@ -6,7 +6,6 @@ import pandas as pd
 
 class TestClassicDistanceModels(unittest.TestCase):
     def test_nearest_neighbor(self):
-
         ###########################################
         # 1D example
         c_set = pd.DataFrame(np.array([[1], [5], [1], [3]]), columns=["a"])
@@ -42,6 +41,5 @@ class TestClassicDistanceModels(unittest.TestCase):
 
 
 if __name__ == "__main__":
-
     run_test = unittest.TestLoader().loadTestsFromTestCase(TestClassicDistanceModels)
     unittest.TextTestRunner(verbosity=2).run(run_test)

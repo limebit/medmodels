@@ -3,7 +3,6 @@ import pandas as pd
 
 
 def covariate_coarsen(covariate, n_bins=10):
-
     """
     Bins a continuous variable.
 
@@ -30,7 +29,6 @@ def covariate_coarsen(covariate, n_bins=10):
 
 
 def covariate_add_noise(covariate, n_digits=2):
-
     """
     Adds noise after n_digits decimal places to a discrete variable to consider it as
     continuous. Needed mostly for examples and tests.

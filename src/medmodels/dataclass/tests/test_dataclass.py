@@ -375,6 +375,5 @@ class TestDataClass(unittest.TestCase):
 
 
 if __name__ == "__main__":
-
     run_test = unittest.TestLoader().loadTestsFromTestCase(TestDataClass)
     unittest.TextTestRunner(verbosity=2).run(run_test)

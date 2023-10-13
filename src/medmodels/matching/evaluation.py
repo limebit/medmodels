@@ -2,7 +2,6 @@ import pandas as pd
 
 
 def relative_diff_in_means(control_set, treated_set):
-
     """
     Calculates the absolute relative mean for each covariate/feature as a difference
     between the control and treated in percent related to control.
@@ -14,7 +13,6 @@ def relative_diff_in_means(control_set, treated_set):
     """
 
     def calculate_relative_diff(row):
-
         """
         Calculates the absolute relative mean for one covariate as a difference between
         the control and treated in percent related to control.
@@ -54,7 +52,6 @@ def relative_diff_in_means(control_set, treated_set):
 
 
 def average_value_over_features(df):
-
     """
     Returns the mean over the last row of a dataframe. This method can be used e.g. to
     calculate average difference between the treated and control sets.
@@ -73,7 +70,6 @@ def average_value_over_features(df):
 
 
 def average_abs_relative_diff(control_set, treated_set, covariates=None):
-
     """
     Calculates the average absolute relative difference in means over all covariates.
 

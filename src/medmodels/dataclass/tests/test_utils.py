@@ -59,7 +59,6 @@ class TestUtils(unittest.TestCase):
         )  # Duplicating "a" attribute: two nodes connecting an edge to the same node
 
     def test_nodes(self):
-
         output = df_to_nodes(self.sample_data1, "id", ["attr1", "attr2"])
         self.assertTrue(
             np.array_equal(
@@ -105,7 +104,6 @@ class TestUtils(unittest.TestCase):
         )
 
     def test_edges(self):
-
         output = df_to_edges(self.sample_data4, "id", "attr1", ["attr2", "attr3"])
         self.assertTrue(
             np.array_equal(
@@ -161,7 +159,6 @@ class TestUtils(unittest.TestCase):
         self.assertEqual(a(1, "2"), (int, int))
 
     def test_parse_criteria(self):
-
         dim, attr, f, param = parse_criteria(["patients age > 10"])[0]
 
         self.assertEqual(dim, "patients")
@@ -213,6 +210,5 @@ class TestUtils(unittest.TestCase):
 
 
 if __name__ == "__main__":
-
     run_test = unittest.TestLoader().loadTestsFromTestCase(TestUtils)
     unittest.TextTestRunner(verbosity=2).run(run_test)

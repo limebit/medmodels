@@ -3,7 +3,6 @@ import math
 
 
 def absolute_metric(*vectors):
-
     """
     Returns the euclidean distance (first norm) between two vectors.
 
@@ -20,7 +19,6 @@ def absolute_metric(*vectors):
 
 
 def exact_metric(*vectors):
-
     """
     Returns the exact metric for matching. Better not to use with continuous covariates.
 
@@ -41,7 +39,6 @@ def exact_metric(*vectors):
 
 
 def mahalanobis_metric(*vectors, inv_cov):
-
     """
     Returns mahalanobis metric for matching. Works better with continuous covariates.
 

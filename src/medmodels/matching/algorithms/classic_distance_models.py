@@ -4,7 +4,6 @@ import numpy as np
 
 
 def nearest_neighbor(treated_set, control_set, metric, log_text=None, covariates=None):
-
     """
     Matches two dataframes with the Nearest Neighbor (greedy) algorithm. It runs through
     the treated set and selects its closest element from the control set. Each choice of
@@ -40,7 +39,6 @@ def nearest_neighbor(treated_set, control_set, metric, log_text=None, covariates
     matched_group = pd.DataFrame(columns=columns)
 
     for element_ss in treated_array:
-
         dist = []
 
         if metric == "mahalanobis":
@@ -54,7 +52,6 @@ def nearest_neighbor(treated_set, control_set, metric, log_text=None, covariates
             for element_bs in control_array:
                 dist.append(metric_function(element_ss, element_bs, inv_cov=inv_cov))
         else:
-
             for element_bs in control_array:
                 dist.append(metric_function(element_ss, element_bs))
 

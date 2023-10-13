@@ -11,7 +11,6 @@ logging.basicConfig(format="%(message)s")
 def average_treatment_effect(
     treated_set: pd.DataFrame, control_set: pd.DataFrame, outcome_variable: str
 ):
-
     """
     Calculates an average treatment effect as a difference between the outcome means of
     the treated and control sets. Positive TE means that he treatment increased the

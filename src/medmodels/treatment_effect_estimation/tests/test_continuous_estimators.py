@@ -31,6 +31,5 @@ class TestContinuousEstimators(unittest.TestCase):
 
 
 if __name__ == "__main__":
-
     run_test = unittest.TestLoader().loadTestsFromTestCase(TestContinuousEstimators)
     unittest.TextTestRunner(verbosity=2).run(run_test)

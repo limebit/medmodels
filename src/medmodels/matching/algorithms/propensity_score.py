@@ -8,7 +8,6 @@ from medmodels.matching.algorithms.classic_distance_models import nearest_neighb
 def calculate_propensity(
     x_train, y_train, treated_test, control_test, hyperparam=None, metric="logit"
 ):
-
     """
     Trains one of the classification algorithms on x_train, y_train, predicts
     probability of the target variable for the treated_test and control_test
@@ -38,11 +37,9 @@ def calculate_propensity(
     propensity_metric = PROP_MODEL[metric]
 
     if hyperparam:
-
         pm = propensity_metric(**hyperparam)
 
     else:
-
         pm = propensity_metric()
 
     pm.fit(x_train, y_train)
@@ -58,7 +55,6 @@ def run_propensity_score(
     covariates=None,
     log_text=None,
 ):
-
     """
     Runs Propensity Score matching with the chosen classification method.
 

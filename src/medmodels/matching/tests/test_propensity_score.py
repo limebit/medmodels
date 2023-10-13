@@ -7,7 +7,6 @@ from sklearn.datasets import load_iris
 
 class TestPropensityScore(unittest.TestCase):
     def test_calculate_propensity(self):
-
         x, y = load_iris(return_X_y=True)
 
         # Set random state by each propensity estimator:
@@ -36,7 +35,6 @@ class TestPropensityScore(unittest.TestCase):
         self.assertAlmostEqual(result_2[0], 0, places=2)
 
     def test_run_propensity_score(self):
-
         # Set random state by each propensity estimator:
         hyperparam = {"random_state": 1}
         hyperparam_logit = {"random_state": 1, "max_iter": 200}
@@ -106,6 +104,5 @@ class TestPropensityScore(unittest.TestCase):
 
 
 if __name__ == "__main__":
-
     run_test = unittest.TestLoader().loadTestsFromTestCase(TestPropensityScore)
     unittest.TextTestRunner(verbosity=2).run(run_test)
