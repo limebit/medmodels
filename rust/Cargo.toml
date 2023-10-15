@@ -9,7 +9,7 @@ crate-type = ["cdylib"]
 
 [dependencies]
 petgraph = "0.6.3"
-pyo3 = "0.19.0"
-numpy = "0.19"
+pyo3 = "0.20.0"
 polars = "0.33.2"
-pyo3-polars = "0.7.0"
+# This will be switched back once the new version of pyo3-polars is released
+pyo3-polars = { git = "https://github.com/pola-rs/pyo3-polars.git" }
