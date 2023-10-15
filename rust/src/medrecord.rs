@@ -215,7 +215,7 @@ impl Medrecord {
                     self.index_mapping
                         .get_node_index(&id)
                         .ok_or(PyIndexError::new_err(format!(
-                            "Clouud not find node with index {}",
+                            "Could not find node with index {}",
                             id
                         )))?;
 
@@ -223,7 +223,7 @@ impl Medrecord {
                     .graph
                     .node_weight(*node_index)
                     .ok_or(PyIndexError::new_err(format!(
-                        "Clouud not find node with index {}",
+                        "Could not find node with index {}",
                         id
                     )))
                     .cloned()?;
