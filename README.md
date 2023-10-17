@@ -59,7 +59,7 @@ MedModels is aimed at a wide range of users, including medical care institutions
 
 ## How do you get MedModels?
 
-Limebit hosts the official open source code on GitHub at: [MedModels GitHub Repository](github.com/limebit/medmodels)
+Limebit hosts the official open source code on GitHub at: [MedModels GitHub Repository](https://github.com/limebit/medmodels)
 
 We recommend to use `pip` to install the latest version of MedModels:
 
