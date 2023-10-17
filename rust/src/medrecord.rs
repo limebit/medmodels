@@ -189,6 +189,17 @@ impl Medrecord {
         })
     }
 
+    fn test(&self) -> PyResult<PyObject> {
+        let node_index = self.index_mapping.get_node_index("0").unwrap();
+        let weight = self.graph.node_weight(*node_index).unwrap();
+        let test: PyObject = weight.get("foo").unwrap().clone();
+        let result = Python::with_gil(|py| {
+            let _res: PyAnyValue = test.extract(py).unwrap();
+            _res.into_py(py)
+        });
+        Ok(result)
+    }
+
     fn node_count(&self) -> PyResult<usize> {
         Ok(self.graph.node_count())
     }

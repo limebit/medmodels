@@ -1,15 +1,16 @@
-use polars::prelude::AnyValue;
+use polars::prelude::{AnyValue, TimeUnit};
 use pyo3::{
+    exceptions::PyTypeError,
     types::{PyDate, PyDateTime, PyDelta, PyNone, PyTime},
-    IntoPy, PyObject, Python,
+    FromPyObject, IntoPy, PyAny, PyObject, PyResult, Python,
 };
 use pyo3_polars::PySeries;
 
 macro_rules! convert_duration (
     ($py:expr, $difference:expr, $second_factor:literal) => {
         {
-            let days = $difference / ($second_factor * 8640);
-            let remaining_after_days = $difference % ($second_factor * 8640);
+            let days = $difference / ($second_factor * 86400);
+            let remaining_after_days = $difference % ($second_factor * 86400);
             let seconds = remaining_after_days / $second_factor;
             let remaining_after_seconds = remaining_after_days % $second_factor;
             let microseconds = remaining_after_seconds * (1000000 / $second_factor);
@@ -46,7 +47,7 @@ impl IntoPy<PyObject> for PyAnyValue<'_> {
             AnyValue::Int64(val) => val.into_py(py),
             AnyValue::Float32(val) => val.into_py(py),
             AnyValue::Float64(val) => val.into_py(py),
-            AnyValue::Date(days) => PyDate::from_timestamp(py, (days * 8640).into())
+            AnyValue::Date(days) => PyDate::from_timestamp(py, (days * 86400).into())
                 .unwrap()
                 .into_py(py),
             // The timezone is ignored - This may lead to wrong conversions
@@ -79,13 +80,13 @@ impl IntoPy<PyObject> for PyAnyValue<'_> {
                 }
             },
             AnyValue::Time(nanoseconds) => {
-                let hours = nanoseconds / 360000;
-                let remaining_after_hours = nanoseconds % 360000;
-                let minutes = remaining_after_hours / 60000;
-                let remaining_after_minutes = remaining_after_hours % 60000;
-                let seconds = remaining_after_minutes / 1000;
-                let remaining_after_seconds = remaining_after_minutes % 1000;
-                let microseconds = remaining_after_seconds * 1000;
+                let hours = nanoseconds / 3600000000000;
+                let remaining_after_hours = nanoseconds % 3600000000000;
+                let minutes = remaining_after_hours / 60000000000;
+                let remaining_after_minutes = remaining_after_hours % 60000000000;
+                let seconds = remaining_after_minutes / 1000000000;
+                let remaining_after_seconds = remaining_after_minutes % 1000000000;
+                let microseconds = remaining_after_seconds / 1000;
 
                 PyTime::new(
                     py,
@@ -101,6 +102,73 @@ impl IntoPy<PyObject> for PyAnyValue<'_> {
             AnyValue::List(val) => PySeries(val).into_py(py),
             AnyValue::Utf8Owned(val) => val.into_py(py),
             AnyValue::BinaryOwned(val) => val.into_py(py),
+        }
+    }
+}
+
+impl<'a> FromPyObject<'a> for PyAnyValue<'a> {
+    fn extract(ob: &'a PyAny) -> PyResult<Self> {
+        let object_type = ob
+            .getattr("__class__")?
+            .getattr("__name__")?
+            .extract::<&str>()?;
+
+        match object_type {
+            "float" => Ok(PyAnyValue(AnyValue::Float64(ob.extract::<f64>()?))),
+            "int" => Ok(PyAnyValue(AnyValue::Int64(ob.extract::<i64>()?))),
+            "str" => Ok(PyAnyValue(AnyValue::Utf8(ob.extract::<&str>()?))),
+            "bool" => Ok(PyAnyValue(AnyValue::Boolean(ob.extract::<bool>()?))),
+            "datetime" => {
+                let timestamp = (ob.call_method0("timestamp")?.extract::<f64>()? * 1000.0) as i64;
+                Ok(PyAnyValue(AnyValue::Datetime(
+                    timestamp,
+                    TimeUnit::Milliseconds,
+                    &None,
+                )))
+            }
+            "date" => {
+                let days = Python::with_gil(|py| {
+                    let datetime = py
+                        .import("datetime")
+                        .expect("Cannot import datetime module");
+
+                    let epoch = datetime.call_method1("date", (1970, 1, 1)).unwrap();
+
+                    ob.call_method1("__sub__", (epoch,))
+                        .expect("Failed to convert Date object")
+                        .getattr("days")
+                        .expect("Failed to convert Date object")
+                        .extract::<i32>()
+                })?;
+                Ok(PyAnyValue(AnyValue::Date(days)))
+            }
+            "timedelta" => {
+                let seconds = (ob.call_method0("total_seconds")?.extract::<f64>()? * 1000.0) as i64;
+                Ok(PyAnyValue(AnyValue::Duration(
+                    seconds,
+                    TimeUnit::Milliseconds,
+                )))
+            }
+            "time" => {
+                let hours = ob.getattr("hour")?.extract::<i64>()?;
+                let minutes = ob.getattr("minute")?.extract::<i64>()?;
+                let seconds = ob.getattr("second")?.extract::<i64>()?;
+                let microseconds = ob.getattr("microsecond")?.extract::<i64>()?;
+
+                Ok(PyAnyValue(AnyValue::Time(
+                    (hours * 3600000000000)
+                        + (minutes * 60000000000)
+                        + (seconds * 1000000000)
+                        + (microseconds * 1000),
+                )))
+            }
+            "Series" => Ok(PyAnyValue(AnyValue::List(ob.extract::<PySeries>()?.0))),
+            "bytes" => Ok(PyAnyValue(AnyValue::Binary(ob.extract::<&[u8]>()?))),
+            "NoneType" => Ok(PyAnyValue(AnyValue::Null)),
+            _ => Err(PyTypeError::new_err(format!(
+                "'{}' object cannot be interpreted",
+                object_type
+            ))),
         }
     }
 }
