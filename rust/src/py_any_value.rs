@@ -53,17 +53,17 @@ impl IntoPy<PyObject> for PyAnyValue<'_> {
             // The timezone is ignored - This may lead to wrong conversions
             AnyValue::Datetime(time, unit, _timezone) => match unit {
                 polars::prelude::TimeUnit::Milliseconds => {
-                    PyDateTime::from_timestamp(py, (time / 1_000) as f64, None)
+                    PyDateTime::from_timestamp(py, time as f64 / 1_000.0, None)
                         .unwrap()
                         .into_py(py)
                 }
                 polars::prelude::TimeUnit::Microseconds => {
-                    PyDateTime::from_timestamp(py, (time / 1_000_000) as f64, None)
+                    PyDateTime::from_timestamp(py, time as f64 / 1_000_000.0, None)
                         .unwrap()
                         .into_py(py)
                 }
                 polars::prelude::TimeUnit::Nanoseconds => {
-                    PyDateTime::from_timestamp(py, (time / 1_000_000_000) as f64, None)
+                    PyDateTime::from_timestamp(py, time as f64 / 1_000_000_000.0, None)
                         .unwrap()
                         .into_py(py)
                 }
