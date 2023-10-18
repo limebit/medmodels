@@ -28,12 +28,13 @@
       "extensions": [
         "ms-python.python",
         "charliermarsh.ruff",
-        "bungcip.better-toml",
+        "tamasfe.even-better-toml",
         "EditorConfig.EditorConfig",
         "eamodio.gitlens",
         "ms-vsliveshare.vsliveshare",
         "ms-vscode.makefile-tools",
-        "njpwerner.autodocstring"
+        "njpwerner.autodocstring",
+        "rust-lang.rust-analyzer"
       ]
     }
   }

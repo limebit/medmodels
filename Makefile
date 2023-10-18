@@ -38,4 +38,7 @@ clean:
 	rm -rf .pytest_cache
 	rm -rf .ruff_cache
 	rm -rf ./src/medmodels.egg-info
+	rm -rf ./rust/target
+	rm -f ./src/medmodels/*.so
+	rm -f ./.vscode/*.log
 	find ./src -name __pycache__ -type d -exec rm -r {} +

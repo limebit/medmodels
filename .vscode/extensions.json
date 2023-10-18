@@ -2,15 +2,14 @@
   "recommendations": [
     "ms-python.python",
     "charliermarsh.ruff",
-    "bungcip.better-toml",
+    "tamasfe.even-better-toml",
     "ms-vscode-remote.remote-containers",
     "EditorConfig.EditorConfig",
     "eamodio.gitlens",
     "ms-vsliveshare.vsliveshare",
     "ms-vscode.makefile-tools",
-    "njpwerner.autodocstring"
+    "rust-lang.rust-analyzer",
+    "njpwerner.autodocstring",
+    "ms-python.black-formatter"
   ],
-  "unwantedRecommendations": [
-    "ms-python.black-formatter",
-  ]
 }
