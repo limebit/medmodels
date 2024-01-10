@@ -26,8 +26,8 @@ pub struct Medrecord {
 #[pymethods]
 impl Medrecord {
     #[new]
-    fn new() -> Medrecord {
-        Medrecord {
+    fn new() -> Self {
+        Self {
             graph: StableGraph::default(),
             index_mapping: IndexMapping::new(),
         }
@@ -37,7 +37,7 @@ impl Medrecord {
     fn from_nodes_and_edges(
         nodes: Vec<(String, Dictionary)>,
         edges: Vec<(String, String, Dictionary)>,
-    ) -> PyResult<Medrecord> {
+    ) -> PyResult<Self> {
         let mut index_mapping = IndexMapping::new();
 
         let mut elements = Vec::<Element<Dictionary, Dictionary>>::new();
@@ -96,30 +96,35 @@ impl Medrecord {
         let nodes: DataFrame = nodes_dataframe.into();
         let edges: DataFrame = edges_dataframe.into();
 
-        let node_attribute_columns = nodes.columns(node_attribute_column_names.clone()).unwrap();
-        let edge_attribute_columns = edges.columns(edge_attribute_column_names.clone()).unwrap();
+        let node_attribute_columns = nodes.columns(&node_attribute_column_names).map_err(|_| {
+            PyIndexError::new_err(format!(
+                "Could not find all columns from list [{}] in nodes dataframe",
+                node_attribute_column_names.join(", ")
+            ))
+        })?;
+        let edge_attribute_columns = edges.columns(&edge_attribute_column_names).map_err(|_| {
+            PyIndexError::new_err(format!(
+                "Could not find all columns from list [{}] in edges dataframe",
+                edge_attribute_column_names.join(", ")
+            ))
+        })?;
 
         let node_index_column = nodes
             .column(&node_index_column_name)
-            .unwrap()
+            .map_err(|_| {
+                PyIndexError::new_err(format!(
+                    "Could not find column with name {} in nodes dataframe",
+                    node_index_column_name
+                ))
+            })?
             .utf8()
-            .unwrap()
+            .map_err(|_| {
+                PyRuntimeError::new_err(format!(
+                    "Failed to convert column {} to utf8 in nodes dataframe",
+                    node_index_column_name
+                ))
+            })?
             .into_iter();
-
-        let edge_from_index_column = edges
-            .column(&edge_from_index_column_name)
-            .unwrap()
-            .utf8()
-            .unwrap()
-            .into_iter();
-        let edge_to_index_column = edges
-            .column(&edge_to_index_column_name)
-            .unwrap()
-            .utf8()
-            .unwrap()
-            .into_iter();
-
-        let edge_index_columns = edge_from_index_column.zip(edge_to_index_column);
 
         for (index, node_index) in node_index_column.enumerate() {
             let id = node_index.unwrap();
@@ -131,7 +136,9 @@ impl Medrecord {
             for (column_index, column_name) in node_attribute_column_names.iter().enumerate() {
                 let value = Python::with_gil(|py| {
                     PyAnyValue(
-                        node_attribute_columns[column_index]
+                        node_attribute_columns
+                            .get(column_index)
+                            .unwrap()
                             .get(index)
                             .unwrap()
                             .clone(),
@@ -143,6 +150,41 @@ impl Medrecord {
 
             elements.push(Element::Node { weight });
         }
+
+        let edge_from_index_column = edges
+            .column(&edge_from_index_column_name)
+            .map_err(|_| {
+                PyIndexError::new_err(format!(
+                    "Could not find column with name {} in edges dataframe",
+                    edge_from_index_column_name
+                ))
+            })?
+            .utf8()
+            .map_err(|_| {
+                PyRuntimeError::new_err(format!(
+                    "Failed to convert column {} to utf8 in edges dataframe",
+                    edge_from_index_column_name
+                ))
+            })?
+            .into_iter();
+        let edge_to_index_column = edges
+            .column(&edge_to_index_column_name)
+            .map_err(|_| {
+                PyIndexError::new_err(format!(
+                    "Could not find column with name {} in edges dataframe",
+                    edge_to_index_column_name
+                ))
+            })?
+            .utf8()
+            .map_err(|_| {
+                PyRuntimeError::new_err(format!(
+                    "Failed to convert column {} to utf8 in edges dataframe",
+                    edge_to_index_column_name
+                ))
+            })?
+            .into_iter();
+
+        let edge_index_columns = edge_from_index_column.zip(edge_to_index_column);
 
         for (index, (from_index, to_index)) in edge_index_columns.enumerate() {
             let from_node_index =
