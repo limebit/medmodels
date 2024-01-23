@@ -6,7 +6,7 @@ use medrecord::Medrecord;
 use pyo3::prelude::*;
 
 #[pymodule]
-fn new_dataclass(_py: Python, m: &PyModule) -> PyResult<()> {
+fn medmodels(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<Medrecord>()?;
     Ok(())
 }

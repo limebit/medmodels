@@ -17,6 +17,16 @@ impl IndexMapping {
         }
     }
 
+    pub fn check_custom_index(&self, custom_index: &str) -> bool {
+        self.custom_index_to_node_index_mapping
+            .contains_key(custom_index)
+    }
+
+    pub fn check_node_index(&self, node_index: &NodeIndex) -> bool {
+        self.node_index_to_custom_index_mapping
+            .contains_key(node_index)
+    }
+
     pub fn get_node_index(&self, custom_index: &str) -> Option<&NodeIndex> {
         self.custom_index_to_node_index_mapping.get(custom_index)
     }

@@ -9,18 +9,21 @@ use petgraph::{
 };
 use polars::prelude::DataFrame;
 use pyo3::{
-    exceptions::{PyIndexError, PyRuntimeError},
+    exceptions::{PyAssertionError, PyIndexError, PyRuntimeError},
     prelude::*,
     types::PyTuple,
 };
 use pyo3_polars::PyDataFrame;
 
 type Dictionary = HashMap<String, PyObject>;
+type Group = String;
+type NodeId = String;
 
 #[pyclass]
 pub struct Medrecord {
     graph: StableGraph<Dictionary, Dictionary, Directed>,
     index_mapping: IndexMapping,
+    group_mapping: HashMap<Group, Vec<NodeId>>,
 }
 
 #[pymethods]
@@ -30,6 +33,7 @@ impl Medrecord {
         Self {
             graph: StableGraph::default(),
             index_mapping: IndexMapping::new(),
+            group_mapping: HashMap::new(),
         }
     }
 
@@ -77,6 +81,7 @@ impl Medrecord {
         Ok(Medrecord {
             graph: StableGraph::from_elements(elements),
             index_mapping: index_mapping.to_owned(),
+            group_mapping: HashMap::new(),
         })
     }
 
@@ -228,6 +233,7 @@ impl Medrecord {
         Ok(Medrecord {
             graph: StableGraph::from_elements(elements),
             index_mapping: index_mapping.to_owned(),
+            group_mapping: HashMap::new(),
         })
     }
 
@@ -237,6 +243,10 @@ impl Medrecord {
 
     fn edge_count(&self) -> PyResult<usize> {
         Ok(self.graph.edge_count())
+    }
+
+    fn group_count(&self) -> PyResult<usize> {
+        Ok(self.group_mapping.len())
     }
 
     #[getter]
@@ -338,6 +348,56 @@ impl Medrecord {
             .collect::<Vec<_>>())
     }
 
+    #[getter]
+    fn groups(&self) -> PyResult<Vec<&String>> {
+        Ok(self.group_mapping.keys().collect())
+    }
+
+    #[pyo3(signature = (*group))]
+    fn group(&self, group: &PyTuple) -> PyResult<Vec<(String, Dictionary)>> {
+        group
+            .iter()
+            .map(|item| {
+                let id = item.extract::<String>()?;
+
+                let node_ids =
+                    self.group_mapping
+                        .get(&id)
+                        .ok_or(PyIndexError::new_err(format!(
+                            "Could not find group {}",
+                            group
+                        )))?;
+
+                node_ids
+                    .iter()
+                    .map(|node_id| {
+                        let node_index = self.index_mapping.get_node_index(&node_id).ok_or(
+                            PyIndexError::new_err(format!(
+                                "Could not find node with index {}",
+                                node_id
+                            )),
+                        )?;
+
+                        let weight = self
+                            .graph
+                            .node_weight(*node_index)
+                            .ok_or(PyIndexError::new_err(format!(
+                                "Could not find node with index {}",
+                                id
+                            )))
+                            .cloned()?;
+
+                        Ok((node_id.to_string(), weight))
+                    })
+                    .collect::<Result<Vec<_>, PyErr>>()
+            })
+            .flat_map(|result| match result {
+                Ok(vec) => vec.into_iter().map(|item| Ok(item)).collect(),
+                Err(er) => vec![Err(er)],
+            })
+            .collect::<Result<Vec<_>, _>>()
+    }
+
     fn add_nodes(&mut self, nodes: Vec<(String, Dictionary)>) -> PyResult<()> {
         for node in nodes.iter() {
             let (id, attributes) = node;
@@ -379,5 +439,126 @@ impl Medrecord {
         }
 
         Ok(())
+    }
+
+    fn add_group(&mut self, group: Group, node_ids_to_add: Option<Vec<String>>) -> PyResult<()> {
+        // Check that the node_ids that are about to be added are actually in the graph
+        if let Some(node_ids_to_add) = node_ids_to_add.clone() {
+            if node_ids_to_add
+                .iter()
+                .any(|node_id| !self.index_mapping.check_custom_index(node_id))
+            {
+                return Err(PyIndexError::new_err(format!(
+                    "One or more nodes are not in the graph"
+                )));
+            }
+        }
+
+        self.group_mapping
+            .insert(group, node_ids_to_add.unwrap_or_default());
+
+        Ok(())
+    }
+
+    fn remove_group(&mut self, group: &str) -> PyResult<()> {
+        if !self.group_mapping.contains_key(group) {
+            return Err(PyAssertionError::new_err(format!(
+                "Could not find group {}",
+                group
+            )));
+        }
+
+        self.group_mapping.remove(group);
+
+        Ok(())
+    }
+
+    fn remove_from_group(&mut self, group: Group, node_id: &str) -> PyResult<()> {
+        let node_ids = self
+            .group_mapping
+            .get_mut(&group)
+            .ok_or(PyIndexError::new_err(format!(
+                "Could not find group {}",
+                group
+            )))?;
+
+        let node_id_index =
+            node_ids
+                .iter()
+                .position(|id| id == node_id)
+                .ok_or(PyIndexError::new_err(format!(
+                    "Could not find node with id {} in group {}",
+                    node_id, group
+                )))?;
+
+        node_ids.remove(node_id_index);
+
+        Ok(())
+    }
+
+    #[pyo3(signature = (group, *node_id))]
+    fn add_to_group(&mut self, group: Group, node_id: String) -> PyResult<()> {
+        let node_ids = self
+            .group_mapping
+            .get_mut(&group)
+            .ok_or(PyIndexError::new_err(format!(
+                "Could not find group {}",
+                group
+            )))?;
+
+        if node_ids.contains(&node_id) {
+            return Err(PyAssertionError::new_err(format!(
+                "Node with id {} is already in group {}",
+                node_id, group
+            )));
+        }
+
+        node_ids.push(node_id);
+
+        Ok(())
+    }
+
+    #[pyo3(signature = (*node_id))]
+    fn neighbors(&self, node_id: &PyTuple) -> PyResult<Vec<(String, Dictionary)>> {
+        node_id
+            .iter()
+            .map(|item| {
+                let id = item.extract::<String>()?;
+
+                let node_index =
+                    self.index_mapping
+                        .get_node_index(&id)
+                        .ok_or(PyIndexError::new_err(format!(
+                            "Could not find node with index {}",
+                            id
+                        )))?;
+
+                let nodes = self
+                    .graph
+                    .neighbors(*node_index)
+                    .map(|node_index| {
+                        let custom_index = self
+                            .index_mapping
+                            .get_custom_index(&node_index)
+                            .expect("Node must exist")
+                            .to_owned();
+
+                        let weight = self
+                            .graph
+                            .node_weight(node_index)
+                            .expect("Node weigth must exist")
+                            .to_owned();
+
+                        (custom_index, weight)
+                    })
+                    .collect::<Vec<_>>();
+
+                Ok::<_, PyErr>(nodes)
+            })
+            .flat_map(|result| match result {
+                Ok(vec) => vec.into_iter().map(|item| Ok(item)).collect(),
+                Err(er) => vec![Err(er)],
+            })
+            .collect::<Result<Vec<_>, _>>()
     }
 }
