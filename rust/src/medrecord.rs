@@ -12,6 +12,7 @@ use pyo3::{
     exceptions::{PyAssertionError, PyIndexError, PyRuntimeError},
     prelude::*,
     types::PyTuple,
+    PyTraverseError, PyVisit,
 };
 use pyo3_polars::PyDataFrame;
 
@@ -560,5 +561,19 @@ impl Medrecord {
                 Err(er) => vec![Err(er)],
             })
             .collect::<Result<Vec<_>, _>>()
+    }
+
+    fn __traverse__(&self, visit: PyVisit<'_>) -> Result<(), PyTraverseError> {
+        for weight in self.graph.node_weights() {
+            for value in weight.values() {
+                visit.call(value)?;
+            }
+        }
+
+        Ok(())
+    }
+
+    fn __clear__(&mut self) {
+        self.graph.clear();
     }
 }
