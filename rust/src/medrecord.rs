@@ -133,7 +133,9 @@ impl Medrecord {
             .into_iter();
 
         for (index, node_index) in node_index_column.enumerate() {
-            let id = node_index.unwrap();
+            let id =
+                node_index.ok_or(PyRuntimeError::new_err("Failed to read id in index column"))?;
+
             index_mapping
                 .insert_custom_index_to_node_index((*id).to_string(), NodeIndex::new(index));
 
@@ -141,16 +143,23 @@ impl Medrecord {
 
             for (column_index, column_name) in node_attribute_column_names.iter().enumerate() {
                 let value = Python::with_gil(|py| {
-                    PyAnyValue(
-                        node_attribute_columns
-                            .get(column_index)
-                            .unwrap()
-                            .get(index)
-                            .unwrap()
-                            .clone(),
+                    Ok::<PyObject, PyErr>(
+                        PyAnyValue(
+                            node_attribute_columns
+                                .get(column_index)
+                                .expect("Column exists")
+                                .get(index)
+                                .map_err(|_| {
+                                    PyIndexError::new_err(format!(
+                                        "Failed to get index {} of column {}",
+                                        index, column_index
+                                    ))
+                                })?
+                                .clone(),
+                        )
+                        .into_py(py),
                     )
-                    .into_py(py)
-                });
+                })?;
                 weight.insert(column_name.clone(), value);
             }
 
@@ -193,34 +202,49 @@ impl Medrecord {
         let edge_index_columns = edge_from_index_column.zip(edge_to_index_column);
 
         for (index, (from_index, to_index)) in edge_index_columns.enumerate() {
+            let from_index = from_index.ok_or(PyIndexError::new_err(
+                "Failed to get index in from_edge column",
+            ))?;
+
+            let to_index = to_index.ok_or(PyIndexError::new_err(
+                "Failed to get index in to_edge column",
+            ))?;
+
             let from_node_index =
                 index_mapping
-                    .get_node_index(from_index.unwrap())
+                    .get_node_index(from_index)
                     .ok_or(PyIndexError::new_err(format!(
                         "Could not find index {}",
-                        from_index.unwrap()
+                        from_index
                     )))?;
 
             let to_node_index =
                 index_mapping
-                    .get_node_index(to_index.unwrap())
+                    .get_node_index(to_index)
                     .ok_or(PyIndexError::new_err(format!(
                         "Could not find index {}",
-                        to_index.unwrap()
+                        to_index
                     )))?;
 
             let mut weight = Dictionary::new();
 
             for (column_index, column_name) in edge_attribute_column_names.iter().enumerate() {
                 let value = Python::with_gil(|py| {
-                    PyAnyValue(
-                        edge_attribute_columns[column_index]
-                            .get(index)
-                            .unwrap()
-                            .clone(),
+                    Ok::<PyObject, PyErr>(
+                        PyAnyValue(
+                            edge_attribute_columns[column_index]
+                                .get(index)
+                                .map_err(|_| {
+                                    PyIndexError::new_err(format!(
+                                        "Failed to get index {} of column {}",
+                                        index, column_index
+                                    ))
+                                })?
+                                .clone(),
+                        )
+                        .into_py(py),
                     )
-                    .into_py(py)
-                });
+                })?;
                 weight.insert(column_name.clone(), value);
             }
 
@@ -366,7 +390,7 @@ impl Medrecord {
                         .get(&id)
                         .ok_or(PyIndexError::new_err(format!(
                             "Could not find group {}",
-                            group
+                            id
                         )))?;
 
                 node_ids
