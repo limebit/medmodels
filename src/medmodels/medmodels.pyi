@@ -7,9 +7,11 @@ class Medrecord:
     groups: List[str]
 
     def __init__(self) -> None: ...
+    @staticmethod
     def from_nodes_and_edges(
         nodes: List[tuple[str, object]], edges: List[tuple[str, str, object]]
     ) -> Medrecord: ...
+    @staticmethod
     def from_dataframes(
         nodes_dataframe: DataFrame,
         edges_dataframe: DataFrame,
