@@ -6,8 +6,16 @@
 
 /.vscode/	@JabobKrauskopf @limebit/medmodels-software-engineering
 
+/crates/	@JabobKrauskopf @limebit/medmodels-software-engineering
+
+/rustmodels/ @JabobKrauskopf @limebit/medmodels-software-engineering
+
 /.editorconfig	@JabobKrauskopf @limebit/medmodels-software-engineering
+
+/Cargo.toml @JabobKrauskopf @limebit/medmodels-software-engineering
+
+/Makefile @JabobKrauskopf @limebit/medmodels-software-engineering
 
 /pyproject.toml @JabobKrauskopf @limebit/medmodels-software-engineering
 
-/rust/	@JabobKrauskopf @limebit/medmodels-software-engineering
+/rust-toolchain @JabobKrauskopf @limebit/medmodels-software-engineering

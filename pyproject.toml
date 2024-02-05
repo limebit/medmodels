@@ -7,7 +7,7 @@ requires-python = ">=3.9"
 dependencies = [
     "numpy==1.24.2",
     "pandas==1.5.1",
-    "polars[pyarrow]==0.19.8",
+    "polars[pyarrow]==0.20.7",
     "scikit-learn==1.0.2",
     "networkx==3.0",
     "matplotlib==3.5.1",
@@ -26,6 +26,8 @@ build-backend = "maturin"
 [tool.maturin]
 features = ["pyo3/extension-module"]
 exclude = ["tests", "examples"]
+manifest-path = "rustmodels/Cargo.toml"
+module-name = "medmodels._medmodels"
 
 [tool.ruff]
 exclude = [
