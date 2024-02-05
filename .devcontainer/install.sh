@@ -1,6 +1,6 @@
 #!/bin/bash
 
-apt update && apt install -y vim
+apt update && apt install -y vim build-essential curl
 git clone https://github.com/zsh-users/zsh-autosuggestions /home/vscode/.oh-my-zsh/custom/plugins/zsh-autosuggestions
 git clone https://github.com/zsh-users/zsh-syntax-highlighting.git /home/vscode/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting
 

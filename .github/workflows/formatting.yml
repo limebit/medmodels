@@ -17,4 +17,4 @@ jobs:
       - name: Install dependencies
         run: make install-dev
       - name: Format with black
-        run: .venv/bin/python -m black --check --verbose src
+        run: .venv/bin/python -m black --check --verbose medmodels examples

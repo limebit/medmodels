@@ -574,10 +574,15 @@ dependencies = [
 name = "medmodels"
 version = "0.0.1"
 dependencies = [
+ "medmodels-core",
+]
+
+[[package]]
+name = "medmodels-core"
+version = "0.0.1"
+dependencies = [
  "petgraph",
  "polars",
- "pyo3",
- "pyo3-polars",
 ]
 
 [[package]]
@@ -983,6 +988,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "134c189feb4956b20f6f547d2cf727d4c0fe06722b20a0eec87ed445a97f92da"
 dependencies = [
  "unicode-ident",
+]
+
+[[package]]
+name = "py-medmodels"
+version = "0.0.1"
+dependencies = [
+ "medmodels-core",
+ "polars",
+ "pyo3",
+ "pyo3-polars",
 ]
 
 [[package]]

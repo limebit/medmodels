@@ -5,6 +5,5 @@ __pycache__
 *.pyc
 *.log
 dist
-
-rust/target
+target
 *.so

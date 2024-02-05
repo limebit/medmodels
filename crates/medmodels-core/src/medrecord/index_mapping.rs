@@ -1,6 +1,5 @@
-use std::collections::{hash_map::Keys, HashMap};
-
 use petgraph::stable_graph::NodeIndex;
+use std::collections::{hash_map::Keys, HashMap};
 
 #[derive(Clone)]
 pub struct IndexMapping {
@@ -81,5 +80,10 @@ impl IndexMapping {
 
     pub fn node_index_to_custom_index_keys(&self) -> Keys<'_, NodeIndex, String> {
         self.node_index_to_custom_index_mapping.keys()
+    }
+
+    pub fn clear(&mut self) -> () {
+        self.custom_index_to_node_index_mapping.clear();
+        self.node_index_to_custom_index_mapping.clear();
     }
 }
