@@ -1,6 +1,32 @@
+[project]
+name = "medmodels"
+version = "0.0.1"
+description = "Limebit Medmodels Package"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "numpy==1.24.2",
+    "pandas==1.5.1",
+    "polars[pyarrow]==0.19.8",
+    "scikit-learn==1.0.2",
+    "networkx==3.0",
+    "matplotlib==3.5.1",
+    "seaborn==0.12.2",
+]
+
+[project.optional-dependencies]
+dev = ["maturin==1.2.0", "ruff==0.0.238", "black==22.10.0", "matplotlib==3.5.1"]
+tests = ["pytest==6.2.5", "pytest-mock==3.10.0"]
+examples = ["matplotlib==3.5.1"]
+
 [build-system]
-requires = ["setuptools", "wheel"]
-build-backend = "setuptools.build_meta"
+requires = ["maturin>=1.2,<2.0"]
+build-backend = "maturin"
+
+[tool.maturin]
+features = ["pyo3/extension-module"]
+exclude = ["tests", "examples"]
+
 [tool.ruff]
 exclude = [
     "__pycache__",
@@ -12,3 +38,6 @@ exclude = [
     "hooks",
 ]
 line-length = 88
+
+[tool.pytest]
+python_files = "test_*.py"
