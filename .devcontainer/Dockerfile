@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/vscode/devcontainers/python:3.9 as base
+FROM mcr.microsoft.com/vscode/devcontainers/python:3.10 as base
 
 ARG USE_POWERLEVEL10K
 

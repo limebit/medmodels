@@ -1,0 +1,15 @@
+[package]
+name = "py-medmodels"
+version = "0.0.1"
+edition = "2021"
+
+[lib]
+name = "medmodels"
+crate-type = ["cdylib"]
+
+[dependencies]
+medmodels-core = { workspace = true }
+
+pyo3 = { workspace = true }
+pyo3-polars = { workspace = true }
+polars = { workspace = true }

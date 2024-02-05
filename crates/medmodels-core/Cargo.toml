@@ -1,0 +1,11 @@
+[package]
+name = "medmodels-core"
+version = { workspace = true }
+edition = { workspace = true }
+repository = { workspace = true }
+license = { workspace = true }
+readme = "../../README.md"
+
+[dependencies]
+petgraph = { workspace = true }
+polars = { workspace = true }

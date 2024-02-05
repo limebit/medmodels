@@ -1,0 +1,19 @@
+[workspace]
+members = ["crates/*", "rustmodels"]
+
+[workspace.package]
+version = "0.0.1"
+edition = "2021"
+repository = "https://github.com/limebit/medmodels"
+license = "BSD-3-Clause"
+readme = "README.md"
+
+[workspace.dependencies]
+petgraph = "0.6.3"
+pyo3 = "0.20.0"
+polars = "0.33.2"
+# This will be switched back once the new version of pyo3-polars is released
+pyo3-polars = { git = "https://github.com/pola-rs/pyo3-polars.git" }
+
+medmodels = { version = "0.0.1", path = "crates/medmodels" }
+medmodels-core = { version = "0.0.1", path = "crates/medmodels-core" }

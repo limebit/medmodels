@@ -14,7 +14,8 @@
       "installOhMyZsh": true,
       "upgradePackages": true
     },
-    "ghcr.io/devcontainers/features/git-lfs:1": {}
+    "ghcr.io/devcontainers/features/git-lfs:1": {},
+    "ghcr.io/devcontainers/features/rust": {}
   },
   "customizations": {
     "vscode": {
