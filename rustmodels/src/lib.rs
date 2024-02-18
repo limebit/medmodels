@@ -1,4 +1,3 @@
-mod errors;
 mod medrecord;
 mod py_any_value;
 
