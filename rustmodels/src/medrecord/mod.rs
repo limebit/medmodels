@@ -1,14 +1,19 @@
+mod conversion;
+mod errors;
+
+use self::{
+    conversion::{DeepInto, PyMedRecordValue},
+    errors::PyMedRecordError,
+};
+use medmodels_core::medrecord::MedRecord;
+use pyo3::{prelude::*, types::PyTuple};
 use std::collections::HashMap;
 
-use crate::errors::PyMedRecordError;
-use medmodels_core::medrecord::MedRecord;
-use pyo3::{prelude::*, types::PyTuple, PyTraverseError, PyVisit};
-
-type Dictionary = HashMap<String, PyObject>;
+type Dictionary = HashMap<String, PyMedRecordValue>;
 type Group = String;
 
 #[pyclass]
-pub struct PyMedRecord(MedRecord<PyObject>);
+pub struct PyMedRecord(MedRecord);
 
 #[pymethods]
 impl PyMedRecord {
@@ -25,7 +30,8 @@ impl PyMedRecord {
         edges: Vec<(String, String, Dictionary)>,
     ) -> PyResult<Self> {
         Ok(Self {
-            0: MedRecord::from_nodes_and_edges(nodes, edges).map_err(PyMedRecordError::from)?,
+            0: MedRecord::from_nodes_and_edges(nodes.deep_into(), edges.deep_into())
+                .map_err(PyMedRecordError::from)?,
         })
     }
 
@@ -59,7 +65,7 @@ impl PyMedRecord {
             .map(|nodes| {
                 nodes
                     .into_iter()
-                    .map(|(id, weight)| (id, weight.to_owned()))
+                    .map(|(id, weight)| (id, weight.to_owned().deep_into()))
                     .collect()
             })
             .map_err(PyMedRecordError::from)?)
@@ -74,7 +80,12 @@ impl PyMedRecord {
         Ok(self
             .0
             .edges_between(start_node_id, end_node_id)
-            .map(|edges| edges.into_iter().map(|weight| weight.to_owned()).collect())
+            .map(|edges| {
+                edges
+                    .into_iter()
+                    .map(|weight| weight.to_owned().deep_into())
+                    .collect()
+            })
             .map_err(PyMedRecordError::from)?)
     }
 
@@ -96,20 +107,20 @@ impl PyMedRecord {
             .map(|nodes| {
                 nodes
                     .into_iter()
-                    .map(|(id, weight)| (id.to_owned(), weight.to_owned()))
+                    .map(|(id, weight)| (id.to_owned(), weight.to_owned().deep_into()))
                     .collect()
             })
             .map_err(PyMedRecordError::from)?)
     }
 
     fn add_nodes(&mut self, nodes: Vec<(String, Dictionary)>) -> () {
-        self.0.add_nodes(nodes)
+        self.0.add_nodes(nodes.deep_into())
     }
 
     fn add_edges(&mut self, relations: Vec<(String, String, Dictionary)>) -> PyResult<()> {
         Ok(self
             .0
-            .add_edges(relations)
+            .add_edges(relations.deep_into())
             .map_err(PyMedRecordError::from)?)
     }
 
@@ -151,23 +162,9 @@ impl PyMedRecord {
             .map(|neighbors| {
                 neighbors
                     .into_iter()
-                    .map(|(id, weight)| (id, weight.to_owned()))
+                    .map(|(id, weight)| (id, weight.to_owned().deep_into()))
                     .collect()
             })
             .map_err(PyMedRecordError::from)?)
-    }
-
-    fn __traverse__(&self, visit: PyVisit<'_>) -> Result<(), PyTraverseError> {
-        for weight in self.0.iter_weights() {
-            for value in weight.values() {
-                visit.call(value)?;
-            }
-        }
-
-        Ok(())
-    }
-
-    fn __clear__(&mut self) {
-        self.0.clear();
     }
 }

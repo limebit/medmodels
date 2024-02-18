@@ -1,5 +1,7 @@
 mod index_mapping;
+mod values;
 
+pub use self::values::MedRecordValue;
 use crate::errors::MedRecordError;
 use index_mapping::IndexMapping;
 use petgraph::{
@@ -9,17 +11,17 @@ use petgraph::{
 };
 use std::collections::HashMap;
 
-type Dictionary<T> = HashMap<String, T>;
+type Dictionary = HashMap<String, MedRecordValue>;
 type Group = String;
 type NodeId = String;
 
-pub struct MedRecord<T> {
-    graph: StableGraph<Dictionary<T>, Dictionary<T>, Directed>,
+pub struct MedRecord {
+    graph: StableGraph<Dictionary, Dictionary, Directed>,
     index_mapping: IndexMapping,
     group_mapping: HashMap<Group, Vec<NodeId>>,
 }
 
-impl<T: Clone> MedRecord<T> {
+impl MedRecord {
     pub fn new() -> Self {
         Self {
             graph: StableGraph::default(),
@@ -29,12 +31,12 @@ impl<T: Clone> MedRecord<T> {
     }
 
     pub fn from_nodes_and_edges(
-        nodes: Vec<(String, Dictionary<T>)>,
-        edges: Vec<(String, String, Dictionary<T>)>,
+        nodes: Vec<(String, Dictionary)>,
+        edges: Vec<(String, String, Dictionary)>,
     ) -> Result<Self, MedRecordError> {
         let mut index_mapping = IndexMapping::new();
 
-        let mut elements = Vec::<Element<Dictionary<T>, Dictionary<T>>>::new();
+        let mut elements = Vec::<Element<Dictionary, Dictionary>>::new();
 
         for (index, (id, weight)) in nodes.iter().enumerate() {
             index_mapping.insert_custom_index_to_node_index(id.to_owned(), NodeIndex::new(index));
@@ -91,10 +93,7 @@ impl<T: Clone> MedRecord<T> {
         Vec::from_iter(self.index_mapping.custom_index_to_node_index_keys())
     }
 
-    pub fn node(
-        &self,
-        node_id: Vec<String>,
-    ) -> Result<Vec<(String, &Dictionary<T>)>, MedRecordError> {
+    pub fn node(&self, node_id: Vec<String>) -> Result<Vec<(String, &Dictionary)>, MedRecordError> {
         node_id
             .iter()
             .map(|id| {
@@ -155,7 +154,7 @@ impl<T: Clone> MedRecord<T> {
         &self,
         start_node_id: &str,
         end_node_id: &str,
-    ) -> Result<Vec<&Dictionary<T>>, MedRecordError> {
+    ) -> Result<Vec<&Dictionary>, MedRecordError> {
         let node_index_start_node =
             self.index_mapping
                 .get_node_index(start_node_id)
@@ -186,10 +185,7 @@ impl<T: Clone> MedRecord<T> {
         self.group_mapping.keys().collect()
     }
 
-    pub fn group(
-        &self,
-        group: Vec<String>,
-    ) -> Result<Vec<(&String, &Dictionary<T>)>, MedRecordError> {
+    pub fn group(&self, group: Vec<String>) -> Result<Vec<(&String, &Dictionary)>, MedRecordError> {
         group
             .iter()
             .map(|id| {
@@ -229,7 +225,7 @@ impl<T: Clone> MedRecord<T> {
             .collect()
     }
 
-    pub fn add_nodes(&mut self, nodes: Vec<(String, Dictionary<T>)>) -> () {
+    pub fn add_nodes(&mut self, nodes: Vec<(String, Dictionary)>) -> () {
         for node in nodes.iter() {
             let (id, attributes) = node;
 
@@ -242,7 +238,7 @@ impl<T: Clone> MedRecord<T> {
 
     pub fn add_edges(
         &mut self,
-        relations: Vec<(String, String, Dictionary<T>)>,
+        relations: Vec<(String, String, Dictionary)>,
     ) -> Result<(), MedRecordError> {
         for relation in relations.iter() {
             let (id_node_1, id_node_2, attributes) = relation;
@@ -356,7 +352,7 @@ impl<T: Clone> MedRecord<T> {
     pub fn neighbors(
         &self,
         node_id: Vec<String>,
-    ) -> Result<Vec<(String, &Dictionary<T>)>, MedRecordError> {
+    ) -> Result<Vec<(String, &Dictionary)>, MedRecordError> {
         node_id
             .iter()
             .map(|id| {
@@ -402,7 +398,7 @@ impl<T: Clone> MedRecord<T> {
         self.index_mapping.clear();
     }
 
-    pub fn iter_weights(&self) -> impl Iterator<Item = &Dictionary<T>> {
+    pub fn iter_weights(&self) -> impl Iterator<Item = &Dictionary> {
         self.graph.node_weights()
     }
 }
