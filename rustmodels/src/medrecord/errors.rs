@@ -8,7 +8,7 @@ pub(crate) struct PyMedRecordError(MedRecordError);
 
 impl From<MedRecordError> for PyMedRecordError {
     fn from(error: MedRecordError) -> Self {
-        Self { 0: error }
+        Self(error)
     }
 }
 
