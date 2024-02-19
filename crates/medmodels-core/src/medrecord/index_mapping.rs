@@ -82,7 +82,7 @@ impl IndexMapping {
         self.node_index_to_custom_index_mapping.keys()
     }
 
-    pub fn clear(&mut self) -> () {
+    pub fn clear(&mut self) {
         self.custom_index_to_node_index_mapping.clear();
         self.node_index_to_custom_index_mapping.clear();
     }

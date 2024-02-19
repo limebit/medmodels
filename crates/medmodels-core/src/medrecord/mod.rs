@@ -219,13 +219,13 @@ impl MedRecord {
                     .collect::<Result<Vec<_>, MedRecordError>>()
             })
             .flat_map(|result| match result {
-                Ok(vec) => vec.into_iter().map(|item| Ok(item)).collect(),
+                Ok(vec) => vec.into_iter().map(Ok).collect(),
                 Err(er) => vec![Err(er)],
             })
             .collect()
     }
 
-    pub fn add_nodes(&mut self, nodes: Vec<(String, Dictionary)>) -> () {
+    pub fn add_nodes(&mut self, nodes: Vec<(String, Dictionary)>) {
         for node in nodes.iter() {
             let (id, attributes) = node;
 
@@ -280,9 +280,9 @@ impl MedRecord {
                 .iter()
                 .any(|node_id| !self.index_mapping.check_custom_index(node_id))
             {
-                return Err(MedRecordError::IndexError(format!(
-                    "One or more nodes are not in the graph"
-                )));
+                return Err(MedRecordError::IndexError(
+                    "One or more nodes are not in the graph".to_string(),
+                ));
             }
         }
 
@@ -386,13 +386,13 @@ impl MedRecord {
                 Ok(nodes)
             })
             .flat_map(|result| match result {
-                Ok(vec) => vec.into_iter().map(|item| Ok(item)).collect(),
+                Ok(vec) => vec.into_iter().map(Ok).collect(),
                 Err(er) => vec![Err(er)],
             })
             .collect()
     }
 
-    pub fn clear(&mut self) -> () {
+    pub fn clear(&mut self) {
         self.graph.clear();
         self.group_mapping.clear();
         self.index_mapping.clear();
@@ -400,5 +400,11 @@ impl MedRecord {
 
     pub fn iter_weights(&self) -> impl Iterator<Item = &Dictionary> {
         self.graph.node_weights()
+    }
+}
+
+impl Default for MedRecord {
+    fn default() -> Self {
+        Self::new()
     }
 }
