@@ -19,9 +19,7 @@ pub struct PyMedRecord(MedRecord);
 impl PyMedRecord {
     #[new]
     fn new() -> Self {
-        Self {
-            0: MedRecord::new(),
-        }
+        Self(MedRecord::new())
     }
 
     #[staticmethod]
@@ -29,10 +27,10 @@ impl PyMedRecord {
         nodes: Vec<(String, Dictionary)>,
         edges: Vec<(String, String, Dictionary)>,
     ) -> PyResult<Self> {
-        Ok(Self {
-            0: MedRecord::from_nodes_and_edges(nodes.deep_into(), edges.deep_into())
+        Ok(Self(
+            MedRecord::from_nodes_and_edges(nodes.deep_into(), edges.deep_into())
                 .map_err(PyMedRecordError::from)?,
-        })
+        ))
     }
 
     fn node_count(&self) -> usize {
@@ -113,7 +111,7 @@ impl PyMedRecord {
             .map_err(PyMedRecordError::from)?)
     }
 
-    fn add_nodes(&mut self, nodes: Vec<(String, Dictionary)>) -> () {
+    fn add_nodes(&mut self, nodes: Vec<(String, Dictionary)>) {
         self.0.add_nodes(nodes.deep_into())
     }
 
