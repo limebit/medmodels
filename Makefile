@@ -32,9 +32,11 @@ test: install-tests
 
 lint: install-dev
 	${VENV_PYTHON} -m ruff .
+	cargo clippy --all-targets --all-features
 
 format: install-dev
 	${VENV_PYTHON} -m black medmodels examples
+	cargo fmt
 
 clean:
 	rm -rf .venv
