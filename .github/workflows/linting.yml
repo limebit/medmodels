@@ -18,3 +18,5 @@ jobs:
         run: make install-dev
       - name: Lint with ruff
         run: .venv/bin/python -m ruff --format=github .
+      - name: Lint with clippy
+        run: cargo clippy --all-targets --all-features -- -D warnings
