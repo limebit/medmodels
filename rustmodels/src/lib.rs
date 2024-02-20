@@ -1,5 +1,4 @@
 mod medrecord;
-mod py_any_value;
 
 use medrecord::PyMedRecord;
 use pyo3::prelude::*;

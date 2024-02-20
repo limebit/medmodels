@@ -1,17 +1,21 @@
 mod index_mapping;
 mod values;
 
-pub use self::values::MedRecordValue;
-use crate::errors::MedRecordError;
+use crate::{
+    errors::MedRecordError,
+    polars::{dataframe_to_edges, dataframe_to_nodes},
+};
 use index_mapping::IndexMapping;
 use petgraph::{
     data::{Element, FromElements},
     stable_graph::{NodeIndex, StableGraph},
     Directed,
 };
+use polars::frame::DataFrame;
 use std::collections::HashMap;
+pub use values::MedRecordValue;
 
-type Dictionary = HashMap<String, MedRecordValue>;
+pub(crate) type Dictionary = HashMap<String, MedRecordValue>;
 type Group = String;
 type NodeId = String;
 
@@ -30,51 +34,84 @@ impl MedRecord {
         }
     }
 
-    pub fn from_nodes_and_edges(
+    pub fn from_tuples(
         nodes: Vec<(String, Dictionary)>,
-        edges: Vec<(String, String, Dictionary)>,
+        edges: Option<Vec<(String, String, Dictionary)>>,
     ) -> Result<Self, MedRecordError> {
         let mut index_mapping = IndexMapping::new();
 
-        let mut elements = Vec::<Element<Dictionary, Dictionary>>::new();
+        let edges = edges.unwrap_or_default();
 
-        for (index, (id, weight)) in nodes.iter().enumerate() {
-            index_mapping.insert_custom_index_to_node_index(id.to_owned(), NodeIndex::new(index));
+        let mut node_elements = nodes
+            .into_iter()
+            .enumerate()
+            .map(|(i, node)| {
+                index_mapping.insert_custom_index_to_node_index(node.0, NodeIndex::new(i));
 
-            elements.push(Element::Node {
-                weight: weight.to_owned(),
-            });
-        }
+                Element::<Dictionary, Dictionary>::Node { weight: node.1 }
+            })
+            .collect::<Vec<_>>();
 
-        for (id_node_1, id_node_2, weight) in edges.iter() {
-            let node_index_node_1 =
-                index_mapping
-                    .get_node_index(id_node_1)
-                    .ok_or(MedRecordError::IndexError(format!(
-                        "Could not find index {}",
-                        id_node_1
-                    )))?;
+        let edge_elements = edges
+            .into_iter()
+            .map(|edge| {
+                let from_node_index =
+                    index_mapping
+                        .get_node_index(&edge.0)
+                        .ok_or(MedRecordError::IndexError(format!(
+                            "Could not find index {}",
+                            edge.0
+                        )))?;
 
-            let node_index_node_2 =
-                index_mapping
-                    .get_node_index(id_node_2)
-                    .ok_or(MedRecordError::IndexError(format!(
-                        "Could not find index {}",
-                        id_node_2
-                    )))?;
+                let to_node_index =
+                    index_mapping
+                        .get_node_index(&edge.1)
+                        .ok_or(MedRecordError::IndexError(format!(
+                            "Could not find index {}",
+                            edge.1
+                        )))?;
 
-            elements.push(Element::Edge {
-                source: node_index_node_1.index(),
-                target: node_index_node_2.index(),
-                weight: weight.to_owned(),
-            });
-        }
+                Ok(Element::<Dictionary, Dictionary>::Edge {
+                    source: from_node_index.index(),
+                    target: to_node_index.index(),
+                    weight: edge.2,
+                })
+            })
+            .collect::<Result<Vec<_>, MedRecordError>>()?;
+
+        node_elements.extend(edge_elements);
 
         Ok(Self {
-            graph: StableGraph::from_elements(elements),
-            index_mapping: index_mapping.to_owned(),
+            graph: StableGraph::from_elements(node_elements),
+            index_mapping,
             group_mapping: HashMap::new(),
         })
+    }
+
+    pub fn from_dataframes(
+        nodes_dataframe: DataFrame,
+        nodes_index_column: &str,
+        edges_dataframe: DataFrame,
+        edges_from_index_column: &str,
+        edges_to_index_column: &str,
+    ) -> Result<MedRecord, MedRecordError> {
+        let nodes = dataframe_to_nodes(nodes_dataframe, nodes_index_column)?;
+        let edges = dataframe_to_edges(
+            edges_dataframe,
+            edges_from_index_column,
+            edges_to_index_column,
+        )?;
+
+        Self::from_tuples(nodes, Some(edges))
+    }
+
+    pub fn from_nodes_dataframe(
+        nodes_dataframe: DataFrame,
+        nodes_index_column: &str,
+    ) -> Result<MedRecord, MedRecordError> {
+        let nodes = dataframe_to_nodes(nodes_dataframe, nodes_index_column)?;
+
+        Self::from_tuples(nodes, None)
     }
 
     pub fn node_count(&self) -> usize {
@@ -236,12 +273,24 @@ impl MedRecord {
         }
     }
 
+    pub fn add_nodes_dataframe(
+        &mut self,
+        nodes_dataframe: DataFrame,
+        index_column_name: &str,
+    ) -> Result<(), MedRecordError> {
+        let nodes = dataframe_to_nodes(nodes_dataframe, index_column_name)?;
+
+        self.add_nodes(nodes);
+
+        Ok(())
+    }
+
     pub fn add_edges(
         &mut self,
-        relations: Vec<(String, String, Dictionary)>,
+        edges: Vec<(String, String, Dictionary)>,
     ) -> Result<(), MedRecordError> {
-        for relation in relations.iter() {
-            let (id_node_1, id_node_2, attributes) = relation;
+        for edge in edges.iter() {
+            let (id_node_1, id_node_2, attributes) = edge;
 
             let node_index_node_1 =
                 self.index_mapping
@@ -267,6 +316,21 @@ impl MedRecord {
         }
 
         Ok(())
+    }
+
+    pub fn add_edges_dataframe(
+        &mut self,
+        edges_dataframe: DataFrame,
+        from_index_column_name: &str,
+        to_index_column_name: &str,
+    ) -> Result<(), MedRecordError> {
+        let edges = dataframe_to_edges(
+            edges_dataframe,
+            from_index_column_name,
+            to_index_column_name,
+        )?;
+
+        self.add_edges(edges)
     }
 
     pub fn add_group(
