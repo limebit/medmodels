@@ -31,13 +31,11 @@ impl<'a> FromPyObject<'a> for PyMedRecordValue {
             "int" => Ok(MedRecordValue::Int(ob.extract::<i64>()?).into()),
             "float" => Ok(MedRecordValue::Float(ob.extract::<f64>()?).into()),
             "bool" => Ok(MedRecordValue::Bool(ob.extract::<bool>()?).into()),
-            _ => Err(
-                Into::<PyMedRecordError>::into(MedRecordError::ConversionError(format!(
-                    "Failed to convert {} into MedRecordValue",
-                    object_type
-                )))
-                .into(),
-            ),
+            _ => Err(PyMedRecordError(MedRecordError::ConversionError(format!(
+                "Failed to convert {} into MedRecordValue",
+                object_type
+            )))
+            .into()),
         }
     }
 }
@@ -106,6 +104,15 @@ where
     F: DeepFrom<V>,
 {
     fn deep_from(value: Vec<V>) -> Self {
-        value.into_iter().map(|value| value.deep_into()).collect()
+        value.into_iter().map(F::deep_from).collect()
+    }
+}
+
+impl<T, F> DeepFrom<Option<T>> for Option<F>
+where
+    F: DeepFrom<T>,
+{
+    fn deep_from(value: Option<T>) -> Self {
+        value.map(|v| v.deep_into())
     }
 }
