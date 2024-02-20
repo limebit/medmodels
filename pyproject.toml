@@ -7,7 +7,7 @@ requires-python = ">=3.9"
 dependencies = [
     "numpy==1.24.2",
     "pandas==1.5.1",
-    "polars[pyarrow]==0.20.7",
+    "polars[pandas]==0.20.10",
     "scikit-learn==1.0.2",
     "networkx==3.0",
     "matplotlib==3.5.1",
