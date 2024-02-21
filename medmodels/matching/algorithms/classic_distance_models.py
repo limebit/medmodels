@@ -1,8 +1,10 @@
-import pandas as pd
-from medmodels.matching import metrics
+from typing import List, Optional
+
 import numpy as np
+import pandas as pd
 from pandas import DataFrame
-from typing import Optional, List
+
+from medmodels.matching import metrics
 
 
 def nearest_neighbor(

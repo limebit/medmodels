@@ -1,6 +1,8 @@
+from typing import List, Optional, Set, Tuple, Type
+
 import numpy as np
 import pandas as pd
-from typing import List, Tuple, Type
+
 from medmodels.dataclass.dataclass import MedRecord
 from medmodels.matching.matching import Matching
 
@@ -17,18 +19,28 @@ class TreatmentEffect:
         patients_dimension: str = "patients",
         time_attribute: str = "time",
     ) -> None:
-        """Treatment Effect Class.
+        """
+        Initializes a Treatment Effect analysis setup with specified treatments and
+        outcomes within a medical record dataset. This class facilitates the analysis of
+        treatment effects over time or across different patient groups.
 
-        :param medrecord: MedRecord object
-        :type medrecord: MedRecord
-        :param treatment: list of treatment codes
-        :type treatment: List[str]
-        :param outcome: list of outcome codes
-        :type outcome: List[str]
-        :param patients_dimension: dimension of the patients, defaults to "patients"
-        :type patients_dimension: str, optional
-        :param time_attribute: time attribute, defaults to "time"
-        :type time_attribute: str, optional
+        Validates the presence of specified dimensions and attributes within the
+        provided MedRecord object, ensuring the specified treatments and outcomes are
+        valid and available for analysis.
+
+        Args:
+            medrecord (MedRecord): An instance of MedRecord containing patient records.
+            treatments (List[str]): A list of treatment codes to analyze.
+            outcomes (List[str]): A list of outcome codes to analyze.
+            patients_dimension (str, optional): The dimension representing patients
+                within the dataset. Defaults to "patients".
+            time_attribute (str, optional): The attribute representing time within the
+                dataset. Defaults to "time".
+
+        Raises:
+            AssertionError: If treatments or outcomes are not provided as lists, are
+                empty, or if the specified patients dimension is not found within the
+                MedRecord dimensions.
         """
         assert isinstance(treatments, list), "Treatment must be a list"
         assert treatments, "Treatment list is empty"
@@ -60,17 +72,23 @@ class TreatmentEffect:
         self.treatment_true = set()
 
     def format_concepts(self, concepts: List[str]) -> Tuple[List[str], List[str]]:
-        """Format the concepts to the format of the MedRecord if they have a prefix.
-        Add to the not_found_concepts list if the concept is not found in the MedRecord
-        with or without the prefix.
+        """
+        Formats the provided concept codes to match the MedRecord's naming convention if
+        they have a prefix, and identifies any concepts not found in the MedRecord,
+        either with or without a prefix. For example, if the MedRecord contains a
+        "diagnoses" dimension and the concept is "diabetes", the formatted concept would
+        be "diagnoses_diabetes".
 
-        Example: if the MedRecord has the dimension "diagnoses" and the concept is
-        "diabetes", the formatted concept goes from "diabetes" to "diagnoses_diabetes".
+        Args:
+            concepts (List[str]): A list of concept codes to be formatted and validated.
 
-        :param concepts: list of concepts
-        :type concepts: List[str]
-        :return: tuple of list of formatted concepts and list of not found concepts
-        :rtype: Tuple[List[str], List[str]]
+        Returns:
+            Tuple[List[str], List[str]]: A tuple containing two lists: the first with
+                the formatted and found concept codes, and the second with the concept
+                codes not found in the MedRecord.
+
+        This method aids in ensuring concept codes are correctly formatted and exist
+        within the MedRecord dataset, facilitating accurate analysis.
         """
         formatted_concepts = []
         not_found_concepts = []
@@ -103,23 +121,31 @@ class TreatmentEffect:
         self,
         criteria_filter: List[str] = [],
         max_time_in_years: float = 1.0,
-        matching_class: Type[Matching] = None,
+        matching_class: Optional[Type[Matching]] = None,
         **matching_args,
     ) -> None:
-        """Find the patients that underwent the treatment and did or did not have the
-        outcome. Find a control group that did not undergo the treatment and did or
-        did not have the outcome.
+        """
+        Identifies patients who underwent treatment and experienced outcomes, and finds a
+        control group with similar criteria but without undergoing the treatment. This
+        method supports customizable criteria filtering, time constraints between
+        treatment and outcome, and optional matching of control groups to treatment
+        groups using a specified matching class.
 
-        :param criteria_filter: criteria to filter the patients
-        :type criteria_filter: List[str]
-        :param max_time_in_years: maximum time in years between treatment and outcome
-            for the outcome to be considered as positive. Defaults to 1.0.
-        :type max_time_in_years: float, optional
-        :param matching_class: class to match the control groups with the treatment
-            groups. Defaults to None. Must have an attribute matched_control where the
-            set of matched control patients is stored.
-        :type matching_class: Type[Matching], optional
-        :param matching_args: additional keyword arguments to pass to the matching_class
+        Args:
+            criteria_filter (List[str], optional): Criteria to filter patients. Defaults
+                to an empty list.
+            max_time_in_years (float, optional): Maximum time in years between treatment
+                and outcome for considering the outcome as positive. Defaults to 1.0.
+            matching_class (Optional[Type[Matching]], optional): Class used for matching
+                control groups with treatment groups. Must have an  attribute
+                `matched_control` where the set of matched control patients is stored.
+                Defaults to None.
+            **matching_args: Additional keyword arguments passed to the `matching_class`
+                constructor.
+
+        Initializes and sorts patient groups based on treatment and outcome, applying
+        specified criteria and time constraints. Optionally matches treatment and
+        control groups using a provided matching class and arguments.
         """
         assert isinstance(criteria_filter, list), "Criteria must come in a list"
 
@@ -189,18 +215,25 @@ class TreatmentEffect:
     def _is_outcome_after_treatment(
         self, node: str, outcome: str, max_time_in_years: float
     ) -> bool:
-        """Check if the outcome occurred after the treatment and within the time limit.
+        """
+        Determines whether an outcome occurred after treatment within a specified time
+        frame for a given patient node. This method helps in identifying positive
+        outcomes that are directly attributable to the treatment by considering the
+        temporal sequence of events.
 
-        :param node: node to check
-        :type node: str
-        :param outcome: outcome to check
-        :type outcome: str
-        :param max_time_in_years: maximum time (in years) between treatment and outcome
-            for the outcome to be considered as positive
-        :type max_time_in_years: float
-        :return: True if the outcome happened after treatment and within the time limit,
-            False otherwise.
-        :rtype: bool
+        Args:
+            node (str): The patient node to evaluate.
+            outcome (str): The outcome to check for its occurrence after treatment.
+            max_time_in_years (float): The maximum allowed time in years between
+                treatment and outcome occurrence for the outcome to be considered as a
+                result of the treatment.
+
+        Returns:
+            bool: True if the outcome occurred after the treatment and within the
+                specified time limit; False otherwise.
+
+        This method supports the analysis of treatment effectiveness by ensuring
+        outcomes are temporally linked to the treatments.
         """
         max_time = pd.Timedelta(
             days=365 * max_time_in_years
@@ -229,13 +262,24 @@ class TreatmentEffect:
         return False
 
     def find_first_time(self, node: str) -> pd.Timestamp:
-        """Find the time of the first exposure to the treatments on the list for that
-        node.
+        """
+        Determines the timestamp of the first exposure to any treatment in the predefined
+        treatment list for a specified patient node. This method is crucial for analyzing
+        the temporal sequence of treatments and outcomes.
 
-        :param node: node to find the first exposure time for.
-        :type node: str
-        :return: time of the first exposure to the treatments.
-        :rtype: pd.Timestamp
+        Args:
+            node (str): The patient node for which to determine the first treatment
+                exposure time.
+
+        Returns:
+            pd.Timestamp: The timestamp of the first treatment exposure.
+
+        Raises:
+            AssertionError: If no treatment edge with a time attribute is found for the
+                node, indicating an issue with the data or the specified treatments.
+
+        This function iterates over all treatments and finds the earliest timestamp
+        among them, ensuring that the analysis considers the initial treatment exposure.
         """
         time_treat = pd.Timestamp.max
 
@@ -268,15 +312,27 @@ class TreatmentEffect:
     def find_controls(
         self,
         criteria_filter: List[str] = [],
-    ) -> Tuple[set, set]:
-        """Find the control groups. The control groups are the patients that did not
-        undergo the treatment and did or did not have the outcome.
+    ) -> Tuple[Set[str], Set[str]]:
+        """
+        Identifies control groups among patients who did not undergo the specified
+        treatments. Control groups are divided into those who had the outcome
+        (control_true) and those who did not (control_false), based on the presence of
+        specified outcome codes.
 
-        :param criteria_filter: criteria to filter the patients. Defaults to [].
-        :type criteria_filter: List[str], optional
-        :return: IDs of the control groups. True being for the control patients that
-            had the outcome and false for the ones that did not have it.
-        :rtype: Tuple[set, set]
+        Args:
+            criteria_filter (List[str], optional): Criteria to filter patients for the
+                control groups. Defaults to an empty list, meaning no additional
+                filtering criteria.
+
+        Returns:
+            Tuple[Set[str], Set[str]]: Two sets representing the IDs of control
+                patients. The first set includes patients who experienced the specified
+                outcomes (control_true), and the second set includes those who did not
+                (control_false).
+
+        This method facilitates the separation of patients into relevant control groups
+        for further analysis of treatment effects, ensuring only those not undergoing
+        the treatment are considered for control.
         """
         if not criteria_filter:
             # If no criteria are given, use all the patients
@@ -309,10 +365,24 @@ class TreatmentEffect:
 
     @property
     def subject_counts(self) -> Tuple[int, int, int, int]:
-        """Count the number of subjects in each group
+        """
+        Provides the count of subjects in each of the defined groups: treatment true,
+        treatment false, control true, and control false. This property ensures that
+        group sorting is completed before attempting to count the subjects in each
+        group.
 
-        :return: number of events in each group
-        :rtype: Tuple[int, int, int, int]
+        Returns:
+            Tuple[int, int, int, int]: A tuple containing the number of subjects in the
+                treatment true, treatment false, control true, and control false groups,
+                respectively.
+
+        Raises:
+            AssertionError: If groups have not been sorted using the `find_groups`
+                method, or if any of the groups are found to be empty, indicating a
+                potential issue in group formation or data filtering.
+
+        This method is crucial for understanding the distribution of subjects across
+        different groups for subsequent analysis of treatment effects.
         """
         assert (
             self.groups_sorted is True
@@ -330,20 +400,28 @@ class TreatmentEffect:
         return num_treat_true, num_treat_false, num_control_true, num_control_false
 
     def relative_risk(self) -> float:
-        """Calculate the relative risk among the groups.
-
-        Relative risk (RR) is a measure used in epidemiological studies to estimate the
-        risk of a certain event (such as disease or condition) happening in one group
-        compared to another.
+        """
+        Calculates the relative risk (RR) of an event occurring in the treatment group
+        compared to the control group. RR is a key measure in epidemiological studies
+        for estimating the likelihood of an event in one group relative to another.
 
         The interpretation of RR is as follows:
+        - RR = 1 indicates no difference in risk between the two groups.
+        - RR > 1 indicates a higher risk in the treatment group.
+        - RR < 1 indicates a lower risk in the treatment group.
 
-        RR = 1 suggests no difference in risk between the two groups.
-        RR > 1 suggests a higher risk of the event in the first group.
-        RR < 1 suggests a lower risk of the event in the first group.
+        Returns:
+            float: The calculated relative risk between the treatment and control
+                groups.
 
-        :return: relative risk
-        :rtype: float
+        Preconditions:
+            - Groups must be sorted using the `find_groups` method.
+            - Subject counts for each group must be non-zero to avoid division by zero
+                errors.
+
+        Raises:
+            AssertionError: If the preconditions are not met, indicating a potential
+                issue with group formation or subject count retrieval.
         """
         (
             num_treat_true,
@@ -357,21 +435,29 @@ class TreatmentEffect:
         )
 
     def odds_ratio(self) -> float:
-        """Calculate the odds ratio among the groups.
+        """
+        Calculates the odds ratio (OR) to quantify the association between exposure to a
+        treatment and the occurrence of an outcome. OR compares the odds of an event
+        occurring in the treatment group to the odds in the control group, providing
+        insight into the strength of the association between the treatment and the
+        outcome.
 
-        The odds ratio (OR) is another measure used in epidemiological and statistical
-        studies that quantifies the strength of the association between two events. It
-        is similar to relative risk, but instead of comparing the risks of the events,
-        it compares the odds.
+        Interpretation of the odds ratio:
+        - OR = 1 indicates no difference in odds between the two groups.
+        - OR > 1 suggests the event is more likely in the treatment group.
+        - OR < 1 suggests the event is less likely in the treatment group.
 
-        Here's how to interpret an odds ratio:
+        Returns:
+            float: The calculated odds ratio between the treatment and control groups.
 
-        OR = 1: There's no difference in odds between the two groups.
-        OR > 1: The event is more likely to occur in the first group than in the second.
-        OR < 1: The event is less likely to occur in the first group than in the second.
+        Preconditions:
+            - Groups must be sorted using the `find_groups` method.
+            - Subject counts in each group must be non-zero to ensure valid
+                calculations.
 
-        :return: odds ratio
-        :rtype: float
+        Raises:
+            AssertionError: If preconditions are not met, indicating potential issues
+                with group formation or subject count retrieval.
         """
         (
             num_treat_true,
@@ -385,15 +471,24 @@ class TreatmentEffect:
         )
 
     def confounding_bias(self) -> float:
-        """Calculates the confounding bias for controlling confounding.
+        """
+        Calculates the confounding bias (CB) to assess the impact of potential
+        confounders on the observed association between treatment and outcome. A
+        confounder is a variable that influences both the dependent (outcome) and
+        independent (treatment) variables, potentially biasing the study results.
 
-        Confounder: Variable that influences dependent and independent variables.
+        Interpretation of CB:
+        - CB = 1 indicates no confounding bias.
+        - CB != 1 suggests the presence of confounding bias, indicating potential
+            confounders.
 
-        CB = 1: No confounding bias
-        CB != 1: Confounding bias, could be potential confounder
+        Returns:
+            float: The calculated confounding bias.
 
-        :return: confounding bias
-        :rtype: float
+        The method relies on the relative risk (RR) as an intermediary measure and
+        adjusts the observed association for potential confounding effects. This
+        adjustment helps in identifying whether the observed association might be
+        influenced by factors other than the treatment.
         """
         (
             num_treat_true,
