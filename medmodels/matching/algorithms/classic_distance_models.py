@@ -1,31 +1,35 @@
 import pandas as pd
 from medmodels.matching import metrics
 import numpy as np
+from pandas import DataFrame
+from typing import Optional, List
 
 
-def nearest_neighbor(treated_set, control_set, metric, log_text=None, covariates=None):
-
+def nearest_neighbor(
+    treated_set: DataFrame,
+    control_set: DataFrame,
+    metric: str,
+    covariates: Optional[List[str]] = None,
+) -> DataFrame:
     """
-    Matches two dataframes with the Nearest Neighbor (greedy) algorithm. It runs through
-    the treated set and selects its closest element from the control set. Each choice of
-    unit occurs without reference to other pairings (greedy algorithm), and therefore
-    does not aim to optimize the matching in general. Nearest neighbor is the most
-    common algorithm for matching and can be used with different metrics.
+    Performs nearest neighbor matching between two dataframes using a specified metric.
+    This method employs a greedy algorithm to pair elements from the treated set with
+    their closest matches in the control set based on the given metric. The algorithm
+    does not optimize for the best overall matching but ensures a straightforward,
+    commonly used approach. The method is flexible to different metrics and requires
+    preliminary size comparison of treated and control sets to determine the direction
+    of matching. It supports optional specification of covariates for focused matching.
 
-    Usually treated set is smaller than control set. So, for each element of the treated
-    set, elements from the control set are chosen. Indeed, sometimes control sets are
-    smaller than treated sets and the matching will be done vice versa. For this reason
-    a check should be done before executing the method and the variables renamed.
+    Args:
+        treated_set (DataFrame): DataFrame for which matches are sought.
+        control_set (DataFrame): DataFrame from which matches are selected.
+        metric (str): Metric to measure closeness between units, e.g., "absolute",
+            "mahalanobis".
+        covariates (Optional[List[str]], optional): Covariates considered for matching.
+            Defaults to all variables.
 
-    @param treated_set: the dataframe to do the matching for;
-    @param control_set: the dataframe to pick elements from;
-    @param metric: the name of the metric (needs to be specified to define the
-                   "closeness" between units. Can be chosen from
-                   ["absolute", "mahalanobis"];
-    @param log_text: text for the progress bar, default: None;
-    @param covariates: features that are considered for the matching, if None all the
-                       variables will be considered;
-    @return: dataframe as a subset of the control set matched for the treated set.
+    Returns:
+        DataFrame: Matched subset from the control set.
     """
 
     metric_function = metrics.METRICS[metric]
