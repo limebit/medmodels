@@ -10,14 +10,23 @@ class Matching:
         treated_group: Set[str],
         control_group: Set[str],
     ) -> None:
-        """Base class for Patient Matching algorithms
+        """
+        Initializes the base class for patient matching algorithms, ensuring that both
+        the treated and control groups are non-empty and that a valid `MedRecord` object
+        is provided.
 
-        :param medrecord: MedRecord object
-        :type medrecord: MedRecord
-        :param treated_group: set with the IDs of the treated patients
-        :type treated_group: Set[str]
-        :param control_group: set with the IDs of the control patients
-        :type control_group: Set[str]
+        This class sets the foundation for matching algorithms by organizing medical
+        records and patient groups for further processing.
+
+        Args:
+            medrecord (MedRecord): An instance of `MedRecord` containing patient
+                records.
+            treated_group (Set[str]): A set of IDs for the treated patients.
+            control_group (Set[str]): A set of IDs for the control patients.
+
+        Raises:
+            AssertionError: If `medrecord` is not an instance of `MedRecord`, or if
+                either the treated or control groups are empty.
         """
         self.medrecord = medrecord
         assert isinstance(medrecord, MedRecord), "medrecord must be a MedRecord object"

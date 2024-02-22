@@ -1,38 +1,44 @@
+from typing import List, Optional, Tuple
+
 import pandas as pd
 
 
-def relative_diff_in_means(control_set, treated_set):
-
+def relative_diff_in_means(
+    control_set: pd.DataFrame, treated_set: pd.DataFrame
+) -> pd.DataFrame:
     """
-    Calculates the absolute relative mean for each covariate/feature as a difference
-    between the control and treated in percent related to control.
+    Calculates the absolute relative mean difference for each feature between control
+    and treated sets, expressed as a percentage of the control set's mean. This measure
+    provides an understanding of how much each feature's average value changes from the
+    control to the treated group relative to the control.
 
-    @param control_set: control set
-    @param treated_set: treated set
-    @return: dataframe with mean values of the control and treated set and absolute
-             relative difference for all features
+    Args:
+        control_set (pd.DataFrame): DataFrame representing the control group.
+        treated_set (pd.DataFrame): DataFrame representing the treated group.
+
+    Returns:
+        pd.DataFrame: A DataFrame containing the mean values of the control and treated
+            sets for all features and the absolute relative difference in means,
+            expressed as a percentage.
+
+    The function internally computes the relative difference for each feature, handling
+    cases where the control mean is zero by simply calculating the absolute difference
+    times 100. It provides insights into the percentage change in feature means due to
+    treatment.
     """
 
-    def calculate_relative_diff(row):
-
+    def calculate_relative_diff(row: pd.Series) -> float:
         """
-        Calculates the absolute relative mean for one covariate as a difference between
-        the control and treated in percent related to control.
+        Calculates the absolute relative difference for a single feature, expressed as a
+        percentage of the control's mean. Handles division by zero by returning the
+        absolute difference when the control mean is zero.
 
-        Let for a given feature x, y be its means over the treated and control set resp.
-        then:
-        .. math::
-            Diff(x, y) = \begin{cases}
-                         |x - y| & \text {if y = 0}
-                         |\frac{x - y}{y}| & \text {otherwise}
+        Args:
+            row (pd.Series): A Series object representing a row from the DataFrame of
+                means, containing 'control_mean' and 'treated_mean' for a feature.
 
-        Example: control 2, treated 3.5 --> Diff 75 %
-                 So, treatment changed this feature by 75 %.
-                 Note, that treated 0.5 also returns Diff 75 %.
-                 control 0, treated 0.2 --> Diff 20 %
-
-        @param row: the feature to calculate the relative difference for;
-        @return: the relative difference.
+        Returns:
+            float: The absolute relative difference in means, as a percentage.
         """
 
         if row.control_mean == 0:
@@ -53,34 +59,55 @@ def relative_diff_in_means(control_set, treated_set):
     return df_mean.transpose()
 
 
-def average_value_over_features(df):
-
+def average_value_over_features(df: pd.DataFrame) -> float:
     """
-    Returns the mean over the last row of a dataframe. This method can be used e.g. to
-    calculate average difference between the treated and control sets.
+    Calculates the average of the values in the last row of a DataFrame. This function
+    is particularly useful for aggregating measures like differences or percentages
+    across multiple features, providing a single summary statistic.
 
-    Example:                  a      b
-              control_mean   2.0    2.0
-              treated_mean   3.5    7.0   returns (75.0 + 250.0)/2 = 162.5
-              Diff (in %)   75.0  250.0
+    Args:
+        df (pd.DataFrame): The DataFrame on which the calculation is to be performed.
 
+    Returns:
+        float: The average value of the last row across all columns.
 
-    @param df: dataframe, the mean of the last row to be calculated for
-    @return: mean value as float
+    Example:
+        Given a DataFrame with the last row containing differences in percentages
+        between treated and control means across features 'a' and 'b', e.g., 75.0% for
+        'a' and 250.0% for 'b', this function will return the average difference, which
+        is (75.0 + 250.0) / 2 = 162.5.
     """
 
     return df.tail(1).mean(axis=1).values.tolist()[0]
 
 
-def average_abs_relative_diff(control_set, treated_set, covariates=None):
-
+def average_abs_relative_diff(
+    control_set: pd.DataFrame,
+    treated_set: pd.DataFrame,
+    covariates: Optional[List[str]] = None,
+) -> Tuple[float, pd.DataFrame]:
     """
-    Calculates the average absolute relative difference in means over all covariates.
+    Calculates the average absolute relative difference in means over specified
+    covariates between control and treated sets. If covariates are not specified, the
+    calculation includes all features.
 
-    @param control_set: control set
-    @param treated_set: treated set
-    @param covariates: if not given consider all features as covariates
-    @return: a mean value over all features as float, the dataframe with all means
+    This function is designed to assess the impact of a treatment across multiple
+    features by computing the mean of absolute relative differences. It returns both a
+    summary metric and a detailed DataFrame for further analysis.
+
+    Args:
+        control_set (pd.DataFrame): DataFrame for the control group.
+        treated_set (pd.DataFrame): DataFrame for the treated group.
+        covariates (Optional[List[str]], optional): List of covariate names to include.
+            If None, considers all features.
+
+    Returns:
+        Tuple[float, pd.DataFrame]: A tuple containing the average absolute relative
+            difference as a float and a DataFrame with detailed mean values and absolute
+            relative differences for all features.
+
+    The detailed DataFrame includes means for both control and treated sets and the
+    absolute relative difference for each feature.
     """
 
     if not covariates:
