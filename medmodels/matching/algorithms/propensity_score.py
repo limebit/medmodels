@@ -1,7 +1,7 @@
 from typing import Any, Optional, Tuple
 
 import numpy as np
-from pandas import DataFrame
+import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.tree import DecisionTreeClassifier
@@ -63,13 +63,13 @@ def calculate_propensity(
 
 
 def run_propensity_score(
-    treated_set: DataFrame,
-    control_set: DataFrame,
+    treated_set: pd.DataFrame,
+    control_set: pd.DataFrame,
     model: str = "logit",
     hyperparam: Optional[Any] = None,
     covariates: Optional[list] = None,
     log_text: Optional[str] = None,
-) -> DataFrame:
+) -> pd.DataFrame:
     """
     Executes Propensity Score matching using a specified classification algorithm.
     Constructs the training target by assigning 1 to the treated set and 0 to the
@@ -77,8 +77,8 @@ def run_propensity_score(
     using the nearest neighbor method.
 
     Args:
-        treated_set (DataFrame): Data for the treated group.
-        control_set (DataFrame): Data for the control group.
+        treated_set (pd.DataFrame): Data for the treated group.
+        control_set (pd.DataFrame): Data for the control group.
         model (str, optional): Classification algorithm for predicting probabilities.
             Options include "logit", "dec_tree", "forest".
         hyperparam (Optional[Any], optional): Hyperparameters for model tuning.
@@ -87,7 +87,7 @@ def run_propensity_score(
         log_text (Optional[str], optional): Text for progress logging.
 
     Returns:
-        DataFrame: Matched subset from the control set corresponding to the treated set.
+        pd.DataFrame: Matched subset from the control set corresponding to the treated set.
 
     This function simplifies the process of propensity score matching, focusing on the
     use of the propensity score as the sole covariate for matching.

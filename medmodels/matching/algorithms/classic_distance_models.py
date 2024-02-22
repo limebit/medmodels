@@ -2,17 +2,16 @@ from typing import List, Optional
 
 import numpy as np
 import pandas as pd
-from pandas import DataFrame
 
 from medmodels.matching import metrics
 
 
 def nearest_neighbor(
-    treated_set: DataFrame,
-    control_set: DataFrame,
+    treated_set: pd.DataFrame,
+    control_set: pd.DataFrame,
     metric: str,
     covariates: Optional[List[str]] = None,
-) -> DataFrame:
+) -> pd.DataFrame:
     """
     Performs nearest neighbor matching between two dataframes using a specified metric.
     This method employs a greedy algorithm to pair elements from the treated set with
@@ -23,15 +22,15 @@ def nearest_neighbor(
     of matching. It supports optional specification of covariates for focused matching.
 
     Args:
-        treated_set (DataFrame): DataFrame for which matches are sought.
-        control_set (DataFrame): DataFrame from which matches are selected.
+        treated_set (pd.DataFrame): DataFrame for which matches are sought.
+        control_set (pd.DataFrame): DataFrame from which matches are selected.
         metric (str): Metric to measure closeness between units, e.g., "absolute",
             "mahalanobis".
         covariates (Optional[List[str]], optional): Covariates considered for matching.
             Defaults to all variables.
 
     Returns:
-        DataFrame: Matched subset from the control set.
+        pd.DataFrame: Matched subset from the control set.
     """
 
     metric_function = metrics.METRICS[metric]

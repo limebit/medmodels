@@ -1,10 +1,11 @@
 from typing import List, Optional, Tuple
 
 import pandas as pd
-from pandas import DataFrame, Series
 
 
-def relative_diff_in_means(control_set: DataFrame, treated_set: DataFrame) -> DataFrame:
+def relative_diff_in_means(
+    control_set: pd.DataFrame, treated_set: pd.DataFrame
+) -> pd.DataFrame:
     """
     Calculates the absolute relative mean difference for each feature between control
     and treated sets, expressed as a percentage of the control set's mean. This measure
@@ -12,11 +13,11 @@ def relative_diff_in_means(control_set: DataFrame, treated_set: DataFrame) -> Da
     control to the treated group relative to the control.
 
     Args:
-        control_set (DataFrame): DataFrame representing the control group.
-        treated_set (DataFrame): DataFrame representing the treated group.
+        control_set (pd.DataFrame): DataFrame representing the control group.
+        treated_set (pd.DataFrame): DataFrame representing the treated group.
 
     Returns:
-        DataFrame: A DataFrame containing the mean values of the control and treated
+        pd.DataFrame: A DataFrame containing the mean values of the control and treated
             sets for all features and the absolute relative difference in means,
             expressed as a percentage.
 
@@ -26,7 +27,7 @@ def relative_diff_in_means(control_set: DataFrame, treated_set: DataFrame) -> Da
     treatment.
     """
 
-    def calculate_relative_diff(row: Series) -> float:
+    def calculate_relative_diff(row: pd.Series) -> float:
         """
         Calculates the absolute relative difference for a single feature, expressed as a
         percentage of the control's mean. Handles division by zero by returning the
@@ -58,14 +59,14 @@ def relative_diff_in_means(control_set: DataFrame, treated_set: DataFrame) -> Da
     return df_mean.transpose()
 
 
-def average_value_over_features(df: DataFrame) -> float:
+def average_value_over_features(df: pd.DataFrame) -> float:
     """
     Calculates the average of the values in the last row of a DataFrame. This function
     is particularly useful for aggregating measures like differences or percentages
     across multiple features, providing a single summary statistic.
 
     Args:
-        df (DataFrame): The DataFrame on which the calculation is to be performed.
+        df (pd.DataFrame): The DataFrame on which the calculation is to be performed.
 
     Returns:
         float: The average value of the last row across all columns.
@@ -81,10 +82,10 @@ def average_value_over_features(df: DataFrame) -> float:
 
 
 def average_abs_relative_diff(
-    control_set: DataFrame,
-    treated_set: DataFrame,
+    control_set: pd.DataFrame,
+    treated_set: pd.DataFrame,
     covariates: Optional[List[str]] = None,
-) -> Tuple[float, DataFrame]:
+) -> Tuple[float, pd.DataFrame]:
     """
     Calculates the average absolute relative difference in means over specified
     covariates between control and treated sets. If covariates are not specified, the
@@ -95,13 +96,13 @@ def average_abs_relative_diff(
     summary metric and a detailed DataFrame for further analysis.
 
     Args:
-        control_set (DataFrame): DataFrame for the control group.
-        treated_set (DataFrame): DataFrame for the treated group.
+        control_set (pd.DataFrame): DataFrame for the control group.
+        treated_set (pd.DataFrame): DataFrame for the treated group.
         covariates (Optional[List[str]], optional): List of covariate names to include.
             If None, considers all features.
 
     Returns:
-        Tuple[float, DataFrame]: A tuple containing the average absolute relative
+        Tuple[float, pd.DataFrame]: A tuple containing the average absolute relative
             difference as a float and a DataFrame with detailed mean values and absolute
             relative differences for all features.
 
