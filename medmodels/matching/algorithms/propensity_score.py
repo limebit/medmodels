@@ -87,7 +87,8 @@ def run_propensity_score(
         log_text (Optional[str], optional): Text for progress logging.
 
     Returns:
-        pd.DataFrame: Matched subset from the control set corresponding to the treated set.
+        pd.DataFrame: Matched subset from the control set corresponding to the treated
+            set.
 
     This function simplifies the process of propensity score matching, focusing on the
     use of the propensity score as the sole covariate for matching.

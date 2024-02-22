@@ -125,8 +125,8 @@ class TreatmentEffect:
         **matching_args,
     ) -> None:
         """
-        Identifies patients who underwent treatment and experienced outcomes, and finds a
-        control group with similar criteria but without undergoing the treatment. This
+        Identifies patients who underwent treatment and experienced outcomes, and finds
+        a control group with similar criteria but without undergoing the treatment. This
         method supports customizable criteria filtering, time constraints between
         treatment and outcome, and optional matching of control groups to treatment
         groups using a specified matching class.
@@ -263,9 +263,9 @@ class TreatmentEffect:
 
     def find_first_time(self, node: str) -> pd.Timestamp:
         """
-        Determines the timestamp of the first exposure to any treatment in the predefined
-        treatment list for a specified patient node. This method is crucial for analyzing
-        the temporal sequence of treatments and outcomes.
+        Determines the timestamp of the first exposure to any treatment in the
+        predefined treatment list for a specified patient node. This method is crucial
+        for analyzing the temporal sequence of treatments and outcomes.
 
         Args:
             node (str): The patient node for which to determine the first treatment
