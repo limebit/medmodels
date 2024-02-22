@@ -20,7 +20,7 @@ def average_treatment_effect(
     control sets are N and M, respectively:
 
     $$
-    \text{ATE} = \frac{1}{N} \sum_i y_1(i) - \frac{1}{M} \sum_j y_0(j),
+    \\text{ATE} = \\frac{1}{N} \\sum_i y_1(i) - \\frac{1}{M} \\sum_j y_0(j),
     $$
 
     where $y_1(i)$ and $y_0(j)$ represent outcome values for individual treated and
@@ -28,7 +28,7 @@ def average_treatment_effect(
     formula simplifies to:
 
     $$
-    \text{ATE} = \frac{1}{N} \sum_i (y_1(i) - y_0(i)).
+    \\text{ATE} = \\frac{1}{N} \\sum_i (y_1(i) - y_0(i)).
     $$
 
     Args:

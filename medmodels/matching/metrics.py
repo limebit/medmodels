@@ -17,7 +17,9 @@ def absolute_metric(*vectors: Tuple[np.ndarray, np.ndarray]) -> float:
         float: The Euclidean distance between the two vectors.
 
     The calculation is based on the formula:
-        $D(x, y) = ||x - y||_1 = \\sum_{i=1}^n |x_i - y_i| for x, y \\in \\mathbb{R}^n$
+        $$
+        D(x, y) = ||x - y||_1 = \\sum_{i=1}^n |x_i - y_i| for x, y \\in \\mathbb{R}^n
+        $$
     """
 
     diff = vectors[0] - vectors[1]
@@ -36,10 +38,10 @@ def exact_metric(*vectors: Tuple[np.ndarray, np.ndarray]) -> float:
 
     $$
     D(x, y) =
-    \begin{cases}
-    0      & \text{if } x = y, \\
-    \infty & \text{otherwise}.
-    \end{cases}
+    \\begin{cases}
+    0      & \\text{if } x = y, \\\\
+    \\infty & \\text{otherwise}.
+    \\end{cases}
     $$
 
     Args:
@@ -69,7 +71,7 @@ def mahalanobis_metric(
     The Mahalanobis distance is defined as:
 
     $$
-    D(x, y) = \sqrt{(x - y)^T S^{-1} (x - y)}
+    D(x, y) = \\sqrt{(x - y)^T S^{-1} (x - y)}
     $$
 
     where $S$ is the covariance matrix of the entire distribution.
