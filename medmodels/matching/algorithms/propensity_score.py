@@ -68,7 +68,6 @@ def run_propensity_score(
     model: str = "logit",
     hyperparam: Optional[Any] = None,
     covariates: Optional[list] = None,
-    log_text: Optional[str] = None,
 ) -> pd.DataFrame:
     """
     Executes Propensity Score matching using a specified classification algorithm.
@@ -84,7 +83,6 @@ def run_propensity_score(
         hyperparam (Optional[Any], optional): Hyperparameters for model tuning.
             Increases computation time if set.
         covariates (Optional[list], optional): Features for matching. Uses all if None.
-        log_text (Optional[str], optional): Text for progress logging.
 
     Returns:
         pd.DataFrame: Matched subset from the control set corresponding to the treated
@@ -118,11 +116,7 @@ def run_propensity_score(
     control_set["Prop. score"] = control_prop
 
     matched_control = nearest_neighbor(
-        treated_set,
-        control_set,
-        metric="absolute",
-        covariates=["Prop. score"],
-        log_text=log_text,
+        treated_set, control_set, metric="absolute", covariates=["Prop. score"]
     )
 
     matched_control.pop("Prop. score")
