@@ -10,8 +10,7 @@ def absolute_metric(*vectors: Tuple[np.ndarray, np.ndarray]) -> float:
     differences between each corresponding pair of elements in the two vectors.
 
     Args:
-        vector1 (np.ndarray): The first vector for comparison.
-        vector2 (np.ndarray): The second vector for comparison.
+        vectors (Tuple[np.ndarray, np.ndarray]): Two numpy arrays to be compared.
 
     Returns:
         float: The Euclidean distance between the two vectors.
