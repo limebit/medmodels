@@ -1,38 +1,50 @@
+from typing import Any, Optional, Tuple
+
+import numpy as np
+import pandas as pd
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.tree import DecisionTreeClassifier
-from sklearn.ensemble import RandomForestClassifier
-import numpy as np
+
 from medmodels.matching.algorithms.classic_distance_models import nearest_neighbor
 
 
 def calculate_propensity(
-    x_train, y_train, treated_test, control_test, hyperparam=None, metric="logit"
-):
-
+    x_train: np.ndarray,
+    y_train: np.ndarray,
+    treated_test: np.ndarray,
+    control_test: np.ndarray,
+    hyperparam: Optional[dict] = None,
+    metric: str = "logit",
+) -> Tuple[np.ndarray, np.ndarray]:
     """
-    Trains one of the classification algorithms on x_train, y_train, predicts
-    probability of the target variable for the treated_test and control_test
-    data sets and returns the probability of the last class.
+    Trains a classification algorithm on training data, predicts the probability of
+    being in the last class for treated and control test datasets, and returns these
+    probabilities.
 
-    Example (for "dec_tree" metric):
-        x_trains, y_train: iris data set
-        treated_test, control_test: [5.1, 3.5, 1.4, 0.2], [4.9, 3. , 1.4, 0.2]
-        probabilities of the classes:
-            treated: [1. 0. 0.]
-            control: [1. 0. 0.]
-        return: [0.], [0.]
+    This function supports multiple classification algorithms and allows specifying
+    hyperparameters. It is designed for binary classification tasks, focusing on the
+    probability of the positive class.
 
-    @param x_train: features of the data set;
-    @param y_train: target feature of the data set;
-    @param treated_test: test set for the treated proba;
-    @param control_test: test set for the control proba;
-    @param hyperparam: hyperparameter to set manually, if None the default parameters
-                       will be taken;
-    @param metric: the classification algorithm, can be chosen from:
-                   - "logit": Logistische Regression;
-                   - "dec_tree": Decision Tree Classifier;
-                   - "forest": Random Forest Classifier.
-    @return: arrays of probabilities of the last class for the both test sets
+    Args:
+        x_train (np.ndarray): Feature matrix for training.
+        y_train (np.ndarray): Target variable for training.
+        treated_test (np.ndarray): Feature matrix for the treated group to predict
+            probabilities.
+        control_test (np.ndarray): Feature matrix for the control group to predict
+            probabilities.
+        hyperparam (Optional[dict], optional): Manual hyperparameter settings. Uses
+            default if None.
+        metric (str, optional): Classification algorithm to use. Options: "logit",
+            "dec_tree", "forest".
+
+    Returns:
+        Tuple[np.ndarray, np.ndarray]: Probabilities of the positive class for treated
+            and control groups.
+
+    Example:
+        For "dec_tree" metric with iris dataset inputs, returns probabilities of the
+        last class for treated and control sets, e.g., ([0.], [0.]).
     """
 
     propensity_metric = PROP_MODEL[metric]
@@ -51,32 +63,33 @@ def calculate_propensity(
 
 
 def run_propensity_score(
-    treated_set,
-    control_set,
-    model="logit",
-    hyperparam=None,
-    covariates=None,
-    log_text=None,
-):
-
+    treated_set: pd.DataFrame,
+    control_set: pd.DataFrame,
+    model: str = "logit",
+    hyperparam: Optional[Any] = None,
+    covariates: Optional[list] = None,
+) -> pd.DataFrame:
     """
-    Runs Propensity Score matching with the chosen classification method.
+    Executes Propensity Score matching using a specified classification algorithm.
+    Constructs the training target by assigning 1 to the treated set and 0 to the
+    control set, then predicts the propensity score. This score is used for matching
+    using the nearest neighbor method.
 
-    The algorithm trains the chosen classification method on the treated and control
-    sets. Y_train is constructed as follows: 1 for each entry of the treated and 0 for
-    the control set. The probability of the class 1 will be assign as a new variable
-    "Prop. score" and used for the nearest neighbor matching as the only covariate.
+    Args:
+        treated_set (pd.DataFrame): Data for the treated group.
+        control_set (pd.DataFrame): Data for the control group.
+        model (str, optional): Classification algorithm for predicting probabilities.
+            Options include "logit", "dec_tree", "forest".
+        hyperparam (Optional[Any], optional): Hyperparameters for model tuning.
+            Increases computation time if set.
+        covariates (Optional[list], optional): Features for matching. Uses all if None.
 
-    @param treated_set: set of treated items;
-    @param control_set: set of untreated items;
-    @param model: algorithm to predict the probabilities, can be chosen from
-                  ["logit", "dec_tree", "forest"];
-    @param hyperparam: number of variation for each hyper parameter to test with random
-                        search method. This might increase the computation time;
-    @param covariates: list of features to be considered for the matching, if None take
-                       all of the variables;
-    @param log_text: text for the progress bar, default: None;
-    @return: dataframe as a subset of the control set matched for the treated set.
+    Returns:
+        pd.DataFrame: Matched subset from the control set corresponding to the treated
+            set.
+
+    This function simplifies the process of propensity score matching, focusing on the
+    use of the propensity score as the sole covariate for matching.
     """
 
     if not covariates:
@@ -103,11 +116,7 @@ def run_propensity_score(
     control_set["Prop. score"] = control_prop
 
     matched_control = nearest_neighbor(
-        treated_set,
-        control_set,
-        metric="absolute",
-        covariates=["Prop. score"],
-        log_text=log_text,
+        treated_set, control_set, metric="absolute", covariates=["Prop. score"]
     )
 
     matched_control.pop("Prop. score")
