@@ -7,13 +7,14 @@ use self::{
 };
 use medmodels_core::medrecord::MedRecord;
 use pyo3::{prelude::*, types::PyTuple};
+use pyo3_polars::PyDataFrame;
 use std::collections::HashMap;
 
 type Dictionary = HashMap<String, PyMedRecordValue>;
 type Group = String;
 
 #[pyclass]
-pub struct PyMedRecord(MedRecord);
+pub struct PyMedRecord(pub MedRecord);
 
 #[pymethods]
 impl PyMedRecord {
@@ -23,12 +24,43 @@ impl PyMedRecord {
     }
 
     #[staticmethod]
-    fn from_nodes_and_edges(
+    fn from_tuples(
         nodes: Vec<(String, Dictionary)>,
-        edges: Vec<(String, String, Dictionary)>,
+        edges: Option<Vec<(String, String, Dictionary)>>,
     ) -> PyResult<Self> {
         Ok(Self(
-            MedRecord::from_nodes_and_edges(nodes.deep_into(), edges.deep_into())
+            MedRecord::from_tuples(nodes.deep_into(), edges.deep_into())
+                .map_err(PyMedRecordError::from)?,
+        ))
+    }
+
+    #[staticmethod]
+    fn from_dataframes(
+        nodes_dataframe: PyDataFrame,
+        nodes_index_column_name: &str,
+        edges_dataframe: PyDataFrame,
+        edges_from_index_column_name: &str,
+        edges_to_index_column_name: &str,
+    ) -> PyResult<Self> {
+        Ok(Self(
+            MedRecord::from_dataframes(
+                nodes_dataframe.into(),
+                nodes_index_column_name,
+                edges_dataframe.into(),
+                edges_from_index_column_name,
+                edges_to_index_column_name,
+            )
+            .map_err(PyMedRecordError::from)?,
+        ))
+    }
+
+    #[staticmethod]
+    fn from_nodes_dataframe(
+        nodes_dataframe: PyDataFrame,
+        nodes_index_column_name: &str,
+    ) -> PyResult<Self> {
+        Ok(Self(
+            MedRecord::from_nodes_dataframe(nodes_dataframe.into(), nodes_index_column_name)
                 .map_err(PyMedRecordError::from)?,
         ))
     }
@@ -115,10 +147,37 @@ impl PyMedRecord {
         self.0.add_nodes(nodes.deep_into())
     }
 
+    pub fn add_nodes_dataframe(
+        &mut self,
+        nodes_dataframe: PyDataFrame,
+        index_column_name: &str,
+    ) -> PyResult<()> {
+        Ok(self
+            .0
+            .add_nodes_dataframe(nodes_dataframe.into(), index_column_name)
+            .map_err(PyMedRecordError::from)?)
+    }
+
     fn add_edges(&mut self, relations: Vec<(String, String, Dictionary)>) -> PyResult<()> {
         Ok(self
             .0
             .add_edges(relations.deep_into())
+            .map_err(PyMedRecordError::from)?)
+    }
+
+    pub fn add_edges_dataframe(
+        &mut self,
+        edges_dataframe: PyDataFrame,
+        from_index_column_name: &str,
+        to_index_column_name: &str,
+    ) -> PyResult<()> {
+        Ok(self
+            .0
+            .add_edges_dataframe(
+                edges_dataframe.into(),
+                from_index_column_name,
+                to_index_column_name,
+            )
             .map_err(PyMedRecordError::from)?)
     }
 
