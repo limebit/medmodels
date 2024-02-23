@@ -549,17 +549,17 @@ mod test {
     }
 
     #[test]
-    fn test_invalid_edge_from_tuples() {
+    fn test_invalid_from_tuples() {
         let nodes = create_nodes();
 
-        // Adding an edge pointing to a node that doesn't exist should fail
+        // Adding an edge pointing to a non-existing node should fail
         assert!(MedRecord::from_tuples(
             nodes.clone(),
             Some(vec![("0".to_string(), "50".to_string(), HashMap::new())])
         )
         .is_err_and(|e| matches!(e, MedRecordError::IndexError(_))));
 
-        // Adding an edge from a node that doesn't exist should fail
+        // Adding an edge from a non-existing should fail
         assert!(MedRecord::from_tuples(
             nodes,
             Some(vec![("50".to_string(), "0".to_string(), HashMap::new())])
@@ -608,6 +608,7 @@ mod test {
     #[test]
     fn test_nodes() {
         let medrecord = create_medrecord();
+
         let nodes = create_nodes()
             .into_iter()
             .map(|node| node.0)
@@ -640,7 +641,7 @@ mod test {
     fn test_invalid_node() {
         let medrecord = create_medrecord();
 
-        // Querying a non existing node should fail
+        // Querying a non-existing node should fail
         assert!(medrecord
             .node(vec!["50".to_string()])
             .is_err_and(|e| matches!(e, MedRecordError::IndexError(_))));
@@ -672,7 +673,7 @@ mod test {
     fn test_invalid_edges_netween() {
         let medrecord = create_medrecord();
 
-        // Finding edges between a existing and a non existing node should fail
+        // Querying edges between a existing and a non-existing node should fail
         assert!(medrecord
             .edges_between("0", "50")
             .is_err_and(|e| matches!(e, MedRecordError::IndexError(_))));
@@ -725,7 +726,7 @@ mod test {
     fn test_invalid_group() {
         let medrecord = create_medrecord();
 
-        // Querying a non existing group should fail
+        // Querying a non-existing group should fail
         assert!(medrecord
             .group(vec!["0"])
             .is_err_and(|e| matches!(e, MedRecordError::IndexError(_))));
@@ -791,12 +792,12 @@ mod test {
 
         medrecord.add_nodes(nodes);
 
-        // Adding an edge pointing to a node that doesn't exist should fail
+        // Adding an edge pointing to a non-existing node should fail
         assert!(medrecord
             .add_edge("0".to_string(), "50".to_string(), HashMap::new())
             .is_err_and(|e| matches!(e, MedRecordError::IndexError(_))));
 
-        // Adding an edge from a node that doesn't exist should fail
+        // Adding an edge from a non-existing node should fail
         assert!(medrecord
             .add_edge("50".to_string(), "0".to_string(), HashMap::new())
             .is_err_and(|e| matches!(e, MedRecordError::IndexError(_))));
@@ -851,7 +852,7 @@ mod test {
     fn test_invalid_add_group() {
         let mut medrecord = create_medrecord();
 
-        // Adding a group with a non existing node should fail
+        // Adding a group with a non-existing node should fail
         assert!(medrecord
             .add_group("0".to_string(), Some(vec!["50".to_string()]))
             .is_err_and(|e| matches!(e, MedRecordError::IndexError(_))));
@@ -874,7 +875,7 @@ mod test {
     fn test_invalid_remove_group() {
         let mut medrecord = MedRecord::new();
 
-        // Removing a group that doesn't exist should fail
+        // Removing a non-existing group should fail
         assert!(medrecord
             .remove_group("0")
             .is_err_and(|e| matches!(e, MedRecordError::IndexError(_))));
@@ -911,7 +912,7 @@ mod test {
             .remove_from_group("50".to_string(), "0")
             .is_err_and(|e| matches!(e, MedRecordError::IndexError(_))));
 
-        // Removing a non existing node from a group should fail
+        // Removing a non-existing node from a group should fail
         assert!(medrecord
             .remove_from_group("0".to_string(), "50")
             .is_err_and(|e| matches!(e, MedRecordError::IndexError(_))));
@@ -945,12 +946,12 @@ mod test {
             .add_group("0".to_string(), Some(vec!["0".to_string()]))
             .unwrap();
 
-        // Adding to a non existing group should fail
+        // Adding to a non-existing group should fail
         assert!(medrecord
             .add_to_group("1".to_string(), "0".to_string())
             .is_err_and(|e| matches!(e, MedRecordError::IndexError(_))));
 
-        // Adding a non existing node to a group should fail
+        // Adding a non-existing node to a group should fail
         assert!(medrecord
             .add_to_group("0".to_string(), "50".to_string())
             .is_err_and(|e| matches!(e, MedRecordError::IndexError(_))));
@@ -980,7 +981,7 @@ mod test {
     fn test_invalid_neighbors() {
         let medrecord = MedRecord::new();
 
-        // Querying neighbors of a non existing node sohuld fail
+        // Querying neighbors of a non-existing node sohuld fail
         assert!(medrecord
             .neighbors(vec!["0".to_string()])
             .is_err_and(|e| matches!(e, MedRecordError::IndexError(_))));
