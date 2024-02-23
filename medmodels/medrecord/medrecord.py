@@ -276,6 +276,22 @@ class MedRecord:
         """
         return self._medrecord.group(*group)
 
+    def add_node(self, id: str, attributes: Dict) -> None:
+        """
+        Adds a node to the MedRecord instance.
+
+        This method takes a node ID and a dictionary of the node's attributes, and adds
+        the node to the MedRecord instance.
+
+        Args:
+            id (str): The ID of the node to add.
+            attributes (Dict): A dictionary of the node's attributes.
+
+        Returns:
+            None
+        """
+        return self._medrecord.add_node(id, attributes)
+
     def add_nodes(self, nodes: Union[List[tuple[str, Dict]], pd.DataFrame]) -> None:
         """
         Adds nodes to the MedRecord instance.
@@ -337,6 +353,23 @@ class MedRecord:
             None
         """
         return self._medrecord.add_nodes_dataframe(nodes, nodes_index_column)
+
+    def add_edge(self, from_id: str, to_id: str, attributes: Dict) -> None:
+        """
+        Adds an edge to the MedRecord instance.
+
+        This method takes the IDs of the origin and destination nodes and a dictionary
+        of the edge's attributes, and adds the edge to the MedRecord instance.
+
+        Args:
+            from_id (str): The ID of the origin node.
+            to_id (str): The ID of the destination node.
+            attributes (Dict): A dictionary of the edge's attributes.
+
+        Returns:
+            None
+        """
+        return self._medrecord.add_edge(from_id, to_id, attributes)
 
     def add_edges(
         self, edges: Union[List[tuple[str, str, Dict]], pd.DataFrame]

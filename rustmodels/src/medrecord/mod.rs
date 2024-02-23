@@ -102,8 +102,8 @@ impl PyMedRecord {
     }
 
     #[getter]
-    fn edges(&self) -> PyResult<Vec<(&String, &String)>> {
-        Ok(self.0.edges().map_err(PyMedRecordError::from)?)
+    fn edges(&self) -> Vec<(&String, &String)> {
+        self.0.edges()
     }
 
     fn edges_between(&self, start_node_id: &str, end_node_id: &str) -> PyResult<Vec<Dictionary>> {
@@ -131,7 +131,7 @@ impl PyMedRecord {
             .group(
                 group
                     .iter()
-                    .map(|item| item.extract::<String>())
+                    .map(|item| item.extract::<&str>())
                     .collect::<Result<_, _>>()?,
             )
             .map(|nodes| {
@@ -141,6 +141,10 @@ impl PyMedRecord {
                     .collect()
             })
             .map_err(PyMedRecordError::from)?)
+    }
+
+    fn add_node(&mut self, id: String, attributes: Dictionary) {
+        self.0.add_node(id, attributes.deep_into())
     }
 
     fn add_nodes(&mut self, nodes: Vec<(String, Dictionary)>) {
@@ -155,6 +159,13 @@ impl PyMedRecord {
         Ok(self
             .0
             .add_nodes_dataframe(nodes_dataframe.into(), index_column_name)
+            .map_err(PyMedRecordError::from)?)
+    }
+
+    fn add_edge(&mut self, from_id: String, to_id: String, attributes: Dictionary) -> PyResult<()> {
+        Ok(self
+            .0
+            .add_edge(from_id, to_id, attributes.deep_into())
             .map_err(PyMedRecordError::from)?)
     }
 
