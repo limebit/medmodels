@@ -29,6 +29,7 @@ build-dev: install-dev
 
 test: install-tests
 	${VENV_PYTHON} -m pytest -W error
+	cargo test
 
 lint: install-dev
 	${VENV_PYTHON} -m ruff .
