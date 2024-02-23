@@ -542,4 +542,4 @@ class MedRecord:
             List[tuple[str, Dict]]: A list of tuples, each containing a neighbor's
                 node ID and a dictionary of the neighbor's attributes.
         """
-        return self._medrecord.neighbors(node_id)
+        return self._medrecord.neighbors(*node_id)
