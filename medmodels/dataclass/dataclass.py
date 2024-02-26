@@ -145,7 +145,7 @@ class MedRecord:
         n = nodes.copy()
         nodes = nodes[:, :1].squeeze().tolist()
         # just in case that there is only one node for a dimension
-        if type(nodes) is not list:
+        if not isinstance(nodes, list):
             nodes = [nodes]
 
         # in case the dimension is new
@@ -232,13 +232,15 @@ class MedRecord:
         """
         edges = pd.DataFrame(
             [
-                {
-                    f"{e[2]['relation_type'].split('_')[0]}_id": e[0],
-                    f"{e[2]['relation_type'].split('_')[1]}_id": e[1],
-                    **e[2],
-                }
-                if "relation_type" in e[2]
-                else {"id1": e[0], "id2": e[1], **e[2]}
+                (
+                    {
+                        f"{e[2]['relation_type'].split('_')[0]}_id": e[0],
+                        f"{e[2]['relation_type'].split('_')[1]}_id": e[1],
+                        **e[2],
+                    }
+                    if "relation_type" in e[2]
+                    else {"id1": e[0], "id2": e[1], **e[2]}
+                )
                 for e in self.G.edges(data=True)
             ]
         )
