@@ -1,12 +1,7 @@
 [package]
-name = "medmodels-core"
+name = "medmodels-utils"
 version = { workspace = true }
 edition = { workspace = true }
 repository = { workspace = true }
 license = { workspace = true }
 readme = "../../README.md"
-
-[dependencies]
-medmodels-utils = { workspace = true }
-
-polars = { workspace = true }
