@@ -1,89 +1,40 @@
-mod index_mapping;
-mod values;
+mod attribute;
+mod graph;
+mod polars;
+mod value;
 
-use crate::{
-    errors::MedRecordError,
-    polars::{dataframe_to_edges, dataframe_to_nodes},
+pub use self::{
+    attribute::MedRecordAttribute,
+    graph::{Attributes, EdgeIndex, NodeIndex},
+    value::MedRecordValue,
 };
-use index_mapping::IndexMapping;
-use petgraph::{
-    data::{Element, FromElements},
-    stable_graph::{NodeIndex, StableGraph},
-    Directed,
-};
-use polars::frame::DataFrame;
+use crate::errors::MedRecordError;
+use ::polars::frame::DataFrame;
+use graph::Graph;
+use polars::{dataframe_to_edges, dataframe_to_nodes};
 use std::collections::HashMap;
-pub use values::MedRecordValue;
 
-pub(crate) type Dictionary = HashMap<String, MedRecordValue>;
-type Group = String;
-type NodeId = String;
+pub type Group = MedRecordAttribute;
 
 pub struct MedRecord {
-    graph: StableGraph<Dictionary, Dictionary, Directed>,
-    index_mapping: IndexMapping,
-    group_mapping: HashMap<Group, Vec<NodeId>>,
+    graph: Graph,
+    group_mapping: HashMap<Group, Vec<NodeIndex>>,
 }
 
 impl MedRecord {
     pub fn new() -> Self {
         Self {
-            graph: StableGraph::default(),
-            index_mapping: IndexMapping::new(),
+            graph: Graph::new(),
             group_mapping: HashMap::new(),
         }
     }
 
     pub fn from_tuples(
-        nodes: Vec<(String, Dictionary)>,
-        edges: Option<Vec<(String, String, Dictionary)>>,
+        nodes: Vec<(NodeIndex, Attributes)>,
+        edges: Option<Vec<(NodeIndex, NodeIndex, Attributes)>>,
     ) -> Result<Self, MedRecordError> {
-        let mut index_mapping = IndexMapping::new();
-
-        let edges = edges.unwrap_or_default();
-
-        let mut node_elements = nodes
-            .into_iter()
-            .enumerate()
-            .map(|(i, node)| {
-                index_mapping.insert_custom_index_to_node_index(node.0, NodeIndex::new(i));
-
-                Element::<Dictionary, Dictionary>::Node { weight: node.1 }
-            })
-            .collect::<Vec<_>>();
-
-        let edge_elements = edges
-            .into_iter()
-            .map(|edge| {
-                let from_node_index =
-                    index_mapping
-                        .get_node_index(&edge.0)
-                        .ok_or(MedRecordError::IndexError(format!(
-                            "Could not find index {}",
-                            edge.0
-                        )))?;
-
-                let to_node_index =
-                    index_mapping
-                        .get_node_index(&edge.1)
-                        .ok_or(MedRecordError::IndexError(format!(
-                            "Could not find index {}",
-                            edge.1
-                        )))?;
-
-                Ok(Element::<Dictionary, Dictionary>::Edge {
-                    source: from_node_index.index(),
-                    target: to_node_index.index(),
-                    weight: edge.2,
-                })
-            })
-            .collect::<Result<Vec<_>, _>>()?;
-
-        node_elements.extend(edge_elements);
-
         Ok(Self {
-            graph: StableGraph::from_elements(node_elements),
-            index_mapping,
+            graph: Graph::from_tuples(nodes, edges).map_err(MedRecordError::from)?,
             group_mapping: HashMap::new(),
         })
     }
@@ -126,138 +77,60 @@ impl MedRecord {
         self.group_mapping.len()
     }
 
-    pub fn nodes(&self) -> Vec<&String> {
-        Vec::from_iter(self.index_mapping.custom_index_to_node_index_keys())
+    pub fn node_indices(&self) -> impl Iterator<Item = &NodeIndex> {
+        self.graph.node_indices()
     }
 
-    pub fn node(&self, node_id: Vec<String>) -> Result<Vec<(String, &Dictionary)>, MedRecordError> {
-        node_id
-            .iter()
-            .map(|id| {
-                let node_index =
-                    self.index_mapping
-                        .get_node_index(id)
-                        .ok_or(MedRecordError::IndexError(format!(
-                            "Could not find node with index {}",
-                            id
-                        )))?;
-
-                let weight =
-                    self.graph
-                        .node_weight(*node_index)
-                        .ok_or(MedRecordError::IndexError(format!(
-                            "Could not find node with index {}",
-                            id
-                        )))?;
-
-                Ok((id.to_owned(), weight))
-            })
-            .collect()
-    }
-
-    pub fn edges(&self) -> Vec<(&String, &String)> {
+    pub fn node_attributes(&self, node_index: &NodeIndex) -> Result<&Attributes, MedRecordError> {
         self.graph
-            .edge_indices()
-            .map(|index| {
-                let (node_index_start, node_index_end) =
-                    self.graph.edge_endpoints(index).expect("Edge must exist");
-
-                let index_from = self
-                    .index_mapping
-                    .get_custom_index(&node_index_start)
-                    .expect("Edge start index must exist");
-
-                let index_to = self
-                    .index_mapping
-                    .get_custom_index(&node_index_end)
-                    .expect("Edge to index must exist");
-
-                (index_from, index_to)
-            })
-            .collect()
+            .node_attributes(node_index)
+            .map_err(MedRecordError::from)
     }
 
-    pub fn edges_between(
+    pub fn edge_indices(&self) -> impl Iterator<Item = &EdgeIndex> {
+        self.graph.edge_indices()
+    }
+
+    pub fn edge_attributes(&self, edge_index: &EdgeIndex) -> Result<&Attributes, MedRecordError> {
+        self.graph
+            .edge_attributes(edge_index)
+            .map_err(MedRecordError::from)
+    }
+
+    pub fn edges_connecting<'a>(
+        &'a self,
+        outgoing_node_index: &'a NodeIndex,
+        incoming_node_index: &'a NodeIndex,
+    ) -> impl Iterator<Item = &EdgeIndex> + 'a {
+        self.graph
+            .edges_connecting(outgoing_node_index, incoming_node_index)
+    }
+
+    pub fn groups(&self) -> impl Iterator<Item = &Group> {
+        self.group_mapping.keys()
+    }
+
+    pub fn nodes_in_group(
         &self,
-        start_node_id: &str,
-        end_node_id: &str,
-    ) -> Result<Vec<&Dictionary>, MedRecordError> {
-        let node_index_start_node =
-            self.index_mapping
-                .get_node_index(start_node_id)
-                .ok_or(MedRecordError::IndexError(format!(
-                    "Could not find index {}",
-                    start_node_id
-                )))?;
-
-        let node_index_end_node =
-            self.index_mapping
-                .get_node_index(end_node_id)
-                .ok_or(MedRecordError::IndexError(format!(
-                    "Could not find index {}",
-                    end_node_id
-                )))?;
-
+        group: &Group,
+    ) -> Result<impl Iterator<Item = &NodeIndex>, MedRecordError> {
         Ok(self
-            .graph
-            .edges_connecting(
-                node_index_start_node.to_owned(),
-                node_index_end_node.to_owned(),
-            )
-            .map(|edge| edge.weight())
-            .collect())
+            .group_mapping
+            .get(group)
+            .ok_or(MedRecordError::IndexError(format!(
+                "Cannot find group {}",
+                group
+            )))?
+            .iter())
     }
 
-    pub fn groups(&self) -> Vec<&String> {
-        self.group_mapping.keys().collect()
+    pub fn add_node(&mut self, node_index: NodeIndex, attributes: Attributes) {
+        self.graph.add_node(node_index, attributes);
     }
 
-    pub fn group(&self, group: Vec<&str>) -> Result<Vec<(&String, &Dictionary)>, MedRecordError> {
-        group
-            .into_iter()
-            .map(|id| {
-                let node_ids = self
-                    .group_mapping
-                    .get(id)
-                    .ok_or(MedRecordError::IndexError(format!(
-                        "Could not find group {}",
-                        id
-                    )))?;
-
-                Ok(node_ids
-                    .iter()
-                    .map(|node_id| {
-                        let node_index = self
-                            .index_mapping
-                            .get_node_index(node_id)
-                            .expect("Index must exist");
-
-                        let weight = self
-                            .graph
-                            .node_weight(*node_index)
-                            .expect("Node with index must exist");
-
-                        (node_id, weight)
-                    })
-                    .collect::<Vec<_>>())
-            })
-            .flat_map(|result| match result {
-                Ok(vec) => vec.into_iter().map(Ok).collect(),
-                Err(er) => vec![Err(er)],
-            })
-            .collect()
-    }
-
-    pub fn add_node(&mut self, id: String, attributes: Dictionary) {
-        let node_index = self.graph.add_node(attributes);
-
-        self.index_mapping
-            .insert_custom_index_to_node_index(id, node_index);
-    }
-
-    pub fn add_nodes(&mut self, nodes: Vec<(String, Dictionary)>) {
-        for (id, attributes) in nodes.into_iter() {
-            self.add_node(id, attributes);
+    pub fn add_nodes(&mut self, nodes: Vec<(NodeIndex, Attributes)>) {
+        for (node_index, attributes) in nodes.into_iter() {
+            self.add_node(node_index, attributes);
         }
     }
 
@@ -275,44 +148,25 @@ impl MedRecord {
 
     pub fn add_edge(
         &mut self,
-        from_id: String,
-        to_id: String,
-        attributes: Dictionary,
-    ) -> Result<(), MedRecordError> {
-        let node_index_node_1 =
-            self.index_mapping
-                .get_node_index(&from_id)
-                .ok_or(MedRecordError::IndexError(format!(
-                    "Could not find index {}",
-                    from_id
-                )))?;
-
-        let node_index_node_2 =
-            self.index_mapping
-                .get_node_index(&to_id)
-                .ok_or(MedRecordError::IndexError(format!(
-                    "Could not find index {}",
-                    to_id
-                )))?;
-
-        self.graph.add_edge(
-            node_index_node_1.to_owned(),
-            node_index_node_2.to_owned(),
-            attributes.to_owned(),
-        );
-
-        Ok(())
+        source_node_index: NodeIndex,
+        target_node_index: NodeIndex,
+        attributes: Attributes,
+    ) -> Result<EdgeIndex, MedRecordError> {
+        Ok(self
+            .graph
+            .add_edge(source_node_index, target_node_index, attributes.to_owned())?)
     }
 
     pub fn add_edges(
         &mut self,
-        edges: Vec<(String, String, Dictionary)>,
-    ) -> Result<(), MedRecordError> {
-        for (from_id, to_id, attributes) in edges.into_iter() {
-            self.add_edge(from_id, to_id, attributes)?
-        }
-
-        Ok(())
+        edges: Vec<(NodeIndex, NodeIndex, Attributes)>,
+    ) -> Result<Vec<EdgeIndex>, MedRecordError> {
+        edges
+            .into_iter()
+            .map(|(source_edge_index, target_node_index, attributes)| {
+                self.add_edge(source_edge_index, target_node_index, attributes)
+            })
+            .collect()
     }
 
     pub fn add_edges_dataframe(
@@ -320,7 +174,7 @@ impl MedRecord {
         edges_dataframe: DataFrame,
         from_index_column_name: &str,
         to_index_column_name: &str,
-    ) -> Result<(), MedRecordError> {
+    ) -> Result<Vec<EdgeIndex>, MedRecordError> {
         let edges = dataframe_to_edges(
             edges_dataframe,
             from_index_column_name,
@@ -333,30 +187,33 @@ impl MedRecord {
     pub fn add_group(
         &mut self,
         group: Group,
-        node_ids_to_add: Option<Vec<String>>,
+        node_indices_to_add: Option<Vec<NodeIndex>>,
     ) -> Result<(), MedRecordError> {
-        // Check that the node_ids that are about to be added are actually in the graph
-        if let Some(node_ids_to_add) = node_ids_to_add.clone() {
-            if node_ids_to_add
-                .iter()
-                .any(|node_id| !self.index_mapping.check_custom_index(node_id))
-            {
-                return Err(MedRecordError::IndexError(
-                    "One or more nodes are not in the graph".to_string(),
-                ));
+        let Some(node_indices_to_add) = node_indices_to_add else {
+            self.group_mapping.insert(group, vec![]);
+
+            return Ok(());
+        };
+
+        // Check that the node_indexs that are about to be added are actually in the graph
+        for node_index in &node_indices_to_add {
+            if !self.graph.contains_node(node_index) {
+                return Err(MedRecordError::IndexError(format!(
+                    "Cannot find node with index {}",
+                    node_index,
+                )));
             }
         }
 
-        self.group_mapping
-            .insert(group, node_ids_to_add.unwrap_or_default());
+        self.group_mapping.insert(group, node_indices_to_add);
 
         Ok(())
     }
 
-    pub fn remove_group(&mut self, group: &str) -> Result<(), MedRecordError> {
+    pub fn remove_group(&mut self, group: &Group) -> Result<(), MedRecordError> {
         if !self.group_mapping.contains_key(group) {
             return Err(MedRecordError::IndexError(format!(
-                "Could not find group {}",
+                "Cannot find group {}",
                 group
             )));
         }
@@ -366,104 +223,76 @@ impl MedRecord {
         Ok(())
     }
 
-    pub fn remove_from_group(&mut self, group: Group, node_id: &str) -> Result<(), MedRecordError> {
-        let node_ids = self
+    pub fn remove_from_group(
+        &mut self,
+        group: &Group,
+        node_index: &NodeIndex,
+    ) -> Result<(), MedRecordError> {
+        let node_indices = self
             .group_mapping
-            .get_mut(&group)
+            .get_mut(group)
             .ok_or(MedRecordError::IndexError(format!(
-                "Could not find group {}",
+                "Cannot find group {}",
                 group
             )))?;
 
-        let node_id_index =
-            node_ids
-                .iter()
-                .position(|id| id == node_id)
-                .ok_or(MedRecordError::IndexError(format!(
-                    "Could not find node with id {} in group {}",
-                    node_id, group
-                )))?;
+        let node_index = node_indices
+            .iter()
+            .position(|index| index == node_index)
+            .ok_or(MedRecordError::IndexError(format!(
+                "Cannot find node with index {} in group {}",
+                node_index, group
+            )))?;
 
-        node_ids.remove(node_id_index);
+        node_indices.remove(node_index);
 
         Ok(())
     }
 
-    pub fn add_to_group(&mut self, group: Group, node_id: String) -> Result<(), MedRecordError> {
-        let node_ids = self
+    pub fn add_to_group(
+        &mut self,
+        group: &Group,
+        node_index: NodeIndex,
+    ) -> Result<(), MedRecordError> {
+        if !self.node_indices().any(|index| *index == node_index) {
+            return Err(MedRecordError::AssertionError(format!(
+                "Node with index {} could not be found",
+                node_index
+            )));
+        }
+
+        let node_indices = self
             .group_mapping
-            .get_mut(&group)
+            .get_mut(group)
             .ok_or(MedRecordError::IndexError(format!(
-                "Could not find group {}",
+                "Cannot find group {}",
                 group
             )))?;
 
-        if !self.index_mapping.check_custom_index(&node_id) {
-            return Err(MedRecordError::IndexError(format!(
-                "Could not find node with index {}",
-                node_id
-            )));
-        }
-
-        if node_ids.contains(&node_id) {
+        if node_indices.contains(&node_index) {
             return Err(MedRecordError::AssertionError(format!(
-                "Node with id {} is already in group {}",
-                node_id, group
+                "Node with index {} is already in group {}",
+                node_index, group
             )));
         }
 
-        node_ids.push(node_id);
+        node_indices.push(node_index);
 
         Ok(())
     }
 
     pub fn neighbors(
         &self,
-        node_id: Vec<String>,
-    ) -> Result<Vec<(String, &Dictionary)>, MedRecordError> {
-        node_id
-            .iter()
-            .map(|id| {
-                let node_index =
-                    self.index_mapping
-                        .get_node_index(id)
-                        .ok_or(MedRecordError::IndexError(format!(
-                            "Could not find node with index {}",
-                            id
-                        )))?;
-
-                let nodes = self
-                    .graph
-                    .neighbors(*node_index)
-                    .map(|node_index| {
-                        let custom_index = self
-                            .index_mapping
-                            .get_custom_index(&node_index)
-                            .expect("Node must exist")
-                            .to_owned();
-
-                        let weight = self
-                            .graph
-                            .node_weight(node_index)
-                            .expect("Node weigth must exist");
-
-                        (custom_index, weight)
-                    })
-                    .collect::<Vec<_>>();
-
-                Ok(nodes)
-            })
-            .flat_map(|result| match result {
-                Ok(vec) => vec.into_iter().map(Ok).collect(),
-                Err(er) => vec![Err(er)],
-            })
-            .collect()
+        node_index: &NodeIndex,
+    ) -> Result<impl Iterator<Item = &NodeIndex>, MedRecordError> {
+        self.graph
+            .neighbors(node_index)
+            .map_err(MedRecordError::from)
     }
 
     pub fn clear(&mut self) {
         self.graph.clear();
         self.group_mapping.clear();
-        self.index_mapping.clear();
     }
 }
 
@@ -475,48 +304,48 @@ impl Default for MedRecord {
 
 #[cfg(test)]
 mod test {
-    use super::{MedRecord, MedRecordValue};
-    use crate::{errors::MedRecordError, medrecord::Dictionary};
+    use super::{Attributes, MedRecord, MedRecordAttribute};
+    use crate::{errors::MedRecordError, medrecord::NodeIndex};
     use polars::prelude::*;
     use std::collections::HashMap;
 
-    fn create_nodes() -> Vec<(String, HashMap<String, MedRecordValue>)> {
+    fn create_nodes() -> Vec<(NodeIndex, Attributes)> {
         vec![
             (
-                "0".to_string(),
+                "0".into(),
                 HashMap::from([
-                    ("lorem".to_string(), "ipsum".into()),
-                    ("dolor".to_string(), "sit".into()),
+                    ("lorem".into(), "ipsum".into()),
+                    ("dolor".into(), "sit".into()),
                 ]),
             ),
             (
-                "1".to_string(),
-                HashMap::from([("amet".to_string(), "consectetur".into())]),
+                "1".into(),
+                HashMap::from([("amet".into(), "consectetur".into())]),
             ),
             (
-                "2".to_string(),
-                HashMap::from([("adipiscing".to_string(), "elit".into())]),
+                "2".into(),
+                HashMap::from([("adipiscing".into(), "elit".into())]),
             ),
-            ("3".to_string(), HashMap::new()),
+            ("3".into(), HashMap::new()),
         ]
     }
 
-    fn create_edges() -> Vec<(String, String, HashMap<String, MedRecordValue>)> {
+    fn create_edges() -> Vec<(NodeIndex, NodeIndex, Attributes)> {
         vec![
             (
-                "0".to_string(),
-                "1".to_string(),
+                "0".into(),
+                "1".into(),
                 HashMap::from([
-                    ("sed".to_string(), "do".into()),
-                    ("eiusmod".to_string(), "tempor".into()),
+                    ("sed".into(), "do".into()),
+                    ("eiusmod".into(), "tempor".into()),
                 ]),
             ),
             (
-                "1".to_string(),
-                "2".to_string(),
-                HashMap::from([("incididunt".to_string(), "ut".into())]),
+                "1".into(),
+                "2".into(),
+                HashMap::from([("incididunt".into(), "ut".into())]),
             ),
-            ("0".to_string(), "2".to_string(), HashMap::new()),
+            ("0".into(), "2".into(), HashMap::new()),
         ]
     }
 
@@ -555,14 +384,14 @@ mod test {
         // Adding an edge pointing to a non-existing node should fail
         assert!(MedRecord::from_tuples(
             nodes.clone(),
-            Some(vec![("0".to_string(), "50".to_string(), HashMap::new())])
+            Some(vec![("0".into(), "50".into(), HashMap::new())])
         )
         .is_err_and(|e| matches!(e, MedRecordError::IndexError(_))));
 
         // Adding an edge from a non-existing should fail
         assert!(MedRecord::from_tuples(
             nodes,
-            Some(vec![("50".to_string(), "0".to_string(), HashMap::new())])
+            Some(vec![("50".into(), "0".into(), HashMap::new())])
         )
         .is_err_and(|e| matches!(e, MedRecordError::IndexError(_))));
     }
@@ -573,7 +402,7 @@ mod test {
 
         assert_eq!(0, medrecord.node_count());
 
-        medrecord.add_node("0".to_string(), HashMap::new());
+        medrecord.add_node("0".into(), HashMap::new());
 
         assert_eq!(1, medrecord.node_count());
     }
@@ -582,13 +411,13 @@ mod test {
     fn test_edge_count() {
         let mut medrecord = MedRecord::new();
 
-        medrecord.add_node("0".to_string(), HashMap::new());
-        medrecord.add_node("1".to_string(), HashMap::new());
+        medrecord.add_node("0".into(), HashMap::new());
+        medrecord.add_node("1".into(), HashMap::new());
 
         assert_eq!(0, medrecord.edge_count());
 
         medrecord
-            .add_edge("0".to_string(), "1".to_string(), HashMap::new())
+            .add_edge("0".into(), "1".into(), HashMap::new())
             .unwrap();
 
         assert_eq!(1, medrecord.edge_count());
@@ -600,135 +429,136 @@ mod test {
 
         assert_eq!(0, medrecord.group_count());
 
-        medrecord.add_group("0".to_string(), None).unwrap();
+        medrecord.add_group("0".into(), None).unwrap();
 
         assert_eq!(1, medrecord.group_count());
     }
 
     #[test]
-    fn test_nodes() {
+    fn test_node_indices() {
         let medrecord = create_medrecord();
 
-        let nodes = create_nodes()
+        let node_indices = create_nodes()
             .into_iter()
-            .map(|node| node.0)
+            .map(|(node_index, _)| node_index)
             .collect::<Vec<_>>();
 
-        for node in medrecord.nodes() {
-            assert!(nodes.contains(node));
+        for node_index in medrecord.node_indices() {
+            assert!(node_indices.contains(node_index));
         }
     }
 
     #[test]
-    fn test_node() {
+    fn test_node_attributes() {
         let medrecord = create_medrecord();
 
-        let nodes = medrecord.node(vec!["0".to_string()]).unwrap();
+        let attributes = medrecord.node_attributes(&"0".into()).unwrap();
 
-        assert_eq!(1, nodes.len());
-
-        let node = nodes.first().unwrap();
-
-        let mock_nodes = create_nodes();
-
-        let first_node = mock_nodes.first().unwrap();
-
-        assert_eq!("0".to_string(), node.0);
-        assert_eq!(first_node.1, *node.1);
+        assert_eq!(&create_nodes()[0].1, attributes);
     }
 
     #[test]
-    fn test_invalid_node() {
+    fn test_invalid_node_attributes() {
         let medrecord = create_medrecord();
 
         // Querying a non-existing node should fail
         assert!(medrecord
-            .node(vec!["50".to_string()])
+            .node_attributes(&"50".into())
             .is_err_and(|e| matches!(e, MedRecordError::IndexError(_))));
     }
 
     #[test]
-    fn test_edges() {
+    fn test_edge_indices() {
         let medrecord = create_medrecord();
-        let edges = create_edges()
-            .into_iter()
-            .map(|edge| (edge.0, edge.1))
-            .collect::<Vec<_>>();
+        let edges = [0, 1, 2];
 
-        for edge in medrecord.edges() {
-            assert!(edges.contains(&(edge.0.to_owned(), edge.1.to_owned())));
+        for edge in medrecord.edge_indices() {
+            assert!(edges.contains(edge));
         }
     }
 
     #[test]
-    fn test_edges_between() {
+    fn test_edge_attributes() {
         let medrecord = create_medrecord();
 
-        let edges = medrecord.edges_between("0", "1").unwrap();
+        let attributes = medrecord.edge_attributes(&0).unwrap();
 
-        assert_eq!(1, edges.len());
+        assert_eq!(&create_edges()[0].2, attributes);
     }
 
     #[test]
-    fn test_invalid_edges_netween() {
+    fn test_invalid_edge_attributes() {
         let medrecord = create_medrecord();
 
-        // Querying edges between a existing and a non-existing node should fail
+        // Querying a non-existing node should fail
         assert!(medrecord
-            .edges_between("0", "50")
+            .edge_attributes(&50)
             .is_err_and(|e| matches!(e, MedRecordError::IndexError(_))));
+    }
 
-        // Tests for the other direction
-        assert!(medrecord
-            .edges_between("50", "0")
-            .is_err_and(|e| matches!(e, MedRecordError::IndexError(_))));
+    #[test]
+    fn test_edges_connecting() {
+        let medrecord = create_medrecord();
+
+        let first_index = "0".into();
+        let second_index = "1".into();
+        let edges_connecting = medrecord.edges_connecting(&first_index, &second_index);
+
+        assert_eq!(vec![&0], edges_connecting.collect::<Vec<_>>());
+
+        let first_index = "0".into();
+        let second_index = "3".into();
+        let edges_connecting = medrecord.edges_connecting(&first_index, &second_index);
+
+        assert_eq!(0, edges_connecting.count());
     }
 
     #[test]
     fn test_groups() {
         let mut medrecord = create_medrecord();
 
-        medrecord.add_group("0".to_string(), None).unwrap();
+        medrecord.add_group("0".into(), None).unwrap();
 
-        let groups = medrecord.groups();
+        let groups = medrecord.groups().collect::<Vec<_>>();
 
-        assert_eq!(vec![&"0".to_string()], groups);
+        assert_eq!(vec![&(MedRecordAttribute::from("0"))], groups);
     }
 
     #[test]
-    fn test_group() {
+    fn test_nodes_in_group() {
         let mut medrecord = create_medrecord();
 
-        medrecord.add_group("0".to_string(), None).unwrap();
+        medrecord.add_group("0".into(), None).unwrap();
 
-        let group = medrecord.group(vec!["0"]).unwrap();
+        let group = medrecord.nodes_in_group(&"0".into()).unwrap();
 
-        assert_eq!(Vec::<(&String, &Dictionary)>::new(), group);
+        assert_eq!(0, group.count());
 
         medrecord
-            .add_group("1".to_string(), Some(vec!["0".to_string()]))
+            .add_group("1".into(), Some(vec!["0".into()]))
             .unwrap();
 
-        let groups = medrecord.group(vec!["1"]).unwrap();
+        let groups = medrecord.nodes_in_group(&"1".into()).unwrap();
 
         let nodes = create_nodes();
 
         let node = nodes.first().unwrap();
 
+        let groups = groups.collect::<Vec<_>>();
         assert_eq!(1, groups.len());
 
         let group = groups.first().unwrap();
 
-        assert_eq!(&(&node.0, &node.1), group);
+        assert_eq!(&node.0, *group);
     }
 
     #[test]
-    fn test_invalid_group() {
+    fn test_invalid_nodes_in_group() {
         let medrecord = create_medrecord();
 
         // Querying a non-existing group should fail
         assert!(medrecord
-            .group(vec!["0"])
+            .nodes_in_group(&"0".into())
             .is_err_and(|e| matches!(e, MedRecordError::IndexError(_))));
     }
 
@@ -738,7 +568,7 @@ mod test {
 
         assert_eq!(0, medrecord.node_count());
 
-        medrecord.add_node("0".to_string(), HashMap::new());
+        medrecord.add_node("0".into(), HashMap::new());
 
         assert_eq!(1, medrecord.node_count());
     }
@@ -778,7 +608,7 @@ mod test {
         assert_eq!(3, medrecord.edge_count());
 
         medrecord
-            .add_edge("0".to_string(), "3".to_string(), HashMap::new())
+            .add_edge("0".into(), "3".into(), HashMap::new())
             .unwrap();
 
         assert_eq!(4, medrecord.edge_count());
@@ -794,12 +624,12 @@ mod test {
 
         // Adding an edge pointing to a non-existing node should fail
         assert!(medrecord
-            .add_edge("0".to_string(), "50".to_string(), HashMap::new())
+            .add_edge("0".into(), "50".into(), HashMap::new())
             .is_err_and(|e| matches!(e, MedRecordError::IndexError(_))));
 
         // Adding an edge from a non-existing node should fail
         assert!(medrecord
-            .add_edge("50".to_string(), "0".to_string(), HashMap::new())
+            .add_edge("50".into(), "0".into(), HashMap::new())
             .is_err_and(|e| matches!(e, MedRecordError::IndexError(_))));
     }
 
@@ -843,7 +673,7 @@ mod test {
 
         assert_eq!(0, medrecord.group_count());
 
-        medrecord.add_group("0".to_string(), None).unwrap();
+        medrecord.add_group("0".into(), None).unwrap();
 
         assert_eq!(1, medrecord.group_count());
     }
@@ -854,7 +684,7 @@ mod test {
 
         // Adding a group with a non-existing node should fail
         assert!(medrecord
-            .add_group("0".to_string(), Some(vec!["50".to_string()]))
+            .add_group("0".into(), Some(vec!["50".into()]))
             .is_err_and(|e| matches!(e, MedRecordError::IndexError(_))));
     }
 
@@ -862,11 +692,11 @@ mod test {
     fn test_remove_group() {
         let mut medrecord = create_medrecord();
 
-        medrecord.add_group("0".to_string(), None).unwrap();
+        medrecord.add_group("0".into(), None).unwrap();
 
         assert_eq!(1, medrecord.group_count());
 
-        medrecord.remove_group("0").unwrap();
+        medrecord.remove_group(&"0".into()).unwrap();
 
         assert_eq!(0, medrecord.group_count());
     }
@@ -877,7 +707,7 @@ mod test {
 
         // Removing a non-existing group should fail
         assert!(medrecord
-            .remove_group("0")
+            .remove_group(&"0".into())
             .is_err_and(|e| matches!(e, MedRecordError::IndexError(_))));
     }
 
@@ -886,17 +716,16 @@ mod test {
         let mut medrecord = create_medrecord();
 
         medrecord
-            .add_group(
-                "0".to_string(),
-                Some(vec!["0".to_string(), "1".to_string()]),
-            )
+            .add_group("0".into(), Some(vec!["0".into(), "1".into()]))
             .unwrap();
 
-        assert_eq!(2, medrecord.group(vec!["0"]).unwrap().len());
+        assert_eq!(2, medrecord.nodes_in_group(&"0".into()).unwrap().count());
 
-        medrecord.remove_from_group("0".to_string(), "0").unwrap();
+        medrecord
+            .remove_from_group(&"0".into(), &"0".into())
+            .unwrap();
 
-        assert_eq!(1, medrecord.group(vec!["0"]).unwrap().len());
+        assert_eq!(1, medrecord.nodes_in_group(&"0".into()).unwrap().count());
     }
 
     #[test]
@@ -904,17 +733,17 @@ mod test {
         let mut medrecord = create_medrecord();
 
         medrecord
-            .add_group("0".to_string(), Some(vec!["0".to_string()]))
+            .add_group("0".into(), Some(vec!["0".into()]))
             .unwrap();
 
         // Removing a node from a non-existing group should fail
         assert!(medrecord
-            .remove_from_group("50".to_string(), "0")
+            .remove_from_group(&"50".into(), &"0".into())
             .is_err_and(|e| matches!(e, MedRecordError::IndexError(_))));
 
         // Removing a non-existing node from a group should fail
         assert!(medrecord
-            .remove_from_group("0".to_string(), "50")
+            .remove_from_group(&"0".into(), &"50".into())
             .is_err_and(|e| matches!(e, MedRecordError::IndexError(_))));
     }
 
@@ -923,19 +752,14 @@ mod test {
         let mut medrecord = create_medrecord();
 
         medrecord
-            .add_group(
-                "0".to_string(),
-                Some(vec!["0".to_string(), "1".to_string()]),
-            )
+            .add_group("0".into(), Some(vec!["0".into(), "1".into()]))
             .unwrap();
 
-        assert_eq!(2, medrecord.group(vec!["0"]).unwrap().len());
+        assert_eq!(2, medrecord.nodes_in_group(&"0".into()).unwrap().count());
 
-        medrecord
-            .add_to_group("0".to_string(), "2".to_string())
-            .unwrap();
+        medrecord.add_to_group(&"0".into(), "2".into()).unwrap();
 
-        assert_eq!(3, medrecord.group(vec!["0"]).unwrap().len());
+        assert_eq!(3, medrecord.nodes_in_group(&"0".into()).unwrap().count());
     }
 
     #[test]
@@ -943,22 +767,22 @@ mod test {
         let mut medrecord = create_medrecord();
 
         medrecord
-            .add_group("0".to_string(), Some(vec!["0".to_string()]))
+            .add_group("0".into(), Some(vec!["0".into()]))
             .unwrap();
 
         // Adding to a non-existing group should fail
         assert!(medrecord
-            .add_to_group("1".to_string(), "0".to_string())
+            .add_to_group(&"1".into(), "0".into())
             .is_err_and(|e| matches!(e, MedRecordError::IndexError(_))));
 
         // Adding a non-existing node to a group should fail
         assert!(medrecord
-            .add_to_group("0".to_string(), "50".to_string())
-            .is_err_and(|e| matches!(e, MedRecordError::IndexError(_))));
+            .add_to_group(&"0".into(), "50".into())
+            .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
 
         // Adding a node to a group that already is in the group should fail
         assert!(medrecord
-            .add_to_group("0".to_string(), "0".to_string())
+            .add_to_group(&"0".into(), "0".into())
             .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
     }
 
@@ -966,15 +790,9 @@ mod test {
     fn test_neighbors() {
         let medrecord = create_medrecord();
 
-        let neighbors = medrecord.neighbors(vec!["0".to_string()]).unwrap();
+        let neighbors = medrecord.neighbors(&"0".into()).unwrap();
 
-        assert_eq!(2, neighbors.len());
-
-        let neighbors = medrecord
-            .neighbors(vec!["0".to_string(), "1".to_string()])
-            .unwrap();
-
-        assert_eq!(3, neighbors.len());
+        assert_eq!(2, neighbors.count());
     }
 
     #[test]
@@ -983,7 +801,7 @@ mod test {
 
         // Querying neighbors of a non-existing node sohuld fail
         assert!(medrecord
-            .neighbors(vec!["0".to_string()])
+            .neighbors(&"0".into())
             .is_err_and(|e| matches!(e, MedRecordError::IndexError(_))));
     }
 

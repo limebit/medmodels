@@ -1,31 +1,13 @@
-use std::{
-    error::Error,
-    fmt::{Display, Formatter, Result},
-};
+mod graph;
+mod medrecord;
 
-#[derive(Debug)]
-pub enum MedRecordError {
-    IndexError(String),
-    ConversionError(String),
-    AssertionError(String),
-}
+pub use graph::GraphError;
+pub use medrecord::MedRecordError;
 
-impl Error for MedRecordError {
-    fn description(&self) -> &str {
-        match self {
-            MedRecordError::IndexError(message) => message,
-            MedRecordError::ConversionError(message) => message,
-            MedRecordError::AssertionError(message) => message,
-        }
-    }
-}
-
-impl Display for MedRecordError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        match self {
-            MedRecordError::IndexError(message) => write!(f, "{}", message),
-            MedRecordError::ConversionError(message) => write!(f, "{}", message),
-            MedRecordError::AssertionError(message) => write!(f, "{}", message),
+impl From<GraphError> for MedRecordError {
+    fn from(value: GraphError) -> Self {
+        match value {
+            GraphError::IndexError(value) => Self::IndexError(value),
         }
     }
 }
