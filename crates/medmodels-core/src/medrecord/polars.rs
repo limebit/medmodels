@@ -1,6 +1,6 @@
 use crate::{
     errors::MedRecordError,
-    medrecord::{Dictionary, MedRecordValue},
+    medrecord::{Attributes, MedRecordAttribute, MedRecordValue, NodeIndex},
 };
 use polars::{datatypes::AnyValue, frame::DataFrame};
 
@@ -25,10 +25,28 @@ impl<'a> TryFrom<AnyValue<'a>> for MedRecordValue {
     }
 }
 
+impl<'a> TryFrom<AnyValue<'a>> for MedRecordAttribute {
+    type Error = MedRecordError;
+
+    fn try_from(value: AnyValue<'a>) -> Result<Self, Self::Error> {
+        match value {
+            AnyValue::String(value) => Ok(MedRecordAttribute::String(value.to_string())),
+            AnyValue::Int8(value) => Ok(MedRecordAttribute::Int(value.into())),
+            AnyValue::Int16(value) => Ok(MedRecordAttribute::Int(value.into())),
+            AnyValue::Int32(value) => Ok(MedRecordAttribute::Int(value.into())),
+            AnyValue::Int64(value) => Ok(MedRecordAttribute::Int(value)),
+            _ => Err(MedRecordError::ConversionError(format!(
+                "Could not convert {} into MedRecordAttribute",
+                value
+            ))),
+        }
+    }
+}
+
 pub(crate) fn dataframe_to_nodes(
     nodes: DataFrame,
     index_column_name: &str,
-) -> Result<Vec<(String, Dictionary)>, MedRecordError> {
+) -> Result<Vec<(NodeIndex, Attributes)>, MedRecordError> {
     let index_column = nodes
         .column(index_column_name)
         .map_err(|_| {
@@ -55,19 +73,19 @@ pub(crate) fn dataframe_to_nodes(
     index_column
         .into_iter()
         .enumerate()
-        .map(|(row_index, nodex_index)| {
-            let id = nodex_index.ok_or(MedRecordError::ConversionError(
+        .map(|(row_index, node_index)| {
+            let id = node_index.ok_or(MedRecordError::ConversionError(
                 "Failed to read id in index column".to_string(),
             ))?;
 
             Ok((
-                id.to_string(),
+                id.into(),
                 attribute_column_names
                     .iter()
                     .zip(attribute_columns.clone())
                     .map(|(column_name, column)| {
                         Ok((
-                            column_name.to_string(),
+                            (*column_name).into(),
                             column
                                 .get(row_index)
                                 .expect("Entry needs to exist")
@@ -84,7 +102,7 @@ pub(crate) fn dataframe_to_edges(
     edges: DataFrame,
     from_index_column_name: &str,
     to_index_column_name: &str,
-) -> Result<Vec<(String, String, Dictionary)>, MedRecordError> {
+) -> Result<Vec<(NodeIndex, NodeIndex, Attributes)>, MedRecordError> {
     let from_index_column = edges
         .column(from_index_column_name)
         .map_err(|_| {
@@ -124,8 +142,8 @@ pub(crate) fn dataframe_to_edges(
         .into_iter()
         .zip(to_index_column)
         .enumerate()
-        .map(|(row_index, (from_nodex_index, to_node_index))| {
-            let from_id = from_nodex_index.ok_or(MedRecordError::ConversionError(
+        .map(|(row_index, (from_node_index, to_node_index))| {
+            let from_id = from_node_index.ok_or(MedRecordError::ConversionError(
                 "Failed to read id in from index column".to_string(),
             ))?;
             let to_id = to_node_index.ok_or(MedRecordError::ConversionError(
@@ -133,14 +151,14 @@ pub(crate) fn dataframe_to_edges(
             ))?;
 
             Ok((
-                from_id.to_string(),
-                to_id.to_string(),
+                from_id.into(),
+                to_id.into(),
                 attribute_column_names
                     .iter()
                     .zip(attribute_columns.clone())
                     .map(|(column_name, column)| {
                         Ok((
-                            column_name.to_string(),
+                            (*column_name).into(),
                             column
                                 .get(row_index)
                                 .expect("Entry needs to exist")
@@ -157,9 +175,8 @@ pub(crate) fn dataframe_to_edges(
 mod test {
     use std::collections::HashMap;
 
-    use crate::{errors::MedRecordError, polars::dataframe_to_edges};
-
-    use super::{dataframe_to_nodes, MedRecordValue};
+    use super::{dataframe_to_edges, dataframe_to_nodes, MedRecordValue};
+    use crate::errors::MedRecordError;
     use polars::prelude::*;
 
     #[test]
@@ -244,14 +261,8 @@ mod test {
 
         assert_eq!(
             vec![
-                (
-                    "0".to_string(),
-                    HashMap::from([("attribute".to_string(), 1.into())])
-                ),
-                (
-                    "1".to_string(),
-                    HashMap::from([("attribute".to_string(), 2.into())])
-                )
+                ("0".into(), HashMap::from([("attribute".into(), 1.into())])),
+                ("1".into(), HashMap::from([("attribute".into(), 2.into())]))
             ],
             nodes
         );
@@ -288,14 +299,14 @@ mod test {
         assert_eq!(
             vec![
                 (
-                    "0".to_string(),
-                    "1".to_string(),
-                    HashMap::from([("attribute".to_string(), 1.into())])
+                    "0".into(),
+                    "1".into(),
+                    HashMap::from([("attribute".into(), 1.into())])
                 ),
                 (
-                    "1".to_string(),
-                    "0".to_string(),
-                    HashMap::from([("attribute".to_string(), 2.into())])
+                    "1".into(),
+                    "0".into(),
+                    HashMap::from([("attribute".into(), 2.into())])
                 )
             ],
             edges

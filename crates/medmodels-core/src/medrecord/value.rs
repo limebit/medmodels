@@ -1,4 +1,6 @@
-#[derive(Debug, Clone)]
+use medmodels_utils::implement_from_for_wrapper;
+
+#[derive(Debug, Clone, PartialEq)]
 pub enum MedRecordValue {
     String(String),
     Int(i64),
@@ -12,32 +14,10 @@ impl From<&str> for MedRecordValue {
     }
 }
 
-macro_rules! implement_from {
-    ($type: ty, $variant: ident) => {
-        impl From<$type> for MedRecordValue {
-            fn from(value: $type) -> Self {
-                Self::$variant(value)
-            }
-        }
-    };
-}
-
-implement_from!(String, String);
-implement_from!(i64, Int);
-implement_from!(f64, Float);
-implement_from!(bool, Bool);
-
-impl PartialEq for MedRecordValue {
-    fn eq(&self, other: &Self) -> bool {
-        match (self, other) {
-            (Self::String(l0), Self::String(r0)) => l0 == r0,
-            (Self::Int(l0), Self::Int(r0)) => l0 == r0,
-            (Self::Float(l0), Self::Float(r0)) => l0 == r0,
-            (Self::Bool(l0), Self::Bool(r0)) => l0 == r0,
-            _ => false,
-        }
-    }
-}
+implement_from_for_wrapper!(MedRecordValue, String, String);
+implement_from_for_wrapper!(MedRecordValue, i64, Int);
+implement_from_for_wrapper!(MedRecordValue, f64, Float);
+implement_from_for_wrapper!(MedRecordValue, bool, Bool);
 
 #[cfg(test)]
 mod test {
