@@ -9,6 +9,7 @@ crate-type = ["cdylib"]
 
 [dependencies]
 medmodels-core = { workspace = true }
+medmodels-utils = { workspace = true }
 
 pyo3 = { workspace = true }
 pyo3-polars = { workspace = true }

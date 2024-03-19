@@ -1,4 +1,5 @@
 use medmodels_utils::implement_from_for_wrapper;
+use std::fmt::Display;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum MedRecordValue {
@@ -11,6 +12,17 @@ pub enum MedRecordValue {
 impl From<&str> for MedRecordValue {
     fn from(value: &str) -> Self {
         value.to_string().into()
+    }
+}
+
+impl Display for MedRecordValue {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::String(value) => write!(f, "{}", value),
+            Self::Int(value) => write!(f, "{}", value),
+            Self::Float(value) => write!(f, "{}", value),
+            Self::Bool(value) => write!(f, "{}", value),
+        }
     }
 }
 
@@ -52,6 +64,13 @@ mod test {
     }
 
     #[test]
+    fn test_from_str() {
+        let value = MedRecordValue::from("value");
+
+        assert_eq!(MedRecordValue::String("value".to_string()), value)
+    }
+
+    #[test]
     fn test_partial_eq() {
         assert!(MedRecordValue::from(0_i64) == MedRecordValue::from(0_i64));
         assert!(MedRecordValue::from(1_i64) != MedRecordValue::from(0_i64));
@@ -68,5 +87,19 @@ mod test {
 
         assert!(MedRecordValue::from(false) == MedRecordValue::from(false));
         assert!(MedRecordValue::from(true) != MedRecordValue::from(false));
+    }
+
+    #[test]
+    fn test_display() {
+        assert_eq!(
+            "value",
+            MedRecordValue::from("value".to_string()).to_string()
+        );
+
+        assert_eq!("0", MedRecordValue::from(0_i64).to_string());
+
+        assert_eq!("0.5", MedRecordValue::from(0.5).to_string());
+
+        assert_eq!("false", MedRecordValue::from(false).to_string());
     }
 }

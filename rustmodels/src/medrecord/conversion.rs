@@ -1,11 +1,13 @@
-use std::{collections::HashMap, hash::Hash};
-
-use super::errors::PyMedRecordError;
+use crate::{gil_hash_map::GILHashMap, medrecord::errors::PyMedRecordError};
 use medmodels_core::{
     errors::MedRecordError,
     medrecord::{MedRecordAttribute, MedRecordValue},
 };
-use pyo3::{FromPyObject, IntoPy, PyObject, PyResult};
+use pyo3::{
+    types::{PyBool, PyFloat, PyInt, PyString, PyType},
+    FromPyObject, IntoPy, PyAny, PyObject, PyResult, Python,
+};
+use std::{collections::HashMap, hash::Hash};
 
 pub(crate) struct PyMedRecordValue(MedRecordValue);
 
@@ -21,24 +23,60 @@ impl From<PyMedRecordValue> for MedRecordValue {
     }
 }
 
-impl<'a> FromPyObject<'a> for PyMedRecordValue {
-    fn extract(ob: &'a pyo3::prelude::PyAny) -> PyResult<Self> {
-        let object_type = ob
-            .getattr("__class__")?
-            .getattr("__name__")?
-            .extract::<&str>()?;
+static MEDRECORDVALUE_CONVERSION_LUT: GILHashMap<usize, fn(&PyAny) -> PyResult<MedRecordValue>> =
+    GILHashMap::new();
 
-        match object_type {
-            "str" => Ok(MedRecordValue::String(ob.extract::<String>()?).into()),
-            "int" => Ok(MedRecordValue::Int(ob.extract::<i64>()?).into()),
-            "float" => Ok(MedRecordValue::Float(ob.extract::<f64>()?).into()),
-            "bool" => Ok(MedRecordValue::Bool(ob.extract::<bool>()?).into()),
-            _ => Err(PyMedRecordError(MedRecordError::ConversionError(format!(
-                "Failed to convert {} into MedRecordValue",
-                object_type
-            )))
-            .into()),
-        }
+fn convert_pyobject_to_medrecordvalue(ob: &PyAny) -> PyResult<MedRecordValue> {
+    fn convert_string(ob: &PyAny) -> PyResult<MedRecordValue> {
+        Ok(MedRecordValue::String(ob.extract::<String>()?))
+    }
+
+    fn convert_int(ob: &PyAny) -> PyResult<MedRecordValue> {
+        Ok(MedRecordValue::Int(ob.extract::<i64>()?))
+    }
+
+    fn convert_float(ob: &PyAny) -> PyResult<MedRecordValue> {
+        Ok(MedRecordValue::Float(ob.extract::<f64>()?))
+    }
+
+    fn convert_bool(ob: &PyAny) -> PyResult<MedRecordValue> {
+        Ok(MedRecordValue::Bool(ob.extract::<bool>()?))
+    }
+
+    fn throw_error(ob: &PyAny) -> PyResult<MedRecordValue> {
+        Err(PyMedRecordError(MedRecordError::ConversionError(format!(
+            "Failed to convert {} into MedRecordValue",
+            ob,
+        )))
+        .into())
+    }
+
+    let type_pointer = PyType::as_type_ptr(ob.get_type()) as usize;
+
+    Python::with_gil(|py| {
+        MEDRECORDVALUE_CONVERSION_LUT.map(py, |lut| {
+            let conversion_function = lut.entry(type_pointer).or_insert_with(|| {
+                if ob.is_instance_of::<PyString>() {
+                    convert_string
+                } else if ob.is_instance_of::<PyInt>() {
+                    convert_int
+                } else if ob.is_instance_of::<PyFloat>() {
+                    convert_float
+                } else if ob.is_instance_of::<PyBool>() {
+                    convert_bool
+                } else {
+                    throw_error
+                }
+            });
+
+            conversion_function(ob)
+        })
+    })
+}
+
+impl<'a> FromPyObject<'a> for PyMedRecordValue {
+    fn extract(ob: &'a PyAny) -> PyResult<Self> {
+        convert_pyobject_to_medrecordvalue(ob).map(PyMedRecordValue::from)
     }
 }
 
@@ -70,20 +108,10 @@ impl From<PyMedRecordAttribute> for MedRecordAttribute {
 
 impl<'a> FromPyObject<'a> for PyMedRecordAttribute {
     fn extract(ob: &'a pyo3::prelude::PyAny) -> PyResult<Self> {
-        let object_type = ob
-            .getattr("__class__")?
-            .getattr("__name__")?
-            .extract::<&str>()?;
-
-        match object_type {
-            "str" => Ok(MedRecordAttribute::String(ob.extract::<String>()?).into()),
-            "int" => Ok(MedRecordAttribute::Int(ob.extract::<i64>()?).into()),
-            _ => Err(PyMedRecordError(MedRecordError::ConversionError(format!(
-                "Failed to convert {} into MedRecordValue",
-                object_type
-            )))
-            .into()),
-        }
+        Ok(convert_pyobject_to_medrecordvalue(ob)?
+            .try_into()
+            .map(|value: MedRecordAttribute| value.into())
+            .map_err(PyMedRecordError::from)?)
     }
 }
 
