@@ -498,6 +498,9 @@ dependencies = [
 [[package]]
 name = "medmodels-utils"
 version = "0.0.1"
+dependencies = [
+ "hashbrown",
+]
 
 [[package]]
 name = "memchr"
@@ -1008,6 +1011,7 @@ name = "py-medmodels"
 version = "0.0.1"
 dependencies = [
  "medmodels-core",
+ "medmodels-utils",
  "polars",
  "pyo3",
  "pyo3-polars",

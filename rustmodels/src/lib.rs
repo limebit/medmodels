@@ -1,3 +1,4 @@
+mod gil_hash_map;
 mod medrecord;
 
 use medrecord::PyMedRecord;

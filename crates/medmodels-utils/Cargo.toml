@@ -5,3 +5,6 @@ edition = { workspace = true }
 repository = { workspace = true }
 license = { workspace = true }
 readme = "../../README.md"
+
+[dependencies]
+hashbrown = { workspace = true }

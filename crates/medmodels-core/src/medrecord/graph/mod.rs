@@ -4,6 +4,7 @@ mod node;
 use super::{attribute::MedRecordAttribute, MedRecordValue};
 use crate::errors::GraphError;
 use edge::Edge;
+use medmodels_utils::aliases::MrHashMap;
 use node::Node;
 use std::{collections::HashMap, sync::atomic::AtomicUsize};
 
@@ -12,8 +13,8 @@ pub type EdgeIndex = usize;
 pub type Attributes = HashMap<MedRecordAttribute, MedRecordValue>;
 
 pub(super) struct Graph {
-    nodes: HashMap<NodeIndex, Node>,
-    edges: HashMap<EdgeIndex, Edge>,
+    nodes: MrHashMap<NodeIndex, Node>,
+    edges: MrHashMap<EdgeIndex, Edge>,
     edge_index_counter: AtomicUsize,
 }
 
@@ -21,8 +22,16 @@ pub(super) struct Graph {
 impl Graph {
     pub fn new() -> Self {
         Self {
-            nodes: HashMap::new(),
-            edges: HashMap::new(),
+            nodes: MrHashMap::new(),
+            edges: MrHashMap::new(),
+            edge_index_counter: AtomicUsize::new(0),
+        }
+    }
+
+    pub fn with_capacity(node_capacity: usize, edge_capacity: usize) -> Self {
+        Self {
+            nodes: MrHashMap::with_capacity(node_capacity),
+            edges: MrHashMap::with_capacity(edge_capacity),
             edge_index_counter: AtomicUsize::new(0),
         }
     }
@@ -31,7 +40,10 @@ impl Graph {
         nodes: Vec<(NodeIndex, Attributes)>,
         edges: Option<Vec<(NodeIndex, NodeIndex, Attributes)>>,
     ) -> Result<Self, GraphError> {
-        let mut graph = Self::new();
+        let mut graph = Self::with_capacity(
+            nodes.len(),
+            edges.as_ref().map(|vec| vec.len()).unwrap_or(0),
+        );
 
         for (node_index, attributes) in nodes {
             graph.add_node(node_index, attributes);

@@ -13,6 +13,7 @@ readme = "README.md"
 pyo3 = "0.20.2"
 polars = "0.37.0"
 pyo3-polars = "0.11.3"
+hashbrown = "0.14.3"
 
 medmodels = { version = "0.0.1", path = "crates/medmodels" }
 medmodels-core = { version = "0.0.1", path = "crates/medmodels-core" }
