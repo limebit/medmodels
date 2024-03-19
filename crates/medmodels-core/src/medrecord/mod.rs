@@ -11,21 +11,21 @@ pub use self::{
 use crate::errors::MedRecordError;
 use ::polars::frame::DataFrame;
 use graph::Graph;
+use medmodels_utils::aliases::MrHashMap;
 use polars::{dataframe_to_edges, dataframe_to_nodes};
-use std::collections::HashMap;
 
 pub type Group = MedRecordAttribute;
 
 pub struct MedRecord {
     graph: Graph,
-    group_mapping: HashMap<Group, Vec<NodeIndex>>,
+    group_mapping: MrHashMap<Group, Vec<NodeIndex>>,
 }
 
 impl MedRecord {
     pub fn new() -> Self {
         Self {
             graph: Graph::new(),
-            group_mapping: HashMap::new(),
+            group_mapping: MrHashMap::new(),
         }
     }
 
@@ -35,7 +35,7 @@ impl MedRecord {
     ) -> Result<Self, MedRecordError> {
         Ok(Self {
             graph: Graph::from_tuples(nodes, edges).map_err(MedRecordError::from)?,
-            group_mapping: HashMap::new(),
+            group_mapping: MrHashMap::new(),
         })
     }
 
