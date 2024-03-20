@@ -3,12 +3,12 @@ mod errors;
 
 use conversion::{DeepInto, PyMedRecordAttribute, PyMedRecordValue};
 use errors::PyMedRecordError;
-use medmodels_core::medrecord::{EdgeIndex, MedRecord};
+use medmodels_core::medrecord::{EdgeIndex, Group, MedRecord};
 use pyo3::{prelude::*, types::PyTuple};
 use pyo3_polars::PyDataFrame;
 use std::collections::HashMap;
 
-type Dictionary = HashMap<PyMedRecordAttribute, PyMedRecordValue>;
+type PyAttributes = HashMap<PyMedRecordAttribute, PyMedRecordValue>;
 type PyGroup = PyMedRecordAttribute;
 type PyNodeIndex = PyMedRecordAttribute;
 
@@ -24,8 +24,8 @@ impl PyMedRecord {
 
     #[staticmethod]
     fn from_tuples(
-        nodes: Vec<(PyNodeIndex, Dictionary)>,
-        edges: Option<Vec<(PyNodeIndex, PyNodeIndex, Dictionary)>>,
+        nodes: Vec<(PyNodeIndex, PyAttributes)>,
+        edges: Option<Vec<(PyNodeIndex, PyNodeIndex, PyAttributes)>>,
     ) -> PyResult<Self> {
         Ok(Self(
             MedRecord::from_tuples(nodes.deep_into(), edges.deep_into())
@@ -64,18 +64,6 @@ impl PyMedRecord {
         ))
     }
 
-    fn node_count(&self) -> usize {
-        self.0.node_count()
-    }
-
-    fn edge_count(&self) -> usize {
-        self.0.edge_count()
-    }
-
-    fn group_count(&self) -> usize {
-        self.0.group_count()
-    }
-
     #[getter]
     fn nodes(&self) -> Vec<PyNodeIndex> {
         self.0
@@ -85,9 +73,9 @@ impl PyMedRecord {
     }
 
     #[pyo3(signature = (*node_index))]
-    fn node(&self, node_index: &PyTuple) -> PyResult<HashMap<PyNodeIndex, Dictionary>> {
+    fn node(&self, node_index: &PyTuple) -> PyResult<HashMap<PyNodeIndex, PyAttributes>> {
         node_index
-            .iter()
+            .into_iter()
             .map(|node_index| {
                 let node_index = node_index.extract::<PyNodeIndex>()?.into();
 
@@ -110,9 +98,9 @@ impl PyMedRecord {
     }
 
     #[pyo3(signature = (*edge_index))]
-    fn edge(&self, edge_index: &PyTuple) -> PyResult<HashMap<EdgeIndex, Dictionary>> {
+    fn edge(&self, edge_index: &PyTuple) -> PyResult<HashMap<EdgeIndex, PyAttributes>> {
         edge_index
-            .iter()
+            .into_iter()
             .map(|edge_index| {
                 let edge_index = edge_index.extract::<EdgeIndex>()?;
 
@@ -123,17 +111,6 @@ impl PyMedRecord {
 
                 Ok((edge_index, edge_attributes.to_owned().deep_into()))
             })
-            .collect()
-    }
-
-    fn edges_connecting(
-        &self,
-        source_node_index: PyNodeIndex,
-        target_node_index: PyNodeIndex,
-    ) -> Vec<EdgeIndex> {
-        self.0
-            .edges_connecting(&source_node_index.into(), &target_node_index.into())
-            .map(|edge_index| edge_index.to_owned())
             .collect()
     }
 
@@ -164,11 +141,68 @@ impl PyMedRecord {
             .collect()
     }
 
-    fn add_node(&mut self, node_index: PyNodeIndex, attributes: Dictionary) {
+    #[pyo3(signature = (*edge_index))]
+    fn edge_endpoints(
+        &self,
+        edge_index: &PyTuple,
+    ) -> PyResult<HashMap<EdgeIndex, (PyNodeIndex, PyNodeIndex)>> {
+        edge_index
+            .into_iter()
+            .map(|edge_index| {
+                let edge_index = edge_index.extract::<EdgeIndex>()?;
+
+                let edge_endpoints = self
+                    .0
+                    .edge_endpoints(&edge_index)
+                    .map_err(PyMedRecordError::from)?;
+
+                Ok((
+                    edge_index,
+                    (
+                        edge_endpoints.0.to_owned().into(),
+                        edge_endpoints.1.to_owned().into(),
+                    ),
+                ))
+            })
+            .collect()
+    }
+
+    fn edges_connecting(
+        &self,
+        source_node_index: PyNodeIndex,
+        target_node_index: PyNodeIndex,
+    ) -> Vec<EdgeIndex> {
+        self.0
+            .edges_connecting(&source_node_index.into(), &target_node_index.into())
+            .map(|edge_index| edge_index.to_owned())
+            .collect()
+    }
+
+    fn add_node(&mut self, node_index: PyNodeIndex, attributes: PyAttributes) {
         self.0.add_node(node_index.into(), attributes.deep_into())
     }
 
-    fn add_nodes(&mut self, nodes: Vec<(PyNodeIndex, Dictionary)>) {
+    #[pyo3(signature = (*node_index))]
+    fn remove_node(
+        &mut self,
+        node_index: &PyTuple,
+    ) -> PyResult<HashMap<PyNodeIndex, PyAttributes>> {
+        node_index
+            .into_iter()
+            .map(|node_index| {
+                let node_index = node_index.extract::<PyNodeIndex>()?.into();
+
+                let attributes = self
+                    .0
+                    .remove_node(&node_index)
+                    .map_err(PyMedRecordError::from)?;
+
+                Ok((node_index.into(), attributes.deep_into()))
+            })
+            .collect()
+    }
+
+    fn add_nodes(&mut self, nodes: Vec<(PyNodeIndex, PyAttributes)>) {
         self.0.add_nodes(nodes.deep_into())
     }
 
@@ -187,7 +221,7 @@ impl PyMedRecord {
         &mut self,
         source_node_index: PyNodeIndex,
         target_node_index: PyNodeIndex,
-        attributes: Dictionary,
+        attributes: PyAttributes,
     ) -> PyResult<EdgeIndex> {
         Ok(self
             .0
@@ -199,9 +233,26 @@ impl PyMedRecord {
             .map_err(PyMedRecordError::from)?)
     }
 
+    #[pyo3(signature = (*edge_index))]
+    fn remove_edge(&mut self, edge_index: &PyTuple) -> PyResult<HashMap<EdgeIndex, PyAttributes>> {
+        edge_index
+            .into_iter()
+            .map(|edge_index| {
+                let edge_index = edge_index.extract::<EdgeIndex>()?;
+
+                let attributes = self
+                    .0
+                    .remove_edge(&edge_index)
+                    .map_err(PyMedRecordError::from)?;
+
+                Ok((edge_index, attributes.deep_into()))
+            })
+            .collect()
+    }
+
     fn add_edges(
         &mut self,
-        relations: Vec<(PyNodeIndex, PyNodeIndex, Dictionary)>,
+        relations: Vec<(PyNodeIndex, PyNodeIndex, PyAttributes)>,
     ) -> PyResult<Vec<EdgeIndex>> {
         Ok(self
             .0
@@ -236,32 +287,88 @@ impl PyMedRecord {
             .map_err(PyMedRecordError::from)?)
     }
 
-    fn remove_group(&mut self, group: PyGroup) -> PyResult<()> {
-        Ok(self
-            .0
-            .remove_group(&group.into())
-            .map_err(PyMedRecordError::from)?)
-    }
+    #[pyo3(signature = (*group))]
+    fn remove_group(&mut self, group: &PyTuple) -> PyResult<()> {
+        group.into_iter().try_for_each(|group| {
+            let group = group.extract::<PyGroup>()?.into();
 
-    fn remove_from_group(&mut self, group: PyGroup, node_index: PyNodeIndex) -> PyResult<()> {
-        Ok(self
-            .0
-            .remove_from_group(&group.into(), &node_index.into())
-            .map_err(PyMedRecordError::from)?)
+            self.0
+                .remove_group(&group)
+                .map_err(PyMedRecordError::from)?;
+
+            Ok(())
+        })
     }
 
     #[pyo3(signature = (group, *node_index))]
-    fn add_to_group(&mut self, group: PyGroup, node_index: &PyTuple) -> PyResult<()> {
-        let group = group.into();
+    fn add_node_to_group(&mut self, group: PyGroup, node_index: &PyTuple) -> PyResult<()> {
+        let group: Group = group.into();
 
         node_index.into_iter().try_for_each(|node_index| {
             let node_index = node_index.extract::<PyNodeIndex>()?.into();
 
             Ok(self
                 .0
-                .add_to_group(&group, node_index)
+                .add_node_to_group(group.clone(), node_index)
                 .map_err(PyMedRecordError::from)?)
         })
+    }
+
+    #[pyo3(signature = (group, *node_index))]
+    fn remove_node_from_group(&mut self, group: PyGroup, node_index: &PyTuple) -> PyResult<()> {
+        let group: Group = group.into();
+
+        node_index.into_iter().try_for_each(|node_index| {
+            let node_index = node_index.extract::<PyNodeIndex>()?.into();
+
+            Ok(self
+                .0
+                .remove_node_from_group(&group, &node_index)
+                .map_err(PyMedRecordError::from)?)
+        })
+    }
+
+    #[pyo3(signature = (*node_index))]
+    fn groups_of_node(&self, node_index: &PyTuple) -> PyResult<HashMap<PyNodeIndex, Vec<PyGroup>>> {
+        node_index
+            .into_iter()
+            .map(|node_index| {
+                let node_index = node_index.extract::<PyNodeIndex>()?.into();
+
+                let groups = self
+                    .0
+                    .groups_of_node(&node_index)
+                    .map_err(PyMedRecordError::from)?
+                    .map(|node_index| node_index.to_owned().into())
+                    .collect();
+
+                Ok((node_index.into(), groups))
+            })
+            .collect()
+    }
+
+    fn node_count(&self) -> usize {
+        self.0.node_count()
+    }
+
+    fn edge_count(&self) -> usize {
+        self.0.edge_count()
+    }
+
+    fn group_count(&self) -> usize {
+        self.0.group_count()
+    }
+
+    fn contains_node(&self, node_index: PyNodeIndex) -> bool {
+        self.0.contains_node(&node_index.into())
+    }
+
+    fn contains_edge(&self, edge_index: EdgeIndex) -> bool {
+        self.0.contains_edge(&edge_index)
+    }
+
+    fn contains_group(&self, group: PyGroup) -> bool {
+        self.0.contains_group(&group.into())
     }
 
     #[pyo3(signature = (*node_index))]
@@ -281,5 +388,9 @@ impl PyMedRecord {
                 Ok((node_index.into(), neighbors))
             })
             .collect()
+    }
+
+    fn clear(&mut self) {
+        self.0.clear();
     }
 }

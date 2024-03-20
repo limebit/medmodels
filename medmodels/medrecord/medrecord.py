@@ -176,33 +176,6 @@ class MedRecord:
 
         return medrecord
 
-    def node_count(self) -> int:
-        """
-        Returns the number of nodes in the MedRecord instance.
-
-        Returns:
-            int: The number of nodes in the MedRecord instance.
-        """
-        return self._medrecord.node_count()
-
-    def edge_count(self) -> int:
-        """
-        Returns the number of edges in the MedRecord instance.
-
-        Returns:
-            int: The number of edges in the MedRecord instance.
-        """
-        return self._medrecord.edge_count()
-
-    def group_count(self) -> int:
-        """
-        Returns the number of groups in the MedRecord instance.
-
-        Returns:
-            int: The number of groups in the MedRecord instance.
-        """
-        return self._medrecord.group_count()
-
     @property
     def nodes(self) -> List[NodeIndex]:
         """
@@ -229,6 +202,16 @@ class MedRecord:
         """
         return self._medrecord.node(*node_index)
 
+    @property
+    def edges(self) -> List[EdgeIndex]:
+        """
+        Returns the edge indices in the MedRecord instance.
+
+        Returns:
+            List[EdgeIndex]: The edge indices in the MedRecord instance.
+        """
+        return self._medrecord.edges
+
     def edge(self, *edge_index: EdgeIndex) -> Dict[EdgeIndex, Attributes]:
         """
         Returns the edges with the specified indices in the MedRecord instance.
@@ -244,35 +227,6 @@ class MedRecord:
                 their attributes.
         """
         return self._medrecord.edge(*edge_index)
-
-    @property
-    def edges(self) -> List[EdgeIndex]:
-        """
-        Returns the edge indices in the MedRecord instance.
-
-        Returns:
-            List[EdgeIndex]: The edge indices in the MedRecord instance.
-        """
-        return self._medrecord.edges
-
-    def edges_connecting(
-        self, source_node_index: NodeIndex, target_node_index: NodeIndex
-    ) -> List[EdgeIndex]:
-        """
-        Returns the edge indices between the specified source and target nodes in the
-        MedRecord instance.
-
-        This method takes a source node index and a target node index as arguments and
-        returns the edge indices between these nodes in the MedRecord instance.
-
-        Args:
-            source_node_index (NodeIndex): The index of the source node.
-            target_node_index (NodeIndex): The index of the target node.
-
-        Returns:
-            List[EdgeIndex]: A list of edge indices.
-        """
-        return self._medrecord.edges_connecting(source_node_index, target_node_index)
 
     @property
     def groups(self) -> List[Group]:
@@ -300,6 +254,43 @@ class MedRecord:
         """
         return self._medrecord.group(*group)
 
+    def edge_endpoints(
+        self, *edge_index: EdgeIndex
+    ) -> Dict[EdgeIndex, tuple[NodeIndex, NodeIndex]]:
+        """
+        Returns the source and target nodes of the specified edge(s) in the MedRecord instance.
+
+        This method takes one or more edge indices as arguments and returns a dictionary
+        of the edge indices and the source and target nodes of each edge.
+
+        Args:
+            *edge_index (EdgeIndex): One or more edge indices.
+
+        Returns:
+            Dict[EdgeIndex, tuple[NodeIndex, NodeIndex]]: A dictionary of the edge indices
+                and the source and target nodes of each edge.
+        """
+        return self._medrecord.edge_endpoints(*edge_index)
+
+    def edges_connecting(
+        self, source_node_index: NodeIndex, target_node_index: NodeIndex
+    ) -> List[EdgeIndex]:
+        """
+        Returns the edge indices between the specified source and target nodes in the
+        MedRecord instance.
+
+        This method takes a source node index and a target node index as arguments and
+        returns the edge indices between these nodes in the MedRecord instance.
+
+        Args:
+            source_node_index (NodeIndex): The index of the source node.
+            target_node_index (NodeIndex): The index of the target node.
+
+        Returns:
+            List[EdgeIndex]: A list of edge indices.
+        """
+        return self._medrecord.edges_connecting(source_node_index, target_node_index)
+
     def add_node(self, node_index: NodeIndex, attributes: Attributes) -> None:
         """
         Adds a node to the MedRecord instance.
@@ -315,6 +306,23 @@ class MedRecord:
             None
         """
         return self._medrecord.add_node(node_index, attributes)
+
+    def remove_node(self, *node_index: NodeIndex) -> Dict[NodeIndex, Attributes]:
+        """
+        Removes a node from the MedRecord instance.
+
+        This method takes one or more node indices as arguments, removes the nodes
+        from the MedRecord instance and returns a dictionary of the node indices and
+        their attributes.
+
+        Args:
+            *node_index (NodeIndex): One or more node indices to remove.
+
+        Returns:
+            Dict[NodeIndex, Attributes]: A dictionary of the node indices and their
+                attributes.
+        """
+        return self._medrecord.remove_node(*node_index)
 
     def add_nodes(
         self, nodes: Union[List[tuple[NodeIndex, Attributes]], pd.DataFrame]
@@ -404,6 +412,23 @@ class MedRecord:
         return self._medrecord.add_edge(
             source_node_index, target_node_index, attributes
         )
+
+    def remove_edge(self, *edge_index: EdgeIndex) -> Dict[EdgeIndex, Attributes]:
+        """
+        Removes an edge from the MedRecord instance.
+
+        This method takes one or more edge indices as arguments, removes the edges
+        from the MedRecord instance and returns a dictionary of the edge indices and
+        their attributes.
+
+        Args:
+            *edge_index (EdgeIndex): One or more edge indices to remove.
+
+        Returns:
+            Dict[EdgeIndex, Attributes]: A dictionary of the edge indices and their
+                attributes.
+        """
+        return self._medrecord.remove_edge(*edge_index)
 
     def add_edges(
         self, edges: Union[List[tuple[NodeIndex, NodeIndex, Attributes]], pd.DataFrame]
@@ -515,38 +540,22 @@ class MedRecord:
         """
         return self._medrecord.add_group(group, node_indices_to_add)
 
-    def remove_group(self, group: Group) -> None:
+    def remove_group(self, *group: Group) -> None:
         """
         Removes a group from the MedRecord instance.
 
-        This method takes a group name and removes the group from the
-        MedRecord instance.
+        This method takes one or more group names as arguments and removes the groups
+        from the MedRecord instance.
 
         Args:
-            group (Group): The name of the group to remove.
+            *group (Group): One or more group names to remove.
 
         Returns:
             None
         """
-        return self._medrecord.remove_group(group)
+        return self._medrecord.remove_group(*group)
 
-    def remove_from_group(self, group: Group, node_index: NodeIndex) -> None:
-        """
-        Removes a node from a group in the MedRecord instance.
-
-        This method takes a group name and a node index, and removes the node from the
-        specified group in the MedRecord instance.
-
-        Args:
-            group (str): The name of the group from which to remove the node.
-            node_index (NodeIndex): The index of the node to remove from the group.
-
-        Returns:
-            None
-        """
-        return self._medrecord.remove_from_group(group, node_index)
-
-    def add_to_group(self, group: Group, *node_index: NodeIndex) -> None:
+    def add_node_to_group(self, group: Group, *node_index: NodeIndex) -> None:
         """
         Adds a node to a group in the MedRecord instance.
 
@@ -560,7 +569,113 @@ class MedRecord:
         Returns:
             None
         """
-        return self._medrecord.add_to_group(group, *node_index)
+        return self._medrecord.add_node_to_group(group, *node_index)
+
+    def remove_node_from_group(self, group: Group, *node_index: NodeIndex) -> None:
+        """
+        Removes a node from a group in the MedRecord instance.
+
+        This method takes a group name and one or more node indices, and removes them
+        from the specified group in the MedRecord.
+
+        Args:
+            group (Group): The name of the group from which to remove the node.
+            *node_index (NodeIndex): The index/indices of the nodes to remove from the
+                group.
+
+        Returns:
+            None
+        """
+        return self._medrecord.remove_node_from_group(group, *node_index)
+
+    def groups_of_node(self, *node_index: NodeIndex) -> Dict[NodeIndex, List[Group]]:
+        """
+        Returns the groups of the specified node(s) in the MedRecord instance.
+
+        This method takes one or more node indices as arguments and returns a dictionary
+        of the node indices and the groups to which they belong.
+
+        Args:
+            *node_index (NodeIndex): The index/indices of the node(s) for which to
+                retrieve groups.
+
+        Returns:
+            Dict[NodeIndex, List[Group]]: A dictionary of the node indices and the groups
+                to which they belong.
+        """
+        return self._medrecord.groups_of_node(*node_index)
+
+    def node_count(self) -> int:
+        """
+        Returns the number of nodes in the MedRecord instance.
+
+        Returns:
+            int: The number of nodes in the MedRecord instance.
+        """
+        return self._medrecord.node_count()
+
+    def edge_count(self) -> int:
+        """
+        Returns the number of edges in the MedRecord instance.
+
+        Returns:
+            int: The number of edges in the MedRecord instance.
+        """
+        return self._medrecord.edge_count()
+
+    def group_count(self) -> int:
+        """
+        Returns the number of groups in the MedRecord instance.
+
+        Returns:
+            int: The number of groups in the MedRecord instance.
+        """
+        return self._medrecord.group_count()
+
+    def contains_node(self, node_index: NodeIndex) -> bool:
+        """
+        Checks if a node exists in the MedRecord instance.
+
+        This method takes a node index as an argument and checks if the node exists in
+        the MedRecord instance.
+
+        Args:
+            node_index (NodeIndex): The index of the node to check.
+
+        Returns:
+            bool: True if the node exists, False otherwise.
+        """
+        return self._medrecord.contains_node(node_index)
+
+    def contains_edge(self, edge_index: EdgeIndex) -> bool:
+        """
+        Checks if an edge exists in the MedRecord instance.
+
+        This method takes an edge index as an argument and checks if the edge exists in
+        the MedRecord instance.
+
+        Args:
+            edge_index (EdgeIndex): The index of the edge to check.
+
+        Returns:
+            bool: True if the edge exists, False otherwise.
+        """
+        return self._medrecord.contains_edge(edge_index)
+
+    def contains_group(self, group: Group) -> bool:
+        """
+        Checks if a group exists in the MedRecord instance.
+
+        This method takes a group name as an argument and checks if the group exists in
+        the MedRecord instance.
+
+        Args:
+            group (Group): The name of the group to check.
+
+        Returns:
+            bool: True if the group exists, False otherwise.
+        """
+        return self._medrecord.contains_group(group)
 
     def neighbors(self, *node_index: NodeIndex) -> Dict[NodeIndex, List[NodeIndex]]:
         """
@@ -579,3 +694,14 @@ class MedRecord:
                 node indices of the neighboring nodes.
         """
         return self._medrecord.neighbors(*node_index)
+
+    def clear(self) -> None:
+        """
+        Clears the MedRecord instance.
+
+        Removes all nodes, edges, and groups from the MedRecord instance.
+
+        Returns:
+            None
+        """
+        return self._medrecord.clear()

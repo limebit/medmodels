@@ -146,36 +146,6 @@ class TestMedRecord(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             MedRecord.from_polars(nodes, "index", edges, "from", "invalid")
 
-    def test_node_count(self):
-        medrecord = MedRecord()
-
-        self.assertEqual(0, medrecord.node_count())
-
-        medrecord.add_node("0", {})
-
-        self.assertEqual(1, medrecord.node_count())
-
-    def test_edge_count(self):
-        medrecord = MedRecord()
-
-        medrecord.add_node("0", {})
-        medrecord.add_node("1", {})
-
-        self.assertEqual(0, medrecord.edge_count())
-
-        medrecord.add_edge("0", "1", {})
-
-        self.assertEqual(1, medrecord.edge_count())
-
-    def test_group_count(self):
-        medrecord = create_medrecord()
-
-        self.assertEqual(0, medrecord.group_count())
-
-        medrecord.add_group("0")
-
-        self.assertEqual(1, medrecord.group_count())
-
     def test_nodes(self):
         medrecord = create_medrecord()
 
@@ -228,13 +198,6 @@ class TestMedRecord(unittest.TestCase):
         with self.assertRaises(IndexError):
             medrecord.edge(50)
 
-    def test_edges_connecting(self):
-        medrecord = create_medrecord()
-
-        edges = medrecord.edges_connecting("0", "1")
-
-        self.assertEqual(1, len(edges))
-
     def test_groups(self):
         medrecord = create_medrecord()
 
@@ -260,6 +223,31 @@ class TestMedRecord(unittest.TestCase):
         with self.assertRaises(IndexError):
             medrecord.group("0")
 
+    def test_edge_endpoints(self):
+        medrecord = create_medrecord()
+
+        endpoints = medrecord.edge_endpoints(0)
+
+        self.assertEqual({0: ("0", "1")}, endpoints)
+
+        endpoints = medrecord.edge_endpoints(0, 1)
+
+        self.assertEqual({0: ("0", "1"), 1: ("1", "2")}, endpoints)
+
+    def test_invalid_edge_endpoints(self):
+        medrecord = create_medrecord()
+
+        # Querying endpoints of a non-existing edge should fail
+        with self.assertRaises(IndexError):
+            medrecord.edge_endpoints(50)
+
+    def test_edges_connecting(self):
+        medrecord = create_medrecord()
+
+        edges = medrecord.edges_connecting("0", "1")
+
+        self.assertEqual(1, len(edges))
+
     def test_add_node(self):
         medrecord = MedRecord()
 
@@ -268,6 +256,23 @@ class TestMedRecord(unittest.TestCase):
         medrecord.add_node("0", {})
 
         self.assertEqual(1, medrecord.node_count())
+
+    def test_remove_node(self):
+        medrecord = create_medrecord()
+
+        self.assertEqual(4, medrecord.node_count())
+
+        attributes = medrecord.remove_node("0")
+
+        self.assertEqual(3, medrecord.node_count())
+        self.assertEqual({"0": create_nodes()[0][1]}, attributes)
+
+    def test_invalid_remove_node(self):
+        medrecord = create_medrecord()
+
+        # Removing a non-existing node should fail
+        with self.assertRaises(IndexError):
+            medrecord.remove_node("50")
 
     def test_add_nodes(self):
         medrecord = MedRecord()
@@ -350,6 +355,23 @@ class TestMedRecord(unittest.TestCase):
         # Adding an edge from a non-existing node should fail
         with self.assertRaises(IndexError):
             medrecord.add_edge("50", "0", {})
+
+    def test_remove_edge(self):
+        medrecord = create_medrecord()
+
+        self.assertEqual(3, medrecord.edge_count())
+
+        attributes = medrecord.remove_edge(0)
+
+        self.assertEqual(2, medrecord.edge_count())
+        self.assertEqual({0: create_edges()[0][2]}, attributes)
+
+    def test_invalid_remove_edge(self):
+        medrecord = create_medrecord()
+
+        # Removing a non-existing edge should fail
+        with self.assertRaises(IndexError):
+            medrecord.remove_edge(50)
 
     def test_add_edges(self):
         medrecord = MedRecord()
@@ -473,61 +495,134 @@ class TestMedRecord(unittest.TestCase):
         with self.assertRaises(IndexError):
             medrecord.remove_group("0")
 
-    def test_remove_from_group(self):
-        medrecord = create_medrecord()
-
-        medrecord.add_group("0", ["0", "1"])
-
-        self.assertEqual({"0": ["0", "1"]}, medrecord.group("0"))
-
-        medrecord.remove_from_group("0", "1")
-
-        self.assertEqual({"0": ["0"]}, medrecord.group("0"))
-
-    def test_invalid_remove_from_group(self):
-        medrecord = create_medrecord()
-
-        medrecord.add_group("0", ["0"])
-
-        # Removing a node from a non-existing group should fail
-        with self.assertRaises(IndexError):
-            medrecord.remove_from_group("50", "0")
-
-        # Removing a non-existing node from a group should fail
-        with self.assertRaises(IndexError):
-            medrecord.remove_from_group("0", "50")
-
-    def test_add_to_group(self):
+    def test_add_node_to_group(self):
         medrecord = create_medrecord()
 
         medrecord.add_group("0")
 
         self.assertEqual({"0": []}, medrecord.group("0"))
 
-        medrecord.add_to_group("0", "0")
+        medrecord.add_node_to_group("0", "0")
 
         self.assertEqual({"0": ["0"]}, medrecord.group("0"))
 
-        medrecord.add_to_group("0", "1", "2")
+        medrecord.add_node_to_group("0", "1", "2")
 
-        self.assertEqual({"0": ["0", "1", "2"]}, medrecord.group("0"))
+        self.assertEqual(
+            {"0": sorted(["0", "1", "2"])},
+            {key: sorted(value) for (key, value) in medrecord.group("0").items()},
+        )
 
-    def test_invalid_add_to_group(self):
+    def test_invalid_add_node_to_group(self):
         medrecord = create_medrecord()
 
         medrecord.add_group("0", ["0"])
 
         # Adding to a non-existing group should fail
         with self.assertRaises(IndexError):
-            medrecord.add_to_group("50", "0")
+            medrecord.add_node_to_group("50", "0")
 
         # Adding a non-existing node to a group should fail
-        with self.assertRaises(AssertionError):
-            medrecord.add_to_group("0", "50")
+        with self.assertRaises(IndexError):
+            medrecord.add_node_to_group("0", "50")
 
         # Adding a node to a group that already is in the group should fail
         with self.assertRaises(AssertionError):
-            medrecord.add_to_group("0", "0")
+            medrecord.add_node_to_group("0", "0")
+
+    def test_remove_node_from_group(self):
+        medrecord = create_medrecord()
+
+        medrecord.add_group("0", ["0", "1"])
+
+        self.assertEqual(
+            {"0": sorted(["0", "1"])},
+            {key: sorted(value) for (key, value) in medrecord.group("0").items()},
+        )
+
+        medrecord.remove_node_from_group("0", "1")
+
+        self.assertEqual({"0": ["0"]}, medrecord.group("0"))
+
+    def test_invalid_remove_node_from_group(self):
+        medrecord = create_medrecord()
+
+        medrecord.add_group("0", ["0"])
+
+        # Removing a node from a non-existing group should fail
+        with self.assertRaises(IndexError):
+            medrecord.remove_node_from_group("50", "0")
+
+        # Removing a non-existing node from a group should fail
+        with self.assertRaises(IndexError):
+            medrecord.remove_node_from_group("0", "50")
+
+    def test_groups_of_node(self):
+        medrecord = create_medrecord()
+
+        medrecord.add_group("0", ["0", "1"])
+
+        self.assertEqual({"0": ["0"]}, medrecord.groups_of_node("0"))
+
+    def test_invalid_groups_of_node(self):
+        medrecord = create_medrecord()
+
+        # Querying groups of a non-existing node should fail
+        with self.assertRaises(IndexError):
+            medrecord.groups_of_node("50")
+
+    def test_node_count(self):
+        medrecord = MedRecord()
+
+        self.assertEqual(0, medrecord.node_count())
+
+        medrecord.add_node("0", {})
+
+        self.assertEqual(1, medrecord.node_count())
+
+    def test_edge_count(self):
+        medrecord = MedRecord()
+
+        medrecord.add_node("0", {})
+        medrecord.add_node("1", {})
+
+        self.assertEqual(0, medrecord.edge_count())
+
+        medrecord.add_edge("0", "1", {})
+
+        self.assertEqual(1, medrecord.edge_count())
+
+    def test_group_count(self):
+        medrecord = create_medrecord()
+
+        self.assertEqual(0, medrecord.group_count())
+
+        medrecord.add_group("0")
+
+        self.assertEqual(1, medrecord.group_count())
+
+    def test_contains_node(self):
+        medrecord = create_medrecord()
+
+        self.assertTrue(medrecord.contains_node("0"))
+
+        self.assertFalse(medrecord.contains_node("50"))
+
+    def test_contains_edge(self):
+        medrecord = create_medrecord()
+
+        self.assertTrue(medrecord.contains_edge(0))
+
+        self.assertFalse(medrecord.contains_edge(50))
+
+    def test_contains_group(self):
+        medrecord = create_medrecord()
+
+        self.assertFalse(medrecord.contains_group("0"))
+
+        medrecord.add_group("0")
+
+        self.assertTrue(medrecord.contains_group("0"))
 
     def test_neighbors(self):
         medrecord = create_medrecord()
@@ -552,6 +647,19 @@ class TestMedRecord(unittest.TestCase):
         # Querying neighbors of a non-existing node should fail
         with self.assertRaises(IndexError):
             medrecord.neighbors("0")
+
+    def test_clear(self):
+        medrecord = create_medrecord()
+
+        self.assertEqual(4, medrecord.node_count())
+        self.assertEqual(3, medrecord.edge_count())
+        self.assertEqual(0, medrecord.group_count())
+
+        medrecord.clear()
+
+        self.assertEqual(0, medrecord.node_count())
+        self.assertEqual(0, medrecord.edge_count())
+        self.assertEqual(0, medrecord.group_count())
 
 
 if __name__ == "__main__":
