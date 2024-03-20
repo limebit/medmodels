@@ -173,11 +173,10 @@ pub(crate) fn dataframe_to_edges(
 
 #[cfg(test)]
 mod test {
-    use std::collections::HashMap;
-
     use super::{dataframe_to_edges, dataframe_to_nodes, MedRecordValue};
     use crate::errors::MedRecordError;
     use polars::prelude::*;
+    use std::collections::HashMap;
 
     #[test]
     fn test_try_from_anyvalue_string() {

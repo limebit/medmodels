@@ -12,6 +12,7 @@ pub type NodeIndex = MedRecordAttribute;
 pub type EdgeIndex = usize;
 pub type Attributes = HashMap<MedRecordAttribute, MedRecordValue>;
 
+#[derive(Debug)]
 pub(super) struct Graph {
     nodes: MrHashMap<NodeIndex, Node>,
     edges: MrHashMap<EdgeIndex, Edge>,
