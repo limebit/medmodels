@@ -35,7 +35,8 @@
         "ms-vsliveshare.vsliveshare",
         "ms-vscode.makefile-tools",
         "njpwerner.autodocstring",
-        "rust-lang.rust-analyzer"
+        "rust-lang.rust-analyzer",
+        "usernamehw.errorlens"
       ]
     }
   }

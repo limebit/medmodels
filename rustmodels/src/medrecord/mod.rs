@@ -13,7 +13,7 @@ type PyGroup = PyMedRecordAttribute;
 type PyNodeIndex = PyMedRecordAttribute;
 
 #[pyclass]
-pub struct PyMedRecord(pub MedRecord);
+pub struct PyMedRecord(MedRecord);
 
 #[pymethods]
 impl PyMedRecord {
