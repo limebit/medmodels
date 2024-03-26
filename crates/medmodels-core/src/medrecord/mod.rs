@@ -1,20 +1,21 @@
-mod attribute;
+mod datatypes;
 mod graph;
 mod group_mapping;
 mod polars;
-mod value;
+mod querying;
 
 pub use self::{
-    attribute::MedRecordAttribute,
+    datatypes::{MedRecordAttribute, MedRecordValue},
     graph::{Attributes, EdgeIndex, NodeIndex},
     group_mapping::Group,
-    value::MedRecordValue,
+    querying::{edge, node},
 };
 use crate::errors::MedRecordError;
 use ::polars::frame::DataFrame;
 use graph::Graph;
 use group_mapping::GroupMapping;
 use polars::{dataframe_to_edges, dataframe_to_nodes};
+use querying::{EdgeOperation, EdgeSelection, NodeOperation, NodeSelection};
 
 #[derive(Debug)]
 pub struct MedRecord {
@@ -73,6 +74,24 @@ impl MedRecord {
     pub fn node_attributes(&self, node_index: &NodeIndex) -> Result<&Attributes, MedRecordError> {
         self.graph
             .node_attributes(node_index)
+            .map_err(MedRecordError::from)
+    }
+
+    pub fn outgoing_edges(
+        &self,
+        node_index: &NodeIndex,
+    ) -> Result<impl Iterator<Item = &EdgeIndex>, MedRecordError> {
+        self.graph
+            .outgoing_edges(node_index)
+            .map_err(MedRecordError::from)
+    }
+
+    pub fn incoming_edges(
+        &self,
+        node_index: &NodeIndex,
+    ) -> Result<impl Iterator<Item = &EdgeIndex>, MedRecordError> {
+        self.graph
+            .incoming_edges(node_index)
             .map_err(MedRecordError::from)
     }
 
@@ -301,6 +320,14 @@ impl MedRecord {
         self.graph.clear();
         self.group_mapping.clear();
     }
+
+    pub fn select_nodes(&self, operation: NodeOperation) -> NodeSelection {
+        NodeSelection::new(self, operation)
+    }
+
+    pub fn select_edges(&self, operation: EdgeOperation) -> EdgeSelection {
+        EdgeSelection::new(self, operation)
+    }
 }
 
 impl Default for MedRecord {
@@ -311,8 +338,8 @@ impl Default for MedRecord {
 
 #[cfg(test)]
 mod test {
-    use super::{Attributes, MedRecord, MedRecordAttribute};
-    use crate::{errors::MedRecordError, medrecord::NodeIndex};
+    use super::{Attributes, MedRecord, MedRecordAttribute, NodeIndex};
+    use crate::errors::MedRecordError;
     use polars::prelude::*;
     use std::collections::HashMap;
 
@@ -323,6 +350,7 @@ mod test {
                 HashMap::from([
                     ("lorem".into(), "ipsum".into()),
                     ("dolor".into(), "sit".into()),
+                    ("integer".into(), 1.into()),
                 ]),
             ),
             (
