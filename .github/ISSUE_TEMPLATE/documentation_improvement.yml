@@ -1,0 +1,27 @@
+name: 📚 Documentation improvement
+description: Suggest an improvement for this project's documentation 📖
+labels: [documentation, needs triage]
+body:
+  - type: textarea
+    id: issue
+    attributes:
+      label: 📝 Describe the issue with the documentation
+      description: A clear and concise description of what the issue is.
+    validations:
+      required: true
+
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: 💡 Suggest what to add or change
+      description: Describe what you think should be added or changed in the documentation.
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: 📎 Additional context
+      description: Add any other context or screenshots about the feature request here.
+    validations:
+      required: false
