@@ -1,6 +1,7 @@
 name: 📚 Documentation improvement
 description: Suggest an improvement for this project's documentation 📖
 labels: [documentation, needs triage]
+
 body:
   - type: textarea
     id: issue
