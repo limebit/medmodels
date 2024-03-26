@@ -23,9 +23,9 @@ impl Error for MedRecordError {
 impl Display for MedRecordError {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         match self {
-            MedRecordError::IndexError(message) => write!(f, "{}", message),
-            MedRecordError::ConversionError(message) => write!(f, "{}", message),
-            MedRecordError::AssertionError(message) => write!(f, "{}", message),
+            Self::IndexError(message) => write!(f, "{}", message),
+            Self::ConversionError(message) => write!(f, "{}", message),
+            Self::AssertionError(message) => write!(f, "{}", message),
         }
     }
 }

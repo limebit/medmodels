@@ -1,7 +1,7 @@
 mod edge;
 mod node;
 
-use super::{attribute::MedRecordAttribute, MedRecordValue};
+use super::{MedRecordAttribute, MedRecordValue};
 use crate::errors::GraphError;
 use edge::Edge;
 use medmodels_utils::aliases::MrHashMap;
@@ -263,6 +263,36 @@ impl Graph {
         Ok((&edge.source_node_index, &edge.target_node_index))
     }
 
+    pub fn outgoing_edges(
+        &self,
+        node_index: &NodeIndex,
+    ) -> Result<impl Iterator<Item = &EdgeIndex>, GraphError> {
+        Ok(self
+            .nodes
+            .get(node_index)
+            .ok_or(GraphError::IndexError(format!(
+                "Cannot find node with index {}",
+                node_index
+            )))?
+            .outgoing_edge_indices
+            .iter())
+    }
+
+    pub fn incoming_edges(
+        &self,
+        node_index: &NodeIndex,
+    ) -> Result<impl Iterator<Item = &EdgeIndex>, GraphError> {
+        Ok(self
+            .nodes
+            .get(node_index)
+            .ok_or(GraphError::IndexError(format!(
+                "Cannot find node with index {}",
+                node_index
+            )))?
+            .incoming_edge_indices
+            .iter())
+    }
+
     pub fn edge_indices(&self) -> impl Iterator<Item = &EdgeIndex> {
         self.edges.keys()
     }
@@ -271,7 +301,7 @@ impl Graph {
         &'a self,
         source_node_index: &'a NodeIndex,
         target_node_index: &'a NodeIndex,
-    ) -> impl Iterator<Item = &EdgeIndex> + 'a {
+    ) -> impl Iterator<Item = &'a EdgeIndex> {
         self.edges
             .iter()
             .filter(move |(_, edge)| {
@@ -509,7 +539,6 @@ mod test {
     fn test_remove_edge() {
         let mut graph = create_graph();
 
-        // let attributes = graph.remove_edge(&0.into()).unwrap();
         let attributes = graph.remove_edge(&0).unwrap();
 
         assert_eq!(2, graph.edge_count());

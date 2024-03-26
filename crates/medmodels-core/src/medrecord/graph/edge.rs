@@ -1,6 +1,6 @@
 use super::{Attributes, NodeIndex};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Edge {
     pub attributes: Attributes,
     pub(super) source_node_index: NodeIndex,
