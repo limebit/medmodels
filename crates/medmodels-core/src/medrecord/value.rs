@@ -1,7 +1,7 @@
 use medmodels_utils::implement_from_for_wrapper;
-use std::fmt::Display;
+use std::{cmp::Ordering, fmt::Display};
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone)]
 pub enum MedRecordValue {
     String(String),
     Int(i64),
@@ -15,6 +15,119 @@ impl From<&str> for MedRecordValue {
     }
 }
 
+implement_from_for_wrapper!(MedRecordValue, String, String);
+implement_from_for_wrapper!(MedRecordValue, i64, Int);
+implement_from_for_wrapper!(MedRecordValue, f64, Float);
+implement_from_for_wrapper!(MedRecordValue, bool, Bool);
+
+impl PartialEq for MedRecordValue {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (MedRecordValue::String(value), MedRecordValue::String(other)) => value == other,
+            (MedRecordValue::String(_), MedRecordValue::Int(_)) => todo!(),
+            (MedRecordValue::String(_), MedRecordValue::Float(_)) => todo!(),
+            (MedRecordValue::String(_), MedRecordValue::Bool(_)) => todo!(),
+            (MedRecordValue::Int(_), MedRecordValue::String(_)) => todo!(),
+            (MedRecordValue::Int(value), MedRecordValue::Int(other)) => value == other,
+            (MedRecordValue::Int(_), MedRecordValue::Float(_)) => todo!(),
+            (MedRecordValue::Int(_), MedRecordValue::Bool(_)) => todo!(),
+            (MedRecordValue::Float(_), MedRecordValue::String(_)) => todo!(),
+            (MedRecordValue::Float(_), MedRecordValue::Int(_)) => todo!(),
+            (MedRecordValue::Float(value), MedRecordValue::Float(other)) => value == other,
+            (MedRecordValue::Float(_), MedRecordValue::Bool(_)) => todo!(),
+            (MedRecordValue::Bool(_), MedRecordValue::String(_)) => todo!(),
+            (MedRecordValue::Bool(_), MedRecordValue::Int(_)) => todo!(),
+            (MedRecordValue::Bool(_), MedRecordValue::Float(_)) => todo!(),
+            (MedRecordValue::Bool(value), MedRecordValue::Bool(other)) => value == other,
+        }
+    }
+}
+
+impl PartialOrd for MedRecordValue {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        match (self, other) {
+            (MedRecordValue::String(value), MedRecordValue::String(other)) => {
+                Some(value.cmp(other))
+            }
+            (MedRecordValue::String(value), MedRecordValue::Int(other)) => {
+                match value.parse::<i64>() {
+                    Ok(value) => Some(value.cmp(other)),
+                    Err(_) => Some(value.cmp(&other.to_string())),
+                }
+            }
+            (MedRecordValue::String(value), MedRecordValue::Float(other)) => {
+                match value.parse::<f64>() {
+                    Ok(value) => value.partial_cmp(other),
+                    Err(_) => Some(value.cmp(&other.to_string())),
+                }
+            }
+            (MedRecordValue::String(value), MedRecordValue::Bool(other)) => {
+                match value.parse::<bool>() {
+                    Ok(value) => Some(value.cmp(other)),
+                    Err(_) => Some(value.cmp(&other.to_string())),
+                }
+            }
+            (MedRecordValue::Int(value), MedRecordValue::String(other)) => {
+                match other.parse::<i64>() {
+                    Ok(other) => Some(other.cmp(value)),
+                    Err(_) => Some(other.cmp(&value.to_string())),
+                }
+            }
+            (MedRecordValue::Int(value), MedRecordValue::Int(other)) => Some(value.cmp(other)),
+            (MedRecordValue::Int(value), MedRecordValue::Float(other)) => {
+                match other.to_string().parse::<i64>() {
+                    Ok(other) => Some(other.cmp(value)),
+                    Err(_) => other.partial_cmp(&(*value as f64)), // TODO: can overflow
+                }
+            }
+            (MedRecordValue::Int(value), MedRecordValue::Bool(other)) => match value {
+                0 => Some(other.cmp(&false)),
+                _ => Some(other.cmp(&true)),
+            },
+            (MedRecordValue::Float(value), MedRecordValue::String(other)) => {
+                match other.parse::<f64>() {
+                    Ok(other) => other.partial_cmp(value),
+                    Err(_) => Some(other.cmp(&value.to_string())),
+                }
+            }
+            (MedRecordValue::Float(value), MedRecordValue::Int(other)) => {
+                match value.to_string().parse::<i64>() {
+                    Ok(value) => Some(value.cmp(other)),
+                    Err(_) => value.partial_cmp(&(*other as f64)), // TODO: can overflow
+                }
+            }
+            (MedRecordValue::Float(value), MedRecordValue::Float(other)) => {
+                value.partial_cmp(other)
+            }
+            (MedRecordValue::Float(value), MedRecordValue::Bool(other)) => {
+                if *value == 0.0 {
+                    Some(other.cmp(&false))
+                } else {
+                    Some(other.cmp(&true))
+                }
+            }
+            (MedRecordValue::Bool(value), MedRecordValue::String(other)) => {
+                match other.parse::<bool>() {
+                    Ok(other) => Some(other.cmp(value)),
+                    Err(_) => Some(other.cmp(&value.to_string())),
+                }
+            }
+            (MedRecordValue::Bool(value), MedRecordValue::Int(other)) => match other {
+                0 => Some(value.cmp(&false)),
+                _ => Some(value.cmp(&true)),
+            },
+            (MedRecordValue::Bool(value), MedRecordValue::Float(other)) => {
+                if *other == 0.0 {
+                    Some(value.cmp(&false))
+                } else {
+                    Some(value.cmp(&true))
+                }
+            }
+            (MedRecordValue::Bool(value), MedRecordValue::Bool(other)) => Some(value.cmp(other)),
+        }
+    }
+}
+
 impl Display for MedRecordValue {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -25,11 +138,6 @@ impl Display for MedRecordValue {
         }
     }
 }
-
-implement_from_for_wrapper!(MedRecordValue, String, String);
-implement_from_for_wrapper!(MedRecordValue, i64, Int);
-implement_from_for_wrapper!(MedRecordValue, f64, Float);
-implement_from_for_wrapper!(MedRecordValue, bool, Bool);
 
 #[cfg(test)]
 mod test {
@@ -87,6 +195,14 @@ mod test {
 
         assert!(MedRecordValue::from(false) == MedRecordValue::from(false));
         assert!(MedRecordValue::from(true) != MedRecordValue::from(false));
+    }
+
+    #[test]
+    fn test_partial_ord() {
+        // assert!(MedRecordValue::from(0_f64) < MedRecordValue::from(1_f64));
+        // assert!(MedRecordValue::from(1_i64)  MedRecordValue::from(0_i64));
+        let test = "0.1".to_string().parse::<f64>();
+        println!("{:?}", test)
     }
 
     #[test]

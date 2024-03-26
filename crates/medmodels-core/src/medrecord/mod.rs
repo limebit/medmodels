@@ -2,12 +2,14 @@ mod attribute;
 mod graph;
 mod group_mapping;
 mod polars;
+mod querying;
 mod value;
 
 pub use self::{
     attribute::MedRecordAttribute,
     graph::{Attributes, EdgeIndex, NodeIndex},
     group_mapping::Group,
+    querying::{edge, node},
     value::MedRecordValue,
 };
 use crate::errors::MedRecordError;
@@ -15,6 +17,7 @@ use ::polars::frame::DataFrame;
 use graph::Graph;
 use group_mapping::GroupMapping;
 use polars::{dataframe_to_edges, dataframe_to_nodes};
+use querying::{EdgeSelection, NodeSelection};
 
 #[derive(Debug)]
 pub struct MedRecord {
@@ -301,6 +304,14 @@ impl MedRecord {
         self.graph.clear();
         self.group_mapping.clear();
     }
+
+    pub fn select_nodes(&self) -> NodeSelection {
+        NodeSelection::new(self)
+    }
+
+    pub fn select_edges(&self) -> EdgeSelection {
+        EdgeSelection::new(self)
+    }
 }
 
 impl Default for MedRecord {
@@ -312,7 +323,10 @@ impl Default for MedRecord {
 #[cfg(test)]
 mod test {
     use super::{Attributes, MedRecord, MedRecordAttribute};
-    use crate::{errors::MedRecordError, medrecord::NodeIndex};
+    use crate::{
+        errors::MedRecordError,
+        medrecord::{edge, node, NodeIndex},
+    };
     use polars::prelude::*;
     use std::collections::HashMap;
 
@@ -939,5 +953,73 @@ mod test {
         assert_eq!(0, medrecord.node_count());
         assert_eq!(0, medrecord.edge_count());
         assert_eq!(0, medrecord.group_count());
+    }
+
+    #[test]
+    fn test_select() {
+        let nodes = vec![
+            (
+                "0".into(),
+                HashMap::from([
+                    ("lorem".into(), "ipsum".into()),
+                    ("dolor".into(), "sit".into()),
+                ]),
+            ),
+            (
+                "1".into(),
+                HashMap::from([("amet".into(), "consectetur".into())]),
+            ),
+            (
+                "2".into(),
+                HashMap::from([("adipiscing".into(), "elit".into())]),
+            ),
+            ("3".into(), HashMap::new()),
+            (
+                4.into(),
+                HashMap::from([(0.into(), 1.into()), (1.into(), 15.into())]),
+            ),
+            (
+                5.into(),
+                HashMap::from([(0.into(), 10.into()), (1.into(), 150.into())]),
+            ),
+        ];
+
+        let edges = vec![
+            (
+                "0".into(),
+                "1".into(),
+                HashMap::from([
+                    ("sed".into(), "do".into()),
+                    ("eiusmod".into(), "tempor".into()),
+                ]),
+            ),
+            (
+                "1".into(),
+                "2".into(),
+                HashMap::from([("incididunt".into(), "ut".into())]),
+            ),
+            ("0".into(), "2".into(), HashMap::new()),
+            (
+                4.into(),
+                5.into(),
+                HashMap::from([("operand".into(), "test".into())]),
+            ),
+        ];
+
+        let medrecord = MedRecord::from_tuples(nodes, Some(edges)).unwrap();
+
+        let node_indices = medrecord
+            .select_nodes()
+            .r#where(node().index().greater_than(4))
+            .collect::<Vec<_>>();
+
+        println!("{:?}", node_indices);
+
+        let edge_indices = medrecord
+            .select_edges()
+            .r#where(edge().index().greater_than(1))
+            .collect::<Vec<_>>();
+
+        println!("{:?}", edge_indices)
     }
 }
