@@ -3,7 +3,7 @@ description: Report a bug to help us improve 💪
 labels: [bug, needs triage]
 
 body:
- - type: checkboxes
+  - type: checkboxes
     id: checks
     attributes:
       label: Preliminary checks
