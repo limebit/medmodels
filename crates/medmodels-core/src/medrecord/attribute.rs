@@ -3,7 +3,7 @@ use crate::errors::MedRecordError;
 use medmodels_utils::implement_from_for_wrapper;
 use std::{fmt::Display, hash::Hash};
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum MedRecordAttribute {
     String(String),
     Int(i64),
