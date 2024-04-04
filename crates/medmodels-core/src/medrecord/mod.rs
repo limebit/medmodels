@@ -347,11 +347,7 @@ mod test {
         vec![
             (
                 "0".into(),
-                HashMap::from([
-                    ("lorem".into(), "ipsum".into()),
-                    ("dolor".into(), "sit".into()),
-                    ("integer".into(), 1.into()),
-                ]),
+                HashMap::from([("lorem".into(), "ipsum".into())]),
             ),
             (
                 "1".into(),
