@@ -1,8 +1,9 @@
 mod operation;
 mod selection;
 
-pub use self::operation::{edge, node};
-pub(super) use self::{
-    operation::{EdgeOperation, NodeOperation},
-    selection::{EdgeSelection, NodeSelection},
+pub use self::operation::{
+    edge, node, ArithmeticOperation, EdgeAttributeOperand, EdgeIndexOperand, EdgeOperand,
+    EdgeOperation, NodeAttributeOperand, NodeIndexOperand, NodeOperand, NodeOperation,
+    TransformationOperation, ValueOperand,
 };
+pub(super) use self::selection::{EdgeSelection, NodeSelection};

@@ -4,6 +4,7 @@ use pyo3::{
     PyErr,
 };
 
+#[repr(transparent)]
 pub(crate) struct PyMedRecordError(pub MedRecordError);
 
 impl From<MedRecordError> for PyMedRecordError {

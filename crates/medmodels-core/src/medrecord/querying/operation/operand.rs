@@ -1,9 +1,13 @@
+#![allow(clippy::should_implement_trait)]
+
 use super::{
     edge_operation::EdgeIndexOperation,
     node_operation::{NodeIndexOperation, NodeOperation},
     AttributeOperation, EdgeOperation, Operation,
 };
-use crate::medrecord::{EdgeIndex, MedRecord, MedRecordAttribute, MedRecordValue, NodeIndex};
+use crate::medrecord::{
+    EdgeIndex, Group, MedRecord, MedRecordAttribute, MedRecordValue, NodeIndex,
+};
 use std::{fmt::Debug, ops::Range};
 
 #[derive(Debug, Clone)]
@@ -64,6 +68,12 @@ impl IntoValueOperand for ValueOperand {
 
 #[derive(Debug, Clone)]
 pub struct NodeAttributeOperand(MedRecordAttribute);
+
+impl From<MedRecordAttribute> for NodeAttributeOperand {
+    fn from(value: MedRecordAttribute) -> Self {
+        NodeAttributeOperand(value)
+    }
+}
 
 impl From<NodeAttributeOperand> for MedRecordAttribute {
     fn from(val: NodeAttributeOperand) -> Self {
@@ -433,7 +443,7 @@ impl NodeIndexOperand {
 pub struct NodeOperand;
 
 impl NodeOperand {
-    pub fn in_group(self, operand: impl Into<MedRecordAttribute>) -> NodeOperation {
+    pub fn in_group(self, operand: impl Into<Group>) -> NodeOperation {
         NodeOperation::InGroup(operand.into())
     }
 
@@ -539,15 +549,15 @@ impl EdgeIndexOperand {
 pub struct EdgeOperand;
 
 impl EdgeOperand {
-    pub fn connected_target(self, operand: impl Into<MedRecordAttribute>) -> EdgeOperation {
+    pub fn connected_target(self, operand: impl Into<NodeIndex>) -> EdgeOperation {
         EdgeOperation::ConnectedSource(operand.into())
     }
 
-    pub fn connected_source(self, operand: impl Into<MedRecordAttribute>) -> EdgeOperation {
+    pub fn connected_source(self, operand: impl Into<NodeIndex>) -> EdgeOperation {
         EdgeOperation::ConnectedTarget(operand.into())
     }
 
-    pub fn connected(self, operand: impl Into<MedRecordAttribute>) -> EdgeOperation {
+    pub fn connected(self, operand: impl Into<NodeIndex>) -> EdgeOperation {
         let attribute = operand.into();
 
         EdgeOperation::ConnectedSource(attribute.clone())

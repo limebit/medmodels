@@ -393,7 +393,7 @@ mod test {
                 .count(),
         );
 
-        // Attribute not equal
+        // Attribute in
         assert_eq!(
             1,
             medrecord
@@ -566,7 +566,7 @@ mod test {
                 .count(),
         );
 
-        // Attribute compare to attribute sub
+        // Attribute compare to attribute div
         // Returns nothing because can't div a string
         assert_eq!(
             0,
@@ -580,7 +580,7 @@ mod test {
                 .count(),
         );
 
-        // Attribute compare to attribute sub
+        // Attribute compare to attribute div
         // Doesn't work because can't div a string
         assert_eq!(
             0,
@@ -979,7 +979,7 @@ mod test {
     }
 
     #[test]
-    fn test_select_nodes_edge_attribute() {
+    fn test_select_edges_edge_attribute() {
         let medrecord = create_medrecord();
 
         // Attribute greater
@@ -1036,7 +1036,7 @@ mod test {
                 .count(),
         );
 
-        // Attribute not equal
+        // Attribute in
         assert_eq!(
             1,
             medrecord
@@ -1205,7 +1205,7 @@ mod test {
                 .count(),
         );
 
-        // Attribute compare to attribute sub
+        // Attribute compare to attribute div
         // Returns nothing because can't div a string
         assert_eq!(
             0,
@@ -1219,7 +1219,7 @@ mod test {
                 .count(),
         );
 
-        // Attribute compare to attribute sub
+        // Attribute compare to attribute div
         // Doesn't work because can't div a string
         assert_eq!(
             0,

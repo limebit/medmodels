@@ -1,3 +1,5 @@
+#![allow(clippy::should_implement_trait)]
+
 use super::{
     edge_operation::EdgeOperation,
     operand::{IntoVecNodeIndex, NodeIndexInOperand},

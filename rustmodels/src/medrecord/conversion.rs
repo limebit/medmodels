@@ -9,6 +9,8 @@ use pyo3::{
 };
 use std::{collections::HashMap, hash::Hash};
 
+#[repr(transparent)]
+#[derive(Clone, Debug)]
 pub(crate) struct PyMedRecordValue(MedRecordValue);
 
 impl From<MedRecordValue> for PyMedRecordValue {
@@ -26,7 +28,7 @@ impl From<PyMedRecordValue> for MedRecordValue {
 static MEDRECORDVALUE_CONVERSION_LUT: GILHashMap<usize, fn(&PyAny) -> PyResult<MedRecordValue>> =
     GILHashMap::new();
 
-fn convert_pyobject_to_medrecordvalue(ob: &PyAny) -> PyResult<MedRecordValue> {
+pub fn convert_pyobject_to_medrecordvalue(ob: &PyAny) -> PyResult<MedRecordValue> {
     fn convert_string(ob: &PyAny) -> PyResult<MedRecordValue> {
         Ok(MedRecordValue::String(ob.extract::<String>()?))
     }
@@ -58,12 +60,12 @@ fn convert_pyobject_to_medrecordvalue(ob: &PyAny) -> PyResult<MedRecordValue> {
             let conversion_function = lut.entry(type_pointer).or_insert_with(|| {
                 if ob.is_instance_of::<PyString>() {
                     convert_string
+                } else if ob.is_instance_of::<PyBool>() {
+                    convert_bool
                 } else if ob.is_instance_of::<PyInt>() {
                     convert_int
                 } else if ob.is_instance_of::<PyFloat>() {
                     convert_float
-                } else if ob.is_instance_of::<PyBool>() {
-                    convert_bool
                 } else {
                     throw_error
                 }
@@ -91,7 +93,8 @@ impl IntoPy<PyObject> for PyMedRecordValue {
     }
 }
 
-#[derive(PartialEq, Eq, Hash)]
+#[repr(transparent)]
+#[derive(PartialEq, Eq, Hash, Clone, Debug)]
 pub(crate) struct PyMedRecordAttribute(MedRecordAttribute);
 
 impl From<MedRecordAttribute> for PyMedRecordAttribute {

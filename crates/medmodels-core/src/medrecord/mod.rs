@@ -8,14 +8,18 @@ pub use self::{
     datatypes::{MedRecordAttribute, MedRecordValue},
     graph::{Attributes, EdgeIndex, NodeIndex},
     group_mapping::Group,
-    querying::{edge, node},
+    querying::{
+        edge, node, ArithmeticOperation, EdgeAttributeOperand, EdgeIndexOperand, EdgeOperand,
+        EdgeOperation, NodeAttributeOperand, NodeIndexOperand, NodeOperand, NodeOperation,
+        TransformationOperation, ValueOperand,
+    },
 };
 use crate::errors::MedRecordError;
 use ::polars::frame::DataFrame;
 use graph::Graph;
 use group_mapping::GroupMapping;
 use polars::{dataframe_to_edges, dataframe_to_nodes};
-use querying::{EdgeOperation, EdgeSelection, NodeOperation, NodeSelection};
+use querying::{EdgeSelection, NodeSelection};
 
 #[derive(Debug)]
 pub struct MedRecord {
