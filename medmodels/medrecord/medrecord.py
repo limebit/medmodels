@@ -4,13 +4,8 @@ import pandas as pd
 import polars as pl
 
 from medmodels._medmodels import PyMedRecord
-
-MedRecordAttribute = Union[str, int]
-MedRecordValue = Union[str, int, float, bool]
-NodeIndex = MedRecordAttribute
-EdgeIndex = int
-Group = MedRecordAttribute
-Attributes = Dict[MedRecordAttribute, MedRecordValue]
+from medmodels.medrecord.querying import EdgeOperation, NodeOperation
+from medmodels.medrecord.types import Attributes, EdgeIndex, Group, NodeIndex
 
 
 class MedRecord:
@@ -705,3 +700,43 @@ class MedRecord:
             None
         """
         return self._medrecord.clear()
+
+    def select_nodes(self, operation: NodeOperation) -> List[NodeIndex]:
+        """
+        Selects nodes from the MedRecord instance.
+
+        This method takes a NodeOperation as an argument and returns a list of node
+        indices that satisfy the operation.
+
+        Args:
+            operation (NodeOperation): The NodeOperation to apply to the nodes.
+
+        Returns:
+            List[NodeIndex]: A list of node indices that satisfy the operation.
+        """
+        return self._medrecord.select_nodes(operation._node_operation)
+
+    def select_edges(self, operation: EdgeOperation) -> List[EdgeIndex]:
+        """
+        Selects edges from the MedRecord instance.
+
+        This method takes a EdgeOperation as an argument and returns a list of edge
+        indices that satisfy the operation.
+
+        Args:
+            operation (EdgeOperation): The EdgeOperation to apply to the edges.
+
+        Returns:
+            List[EdgeIndex]: A list of edge indices that satisfy the operation.
+        """
+        return self._medrecord.select_edges(operation._edge_operation)
+
+    def __getitem__(
+        self, key: Union[NodeOperation, EdgeOperation]
+    ) -> Union[List[NodeIndex], List[EdgeIndex]]:
+        if isinstance(key, NodeOperation):
+            return self.select_nodes(key)
+        elif isinstance(key, EdgeOperation):
+            return self.select_edges(key)
+        else:
+            raise TypeError("Key must be a NodeOperation or EdgeOperation")

@@ -5,7 +5,10 @@ mod operand;
 pub use self::{
     edge_operation::EdgeOperation,
     node_operation::NodeOperation,
-    operand::{edge, node},
+    operand::{
+        edge, node, ArithmeticOperation, EdgeAttributeOperand, EdgeIndexOperand, EdgeOperand,
+        NodeAttributeOperand, NodeIndexOperand, NodeOperand, TransformationOperation, ValueOperand,
+    },
 };
 use crate::{
     errors::MedRecordError,
@@ -17,7 +20,6 @@ use crate::{
         Attributes, MedRecord, MedRecordAttribute, MedRecordValue,
     },
 };
-use operand::{ArithmeticOperation, TransformationOperation, ValueOperand};
 
 macro_rules! implement_attribute_evaluate {
     ($name: ident, $evaluate: ident) => {

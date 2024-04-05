@@ -1,3 +1,5 @@
+#![allow(clippy::should_implement_trait)]
+
 use super::{
     operand::{ArithmeticOperation, EdgeIndexInOperand, IntoVecEdgeIndex, ValueOperand},
     AttributeOperation, NodeOperation, Operation,

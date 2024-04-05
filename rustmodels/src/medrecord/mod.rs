@@ -1,11 +1,13 @@
 mod conversion;
 mod errors;
+pub mod querying;
 
 use conversion::{DeepInto, PyMedRecordAttribute, PyMedRecordValue};
 use errors::PyMedRecordError;
 use medmodels_core::medrecord::{EdgeIndex, Group, MedRecord};
 use pyo3::{prelude::*, types::PyTuple};
 use pyo3_polars::PyDataFrame;
+use querying::{PyEdgeOperation, PyNodeOperation};
 use std::collections::HashMap;
 
 type PyAttributes = HashMap<PyMedRecordAttribute, PyMedRecordValue>;
@@ -139,6 +141,24 @@ impl PyMedRecord {
                 Ok((group_id.into(), nodes_attributes))
             })
             .collect()
+    }
+
+    fn outgoing_edges(&self, node_index: PyNodeIndex) -> PyResult<Vec<EdgeIndex>> {
+        Ok(self
+            .0
+            .outgoing_edges(&node_index.into())
+            .map_err(PyMedRecordError::from)?
+            .copied()
+            .collect())
+    }
+
+    fn incoming_edges(&self, node_index: PyNodeIndex) -> PyResult<Vec<EdgeIndex>> {
+        Ok(self
+            .0
+            .incoming_edges(&node_index.into())
+            .map_err(PyMedRecordError::from)?
+            .copied()
+            .collect())
     }
 
     #[pyo3(signature = (*edge_index))]
@@ -392,5 +412,21 @@ impl PyMedRecord {
 
     fn clear(&mut self) {
         self.0.clear();
+    }
+
+    fn select_nodes(&self, operation: PyNodeOperation) -> Vec<PyNodeIndex> {
+        self.0
+            .select_nodes(operation.into())
+            .iter()
+            .map(|index| index.clone().into())
+            .collect()
+    }
+
+    fn select_edges(&self, operation: PyEdgeOperation) -> Vec<EdgeIndex> {
+        self.0
+            .select_edges(operation.into())
+            .iter()
+            .copied()
+            .collect()
     }
 }
