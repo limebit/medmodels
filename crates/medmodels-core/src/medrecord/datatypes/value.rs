@@ -18,6 +18,64 @@ pub enum MedRecordValue {
     Bool(bool),
 }
 
+impl From<&str> for MedRecordValue {
+    fn from(value: &str) -> Self {
+        value.to_string().into()
+    }
+}
+
+implement_from_for_wrapper!(MedRecordValue, String, String);
+implement_from_for_wrapper!(MedRecordValue, i64, Int);
+implement_from_for_wrapper!(MedRecordValue, f64, Float);
+implement_from_for_wrapper!(MedRecordValue, bool, Bool);
+
+impl PartialEq for MedRecordValue {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (MedRecordValue::String(value), MedRecordValue::String(other)) => value == other,
+            (MedRecordValue::Int(value), MedRecordValue::Int(other)) => value == other,
+            (MedRecordValue::Int(value), MedRecordValue::Float(other)) => &(*value as f64) == other,
+            (MedRecordValue::Float(value), MedRecordValue::Float(other)) => value == other,
+            (MedRecordValue::Float(value), MedRecordValue::Int(other)) => value == &(*other as f64),
+            (MedRecordValue::Bool(value), MedRecordValue::Bool(other)) => value == other,
+            _ => false,
+        }
+    }
+}
+
+impl PartialOrd for MedRecordValue {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        match (self, other) {
+            (MedRecordValue::String(value), MedRecordValue::String(other)) => {
+                Some(value.cmp(other))
+            }
+            (MedRecordValue::Int(value), MedRecordValue::Int(other)) => Some(value.cmp(other)),
+            (MedRecordValue::Int(value), MedRecordValue::Float(other)) => {
+                other.partial_cmp(&(*value as f64))
+            }
+            (MedRecordValue::Float(value), MedRecordValue::Int(other)) => {
+                value.partial_cmp(&(*other as f64))
+            }
+            (MedRecordValue::Float(value), MedRecordValue::Float(other)) => {
+                value.partial_cmp(other)
+            }
+            (MedRecordValue::Bool(value), MedRecordValue::Bool(other)) => Some(value.cmp(other)),
+            _ => None,
+        }
+    }
+}
+
+impl Display for MedRecordValue {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::String(value) => write!(f, "{}", value),
+            Self::Int(value) => write!(f, "{}", value),
+            Self::Float(value) => write!(f, "{}", value),
+            Self::Bool(value) => write!(f, "{}", value),
+        }
+    }
+}
+
 impl Add for MedRecordValue {
     type Output = Result<Self, MedRecordError>;
 
@@ -497,64 +555,6 @@ impl Uppercase for MedRecordValue {
         match self {
             MedRecordValue::String(value) => MedRecordValue::String(value.to_uppercase()),
             _ => self,
-        }
-    }
-}
-
-impl From<&str> for MedRecordValue {
-    fn from(value: &str) -> Self {
-        value.to_string().into()
-    }
-}
-
-implement_from_for_wrapper!(MedRecordValue, String, String);
-implement_from_for_wrapper!(MedRecordValue, i64, Int);
-implement_from_for_wrapper!(MedRecordValue, f64, Float);
-implement_from_for_wrapper!(MedRecordValue, bool, Bool);
-
-impl PartialEq for MedRecordValue {
-    fn eq(&self, other: &Self) -> bool {
-        match (self, other) {
-            (MedRecordValue::String(value), MedRecordValue::String(other)) => value == other,
-            (MedRecordValue::Int(value), MedRecordValue::Int(other)) => value == other,
-            (MedRecordValue::Int(value), MedRecordValue::Float(other)) => &(*value as f64) == other,
-            (MedRecordValue::Float(value), MedRecordValue::Float(other)) => value == other,
-            (MedRecordValue::Float(value), MedRecordValue::Int(other)) => value == &(*other as f64),
-            (MedRecordValue::Bool(value), MedRecordValue::Bool(other)) => value == other,
-            _ => false,
-        }
-    }
-}
-
-impl PartialOrd for MedRecordValue {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        match (self, other) {
-            (MedRecordValue::String(value), MedRecordValue::String(other)) => {
-                Some(value.cmp(other))
-            }
-            (MedRecordValue::Int(value), MedRecordValue::Int(other)) => Some(value.cmp(other)),
-            (MedRecordValue::Int(value), MedRecordValue::Float(other)) => {
-                other.partial_cmp(&(*value as f64))
-            }
-            (MedRecordValue::Float(value), MedRecordValue::Int(other)) => {
-                value.partial_cmp(&(*other as f64))
-            }
-            (MedRecordValue::Float(value), MedRecordValue::Float(other)) => {
-                value.partial_cmp(other)
-            }
-            (MedRecordValue::Bool(value), MedRecordValue::Bool(other)) => Some(value.cmp(other)),
-            _ => None,
-        }
-    }
-}
-
-impl Display for MedRecordValue {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::String(value) => write!(f, "{}", value),
-            Self::Int(value) => write!(f, "{}", value),
-            Self::Float(value) => write!(f, "{}", value),
-            Self::Bool(value) => write!(f, "{}", value),
         }
     }
 }

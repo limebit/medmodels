@@ -10,8 +10,8 @@ use medmodels_core::{
     errors::MedRecordError,
     medrecord::{
         ArithmeticOperation, EdgeAttributeOperand, EdgeIndex, EdgeIndexOperand, EdgeOperand,
-        EdgeOperation, MedRecordAttribute, NodeAttributeOperand, NodeIndexOperand, NodeOperand,
-        NodeOperation, TransformationOperation, ValueOperand,
+        EdgeOperation, MedRecordAttribute, MedRecordValue, NodeAttributeOperand, NodeIndexOperand,
+        NodeOperand, NodeOperation, TransformationOperation, ValueOperand,
     },
 };
 use pyo3::{
@@ -20,219 +20,123 @@ use pyo3::{
 
 #[pyclass]
 #[derive(Clone, Debug)]
-pub enum PyArithmeticOperation {
-    Addition,
-    Subtraction,
-    Multiplication,
-    Division,
-}
-
-impl From<ArithmeticOperation> for PyArithmeticOperation {
-    fn from(value: ArithmeticOperation) -> Self {
-        match value {
-            ArithmeticOperation::Addition => PyArithmeticOperation::Addition,
-            ArithmeticOperation::Subtraction => PyArithmeticOperation::Subtraction,
-            ArithmeticOperation::Multiplication => PyArithmeticOperation::Multiplication,
-            ArithmeticOperation::Division => PyArithmeticOperation::Division,
-        }
-    }
-}
-
-impl From<PyArithmeticOperation> for ArithmeticOperation {
-    fn from(value: PyArithmeticOperation) -> Self {
-        match value {
-            PyArithmeticOperation::Addition => ArithmeticOperation::Addition,
-            PyArithmeticOperation::Subtraction => ArithmeticOperation::Subtraction,
-            PyArithmeticOperation::Multiplication => ArithmeticOperation::Multiplication,
-            PyArithmeticOperation::Division => ArithmeticOperation::Division,
-        }
-    }
-}
+pub struct PyValueArithmeticOperation(ArithmeticOperation, MedRecordAttribute, MedRecordValue);
 
 #[pyclass]
 #[derive(Clone, Debug)]
-pub enum PyTransformationOperation {
-    Round,
-    Ceil,
-    Floor,
+pub struct PyValueTransformationOperation(TransformationOperation, MedRecordAttribute);
 
-    Trim,
-    TrimStart,
-    TrimEnd,
-
-    Lowercase,
-    Uppercase,
-}
-
-impl From<TransformationOperation> for PyTransformationOperation {
-    fn from(value: TransformationOperation) -> Self {
-        match value {
-            TransformationOperation::Round => PyTransformationOperation::Round,
-            TransformationOperation::Ceil => PyTransformationOperation::Ceil,
-            TransformationOperation::Floor => PyTransformationOperation::Floor,
-            TransformationOperation::Trim => PyTransformationOperation::Trim,
-            TransformationOperation::TrimStart => PyTransformationOperation::TrimStart,
-            TransformationOperation::TrimEnd => PyTransformationOperation::TrimEnd,
-            TransformationOperation::Lowercase => PyTransformationOperation::Lowercase,
-            TransformationOperation::Uppercase => PyTransformationOperation::Uppercase,
-        }
-    }
-}
-
-impl From<PyTransformationOperation> for TransformationOperation {
-    fn from(value: PyTransformationOperation) -> Self {
-        match value {
-            PyTransformationOperation::Round => TransformationOperation::Round,
-            PyTransformationOperation::Ceil => TransformationOperation::Ceil,
-            PyTransformationOperation::Floor => TransformationOperation::Floor,
-            PyTransformationOperation::Trim => TransformationOperation::Trim,
-            PyTransformationOperation::TrimStart => TransformationOperation::TrimStart,
-            PyTransformationOperation::TrimEnd => TransformationOperation::TrimEnd,
-            PyTransformationOperation::Lowercase => TransformationOperation::Lowercase,
-            PyTransformationOperation::Uppercase => TransformationOperation::Uppercase,
-        }
-    }
-}
-
-#[pyclass]
+#[repr(transparent)]
 #[derive(Clone, Debug)]
-pub struct PyValueArithmeticOperation(
-    PyArithmeticOperation,
-    PyMedRecordAttribute,
-    PyMedRecordValue,
-);
-
-#[pyclass]
-#[derive(Clone, Debug)]
-pub struct PyValueTransformationOperation(PyTransformationOperation, PyMedRecordAttribute);
-
-#[derive(Debug)]
-pub(crate) enum PyValueOperand {
-    Value(PyMedRecordValue),
-    Evaluate(PyMedRecordAttribute),
-    ArithmeticOperation(PyValueArithmeticOperation),
-    TransformationOperation(PyValueTransformationOperation),
-}
-
-static PYVALUEOPERAND_CONVERSION_LUT: GILHashMap<usize, fn(&PyAny) -> PyResult<PyValueOperand>> =
-    GILHashMap::new();
-
-impl<'a> FromPyObject<'a> for PyValueOperand {
-    fn extract(ob: &'a PyAny) -> PyResult<Self> {
-        if let Ok(value) = convert_pyobject_to_medrecordvalue(ob) {
-            return Ok(PyValueOperand::Value(value.into()));
-        };
-
-        fn convert_node_attribute_operand(ob: &PyAny) -> PyResult<PyValueOperand> {
-            Ok(PyValueOperand::Evaluate(
-                MedRecordAttribute::from(ob.extract::<PyNodeAttributeOperand>()?.0).into(),
-            ))
-        }
-
-        fn convert_edge_attribute_operand(ob: &PyAny) -> PyResult<PyValueOperand> {
-            Ok(PyValueOperand::Evaluate(
-                MedRecordAttribute::from(ob.extract::<PyEdgeAttributeOperand>()?.0).into(),
-            ))
-        }
-
-        fn convert_arithmetic_operation(ob: &PyAny) -> PyResult<PyValueOperand> {
-            Ok(PyValueOperand::ArithmeticOperation(
-                ob.extract::<PyValueArithmeticOperation>()?,
-            ))
-        }
-
-        fn convert_transformation_operation(ob: &PyAny) -> PyResult<PyValueOperand> {
-            Ok(PyValueOperand::TransformationOperation(
-                ob.extract::<PyValueTransformationOperation>()?,
-            ))
-        }
-
-        fn throw_error(ob: &PyAny) -> PyResult<PyValueOperand> {
-            Err(PyMedRecordError(MedRecordError::ConversionError(format!(
-                "Failed to convert {} into ValueOperand",
-                ob,
-            )))
-            .into())
-        }
-
-        let type_pointer = PyType::as_type_ptr(ob.get_type()) as usize;
-
-        Python::with_gil(|py| {
-            PYVALUEOPERAND_CONVERSION_LUT.map(py, |lut| {
-                let conversion_function = lut.entry(type_pointer).or_insert_with(|| {
-                    if ob.is_instance_of::<PyNodeAttributeOperand>() {
-                        convert_node_attribute_operand
-                    } else if ob.is_instance_of::<PyEdgeAttributeOperand>() {
-                        convert_edge_attribute_operand
-                    } else if ob.is_instance_of::<PyValueArithmeticOperation>() {
-                        convert_arithmetic_operation
-                    } else if ob.is_instance_of::<PyValueTransformationOperation>() {
-                        convert_transformation_operation
-                    } else {
-                        throw_error
-                    }
-                });
-
-                conversion_function(ob)
-            })
-        })
-    }
-}
-
-impl IntoPy<PyObject> for PyValueOperand {
-    fn into_py(self, py: pyo3::prelude::Python<'_>) -> PyObject {
-        match self {
-            PyValueOperand::Value(value) => value.into_py(py),
-            PyValueOperand::Evaluate(attribute) => attribute.into_py(py),
-            PyValueOperand::ArithmeticOperation(operation) => operation.into_py(py),
-            PyValueOperand::TransformationOperation(operation) => operation.into_py(py),
-        }
-    }
-}
+pub(crate) struct PyValueOperand(ValueOperand);
 
 impl From<ValueOperand> for PyValueOperand {
     fn from(value: ValueOperand) -> Self {
-        match value {
-            ValueOperand::Value(value) => PyValueOperand::Value(value.into()),
-            ValueOperand::Evaluate(value) => PyValueOperand::Evaluate(value.into()),
-            ValueOperand::ArithmeticOperation(operation, attribute, value) => {
-                PyValueOperand::ArithmeticOperation(PyValueArithmeticOperation(
-                    operation.into(),
-                    attribute.into(),
-                    value.into(),
-                ))
-            }
-            ValueOperand::TransformationOperation(operation, attribute) => {
-                PyValueOperand::TransformationOperation(PyValueTransformationOperation(
-                    operation.into(),
-                    attribute.into(),
-                ))
-            }
-            ValueOperand::Slice(_attribute, _range) => todo!(),
-        }
+        PyValueOperand(value)
     }
 }
 
 impl From<PyValueOperand> for ValueOperand {
     fn from(value: PyValueOperand) -> Self {
-        match value {
-            PyValueOperand::Value(value) => ValueOperand::Value(value.into()),
-            PyValueOperand::Evaluate(attribute) => ValueOperand::Evaluate(attribute.into()),
-            PyValueOperand::ArithmeticOperation(operation) => ValueOperand::ArithmeticOperation(
-                operation.0.into(),
-                operation.1.into(),
-                operation.2.into(),
-            ),
-            PyValueOperand::TransformationOperation(operation) => {
-                ValueOperand::TransformationOperation(operation.0.into(), operation.1.into())
+        value.0
+    }
+}
+
+static PYVALUEOPERAND_CONVERSION_LUT: GILHashMap<usize, fn(&PyAny) -> PyResult<ValueOperand>> =
+    GILHashMap::new();
+
+fn convert_pyobject_to_valueoperand(ob: &PyAny) -> PyResult<ValueOperand> {
+    if let Ok(value) = convert_pyobject_to_medrecordvalue(ob) {
+        return Ok(ValueOperand::Value(value));
+    };
+
+    fn convert_node_attribute_operand(ob: &PyAny) -> PyResult<ValueOperand> {
+        Ok(ValueOperand::Evaluate(MedRecordAttribute::from(
+            ob.extract::<PyNodeAttributeOperand>()?.0,
+        )))
+    }
+
+    fn convert_edge_attribute_operand(ob: &PyAny) -> PyResult<ValueOperand> {
+        Ok(ValueOperand::Evaluate(MedRecordAttribute::from(
+            ob.extract::<PyEdgeAttributeOperand>()?.0,
+        )))
+    }
+
+    fn convert_arithmetic_operation(ob: &PyAny) -> PyResult<ValueOperand> {
+        let operation = ob.extract::<PyValueArithmeticOperation>()?;
+
+        Ok(ValueOperand::ArithmeticOperation(
+            operation.0,
+            operation.1,
+            operation.2,
+        ))
+    }
+
+    fn convert_transformation_operation(ob: &PyAny) -> PyResult<ValueOperand> {
+        let operation = ob.extract::<PyValueTransformationOperation>()?;
+
+        Ok(ValueOperand::TransformationOperation(
+            operation.0,
+            operation.1,
+        ))
+    }
+
+    fn throw_error(ob: &PyAny) -> PyResult<ValueOperand> {
+        Err(PyMedRecordError(MedRecordError::ConversionError(format!(
+            "Failed to convert {} into ValueOperand",
+            ob,
+        )))
+        .into())
+    }
+
+    let type_pointer = PyType::as_type_ptr(ob.get_type()) as usize;
+
+    Python::with_gil(|py| {
+        PYVALUEOPERAND_CONVERSION_LUT.map(py, |lut| {
+            let conversion_function = lut.entry(type_pointer).or_insert_with(|| {
+                if ob.is_instance_of::<PyNodeAttributeOperand>() {
+                    convert_node_attribute_operand
+                } else if ob.is_instance_of::<PyEdgeAttributeOperand>() {
+                    convert_edge_attribute_operand
+                } else if ob.is_instance_of::<PyValueArithmeticOperation>() {
+                    convert_arithmetic_operation
+                } else if ob.is_instance_of::<PyValueTransformationOperation>() {
+                    convert_transformation_operation
+                } else {
+                    throw_error
+                }
+            });
+
+            conversion_function(ob)
+        })
+    })
+}
+
+impl<'a> FromPyObject<'a> for PyValueOperand {
+    fn extract(ob: &'a PyAny) -> PyResult<Self> {
+        convert_pyobject_to_valueoperand(ob).map(PyValueOperand::from)
+    }
+}
+
+impl IntoPy<PyObject> for PyValueOperand {
+    fn into_py(self, py: pyo3::prelude::Python<'_>) -> PyObject {
+        match self.0 {
+            ValueOperand::Value(value) => PyMedRecordValue::from(value).into_py(py),
+            ValueOperand::Evaluate(attribute) => PyMedRecordAttribute::from(attribute).into_py(py),
+            ValueOperand::ArithmeticOperation(operation, attribute, value) => {
+                PyValueArithmeticOperation(operation, attribute, value).into_py(py)
             }
+            ValueOperand::TransformationOperation(operation, attribute) => {
+                PyValueTransformationOperation(operation, attribute).into_py(py)
+            }
+            ValueOperand::Slice(_, _) => todo!(),
         }
     }
 }
 
 #[pyclass]
 #[repr(transparent)]
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct PyNodeOperation(NodeOperation);
 
 impl From<NodeOperation> for PyNodeOperation {
@@ -268,7 +172,7 @@ impl PyNodeOperation {
 
 #[pyclass]
 #[repr(transparent)]
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct PyEdgeOperation(EdgeOperation);
 
 impl From<EdgeOperation> for PyEdgeOperation {
@@ -304,7 +208,7 @@ impl PyEdgeOperation {
 
 #[pyclass]
 #[repr(transparent)]
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct PyNodeAttributeOperand(pub NodeAttributeOperand);
 
 impl From<NodeAttributeOperand> for PyNodeAttributeOperand {
@@ -420,7 +324,7 @@ impl PyNodeAttributeOperand {
 
 #[pyclass]
 #[repr(transparent)]
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct PyEdgeAttributeOperand(EdgeAttributeOperand);
 
 impl From<EdgeAttributeOperand> for PyEdgeAttributeOperand {
@@ -536,7 +440,7 @@ impl PyEdgeAttributeOperand {
 
 #[pyclass]
 #[repr(transparent)]
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct PyNodeIndexOperand(NodeIndexOperand);
 
 impl From<NodeIndexOperand> for PyNodeIndexOperand {
@@ -595,7 +499,7 @@ impl PyNodeIndexOperand {
 
 #[pyclass]
 #[repr(transparent)]
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct PyEdgeIndexOperand(EdgeIndexOperand);
 
 impl From<EdgeIndexOperand> for PyEdgeIndexOperand {
@@ -642,7 +546,7 @@ impl PyEdgeIndexOperand {
 
 #[pyclass]
 #[repr(transparent)]
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct PyNodeOperand(NodeOperand);
 
 #[pymethods]
@@ -691,7 +595,7 @@ impl PyNodeOperand {
 
 #[pyclass]
 #[repr(transparent)]
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct PyEdgeOperand(EdgeOperand);
 
 #[pymethods]
