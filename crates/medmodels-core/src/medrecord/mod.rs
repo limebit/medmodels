@@ -432,44 +432,6 @@ mod test {
     }
 
     #[test]
-    fn test_node_count() {
-        let mut medrecord = MedRecord::new();
-
-        assert_eq!(0, medrecord.node_count());
-
-        medrecord.add_node("0".into(), HashMap::new());
-
-        assert_eq!(1, medrecord.node_count());
-    }
-
-    #[test]
-    fn test_edge_count() {
-        let mut medrecord = MedRecord::new();
-
-        medrecord.add_node("0".into(), HashMap::new());
-        medrecord.add_node("1".into(), HashMap::new());
-
-        assert_eq!(0, medrecord.edge_count());
-
-        medrecord
-            .add_edge("0".into(), "1".into(), HashMap::new())
-            .unwrap();
-
-        assert_eq!(1, medrecord.edge_count());
-    }
-
-    #[test]
-    fn test_group_count() {
-        let mut medrecord = create_medrecord();
-
-        assert_eq!(0, medrecord.group_count());
-
-        medrecord.add_group("0".into(), None).unwrap();
-
-        assert_eq!(1, medrecord.group_count());
-    }
-
-    #[test]
     fn test_node_indices() {
         let medrecord = create_medrecord();
 
@@ -500,6 +462,42 @@ mod test {
         assert!(medrecord
             .node_attributes(&"50".into())
             .is_err_and(|e| matches!(e, MedRecordError::IndexError(_))));
+    }
+
+    #[test]
+    fn test_outgoing_edges() {
+        let medrecord = create_medrecord();
+
+        let edges = medrecord.outgoing_edges(&"0".into()).unwrap();
+
+        assert_eq!(2, edges.count());
+    }
+
+    #[test]
+    fn test_invalid_outgoing_edges() {
+        let medrecord = create_medrecord();
+
+        assert!(medrecord
+            .outgoing_edges(&"50".into())
+            .is_err_and(|e| matches!(e, MedRecordError::IndexError(_))))
+    }
+
+    #[test]
+    fn test_incoming_edges() {
+        let medrecord = create_medrecord();
+
+        let edges = medrecord.incoming_edges(&"2".into()).unwrap();
+
+        assert_eq!(2, edges.count());
+    }
+
+    #[test]
+    fn test_invalid_incoming_edges() {
+        let medrecord = create_medrecord();
+
+        assert!(medrecord
+            .incoming_edges(&"50".into())
+            .is_err_and(|e| matches!(e, MedRecordError::IndexError(_))))
     }
 
     #[test]
@@ -751,6 +749,29 @@ mod test {
     }
 
     #[test]
+    fn test_remove_group() {
+        let mut medrecord = create_medrecord();
+
+        medrecord.add_group("0".into(), None).unwrap();
+
+        assert_eq!(1, medrecord.group_count());
+
+        medrecord.remove_group(&"0".into()).unwrap();
+
+        assert_eq!(0, medrecord.group_count());
+    }
+
+    #[test]
+    fn test_invalid_remove_group() {
+        let mut medrecord = MedRecord::new();
+
+        // Removing a non-existing group should fail
+        assert!(medrecord
+            .remove_group(&"0".into())
+            .is_err_and(|e| matches!(e, MedRecordError::IndexError(_))));
+    }
+
+    #[test]
     fn test_add_node_to_group() {
         let mut medrecord = create_medrecord();
 
@@ -787,29 +808,6 @@ mod test {
         assert!(medrecord
             .add_node_to_group("0".into(), "0".into())
             .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
-    }
-
-    #[test]
-    fn test_remove_group() {
-        let mut medrecord = create_medrecord();
-
-        medrecord.add_group("0".into(), None).unwrap();
-
-        assert_eq!(1, medrecord.group_count());
-
-        medrecord.remove_group(&"0".into()).unwrap();
-
-        assert_eq!(0, medrecord.group_count());
-    }
-
-    #[test]
-    fn test_invalid_remove_group() {
-        let mut medrecord = MedRecord::new();
-
-        // Removing a non-existing group should fail
-        assert!(medrecord
-            .remove_group(&"0".into())
-            .is_err_and(|e| matches!(e, MedRecordError::IndexError(_))));
     }
 
     #[test]
@@ -908,6 +906,44 @@ mod test {
         assert!(medrecord
             .groups_of_node(&"50".into())
             .is_err_and(|e| matches!(e, MedRecordError::IndexError(_))))
+    }
+
+    #[test]
+    fn test_node_count() {
+        let mut medrecord = MedRecord::new();
+
+        assert_eq!(0, medrecord.node_count());
+
+        medrecord.add_node("0".into(), HashMap::new());
+
+        assert_eq!(1, medrecord.node_count());
+    }
+
+    #[test]
+    fn test_edge_count() {
+        let mut medrecord = MedRecord::new();
+
+        medrecord.add_node("0".into(), HashMap::new());
+        medrecord.add_node("1".into(), HashMap::new());
+
+        assert_eq!(0, medrecord.edge_count());
+
+        medrecord
+            .add_edge("0".into(), "1".into(), HashMap::new())
+            .unwrap();
+
+        assert_eq!(1, medrecord.edge_count());
+    }
+
+    #[test]
+    fn test_group_count() {
+        let mut medrecord = create_medrecord();
+
+        assert_eq!(0, medrecord.group_count());
+
+        medrecord.add_group("0".into(), None).unwrap();
+
+        assert_eq!(1, medrecord.group_count());
     }
 
     #[test]

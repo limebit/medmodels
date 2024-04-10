@@ -223,6 +223,37 @@ class TestMedRecord(unittest.TestCase):
         with self.assertRaises(IndexError):
             medrecord.group("0")
 
+    def test_outgoing_edges(self):
+        medrecord = create_medrecord()
+
+        edges = medrecord.outgoing_edges("0")
+
+        self.assertEqual(
+            {"0": sorted([0, 2])},
+            {key: sorted(value) for (key, value) in edges.items()},
+        )
+
+    def test_invalid_outgoing_edges(self):
+        medrecord = create_medrecord()
+
+        # Querying outgoing edges of a non-existing node should fail
+        with self.assertRaises(IndexError):
+            medrecord.outgoing_edges("50")
+
+    def test_incoming_edges(self):
+        medrecord = create_medrecord()
+
+        edges = medrecord.incoming_edges("1")
+
+        self.assertEqual({"1": [0]}, edges)
+
+    def test_invalid_incoming_edges(self):
+        medrecord = create_medrecord()
+
+        # Querying incoming edges of a non-existing node should fail
+        with self.assertRaises(IndexError):
+            medrecord.incoming_edges("50")
+
     def test_edge_endpoints(self):
         medrecord = create_medrecord()
 
