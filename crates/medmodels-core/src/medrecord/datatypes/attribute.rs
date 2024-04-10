@@ -9,6 +9,76 @@ pub enum MedRecordAttribute {
     Int(i64),
 }
 
+impl Hash for MedRecordAttribute {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        match self {
+            Self::Int(value) => value.hash(state),
+            Self::String(value) => value.hash(state),
+        }
+    }
+}
+
+impl From<&str> for MedRecordAttribute {
+    fn from(value: &str) -> Self {
+        value.to_string().into()
+    }
+}
+
+implement_from_for_wrapper!(MedRecordAttribute, String, String);
+implement_from_for_wrapper!(MedRecordAttribute, i64, Int);
+
+impl TryFrom<MedRecordValue> for MedRecordAttribute {
+    type Error = MedRecordError;
+
+    fn try_from(value: MedRecordValue) -> Result<Self, Self::Error> {
+        match value {
+            MedRecordValue::String(value) => Ok(MedRecordAttribute::String(value)),
+            MedRecordValue::Int(value) => Ok(MedRecordAttribute::Int(value)),
+            _ => Err(MedRecordError::ConversionError(format!(
+                "Cannot convert {} into MedRecordAttribute",
+                value
+            ))),
+        }
+    }
+}
+
+impl Display for MedRecordAttribute {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::String(value) => write!(f, "{}", value),
+            Self::Int(value) => write!(f, "{}", value),
+        }
+    }
+}
+
+impl PartialEq for MedRecordAttribute {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (MedRecordAttribute::String(value), MedRecordAttribute::String(other)) => {
+                value == other
+            }
+            (MedRecordAttribute::Int(value), MedRecordAttribute::Int(other)) => value == other,
+            _ => false,
+        }
+    }
+}
+
+impl Eq for MedRecordAttribute {}
+
+impl PartialOrd for MedRecordAttribute {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        match (self, other) {
+            (MedRecordAttribute::String(value), MedRecordAttribute::String(other)) => {
+                Some(value.cmp(other))
+            }
+            (MedRecordAttribute::Int(value), MedRecordAttribute::Int(other)) => {
+                Some(value.cmp(other))
+            }
+            _ => None,
+        }
+    }
+}
+
 impl StartsWith for MedRecordAttribute {
     fn starts_with(&self, other: &Self) -> bool {
         match (self, other) {
@@ -62,76 +132,6 @@ impl Contains for MedRecordAttribute {
             (MedRecordAttribute::Int(value), MedRecordAttribute::Int(other)) => {
                 value.to_string().contains(&other.to_string())
             }
-        }
-    }
-}
-
-impl Hash for MedRecordAttribute {
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        match self {
-            Self::Int(value) => value.hash(state),
-            Self::String(value) => value.hash(state),
-        }
-    }
-}
-
-impl From<&str> for MedRecordAttribute {
-    fn from(value: &str) -> Self {
-        value.to_string().into()
-    }
-}
-
-impl TryFrom<MedRecordValue> for MedRecordAttribute {
-    type Error = MedRecordError;
-
-    fn try_from(value: MedRecordValue) -> Result<Self, Self::Error> {
-        match value {
-            MedRecordValue::String(value) => Ok(MedRecordAttribute::String(value)),
-            MedRecordValue::Int(value) => Ok(MedRecordAttribute::Int(value)),
-            _ => Err(MedRecordError::ConversionError(format!(
-                "Cannot convert {} into MedRecordAttribute",
-                value
-            ))),
-        }
-    }
-}
-
-impl Display for MedRecordAttribute {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::String(value) => write!(f, "{}", value),
-            Self::Int(value) => write!(f, "{}", value),
-        }
-    }
-}
-
-implement_from_for_wrapper!(MedRecordAttribute, String, String);
-implement_from_for_wrapper!(MedRecordAttribute, i64, Int);
-
-impl PartialEq for MedRecordAttribute {
-    fn eq(&self, other: &Self) -> bool {
-        match (self, other) {
-            (MedRecordAttribute::String(value), MedRecordAttribute::String(other)) => {
-                value == other
-            }
-            (MedRecordAttribute::Int(value), MedRecordAttribute::Int(other)) => value == other,
-            _ => false,
-        }
-    }
-}
-
-impl Eq for MedRecordAttribute {}
-
-impl PartialOrd for MedRecordAttribute {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        match (self, other) {
-            (MedRecordAttribute::String(value), MedRecordAttribute::String(other)) => {
-                Some(value.cmp(other))
-            }
-            (MedRecordAttribute::Int(value), MedRecordAttribute::Int(other)) => {
-                Some(value.cmp(other))
-            }
-            _ => None,
         }
     }
 }

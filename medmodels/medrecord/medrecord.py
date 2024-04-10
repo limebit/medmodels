@@ -249,6 +249,42 @@ class MedRecord:
         """
         return self._medrecord.group(*group)
 
+    def outgoing_edges(
+        self, *node_index: NodeIndex
+    ) -> Dict[NodeIndex, List[EdgeIndex]]:
+        """
+        Returns the outgoing edges of the specified node(s) in the MedRecord instance.
+
+        This method takes one or more node indices as arguments and returns a dictionary
+        of the node indices and the indices of the outgoing edges of each node.
+
+        Args:
+            *node_index (NodeIndex): One or more node indices.
+
+        Returns:
+            Dict[NodeIndex, List[EdgeIndex]]: A dictionary of the node indices and the
+                indices of the outgoing edges of each node.
+        """
+        return self._medrecord.outgoing_edges(*node_index)
+
+    def incoming_edges(
+        self, *node_index: NodeIndex
+    ) -> Dict[NodeIndex, List[EdgeIndex]]:
+        """
+        Returns the incoming edges of the specified node(s) in the MedRecord instance.
+
+        This method takes one or more node indices as arguments and returns a dictionary
+        of the node indices and the indices of the incoming edges of each node.
+
+        Args:
+            *node_index (NodeIndex): One or more node indices.
+
+        Returns:
+            Dict[NodeIndex, List[EdgeIndex]]: A dictionary of the node indices and the
+                indices of the incoming edges of each node.
+        """
+        return self._medrecord.incoming_edges(*node_index)
+
     def edge_endpoints(
         self, *edge_index: EdgeIndex
     ) -> Dict[EdgeIndex, tuple[NodeIndex, NodeIndex]]:
