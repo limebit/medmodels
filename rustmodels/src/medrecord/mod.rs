@@ -143,22 +143,48 @@ impl PyMedRecord {
             .collect()
     }
 
-    fn outgoing_edges(&self, node_index: PyNodeIndex) -> PyResult<Vec<EdgeIndex>> {
-        Ok(self
-            .0
-            .outgoing_edges(&node_index.into())
-            .map_err(PyMedRecordError::from)?
-            .copied()
-            .collect())
+    #[pyo3(signature = (*node_index))]
+    fn outgoing_edges(
+        &self,
+        node_index: &PyTuple,
+    ) -> PyResult<HashMap<PyNodeIndex, Vec<EdgeIndex>>> {
+        node_index
+            .into_iter()
+            .map(|node_index| {
+                let node_index = node_index.extract::<PyNodeIndex>()?.into();
+
+                let edges = self
+                    .0
+                    .outgoing_edges(&node_index)
+                    .map_err(PyMedRecordError::from)?
+                    .copied()
+                    .collect();
+
+                Ok((node_index.into(), edges))
+            })
+            .collect()
     }
 
-    fn incoming_edges(&self, node_index: PyNodeIndex) -> PyResult<Vec<EdgeIndex>> {
-        Ok(self
-            .0
-            .incoming_edges(&node_index.into())
-            .map_err(PyMedRecordError::from)?
-            .copied()
-            .collect())
+    #[pyo3(signature = (*node_index))]
+    fn incoming_edges(
+        &self,
+        node_index: &PyTuple,
+    ) -> PyResult<HashMap<PyNodeIndex, Vec<EdgeIndex>>> {
+        node_index
+            .into_iter()
+            .map(|node_index| {
+                let node_index = node_index.extract::<PyNodeIndex>()?.into();
+
+                let edges = self
+                    .0
+                    .incoming_edges(&node_index)
+                    .map_err(PyMedRecordError::from)?
+                    .copied()
+                    .collect();
+
+                Ok((node_index.into(), edges))
+            })
+            .collect()
     }
 
     #[pyo3(signature = (*edge_index))]
