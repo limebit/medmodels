@@ -16,6 +16,8 @@ pub enum ArithmeticOperation {
     Subtraction,
     Multiplication,
     Division,
+    Power,
+    Modulo,
 }
 
 #[derive(Debug, Clone)]
@@ -23,6 +25,8 @@ pub enum TransformationOperation {
     Round,
     Ceil,
     Floor,
+    Abs,
+    Sqrt,
 
     Trim,
     TrimStart,
@@ -178,6 +182,14 @@ impl NodeAttributeOperand {
         ValueOperand::ArithmeticOperation(ArithmeticOperation::Division, self.into(), value.into())
     }
 
+    pub fn pow(self, value: impl Into<MedRecordValue>) -> ValueOperand {
+        ValueOperand::ArithmeticOperation(ArithmeticOperation::Power, self.into(), value.into())
+    }
+
+    pub fn r#mod(self, value: impl Into<MedRecordValue>) -> ValueOperand {
+        ValueOperand::ArithmeticOperation(ArithmeticOperation::Modulo, self.into(), value.into())
+    }
+
     pub fn round(self) -> ValueOperand {
         ValueOperand::TransformationOperation(TransformationOperation::Round, self.into())
     }
@@ -188,6 +200,14 @@ impl NodeAttributeOperand {
 
     pub fn floor(self) -> ValueOperand {
         ValueOperand::TransformationOperation(TransformationOperation::Floor, self.into())
+    }
+
+    pub fn abs(self) -> ValueOperand {
+        ValueOperand::TransformationOperation(TransformationOperation::Abs, self.into())
+    }
+
+    pub fn sqrt(self) -> ValueOperand {
+        ValueOperand::TransformationOperation(TransformationOperation::Sqrt, self.into())
     }
 
     pub fn trim(self) -> ValueOperand {
@@ -321,6 +341,14 @@ impl EdgeAttributeOperand {
         ValueOperand::ArithmeticOperation(ArithmeticOperation::Division, self.into(), value.into())
     }
 
+    pub fn pow(self, value: impl Into<MedRecordValue>) -> ValueOperand {
+        ValueOperand::ArithmeticOperation(ArithmeticOperation::Power, self.into(), value.into())
+    }
+
+    pub fn r#mod(self, value: impl Into<MedRecordValue>) -> ValueOperand {
+        ValueOperand::ArithmeticOperation(ArithmeticOperation::Modulo, self.into(), value.into())
+    }
+
     pub fn round(self) -> ValueOperand {
         ValueOperand::TransformationOperation(TransformationOperation::Round, self.into())
     }
@@ -331,6 +359,14 @@ impl EdgeAttributeOperand {
 
     pub fn floor(self) -> ValueOperand {
         ValueOperand::TransformationOperation(TransformationOperation::Floor, self.into())
+    }
+
+    pub fn abs(self) -> ValueOperand {
+        ValueOperand::TransformationOperation(TransformationOperation::Abs, self.into())
+    }
+
+    pub fn sqrt(self) -> ValueOperand {
+        ValueOperand::TransformationOperation(TransformationOperation::Sqrt, self.into())
     }
 
     pub fn trim(self) -> ValueOperand {
