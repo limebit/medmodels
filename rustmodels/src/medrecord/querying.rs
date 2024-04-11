@@ -17,6 +17,7 @@ use medmodels_core::{
 use pyo3::{
     pyclass, pymethods, types::PyType, FromPyObject, IntoPy, PyAny, PyObject, PyResult, Python,
 };
+use std::ops::Range;
 
 #[pyclass]
 #[derive(Clone, Debug)]
@@ -25,6 +26,10 @@ pub struct PyValueArithmeticOperation(ArithmeticOperation, MedRecordAttribute, M
 #[pyclass]
 #[derive(Clone, Debug)]
 pub struct PyValueTransformationOperation(TransformationOperation, MedRecordAttribute);
+
+#[pyclass]
+#[derive(Clone, Debug)]
+pub struct PyValueSliceOperation(MedRecordAttribute, Range<usize>);
 
 #[repr(transparent)]
 #[derive(Clone, Debug)]
@@ -81,6 +86,12 @@ fn convert_pyobject_to_valueoperand(ob: &PyAny) -> PyResult<ValueOperand> {
         ))
     }
 
+    fn convert_slice_operation(ob: &PyAny) -> PyResult<ValueOperand> {
+        let operation = ob.extract::<PyValueSliceOperation>()?;
+
+        Ok(ValueOperand::Slice(operation.0, operation.1))
+    }
+
     fn throw_error(ob: &PyAny) -> PyResult<ValueOperand> {
         Err(PyMedRecordError(MedRecordError::ConversionError(format!(
             "Failed to convert {} into ValueOperand",
@@ -102,6 +113,8 @@ fn convert_pyobject_to_valueoperand(ob: &PyAny) -> PyResult<ValueOperand> {
                     convert_arithmetic_operation
                 } else if ob.is_instance_of::<PyValueTransformationOperation>() {
                     convert_transformation_operation
+                } else if ob.is_instance_of::<PyValueSliceOperation>() {
+                    convert_slice_operation
                 } else {
                     throw_error
                 }
@@ -129,7 +142,9 @@ impl IntoPy<PyObject> for PyValueOperand {
             ValueOperand::TransformationOperation(operation, attribute) => {
                 PyValueTransformationOperation(operation, attribute).into_py(py)
             }
-            ValueOperand::Slice(_, _) => todo!(),
+            ValueOperand::Slice(attribute, range) => {
+                PyValueSliceOperation(attribute, range).into_py(py)
+            }
         }
     }
 }
@@ -289,6 +304,14 @@ impl PyNodeAttributeOperand {
         self.clone().0.div(value).into()
     }
 
+    fn pow(&self, value: PyMedRecordValue) -> PyValueOperand {
+        self.clone().0.pow(value).into()
+    }
+
+    fn r#mod(&self, value: PyMedRecordValue) -> PyValueOperand {
+        self.clone().0.r#mod(value).into()
+    }
+
     fn round(&self) -> PyValueOperand {
         self.clone().0.round().into()
     }
@@ -299,6 +322,14 @@ impl PyNodeAttributeOperand {
 
     fn floor(&self) -> PyValueOperand {
         self.clone().0.floor().into()
+    }
+
+    fn abs(&self) -> PyValueOperand {
+        self.clone().0.abs().into()
+    }
+
+    fn sqrt(&self) -> PyValueOperand {
+        self.clone().0.sqrt().into()
     }
 
     fn trim(&self) -> PyValueOperand {
@@ -319,6 +350,10 @@ impl PyNodeAttributeOperand {
 
     fn uppercase(&self) -> PyValueOperand {
         self.clone().0.uppercase().into()
+    }
+
+    fn slice(&self, start: usize, end: usize) -> PyResult<PyValueOperand> {
+        Ok(self.clone().0.slice(Range { start, end }).into())
     }
 }
 
@@ -405,6 +440,14 @@ impl PyEdgeAttributeOperand {
         self.clone().0.div(value).into()
     }
 
+    fn pow(&self, value: PyMedRecordValue) -> PyValueOperand {
+        self.clone().0.pow(value).into()
+    }
+
+    fn r#mod(&self, value: PyMedRecordValue) -> PyValueOperand {
+        self.clone().0.r#mod(value).into()
+    }
+
     fn round(&self) -> PyValueOperand {
         self.clone().0.round().into()
     }
@@ -415,6 +458,14 @@ impl PyEdgeAttributeOperand {
 
     fn floor(&self) -> PyValueOperand {
         self.clone().0.floor().into()
+    }
+
+    fn abs(&self) -> PyValueOperand {
+        self.clone().0.abs().into()
+    }
+
+    fn sqrt(&self) -> PyValueOperand {
+        self.clone().0.sqrt().into()
     }
 
     fn trim(&self) -> PyValueOperand {
@@ -435,6 +486,10 @@ impl PyEdgeAttributeOperand {
 
     fn uppercase(&self) -> PyValueOperand {
         self.clone().0.uppercase().into()
+    }
+
+    fn slice(&self, start: usize, end: usize) -> PyResult<PyValueOperand> {
+        Ok(self.clone().0.slice(Range { start, end }).into())
     }
 }
 

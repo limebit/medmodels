@@ -14,8 +14,8 @@ use crate::{
     errors::MedRecordError,
     medrecord::{
         datatypes::{
-            Ceil, Contains, EndsWith, Floor, Lowercase, PartialNeq, Round, Slice, StartsWith, Trim,
-            TrimEnd, TrimStart, Uppercase,
+            Abs, Ceil, Contains, EndsWith, Floor, Lowercase, Mod, PartialNeq, Pow, Round, Slice,
+            Sqrt, StartsWith, Trim, TrimEnd, TrimStart, Uppercase,
         },
         Attributes, MedRecord, MedRecordAttribute, MedRecordValue,
     },
@@ -69,6 +69,10 @@ macro_rules! implement_attribute_evaluate {
                                 other.clone() * value_operand.clone()
                             }
                             ArithmeticOperation::Division => other.clone() / value_operand.clone(),
+                            ArithmeticOperation::Power => other.clone().pow(value_operand.clone()),
+                            ArithmeticOperation::Modulo => {
+                                other.clone().r#mod(value_operand.clone())
+                            }
                         };
 
                         match operation {
@@ -85,6 +89,8 @@ macro_rules! implement_attribute_evaluate {
                             TransformationOperation::Round => other.clone().round(),
                             TransformationOperation::Ceil => other.clone().ceil(),
                             TransformationOperation::Floor => other.clone().floor(),
+                            TransformationOperation::Abs => other.clone().abs(),
+                            TransformationOperation::Sqrt => other.clone().sqrt(),
                             TransformationOperation::Trim => other.clone().trim(),
                             TransformationOperation::TrimStart => other.clone().trim_start(),
                             TransformationOperation::TrimEnd => other.clone().trim_end(),
