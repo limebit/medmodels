@@ -1,6 +1,6 @@
 use super::{
-    Ceil, Contains, EndsWith, Floor, Lowercase, Round, Slice, StartsWith, Trim, TrimEnd, TrimStart,
-    Uppercase,
+    Abs, Ceil, Contains, EndsWith, Floor, Lowercase, Mod, Pow, Round, Slice, Sqrt, StartsWith,
+    Trim, TrimEnd, TrimStart, Uppercase,
 };
 use crate::errors::MedRecordError;
 use medmodels_utils::implement_from_for_wrapper;
@@ -382,6 +382,152 @@ impl Div for MedRecordValue {
     }
 }
 
+impl Pow for MedRecordValue {
+    fn pow(self, exp: Self) -> Result<Self, MedRecordError> {
+        match (self, exp) {
+            (MedRecordValue::String(value), MedRecordValue::String(other)) => {
+                Err(MedRecordError::AssertionError(format!(
+                    "Cannot raise {} to the power of {}",
+                    value, other
+                )))
+            }
+            (MedRecordValue::String(value), MedRecordValue::Int(other)) => {
+                Err(MedRecordError::AssertionError(format!(
+                    "Cannot raise {} to the power of {}",
+                    value, other
+                )))
+            }
+            (MedRecordValue::String(value), MedRecordValue::Float(other)) => {
+                Err(MedRecordError::AssertionError(format!(
+                    "Cannot raise {} to the power of {}",
+                    value, other
+                )))
+            }
+            (MedRecordValue::String(value), MedRecordValue::Bool(other)) => {
+                Err(MedRecordError::AssertionError(format!(
+                    "Cannot raise {} to the power of {}",
+                    value, other
+                )))
+            }
+            (MedRecordValue::Int(value), MedRecordValue::String(other)) => {
+                Err(MedRecordError::AssertionError(format!(
+                    "Cannot raise {} to the power of {}",
+                    value, other
+                )))
+            }
+            (MedRecordValue::Int(value), MedRecordValue::Int(exp)) => {
+                Ok(MedRecordValue::Int(value.pow(exp as u32)))
+            }
+            (MedRecordValue::Int(value), MedRecordValue::Float(exp)) => {
+                Ok(MedRecordValue::Float((value as f64).powf(exp)))
+            }
+            (MedRecordValue::Int(value), MedRecordValue::Bool(other)) => {
+                Err(MedRecordError::AssertionError(format!(
+                    "Cannot raise {} to the power of {}",
+                    value, other
+                )))
+            }
+            (MedRecordValue::Float(value), MedRecordValue::String(other)) => {
+                Err(MedRecordError::AssertionError(format!(
+                    "Cannot raise {} to the power of {}",
+                    value, other
+                )))
+            }
+            (MedRecordValue::Float(value), MedRecordValue::Int(exp)) => {
+                Ok(MedRecordValue::Float(value.powi(exp as i32)))
+            }
+            (MedRecordValue::Float(value), MedRecordValue::Float(exp)) => {
+                Ok(MedRecordValue::Float(value.powf(exp)))
+            }
+            (MedRecordValue::Float(value), MedRecordValue::Bool(other)) => {
+                Err(MedRecordError::AssertionError(format!(
+                    "Cannot raise {} to the power of {}",
+                    value, other
+                )))
+            }
+            (MedRecordValue::Bool(value), MedRecordValue::String(other)) => {
+                Err(MedRecordError::AssertionError(format!(
+                    "Cannot raise {} to the power of {}",
+                    value, other
+                )))
+            }
+            (MedRecordValue::Bool(value), MedRecordValue::Int(other)) => {
+                Err(MedRecordError::AssertionError(format!(
+                    "Cannot raise {} to the power of {}",
+                    value, other
+                )))
+            }
+            (MedRecordValue::Bool(value), MedRecordValue::Float(other)) => {
+                Err(MedRecordError::AssertionError(format!(
+                    "Cannot raise {} to the power of {}",
+                    value, other
+                )))
+            }
+            (MedRecordValue::Bool(value), MedRecordValue::Bool(other)) => {
+                Err(MedRecordError::AssertionError(format!(
+                    "Cannot raise {} to the power of {}",
+                    value, other
+                )))
+            }
+        }
+    }
+}
+
+impl Mod for MedRecordValue {
+    fn r#mod(self, other: Self) -> Result<Self, MedRecordError> {
+        match (self, other) {
+            (MedRecordValue::String(value), MedRecordValue::String(other)) => Err(
+                MedRecordError::AssertionError(format!("Cannot mod {} with {}", value, other)),
+            ),
+            (MedRecordValue::String(value), MedRecordValue::Int(other)) => Err(
+                MedRecordError::AssertionError(format!("Cannot mod {} with {}", value, other)),
+            ),
+            (MedRecordValue::String(value), MedRecordValue::Float(other)) => Err(
+                MedRecordError::AssertionError(format!("Cannot mod {} with {}", value, other)),
+            ),
+            (MedRecordValue::String(value), MedRecordValue::Bool(other)) => Err(
+                MedRecordError::AssertionError(format!("Cannot mod {} with {}", value, other)),
+            ),
+            (MedRecordValue::Int(value), MedRecordValue::String(other)) => Err(
+                MedRecordError::AssertionError(format!("Cannot mod {} with {}", value, other)),
+            ),
+            (MedRecordValue::Int(value), MedRecordValue::Int(other)) => {
+                Ok(MedRecordValue::Int(value % other))
+            }
+            (MedRecordValue::Int(value), MedRecordValue::Float(other)) => {
+                Ok(MedRecordValue::Float(value as f64 % other))
+            }
+            (MedRecordValue::Int(value), MedRecordValue::Bool(other)) => Err(
+                MedRecordError::AssertionError(format!("Cannot mod {} with {}", value, other)),
+            ),
+            (MedRecordValue::Float(value), MedRecordValue::String(other)) => Err(
+                MedRecordError::AssertionError(format!("Cannot mod {} with {}", value, other)),
+            ),
+            (MedRecordValue::Float(value), MedRecordValue::Int(other)) => {
+                Ok(MedRecordValue::Float(value % other as f64))
+            }
+            (MedRecordValue::Float(value), MedRecordValue::Float(other)) => {
+                Ok(MedRecordValue::Float(value % other))
+            }
+            (MedRecordValue::Float(value), MedRecordValue::Bool(other)) => Err(
+                MedRecordError::AssertionError(format!("Cannot mod {} with {}", value, other)),
+            ),
+            (MedRecordValue::Bool(value), MedRecordValue::String(other)) => Err(
+                MedRecordError::AssertionError(format!("Cannot mod {} with {}", value, other)),
+            ),
+            (MedRecordValue::Bool(value), MedRecordValue::Int(other)) => Err(
+                MedRecordError::AssertionError(format!("Cannot mod {} with {}", value, other)),
+            ),
+            (MedRecordValue::Bool(value), MedRecordValue::Float(other)) => Err(
+                MedRecordError::AssertionError(format!("Cannot mod {} with {}", value, other)),
+            ),
+            (MedRecordValue::Bool(value), MedRecordValue::Bool(other)) => Err(
+                MedRecordError::AssertionError(format!("Cannot mod {} with {}", value, other)),
+            ),
+        }
+    }
+}
+
 impl StartsWith for MedRecordValue {
     fn starts_with(&self, other: &Self) -> bool {
         match (self, other) {
@@ -518,6 +664,26 @@ impl Floor for MedRecordValue {
     fn floor(self) -> Self {
         match self {
             MedRecordValue::Float(value) => MedRecordValue::Float(value.floor()),
+            _ => self,
+        }
+    }
+}
+
+impl Abs for MedRecordValue {
+    fn abs(self) -> Self {
+        match self {
+            MedRecordValue::Int(value) => MedRecordValue::Int(value.abs()),
+            MedRecordValue::Float(value) => MedRecordValue::Float(value.abs()),
+            _ => self,
+        }
+    }
+}
+
+impl Sqrt for MedRecordValue {
+    fn sqrt(self) -> Self {
+        match self {
+            MedRecordValue::Int(value) => MedRecordValue::Float((value as f64).sqrt()),
+            MedRecordValue::Float(value) => MedRecordValue::Float(value.sqrt()),
             _ => self,
         }
     }

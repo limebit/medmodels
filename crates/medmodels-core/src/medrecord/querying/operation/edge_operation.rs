@@ -5,7 +5,10 @@ use super::{
     AttributeOperation, NodeOperation, Operation,
 };
 use crate::medrecord::{
-    datatypes::{Ceil, Floor, Lowercase, Round, Slice, Trim, TrimEnd, TrimStart, Uppercase},
+    datatypes::{
+        Abs, Ceil, Floor, Lowercase, Mod, Pow, Round, Slice, Sqrt, Trim, TrimEnd, TrimStart,
+        Uppercase,
+    },
     EdgeIndex, MedRecord, MedRecordAttribute,
 };
 
@@ -257,6 +260,8 @@ impl EdgeOperation {
                     ArithmeticOperation::Subtraction => value.clone() - other_value,
                     ArithmeticOperation::Multiplication => value.clone() * other_value,
                     ArithmeticOperation::Division => value.clone() / other_value,
+                    ArithmeticOperation::Power => value.clone().pow(other_value),
+                    ArithmeticOperation::Modulo => value.clone().r#mod(other_value),
                 }
                 .ok()?;
 
@@ -274,6 +279,8 @@ impl EdgeOperation {
                     super::operand::TransformationOperation::Round => value.clone().round(),
                     super::operand::TransformationOperation::Ceil => value.clone().ceil(),
                     super::operand::TransformationOperation::Floor => value.clone().floor(),
+                    super::operand::TransformationOperation::Abs => value.clone().abs(),
+                    super::operand::TransformationOperation::Sqrt => value.clone().sqrt(),
                     super::operand::TransformationOperation::Trim => value.clone().trim(),
                     super::operand::TransformationOperation::TrimStart => {
                         value.clone().trim_start()

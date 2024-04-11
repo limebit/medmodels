@@ -1,9 +1,17 @@
 mod attribute;
 mod value;
 
+pub use self::{attribute::MedRecordAttribute, value::MedRecordValue};
+use crate::errors::MedRecordError;
 use std::ops::Range;
 
-pub use self::{attribute::MedRecordAttribute, value::MedRecordValue};
+pub trait Pow: Sized {
+    fn pow(self, exp: Self) -> Result<Self, MedRecordError>;
+}
+
+pub trait Mod: Sized {
+    fn r#mod(self, other: Self) -> Result<Self, MedRecordError>;
+}
 
 pub trait StartsWith {
     fn starts_with(&self, other: &Self) -> bool;
@@ -31,6 +39,14 @@ pub trait Ceil {
 
 pub trait Floor {
     fn floor(self) -> Self;
+}
+
+pub trait Abs {
+    fn abs(self) -> Self;
+}
+
+pub trait Sqrt {
+    fn sqrt(self) -> Self;
 }
 
 pub trait Trim {

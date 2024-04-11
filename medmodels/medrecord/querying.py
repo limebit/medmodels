@@ -460,6 +460,38 @@ class NodeAttributeOperand:
     def __truediv__(self, value: MedRecordValue) -> ValueOperand:
         return self.div(value)
 
+    def pow(self, value: MedRecordValue) -> ValueOperand:
+        """
+        Creates a new ValueOperand representing the result of raising the attribute's
+        value to the power of the specified value.
+
+        Args:
+            value (MedRecordValue): The value to raise the attribute's value to.
+
+        Returns:
+            ValueOperand: The result of the exponentiation operation.
+        """
+        return self._node_attribute_operand.pow(value)
+
+    def __pow__(self, value: MedRecordValue) -> ValueOperand:
+        return self.pow(value)
+
+    def mod(self, value: MedRecordValue) -> ValueOperand:
+        """
+        Creates a new ValueOperand representing the remainder of dividing the
+        attribute's value by the specified value.
+
+        Args:
+        value (MedRecordValue): The value to divide the attribute's value by.
+
+        Returns:
+        ValueOperand: The result of the modulo operation.
+        """
+        return self._node_attribute_operand.mod(value)
+
+    def __mod__(self, value: MedRecordValue) -> ValueOperand:
+        return self.mod(value)
+
     def round(self) -> ValueOperand:
         """
         Creates a new ValueOperand representing the result of rounding the
@@ -491,6 +523,26 @@ class NodeAttributeOperand:
             ValueOperand: The result of the floor operation.
         """
         return self._node_attribute_operand.floor()
+
+    def abs(self) -> ValueOperand:
+        """
+        Creates a new ValueOperand representing the absolute value of the
+        attribute's value.
+
+        Returns:
+            ValueOperand: The absolute value of the attribute's value.
+        """
+        return self._node_attribute_operand.abs()
+
+    def sqrt(self) -> ValueOperand:
+        """
+        Creates a new ValueOperand representing the square root of the
+        attribute's value.
+
+        Returns:
+            ValueOperand: The square root of the attribute's value.
+        """
+        return self._node_attribute_operand.sqrt()
 
     def trim(self) -> ValueOperand:
         """
@@ -542,6 +594,20 @@ class NodeAttributeOperand:
             ValueOperand: The attribute's value in uppercase letters.
         """
         return self._node_attribute_operand.uppercase()
+
+    def slice(self, start: int, end: int) -> ValueOperand:
+        """
+        Creates a new ValueOperand representing the result of slicing the attribute's
+        value using the specified start and end indices.
+
+        Args:
+            start (int): The index at which to start the slice.
+            end (int): The index at which to end the slice.
+
+        Returns:
+            ValueOperand: The attribute's value with the specified slice applied.
+        """
+        return self._node_attribute_operand.slice(start, end)
 
 
 class EdgeAttributeOperand:
@@ -808,6 +874,38 @@ class EdgeAttributeOperand:
     def __truediv__(self, value: MedRecordValue) -> ValueOperand:
         return self.div(value)
 
+    def pow(self, value: MedRecordValue) -> ValueOperand:
+        """
+        Creates a new ValueOperand representing the result of raising the attribute's
+        value to the power of the specified value.
+
+        Args:
+            value (MedRecordValue): The value to raise the attribute's value to.
+
+        Returns:
+            ValueOperand: The result of the exponentiation operation.
+        """
+        return self._edge_attribute_operand.pow(value)
+
+    def __pow__(self, value: MedRecordValue) -> ValueOperand:
+        return self.pow(value)
+
+    def mod(self, value: MedRecordValue) -> ValueOperand:
+        """
+        Creates a new ValueOperand representing the remainder of dividing the
+        attribute's value by the specified value.
+
+        Args:
+            value (MedRecordValue): The value to divide the attribute's value by.
+
+        Returns:
+            ValueOperand: The result of the modulo operation.
+        """
+        return self._edge_attribute_operand.mod(value)
+
+    def __mod__(self, value: MedRecordValue) -> ValueOperand:
+        return self.mod(value)
+
     def round(self) -> ValueOperand:
         """
         Creates a new ValueOperand representing the result of rounding the
@@ -839,6 +937,26 @@ class EdgeAttributeOperand:
             ValueOperand: The result of the floor operation.
         """
         return self._edge_attribute_operand.floor()
+
+    def abs(self) -> ValueOperand:
+        """
+        Creates a new ValueOperand representing the absolute value of the
+        attribute's value.
+
+        Returns:
+            ValueOperand: The absolute value of the attribute's value.
+        """
+        return self._edge_attribute_operand.abs()
+
+    def sqrt(self) -> ValueOperand:
+        """
+        Creates a new ValueOperand representing the square root of the
+        attribute's value.
+
+        Returns:
+            ValueOperand: The square root of the attribute's value.
+        """
+        return self._edge_attribute_operand.sqrt()
 
     def trim(self) -> ValueOperand:
         """
@@ -890,6 +1008,20 @@ class EdgeAttributeOperand:
             ValueOperand: The attribute's value in uppercase letters.
         """
         return self._edge_attribute_operand.uppercase()
+
+    def slice(self, start: int, end: int) -> ValueOperand:
+        """
+        Creates a new ValueOperand representing the result of slicing the attribute's
+        value using the specified start and end indices.
+
+        Args:
+            start (int): The index at which to start the slice.
+            end (int): The index at which to end the slice.
+
+        Returns:
+            ValueOperand: The attribute's value with the specified slice applied.
+        """
+        return self._node_attribute_operand.slice(start, end)
 
 
 class NodeIndexOperand:
