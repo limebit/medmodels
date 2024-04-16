@@ -376,6 +376,92 @@ class TestMedRecord(unittest.TestCase):
             ),
         )
 
+        # Attribute compare to attribute pow
+        # Returns nothing because can't pow a string
+        self.assertEqual(
+            [],
+            medrecord.select_nodes(
+                node().attribute("lorem").equal(node().attribute("lorem").pow("10"))
+            ),
+        )
+        self.assertEqual(
+            [],
+            medrecord.select_nodes(
+                node().attribute("lorem") == node().attribute("lorem") ** "10"
+            ),
+        )
+        self.assertEqual(
+            [],
+            medrecord.select_nodes(
+                node().attribute("lorem").not_equal(node().attribute("lorem").pow("10"))
+            ),
+        )
+        self.assertEqual(
+            [],
+            medrecord.select_nodes(
+                node().attribute("lorem") != node().attribute("lorem") ** "10"
+            ),
+        )
+
+        # Attribute compare to attribute pow
+        self.assertEqual(
+            ["0"],
+            medrecord.select_nodes(
+                node().attribute("integer").equal(node().attribute("integer").pow(2))
+            ),
+        )
+        self.assertEqual(
+            [],
+            medrecord.select_nodes(
+                node()
+                .attribute("integer")
+                .not_equal(node().attribute("integer").pow(2))
+            ),
+        )
+
+        # Attribute compare to attribute mod
+        # Returns nothing because can't mod a string
+        self.assertEqual(
+            [],
+            medrecord.select_nodes(
+                node().attribute("lorem").equal(node().attribute("lorem").mod("10"))
+            ),
+        )
+        self.assertEqual(
+            [],
+            medrecord.select_nodes(
+                node().attribute("lorem") == node().attribute("lorem") % "10"
+            ),
+        )
+        self.assertEqual(
+            [],
+            medrecord.select_nodes(
+                node().attribute("lorem").not_equal(node().attribute("lorem").mod("10"))
+            ),
+        )
+        self.assertEqual(
+            [],
+            medrecord.select_nodes(
+                node().attribute("lorem") != node().attribute("lorem") % "10"
+            ),
+        )
+
+        # Attribute compare to attribute mod
+        self.assertEqual(
+            ["0"],
+            medrecord.select_nodes(
+                node().attribute("integer").equal(node().attribute("integer").mod(2))
+            ),
+        )
+        self.assertEqual(
+            [],
+            medrecord.select_nodes(
+                node()
+                .attribute("integer")
+                .not_equal(node().attribute("integer").mod(2))
+            ),
+        )
+
         # Attribute compare to attribute round
         self.assertEqual(
             ["0"],
@@ -427,6 +513,36 @@ class TestMedRecord(unittest.TestCase):
             ["0"],
             medrecord.select_nodes(
                 node().attribute("float").not_equal(node().attribute("float").floor())
+            ),
+        )
+
+        # Attribute compare to attribute abs
+        self.assertEqual(
+            ["0"],
+            medrecord.select_nodes(
+                node().attribute("integer").equal(node().attribute("integer").abs())
+            ),
+        )
+        self.assertEqual(
+            [],
+            medrecord.select_nodes(
+                node().attribute("integer").not_equal(node().attribute("integer").abs())
+            ),
+        )
+
+        # Attribute compare to attribute sqrt
+        self.assertEqual(
+            ["0"],
+            medrecord.select_nodes(
+                node().attribute("integer").equal(node().attribute("integer").sqrt())
+            ),
+        )
+        self.assertEqual(
+            [],
+            medrecord.select_nodes(
+                node()
+                .attribute("integer")
+                .not_equal(node().attribute("integer").sqrt())
             ),
         )
 
@@ -815,6 +931,92 @@ class TestMedRecord(unittest.TestCase):
             ),
         )
 
+        # Attribute compare to attribute pow
+        # Returns nothing because can't pow a string
+        self.assertEqual(
+            [],
+            medrecord.select_edges(
+                edge().attribute("lorem").equal(edge().attribute("lorem").pow("10"))
+            ),
+        )
+        self.assertEqual(
+            [],
+            medrecord.select_edges(
+                edge().attribute("lorem") == edge().attribute("lorem") ** "10"
+            ),
+        )
+        self.assertEqual(
+            [],
+            medrecord.select_edges(
+                edge().attribute("lorem").not_equal(edge().attribute("lorem").pow("10"))
+            ),
+        )
+        self.assertEqual(
+            [],
+            medrecord.select_edges(
+                edge().attribute("lorem") != edge().attribute("lorem") ** "10"
+            ),
+        )
+
+        # Attribute compare to attribute pow
+        self.assertEqual(
+            [2],
+            medrecord.select_edges(
+                edge().attribute("integer").equal(edge().attribute("integer").pow(2))
+            ),
+        )
+        self.assertEqual(
+            [],
+            medrecord.select_edges(
+                edge()
+                .attribute("integer")
+                .not_equal(edge().attribute("integer").pow(2))
+            ),
+        )
+
+        # Attribute compare to attribute mod
+        # Returns nothing because can't mod a string
+        self.assertEqual(
+            [],
+            medrecord.select_edges(
+                edge().attribute("lorem").equal(edge().attribute("lorem").mod("10"))
+            ),
+        )
+        self.assertEqual(
+            [],
+            medrecord.select_edges(
+                edge().attribute("lorem") == edge().attribute("lorem") % "10"
+            ),
+        )
+        self.assertEqual(
+            [],
+            medrecord.select_edges(
+                edge().attribute("lorem").not_equal(edge().attribute("lorem").mod("10"))
+            ),
+        )
+        self.assertEqual(
+            [],
+            medrecord.select_edges(
+                edge().attribute("lorem") != edge().attribute("lorem") % "10"
+            ),
+        )
+
+        # Attribute compare to attribute mod
+        self.assertEqual(
+            [2],
+            medrecord.select_edges(
+                edge().attribute("integer").equal(edge().attribute("integer").mod(2))
+            ),
+        )
+        self.assertEqual(
+            [],
+            medrecord.select_edges(
+                edge()
+                .attribute("integer")
+                .not_equal(edge().attribute("integer").mod(2))
+            ),
+        )
+
         # Attribute compare to attribute round
         self.assertEqual(
             [0],
@@ -866,6 +1068,36 @@ class TestMedRecord(unittest.TestCase):
             [2],
             medrecord.select_edges(
                 edge().attribute("float").not_equal(edge().attribute("float").floor())
+            ),
+        )
+
+        # Attribute compare to attribute abs
+        self.assertEqual(
+            [2],
+            medrecord.select_edges(
+                edge().attribute("integer").equal(edge().attribute("integer").abs())
+            ),
+        )
+        self.assertEqual(
+            [],
+            medrecord.select_edges(
+                edge().attribute("integer").not_equal(edge().attribute("integer").abs())
+            ),
+        )
+
+        # Attribute compare to attribute sqrt
+        self.assertEqual(
+            [2],
+            medrecord.select_edges(
+                edge().attribute("integer").equal(edge().attribute("integer").sqrt())
+            ),
+        )
+        self.assertEqual(
+            [],
+            medrecord.select_edges(
+                edge()
+                .attribute("integer")
+                .not_equal(edge().attribute("integer").sqrt())
             ),
         )
 
