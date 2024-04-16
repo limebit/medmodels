@@ -620,6 +620,114 @@ mod test {
                 .count(),
         );
 
+        // Attribute compare to attribute pow
+        // Returns nothing because can't pow a string
+        assert_eq!(
+            0,
+            medrecord
+                .select_nodes(
+                    node()
+                        .attribute("lorem")
+                        .equal(node().attribute("lorem").pow("10"))
+                )
+                .iter()
+                .count(),
+        );
+
+        // Attribute compare to attribute pow
+        // Doesn't work because can't pow a string
+        assert_eq!(
+            0,
+            medrecord
+                .select_nodes(
+                    node()
+                        .attribute("lorem")
+                        .not_equal(node().attribute("lorem").pow("10"))
+                )
+                .iter()
+                .count(),
+        );
+
+        // Attribute compare to attribute pow
+        assert_eq!(
+            1,
+            medrecord
+                .select_nodes(
+                    node()
+                        .attribute("integer")
+                        .equal(node().attribute("integer").pow(2)) // 1 ** 2 = 1
+                )
+                .iter()
+                .count(),
+        );
+
+        // Attribute compare to attribute pow
+        assert_eq!(
+            0,
+            medrecord
+                .select_nodes(
+                    node()
+                        .attribute("integer")
+                        .not_equal(node().attribute("integer").pow(2)) // 1 ** 2 = 1
+                )
+                .iter()
+                .count(),
+        );
+
+        // Attribute compare to attribute mod
+        // Returns nothing because can't mod a string
+        assert_eq!(
+            0,
+            medrecord
+                .select_nodes(
+                    node()
+                        .attribute("lorem")
+                        .equal(node().attribute("lorem").r#mod("10"))
+                )
+                .iter()
+                .count(),
+        );
+
+        // Attribute compare to attribute mod
+        // Doesn't work because can't mod a string
+        assert_eq!(
+            0,
+            medrecord
+                .select_nodes(
+                    node()
+                        .attribute("lorem")
+                        .not_equal(node().attribute("lorem").r#mod("10"))
+                )
+                .iter()
+                .count(),
+        );
+
+        // Attribute compare to attribute mod
+        assert_eq!(
+            1,
+            medrecord
+                .select_nodes(
+                    node()
+                        .attribute("integer")
+                        .equal(node().attribute("integer").r#mod(2)) // 1 % 2 = 1
+                )
+                .iter()
+                .count(),
+        );
+
+        // Attribute compare to attribute mod
+        assert_eq!(
+            0,
+            medrecord
+                .select_nodes(
+                    node()
+                        .attribute("integer")
+                        .not_equal(node().attribute("integer").r#mod(2)) // 1 % 2 = 1
+                )
+                .iter()
+                .count(),
+        );
+
         // Attribute compare to attribute round
         assert_eq!(
             1,
@@ -719,6 +827,32 @@ mod test {
                     node()
                         .attribute("float")
                         .not_equal(node().attribute("float").floor())
+                )
+                .iter()
+                .count(),
+        );
+
+        // Attribute compare to attribute abs
+        assert_eq!(
+            1,
+            medrecord
+                .select_nodes(
+                    node()
+                        .attribute("integer")
+                        .equal(node().attribute("integer").abs())
+                )
+                .iter()
+                .count(),
+        );
+
+        // Attribute compare to attribute sqrt
+        assert_eq!(
+            1,
+            medrecord
+                .select_nodes(
+                    node()
+                        .attribute("integer")
+                        .equal(node().attribute("integer").sqrt()) // sqrt(1) = 1
                 )
                 .iter()
                 .count(),
@@ -1259,6 +1393,114 @@ mod test {
                 .count(),
         );
 
+        // Attribute compare to attribute pow
+        // Returns nothing because can't pow a string
+        assert_eq!(
+            0,
+            medrecord
+                .select_edges(
+                    edge()
+                        .attribute("lorem")
+                        .equal(edge().attribute("lorem").pow("10"))
+                )
+                .iter()
+                .count(),
+        );
+
+        // Attribute compare to attribute pow
+        // Doesn't work because can't pow a string
+        assert_eq!(
+            0,
+            medrecord
+                .select_edges(
+                    edge()
+                        .attribute("lorem")
+                        .not_equal(edge().attribute("lorem").pow("10"))
+                )
+                .iter()
+                .count(),
+        );
+
+        // Attribute compare to attribute pow
+        assert_eq!(
+            1,
+            medrecord
+                .select_edges(
+                    edge()
+                        .attribute("integer")
+                        .equal(edge().attribute("integer").pow(2)) // 1 ** 2 = 1
+                )
+                .iter()
+                .count(),
+        );
+
+        // Attribute compare to attribute pow
+        assert_eq!(
+            0,
+            medrecord
+                .select_edges(
+                    edge()
+                        .attribute("integer")
+                        .not_equal(edge().attribute("integer").pow(2)) // 1 ** 2 = 1
+                )
+                .iter()
+                .count(),
+        );
+
+        // Attribute compare to attribute mod
+        // Returns nothing because can't mod a string
+        assert_eq!(
+            0,
+            medrecord
+                .select_edges(
+                    edge()
+                        .attribute("lorem")
+                        .equal(edge().attribute("lorem").r#mod("10"))
+                )
+                .iter()
+                .count(),
+        );
+
+        // Attribute compare to attribute mod
+        // Doesn't work because can't mod a string
+        assert_eq!(
+            0,
+            medrecord
+                .select_edges(
+                    edge()
+                        .attribute("lorem")
+                        .not_equal(edge().attribute("lorem").r#mod("10"))
+                )
+                .iter()
+                .count(),
+        );
+
+        // Attribute compare to attribute mod
+        assert_eq!(
+            1,
+            medrecord
+                .select_edges(
+                    edge()
+                        .attribute("integer")
+                        .equal(edge().attribute("integer").r#mod(2)) // 1 % 2 = 1
+                )
+                .iter()
+                .count(),
+        );
+
+        // Attribute compare to attribute mod
+        assert_eq!(
+            0,
+            medrecord
+                .select_edges(
+                    edge()
+                        .attribute("integer")
+                        .not_equal(edge().attribute("integer").r#mod(2)) // 1 % 2 = 1
+                )
+                .iter()
+                .count(),
+        );
+
         // Attribute compare to attribute round
         assert_eq!(
             1,
@@ -1358,6 +1600,32 @@ mod test {
                     edge()
                         .attribute("float")
                         .not_equal(edge().attribute("float").floor())
+                )
+                .iter()
+                .count(),
+        );
+
+        // Attribute compare to attribute abs
+        assert_eq!(
+            1,
+            medrecord
+                .select_edges(
+                    edge()
+                        .attribute("integer")
+                        .equal(edge().attribute("integer").abs())
+                )
+                .iter()
+                .count(),
+        );
+
+        // Attribute compare to attribute sqrt
+        assert_eq!(
+            1,
+            medrecord
+                .select_edges(
+                    edge()
+                        .attribute("integer")
+                        .equal(edge().attribute("integer").sqrt()) // sqrt(1) = 1
                 )
                 .iter()
                 .count(),
