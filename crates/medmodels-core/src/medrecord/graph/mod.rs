@@ -6,13 +6,14 @@ use crate::errors::GraphError;
 use edge::Edge;
 use medmodels_utils::aliases::MrHashMap;
 use node::Node;
+use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, sync::atomic::AtomicUsize};
 
 pub type NodeIndex = MedRecordAttribute;
 pub type EdgeIndex = usize;
 pub type Attributes = HashMap<MedRecordAttribute, MedRecordValue>;
 
-#[derive(Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub(super) struct Graph {
     nodes: MrHashMap<NodeIndex, Node>,
     edges: MrHashMap<EdgeIndex, Edge>,

@@ -2,6 +2,7 @@ import unittest
 
 import polars as pl
 import pandas as pd
+import tempfile
 
 from medmodels import MedRecord
 
@@ -145,6 +146,17 @@ class TestMedRecord(unittest.TestCase):
         # Providing the wrong to index column name should fail
         with self.assertRaises(RuntimeError):
             MedRecord.from_polars(nodes, "index", edges, "from", "invalid")
+
+    def test_ron(self):
+        medrecord = create_medrecord()
+
+        with tempfile.NamedTemporaryFile() as f:
+            medrecord.to_ron(f.name)
+
+            loaded_medrecord = MedRecord.from_ron(f.name)
+
+        self.assertEqual(medrecord.node_count(), loaded_medrecord.node_count())
+        self.assertEqual(medrecord.edge_count(), loaded_medrecord.edge_count())
 
     def test_nodes(self):
         medrecord = create_medrecord()

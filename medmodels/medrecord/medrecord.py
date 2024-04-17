@@ -171,6 +171,40 @@ class MedRecord:
 
         return medrecord
 
+    @classmethod
+    def from_ron(cls, path: str) -> "MedRecord":
+        """
+        Creates a new MedRecord instance from a RON file.
+
+        This class method takes a path to a RON file and creates a new MedRecord
+        instance using the data in the RON file.
+
+        Args:
+            path (str): The path to the RON file.
+
+        Returns:
+            MedRecord: A new MedRecord instance created from the RON file.
+        """
+
+        medrecord = cls.__new__(cls)
+        medrecord._medrecord = PyMedRecord.from_ron(path)
+
+        return medrecord
+
+    def to_ron(self, path: str) -> None:
+        """
+        Writes the MedRecord instance to a RON file.
+
+        This method takes a path and writes the MedRecord instance to a RON file.
+
+        Args:
+            path (str): The path to write the RON file to.
+
+        Returns:
+            None
+        """
+        return self._medrecord.to_ron(path)
+
     @property
     def nodes(self) -> List[NodeIndex]:
         """

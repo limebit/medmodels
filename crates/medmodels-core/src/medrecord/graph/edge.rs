@@ -1,6 +1,7 @@
 use super::{Attributes, NodeIndex};
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Edge {
     pub attributes: Attributes,
     pub(super) source_node_index: NodeIndex,
