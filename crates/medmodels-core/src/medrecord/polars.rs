@@ -9,16 +9,20 @@ impl<'a> TryFrom<AnyValue<'a>> for MedRecordValue {
 
     fn try_from(value: AnyValue<'a>) -> Result<Self, Self::Error> {
         match value {
-            AnyValue::String(value) => Ok(MedRecordValue::String(value.to_string())),
+            AnyValue::String(value) => Ok(MedRecordValue::String(value.into())),
+            AnyValue::StringOwned(value) => Ok(MedRecordValue::String(value.into())),
             AnyValue::Int8(value) => Ok(MedRecordValue::Int(value.into())),
             AnyValue::Int16(value) => Ok(MedRecordValue::Int(value.into())),
             AnyValue::Int32(value) => Ok(MedRecordValue::Int(value.into())),
             AnyValue::Int64(value) => Ok(MedRecordValue::Int(value)),
+            AnyValue::UInt8(value) => Ok(MedRecordValue::Int(value.into())),
+            AnyValue::UInt16(value) => Ok(MedRecordValue::Int(value.into())),
+            AnyValue::UInt32(value) => Ok(MedRecordValue::Int(value.into())),
             AnyValue::Float32(value) => Ok(MedRecordValue::Float(value.into())),
             AnyValue::Float64(value) => Ok(MedRecordValue::Float(value)),
             AnyValue::Boolean(value) => Ok(MedRecordValue::Bool(value)),
             _ => Err(MedRecordError::ConversionError(format!(
-                "Could not convert {} into MedRecordValue",
+                "Cannot convert {} into MedRecordValue",
                 value
             ))),
         }
@@ -30,13 +34,17 @@ impl<'a> TryFrom<AnyValue<'a>> for MedRecordAttribute {
 
     fn try_from(value: AnyValue<'a>) -> Result<Self, Self::Error> {
         match value {
-            AnyValue::String(value) => Ok(MedRecordAttribute::String(value.to_string())),
+            AnyValue::String(value) => Ok(MedRecordAttribute::String(value.into())),
+            AnyValue::StringOwned(value) => Ok(MedRecordAttribute::String(value.into())),
             AnyValue::Int8(value) => Ok(MedRecordAttribute::Int(value.into())),
             AnyValue::Int16(value) => Ok(MedRecordAttribute::Int(value.into())),
             AnyValue::Int32(value) => Ok(MedRecordAttribute::Int(value.into())),
             AnyValue::Int64(value) => Ok(MedRecordAttribute::Int(value)),
+            AnyValue::UInt8(value) => Ok(MedRecordAttribute::Int(value.into())),
+            AnyValue::UInt16(value) => Ok(MedRecordAttribute::Int(value.into())),
+            AnyValue::UInt32(value) => Ok(MedRecordAttribute::Int(value.into())),
             _ => Err(MedRecordError::ConversionError(format!(
-                "Could not convert {} into MedRecordAttribute",
+                "Cannot convert {} into MedRecordAttribute",
                 value
             ))),
         }
@@ -47,49 +55,40 @@ pub(crate) fn dataframe_to_nodes(
     nodes: DataFrame,
     index_column_name: &str,
 ) -> Result<Vec<(NodeIndex, Attributes)>, MedRecordError> {
-    let index_column = nodes
-        .column(index_column_name)
-        .map_err(|_| {
-            MedRecordError::ConversionError(format!(
-                "Could not find column with name {} in dataframe",
-                index_column_name
-            ))
-        })?
-        .str()
-        .map_err(|_| {
-            MedRecordError::ConversionError("Could not convert index column to utf8".to_string())
-        })?;
-
     let attribute_column_names = nodes
         .get_column_names()
         .into_iter()
         .filter(|name| *name != index_column_name)
         .collect::<Vec<_>>();
 
-    let attribute_columns = nodes
-        .columns(attribute_column_names.clone())
-        .expect("Attribute columns need to exist");
+    let index = nodes
+        .column(index_column_name)
+        .map_err(|_| {
+            MedRecordError::ConversionError(format!(
+                "Cannot find column with name {} in dataframe",
+                index_column_name
+            ))
+        })?
+        .iter();
 
-    index_column
-        .into_iter()
-        .enumerate()
-        .map(|(row_index, node_index)| {
-            let id = node_index.ok_or(MedRecordError::ConversionError(
-                "Failed to read id in index column".to_string(),
-            ))?;
+    let mut columns = nodes
+        .columns(&attribute_column_names)
+        .expect("Attribute columns must exist")
+        .iter()
+        .map(|s| s.iter())
+        .zip(attribute_column_names)
+        .collect::<Vec<_>>();
 
+    index
+        .map(|index_value| {
             Ok((
-                id.into(),
-                attribute_column_names
-                    .iter()
-                    .zip(attribute_columns.clone())
-                    .map(|(column_name, column)| {
+                index_value.try_into()?,
+                columns
+                    .iter_mut()
+                    .map(|(column, column_name)| {
                         Ok((
                             (*column_name).into(),
-                            column
-                                .get(row_index)
-                                .expect("Entry needs to exist")
-                                .try_into()?,
+                            column.next().expect("msg").try_into()?,
                         ))
                     })
                     .collect::<Result<_, MedRecordError>>()?,
@@ -103,65 +102,53 @@ pub(crate) fn dataframe_to_edges(
     from_index_column_name: &str,
     to_index_column_name: &str,
 ) -> Result<Vec<(NodeIndex, NodeIndex, Attributes)>, MedRecordError> {
-    let from_index_column = edges
-        .column(from_index_column_name)
-        .map_err(|_| {
-            MedRecordError::ConversionError(format!(
-                "Could not find column with name {} in dataframe",
-                from_index_column_name
-            ))
-        })?
-        .str()
-        .map_err(|_| {
-            MedRecordError::ConversionError("Could not convert index column to string".to_string())
-        })?;
-    let to_index_column = edges
-        .column(to_index_column_name)
-        .map_err(|_| {
-            MedRecordError::ConversionError(format!(
-                "Could not find column with name {} in dataframe",
-                to_index_column_name
-            ))
-        })?
-        .str()
-        .map_err(|_| {
-            MedRecordError::ConversionError("Could not convert index column to string".to_string())
-        })?;
-
     let attribute_column_names = edges
         .get_column_names()
         .into_iter()
         .filter(|name| *name != from_index_column_name && *name != to_index_column_name)
         .collect::<Vec<_>>();
 
-    let attribute_columns = edges
-        .columns(attribute_column_names.clone())
-        .expect("Attribute columns need to exist");
+    let from_index = edges
+        .column(from_index_column_name)
+        .map_err(|_| {
+            MedRecordError::ConversionError(format!(
+                "Cannot find column with name {} in dataframe",
+                from_index_column_name
+            ))
+        })?
+        .iter();
+    let to_index = edges
+        .column(to_index_column_name)
+        .map_err(|_| {
+            MedRecordError::ConversionError(format!(
+                "Cannot find column with name {} in dataframe",
+                to_index_column_name
+            ))
+        })?
+        .iter();
 
-    from_index_column
-        .into_iter()
-        .zip(to_index_column)
-        .enumerate()
-        .map(|(row_index, (from_node_index, to_node_index))| {
-            let from_id = from_node_index.ok_or(MedRecordError::ConversionError(
-                "Failed to read id in from index column".to_string(),
-            ))?;
-            let to_id = to_node_index.ok_or(MedRecordError::ConversionError(
-                "Failed to read id in to index column".to_string(),
-            ))?;
+    let mut columns = edges
+        .columns(&attribute_column_names)
+        .expect("Attribute columns must exist")
+        .iter()
+        .map(|s| s.iter())
+        .zip(attribute_column_names)
+        .collect::<Vec<_>>();
 
+    from_index
+        .zip(to_index)
+        .map(|(from_index_value, to_index_value)| {
             Ok((
-                from_id.into(),
-                to_id.into(),
-                attribute_column_names
-                    .iter()
-                    .zip(attribute_columns.clone())
-                    .map(|(column_name, column)| {
+                from_index_value.try_into()?,
+                to_index_value.try_into()?,
+                columns
+                    .iter_mut()
+                    .map(|(column, column_name)| {
                         Ok((
                             (*column_name).into(),
                             column
-                                .get(row_index)
-                                .expect("Entry needs to exist")
+                                .next()
+                                .expect("Should have as many iterations as rows")
                                 .try_into()?,
                         ))
                     })
@@ -276,14 +263,6 @@ mod test {
         // Providing the wrong index column name should fail
         assert!(dataframe_to_nodes(nodes_dataframe, "wrong_column")
             .is_err_and(|e| matches!(e, MedRecordError::ConversionError(_))));
-
-        let s0 = Series::new("index", &[1, 2]);
-        let s1 = Series::new("attribute", &[1, 2]);
-        let nodes_dataframe = DataFrame::new(vec![s0, s1]).unwrap();
-
-        // The index column should be a string column, otherwise fail
-        assert!(dataframe_to_nodes(nodes_dataframe, "index")
-            .is_err_and(|e| matches!(e, MedRecordError::ConversionError(_))));
     }
 
     #[test]
@@ -327,24 +306,6 @@ mod test {
 
         // Providing the wrong to index column name should fail
         assert!(dataframe_to_edges(edges_dataframe, "from", "wrong_column")
-            .is_err_and(|e| matches!(e, MedRecordError::ConversionError(_))));
-
-        let s0 = Series::new("from", &[0, 1]);
-        let s1 = Series::new("to", &["1", "0"]);
-        let s2 = Series::new("attribute", &[1, 2]);
-        let edges_dataframe = DataFrame::new(vec![s0, s1, s2]).unwrap();
-
-        // The from index column should be a string column, otherwise fail
-        assert!(dataframe_to_edges(edges_dataframe, "from", "to")
-            .is_err_and(|e| matches!(e, MedRecordError::ConversionError(_))));
-
-        let s0 = Series::new("from", &["0", "1"]);
-        let s1 = Series::new("to", &[1, 0]);
-        let s2 = Series::new("attribute", &[1, 2]);
-        let edges_dataframe = DataFrame::new(vec![s0, s1, s2]).unwrap();
-
-        // The to index column should be a string column, otherwise fail
-        assert!(dataframe_to_edges(edges_dataframe, "from", "to")
             .is_err_and(|e| matches!(e, MedRecordError::ConversionError(_))));
     }
 }
