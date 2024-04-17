@@ -1,7 +1,8 @@
 use super::{Attributes, EdgeIndex};
 use medmodels_utils::aliases::MrHashSet;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Node {
     pub attributes: Attributes,
     pub(super) outgoing_edge_indices: MrHashSet<EdgeIndex>,

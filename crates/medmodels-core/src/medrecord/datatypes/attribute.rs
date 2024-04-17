@@ -1,9 +1,10 @@
 use super::{Contains, EndsWith, MedRecordValue, StartsWith};
 use crate::errors::MedRecordError;
 use medmodels_utils::implement_from_for_wrapper;
+use serde::{Deserialize, Serialize};
 use std::{cmp::Ordering, fmt::Display, hash::Hash};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum MedRecordAttribute {
     Int(i64),
     String(String),

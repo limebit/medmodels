@@ -1,10 +1,11 @@
 use super::{MedRecordAttribute, NodeIndex};
 use crate::errors::MedRecordError;
 use medmodels_utils::aliases::{MrHashMap, MrHashMapEntry, MrHashSet};
+use serde::{Deserialize, Serialize};
 
 pub type Group = MedRecordAttribute;
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub(super) struct GroupMapping {
     nodes_in_group: MrHashMap<Group, MrHashSet<NodeIndex>>,
     groups_of_node: MrHashMap<NodeIndex, MrHashSet<Group>>,

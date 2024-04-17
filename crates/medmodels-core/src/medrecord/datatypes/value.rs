@@ -4,13 +4,14 @@ use super::{
 };
 use crate::errors::MedRecordError;
 use medmodels_utils::implement_from_for_wrapper;
+use serde::{Deserialize, Serialize};
 use std::{
     cmp::Ordering,
     fmt::Display,
     ops::{Add, Div, Mul, Range, Sub},
 };
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum MedRecordValue {
     String(String),
     Int(i64),

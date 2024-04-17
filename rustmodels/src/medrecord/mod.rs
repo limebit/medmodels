@@ -66,6 +66,17 @@ impl PyMedRecord {
         ))
     }
 
+    #[staticmethod]
+    fn from_ron(path: &str) -> PyResult<Self> {
+        Ok(Self(
+            MedRecord::from_ron(path).map_err(PyMedRecordError::from)?,
+        ))
+    }
+
+    fn to_ron(&self, path: &str) -> PyResult<()> {
+        Ok(self.0.to_ron(path).map_err(PyMedRecordError::from)?)
+    }
+
     #[getter]
     fn nodes(&self) -> Vec<PyNodeIndex> {
         self.0
