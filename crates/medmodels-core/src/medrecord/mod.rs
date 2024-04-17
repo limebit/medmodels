@@ -20,8 +20,10 @@ use graph::Graph;
 use group_mapping::GroupMapping;
 use polars::{dataframe_to_edges, dataframe_to_nodes};
 use querying::{EdgeSelection, NodeSelection};
+use serde::{Deserialize, Serialize};
+use std::{fs, path::Path};
 
-#[derive(Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct MedRecord {
     graph: Graph,
     group_mapping: GroupMapping,
@@ -69,6 +71,37 @@ impl MedRecord {
         let nodes = dataframe_to_nodes(nodes_dataframe, nodes_index_column)?;
 
         Self::from_tuples(nodes, None)
+    }
+
+    pub fn from_ron<P>(path: P) -> Result<MedRecord, MedRecordError>
+    where
+        P: AsRef<Path>,
+    {
+        let file = fs::read_to_string(&path)
+            .map_err(|_| MedRecordError::ConversionError("Failed to read file".to_string()))?;
+
+        ron::from_str(&file).map_err(|_| {
+            MedRecordError::ConversionError(
+                "Failed to create MedRecord from contents from file".to_string(),
+            )
+        })
+    }
+
+    pub fn to_ron<P>(&self, path: P) -> Result<(), MedRecordError>
+    where
+        P: AsRef<Path>,
+    {
+        let ron_string = ron::to_string(self).map_err(|_| {
+            MedRecordError::ConversionError("Failed to convert MedRecord to ron".to_string())
+        })?;
+
+        fs::write(&path, ron_string).map_err(|_| {
+            MedRecordError::ConversionError(
+                "Failed to save MedRecord due to file error".to_string(),
+            )
+        })?;
+
+        Ok(())
     }
 
     pub fn node_indices(&self) -> impl Iterator<Item = &NodeIndex> {
@@ -345,7 +378,7 @@ mod test {
     use super::{Attributes, MedRecord, MedRecordAttribute, NodeIndex};
     use crate::errors::MedRecordError;
     use polars::prelude::*;
-    use std::collections::HashMap;
+    use std::{collections::HashMap, fs};
 
     fn create_nodes() -> Vec<(NodeIndex, Attributes)> {
         vec![
@@ -429,6 +462,25 @@ mod test {
             Some(vec![("50".into(), "0".into(), HashMap::new())])
         )
         .is_err_and(|e| matches!(e, MedRecordError::IndexError(_))));
+    }
+
+    #[test]
+    fn test_ron() {
+        let medrecord = create_medrecord();
+
+        let mut file_path = std::env::temp_dir().into_os_string();
+        file_path.push("medrecord_test/");
+
+        fs::create_dir_all(&file_path).unwrap();
+
+        file_path.push("test.ron");
+
+        medrecord.to_ron(&file_path).unwrap();
+
+        let loaded_medrecord = MedRecord::from_ron(&file_path).unwrap();
+
+        assert_eq!(medrecord.node_count(), loaded_medrecord.node_count());
+        assert_eq!(medrecord.edge_count(), loaded_medrecord.edge_count());
     }
 
     #[test]
