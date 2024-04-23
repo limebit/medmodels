@@ -15,7 +15,13 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["maturin==1.4.0", "ruff==0.2.2", "black==24.2.0", "matplotlib==3.8.3"]
+dev = [
+    "maturin==1.4.0",
+    "ruff==0.2.2",
+    "black==24.2.0",
+    "matplotlib==3.8.3",
+    "py-spy==0.3.14",
+]
 tests = ["pytest==8.0.2", "pytest-mock==3.12.0"]
 examples = ["matplotlib==3.8.3"]
 

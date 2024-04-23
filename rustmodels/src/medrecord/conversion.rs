@@ -45,6 +45,10 @@ pub fn convert_pyobject_to_medrecordvalue(ob: &PyAny) -> PyResult<MedRecordValue
         Ok(MedRecordValue::Bool(ob.extract::<bool>()?))
     }
 
+    fn convert_null(_ob: &PyAny) -> PyResult<MedRecordValue> {
+        Ok(MedRecordValue::Null)
+    }
+
     fn throw_error(ob: &PyAny) -> PyResult<MedRecordValue> {
         Err(PyMedRecordError(MedRecordError::ConversionError(format!(
             "Failed to convert {} into MedRecordValue",
@@ -66,6 +70,8 @@ pub fn convert_pyobject_to_medrecordvalue(ob: &PyAny) -> PyResult<MedRecordValue
                     convert_int
                 } else if ob.is_instance_of::<PyFloat>() {
                     convert_float
+                } else if ob.is_none() {
+                    convert_null
                 } else {
                     throw_error
                 }
@@ -89,6 +95,7 @@ impl IntoPy<PyObject> for PyMedRecordValue {
             MedRecordValue::Int(value) => value.into_py(py),
             MedRecordValue::Float(value) => value.into_py(py),
             MedRecordValue::Bool(value) => value.into_py(py),
+            MedRecordValue::Null => py.None(),
         }
     }
 }
