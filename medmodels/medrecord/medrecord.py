@@ -4,8 +4,14 @@ import pandas as pd
 import polars as pl
 
 from medmodels._medmodels import PyMedRecord
+from medmodels.medrecord.indexers import _EdgeIndexer, _NodeIndexer
 from medmodels.medrecord.querying import EdgeOperation, NodeOperation
-from medmodels.medrecord.types import Attributes, EdgeIndex, Group, NodeIndex
+from medmodels.medrecord.types import (
+    Attributes,
+    EdgeIndex,
+    Group,
+    NodeIndex,
+)
 
 
 class MedRecord:
@@ -215,21 +221,54 @@ class MedRecord:
         """
         return self._medrecord.nodes
 
-    def node(self, *node_index: NodeIndex) -> Dict[NodeIndex, Attributes]:
+    @property
+    def node(self) -> _NodeIndexer:
         """
-        Returns the nodes with the specified indices in the MedRecord instance.
+        Provides access to node attributes within a MedRecord instance via an
+        indexer.
 
-        This method takes one or more node indices as arguments and returns the
-        attributes of these nodes.
+        This property returns an _NodeIndexer instance that facilitates querying,
+        accessing, manipulating, and setting node attributes through various
+        indexing methods. Supports simple to complex and conditional selections.
 
-        Args:
-            *node_index (NodeIndex): One or more node indices.
+        Examples of usage:
+        - Retrieving attributes:
+            # Retrieves all attributes of node 1
+            medrecord.node[1]
+            # Retrieves the value of attribute "foo" of node 1
+            medrecord.node[1, "foo"]
+            # Retrieves attribute "foo" for all nodes
+            medrecord.node[:, "foo"]
+            # Retrieves attributes "foo" and "bar" for nodes 1 and 2
+            medrecord.node[[1, 2], ["foo", "bar"]]
+            # Retrieves all attributes of nodes with index >= 2
+            medrecord.node[node().index() >= 2]
+
+        - Setting, updating or adding attributes:
+            # Sets the attributes of node 1
+            medrecord.node[1] = {"foo": "bar"}
+            # Sets or adds the attribute "foo" for node 1
+            medrecord.node[1, "foo"] = "test"
+            # Sets or adds the attributes "foo" and "bar" for node 1
+            medrecord.node[1, ["foo", "bar"]] = "test"
+            # Sets or adds the attribute "foo" for all nodes
+            medrecord.node[:, "foo"] = "test"
+
+        - Deleting attributes:
+            # Deletes attribute "foo" from node 1
+            del medrecord.node[1, "foo"]
+            # Deletes attribute "foo" from all nodes
+            del medrecord.node[:, "foo"]
 
         Returns:
-            Dict[NodeIndex, Attributes]: A dictionary of the node indices and
-                their attributes.
+            _NodeIndexer: An object that enables manipulation and querying of
+            node attributes within a MedRecord.
+
+        Note:
+            Operations via the indexer directly update the MedRecord's internal
+            representation of nodes.
         """
-        return self._medrecord.node(*node_index)
+        return _NodeIndexer(self)
 
     @property
     def edges(self) -> List[EdgeIndex]:
@@ -241,21 +280,54 @@ class MedRecord:
         """
         return self._medrecord.edges
 
-    def edge(self, *edge_index: EdgeIndex) -> Dict[EdgeIndex, Attributes]:
+    @property
+    def edge(self) -> _EdgeIndexer:
         """
-        Returns the edges with the specified indices in the MedRecord instance.
+        Provides access to edge attributes within a MedRecord instance via an
+        indexer.
 
-        This method takes one or more edge indices as arguments and returns the
-        attributes of these edges.
+        This property returns an _EdgeIndexer instance that facilitates querying,
+        accessing, manipulating, and setting edge attributes through various
+        indexing methods. Supports simple to complex and conditional selections.
 
-        Args:
-            *edge_index (EdgeIndex): One or more edge indices.
+        Examples of usage:
+        - Retrieving attributes:
+            # Retrieves all attributes of edge 1
+            medrecord.edge[1]
+            # Retrieves the value of attribute "foo" of edge 1
+            medrecord.edge[1, "foo"]
+            # Retrieves attribute "foo" for all edges
+            medrecord.edge[:, "foo"]
+            # Retrieves attributes "foo" and "bar" for edges 1 and 2
+            medrecord.edge[[1, 2], ["foo", "bar"]]
+            # Retrieves all attributes of edges with index >= 2
+            medrecord.edge[edge().index() >= 2]
+
+        - Setting, updating or adding attributes:
+            # Sets the attributes of edge 1
+            medrecord.edge[1] = {"foo": "bar"}
+            # Sets or adds the attribute "foo" for edge 1
+            medrecord.edge[1, "foo"] = "test"
+            # Sets or adds the attributes "foo" and "bar" for edge 1
+            medrecord.edge[1, ["foo", "bar"]] = "test"
+            # Sets or adds the attribute "foo" for all edges
+            medrecord.edge[:, "foo"] = "test"
+
+        - Deleting attributes:
+            # Deletes attribute "foo" from edge 1
+            del medrecord.edge[1, "foo"]
+            # Deletes attribute "foo" from all edges
+            del medrecord.edge[:, "foo"]
 
         Returns:
-            Dict[EdgeIndex, Attributes]: A dictionary of the edge indices and
-                their attributes.
+            _EdgeIndexer: An object that enables manipulation and querying of
+            edge attributes within a MedRecord.
+
+        Note:
+            Operations via the indexer directly update the MedRecord's internal
+            representation of edges.
         """
-        return self._medrecord.edge(*edge_index)
+        return _EdgeIndexer(self)
 
     @property
     def groups(self) -> List[Group]:
@@ -267,7 +339,9 @@ class MedRecord:
         """
         return self._medrecord.groups
 
-    def group(self, *group: Group) -> Dict[Group, List[NodeIndex]]:
+    def group(
+        self, *group: Group
+    ) -> Union[List[NodeIndex], Dict[Group, List[NodeIndex]]]:
         """
         Returns the node indices in the specified group(s) in the MedRecord instance.
 
@@ -278,14 +352,20 @@ class MedRecord:
             *group (Group): One or more group names to get the nodes from.
 
         Returns:
-            Dict[Group, List[NodeIndex]]: A dictionary of the group names and the node
-                indices in each group.
+            Union[List[NodeIndex], Dict[Group, List[NodeIndex]]]: Node indices for
+                a single group if one is specified, or a dictionary of groups to
+                their node indices if multiple groups are provided.
         """
-        return self._medrecord.group(*group)
+        groups = self._medrecord.group(*group)
+
+        if len(groups) == 1:
+            return groups[group[0]]
+
+        return groups
 
     def outgoing_edges(
         self, *node_index: NodeIndex
-    ) -> Dict[NodeIndex, List[EdgeIndex]]:
+    ) -> Union[List[EdgeIndex], Dict[NodeIndex, List[EdgeIndex]]]:
         """
         Returns the outgoing edges of the specified node(s) in the MedRecord instance.
 
@@ -296,14 +376,21 @@ class MedRecord:
             *node_index (NodeIndex): One or more node indices.
 
         Returns:
-            Dict[NodeIndex, List[EdgeIndex]]: A dictionary of the node indices and the
-                indices of the outgoing edges of each node.
+            Union[List[EdgeIndex], Dict[NodeIndex, List[EdgeIndex]]]: List of
+                outgoing edge indices for a single node if one index is provided,
+                or a dictionary mapping each node index to its list of
+                outgoing edge indices if multiple nodes are specified.
         """
-        return self._medrecord.outgoing_edges(*node_index)
+        indices = self._medrecord.outgoing_edges(*node_index)
+
+        if len(indices) == 1:
+            return indices[node_index[0]]
+
+        return indices
 
     def incoming_edges(
         self, *node_index: NodeIndex
-    ) -> Dict[NodeIndex, List[EdgeIndex]]:
+    ) -> Union[List[EdgeIndex], Dict[NodeIndex, List[EdgeIndex]]]:
         """
         Returns the incoming edges of the specified node(s) in the MedRecord instance.
 
@@ -314,14 +401,23 @@ class MedRecord:
             *node_index (NodeIndex): One or more node indices.
 
         Returns:
-            Dict[NodeIndex, List[EdgeIndex]]: A dictionary of the node indices and the
-                indices of the incoming edges of each node.
+            Union[List[EdgeIndex], Dict[NodeIndex, List[EdgeIndex]]]: List of
+                incoming edge indices for a single node if one index is provided,
+                or a dictionary mapping each node index to its list of
+                incoming edge indices if multiple nodes are specified.
         """
-        return self._medrecord.incoming_edges(*node_index)
+        indices = self._medrecord.incoming_edges(*node_index)
+
+        if len(indices) == 1:
+            return indices[node_index[0]]
+
+        return indices
 
     def edge_endpoints(
         self, *edge_index: EdgeIndex
-    ) -> Dict[EdgeIndex, tuple[NodeIndex, NodeIndex]]:
+    ) -> Union[
+        tuple[NodeIndex, NodeIndex], Dict[EdgeIndex, tuple[NodeIndex, NodeIndex]]
+    ]:
         """
         Returns the source and target nodes of the specified edge(s) in the MedRecord instance.
 
@@ -332,10 +428,19 @@ class MedRecord:
             *edge_index (EdgeIndex): One or more edge indices.
 
         Returns:
-            Dict[EdgeIndex, tuple[NodeIndex, NodeIndex]]: A dictionary of the edge indices
-                and the source and target nodes of each edge.
+            Union[
+                tuple[NodeIndex, NodeIndex],
+                Dict[EdgeIndex, tuple[NodeIndex, NodeIndex]]
+            ]: Tuple of node indices (source, target) for a single edge if one index is
+                provided, or a dictionary mapping each edge index to a tuple of
+                node indices if multiple edges are specified.
         """
-        return self._medrecord.edge_endpoints(*edge_index)
+        endpoints = self._medrecord.edge_endpoints(*edge_index)
+
+        if len(endpoints) == 1:
+            return endpoints[edge_index[0]]
+
+        return endpoints
 
     def edges_connecting(
         self, source_node_index: NodeIndex, target_node_index: NodeIndex
@@ -372,7 +477,9 @@ class MedRecord:
         """
         return self._medrecord.add_node(node_index, attributes)
 
-    def remove_node(self, *node_index: NodeIndex) -> Dict[NodeIndex, Attributes]:
+    def remove_node(
+        self, *node_index: NodeIndex
+    ) -> Union[Attributes, Dict[NodeIndex, Attributes]]:
         """
         Removes a node from the MedRecord instance.
 
@@ -384,10 +491,16 @@ class MedRecord:
             *node_index (NodeIndex): One or more node indices to remove.
 
         Returns:
-            Dict[NodeIndex, Attributes]: A dictionary of the node indices and their
-                attributes.
+            Union[Attributes, Dict[NodeIndex, Attributes]]: Attributes of the
+                removed node if one index is provided, or a dictionary of node indices
+                to their attributes if multiple indices are provided.
         """
-        return self._medrecord.remove_node(*node_index)
+        attributes = self._medrecord.remove_node(*node_index)
+
+        if len(attributes) == 1:
+            return attributes[node_index[0]]
+
+        return attributes
 
     def add_nodes(
         self, nodes: Union[List[tuple[NodeIndex, Attributes]], pd.DataFrame]
@@ -478,7 +591,9 @@ class MedRecord:
             source_node_index, target_node_index, attributes
         )
 
-    def remove_edge(self, *edge_index: EdgeIndex) -> Dict[EdgeIndex, Attributes]:
+    def remove_edge(
+        self, *edge_index: EdgeIndex
+    ) -> Union[Attributes, Dict[EdgeIndex, Attributes]]:
         """
         Removes an edge from the MedRecord instance.
 
@@ -490,10 +605,16 @@ class MedRecord:
             *edge_index (EdgeIndex): One or more edge indices to remove.
 
         Returns:
-            Dict[EdgeIndex, Attributes]: A dictionary of the edge indices and their
-                attributes.
+            Union[Attributes, Dict[EdgeIndex, Attributes]]: Attributes of the
+                removed edge if one index is provided, or a dictionary of edge indices
+                to their attributes if multiple indices are provided.
         """
-        return self._medrecord.remove_edge(*edge_index)
+        attributes = self._medrecord.remove_edge(*edge_index)
+
+        if len(attributes) == 1:
+            return attributes[edge_index[0]]
+
+        return attributes
 
     def add_edges(
         self, edges: Union[List[tuple[NodeIndex, NodeIndex, Attributes]], pd.DataFrame]
@@ -653,7 +774,9 @@ class MedRecord:
         """
         return self._medrecord.remove_node_from_group(group, *node_index)
 
-    def groups_of_node(self, *node_index: NodeIndex) -> Dict[NodeIndex, List[Group]]:
+    def groups_of_node(
+        self, *node_index: NodeIndex
+    ) -> Union[List[Group], Dict[NodeIndex, List[Group]]]:
         """
         Returns the groups of the specified node(s) in the MedRecord instance.
 
@@ -665,10 +788,16 @@ class MedRecord:
                 retrieve groups.
 
         Returns:
-            Dict[NodeIndex, List[Group]]: A dictionary of the node indices and the groups
-                to which they belong.
+            Union[List[Group], Dict[NodeIndex, List[Group]]]: List of groups for a
+                single node if one index is provided, or a dictionary mapping each
+                node index to its list of groups if multiple nodes are specified.
         """
-        return self._medrecord.groups_of_node(*node_index)
+        groups = self._medrecord.groups_of_node(*node_index)
+
+        if len(groups) == 1:
+            return groups[node_index[0]]
+
+        return groups
 
     def node_count(self) -> int:
         """
@@ -742,7 +871,9 @@ class MedRecord:
         """
         return self._medrecord.contains_group(group)
 
-    def neighbors(self, *node_index: NodeIndex) -> Dict[NodeIndex, List[NodeIndex]]:
+    def neighbors(
+        self, *node_index: NodeIndex
+    ) -> Union[List[NodeIndex], Dict[NodeIndex, List[NodeIndex]]]:
         """
         Retrieves the neighbors of a node in the MedRecord instance.
 
@@ -755,10 +886,17 @@ class MedRecord:
             retrieve neighbors.
 
         Returns:
-            Dict[NodeIndex, List[NodeIndex]]: A dictionary of the node's index and the
-                node indices of the neighboring nodes.
+            Union[List[NodeIndex], Dict[NodeIndex, List[NodeIndex]]]: List of
+                neighbor node indices for a single node if one index is provided,
+                or a dictionary mapping each node index to its list of
+                neighbor node indices if multiple nodes are specified.
         """
-        return self._medrecord.neighbors(*node_index)
+        neighbors = self._medrecord.neighbors(*node_index)
+
+        if len(neighbors) == 1:
+            return neighbors[node_index[0]]
+
+        return neighbors
 
     def clear(self) -> None:
         """

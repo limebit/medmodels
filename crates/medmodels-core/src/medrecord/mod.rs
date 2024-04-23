@@ -114,6 +114,15 @@ impl MedRecord {
             .map_err(MedRecordError::from)
     }
 
+    pub fn node_attributes_mut(
+        &mut self,
+        node_index: &NodeIndex,
+    ) -> Result<&mut Attributes, MedRecordError> {
+        self.graph
+            .node_attributes_mut(node_index)
+            .map_err(MedRecordError::from)
+    }
+
     pub fn outgoing_edges(
         &self,
         node_index: &NodeIndex,
@@ -139,6 +148,15 @@ impl MedRecord {
     pub fn edge_attributes(&self, edge_index: &EdgeIndex) -> Result<&Attributes, MedRecordError> {
         self.graph
             .edge_attributes(edge_index)
+            .map_err(MedRecordError::from)
+    }
+
+    pub fn edge_attributes_mut(
+        &mut self,
+        edge_index: &EdgeIndex,
+    ) -> Result<&mut Attributes, MedRecordError> {
+        self.graph
+            .edge_attributes_mut(edge_index)
             .map_err(MedRecordError::from)
     }
 
@@ -517,6 +535,34 @@ mod test {
     }
 
     #[test]
+    fn test_node_attributes_mut() {
+        let mut medrecord = create_medrecord();
+
+        let attributes = medrecord.node_attributes_mut(&"0".into()).unwrap();
+
+        assert_eq!(&create_nodes()[0].1, attributes);
+
+        let new_attributes = HashMap::from([("0".into(), "1".into()), ("2".into(), "3".into())]);
+
+        *attributes = new_attributes.clone();
+
+        assert_eq!(
+            &new_attributes,
+            medrecord.node_attributes(&"0".into()).unwrap()
+        );
+    }
+
+    #[test]
+    fn test_invalid_node_attributes_mut() {
+        let mut medrecord = create_medrecord();
+
+        // Accessing the node attributes of a non-existing node should fail
+        assert!(medrecord
+            .node_attributes_mut(&"50".into())
+            .is_err_and(|e| matches!(e, MedRecordError::IndexError(_))));
+    }
+
+    #[test]
     fn test_outgoing_edges() {
         let medrecord = create_medrecord();
 
@@ -578,6 +624,31 @@ mod test {
         // Querying a non-existing node should fail
         assert!(medrecord
             .edge_attributes(&50)
+            .is_err_and(|e| matches!(e, MedRecordError::IndexError(_))));
+    }
+
+    #[test]
+    fn test_edge_attributes_mut() {
+        let mut medrecord = create_medrecord();
+
+        let attributes = medrecord.edge_attributes_mut(&0).unwrap();
+
+        assert_eq!(&create_edges()[0].2, attributes);
+
+        let new_attributes = HashMap::from([("0".into(), "1".into()), ("2".into(), "3".into())]);
+
+        *attributes = new_attributes.clone();
+
+        assert_eq!(&new_attributes, medrecord.edge_attributes(&0).unwrap());
+    }
+
+    #[test]
+    fn test_invalid_edge_attributes_mut() {
+        let mut medrecord = create_medrecord();
+
+        // Accessing the edge attributes of a non-existing edge should fail
+        assert!(medrecord
+            .edge_attributes_mut(&50)
             .is_err_and(|e| matches!(e, MedRecordError::IndexError(_))));
     }
 
