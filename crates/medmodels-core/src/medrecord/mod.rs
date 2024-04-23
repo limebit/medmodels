@@ -469,7 +469,7 @@ mod test {
         let medrecord = create_medrecord();
 
         let mut file_path = std::env::temp_dir().into_os_string();
-        file_path.push("medrecord_test/");
+        file_path.push("/medrecord_test/");
 
         fs::create_dir_all(&file_path).unwrap();
 
