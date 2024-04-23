@@ -21,6 +21,7 @@ impl<'a> TryFrom<AnyValue<'a>> for MedRecordValue {
             AnyValue::Float32(value) => Ok(MedRecordValue::Float(value.into())),
             AnyValue::Float64(value) => Ok(MedRecordValue::Float(value)),
             AnyValue::Boolean(value) => Ok(MedRecordValue::Bool(value)),
+            AnyValue::Null => Ok(MedRecordValue::Null),
             _ => Err(MedRecordError::ConversionError(format!(
                 "Cannot convert {} into MedRecordValue",
                 value
