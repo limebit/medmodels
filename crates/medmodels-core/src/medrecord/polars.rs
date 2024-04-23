@@ -239,6 +239,15 @@ mod test {
     }
 
     #[test]
+    fn test_from_anyvalue_null() {
+        let any_value = AnyValue::Null;
+
+        let value = MedRecordValue::try_from(any_value).unwrap();
+
+        assert_eq!(MedRecordValue::Null, value);
+    }
+
+    #[test]
     fn test_dataframe_to_nodes() {
         let s0 = Series::new("index", &["0", "1"]);
         let s1 = Series::new("attribute", &[1, 2]);
