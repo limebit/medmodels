@@ -17,6 +17,7 @@ pub enum MedRecordValue {
     Int(i64),
     Float(f64),
     Bool(bool),
+    Null,
 }
 
 impl From<&str> for MedRecordValue {
@@ -30,6 +31,18 @@ implement_from_for_wrapper!(MedRecordValue, i64, Int);
 implement_from_for_wrapper!(MedRecordValue, f64, Float);
 implement_from_for_wrapper!(MedRecordValue, bool, Bool);
 
+impl<T> From<Option<T>> for MedRecordValue
+where
+    T: Into<MedRecordValue>,
+{
+    fn from(value: Option<T>) -> Self {
+        match value {
+            Some(value) => value.into(),
+            None => MedRecordValue::Null,
+        }
+    }
+}
+
 impl PartialEq for MedRecordValue {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
@@ -39,6 +52,7 @@ impl PartialEq for MedRecordValue {
             (MedRecordValue::Float(value), MedRecordValue::Float(other)) => value == other,
             (MedRecordValue::Float(value), MedRecordValue::Int(other)) => value == &(*other as f64),
             (MedRecordValue::Bool(value), MedRecordValue::Bool(other)) => value == other,
+            (MedRecordValue::Null, MedRecordValue::Null) => true,
             _ => false,
         }
     }
@@ -73,6 +87,7 @@ impl Display for MedRecordValue {
             Self::Int(value) => write!(f, "{}", value),
             Self::Float(value) => write!(f, "{}", value),
             Self::Bool(value) => write!(f, "{}", value),
+            Self::Null => write!(f, "Null"),
         }
     }
 }
@@ -94,6 +109,9 @@ impl Add for MedRecordValue {
             (MedRecordValue::String(value), MedRecordValue::Bool(rhs)) => Err(
                 MedRecordError::AssertionError(format!("Cannot add {} to {}", rhs, value)),
             ),
+            (MedRecordValue::String(value), MedRecordValue::Null) => Err(
+                MedRecordError::AssertionError(format!("Cannot add None to {}", value)),
+            ),
             (MedRecordValue::Int(value), MedRecordValue::String(rhs)) => Err(
                 MedRecordError::AssertionError(format!("Cannot add {} to {}", rhs, value)),
             ),
@@ -105,6 +123,9 @@ impl Add for MedRecordValue {
             }
             (MedRecordValue::Int(value), MedRecordValue::Bool(rhs)) => Err(
                 MedRecordError::AssertionError(format!("Cannot add {} to {}", rhs, value)),
+            ),
+            (MedRecordValue::Int(value), MedRecordValue::Null) => Err(
+                MedRecordError::AssertionError(format!("Cannot add None to {}", value)),
             ),
             (MedRecordValue::Float(value), MedRecordValue::String(rhs)) => Err(
                 MedRecordError::AssertionError(format!("Cannot add {} to {}", rhs, value)),
@@ -118,6 +139,9 @@ impl Add for MedRecordValue {
             (MedRecordValue::Float(value), MedRecordValue::Bool(rhs)) => Err(
                 MedRecordError::AssertionError(format!("Cannot add {} to {}", rhs, value)),
             ),
+            (MedRecordValue::Float(value), MedRecordValue::Null) => Err(
+                MedRecordError::AssertionError(format!("Cannot add None to {}", value)),
+            ),
             (MedRecordValue::Bool(value), MedRecordValue::String(rhs)) => Err(
                 MedRecordError::AssertionError(format!("Cannot add {} to {}", rhs, value)),
             ),
@@ -130,6 +154,24 @@ impl Add for MedRecordValue {
             (MedRecordValue::Bool(value), MedRecordValue::Bool(rhs)) => Err(
                 MedRecordError::AssertionError(format!("Cannot add {} to {}", rhs, value)),
             ),
+            (MedRecordValue::Bool(value), MedRecordValue::Null) => Err(
+                MedRecordError::AssertionError(format!("Cannot add None to {}", value)),
+            ),
+            (MedRecordValue::Null, MedRecordValue::String(rhs)) => Err(
+                MedRecordError::AssertionError(format!("Cannot add {} to None", rhs)),
+            ),
+            (MedRecordValue::Null, MedRecordValue::Int(rhs)) => Err(
+                MedRecordError::AssertionError(format!("Cannot add {} to None", rhs)),
+            ),
+            (MedRecordValue::Null, MedRecordValue::Float(rhs)) => Err(
+                MedRecordError::AssertionError(format!("Cannot add {} to None", rhs)),
+            ),
+            (MedRecordValue::Null, MedRecordValue::Bool(rhs)) => Err(
+                MedRecordError::AssertionError(format!("Cannot add {} to None", rhs)),
+            ),
+            (MedRecordValue::Null, MedRecordValue::Null) => Err(MedRecordError::AssertionError(
+                "Cannot add None to None".to_string(),
+            )),
         }
     }
 }
@@ -151,6 +193,9 @@ impl Sub for MedRecordValue {
             (MedRecordValue::String(value), MedRecordValue::Bool(rhs)) => Err(
                 MedRecordError::AssertionError(format!("Cannot subtract {} from {}", rhs, value)),
             ),
+            (MedRecordValue::String(value), MedRecordValue::Null) => Err(
+                MedRecordError::AssertionError(format!("Cannot subtract None from {}", value)),
+            ),
             (MedRecordValue::Int(value), MedRecordValue::String(rhs)) => Err(
                 MedRecordError::AssertionError(format!("Cannot subtract {} from {}", rhs, value)),
             ),
@@ -162,6 +207,9 @@ impl Sub for MedRecordValue {
             }
             (MedRecordValue::Int(value), MedRecordValue::Bool(rhs)) => Err(
                 MedRecordError::AssertionError(format!("Cannot subtract {} from {}", rhs, value)),
+            ),
+            (MedRecordValue::Int(value), MedRecordValue::Null) => Err(
+                MedRecordError::AssertionError(format!("Cannot subtract None from {}", value)),
             ),
             (MedRecordValue::Float(value), MedRecordValue::String(rhs)) => Err(
                 MedRecordError::AssertionError(format!("Cannot subtract {} from {}", rhs, value)),
@@ -175,6 +223,9 @@ impl Sub for MedRecordValue {
             (MedRecordValue::Float(value), MedRecordValue::Bool(rhs)) => Err(
                 MedRecordError::AssertionError(format!("Cannot subtract {} from {}", rhs, value)),
             ),
+            (MedRecordValue::Float(value), MedRecordValue::Null) => Err(
+                MedRecordError::AssertionError(format!("Cannot subtract None from {}", value)),
+            ),
             (MedRecordValue::Bool(value), MedRecordValue::String(rhs)) => Err(
                 MedRecordError::AssertionError(format!("Cannot subtract {} from {}", rhs, value)),
             ),
@@ -187,6 +238,24 @@ impl Sub for MedRecordValue {
             (MedRecordValue::Bool(value), MedRecordValue::Bool(rhs)) => Err(
                 MedRecordError::AssertionError(format!("Cannot subtract {} from {}", rhs, value)),
             ),
+            (MedRecordValue::Bool(value), MedRecordValue::Null) => Err(
+                MedRecordError::AssertionError(format!("Cannot subtract None from {}", value)),
+            ),
+            (MedRecordValue::Null, MedRecordValue::String(rhs)) => Err(
+                MedRecordError::AssertionError(format!("Cannot subtract {} from None", rhs)),
+            ),
+            (MedRecordValue::Null, MedRecordValue::Int(rhs)) => Err(
+                MedRecordError::AssertionError(format!("Cannot subtract {} from None", rhs)),
+            ),
+            (MedRecordValue::Null, MedRecordValue::Float(rhs)) => Err(
+                MedRecordError::AssertionError(format!("Cannot subtract {} from None", rhs)),
+            ),
+            (MedRecordValue::Null, MedRecordValue::Bool(rhs)) => Err(
+                MedRecordError::AssertionError(format!("Cannot subtract {} from None", rhs)),
+            ),
+            (MedRecordValue::Null, MedRecordValue::Null) => Err(MedRecordError::AssertionError(
+                "Cannot subtract None from None".to_string(),
+            )),
         }
     }
 }
@@ -223,6 +292,9 @@ impl Mul for MedRecordValue {
                     value, other
                 )))
             }
+            (MedRecordValue::String(value), MedRecordValue::Null) => Err(
+                MedRecordError::AssertionError(format!("Cannot multiplty {} with None", value)),
+            ),
             (MedRecordValue::Int(value), MedRecordValue::String(other)) => {
                 let mut result = String::new();
 
@@ -244,6 +316,9 @@ impl Mul for MedRecordValue {
                     value, other
                 )))
             }
+            (MedRecordValue::Int(value), MedRecordValue::Null) => Err(
+                MedRecordError::AssertionError(format!("Cannot multiplty {} with None", value)),
+            ),
             (MedRecordValue::Float(value), MedRecordValue::String(other)) => {
                 Err(MedRecordError::AssertionError(format!(
                     "Cannot multiplty {} with {}",
@@ -262,6 +337,9 @@ impl Mul for MedRecordValue {
                     value, other
                 )))
             }
+            (MedRecordValue::Float(value), MedRecordValue::Null) => Err(
+                MedRecordError::AssertionError(format!("Cannot multiplty {} with None", value)),
+            ),
             (MedRecordValue::Bool(value), MedRecordValue::String(other)) => {
                 Err(MedRecordError::AssertionError(format!(
                     "Cannot multiplty {} with {}",
@@ -286,6 +364,24 @@ impl Mul for MedRecordValue {
                     value, other
                 )))
             }
+            (MedRecordValue::Bool(value), MedRecordValue::Null) => Err(
+                MedRecordError::AssertionError(format!("Cannot multiplty {} with None", value)),
+            ),
+            (MedRecordValue::Null, MedRecordValue::String(other)) => Err(
+                MedRecordError::AssertionError(format!("Cannot multiplty None with {}", other)),
+            ),
+            (MedRecordValue::Null, MedRecordValue::Int(other)) => Err(
+                MedRecordError::AssertionError(format!("Cannot multiplty None with {}", other)),
+            ),
+            (MedRecordValue::Null, MedRecordValue::Float(other)) => Err(
+                MedRecordError::AssertionError(format!("Cannot multiplty None with {}", other)),
+            ),
+            (MedRecordValue::Null, MedRecordValue::Bool(other)) => Err(
+                MedRecordError::AssertionError(format!("Cannot multiplty None with {}", other)),
+            ),
+            (MedRecordValue::Null, MedRecordValue::Null) => Err(MedRecordError::AssertionError(
+                "Cannot multiplty None with None".to_string(),
+            )),
         }
     }
 }
@@ -295,90 +391,81 @@ impl Div for MedRecordValue {
 
     fn div(self, rhs: Self) -> Self::Output {
         match (self, rhs) {
-            (MedRecordValue::String(value), MedRecordValue::String(other)) => {
-                Err(MedRecordError::AssertionError(format!(
-                    "Cannot multiplty {} with {}",
-                    value, other
-                )))
-            }
-            (MedRecordValue::String(value), MedRecordValue::Int(other)) => {
-                Err(MedRecordError::AssertionError(format!(
-                    "Cannot multiplty {} with {}",
-                    value, other
-                )))
-            }
-            (MedRecordValue::String(value), MedRecordValue::Float(other)) => {
-                Err(MedRecordError::AssertionError(format!(
-                    "Cannot multiplty {} with {}",
-                    value, other
-                )))
-            }
-            (MedRecordValue::String(value), MedRecordValue::Bool(other)) => {
-                Err(MedRecordError::AssertionError(format!(
-                    "Cannot multiplty {} with {}",
-                    value, other
-                )))
-            }
-            (MedRecordValue::Int(value), MedRecordValue::String(other)) => {
-                Err(MedRecordError::AssertionError(format!(
-                    "Cannot multiplty {} with {}",
-                    value, other
-                )))
-            }
+            (MedRecordValue::String(value), MedRecordValue::String(other)) => Err(
+                MedRecordError::AssertionError(format!("Cannot divide {} by {}", value, other)),
+            ),
+            (MedRecordValue::String(value), MedRecordValue::Int(other)) => Err(
+                MedRecordError::AssertionError(format!("Cannot divide {} by {}", value, other)),
+            ),
+            (MedRecordValue::String(value), MedRecordValue::Float(other)) => Err(
+                MedRecordError::AssertionError(format!("Cannot divide {} by {}", value, other)),
+            ),
+            (MedRecordValue::String(value), MedRecordValue::Bool(other)) => Err(
+                MedRecordError::AssertionError(format!("Cannot divide {} by {}", value, other)),
+            ),
+            (MedRecordValue::String(value), MedRecordValue::Null) => Err(
+                MedRecordError::AssertionError(format!("Cannot divide {} by None", value)),
+            ),
+            (MedRecordValue::Int(value), MedRecordValue::String(other)) => Err(
+                MedRecordError::AssertionError(format!("Cannot divide {} by {}", value, other)),
+            ),
             (MedRecordValue::Int(value), MedRecordValue::Int(other)) => {
                 Ok(MedRecordValue::Float(value as f64 / other as f64))
             }
             (MedRecordValue::Int(value), MedRecordValue::Float(other)) => {
                 Ok(MedRecordValue::Float(value as f64 / other))
             }
-            (MedRecordValue::Int(value), MedRecordValue::Bool(other)) => {
-                Err(MedRecordError::AssertionError(format!(
-                    "Cannot multiplty {} with {}",
-                    value, other
-                )))
-            }
-            (MedRecordValue::Float(value), MedRecordValue::String(other)) => {
-                Err(MedRecordError::AssertionError(format!(
-                    "Cannot multiplty {} with {}",
-                    value, other
-                )))
-            }
+            (MedRecordValue::Int(value), MedRecordValue::Bool(other)) => Err(
+                MedRecordError::AssertionError(format!("Cannot divide {} by {}", value, other)),
+            ),
+            (MedRecordValue::Int(value), MedRecordValue::Null) => Err(
+                MedRecordError::AssertionError(format!("Cannot divide {} by None", value)),
+            ),
+            (MedRecordValue::Float(value), MedRecordValue::String(other)) => Err(
+                MedRecordError::AssertionError(format!("Cannot divide {} by {}", value, other)),
+            ),
             (MedRecordValue::Float(value), MedRecordValue::Int(other)) => {
                 Ok(MedRecordValue::Float(value / other as f64))
             }
             (MedRecordValue::Float(value), MedRecordValue::Float(other)) => {
                 Ok(MedRecordValue::Float(value / other))
             }
-            (MedRecordValue::Float(value), MedRecordValue::Bool(other)) => {
-                Err(MedRecordError::AssertionError(format!(
-                    "Cannot multiplty {} with {}",
-                    value, other
-                )))
-            }
-            (MedRecordValue::Bool(value), MedRecordValue::String(other)) => {
-                Err(MedRecordError::AssertionError(format!(
-                    "Cannot multiplty {} with {}",
-                    value, other
-                )))
-            }
-            (MedRecordValue::Bool(value), MedRecordValue::Int(other)) => {
-                Err(MedRecordError::AssertionError(format!(
-                    "Cannot multiplty {} with {}",
-                    value, other
-                )))
-            }
-            (MedRecordValue::Bool(value), MedRecordValue::Float(other)) => {
-                Err(MedRecordError::AssertionError(format!(
-                    "Cannot multiplty {} with {}",
-                    value, other
-                )))
-            }
-            (MedRecordValue::Bool(value), MedRecordValue::Bool(other)) => {
-                Err(MedRecordError::AssertionError(format!(
-                    "Cannot multiplty {} with {}",
-                    value, other
-                )))
-            }
+            (MedRecordValue::Float(value), MedRecordValue::Bool(other)) => Err(
+                MedRecordError::AssertionError(format!("Cannot divide {} by {}", value, other)),
+            ),
+            (MedRecordValue::Float(value), MedRecordValue::Null) => Err(
+                MedRecordError::AssertionError(format!("Cannot divide {} by None", value)),
+            ),
+            (MedRecordValue::Bool(value), MedRecordValue::String(other)) => Err(
+                MedRecordError::AssertionError(format!("Cannot divide {} by {}", value, other)),
+            ),
+            (MedRecordValue::Bool(value), MedRecordValue::Int(other)) => Err(
+                MedRecordError::AssertionError(format!("Cannot divide {} by {}", value, other)),
+            ),
+            (MedRecordValue::Bool(value), MedRecordValue::Float(other)) => Err(
+                MedRecordError::AssertionError(format!("Cannot divide {} by {}", value, other)),
+            ),
+            (MedRecordValue::Bool(value), MedRecordValue::Bool(other)) => Err(
+                MedRecordError::AssertionError(format!("Cannot divide {} by {}", value, other)),
+            ),
+            (MedRecordValue::Bool(value), MedRecordValue::Null) => Err(
+                MedRecordError::AssertionError(format!("Cannot divide {} by None", value)),
+            ),
+            (MedRecordValue::Null, MedRecordValue::String(other)) => Err(
+                MedRecordError::AssertionError(format!("Cannot divide None by {}", other)),
+            ),
+            (MedRecordValue::Null, MedRecordValue::Int(other)) => Err(
+                MedRecordError::AssertionError(format!("Cannot divide None by {}", other)),
+            ),
+            (MedRecordValue::Null, MedRecordValue::Float(other)) => Err(
+                MedRecordError::AssertionError(format!("Cannot divide None by {}", other)),
+            ),
+            (MedRecordValue::Null, MedRecordValue::Bool(other)) => Err(
+                MedRecordError::AssertionError(format!("Cannot divide None by {}", other)),
+            ),
+            (MedRecordValue::Null, MedRecordValue::Null) => Err(MedRecordError::AssertionError(
+                "Cannot divide None by None".to_string(),
+            )),
         }
     }
 }
@@ -410,6 +497,12 @@ impl Pow for MedRecordValue {
                     value, other
                 )))
             }
+            (MedRecordValue::String(value), MedRecordValue::Null) => {
+                Err(MedRecordError::AssertionError(format!(
+                    "Cannot raise {} to the power of None",
+                    value
+                )))
+            }
             (MedRecordValue::Int(value), MedRecordValue::String(other)) => {
                 Err(MedRecordError::AssertionError(format!(
                     "Cannot raise {} to the power of {}",
@@ -428,6 +521,12 @@ impl Pow for MedRecordValue {
                     value, other
                 )))
             }
+            (MedRecordValue::Int(value), MedRecordValue::Null) => {
+                Err(MedRecordError::AssertionError(format!(
+                    "Cannot raise {} to the power of None",
+                    value
+                )))
+            }
             (MedRecordValue::Float(value), MedRecordValue::String(other)) => {
                 Err(MedRecordError::AssertionError(format!(
                     "Cannot raise {} to the power of {}",
@@ -444,6 +543,12 @@ impl Pow for MedRecordValue {
                 Err(MedRecordError::AssertionError(format!(
                     "Cannot raise {} to the power of {}",
                     value, other
+                )))
+            }
+            (MedRecordValue::Float(value), MedRecordValue::Null) => {
+                Err(MedRecordError::AssertionError(format!(
+                    "Cannot raise {} to the power of None",
+                    value
                 )))
             }
             (MedRecordValue::Bool(value), MedRecordValue::String(other)) => {
@@ -470,6 +575,39 @@ impl Pow for MedRecordValue {
                     value, other
                 )))
             }
+            (MedRecordValue::Bool(value), MedRecordValue::Null) => {
+                Err(MedRecordError::AssertionError(format!(
+                    "Cannot raise {} to the power of None",
+                    value
+                )))
+            }
+            (MedRecordValue::Null, MedRecordValue::String(other)) => {
+                Err(MedRecordError::AssertionError(format!(
+                    "Cannot raise None to the power of {}",
+                    other
+                )))
+            }
+            (MedRecordValue::Null, MedRecordValue::Int(other)) => {
+                Err(MedRecordError::AssertionError(format!(
+                    "Cannot raise None to the power of {}",
+                    other
+                )))
+            }
+            (MedRecordValue::Null, MedRecordValue::Float(other)) => {
+                Err(MedRecordError::AssertionError(format!(
+                    "Cannot raise None to the power of {}",
+                    other
+                )))
+            }
+            (MedRecordValue::Null, MedRecordValue::Bool(other)) => {
+                Err(MedRecordError::AssertionError(format!(
+                    "Cannot raise None to the power of {}",
+                    other
+                )))
+            }
+            (MedRecordValue::Null, MedRecordValue::Null) => Err(MedRecordError::AssertionError(
+                "Cannot raise None to the power of None".to_string(),
+            )),
         }
     }
 }
@@ -489,6 +627,9 @@ impl Mod for MedRecordValue {
             (MedRecordValue::String(value), MedRecordValue::Bool(other)) => Err(
                 MedRecordError::AssertionError(format!("Cannot mod {} with {}", value, other)),
             ),
+            (MedRecordValue::String(value), MedRecordValue::Null) => Err(
+                MedRecordError::AssertionError(format!("Cannot mod {} with None", value)),
+            ),
             (MedRecordValue::Int(value), MedRecordValue::String(other)) => Err(
                 MedRecordError::AssertionError(format!("Cannot mod {} with {}", value, other)),
             ),
@@ -500,6 +641,9 @@ impl Mod for MedRecordValue {
             }
             (MedRecordValue::Int(value), MedRecordValue::Bool(other)) => Err(
                 MedRecordError::AssertionError(format!("Cannot mod {} with {}", value, other)),
+            ),
+            (MedRecordValue::Int(value), MedRecordValue::Null) => Err(
+                MedRecordError::AssertionError(format!("Cannot mod {} with None", value)),
             ),
             (MedRecordValue::Float(value), MedRecordValue::String(other)) => Err(
                 MedRecordError::AssertionError(format!("Cannot mod {} with {}", value, other)),
@@ -513,6 +657,9 @@ impl Mod for MedRecordValue {
             (MedRecordValue::Float(value), MedRecordValue::Bool(other)) => Err(
                 MedRecordError::AssertionError(format!("Cannot mod {} with {}", value, other)),
             ),
+            (MedRecordValue::Float(value), MedRecordValue::Null) => Err(
+                MedRecordError::AssertionError(format!("Cannot mod {} with None", value)),
+            ),
             (MedRecordValue::Bool(value), MedRecordValue::String(other)) => Err(
                 MedRecordError::AssertionError(format!("Cannot mod {} with {}", value, other)),
             ),
@@ -525,6 +672,24 @@ impl Mod for MedRecordValue {
             (MedRecordValue::Bool(value), MedRecordValue::Bool(other)) => Err(
                 MedRecordError::AssertionError(format!("Cannot mod {} with {}", value, other)),
             ),
+            (MedRecordValue::Bool(value), MedRecordValue::Null) => Err(
+                MedRecordError::AssertionError(format!("Cannot mod {} with None", value)),
+            ),
+            (MedRecordValue::Null, MedRecordValue::String(other)) => Err(
+                MedRecordError::AssertionError(format!("Cannot mod None with {}", other)),
+            ),
+            (MedRecordValue::Null, MedRecordValue::Int(other)) => Err(
+                MedRecordError::AssertionError(format!("Cannot mod None with {}", other)),
+            ),
+            (MedRecordValue::Null, MedRecordValue::Float(other)) => Err(
+                MedRecordError::AssertionError(format!("Cannot mod None with {}", other)),
+            ),
+            (MedRecordValue::Null, MedRecordValue::Bool(other)) => Err(
+                MedRecordError::AssertionError(format!("Cannot mod None with {}", other)),
+            ),
+            (MedRecordValue::Null, MedRecordValue::Null) => Err(MedRecordError::AssertionError(
+                "Cannot mod None with None".to_string(),
+            )),
         }
     }
 }
@@ -639,6 +804,7 @@ impl Slice for MedRecordValue {
             MedRecordValue::Int(value) => value.to_string()[range].into(),
             MedRecordValue::Float(value) => value.to_string()[range].into(),
             MedRecordValue::Bool(value) => value.to_string()[range].into(),
+            _ => self,
         }
     }
 }
