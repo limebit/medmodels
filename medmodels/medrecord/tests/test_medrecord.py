@@ -1,8 +1,8 @@
+import tempfile
 import unittest
 
-import polars as pl
 import pandas as pd
-import tempfile
+import polars as pl
 
 from medmodels import MedRecord
 
@@ -166,24 +166,6 @@ class TestMedRecord(unittest.TestCase):
         for node in medrecord.nodes:
             self.assertTrue(node in nodes)
 
-    def test_node(self):
-        medrecord = create_medrecord()
-
-        nodes = medrecord.node("0")
-
-        self.assertEqual({"0": create_nodes()[0][1]}, nodes)
-
-        nodes = medrecord.node("0", "1")
-
-        self.assertEqual({"0": create_nodes()[0][1], "1": create_nodes()[1][1]}, nodes)
-
-    def test_invalid_node(self):
-        medrecord = create_medrecord()
-
-        # Querying a non-existing node should fail
-        with self.assertRaises(IndexError):
-            medrecord.node("50")
-
     def test_edges(self):
         medrecord = create_medrecord()
 
@@ -191,24 +173,6 @@ class TestMedRecord(unittest.TestCase):
 
         for edge in medrecord.edges:
             self.assertTrue(edge in edges)
-
-    def test_edge(self):
-        medrecord = create_medrecord()
-
-        edges = medrecord.edge(0)
-
-        self.assertEqual({0: create_edges()[0][2]}, edges)
-
-        edges = medrecord.edge(0, 1)
-
-        self.assertEqual({0: create_edges()[0][2], 1: create_edges()[1][2]}, edges)
-
-    def test_invalid_edge(self):
-        medrecord = create_medrecord()
-
-        # Querying a non-existing edge should fail
-        with self.assertRaises(IndexError):
-            medrecord.edge(50)
 
     def test_groups(self):
         medrecord = create_medrecord()
@@ -222,11 +186,13 @@ class TestMedRecord(unittest.TestCase):
 
         medrecord.add_group("0")
 
-        self.assertEqual({"0": []}, medrecord.group("0"))
+        self.assertEqual([], medrecord.group("0"))
 
         medrecord.add_group("1", ["0"])
 
-        self.assertEqual({"1": ["0"]}, medrecord.group("1"))
+        self.assertEqual(["0"], medrecord.group("1"))
+
+        self.assertEqual({"0": [], "1": ["0"]}, medrecord.group("0", "1"))
 
     def test_invalid_group(self):
         medrecord = create_medrecord()
@@ -241,7 +207,14 @@ class TestMedRecord(unittest.TestCase):
         edges = medrecord.outgoing_edges("0")
 
         self.assertEqual(
-            {"0": sorted([0, 2])},
+            sorted([0, 2]),
+            sorted(edges),
+        )
+
+        edges = medrecord.outgoing_edges("0", "1")
+
+        self.assertEqual(
+            {"0": sorted([0, 2]), "1": [1]},
             {key: sorted(value) for (key, value) in edges.items()},
         )
 
@@ -257,7 +230,11 @@ class TestMedRecord(unittest.TestCase):
 
         edges = medrecord.incoming_edges("1")
 
-        self.assertEqual({"1": [0]}, edges)
+        self.assertEqual([0], edges)
+
+        edges = medrecord.incoming_edges("1", "2")
+
+        self.assertEqual({"1": [0], "2": [1]}, edges)
 
     def test_invalid_incoming_edges(self):
         medrecord = create_medrecord()
@@ -271,7 +248,7 @@ class TestMedRecord(unittest.TestCase):
 
         endpoints = medrecord.edge_endpoints(0)
 
-        self.assertEqual({0: ("0", "1")}, endpoints)
+        self.assertEqual(("0", "1"), endpoints)
 
         endpoints = medrecord.edge_endpoints(0, 1)
 
@@ -308,7 +285,14 @@ class TestMedRecord(unittest.TestCase):
         attributes = medrecord.remove_node("0")
 
         self.assertEqual(3, medrecord.node_count())
-        self.assertEqual({"0": create_nodes()[0][1]}, attributes)
+        self.assertEqual(create_nodes()[0][1], attributes)
+
+        attributes = medrecord.remove_node("1", "2")
+
+        self.assertEqual(1, medrecord.node_count())
+        self.assertEqual(
+            {"1": create_nodes()[1][1], "2": create_nodes()[2][1]}, attributes
+        )
 
     def test_invalid_remove_node(self):
         medrecord = create_medrecord()
@@ -407,7 +391,12 @@ class TestMedRecord(unittest.TestCase):
         attributes = medrecord.remove_edge(0)
 
         self.assertEqual(2, medrecord.edge_count())
-        self.assertEqual({0: create_edges()[0][2]}, attributes)
+        self.assertEqual(create_edges()[0][2], attributes)
+
+        attributes = medrecord.remove_edge(1, 2)
+
+        self.assertEqual(0, medrecord.edge_count())
+        self.assertEqual({1: create_edges()[1][2], 2: create_edges()[2][2]}, attributes)
 
     def test_invalid_remove_edge(self):
         medrecord = create_medrecord()
@@ -543,17 +532,17 @@ class TestMedRecord(unittest.TestCase):
 
         medrecord.add_group("0")
 
-        self.assertEqual({"0": []}, medrecord.group("0"))
+        self.assertEqual([], medrecord.group("0"))
 
         medrecord.add_node_to_group("0", "0")
 
-        self.assertEqual({"0": ["0"]}, medrecord.group("0"))
+        self.assertEqual(["0"], medrecord.group("0"))
 
         medrecord.add_node_to_group("0", "1", "2")
 
         self.assertEqual(
-            {"0": sorted(["0", "1", "2"])},
-            {key: sorted(value) for (key, value) in medrecord.group("0").items()},
+            sorted(["0", "1", "2"]),
+            sorted(medrecord.group("0")),
         )
 
     def test_invalid_add_node_to_group(self):
@@ -579,13 +568,13 @@ class TestMedRecord(unittest.TestCase):
         medrecord.add_group("0", ["0", "1"])
 
         self.assertEqual(
-            {"0": sorted(["0", "1"])},
-            {key: sorted(value) for (key, value) in medrecord.group("0").items()},
+            sorted(["0", "1"]),
+            sorted(medrecord.group("0")),
         )
 
         medrecord.remove_node_from_group("0", "1")
 
-        self.assertEqual({"0": ["0"]}, medrecord.group("0"))
+        self.assertEqual(["0"], medrecord.group("0"))
 
     def test_invalid_remove_node_from_group(self):
         medrecord = create_medrecord()
@@ -605,7 +594,9 @@ class TestMedRecord(unittest.TestCase):
 
         medrecord.add_group("0", ["0", "1"])
 
-        self.assertEqual({"0": ["0"]}, medrecord.groups_of_node("0"))
+        self.assertEqual(["0"], medrecord.groups_of_node("0"))
+
+        self.assertEqual({"0": ["0"], "1": ["0"]}, medrecord.groups_of_node("0", "1"))
 
     def test_invalid_groups_of_node(self):
         medrecord = create_medrecord()
@@ -673,8 +664,8 @@ class TestMedRecord(unittest.TestCase):
         neighbors = medrecord.neighbors("0")
 
         self.assertEqual(
-            {"0": sorted(["1", "3"])},
-            {key: sorted(value) for (key, value) in neighbors.items()},
+            sorted(["1", "3"]),
+            sorted(neighbors),
         )
 
         neighbors = medrecord.neighbors("0", "1")
