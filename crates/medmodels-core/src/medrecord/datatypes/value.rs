@@ -948,6 +948,17 @@ mod test {
     }
 
     #[test]
+    fn test_from_option() {
+        let value = MedRecordValue::from(Some("value"));
+
+        assert_eq!(MedRecordValue::String("value".to_string()), value);
+
+        let value = MedRecordValue::from(None::<String>);
+
+        assert_eq!(MedRecordValue::Null, value);
+    }
+
+    #[test]
     fn test_partial_eq() {
         assert!(
             MedRecordValue::String("value".to_string())
@@ -973,19 +984,30 @@ mod test {
         assert!(MedRecordValue::Bool(false) == MedRecordValue::Bool(false));
         assert!(MedRecordValue::Bool(true) != MedRecordValue::Bool(false));
 
+        assert!(MedRecordValue::Null == MedRecordValue::Null);
+
         assert!(MedRecordValue::String("0".to_string()) != MedRecordValue::Int(0));
         assert!(MedRecordValue::String("0".to_string()) != MedRecordValue::Float(0_f64));
         assert!(MedRecordValue::String("false".to_string()) != MedRecordValue::Bool(false));
+        assert!(MedRecordValue::String("false".to_string()) != MedRecordValue::Null);
 
         assert!(MedRecordValue::Int(0) != MedRecordValue::String("0".to_string()));
         assert!(MedRecordValue::Int(0) != MedRecordValue::Bool(false));
+        assert!(MedRecordValue::Int(0) != MedRecordValue::Null);
 
         assert!(MedRecordValue::Float(0_f64) != MedRecordValue::String("0.0".to_string()));
         assert!(MedRecordValue::Float(0_f64) != MedRecordValue::Bool(false));
+        assert!(MedRecordValue::Float(0_f64) != MedRecordValue::Null);
 
         assert!(MedRecordValue::Bool(false) != MedRecordValue::String("false".to_string()));
         assert!(MedRecordValue::Bool(false) != MedRecordValue::Int(0));
         assert!(MedRecordValue::Bool(false) != MedRecordValue::Float(0_f64));
+        assert!(MedRecordValue::Bool(false) != MedRecordValue::Null);
+
+        assert!(MedRecordValue::Null != MedRecordValue::String("false".to_string()));
+        assert!(MedRecordValue::Null != MedRecordValue::Int(0));
+        assert!(MedRecordValue::Null != MedRecordValue::Float(0_f64));
+        assert!(MedRecordValue::Null != MedRecordValue::Bool(false));
     }
 
     #[test]
@@ -1030,85 +1052,112 @@ mod test {
         assert!(!(MedRecordValue::String("a".to_string()) >= MedRecordValue::Int(1)));
         assert!(!(MedRecordValue::String("a".to_string()) < MedRecordValue::Int(1)));
         assert!(!(MedRecordValue::String("a".to_string()) <= MedRecordValue::Int(1)));
-        assert!(!(MedRecordValue::String("a".to_string()) >= MedRecordValue::Int(1)));
-        assert!(!(MedRecordValue::String("a".to_string()) <= MedRecordValue::Int(1)));
 
         assert!(!(MedRecordValue::String("a".to_string()) > MedRecordValue::Float(1_f64)));
         assert!(!(MedRecordValue::String("a".to_string()) >= MedRecordValue::Float(1_f64)));
         assert!(!(MedRecordValue::String("a".to_string()) < MedRecordValue::Float(1_f64)));
-        assert!(!(MedRecordValue::String("a".to_string()) <= MedRecordValue::Float(1_f64)));
-        assert!(!(MedRecordValue::String("a".to_string()) >= MedRecordValue::Float(1_f64)));
         assert!(!(MedRecordValue::String("a".to_string()) <= MedRecordValue::Float(1_f64)));
 
         assert!(!(MedRecordValue::String("a".to_string()) > MedRecordValue::Bool(true)));
         assert!(!(MedRecordValue::String("a".to_string()) >= MedRecordValue::Bool(true)));
         assert!(!(MedRecordValue::String("a".to_string()) < MedRecordValue::Bool(true)));
         assert!(!(MedRecordValue::String("a".to_string()) <= MedRecordValue::Bool(true)));
-        assert!(!(MedRecordValue::String("a".to_string()) >= MedRecordValue::Bool(true)));
-        assert!(!(MedRecordValue::String("a".to_string()) <= MedRecordValue::Bool(true)));
+
+        assert!(!(MedRecordValue::String("a".to_string()) > MedRecordValue::Null));
+        assert!(!(MedRecordValue::String("a".to_string()) >= MedRecordValue::Null));
+        assert!(!(MedRecordValue::String("a".to_string()) < MedRecordValue::Null));
+        assert!(!(MedRecordValue::String("a".to_string()) <= MedRecordValue::Null));
 
         assert!(!(MedRecordValue::Int(1) > MedRecordValue::String("a".to_string())));
         assert!(!(MedRecordValue::Int(1) >= MedRecordValue::String("a".to_string())));
         assert!(!(MedRecordValue::Int(1) < MedRecordValue::String("a".to_string())));
-        assert!(!(MedRecordValue::Int(1) <= MedRecordValue::String("a".to_string())));
-        assert!(!(MedRecordValue::Int(1) >= MedRecordValue::String("a".to_string())));
         assert!(!(MedRecordValue::Int(1) <= MedRecordValue::String("a".to_string())));
 
         assert!(!(MedRecordValue::Int(1) > MedRecordValue::Bool(true)));
         assert!(!(MedRecordValue::Int(1) >= MedRecordValue::Bool(true)));
         assert!(!(MedRecordValue::Int(1) < MedRecordValue::Bool(true)));
         assert!(!(MedRecordValue::Int(1) <= MedRecordValue::Bool(true)));
-        assert!(!(MedRecordValue::Int(1) >= MedRecordValue::Bool(true)));
-        assert!(!(MedRecordValue::Int(1) <= MedRecordValue::Bool(true)));
+
+        assert!(!(MedRecordValue::Int(1) > MedRecordValue::Null));
+        assert!(!(MedRecordValue::Int(1) >= MedRecordValue::Null));
+        assert!(!(MedRecordValue::Int(1) < MedRecordValue::Null));
+        assert!(!(MedRecordValue::Int(1) <= MedRecordValue::Null));
 
         assert!(!(MedRecordValue::Float(1_f64) > MedRecordValue::String("a".to_string())));
         assert!(!(MedRecordValue::Float(1_f64) >= MedRecordValue::String("a".to_string())));
         assert!(!(MedRecordValue::Float(1_f64) < MedRecordValue::String("a".to_string())));
-        assert!(!(MedRecordValue::Float(1_f64) <= MedRecordValue::String("a".to_string())));
-        assert!(!(MedRecordValue::Float(1_f64) >= MedRecordValue::String("a".to_string())));
         assert!(!(MedRecordValue::Float(1_f64) <= MedRecordValue::String("a".to_string())));
 
         assert!(!(MedRecordValue::Float(1_f64) > MedRecordValue::Bool(true)));
         assert!(!(MedRecordValue::Float(1_f64) >= MedRecordValue::Bool(true)));
         assert!(!(MedRecordValue::Float(1_f64) < MedRecordValue::Bool(true)));
         assert!(!(MedRecordValue::Float(1_f64) <= MedRecordValue::Bool(true)));
-        assert!(!(MedRecordValue::Float(1_f64) >= MedRecordValue::Bool(true)));
-        assert!(!(MedRecordValue::Float(1_f64) <= MedRecordValue::Bool(true)));
+
+        assert!(!(MedRecordValue::Float(1_f64) > MedRecordValue::Null));
+        assert!(!(MedRecordValue::Float(1_f64) >= MedRecordValue::Null));
+        assert!(!(MedRecordValue::Float(1_f64) < MedRecordValue::Null));
+        assert!(!(MedRecordValue::Float(1_f64) <= MedRecordValue::Null));
 
         assert!(!(MedRecordValue::Bool(true) > MedRecordValue::String("a".to_string())));
         assert!(!(MedRecordValue::Bool(true) >= MedRecordValue::String("a".to_string())));
         assert!(!(MedRecordValue::Bool(true) < MedRecordValue::String("a".to_string())));
-        assert!(!(MedRecordValue::Bool(true) <= MedRecordValue::String("a".to_string())));
-        assert!(!(MedRecordValue::Bool(true) >= MedRecordValue::String("a".to_string())));
         assert!(!(MedRecordValue::Bool(true) <= MedRecordValue::String("a".to_string())));
 
         assert!(!(MedRecordValue::Bool(true) > MedRecordValue::Int(1)));
         assert!(!(MedRecordValue::Bool(true) >= MedRecordValue::Int(1)));
         assert!(!(MedRecordValue::Bool(true) < MedRecordValue::Int(1)));
         assert!(!(MedRecordValue::Bool(true) <= MedRecordValue::Int(1)));
-        assert!(!(MedRecordValue::Bool(true) >= MedRecordValue::Int(1)));
-        assert!(!(MedRecordValue::Bool(true) <= MedRecordValue::Int(1)));
 
         assert!(!(MedRecordValue::Bool(true) > MedRecordValue::Float(1_f64)));
         assert!(!(MedRecordValue::Bool(true) >= MedRecordValue::Float(1_f64)));
         assert!(!(MedRecordValue::Bool(true) < MedRecordValue::Float(1_f64)));
         assert!(!(MedRecordValue::Bool(true) <= MedRecordValue::Float(1_f64)));
-        assert!(!(MedRecordValue::Bool(true) >= MedRecordValue::Float(1_f64)));
-        assert!(!(MedRecordValue::Bool(true) <= MedRecordValue::Float(1_f64)));
+
+        assert!(!(MedRecordValue::Bool(true) > MedRecordValue::Null));
+        assert!(!(MedRecordValue::Bool(true) >= MedRecordValue::Null));
+        assert!(!(MedRecordValue::Bool(true) < MedRecordValue::Null));
+        assert!(!(MedRecordValue::Bool(true) <= MedRecordValue::Null));
+
+        assert!(!(MedRecordValue::Null > MedRecordValue::String("a".to_string())));
+        assert!(!(MedRecordValue::Null >= MedRecordValue::String("a".to_string())));
+        assert!(!(MedRecordValue::Null < MedRecordValue::String("a".to_string())));
+        assert!(!(MedRecordValue::Null <= MedRecordValue::String("a".to_string())));
+
+        assert!(!(MedRecordValue::Null > MedRecordValue::Int(0)));
+        assert!(!(MedRecordValue::Null >= MedRecordValue::Int(0)));
+        assert!(!(MedRecordValue::Null < MedRecordValue::Int(0)));
+        assert!(!(MedRecordValue::Null <= MedRecordValue::Int(0)));
+
+        assert!(!(MedRecordValue::Null > MedRecordValue::Float(0_f64)));
+        assert!(!(MedRecordValue::Null >= MedRecordValue::Float(0_f64)));
+        assert!(!(MedRecordValue::Null < MedRecordValue::Float(0_f64)));
+        assert!(!(MedRecordValue::Null <= MedRecordValue::Float(0_f64)));
+
+        assert!(!(MedRecordValue::Null > MedRecordValue::Bool(false)));
+        assert!(!(MedRecordValue::Null >= MedRecordValue::Bool(false)));
+        assert!(!(MedRecordValue::Null < MedRecordValue::Bool(false)));
+        assert!(!(MedRecordValue::Null <= MedRecordValue::Bool(false)));
+
+        assert!(!(MedRecordValue::Null > MedRecordValue::Null));
+        assert!(!(MedRecordValue::Null >= MedRecordValue::Null));
+        assert!(!(MedRecordValue::Null < MedRecordValue::Null));
+        assert!(!(MedRecordValue::Null <= MedRecordValue::Null));
     }
 
     #[test]
     fn test_display() {
         assert_eq!(
             "value",
-            MedRecordValue::from("value".to_string()).to_string()
+            MedRecordValue::String("value".to_string()).to_string()
         );
 
-        assert_eq!("0", MedRecordValue::from(0).to_string());
+        assert_eq!("0", MedRecordValue::Int(0).to_string());
 
-        assert_eq!("0.5", MedRecordValue::from(0.5).to_string());
+        assert_eq!("0.5", MedRecordValue::Float(0.5).to_string());
 
-        assert_eq!("false", MedRecordValue::from(false).to_string());
+        assert_eq!("false", MedRecordValue::Bool(false).to_string());
+
+        assert_eq!("Null", MedRecordValue::Null.to_string());
     }
 
     #[test]
@@ -1130,6 +1179,10 @@ mod test {
             (MedRecordValue::String("value".to_string()) + MedRecordValue::Bool(false))
                 .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_)))
         );
+        assert!(
+            (MedRecordValue::String("value".to_string()) + MedRecordValue::Null)
+                .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_)))
+        );
 
         assert!(
             (MedRecordValue::Int(0) + MedRecordValue::String("value".to_string()))
@@ -1144,6 +1197,8 @@ mod test {
             (MedRecordValue::Int(5) + MedRecordValue::Float(5_f64)).unwrap()
         );
         assert!((MedRecordValue::Int(0) + MedRecordValue::Bool(false))
+            .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
+        assert!((MedRecordValue::Int(0) + MedRecordValue::Null)
             .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
 
         assert!(
@@ -1160,6 +1215,8 @@ mod test {
         );
         assert!((MedRecordValue::Float(0_f64) + MedRecordValue::Bool(false))
             .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
+        assert!((MedRecordValue::Float(0_f64) + MedRecordValue::Null)
+            .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
 
         assert!(
             (MedRecordValue::Bool(false) + MedRecordValue::String("value".to_string()))
@@ -1170,6 +1227,21 @@ mod test {
         assert!((MedRecordValue::Bool(false) + MedRecordValue::Float(0_f64))
             .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
         assert!((MedRecordValue::Bool(false) + MedRecordValue::Bool(false))
+            .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
+        assert!((MedRecordValue::Bool(false) + MedRecordValue::Null)
+            .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
+
+        assert!(
+            (MedRecordValue::Null + MedRecordValue::String("value".to_string()))
+                .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_)))
+        );
+        assert!((MedRecordValue::Null + MedRecordValue::Int(0))
+            .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
+        assert!((MedRecordValue::Null + MedRecordValue::Float(0_f64))
+            .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
+        assert!((MedRecordValue::Null + MedRecordValue::Bool(false))
+            .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
+        assert!((MedRecordValue::Null + MedRecordValue::Null)
             .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
     }
 
@@ -1190,6 +1262,10 @@ mod test {
             (MedRecordValue::String("value".to_string()) - MedRecordValue::Bool(false))
                 .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_)))
         );
+        assert!(
+            (MedRecordValue::String("value".to_string()) - MedRecordValue::Null)
+                .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_)))
+        );
 
         assert!(
             (MedRecordValue::Int(0) - MedRecordValue::String("value".to_string()))
@@ -1204,6 +1280,8 @@ mod test {
             (MedRecordValue::Int(5) - MedRecordValue::Float(5_f64)).unwrap()
         );
         assert!((MedRecordValue::Int(0) - MedRecordValue::Bool(false))
+            .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
+        assert!((MedRecordValue::Int(0) - MedRecordValue::Null)
             .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
 
         assert!(
@@ -1220,6 +1298,8 @@ mod test {
         );
         assert!((MedRecordValue::Float(0_f64) - MedRecordValue::Bool(false))
             .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
+        assert!((MedRecordValue::Float(0_f64) - MedRecordValue::Null)
+            .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
 
         assert!(
             (MedRecordValue::Bool(false) - MedRecordValue::String("value".to_string()))
@@ -1230,6 +1310,21 @@ mod test {
         assert!((MedRecordValue::Bool(false) - MedRecordValue::Float(0_f64))
             .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
         assert!((MedRecordValue::Bool(false) - MedRecordValue::Bool(false))
+            .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
+        assert!((MedRecordValue::Bool(false) - MedRecordValue::Null)
+            .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
+
+        assert!(
+            (MedRecordValue::Null - MedRecordValue::String("value".to_string()))
+                .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_)))
+        );
+        assert!((MedRecordValue::Null - MedRecordValue::Int(0))
+            .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
+        assert!((MedRecordValue::Null - MedRecordValue::Float(0_f64))
+            .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
+        assert!((MedRecordValue::Null - MedRecordValue::Bool(false))
+            .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
+        assert!((MedRecordValue::Null - MedRecordValue::Null)
             .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
     }
 
@@ -1250,6 +1345,10 @@ mod test {
             (MedRecordValue::String("value".to_string()) * MedRecordValue::Bool(false))
                 .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_)))
         );
+        assert!(
+            (MedRecordValue::String("value".to_string()) * MedRecordValue::Null)
+                .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_)))
+        );
 
         assert_eq!(
             MedRecordValue::String("valuevaluevalue".to_string()),
@@ -1264,6 +1363,8 @@ mod test {
             (MedRecordValue::Int(5) * MedRecordValue::Float(5_f64)).unwrap()
         );
         assert!((MedRecordValue::Int(0) * MedRecordValue::Bool(false))
+            .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
+        assert!((MedRecordValue::Int(0) * MedRecordValue::Null)
             .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
 
         assert!(
@@ -1280,6 +1381,8 @@ mod test {
         );
         assert!((MedRecordValue::Float(0_f64) * MedRecordValue::Bool(false))
             .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
+        assert!((MedRecordValue::Float(0_f64) * MedRecordValue::Null)
+            .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
 
         assert!(
             (MedRecordValue::Bool(false) * MedRecordValue::String("value".to_string()))
@@ -1290,6 +1393,21 @@ mod test {
         assert!((MedRecordValue::Bool(false) * MedRecordValue::Float(0_f64))
             .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
         assert!((MedRecordValue::Bool(false) * MedRecordValue::Bool(false))
+            .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
+        assert!((MedRecordValue::Bool(false) * MedRecordValue::Null)
+            .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
+
+        assert!(
+            (MedRecordValue::Null * MedRecordValue::String("value".to_string()))
+                .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_)))
+        );
+        assert!((MedRecordValue::Null * MedRecordValue::Int(0))
+            .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
+        assert!((MedRecordValue::Null * MedRecordValue::Float(0_f64))
+            .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
+        assert!((MedRecordValue::Null * MedRecordValue::Bool(false))
+            .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
+        assert!((MedRecordValue::Null * MedRecordValue::Null)
             .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
     }
 
@@ -1310,6 +1428,10 @@ mod test {
             (MedRecordValue::String("value".to_string()) / MedRecordValue::Bool(false))
                 .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_)))
         );
+        assert!(
+            (MedRecordValue::String("value".to_string()) / MedRecordValue::Null)
+                .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_)))
+        );
 
         assert!(
             (MedRecordValue::Int(0) / MedRecordValue::String("value".to_string()))
@@ -1324,6 +1446,8 @@ mod test {
             (MedRecordValue::Int(5) / MedRecordValue::Float(5_f64)).unwrap()
         );
         assert!((MedRecordValue::Int(0) / MedRecordValue::Bool(false))
+            .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
+        assert!((MedRecordValue::Int(0) / MedRecordValue::Null)
             .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
 
         assert!(
@@ -1340,6 +1464,8 @@ mod test {
         );
         assert!((MedRecordValue::Float(0_f64) / MedRecordValue::Bool(false))
             .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
+        assert!((MedRecordValue::Float(0_f64) / MedRecordValue::Null)
+            .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
 
         assert!(
             (MedRecordValue::Bool(false) / MedRecordValue::String("value".to_string()))
@@ -1350,6 +1476,21 @@ mod test {
         assert!((MedRecordValue::Bool(false) / MedRecordValue::Float(0_f64))
             .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
         assert!((MedRecordValue::Bool(false) / MedRecordValue::Bool(false))
+            .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
+        assert!((MedRecordValue::Bool(false) / MedRecordValue::Null)
+            .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
+
+        assert!(
+            (MedRecordValue::Null / MedRecordValue::String("value".to_string()))
+                .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_)))
+        );
+        assert!((MedRecordValue::Null / MedRecordValue::Int(0))
+            .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
+        assert!((MedRecordValue::Null / MedRecordValue::Float(0_f64))
+            .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
+        assert!((MedRecordValue::Null / MedRecordValue::Bool(false))
+            .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
+        assert!((MedRecordValue::Null / MedRecordValue::Null)
             .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
     }
 
@@ -1371,6 +1512,11 @@ mod test {
                 .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_)))
         );
         assert!(
+            (MedRecordValue::String("value".to_string()).pow(MedRecordValue::Null))
+                .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_)))
+        );
+
+        assert!(
             (MedRecordValue::Int(0).pow(MedRecordValue::String("value".to_string())))
                 .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_)))
         );
@@ -1384,6 +1530,9 @@ mod test {
         );
         assert!((MedRecordValue::Int(0).pow(MedRecordValue::Bool(false)))
             .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
+        assert!((MedRecordValue::Int(0).pow(MedRecordValue::Null))
+            .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
+
         assert!(
             (MedRecordValue::Float(0_f64).pow(MedRecordValue::String("value".to_string())))
                 .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_)))
@@ -1400,6 +1549,9 @@ mod test {
             (MedRecordValue::Float(0_f64).pow(MedRecordValue::Bool(false)))
                 .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_)))
         );
+        assert!((MedRecordValue::Float(0_f64).pow(MedRecordValue::Null))
+            .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
+
         assert!(
             (MedRecordValue::Bool(false).pow(MedRecordValue::String("value".to_string())))
                 .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_)))
@@ -1414,6 +1566,21 @@ mod test {
             (MedRecordValue::Bool(false).pow(MedRecordValue::Bool(false)))
                 .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_)))
         );
+        assert!((MedRecordValue::Bool(false).pow(MedRecordValue::Null))
+            .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
+
+        assert!(
+            (MedRecordValue::Null.pow(MedRecordValue::String("value".to_string())))
+                .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_)))
+        );
+        assert!((MedRecordValue::Null.pow(MedRecordValue::Int(0)))
+            .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
+        assert!((MedRecordValue::Null.pow(MedRecordValue::Float(0_f64)))
+            .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
+        assert!((MedRecordValue::Null.pow(MedRecordValue::Bool(false)))
+            .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
+        assert!((MedRecordValue::Null.pow(MedRecordValue::Null))
+            .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
     }
 
     #[test]
@@ -1434,6 +1601,11 @@ mod test {
                 .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_)))
         );
         assert!(
+            (MedRecordValue::String("value".to_string()).r#mod(MedRecordValue::Null))
+                .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_)))
+        );
+
+        assert!(
             (MedRecordValue::Int(0).r#mod(MedRecordValue::String("value".to_string())))
                 .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_)))
         );
@@ -1447,6 +1619,9 @@ mod test {
         );
         assert!((MedRecordValue::Int(0).r#mod(MedRecordValue::Bool(false)))
             .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
+        assert!((MedRecordValue::Int(0).r#mod(MedRecordValue::Null))
+            .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
+
         assert!(
             (MedRecordValue::Float(0_f64).r#mod(MedRecordValue::String("value".to_string())))
                 .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_)))
@@ -1463,6 +1638,9 @@ mod test {
             (MedRecordValue::Float(0_f64).r#mod(MedRecordValue::Bool(false)))
                 .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_)))
         );
+        assert!((MedRecordValue::Float(0_f64).r#mod(MedRecordValue::Null))
+            .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
+
         assert!(
             (MedRecordValue::Bool(false).r#mod(MedRecordValue::String("value".to_string())))
                 .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_)))
@@ -1477,6 +1655,21 @@ mod test {
             (MedRecordValue::Bool(false).r#mod(MedRecordValue::Bool(false)))
                 .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_)))
         );
+        assert!((MedRecordValue::Bool(false).r#mod(MedRecordValue::Null))
+            .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
+
+        assert!(
+            (MedRecordValue::Null.r#mod(MedRecordValue::String("value".to_string())))
+                .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_)))
+        );
+        assert!((MedRecordValue::Null.r#mod(MedRecordValue::Int(0)))
+            .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
+        assert!((MedRecordValue::Null.r#mod(MedRecordValue::Float(0_f64)))
+            .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
+        assert!((MedRecordValue::Null.r#mod(MedRecordValue::Bool(false)))
+            .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
+        assert!((MedRecordValue::Null.r#mod(MedRecordValue::Null))
+            .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
     }
 
     #[test]
@@ -1511,10 +1704,13 @@ mod test {
         assert!(
             !MedRecordValue::String("true".to_string()).starts_with(&MedRecordValue::Bool(true))
         );
+        assert!(!MedRecordValue::String("Null".to_string()).starts_with(&MedRecordValue::Null));
 
         assert!(!MedRecordValue::Int(1).starts_with(&MedRecordValue::Bool(true)));
+        assert!(!MedRecordValue::Int(0).starts_with(&MedRecordValue::Null));
 
         assert!(!MedRecordValue::Float(1_f64).starts_with(&MedRecordValue::Bool(true)));
+        assert!(!MedRecordValue::Float(0_f64).starts_with(&MedRecordValue::Null));
 
         assert!(
             !MedRecordValue::Bool(true).starts_with(&MedRecordValue::String("true".to_string()))
@@ -1522,6 +1718,13 @@ mod test {
         assert!(!MedRecordValue::Bool(true).starts_with(&MedRecordValue::Int(1)));
         assert!(!MedRecordValue::Bool(true).starts_with(&MedRecordValue::Float(1_f64)));
         assert!(!MedRecordValue::Bool(true).starts_with(&MedRecordValue::Bool(true)));
+        assert!(!MedRecordValue::Bool(false).starts_with(&MedRecordValue::Null));
+
+        assert!(!MedRecordValue::Null.starts_with(&MedRecordValue::String("Null".to_string())));
+        assert!(!MedRecordValue::Null.starts_with(&MedRecordValue::Int(0)));
+        assert!(!MedRecordValue::Null.starts_with(&MedRecordValue::Float(0_f64)));
+        assert!(!MedRecordValue::Null.starts_with(&MedRecordValue::Bool(false)));
+        assert!(!MedRecordValue::Null.starts_with(&MedRecordValue::Null));
     }
 
     #[test]
@@ -1550,15 +1753,25 @@ mod test {
         assert!(!MedRecordValue::Float(10_f64).ends_with(&MedRecordValue::Float(1_f64)));
 
         assert!(!MedRecordValue::String("true".to_string()).ends_with(&MedRecordValue::Bool(true)));
+        assert!(!MedRecordValue::String("Null".to_string()).ends_with(&MedRecordValue::Null));
 
         assert!(!MedRecordValue::Int(1).ends_with(&MedRecordValue::Bool(true)));
+        assert!(!MedRecordValue::Int(0).ends_with(&MedRecordValue::Null));
 
         assert!(!MedRecordValue::Float(1_f64).ends_with(&MedRecordValue::Bool(true)));
+        assert!(!MedRecordValue::Float(0_f64).ends_with(&MedRecordValue::Null));
 
         assert!(!MedRecordValue::Bool(true).ends_with(&MedRecordValue::String("true".to_string())));
         assert!(!MedRecordValue::Bool(true).ends_with(&MedRecordValue::Int(1)));
         assert!(!MedRecordValue::Bool(true).ends_with(&MedRecordValue::Float(1_f64)));
         assert!(!MedRecordValue::Bool(true).ends_with(&MedRecordValue::Bool(true)));
+        assert!(!MedRecordValue::Bool(false).ends_with(&MedRecordValue::Null));
+
+        assert!(!MedRecordValue::Null.ends_with(&MedRecordValue::String("true".to_string())));
+        assert!(!MedRecordValue::Null.ends_with(&MedRecordValue::Int(1)));
+        assert!(!MedRecordValue::Null.ends_with(&MedRecordValue::Float(1_f64)));
+        assert!(!MedRecordValue::Null.ends_with(&MedRecordValue::Bool(true)));
+        assert!(!MedRecordValue::Null.ends_with(&MedRecordValue::Null));
     }
 
     #[test]
@@ -1587,15 +1800,25 @@ mod test {
         assert!(!MedRecordValue::Float(10_f64).contains(&MedRecordValue::Float(2_f64)));
 
         assert!(!MedRecordValue::String("true".to_string()).contains(&MedRecordValue::Bool(true)));
+        assert!(!MedRecordValue::String("Null".to_string()).contains(&MedRecordValue::Null));
 
         assert!(!MedRecordValue::Int(1).contains(&MedRecordValue::Bool(true)));
+        assert!(!MedRecordValue::Int(0).contains(&MedRecordValue::Null));
 
         assert!(!MedRecordValue::Float(1_f64).contains(&MedRecordValue::Bool(true)));
+        assert!(!MedRecordValue::Float(0_f64).contains(&MedRecordValue::Null));
 
         assert!(!MedRecordValue::Bool(true).contains(&MedRecordValue::String("true".to_string())));
         assert!(!MedRecordValue::Bool(true).contains(&MedRecordValue::Int(1)));
         assert!(!MedRecordValue::Bool(true).contains(&MedRecordValue::Float(1_f64)));
         assert!(!MedRecordValue::Bool(true).contains(&MedRecordValue::Bool(true)));
+        assert!(!MedRecordValue::Bool(false).contains(&MedRecordValue::Null));
+
+        assert!(!MedRecordValue::Null.contains(&MedRecordValue::String("true".to_string())));
+        assert!(!MedRecordValue::Null.contains(&MedRecordValue::Int(1)));
+        assert!(!MedRecordValue::Null.contains(&MedRecordValue::Float(1_f64)));
+        assert!(!MedRecordValue::Null.contains(&MedRecordValue::Bool(true)));
+        assert!(!MedRecordValue::Null.contains(&MedRecordValue::Null));
     }
 
     #[test]
@@ -1619,6 +1842,8 @@ mod test {
             MedRecordValue::String("al".to_string()),
             MedRecordValue::Bool(false).slice(1..3)
         );
+
+        assert_eq!(MedRecordValue::Null, MedRecordValue::Null.slice(1..3));
     }
 
     #[test]
@@ -1639,6 +1864,8 @@ mod test {
             MedRecordValue::Bool(false),
             MedRecordValue::Bool(false).round()
         );
+
+        assert_eq!(MedRecordValue::Null, MedRecordValue::Null.round());
     }
 
     #[test]
@@ -1659,6 +1886,8 @@ mod test {
             MedRecordValue::Bool(false),
             MedRecordValue::Bool(false).ceil()
         );
+
+        assert_eq!(MedRecordValue::Null, MedRecordValue::Null.ceil());
     }
 
     #[test]
@@ -1679,6 +1908,8 @@ mod test {
             MedRecordValue::Bool(false),
             MedRecordValue::Bool(false).floor()
         );
+
+        assert_eq!(MedRecordValue::Null, MedRecordValue::Null.floor());
     }
 
     #[test]
@@ -1704,6 +1935,8 @@ mod test {
             MedRecordValue::Bool(false),
             MedRecordValue::Bool(false).abs()
         );
+
+        assert_eq!(MedRecordValue::Null, MedRecordValue::Null.abs());
     }
 
     #[test]
@@ -1724,6 +1957,8 @@ mod test {
             MedRecordValue::Bool(false),
             MedRecordValue::Bool(false).sqrt()
         );
+
+        assert_eq!(MedRecordValue::Null, MedRecordValue::Null.sqrt());
     }
 
     #[test]
@@ -1744,6 +1979,8 @@ mod test {
             MedRecordValue::Bool(false),
             MedRecordValue::Bool(false).trim()
         );
+
+        assert_eq!(MedRecordValue::Null, MedRecordValue::Null.trim());
     }
 
     #[test]
@@ -1767,6 +2004,8 @@ mod test {
             MedRecordValue::Bool(false),
             MedRecordValue::Bool(false).trim_start()
         );
+
+        assert_eq!(MedRecordValue::Null, MedRecordValue::Null.trim_start());
     }
 
     #[test]
@@ -1790,6 +2029,8 @@ mod test {
             MedRecordValue::Bool(false),
             MedRecordValue::Bool(false).trim_end()
         );
+
+        assert_eq!(MedRecordValue::Null, MedRecordValue::Null.trim_end());
     }
 
     #[test]
@@ -1813,6 +2054,8 @@ mod test {
             MedRecordValue::Bool(false),
             MedRecordValue::Bool(false).lowercase()
         );
+
+        assert_eq!(MedRecordValue::Null, MedRecordValue::Null.lowercase());
     }
 
     #[test]
@@ -1836,5 +2079,7 @@ mod test {
             MedRecordValue::Bool(false),
             MedRecordValue::Bool(false).uppercase()
         );
+
+        assert_eq!(MedRecordValue::Null, MedRecordValue::Null.uppercase());
     }
 }

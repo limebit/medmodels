@@ -17,10 +17,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - name: Setup temporary directory
-        run: |
-          mkdir -p ${{ github.workspace }}/temp
-          echo "TMPDIR=${{ github.workspace }}/temp" >> $GITHUB_ENV
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
         with:
