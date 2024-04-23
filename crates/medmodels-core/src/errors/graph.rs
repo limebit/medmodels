@@ -19,7 +19,7 @@ impl Error for GraphError {
 impl Display for GraphError {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         match self {
-            GraphError::IndexError(message) => write!(f, "{}", message),
+            GraphError::IndexError(message) => write!(f, "IndexError: {}", message),
         }
     }
 }

@@ -4,7 +4,10 @@ pub mod querying;
 
 use conversion::{DeepInto, PyMedRecordAttribute, PyMedRecordValue};
 use errors::PyMedRecordError;
-use medmodels_core::medrecord::{EdgeIndex, Group, MedRecord};
+use medmodels_core::{
+    errors::MedRecordError,
+    medrecord::{Attributes, EdgeIndex, Group, MedRecord, MedRecordAttribute, MedRecordValue},
+};
 use pyo3::{prelude::*, types::PyTuple};
 use pyo3_polars::PyDataFrame;
 use querying::{PyEdgeOperation, PyNodeOperation};
@@ -259,6 +262,81 @@ impl PyMedRecord {
             .collect()
     }
 
+    #[pyo3(signature = (attributes, *node_index))]
+    fn replace_node_attributes(
+        &mut self,
+        attributes: PyAttributes,
+        node_index: &PyTuple,
+    ) -> PyResult<()> {
+        let attributes: Attributes = attributes.deep_into();
+
+        for node_index in node_index {
+            let node_index = node_index.extract::<PyNodeIndex>()?.into();
+
+            let current_attributes = self
+                .0
+                .node_attributes_mut(&node_index)
+                .map_err(PyMedRecordError::from)?;
+
+            *current_attributes = attributes.clone();
+        }
+
+        Ok(())
+    }
+
+    #[pyo3(signature = (attribute, value, *node_index))]
+    fn update_node_attribute(
+        &mut self,
+        attribute: PyMedRecordAttribute,
+        value: PyMedRecordValue,
+        node_index: &PyTuple,
+    ) -> PyResult<()> {
+        let attribute: MedRecordAttribute = attribute.into();
+        let value: MedRecordValue = value.into();
+
+        for node_index in node_index {
+            let node_index = node_index.extract::<PyNodeIndex>()?.into();
+
+            let node_attributes = self
+                .0
+                .node_attributes_mut(&node_index)
+                .map_err(PyMedRecordError::from)?;
+
+            *node_attributes
+                .entry(attribute.clone())
+                .or_insert(MedRecordValue::Null) = value.clone();
+        }
+
+        Ok(())
+    }
+
+    #[pyo3(signature = (attribute, *node_index))]
+    fn remove_node_attribute(
+        &mut self,
+        attribute: PyMedRecordAttribute,
+        node_index: &PyTuple,
+    ) -> PyResult<()> {
+        let attribute: MedRecordAttribute = attribute.into();
+
+        for node_index in node_index {
+            let node_index = node_index.extract::<PyNodeIndex>()?.into();
+
+            let node_attributes = self
+                .0
+                .node_attributes_mut(&node_index)
+                .map_err(PyMedRecordError::from)?;
+
+            node_attributes.remove(&attribute).ok_or(PyMedRecordError(
+                MedRecordError::KeyError(format!(
+                    "Cannot find attribute {} in node {}",
+                    attribute, node_index
+                )),
+            ))?;
+        }
+
+        Ok(())
+    }
+
     fn add_nodes(&mut self, nodes: Vec<(PyNodeIndex, PyAttributes)>) {
         self.0.add_nodes(nodes.deep_into())
     }
@@ -305,6 +383,81 @@ impl PyMedRecord {
                 Ok((edge_index, attributes.deep_into()))
             })
             .collect()
+    }
+
+    #[pyo3(signature = (attributes, *edge_index))]
+    fn replace_edge_attributes(
+        &mut self,
+        attributes: PyAttributes,
+        edge_index: &PyTuple,
+    ) -> PyResult<()> {
+        let attributes: Attributes = attributes.deep_into();
+
+        for edge_index in edge_index {
+            let edge_index = edge_index.extract::<EdgeIndex>()?;
+
+            let current_attributes = self
+                .0
+                .edge_attributes_mut(&edge_index)
+                .map_err(PyMedRecordError::from)?;
+
+            *current_attributes = attributes.clone();
+        }
+
+        Ok(())
+    }
+
+    #[pyo3(signature = (attribute, value, *edge_index))]
+    fn update_edge_attribute(
+        &mut self,
+        attribute: PyMedRecordAttribute,
+        value: PyMedRecordValue,
+        edge_index: &PyTuple,
+    ) -> PyResult<()> {
+        let attribute: MedRecordAttribute = attribute.into();
+        let value: MedRecordValue = value.into();
+
+        for edge_index in edge_index {
+            let edge_index = edge_index.extract::<EdgeIndex>()?;
+
+            let edge_attributes = self
+                .0
+                .edge_attributes_mut(&edge_index)
+                .map_err(PyMedRecordError::from)?;
+
+            *edge_attributes
+                .entry(attribute.clone())
+                .or_insert(MedRecordValue::Null) = value.clone();
+        }
+
+        Ok(())
+    }
+
+    #[pyo3(signature = (attribute, *edge_index))]
+    fn remove_edge_attribute(
+        &mut self,
+        attribute: PyMedRecordAttribute,
+        edge_index: &PyTuple,
+    ) -> PyResult<()> {
+        let attribute: MedRecordAttribute = attribute.into();
+
+        for edge_index in edge_index {
+            let edge_index = edge_index.extract::<EdgeIndex>()?;
+
+            let edge_attributes = self
+                .0
+                .edge_attributes_mut(&edge_index)
+                .map_err(PyMedRecordError::from)?;
+
+            edge_attributes.remove(&attribute).ok_or(PyMedRecordError(
+                MedRecordError::KeyError(format!(
+                    "Cannot find attribute {} in edge {}",
+                    attribute, edge_index
+                )),
+            ))?;
+        }
+
+        Ok(())
     }
 
     fn add_edges(

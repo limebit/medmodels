@@ -673,7 +673,6 @@ mod test {
     fn test_edge_attributes_mut() {
         let mut graph = create_graph();
 
-        // let attributes = graph.edge_attributes_mut(&0.into()).unwrap();
         let attributes = graph.edge_attributes_mut(&0).unwrap();
 
         assert_eq!(&create_edges()[0].2, attributes);
