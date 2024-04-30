@@ -178,8 +178,14 @@ impl MedRecord {
             .edges_connecting(outgoing_node_index, incoming_node_index)
     }
 
-    pub fn add_node(&mut self, node_index: NodeIndex, attributes: Attributes) {
-        self.graph.add_node(node_index, attributes);
+    pub fn add_node(
+        &mut self,
+        node_index: NodeIndex,
+        attributes: Attributes,
+    ) -> Result<(), MedRecordError> {
+        self.graph
+            .add_node(node_index, attributes)
+            .map_err(MedRecordError::from)
     }
 
     pub fn remove_node(&mut self, node_index: &NodeIndex) -> Result<Attributes, MedRecordError> {
@@ -190,10 +196,12 @@ impl MedRecord {
             .map_err(MedRecordError::from)
     }
 
-    pub fn add_nodes(&mut self, nodes: Vec<(NodeIndex, Attributes)>) {
+    pub fn add_nodes(&mut self, nodes: Vec<(NodeIndex, Attributes)>) -> Result<(), MedRecordError> {
         for (node_index, attributes) in nodes.into_iter() {
-            self.add_node(node_index, attributes);
+            self.add_node(node_index, attributes)?;
         }
+
+        Ok(())
     }
 
     pub fn add_nodes_dataframe(
@@ -203,7 +211,7 @@ impl MedRecord {
     ) -> Result<(), MedRecordError> {
         let nodes = dataframe_to_nodes(nodes_dataframe, index_column_name)?;
 
-        self.add_nodes(nodes);
+        self.add_nodes(nodes)?;
 
         Ok(())
     }
@@ -698,9 +706,17 @@ mod test {
 
         assert_eq!(0, medrecord.node_count());
 
-        medrecord.add_node("0".into(), HashMap::new());
+        medrecord.add_node("0".into(), HashMap::new()).unwrap();
 
         assert_eq!(1, medrecord.node_count());
+    }
+    #[test]
+    fn test_invalid_add_node() {
+        let mut graph = create_medrecord();
+
+        assert!(graph
+            .add_node("0".into(), HashMap::new())
+            .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
     }
 
     #[test]
@@ -730,9 +746,20 @@ mod test {
 
         let nodes = create_nodes();
 
-        medrecord.add_nodes(nodes);
+        medrecord.add_nodes(nodes).unwrap();
 
         assert_eq!(4, medrecord.node_count());
+    }
+
+    #[test]
+    fn test_invalid_add_nodes() {
+        let mut medrecord = create_medrecord();
+
+        let nodes = create_nodes();
+
+        assert!(medrecord
+            .add_nodes(nodes)
+            .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
     }
 
     #[test]
@@ -769,7 +796,7 @@ mod test {
 
         let nodes = create_nodes();
 
-        medrecord.add_nodes(nodes);
+        medrecord.add_nodes(nodes).unwrap();
 
         // Adding an edge pointing to a non-existing node should fail
         assert!(medrecord
@@ -807,7 +834,7 @@ mod test {
 
         let nodes = create_nodes();
 
-        medrecord.add_nodes(nodes);
+        medrecord.add_nodes(nodes).unwrap();
 
         assert_eq!(0, medrecord.edge_count());
 
@@ -824,7 +851,7 @@ mod test {
 
         let nodes = create_nodes();
 
-        medrecord.add_nodes(nodes);
+        medrecord.add_nodes(nodes).unwrap();
 
         assert_eq!(0, medrecord.edge_count());
 
@@ -1037,7 +1064,7 @@ mod test {
 
         assert_eq!(0, medrecord.node_count());
 
-        medrecord.add_node("0".into(), HashMap::new());
+        medrecord.add_node("0".into(), HashMap::new()).unwrap();
 
         assert_eq!(1, medrecord.node_count());
     }
@@ -1046,8 +1073,8 @@ mod test {
     fn test_edge_count() {
         let mut medrecord = MedRecord::new();
 
-        medrecord.add_node("0".into(), HashMap::new());
-        medrecord.add_node("1".into(), HashMap::new());
+        medrecord.add_node("0".into(), HashMap::new()).unwrap();
+        medrecord.add_node("1".into(), HashMap::new()).unwrap();
 
         assert_eq!(0, medrecord.edge_count());
 
