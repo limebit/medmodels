@@ -12,7 +12,7 @@ use medrecord::{
 use pyo3::prelude::*;
 
 #[pymodule]
-fn _medmodels(_py: Python, m: &PyModule) -> PyResult<()> {
+fn _medmodels(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyMedRecord>()?;
     m.add_class::<PyValueArithmeticOperation>()?;
     m.add_class::<PyValueTransformationOperation>()?;

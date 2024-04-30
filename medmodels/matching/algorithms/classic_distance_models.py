@@ -66,7 +66,11 @@ def nearest_neighbor(
         nn_index = np.argmin(dist)
 
         new_row = pd.DataFrame(control_array_full[nn_index], index=columns)
-        matched_group = pd.concat([matched_group, new_row.transpose().astype(float)])
+        matched_group = (
+            new_row.transpose().astype(float).copy()
+            if matched_group.empty
+            else pd.concat([matched_group, new_row.transpose().astype(float)])
+        )
         # For the k:1 matching don't consider the chosen row any more.
         control_array_full = np.delete(control_array_full, nn_index, 0)
         control_array = np.delete(control_array, nn_index, 0)

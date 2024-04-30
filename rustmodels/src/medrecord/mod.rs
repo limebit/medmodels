@@ -1,8 +1,11 @@
-mod conversion;
+mod attribute;
 mod errors;
 pub mod querying;
+mod traits;
+mod value;
 
-use conversion::{DeepInto, PyMedRecordAttribute, PyMedRecordValue};
+use crate::gil_hash_map::GILHashMap;
+use attribute::PyMedRecordAttribute;
 use errors::PyMedRecordError;
 use medmodels_core::{
     errors::MedRecordError,
@@ -12,10 +15,13 @@ use pyo3::{prelude::*, types::PyTuple};
 use pyo3_polars::PyDataFrame;
 use querying::{PyEdgeOperation, PyNodeOperation};
 use std::collections::HashMap;
+use traits::DeepInto;
+use value::PyMedRecordValue;
 
 type PyAttributes = HashMap<PyMedRecordAttribute, PyMedRecordValue>;
 type PyGroup = PyMedRecordAttribute;
 type PyNodeIndex = PyMedRecordAttribute;
+type Lut<T> = GILHashMap<usize, fn(&Bound<'_, PyAny>) -> PyResult<T>>;
 
 #[pyclass]
 pub struct PyMedRecord(MedRecord);
@@ -89,7 +95,10 @@ impl PyMedRecord {
     }
 
     #[pyo3(signature = (*node_index))]
-    fn node(&self, node_index: &PyTuple) -> PyResult<HashMap<PyNodeIndex, PyAttributes>> {
+    fn node(
+        &self,
+        node_index: &Bound<'_, PyTuple>,
+    ) -> PyResult<HashMap<PyNodeIndex, PyAttributes>> {
         node_index
             .into_iter()
             .map(|node_index| {
@@ -114,7 +123,7 @@ impl PyMedRecord {
     }
 
     #[pyo3(signature = (*edge_index))]
-    fn edge(&self, edge_index: &PyTuple) -> PyResult<HashMap<EdgeIndex, PyAttributes>> {
+    fn edge(&self, edge_index: &Bound<'_, PyTuple>) -> PyResult<HashMap<EdgeIndex, PyAttributes>> {
         edge_index
             .into_iter()
             .map(|edge_index| {
@@ -139,7 +148,7 @@ impl PyMedRecord {
     }
 
     #[pyo3(signature = (*group))]
-    fn group(&self, group: &PyTuple) -> PyResult<HashMap<PyGroup, Vec<PyNodeIndex>>> {
+    fn group(&self, group: &Bound<'_, PyTuple>) -> PyResult<HashMap<PyGroup, Vec<PyNodeIndex>>> {
         group
             .into_iter()
             .map(|group| {
@@ -160,7 +169,7 @@ impl PyMedRecord {
     #[pyo3(signature = (*node_index))]
     fn outgoing_edges(
         &self,
-        node_index: &PyTuple,
+        node_index: &Bound<'_, PyTuple>,
     ) -> PyResult<HashMap<PyNodeIndex, Vec<EdgeIndex>>> {
         node_index
             .into_iter()
@@ -182,7 +191,7 @@ impl PyMedRecord {
     #[pyo3(signature = (*node_index))]
     fn incoming_edges(
         &self,
-        node_index: &PyTuple,
+        node_index: &Bound<'_, PyTuple>,
     ) -> PyResult<HashMap<PyNodeIndex, Vec<EdgeIndex>>> {
         node_index
             .into_iter()
@@ -204,7 +213,7 @@ impl PyMedRecord {
     #[pyo3(signature = (*edge_index))]
     fn edge_endpoints(
         &self,
-        edge_index: &PyTuple,
+        edge_index: &Bound<'_, PyTuple>,
     ) -> PyResult<HashMap<EdgeIndex, (PyNodeIndex, PyNodeIndex)>> {
         edge_index
             .into_iter()
@@ -245,7 +254,7 @@ impl PyMedRecord {
     #[pyo3(signature = (*node_index))]
     fn remove_node(
         &mut self,
-        node_index: &PyTuple,
+        node_index: &Bound<'_, PyTuple>,
     ) -> PyResult<HashMap<PyNodeIndex, PyAttributes>> {
         node_index
             .into_iter()
@@ -266,7 +275,7 @@ impl PyMedRecord {
     fn replace_node_attributes(
         &mut self,
         attributes: PyAttributes,
-        node_index: &PyTuple,
+        node_index: &Bound<'_, PyTuple>,
     ) -> PyResult<()> {
         let attributes: Attributes = attributes.deep_into();
 
@@ -289,7 +298,7 @@ impl PyMedRecord {
         &mut self,
         attribute: PyMedRecordAttribute,
         value: PyMedRecordValue,
-        node_index: &PyTuple,
+        node_index: &Bound<'_, PyTuple>,
     ) -> PyResult<()> {
         let attribute: MedRecordAttribute = attribute.into();
         let value: MedRecordValue = value.into();
@@ -314,7 +323,7 @@ impl PyMedRecord {
     fn remove_node_attribute(
         &mut self,
         attribute: PyMedRecordAttribute,
-        node_index: &PyTuple,
+        node_index: &Bound<'_, PyTuple>,
     ) -> PyResult<()> {
         let attribute: MedRecordAttribute = attribute.into();
 
@@ -369,7 +378,10 @@ impl PyMedRecord {
     }
 
     #[pyo3(signature = (*edge_index))]
-    fn remove_edge(&mut self, edge_index: &PyTuple) -> PyResult<HashMap<EdgeIndex, PyAttributes>> {
+    fn remove_edge(
+        &mut self,
+        edge_index: &Bound<'_, PyTuple>,
+    ) -> PyResult<HashMap<EdgeIndex, PyAttributes>> {
         edge_index
             .into_iter()
             .map(|edge_index| {
@@ -389,7 +401,7 @@ impl PyMedRecord {
     fn replace_edge_attributes(
         &mut self,
         attributes: PyAttributes,
-        edge_index: &PyTuple,
+        edge_index: &Bound<'_, PyTuple>,
     ) -> PyResult<()> {
         let attributes: Attributes = attributes.deep_into();
 
@@ -412,7 +424,7 @@ impl PyMedRecord {
         &mut self,
         attribute: PyMedRecordAttribute,
         value: PyMedRecordValue,
-        edge_index: &PyTuple,
+        edge_index: &Bound<'_, PyTuple>,
     ) -> PyResult<()> {
         let attribute: MedRecordAttribute = attribute.into();
         let value: MedRecordValue = value.into();
@@ -437,7 +449,7 @@ impl PyMedRecord {
     fn remove_edge_attribute(
         &mut self,
         attribute: PyMedRecordAttribute,
-        edge_index: &PyTuple,
+        edge_index: &Bound<'_, PyTuple>,
     ) -> PyResult<()> {
         let attribute: MedRecordAttribute = attribute.into();
 
@@ -498,7 +510,7 @@ impl PyMedRecord {
     }
 
     #[pyo3(signature = (*group))]
-    fn remove_group(&mut self, group: &PyTuple) -> PyResult<()> {
+    fn remove_group(&mut self, group: &Bound<'_, PyTuple>) -> PyResult<()> {
         group.into_iter().try_for_each(|group| {
             let group = group.extract::<PyGroup>()?.into();
 
@@ -511,7 +523,11 @@ impl PyMedRecord {
     }
 
     #[pyo3(signature = (group, *node_index))]
-    fn add_node_to_group(&mut self, group: PyGroup, node_index: &PyTuple) -> PyResult<()> {
+    fn add_node_to_group(
+        &mut self,
+        group: PyGroup,
+        node_index: &Bound<'_, PyTuple>,
+    ) -> PyResult<()> {
         let group: Group = group.into();
 
         node_index.into_iter().try_for_each(|node_index| {
@@ -525,7 +541,11 @@ impl PyMedRecord {
     }
 
     #[pyo3(signature = (group, *node_index))]
-    fn remove_node_from_group(&mut self, group: PyGroup, node_index: &PyTuple) -> PyResult<()> {
+    fn remove_node_from_group(
+        &mut self,
+        group: PyGroup,
+        node_index: &Bound<'_, PyTuple>,
+    ) -> PyResult<()> {
         let group: Group = group.into();
 
         node_index.into_iter().try_for_each(|node_index| {
@@ -539,7 +559,10 @@ impl PyMedRecord {
     }
 
     #[pyo3(signature = (*node_index))]
-    fn groups_of_node(&self, node_index: &PyTuple) -> PyResult<HashMap<PyNodeIndex, Vec<PyGroup>>> {
+    fn groups_of_node(
+        &self,
+        node_index: &Bound<'_, PyTuple>,
+    ) -> PyResult<HashMap<PyNodeIndex, Vec<PyGroup>>> {
         node_index
             .into_iter()
             .map(|node_index| {
@@ -582,7 +605,10 @@ impl PyMedRecord {
     }
 
     #[pyo3(signature = (*node_index))]
-    fn neighbors(&self, node_index: &PyTuple) -> PyResult<HashMap<PyNodeIndex, Vec<PyNodeIndex>>> {
+    fn neighbors(
+        &self,
+        node_index: &Bound<'_, PyTuple>,
+    ) -> PyResult<HashMap<PyNodeIndex, Vec<PyNodeIndex>>> {
         node_index
             .into_iter()
             .map(|node_index| {
