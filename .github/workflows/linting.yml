@@ -21,6 +21,6 @@ jobs:
       - name: Install dependencies
         run: make install-dev
       - name: Lint with ruff
-        run: .venv/bin/python -m ruff --output-format=github .
+        run: .venv/bin/python -m ruff check --output-format=github .
       - name: Lint with clippy
         run: cargo clippy --all-targets --all-features -- -D warnings

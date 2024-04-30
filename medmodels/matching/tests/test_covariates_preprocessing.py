@@ -8,10 +8,10 @@ class TestCovariatesPreprocessing(unittest.TestCase):
     def test_covariate_coarsen(self):
 
         result = cp.covariate_coarsen([1, 5, 10, 14, 15], n_bins=3)
-        self.assertTrue(np.alltrue(result == [1, 1, 2, 3, 3]))
+        self.assertTrue(np.all(result == [1, 1, 2, 3, 3]))
 
         result = cp.covariate_coarsen([1, 1])
-        self.assertTrue(np.alltrue(result == [6, 6]))
+        self.assertTrue(np.all(result == [6, 6]))
 
     def test_covariate_add_noise(self):
 

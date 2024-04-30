@@ -32,7 +32,7 @@ test: install-tests
 	cargo test
 
 lint: install-dev
-	${VENV_PYTHON} -m ruff .
+	${VENV_PYTHON} -m ruff check .
 	cargo clippy --all-targets --all-features
 
 format: install-dev

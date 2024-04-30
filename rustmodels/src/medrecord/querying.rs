@@ -1,9 +1,8 @@
+use super::{attribute::PyMedRecordAttribute, value::PyMedRecordValue, Lut};
 use crate::{
     gil_hash_map::GILHashMap,
     medrecord::{
-        conversion::{convert_pyobject_to_medrecordvalue, PyMedRecordAttribute, PyMedRecordValue},
-        errors::PyMedRecordError,
-        PyGroup, PyNodeIndex,
+        errors::PyMedRecordError, value::convert_pyobject_to_medrecordvalue, PyGroup, PyNodeIndex,
     },
 };
 use medmodels_core::{
@@ -15,7 +14,8 @@ use medmodels_core::{
     },
 };
 use pyo3::{
-    pyclass, pymethods, types::PyType, FromPyObject, IntoPy, PyAny, PyObject, PyResult, Python,
+    pyclass, pymethods, types::PyAnyMethods, Bound, FromPyObject, IntoPy, PyAny, PyObject,
+    PyResult, Python,
 };
 use std::ops::Range;
 
@@ -47,27 +47,26 @@ impl From<PyValueOperand> for ValueOperand {
     }
 }
 
-static PYVALUEOPERAND_CONVERSION_LUT: GILHashMap<usize, fn(&PyAny) -> PyResult<ValueOperand>> =
-    GILHashMap::new();
+static PYVALUEOPERAND_CONVERSION_LUT: Lut<ValueOperand> = GILHashMap::new();
 
-fn convert_pyobject_to_valueoperand(ob: &PyAny) -> PyResult<ValueOperand> {
+fn convert_pyobject_to_valueoperand(ob: &Bound<'_, PyAny>) -> PyResult<ValueOperand> {
     if let Ok(value) = convert_pyobject_to_medrecordvalue(ob) {
         return Ok(ValueOperand::Value(value));
     };
 
-    fn convert_node_attribute_operand(ob: &PyAny) -> PyResult<ValueOperand> {
+    fn convert_node_attribute_operand(ob: &Bound<'_, PyAny>) -> PyResult<ValueOperand> {
         Ok(ValueOperand::Evaluate(MedRecordAttribute::from(
             ob.extract::<PyNodeAttributeOperand>()?.0,
         )))
     }
 
-    fn convert_edge_attribute_operand(ob: &PyAny) -> PyResult<ValueOperand> {
+    fn convert_edge_attribute_operand(ob: &Bound<'_, PyAny>) -> PyResult<ValueOperand> {
         Ok(ValueOperand::Evaluate(MedRecordAttribute::from(
             ob.extract::<PyEdgeAttributeOperand>()?.0,
         )))
     }
 
-    fn convert_arithmetic_operation(ob: &PyAny) -> PyResult<ValueOperand> {
+    fn convert_arithmetic_operation(ob: &Bound<'_, PyAny>) -> PyResult<ValueOperand> {
         let operation = ob.extract::<PyValueArithmeticOperation>()?;
 
         Ok(ValueOperand::ArithmeticOperation(
@@ -77,7 +76,7 @@ fn convert_pyobject_to_valueoperand(ob: &PyAny) -> PyResult<ValueOperand> {
         ))
     }
 
-    fn convert_transformation_operation(ob: &PyAny) -> PyResult<ValueOperand> {
+    fn convert_transformation_operation(ob: &Bound<'_, PyAny>) -> PyResult<ValueOperand> {
         let operation = ob.extract::<PyValueTransformationOperation>()?;
 
         Ok(ValueOperand::TransformationOperation(
@@ -86,13 +85,13 @@ fn convert_pyobject_to_valueoperand(ob: &PyAny) -> PyResult<ValueOperand> {
         ))
     }
 
-    fn convert_slice_operation(ob: &PyAny) -> PyResult<ValueOperand> {
+    fn convert_slice_operation(ob: &Bound<'_, PyAny>) -> PyResult<ValueOperand> {
         let operation = ob.extract::<PyValueSliceOperation>()?;
 
         Ok(ValueOperand::Slice(operation.0, operation.1))
     }
 
-    fn throw_error(ob: &PyAny) -> PyResult<ValueOperand> {
+    fn throw_error(ob: &Bound<'_, PyAny>) -> PyResult<ValueOperand> {
         Err(PyMedRecordError(MedRecordError::ConversionError(format!(
             "Failed to convert {} into ValueOperand",
             ob,
@@ -100,7 +99,7 @@ fn convert_pyobject_to_valueoperand(ob: &PyAny) -> PyResult<ValueOperand> {
         .into())
     }
 
-    let type_pointer = PyType::as_type_ptr(ob.get_type()) as usize;
+    let type_pointer = ob.get_type_ptr() as usize;
 
     Python::with_gil(|py| {
         PYVALUEOPERAND_CONVERSION_LUT.map(py, |lut| {
@@ -126,7 +125,7 @@ fn convert_pyobject_to_valueoperand(ob: &PyAny) -> PyResult<ValueOperand> {
 }
 
 impl<'a> FromPyObject<'a> for PyValueOperand {
-    fn extract(ob: &'a PyAny) -> PyResult<Self> {
+    fn extract_bound(ob: &Bound<'a, PyAny>) -> PyResult<Self> {
         convert_pyobject_to_valueoperand(ob).map(PyValueOperand::from)
     }
 }
