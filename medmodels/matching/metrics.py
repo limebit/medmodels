@@ -1,6 +1,5 @@
 from typing import Tuple
 import numpy as np
-import math
 
 
 def absolute_metric(*vectors: Tuple[np.ndarray, np.ndarray]) -> float:
@@ -59,46 +58,7 @@ def exact_metric(*vectors: Tuple[np.ndarray, np.ndarray]) -> float:
         return np.inf
 
 
-def mahalanobis_metric(
-    *vectors: Tuple[np.ndarray, np.ndarray], inv_cov: np.ndarray
-) -> float:
-    """
-    Computes the Mahalanobis distance between two vectors, optimal for matching with
-    continuous covariates. This distance considers the covariance among variables,
-    making it effective for scale-invariant matching and variables of different scales.
-
-    The Mahalanobis distance is defined as:
-
-    $$
-    D(x, y) = \\sqrt{(x - y)^T S^{-1} (x - y)}
-    $$
-
-    where $S$ is the covariance matrix of the entire distribution.
-
-    Args:
-        vectors (Tuple[np.ndarray, np.ndarray]): Two numpy arrays representing vectors
-            from the same distribution to be compared.
-        inv_cov (np.ndarray): The inverse of the covariance matrix of the entire
-            distribution.
-
-    Returns:
-        float: The Mahalanobis distance between the vectors.
-
-    Note:
-        The covariance matrix and its inverse are calculated once per pairing to
-        minimize redundant computations. For matching without replacement, the removal
-        of paired items necessitates recalculating these matrices for each new pair,
-        which can be computationally intensive for large datasets with many features.
-    """
-
-    diff = vectors[0] - vectors[1]
-    left = np.dot(diff, inv_cov)
-    right = np.dot(left, diff)
-    return math.sqrt(right)
-
-
 METRICS = {
     "absolute": absolute_metric,
     "exact": exact_metric,
-    "mahalanobis": mahalanobis_metric,
 }
