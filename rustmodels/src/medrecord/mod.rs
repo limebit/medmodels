@@ -247,8 +247,11 @@ impl PyMedRecord {
             .collect()
     }
 
-    fn add_node(&mut self, node_index: PyNodeIndex, attributes: PyAttributes) {
-        self.0.add_node(node_index.into(), attributes.deep_into())
+    fn add_node(&mut self, node_index: PyNodeIndex, attributes: PyAttributes) -> PyResult<()> {
+        Ok(self
+            .0
+            .add_node(node_index.into(), attributes.deep_into())
+            .map_err(PyMedRecordError::from)?)
     }
 
     #[pyo3(signature = (*node_index))]
@@ -346,8 +349,11 @@ impl PyMedRecord {
         Ok(())
     }
 
-    fn add_nodes(&mut self, nodes: Vec<(PyNodeIndex, PyAttributes)>) {
-        self.0.add_nodes(nodes.deep_into())
+    fn add_nodes(&mut self, nodes: Vec<(PyNodeIndex, PyAttributes)>) -> PyResult<()> {
+        Ok(self
+            .0
+            .add_nodes(nodes.deep_into())
+            .map_err(PyMedRecordError::from)?)
     }
 
     fn add_nodes_dataframe(
