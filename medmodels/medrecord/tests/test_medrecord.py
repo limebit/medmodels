@@ -277,6 +277,12 @@ class TestMedRecord(unittest.TestCase):
 
         self.assertEqual(1, medrecord.node_count())
 
+    def test_invalid_add_node(self):
+        medrecord = create_medrecord()
+
+        with self.assertRaises(AssertionError):
+            medrecord.add_node("0", {})
+
     def test_remove_node(self):
         medrecord = create_medrecord()
 
@@ -318,6 +324,12 @@ class TestMedRecord(unittest.TestCase):
         medrecord.add_nodes(create_pandas_nodes_dataframe_with_index())
 
         self.assertEqual(2, medrecord.node_count())
+
+    def test_invalid_add_nodes(self):
+        medrecord = create_medrecord()
+
+        with self.assertRaises(AssertionError):
+            medrecord.add_nodes(create_nodes())
 
     def tests_add_nodes_pandas(self):
         medrecord = MedRecord()

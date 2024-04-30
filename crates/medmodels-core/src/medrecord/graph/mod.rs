@@ -48,7 +48,7 @@ impl Graph {
         );
 
         for (node_index, attributes) in nodes {
-            graph.add_node(node_index, attributes);
+            graph.add_node(node_index, attributes)?;
         }
 
         if let Some(edges) = edges {
@@ -81,10 +81,23 @@ impl Graph {
         self.edges.len()
     }
 
-    pub fn add_node(&mut self, node_index: NodeIndex, attributes: Attributes) {
+    pub fn add_node(
+        &mut self,
+        node_index: NodeIndex,
+        attributes: Attributes,
+    ) -> Result<(), GraphError> {
+        if self.nodes.contains_key(&node_index) {
+            return Err(GraphError::AssertionError(format!(
+                "Node with index {} already exists",
+                node_index
+            )));
+        }
+
         let node = Node::new(attributes);
 
         self.nodes.insert(node_index, node);
+
+        Ok(())
     }
 
     pub fn remove_node(&mut self, node_index: &NodeIndex) -> Result<Attributes, GraphError> {
@@ -444,7 +457,7 @@ mod test {
 
         assert_eq!(0, graph.node_count());
 
-        graph.add_node("0".into(), HashMap::new());
+        graph.add_node("0".into(), HashMap::new()).unwrap();
 
         assert_eq!(1, graph.node_count());
     }
@@ -453,8 +466,8 @@ mod test {
     fn test_edge_count() {
         let mut graph = Graph::new();
 
-        graph.add_node("0".into(), HashMap::new());
-        graph.add_node("1".into(), HashMap::new());
+        graph.add_node("0".into(), HashMap::new()).unwrap();
+        graph.add_node("1".into(), HashMap::new()).unwrap();
 
         assert_eq!(0, graph.edge_count());
 
@@ -471,9 +484,18 @@ mod test {
 
         assert_eq!(0, graph.node_count());
 
-        graph.add_node("0".into(), HashMap::new());
+        graph.add_node("0".into(), HashMap::new()).unwrap();
 
         assert_eq!(1, graph.node_count());
+    }
+
+    #[test]
+    fn test_invalid_add_node() {
+        let mut graph = create_graph();
+
+        assert!(graph
+            .add_node("0".into(), HashMap::new())
+            .is_err_and(|e| matches!(e, GraphError::AssertionError(_))));
     }
 
     #[test]
