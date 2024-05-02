@@ -7,6 +7,7 @@
   <img alt="MedModels Logo" src="images/medmodels_logo.svg">
   <br />
   <br />
+  <br />
 </div>
 
 <div align="center">
