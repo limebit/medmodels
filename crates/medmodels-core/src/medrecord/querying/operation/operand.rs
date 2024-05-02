@@ -600,6 +600,10 @@ impl EdgeOperand {
             .or(EdgeOperation::ConnectedTarget(attribute))
     }
 
+    pub fn in_group(self, operand: impl Into<MedRecordAttribute>) -> EdgeOperation {
+        EdgeOperation::InGroup(operand.into())
+    }
+
     pub fn has_attribute(self, operand: impl Into<MedRecordAttribute>) -> EdgeOperation {
         EdgeOperation::HasAttribute(operand.into())
     }

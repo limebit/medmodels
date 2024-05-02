@@ -9,6 +9,7 @@ pub enum MedRecordError {
     KeyError(String),
     ConversionError(String),
     AssertionError(String),
+    SchemaError(String),
 }
 
 impl Error for MedRecordError {
@@ -18,6 +19,7 @@ impl Error for MedRecordError {
             MedRecordError::KeyError(message) => message,
             MedRecordError::ConversionError(message) => message,
             MedRecordError::AssertionError(message) => message,
+            MedRecordError::SchemaError(message) => message,
         }
     }
 }
@@ -29,6 +31,7 @@ impl Display for MedRecordError {
             Self::KeyError(message) => write!(f, "KeyError: {}", message),
             Self::ConversionError(message) => write!(f, "ConversionError: {}", message),
             Self::AssertionError(message) => write!(f, "AssertionError: {}", message),
+            Self::SchemaError(message) => write!(f, "AssertionError: {}", message),
         }
     }
 }

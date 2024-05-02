@@ -237,7 +237,7 @@ pub(super) trait Operation: Sized {
     implement_attribute_evaluate!(evaluate_attribute_contains, contains);
 
     fn evaluate_has_attribute<'a, P>(
-        node_indices: impl Iterator<Item = &'a Self::IndexType>,
+        indices: impl Iterator<Item = &'a Self::IndexType>,
         attribute_operand: MedRecordAttribute,
         attributes_for_index_fn: P,
     ) -> impl Iterator<Item = &'a Self::IndexType>
@@ -245,7 +245,7 @@ pub(super) trait Operation: Sized {
         P: Fn(&Self::IndexType) -> Result<&'a Attributes, MedRecordError>,
         Self::IndexType: 'a,
     {
-        node_indices.filter(move |index| {
+        indices.filter(move |index| {
             let Ok(attributes) = attributes_for_index_fn(index) else {
                 return false;
             };

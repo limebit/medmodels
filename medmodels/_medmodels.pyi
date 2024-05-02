@@ -1,7 +1,10 @@
-from typing import Dict, List, Optional, Sequence, Union
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Dict, List, Optional, Sequence, Union
 
 from medmodels.medrecord.types import (
     Attributes,
+    AttributesInput,
     EdgeIndex,
     EdgeIndexInputList,
     EdgeTuple,
@@ -16,12 +19,60 @@ from medmodels.medrecord.types import (
     PolarsNodeDataFrameInput,
 )
 
-ValueOperand = Union[
+if TYPE_CHECKING:
+    import sys
+
+    if sys.version_info >= (3, 10):
+        from typing import TypeAlias
+    else:
+        from typing_extensions import TypeAlias
+
+ValueOperand: TypeAlias = Union[
     MedRecordValue,
     MedRecordAttribute,
     PyValueArithmeticOperation,
     PyValueTransformationOperation,
 ]
+
+PyDataType: TypeAlias = Union[
+    PyString,
+    PyInt,
+    PyBool,
+    PyNull,
+    PyAny,
+    PyUnion,
+    PyOption,
+]
+
+class PyString: ...
+class PyInt: ...
+class PyBool: ...
+class PyNull: ...
+class PyAny: ...
+
+class PyUnion:
+    def __init__(self, first_type: PyDataType, second_type: PyDataType) -> None: ...
+
+class PyOption:
+    def __init__(self, inner_type: PyDataType) -> None: ...
+
+class PyGroupSchema:
+    def __init__(
+        self,
+        *,
+        nodes: Dict[MedRecordAttribute, PyDataType],
+        edges: Dict[MedRecordAttribute, PyDataType],
+        strict: Optional[bool] = None,
+    ) -> None: ...
+
+class PySchema:
+    def __init__(
+        self,
+        *,
+        groups: Dict[Group, PyGroupSchema],
+        default: Optional[PyGroupSchema] = None,
+        strict: Optional[bool] = None,
+    ) -> None: ...
 
 class PyMedRecord:
     nodes: List[NodeIndex]
@@ -29,6 +80,8 @@ class PyMedRecord:
     groups: List[Group]
 
     def __init__(self) -> None: ...
+    @staticmethod
+    def with_schema(schema: PySchema) -> PyMedRecord: ...
     @staticmethod
     def from_tuples(
         nodes: Sequence[NodeTuple],
@@ -48,9 +101,9 @@ class PyMedRecord:
     @staticmethod
     def from_ron(path: str) -> PyMedRecord: ...
     def to_ron(self, path: str) -> None: ...
+    def update_schema(self, schema: PySchema) -> None: ...
     def node(self, node_index: NodeIndexInputList) -> Dict[NodeIndex, Attributes]: ...
     def edge(self, edge_index: EdgeIndexInputList) -> Dict[EdgeIndex, Attributes]: ...
-    def group(self, group: GroupInputList) -> Dict[Group, List[NodeIndex]]: ...
     def outgoing_edges(
         self, node_index: NodeIndexInputList
     ) -> Dict[NodeIndex, List[EdgeIndex]]: ...
@@ -70,21 +123,21 @@ class PyMedRecord:
         source_node_indices: NodeIndexInputList,
         target_node_indices: NodeIndexInputList,
     ) -> List[EdgeIndex]: ...
-    def add_node(self, node_index: NodeIndex, attributes: Attributes) -> None: ...
+    def add_node(self, node_index: NodeIndex, attributes: AttributesInput) -> None: ...
     def remove_node(
         self, node_index: NodeIndexInputList
     ) -> Dict[NodeIndex, Attributes]: ...
     def replace_node_attributes(
-        self, attributes: Attributes, node_index: NodeIndexInputList
+        self, node_index: NodeIndexInputList, attributes: AttributesInput
     ) -> None: ...
     def update_node_attribute(
         self,
+        node_index: NodeIndexInputList,
         attribute: MedRecordAttribute,
         value: MedRecordValue,
-        node_index: NodeIndexInputList,
     ) -> None: ...
     def remove_node_attribute(
-        self, attribute: MedRecordAttribute, node_index: NodeIndexInputList
+        self, node_index: NodeIndexInputList, attribute: MedRecordAttribute
     ) -> None: ...
     def add_nodes(self, nodes: Sequence[NodeTuple]) -> None: ...
     def add_nodes_dataframes(
@@ -94,40 +147,54 @@ class PyMedRecord:
         self,
         source_node_index: NodeIndex,
         target_node_index: NodeIndex,
-        attributes: Attributes,
+        attributes: AttributesInput,
     ) -> EdgeIndex: ...
     def remove_edge(
         self, edge_index: EdgeIndexInputList
     ) -> Dict[EdgeIndex, Attributes]: ...
     def replace_edge_attributes(
-        self, attributes: Attributes, edge_index: EdgeIndexInputList
+        self, edge_index: EdgeIndexInputList, attributes: AttributesInput
     ) -> None: ...
     def update_edge_attribute(
         self,
+        edge_index: EdgeIndexInputList,
         attribute: MedRecordAttribute,
         value: MedRecordValue,
-        edge_index: EdgeIndexInputList,
     ) -> None: ...
     def remove_edge_attribute(
-        self, attribute: MedRecordAttribute, edge_index: EdgeIndexInputList
+        self, edge_index: EdgeIndexInputList, attribute: MedRecordAttribute
     ) -> None: ...
     def add_edges(self, edges: Sequence[EdgeTuple]) -> List[EdgeIndex]: ...
     def add_edges_dataframes(
         self, edges_dataframe: List[PolarsEdgeDataFrameInput]
     ) -> List[EdgeIndex]: ...
     def add_group(
-        self, group: Group, node_indices_to_add: Optional[NodeIndexInputList]
+        self,
+        group: Group,
+        node_indices_to_add: Optional[NodeIndexInputList],
+        edge_indices_to_add: Optional[EdgeIndexInputList],
     ) -> None: ...
     def remove_group(self, group: GroupInputList) -> None: ...
     def add_node_to_group(
         self, group: Group, node_index: NodeIndexInputList
     ) -> None: ...
+    def add_edge_to_group(
+        self, group: Group, edge_index: EdgeIndexInputList
+    ) -> None: ...
     def remove_node_from_group(
         self, group: Group, node_index: NodeIndexInputList
     ) -> None: ...
+    def remove_edge_from_group(
+        self, group: Group, edge_index: EdgeIndexInputList
+    ) -> None: ...
+    def nodes_in_group(self, group: GroupInputList) -> Dict[Group, List[NodeIndex]]: ...
+    def edges_in_group(self, group: GroupInputList) -> Dict[Group, List[EdgeIndex]]: ...
     def groups_of_node(
         self, node_index: NodeIndexInputList
     ) -> Dict[NodeIndex, List[Group]]: ...
+    def groups_of_edge(
+        self, edge_index: EdgeIndexInputList
+    ) -> Dict[EdgeIndex, List[Group]]: ...
     def node_count(self) -> int: ...
     def edge_count(self) -> int: ...
     def group_count(self) -> int: ...

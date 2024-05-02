@@ -20,6 +20,12 @@ pub enum MedRecordValue {
     Null,
 }
 
+impl Default for MedRecordValue {
+    fn default() -> Self {
+        Self::Null
+    }
+}
+
 impl From<&str> for MedRecordValue {
     fn from(value: &str) -> Self {
         value.to_string().into()
@@ -38,7 +44,7 @@ where
     fn from(value: Option<T>) -> Self {
         match value {
             Some(value) => value.into(),
-            None => MedRecordValue::Null,
+            None => Self::Null,
         }
     }
 }

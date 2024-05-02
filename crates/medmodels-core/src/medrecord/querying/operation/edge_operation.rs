@@ -29,6 +29,7 @@ pub enum EdgeOperation {
 
     ConnectedSource(MedRecordAttribute),
     ConnectedTarget(MedRecordAttribute),
+    InGroup(MedRecordAttribute),
     HasAttribute(MedRecordAttribute),
 
     ConnectedSourceWith(Box<NodeOperation>),
@@ -66,6 +67,11 @@ impl Operation for EdgeOperation {
             EdgeOperation::ConnectedTarget(attribute_operand) => Box::new(
                 Self::evaluate_connected_source(medrecord, indices, attribute_operand),
             ),
+            EdgeOperation::InGroup(attribute_operand) => Box::new(Self::evaluate_in_group(
+                medrecord,
+                indices,
+                attribute_operand,
+            )),
             EdgeOperation::HasAttribute(attribute_operand) => Box::new(
                 Self::evaluate_has_attribute(indices, attribute_operand, |index| {
                     medrecord.edge_attributes(index)
@@ -182,6 +188,19 @@ impl EdgeOperation {
 
             *endpoints.0 == attribute_operand
         })
+    }
+
+    fn evaluate_in_group<'a>(
+        medrecord: &'a MedRecord,
+        edge_indices: impl Iterator<Item = &'a EdgeIndex>,
+        attribute_operand: MedRecordAttribute,
+    ) -> impl Iterator<Item = &'a EdgeIndex> {
+        let edges_in_group = match medrecord.edges_in_group(&attribute_operand) {
+            Ok(edges_in_group) => edges_in_group.collect::<Vec<_>>(),
+            Err(_) => Vec::new(),
+        };
+
+        edge_indices.filter(move |index| edges_in_group.contains(index))
     }
 
     fn evaluate_connected_target_with<'a>(

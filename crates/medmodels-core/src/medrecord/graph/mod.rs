@@ -18,8 +18,8 @@ pub type Attributes = HashMap<MedRecordAttribute, MedRecordValue>;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub(super) struct Graph {
-    nodes: MrHashMap<NodeIndex, Node>,
-    edges: MrHashMap<EdgeIndex, Edge>,
+    pub(crate) nodes: MrHashMap<NodeIndex, Node>,
+    pub(crate) edges: MrHashMap<EdgeIndex, Edge>,
     edge_index_counter: AtomicUsize,
 }
 
@@ -39,28 +39,6 @@ impl Graph {
             edges: MrHashMap::with_capacity(edge_capacity),
             edge_index_counter: AtomicUsize::new(0),
         }
-    }
-
-    pub fn from_tuples(
-        nodes: Vec<(NodeIndex, Attributes)>,
-        edges: Option<Vec<(NodeIndex, NodeIndex, Attributes)>>,
-    ) -> Result<Self, GraphError> {
-        let mut graph = Self::with_capacity(
-            nodes.len(),
-            edges.as_ref().map(|vec| vec.len()).unwrap_or(0),
-        );
-
-        for (node_index, attributes) in nodes {
-            graph.add_node(node_index, attributes)?;
-        }
-
-        if let Some(edges) = edges {
-            for (source_node_index, target_node_index, attributes) in edges {
-                graph.add_edge(source_node_index, target_node_index, attributes)?;
-            }
-        }
-
-        Ok(graph)
     }
 
     pub fn clear(&mut self) {
@@ -474,33 +452,19 @@ mod test {
         let nodes = create_nodes();
         let edges = create_edges();
 
-        Graph::from_tuples(nodes, Some(edges)).unwrap()
-    }
+        let mut graph = Graph::with_capacity(nodes.len(), edges.len());
 
-    #[test]
-    fn test_from_tuples() {
-        let graph = create_graph();
+        for (node_index, attributes) in nodes {
+            graph.add_node(node_index, attributes).unwrap();
+        }
 
-        assert_eq!(4, graph.node_count());
-        assert_eq!(4, graph.edge_count());
-    }
+        for (source_node_index, target_node_index, attributes) in edges {
+            graph
+                .add_edge(source_node_index, target_node_index, attributes)
+                .unwrap();
+        }
 
-    #[test]
-    fn test_invalid_from_tuples() {
-        let nodes = create_nodes();
-
-        // Adding an edge pointing to a non-existing node should fail
-        assert!(Graph::from_tuples(
-            nodes.clone(),
-            Some(vec![("0".into(), "50".into(), HashMap::new())])
-        )
-        .is_err_and(|e| matches!(e, GraphError::IndexError(_))));
-
-        // Adding an edge from a non-existing should fail
-        assert!(
-            Graph::from_tuples(nodes, Some(vec![("50".into(), "0".into(), HashMap::new())]))
-                .is_err_and(|e| matches!(e, GraphError::IndexError(_)))
-        );
+        graph
     }
 
     #[test]
@@ -616,8 +580,8 @@ mod test {
 
     #[test]
     fn test_invalid_add_edge() {
-        let nodes = create_nodes();
-        let mut graph = Graph::from_tuples(nodes, None).unwrap();
+        let mut graph = Graph::new();
+        graph.add_node(0.into(), HashMap::new()).unwrap();
 
         // Adding an edge pointing to a non-existing node should fail
         assert!(graph

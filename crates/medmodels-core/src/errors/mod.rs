@@ -9,6 +9,7 @@ impl From<GraphError> for MedRecordError {
         match value {
             GraphError::IndexError(value) => Self::IndexError(value),
             GraphError::AssertionError(value) => Self::AssertionError(value),
+            GraphError::SchemaError(value) => Self::SchemaError(value),
         }
     }
 }

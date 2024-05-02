@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Dict, List, Mapping, Tuple, Union
+from typing import TYPE_CHECKING, Dict, List, Mapping, Tuple, TypedDict, Union
 
 import pandas as pd
 import polars as pl
@@ -9,7 +9,9 @@ if TYPE_CHECKING:
     import sys
 
     if sys.version_info >= (3, 10):
-        from typing import TypeAlias, TypeIs
+        from typing import TypeAlias
+
+        from typing_extensions import TypeIs
     else:
         from typing_extensions import TypeAlias, TypeIs
 
@@ -53,6 +55,11 @@ PandasNodeDataFrameInput: TypeAlias = Tuple[pd.DataFrame, str]
 PandasEdgeDataFrameInput: TypeAlias = Tuple[pd.DataFrame, str, str]
 
 
+class GroupInfo(TypedDict):
+    nodes: List[NodeIndex]
+    edges: List[EdgeIndex]
+
+
 def is_medrecord_attribute(value: object) -> TypeIs[MedRecordAttribute]:
     return isinstance(value, (str, int))
 
@@ -75,6 +82,33 @@ def is_group(value: object) -> TypeIs[Group]:
 
 def is_attributes(value: object) -> TypeIs[Attributes]:
     return isinstance(value, dict)
+
+
+def is_node_tuple(value: object) -> TypeIs[NodeTuple]:
+    return (
+        isinstance(value, tuple)
+        and len(value) == 2
+        and is_medrecord_attribute(value[0])
+        and is_attributes(value[1])
+    )
+
+
+def is_node_tuple_list(value: object) -> TypeIs[List[NodeTuple]]:
+    return isinstance(value, list) and all(is_node_tuple(input) for input in value)
+
+
+def is_edge_tuple(value: object) -> TypeIs[EdgeTuple]:
+    return (
+        isinstance(value, tuple)
+        and len(value) == 3
+        and is_medrecord_attribute(value[0])
+        and is_medrecord_attribute(value[1])
+        and is_attributes(value[2])
+    )
+
+
+def is_edge_tuple_list(value: object) -> TypeIs[List[EdgeTuple]]:
+    return isinstance(value, list) and all(is_edge_tuple(input) for input in value)
 
 
 def is_polars_node_dataframe_input(
