@@ -290,7 +290,7 @@ impl PyMedRecord {
                 .node_attributes_mut(&node_index)
                 .map_err(PyMedRecordError::from)?;
 
-            *current_attributes = attributes.clone();
+            current_attributes.clone_from(&attributes);
         }
 
         Ok(())
@@ -314,9 +314,10 @@ impl PyMedRecord {
                 .node_attributes_mut(&node_index)
                 .map_err(PyMedRecordError::from)?;
 
-            *node_attributes
+            node_attributes
                 .entry(attribute.clone())
-                .or_insert(MedRecordValue::Null) = value.clone();
+                .or_insert(MedRecordValue::Null)
+                .clone_from(&value)
         }
 
         Ok(())
@@ -419,7 +420,7 @@ impl PyMedRecord {
                 .edge_attributes_mut(&edge_index)
                 .map_err(PyMedRecordError::from)?;
 
-            *current_attributes = attributes.clone();
+            current_attributes.clone_from(&attributes);
         }
 
         Ok(())
@@ -443,9 +444,10 @@ impl PyMedRecord {
                 .edge_attributes_mut(&edge_index)
                 .map_err(PyMedRecordError::from)?;
 
-            *edge_attributes
+            edge_attributes
                 .entry(attribute.clone())
-                .or_insert(MedRecordValue::Null) = value.clone();
+                .or_insert(MedRecordValue::Null)
+                .clone_from(&value);
         }
 
         Ok(())
