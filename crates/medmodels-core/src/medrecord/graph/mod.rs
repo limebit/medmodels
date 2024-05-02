@@ -609,7 +609,7 @@ mod test {
 
         let new_attributes = HashMap::from([("0".into(), "1".into()), ("2".into(), "3".into())]);
 
-        *attributes = new_attributes.clone();
+        attributes.clone_from(&new_attributes);
 
         assert_eq!(&new_attributes, graph.node_attributes(&"0".into()).unwrap());
     }
@@ -652,7 +652,7 @@ mod test {
         for attributes in graph.nodes_attributes_mut() {
             assert!(all_attributes.contains(attributes));
 
-            *attributes = new_attributes.clone();
+            attributes.clone_from(&new_attributes);
         }
 
         for attributes in graph.nodes_attributes() {
@@ -701,7 +701,7 @@ mod test {
 
         let new_attributes = HashMap::from([("0".into(), "1".into()), ("2".into(), "3".into())]);
 
-        *attributes = new_attributes.clone();
+        attributes.clone_from(&new_attributes);
 
         assert_eq!(&new_attributes, graph.edge_attributes(&0).unwrap());
     }
@@ -744,7 +744,7 @@ mod test {
         for attributes in graph.edges_attributes_mut() {
             assert!(all_attributes.contains(attributes));
 
-            *attributes = new_attributes.clone();
+            attributes.clone_from(&new_attributes);
         }
 
         for attributes in graph.edges_attributes() {
