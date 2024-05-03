@@ -3,7 +3,11 @@
 </h1>
 
 <div align="center">
-  <img alt="MedModels Logo" src="https://raw.githubusercontent.com/limebit/medmodels/main/images/medmodels_logo.svg"><br>
+  <br />
+  <img alt="MedModels Logo" src="images/medmodels_logo.svg">
+  <br />
+  <br />
+  <br />
 </div>
 
 <div align="center">
