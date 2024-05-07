@@ -1,7 +1,5 @@
 from typing import Dict, List, Optional, Union
 
-from polars import DataFrame
-
 from medmodels.medrecord.types import (
     Attributes,
     EdgeIndex,
@@ -9,6 +7,8 @@ from medmodels.medrecord.types import (
     MedRecordAttribute,
     MedRecordValue,
     NodeIndex,
+    NodeDataFrameInput,
+    EdgeDataFrameInput,
 )
 
 ValueOperand = Union[
@@ -31,16 +31,12 @@ class PyMedRecord:
     ) -> PyMedRecord: ...
     @staticmethod
     def from_dataframes(
-        nodes_dataframe: DataFrame,
-        nodes_index_column_name: str,
-        edges_dataframe: DataFrame,
-        edges_from_index_column_name: str,
-        edges_to_index_column_name: str,
+        nodes_dataframes: List[NodeDataFrameInput],
+        edges_dataframes: List[EdgeDataFrameInput],
     ) -> PyMedRecord: ...
     @staticmethod
-    def from_nodes_dataframe(
-        nodes_dataframe: DataFrame,
-        nodes_index_column_name: str,
+    def from_nodes_dataframes(
+        nodes_dataframes: List[NodeDataFrameInput],
     ) -> PyMedRecord: ...
     @staticmethod
     def from_ron(path: str) -> PyMedRecord: ...
@@ -75,8 +71,8 @@ class PyMedRecord:
         self, attribute: MedRecordAttribute, *node_index: NodeIndex
     ) -> None: ...
     def add_nodes(self, nodes: List[tuple[NodeIndex, Attributes]]) -> None: ...
-    def add_nodes_dataframe(
-        self, nodes_dataframe: DataFrame, index_column_name: str
+    def add_nodes_dataframes(
+        self, nodes_dataframe: List[NodeDataFrameInput]
     ) -> None: ...
     def add_edge(
         self,
@@ -100,11 +96,8 @@ class PyMedRecord:
     def add_edges(
         self, edges: List[tuple[NodeIndex, NodeIndex, Attributes]]
     ) -> List[EdgeIndex]: ...
-    def add_edges_dataframe(
-        self,
-        edges_dataframe: DataFrame,
-        from_index_column_name: str,
-        to_index_column_name: str,
+    def add_edges_dataframes(
+        self, edges_dataframe: List[EdgeDataFrameInput]
     ) -> List[EdgeIndex]: ...
     def add_group(
         self, group: Group, node_indices_to_add: Optional[List[NodeIndex]]

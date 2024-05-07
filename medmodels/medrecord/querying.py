@@ -1349,7 +1349,7 @@ class NodeOperand:
         """
         return NodeOperation(self._node_operand.in_group(operand))
 
-    def has_attribbute(self, operand: MedRecordAttribute) -> NodeOperation:
+    def has_attribute(self, operand: MedRecordAttribute) -> NodeOperation:
         """
         Creates a NodeOperation that evaluates to true if the node has the
         specified attribute.

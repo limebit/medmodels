@@ -100,30 +100,30 @@ pub(crate) fn dataframe_to_nodes(
 
 pub(crate) fn dataframe_to_edges(
     edges: DataFrame,
-    from_index_column_name: &str,
-    to_index_column_name: &str,
+    source_index_column_name: &str,
+    target_index_column_name: &str,
 ) -> Result<Vec<(NodeIndex, NodeIndex, Attributes)>, MedRecordError> {
     let attribute_column_names = edges
         .get_column_names()
         .into_iter()
-        .filter(|name| *name != from_index_column_name && *name != to_index_column_name)
+        .filter(|name| *name != source_index_column_name && *name != target_index_column_name)
         .collect::<Vec<_>>();
 
-    let from_index = edges
-        .column(from_index_column_name)
+    let source_index = edges
+        .column(source_index_column_name)
         .map_err(|_| {
             MedRecordError::ConversionError(format!(
                 "Cannot find column with name {} in dataframe",
-                from_index_column_name
+                source_index_column_name
             ))
         })?
         .iter();
-    let to_index = edges
-        .column(to_index_column_name)
+    let target_index = edges
+        .column(target_index_column_name)
         .map_err(|_| {
             MedRecordError::ConversionError(format!(
                 "Cannot find column with name {} in dataframe",
-                to_index_column_name
+                target_index_column_name
             ))
         })?
         .iter();
@@ -136,12 +136,12 @@ pub(crate) fn dataframe_to_edges(
         .zip(attribute_column_names)
         .collect::<Vec<_>>();
 
-    from_index
-        .zip(to_index)
-        .map(|(from_index_value, to_index_value)| {
+    source_index
+        .zip(target_index)
+        .map(|(source_index_value, target_index_value)| {
             Ok((
-                from_index_value.try_into()?,
-                to_index_value.try_into()?,
+                source_index_value.try_into()?,
+                target_index_value.try_into()?,
                 columns
                     .iter_mut()
                     .map(|(column, column_name)| {
@@ -277,12 +277,12 @@ mod test {
 
     #[test]
     fn test_dataframe_to_edges() {
-        let s0 = Series::new("from", &["0", "1"]);
-        let s1 = Series::new("to", &["1", "0"]);
+        let s0 = Series::new("source", &["0", "1"]);
+        let s1 = Series::new("target", &["1", "0"]);
         let s2 = Series::new("attribute", &[1, 2]);
         let edges_dataframe = DataFrame::new(vec![s0, s1, s2]).unwrap();
 
-        let edges = dataframe_to_edges(edges_dataframe, "from", "to").unwrap();
+        let edges = dataframe_to_edges(edges_dataframe, "source", "target").unwrap();
 
         assert_eq!(
             vec![
@@ -303,19 +303,21 @@ mod test {
 
     #[test]
     fn test_invalid_dataframe_to_edges() {
-        let s0 = Series::new("from", &["0", "1"]);
-        let s1 = Series::new("to", &["1", "0"]);
+        let s0 = Series::new("source", &["0", "1"]);
+        let s1 = Series::new("target", &["1", "0"]);
         let s2 = Series::new("attribute", &[1, 2]);
         let edges_dataframe = DataFrame::new(vec![s0, s1, s2]).unwrap();
 
-        // Providing the wrong from index column name should fail
+        // Providing the wrong source index column name should fail
         assert!(
-            dataframe_to_edges(edges_dataframe.clone(), "wrong_column", "to")
+            dataframe_to_edges(edges_dataframe.clone(), "wrong_column", "target")
                 .is_err_and(|e| matches!(e, MedRecordError::ConversionError(_)))
         );
 
-        // Providing the wrong to index column name should fail
-        assert!(dataframe_to_edges(edges_dataframe, "from", "wrong_column")
-            .is_err_and(|e| matches!(e, MedRecordError::ConversionError(_))));
+        // Providing the wrong target index column name should fail
+        assert!(
+            dataframe_to_edges(edges_dataframe, "source", "wrong_column")
+                .is_err_and(|e| matches!(e, MedRecordError::ConversionError(_)))
+        );
     }
 }

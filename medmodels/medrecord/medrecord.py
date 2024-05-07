@@ -11,7 +11,41 @@ from medmodels.medrecord.types import (
     EdgeIndex,
     Group,
     NodeIndex,
+    NodeDataFrameInput,
+    EdgeDataFrameInput,
+    is_node_dataframe_input,
+    is_edge_dataframe_input,
 )
+
+
+def process_nodes_dataframe(nodes: pd.DataFrame) -> NodeDataFrameInput:
+    assert isinstance(nodes.index, pd.Index), "Nodes dataframe must have an Index"
+
+    nodes_index_column = nodes.index.name
+
+    assert nodes_index_column is not None, "Nodes dataframe must have an Index"
+
+    nodes_polars = pl.from_pandas(nodes, include_index=True)
+
+    return nodes_polars, nodes_index_column
+
+
+def process_edges_dataframe(
+    edges: pd.DataFrame,
+) -> EdgeDataFrameInput:
+    assert isinstance(
+        edges.index, pd.MultiIndex
+    ), "Edges dataframe must have a MultiIndex"
+
+    edges_index_names = edges.index.names
+    assert len(edges_index_names) == 2, "Edges dataframe MultiIndex must have 2 levels"
+
+    edges_source_index_column = edges_index_names[0]
+    edges_target_index_column = edges_index_names[1]
+
+    edges_polars = pl.from_pandas(edges, include_index=True)
+
+    return edges_polars, edges_source_index_column, edges_target_index_column
 
 
 class MedRecord:
@@ -55,64 +89,55 @@ class MedRecord:
 
     @classmethod
     def from_pandas(
-        cls, nodes: pd.DataFrame, edges: Optional[pd.DataFrame] = None
+        cls,
+        nodes: Union[pd.DataFrame, List[pd.DataFrame]],
+        edges: Optional[Union[pd.DataFrame, List[pd.DataFrame]]] = None,
     ) -> "MedRecord":
         """
-        Creates a new MedRecord instance from pandas DataFrames of nodes and edges.
+        Creates a new MedRecord instance from pandas DataFrames of nodes and
+        optionally edges.
 
-        This class method takes a pandas DataFrame representing nodes and optionally a
-        DataFrame representing edges, and creates a new MedRecord instance using these
-        DataFrames. The nodes DataFrame must have an Index. If an edges DataFrame is
-        provided, it must have a MultiIndex with exactly 2 levels.
+        This class method takes either a single pandas DataFrame or a list of DataFrames
+        representing nodes, and optionally a single DataFrame or a list of DataFrames
+        representing edges, to create a new MedRecord instance. Each DataFrame in the
+        nodes list must have an Index. Each DataFrame in the edges list, if provided,
+        must have a MultiIndex with exactly 2 levels.
 
         Args:
-            nodes (pd.DataFrame): A DataFrame representing nodes. Must have an Index.
-            edges (Optional[pd.DataFrame], optional): An optional DataFrame representing
-                edges. If provided, it must have a MultiIndex with exactly 2 levels.
-                Defaults to None.
+            nodes (Union[pd.DataFrame, List[pd.DataFrame]]): A DataFrame or a list
+                of DataFrames representing nodes. Each DataFrame must have an Index.
+            edges (Optional[Union[pd.DataFrame, List[pd.DataFrame]]], optional):
+                An optional DataFrame or list of DataFrames representing edges.
+                If provided, each DataFrame must have a MultiIndex with exactly
+                2 levels. Defaults to None.
 
         Returns:
-            MedRecord: A new MedRecord instance created from the provided nodes and
-                edges DataFrames.
+            MedRecord: A new MedRecord instance created from the provided nodes
+            and edges DataFrames.
         """
-
-        assert isinstance(nodes.index, pd.Index), "Nodes dataframe must have an Index"
-
-        nodes_index_column = nodes.index.name
-
-        assert nodes_index_column is not None, "Nodes dataframe must have an Index"
-
-        nodes_polars = pl.from_pandas(nodes, include_index=True)
 
         if edges is None:
             medrecord = cls.__new__(cls)
-            medrecord._medrecord = PyMedRecord.from_nodes_dataframe(
-                nodes_polars, nodes_index_column
+            medrecord._medrecord = PyMedRecord.from_nodes_dataframes(
+                [process_nodes_dataframe(nodes_df) for nodes_df in nodes]
+                if isinstance(nodes, list)
+                else [process_nodes_dataframe(nodes)]
             )
 
             return medrecord
 
-        assert isinstance(
-            edges.index, pd.MultiIndex
-        ), "Edges dataframe must have a MultiIndex"
-
-        edges_index_names = edges.index.names
-        assert (
-            len(edges_index_names) == 2
-        ), "Edges dataframe MultiIndex must have 2 levels"
-
-        edges_from_index_column = edges_index_names[0]
-        edges_to_index_column = edges_index_names[1]
-
-        edges_polars = pl.from_pandas(edges, include_index=True)
-
         medrecord = cls.__new__(cls)
         medrecord._medrecord = PyMedRecord.from_dataframes(
-            nodes_polars,
-            nodes_index_column,
-            edges_polars,
-            edges_from_index_column,
-            edges_to_index_column,
+            (
+                [process_nodes_dataframe(nodes_df) for nodes_df in nodes]
+                if isinstance(nodes, list)
+                else [process_nodes_dataframe(nodes)]
+            ),
+            (
+                [process_edges_dataframe(edges_df) for edges_df in edges]
+                if isinstance(edges, list)
+                else [process_edges_dataframe(edges)]
+            ),
         )
 
         return medrecord
@@ -120,59 +145,42 @@ class MedRecord:
     @classmethod
     def from_polars(
         cls,
-        nodes: pl.DataFrame,
-        nodes_index_column: str,
-        edges: Optional[pl.DataFrame] = None,
-        edges_from_index_column: Optional[str] = None,
-        edges_to_index_column: Optional[str] = None,
+        nodes: Union[NodeDataFrameInput, List[NodeDataFrameInput]],
+        edges: Optional[Union[EdgeDataFrameInput, List[EdgeDataFrameInput]]] = None,
     ) -> "MedRecord":
         """
-        Creates a new MedRecord instance from polars DataFrames of nodes and edges.
+        Creates a new MedRecord from Polars DataFrames of nodes and optionally edges.
 
-        This class method takes a polars DataFrame representing nodes and
-        optionally a DataFrame representing edges, and creates a new MedRecord
-        instance using these DataFrames. If an edges DataFrame is provided,
-        edges_from_index_column and edges_to_index_column must also be provided.
+        This method accepts either a tuple or a list of tuples for nodes, each
+        consisting of a Polars DataFrame and an index column. Similarly, it can also
+        accept a tuple or list of tuples for edges, each containing a DataFrame and
+        two strings for the index columns of source and target nodes. This setup allows
+        for building a MedRecord from multiple data segments.
 
         Args:
-            nodes (pl.DataFrame): A DataFrame representing nodes.
-            nodes_index_column (str): The index column for the nodes DataFrame.
-            edges (Optional[pl.DataFrame], optional): An optional DataFrame representing
-                edges. Defaults to None.
-            edges_from_index_column (Optional[str], optional): The from index column for
-                the edges DataFrame. Must be provided if edges is not None. Defaults
-                to None.
-            edges_to_index_column (Optional[str], optional): The to index column for the
-                edges DataFrame. Must be provided if edges is not None.
+            nodes (Union[NodeDataFrameInput, List[NodeDataFrameInput]]): A tuple or
+                list of tuples, each with a Polars DataFrame and an index column string.
+            edges (Optional[Union[EdgeDataFrameInput, List[EdgeDataFrameInput]]],
+                optional): An optional tuple or list of tuples, each with a DataFrame,
+                and strings for the index columns of source nodes and target nodes.
                 Defaults to None.
 
         Returns:
-            MedRecord: A new MedRecord instance created from the provided
-                nodes and edges DataFrames.
+            MedRecord: A new instance created from the provided nodes and edges data.
         """
 
         if edges is None:
             medrecord = cls.__new__(cls)
             medrecord._medrecord = PyMedRecord.from_nodes_dataframe(
-                nodes, nodes_index_column
+                nodes if isinstance(nodes, list) else [nodes]
             )
 
             return medrecord
 
-        assert (
-            edges_from_index_column is not None
-        ), "edges_from_index_column argument needs to be set when edges is not None"
-        assert (
-            edges_to_index_column is not None
-        ), "edges_to_index_column argument needs to be set when edges is not None"
-
         medrecord = cls.__new__(cls)
         medrecord._medrecord = PyMedRecord.from_dataframes(
-            nodes,
-            nodes_index_column,
-            edges,
-            edges_from_index_column,
-            edges_to_index_column,
+            nodes if isinstance(nodes, list) else [nodes],
+            edges if isinstance(edges, list) else [edges],
         )
 
         return medrecord
@@ -503,68 +511,90 @@ class MedRecord:
         return attributes
 
     def add_nodes(
-        self, nodes: Union[List[tuple[NodeIndex, Attributes]], pd.DataFrame]
+        self,
+        nodes: Union[
+            List[tuple[NodeIndex, Attributes]],
+            pd.DataFrame,
+            List[pd.DataFrame],
+            NodeDataFrameInput,
+            List[NodeDataFrameInput],
+        ],
     ) -> None:
         """
         Adds nodes to the MedRecord instance.
 
-        This method takes a list of tuples or a pandas DataFrame representing nodes
-        and adds them to the MedRecord instance. If a DataFrame is provided,
-        the add_nodes_pandas method is called.
+        This method can accept various forms of data: a list of tuples, a DataFrame, a
+        list of DataFrames, or an NodeDataFrameInput (tuple) / list of such tuples. It
+        adds these to the MedRecord instance. If a DataFrame or list of DataFrames is
+        used, add_nodes_pandas is called. If NodeDataFrameInput(s) are provided, each
+        tuple must include a DataFrame and the index column
 
         Args:
-            nodes (Union[List[tuple[NodeIndex, Attributes]], pd.DataFrame]): A list of
-                tuples, each containing a node index and a dictionary of the node's
-                attributes, or a DataFrame representing nodes.
+            nodes (Union[List[tuple[NodeIndex, Attributes]], pd.DataFrame,
+                List[pd.DataFrame], NodeDataFrameInput, List[NodeDataFrameInput]]):
+                Data representing nodes. This can be a list of tuples, each with a node
+                index and attributes; a DataFrame; a list of DataFrames; or a tuple (or
+                list of tuples) with a DataFrame and index column.
 
         Returns:
-            None
+            None: Nodes are added to the instance without a return value.
         """
-        if isinstance(nodes, pd.DataFrame):
+        if isinstance(nodes, pd.DataFrame) or (
+            isinstance(nodes, list) and isinstance(nodes[0], pd.DataFrame)
+        ):
             return self.add_nodes_pandas(nodes)
+
+        if is_node_dataframe_input(nodes) or (
+            isinstance(nodes, list) and is_node_dataframe_input(nodes[0])
+        ):
+            print("in here")
+            return self.add_nodes_polars(nodes)
 
         return self._medrecord.add_nodes(nodes)
 
-    def add_nodes_pandas(self, nodes: pd.DataFrame) -> None:
+    def add_nodes_pandas(self, nodes: Union[pd.DataFrame, List[pd.DataFrame]]) -> None:
         """
-        Adds nodes to the MedRecord instance from a pandas DataFrame.
+        Adds nodes to the MedRecord instance from one or more pandas DataFrames.
 
-        This method takes a pandas DataFrame representing nodes, converts it to a
-        polars DataFrame, and adds the nodes to the MedRecord  instance using the
-        add_nodes_polars method. The DataFrame must have an Index.
+        This method can take a single pandas DataFrame or a list of DataFrames
+        representing nodes, converts each to a polars DataFrame, and then adds the
+        nodes to the MedRecord instance using the add_nodes_polars method. Each
+        DataFrame must have an Index.
 
         Args:
-            nodes (pd.DataFrame): A DataFrame representing nodes. The DataFrame must
-                have an Index.
+            nodes (Union[pd.DataFrame, List[pd.DataFrame]]): A DataFrame or list
+                of DataFrames representing nodes. Each DataFrame must have an Index.
 
         Returns:
-            None
+            None: Nodes are added to the instance without a return value.
         """
-        assert isinstance(nodes.index, pd.Index), "Nodes dataframe must have an Index"
+        return self.add_nodes_polars(
+            [process_nodes_dataframe(nodes_df) for nodes_df in nodes]
+            if isinstance(nodes, list)
+            else [process_nodes_dataframe(nodes)]
+        )
 
-        nodes_index_column = nodes.index.name
-
-        assert nodes_index_column is not None, "Nodes dataframe must have an Index"
-
-        nodes_polars = pl.from_pandas(nodes, include_index=True)
-
-        return self.add_nodes_polars(nodes_polars, nodes_index_column)
-
-    def add_nodes_polars(self, nodes: pl.DataFrame, nodes_index_column: str) -> None:
+    def add_nodes_polars(
+        self, nodes: Union[NodeDataFrameInput, List[NodeDataFrameInput]]
+    ) -> None:
         """
-        Adds nodes to the MedRecord instance from a polars DataFrame.
+        Adds nodes to the MedRecord instance from one or more polars DataFrames.
 
-        This method takes a polars DataFrame representing nodes and a string
-        representing the index column, and adds the nodes to the MedRecord instance.
+        This method takes either a single tuple or a list of tuples, with each tuple
+        comprising a polars DataFrame and a string representing the index column, and
+        adds the nodes to the MedRecord instance.
 
         Args:
-            nodes (pl.DataFrame): A DataFrame representing nodes.
-            nodes_index_column (str): The index column for the nodes DataFrame.
+            nodes (Union[NodeDataFrameInput, List[NodeDataFrameInput]]): A tuple or list
+                of tuples, each containing a polars DataFrame and an
+                index column string.
 
         Returns:
-            None
+            None: Nodes are added to the instance without a return value.
         """
-        return self._medrecord.add_nodes_dataframe(nodes, nodes_index_column)
+        return self._medrecord.add_nodes_dataframes(
+            nodes if isinstance(nodes, list) else [nodes]
+        )
 
     def add_edge(
         self,
@@ -617,94 +647,91 @@ class MedRecord:
         return attributes
 
     def add_edges(
-        self, edges: Union[List[tuple[NodeIndex, NodeIndex, Attributes]], pd.DataFrame]
+        self,
+        edges: Union[
+            List[tuple[NodeIndex, NodeIndex, Attributes]],
+            pd.DataFrame,
+            List[pd.DataFrame],
+            EdgeDataFrameInput,
+            List[EdgeDataFrameInput],
+        ],
     ) -> List[EdgeIndex]:
         """
-        Adds edges to the MedRecord instance.
+        Adds edges to the MedRecord instance from various data formats.
 
-        This method takes a list of tuples or a pandas DataFrame representing edges,
-        adds them to the MedRecord instance and returns a list of edge indices that
-        werde added. Each tuple contains the index of the source node, the index of the
-        target node, and a dictionary of the edge's attributes. If a DataFrame is
-        provided, the add_edges_dataframe method is called. The DataFrame must have a
-        MultiIndex with two levels, representing the source and target nodes.
+        This method accepts lists of tuples, individual or lists of pandas DataFrames,
+        or EdgeDataFrameInput(s). Each tuple must have indices for source and target
+        nodes and a dictionary of attributes. DataFrames must have a MultiIndex with
+        two levels for source and target nodes. If a DataFrame or list of DataFrames is
+        provided, the add_edges_dataframe method is invoked.
 
         Args:
-            edges (Union[List[tuple[NodeIndex, NodeIndex, Attributes]], pd.DataFrame]):
-                A list of tuples, each containing the index of the source node, the
-                index of the target node, and a dictionary of the edge's attributes,
-                or a DataFrame representing edges. The DataFrame must have a MultiIndex
-                with two levels.
+            edges (Union[List[tuple[NodeIndex, NodeIndex, Attributes]], pd.DataFrame,
+                List[pd.DataFrame], EdgeDataFrameInput, List[EdgeDataFrameInput]]):
+                Data representing edges, which can be in several formats.
 
         Returns:
-            List[EgdeIndex]: A list of the edge indices that were added.
+            List[EdgeIndex]: A list of edge indices that were added.
         """
-        if isinstance(edges, pd.DataFrame):
+        if isinstance(edges, pd.DataFrame) or (
+            isinstance(edges, list) and isinstance(edges[0], pd.DataFrame)
+        ):
             return self.add_edges_pandas(edges)
+
+        if isinstance(edges, tuple) or (
+            isinstance(edges, list) and is_edge_dataframe_input(edges[0])
+        ):
+            return self.add_edges_polars(edges)
 
         return self._medrecord.add_edges(edges)
 
-    def add_edges_pandas(self, edges: pd.DataFrame) -> List[EdgeIndex]:
+    def add_edges_pandas(
+        self, edges: Union[pd.DataFrame, List[pd.DataFrame]]
+    ) -> List[EdgeIndex]:
         """
-        Adds edges to the MedRecord instance from a pandas DataFrame.
+        Adds edges to the MedRecord from one or more pandas DataFrames.
 
-        This method takes a pandas DataFrame representing edges, converts it to a
-        polars DataFrame, adds the edges to the MedRecord instance using the
-        add_edges_polars method and returns a list of edge indices that werde added.
-        The DataFrame must have a MultiIndex with two levels, representing the source
-        and target nodes.
+        This method takes either a single DataFrame or a list, converts them to
+        polars DataFrames, and adds them using add_edges_polars. It returns a list
+        of edge indices added. Each DataFrame must have a MultiIndex with two levels
+        for source and target nodes.
 
         Args:
-            edges (pd.DataFrame): A DataFrame representing edges. The DataFrame must
-                have a MultiIndex with two levels.
+            edges (Union[pd.DataFrame, List[pd.DataFrame]]): DataFrame(s) representing
+                edges, each must have a MultiIndex with two levels.
 
         Returns:
-            List[EdgeIndex]: A list of the edge indices that were added.
+            List[EdgeIndex]: A list of the edge indices added.
         """
-        assert isinstance(
-            edges.index, pd.MultiIndex
-        ), "Edges dataframe must have a MultiIndex"
-
-        edges_index_names = edges.index.names
-        assert (
-            len(edges_index_names) == 2
-        ), "Edges dataframe MultiIndex must have 2 levels"
-
-        edges_from_index_column = edges_index_names[0]
-        edges_to_index_column = edges_index_names[1]
-
-        edges_polars = pl.from_pandas(edges, include_index=True)
-
         return self.add_edges_polars(
-            edges_polars, edges_from_index_column, edges_to_index_column
+            [process_edges_dataframe(edges_df) for edges_df in edges]
+            if isinstance(edges, list)
+            else [process_edges_dataframe(edges)]
         )
 
     def add_edges_polars(
         self,
-        edges: pl.DataFrame,
-        edges_from_index_column: str,
-        edges_to_index_column: str,
+        edges: Union[EdgeDataFrameInput, List[EdgeDataFrameInput]],
     ) -> List[EdgeIndex]:
         """
-        Adds edges to the MedRecord instance from a polars DataFrame.
+        Adds edges to the MedRecord from one or more polars DataFrames.
 
-        This method takes a polars DataFrame representing edges and two strings
-        representing the index columns for the source and target nodes, adds
-        the edges to the MedRecord instance and returns a list of edge indices that were
+        This method accepts either a single EdgeDataFrameInput tuple or a list of
+        such tuples, where each tuple consists of a polars DataFrame and two strings
+        representing the index columns for the source and target nodes. It adds these
+        edges to the MedRecord instance and returns a list of edge indices that were
         added.
 
         Args:
-            edges (pl.DataFrame): A DataFrame representing edges.
-            edges_from_index_column (str): The index column for the source nodes
-                in the edges DataFrame.
-            edges_to_index_column (str): The index column for the target nodes
-                in the edges DataFrame.
+            edges (Union[EdgeDataFrameInput, List[EdgeDataFrameInput]]): A tuple or list
+                of tuples, each including a DataFrame and strings for source and
+                target node index columns.
 
         Returns:
             List[EdgeIndex]: A list of the edge indices that were added.
         """
-        return self._medrecord.add_edges_dataframe(
-            edges, edges_from_index_column, edges_to_index_column
+        return self._medrecord.add_edges_dataframes(
+            edges if isinstance(edges, list) else [edges]
         )
 
     def add_group(
