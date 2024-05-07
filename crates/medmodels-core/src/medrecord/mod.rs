@@ -23,6 +23,44 @@ use querying::{EdgeSelection, NodeSelection};
 use serde::{Deserialize, Serialize};
 use std::{fs, path::Path};
 
+pub struct NodeDataFrameInput {
+    dataframe: DataFrame,
+    index_column: String,
+}
+
+pub struct EdgeDataFrameInput {
+    dataframe: DataFrame,
+    source_index_column: String,
+    target_index_column: String,
+}
+
+impl<D, S> From<(D, S)> for NodeDataFrameInput
+where
+    D: Into<DataFrame>,
+    S: Into<String>,
+{
+    fn from(val: (D, S)) -> Self {
+        NodeDataFrameInput {
+            dataframe: val.0.into(),
+            index_column: val.1.into(),
+        }
+    }
+}
+
+impl<D, S> From<(D, S, S)> for EdgeDataFrameInput
+where
+    D: Into<DataFrame>,
+    S: Into<String>,
+{
+    fn from(val: (D, S, S)) -> Self {
+        EdgeDataFrameInput {
+            dataframe: val.0.into(),
+            source_index_column: val.1.into(),
+            target_index_column: val.2.into(),
+        }
+    }
+}
+
 #[derive(Serialize, Deserialize, Debug)]
 pub struct MedRecord {
     graph: Graph,
@@ -48,27 +86,54 @@ impl MedRecord {
     }
 
     pub fn from_dataframes(
-        nodes_dataframe: DataFrame,
-        nodes_index_column: &str,
-        edges_dataframe: DataFrame,
-        edges_from_index_column: &str,
-        edges_to_index_column: &str,
+        nodes_dataframes: impl IntoIterator<Item = impl Into<NodeDataFrameInput>>,
+        edges_dataframes: impl IntoIterator<Item = impl Into<EdgeDataFrameInput>>,
     ) -> Result<MedRecord, MedRecordError> {
-        let nodes = dataframe_to_nodes(nodes_dataframe, nodes_index_column)?;
-        let edges = dataframe_to_edges(
-            edges_dataframe,
-            edges_from_index_column,
-            edges_to_index_column,
-        )?;
+        let nodes = nodes_dataframes
+            .into_iter()
+            .map(|dataframe_input| {
+                let dataframe_input = dataframe_input.into();
+
+                dataframe_to_nodes(dataframe_input.dataframe, &dataframe_input.index_column)
+            })
+            .collect::<Result<Vec<_>, _>>()?
+            .into_iter()
+            .flatten()
+            .collect();
+
+        let edges = edges_dataframes
+            .into_iter()
+            .map(|dataframe_input| {
+                let dataframe_input = dataframe_input.into();
+
+                dataframe_to_edges(
+                    dataframe_input.dataframe,
+                    &dataframe_input.source_index_column,
+                    &dataframe_input.target_index_column,
+                )
+            })
+            .collect::<Result<Vec<_>, _>>()?
+            .into_iter()
+            .flatten()
+            .collect();
 
         Self::from_tuples(nodes, Some(edges))
     }
 
-    pub fn from_nodes_dataframe(
-        nodes_dataframe: DataFrame,
-        nodes_index_column: &str,
+    pub fn from_nodes_dataframes(
+        nodes_dataframes: impl IntoIterator<Item = impl Into<NodeDataFrameInput>>,
     ) -> Result<MedRecord, MedRecordError> {
-        let nodes = dataframe_to_nodes(nodes_dataframe, nodes_index_column)?;
+        let nodes = nodes_dataframes
+            .into_iter()
+            .map(|dataframe_input| {
+                let dataframe_input = dataframe_input.into();
+
+                dataframe_to_nodes(dataframe_input.dataframe, &dataframe_input.index_column)
+            })
+            .collect::<Result<Vec<_>, _>>()?
+            .into_iter()
+            .flatten()
+            .collect();
 
         Self::from_tuples(nodes, None)
     }
@@ -204,12 +269,21 @@ impl MedRecord {
         Ok(())
     }
 
-    pub fn add_nodes_dataframe(
+    pub fn add_nodes_dataframes(
         &mut self,
-        nodes_dataframe: DataFrame,
-        index_column_name: &str,
+        nodes_dataframes: impl IntoIterator<Item = impl Into<NodeDataFrameInput>>,
     ) -> Result<(), MedRecordError> {
-        let nodes = dataframe_to_nodes(nodes_dataframe, index_column_name)?;
+        let nodes = nodes_dataframes
+            .into_iter()
+            .map(|dataframe_input| {
+                let dataframe_input = dataframe_input.into();
+
+                dataframe_to_nodes(dataframe_input.dataframe, &dataframe_input.index_column)
+            })
+            .collect::<Result<Vec<_>, _>>()?
+            .into_iter()
+            .flatten()
+            .collect();
 
         self.add_nodes(nodes)?;
 
@@ -245,17 +319,25 @@ impl MedRecord {
             .collect()
     }
 
-    pub fn add_edges_dataframe(
+    pub fn add_edges_dataframes(
         &mut self,
-        edges_dataframe: DataFrame,
-        from_index_column_name: &str,
-        to_index_column_name: &str,
+        edges_dataframes: impl IntoIterator<Item = impl Into<EdgeDataFrameInput>>,
     ) -> Result<Vec<EdgeIndex>, MedRecordError> {
-        let edges = dataframe_to_edges(
-            edges_dataframe,
-            from_index_column_name,
-            to_index_column_name,
-        )?;
+        let edges = edges_dataframes
+            .into_iter()
+            .map(|dataframe_input| {
+                let dataframe_input = dataframe_input.into();
+
+                dataframe_to_edges(
+                    dataframe_input.dataframe,
+                    &dataframe_input.source_index_column,
+                    &dataframe_input.target_index_column,
+                )
+            })
+            .collect::<Result<Vec<_>, _>>()?
+            .into_iter()
+            .flatten()
+            .collect();
 
         self.add_edges(edges)
     }
@@ -771,7 +853,7 @@ mod test {
         let nodes_dataframe = create_nodes_dataframe().unwrap();
 
         medrecord
-            .add_nodes_dataframe(nodes_dataframe, "index")
+            .add_nodes_dataframes(vec![(nodes_dataframe, "index".to_string())])
             .unwrap();
 
         assert_eq!(2, medrecord.node_count());
@@ -857,7 +939,9 @@ mod test {
 
         let edges = create_edges_dataframe().unwrap();
 
-        medrecord.add_edges_dataframe(edges, "from", "to").unwrap();
+        medrecord
+            .add_edges_dataframes(vec![(edges, "from", "to")])
+            .unwrap();
 
         assert_eq!(2, medrecord.edge_count());
     }
