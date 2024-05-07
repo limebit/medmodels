@@ -45,7 +45,7 @@ class TestMedRecord(unittest.TestCase):
         self.assertEqual(["0"], medrecord.select_nodes(node().in_group("test")))
 
         # Node has attribute
-        self.assertEqual(["0"], medrecord.select_nodes(node().has_attribbute("lorem")))
+        self.assertEqual(["0"], medrecord.select_nodes(node().has_attribute("lorem")))
 
         # Node has outgoing edge with
         self.assertEqual(

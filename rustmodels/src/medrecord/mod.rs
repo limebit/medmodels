@@ -46,32 +46,19 @@ impl PyMedRecord {
 
     #[staticmethod]
     fn from_dataframes(
-        nodes_dataframe: PyDataFrame,
-        nodes_index_column_name: &str,
-        edges_dataframe: PyDataFrame,
-        edges_from_index_column_name: &str,
-        edges_to_index_column_name: &str,
+        nodes_dataframes: Vec<(PyDataFrame, String)>,
+        edges_dataframes: Vec<(PyDataFrame, String, String)>,
     ) -> PyResult<Self> {
         Ok(Self(
-            MedRecord::from_dataframes(
-                nodes_dataframe.into(),
-                nodes_index_column_name,
-                edges_dataframe.into(),
-                edges_from_index_column_name,
-                edges_to_index_column_name,
-            )
-            .map_err(PyMedRecordError::from)?,
+            MedRecord::from_dataframes(nodes_dataframes, edges_dataframes)
+                .map_err(PyMedRecordError::from)?,
         ))
     }
 
     #[staticmethod]
-    fn from_nodes_dataframe(
-        nodes_dataframe: PyDataFrame,
-        nodes_index_column_name: &str,
-    ) -> PyResult<Self> {
+    fn from_nodes_dataframe(nodes_dataframes: Vec<(PyDataFrame, String)>) -> PyResult<Self> {
         Ok(Self(
-            MedRecord::from_nodes_dataframe(nodes_dataframe.into(), nodes_index_column_name)
-                .map_err(PyMedRecordError::from)?,
+            MedRecord::from_nodes_dataframes(nodes_dataframes).map_err(PyMedRecordError::from)?,
         ))
     }
 
@@ -357,14 +344,13 @@ impl PyMedRecord {
             .map_err(PyMedRecordError::from)?)
     }
 
-    fn add_nodes_dataframe(
+    fn add_nodes_dataframes(
         &mut self,
-        nodes_dataframe: PyDataFrame,
-        index_column_name: &str,
+        nodes_dataframes: Vec<(PyDataFrame, String)>,
     ) -> PyResult<()> {
         Ok(self
             .0
-            .add_nodes_dataframe(nodes_dataframe.into(), index_column_name)
+            .add_nodes_dataframes(nodes_dataframes)
             .map_err(PyMedRecordError::from)?)
     }
 
@@ -490,19 +476,13 @@ impl PyMedRecord {
             .map_err(PyMedRecordError::from)?)
     }
 
-    fn add_edges_dataframe(
+    fn add_edges_dataframes(
         &mut self,
-        edges_dataframe: PyDataFrame,
-        source_index_column_name: &str,
-        target_index_column_name: &str,
+        edges_dataframes: Vec<(PyDataFrame, String, String)>,
     ) -> PyResult<Vec<EdgeIndex>> {
         Ok(self
             .0
-            .add_edges_dataframe(
-                edges_dataframe.into(),
-                source_index_column_name,
-                target_index_column_name,
-            )
+            .add_edges_dataframes(edges_dataframes)
             .map_err(PyMedRecordError::from)?)
     }
 
