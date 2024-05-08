@@ -92,11 +92,13 @@ fn convert_pyobject_to_valueoperand(ob: &Bound<'_, PyAny>) -> PyResult<ValueOper
     }
 
     fn throw_error(ob: &Bound<'_, PyAny>) -> PyResult<ValueOperand> {
-        Err(PyMedRecordError(MedRecordError::ConversionError(format!(
-            "Failed to convert {} into ValueOperand",
-            ob,
-        )))
-        .into())
+        Err(
+            PyMedRecordError::from(MedRecordError::ConversionError(format!(
+                "Failed to convert {} into ValueOperand",
+                ob,
+            )))
+            .into(),
+        )
     }
 
     let type_pointer = ob.get_type_ptr() as usize;

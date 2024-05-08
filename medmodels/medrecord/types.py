@@ -1,4 +1,5 @@
 from typing import Dict, Union
+
 from polars import DataFrame
 
 MedRecordAttribute = Union[str, int]
@@ -7,8 +8,8 @@ NodeIndex = MedRecordAttribute
 EdgeIndex = int
 Group = MedRecordAttribute
 Attributes = Dict[MedRecordAttribute, MedRecordValue]
-NodeDataFrameInput = tuple[DataFrame, str]
-EdgeDataFrameInput = tuple[DataFrame, str, str]
+PolarsNodeDataFrameInput = tuple[DataFrame, str]
+PolarsEdgeDataFrameInput = tuple[DataFrame, str, str]
 
 
 def is_medrecord_attribute(value: MedRecordAttribute) -> bool:
@@ -35,7 +36,7 @@ def is_attributes(value: Attributes) -> bool:
     return isinstance(value, Attributes)
 
 
-def is_node_dataframe_input(value: NodeDataFrameInput) -> bool:
+def is_polars_node_dataframe_input(value: PolarsNodeDataFrameInput) -> bool:
     return (
         isinstance(value, tuple)
         and len(value) == 2
@@ -44,7 +45,7 @@ def is_node_dataframe_input(value: NodeDataFrameInput) -> bool:
     )
 
 
-def is_edge_dataframe_input(value: EdgeDataFrameInput) -> bool:
+def is_polars_edge_dataframe_input(value: PolarsEdgeDataFrameInput) -> bool:
     return (
         isinstance(value, tuple)
         and len(value) == 3

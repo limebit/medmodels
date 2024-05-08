@@ -36,16 +36,16 @@ class _NodeIndexer:
         Attributes, Dict[NodeIndex, Attributes], Dict[NodeIndex, MedRecordValue]
     ]:
         if is_node_index(key):
-            return self._medrecord._medrecord.node(key)[key]
+            return self._medrecord._medrecord.node([key])[key]
 
         if isinstance(key, list):
-            return self._medrecord._medrecord.node(*key)
+            return self._medrecord._medrecord.node(key)
 
         if isinstance(key, NodeOperation):
-            return self._medrecord._medrecord.node(*self._medrecord.select_nodes(key))
+            return self._medrecord._medrecord.node(self._medrecord.select_nodes(key))
 
         if isinstance(key, slice):
-            return self._medrecord._medrecord.node(*self._medrecord.nodes)
+            return self._medrecord._medrecord.node(self._medrecord.nodes)
 
         if not isinstance(key, tuple):
             raise TypeError("Invalid key type")
@@ -55,14 +55,14 @@ class _NodeIndexer:
         if is_node_index(index_selection) and is_medrecord_attribute(
             attribute_selection
         ):
-            return self._medrecord._medrecord.node(index_selection)[index_selection][
+            return self._medrecord._medrecord.node([index_selection])[index_selection][
                 attribute_selection
             ]
 
         if isinstance(index_selection, list) and is_medrecord_attribute(
             attribute_selection
         ):
-            attributes = self._medrecord._medrecord.node(*index_selection)
+            attributes = self._medrecord._medrecord.node(index_selection)
 
             return {x: attributes[x][attribute_selection] for x in attributes.keys()}
 
@@ -70,7 +70,7 @@ class _NodeIndexer:
             attribute_selection
         ):
             attributes = self._medrecord._medrecord.node(
-                *self._medrecord.select_nodes(index_selection)
+                self._medrecord.select_nodes(index_selection)
             )
 
             return {x: attributes[x][attribute_selection] for x in attributes.keys()}
@@ -78,18 +78,20 @@ class _NodeIndexer:
         if isinstance(index_selection, slice) and is_medrecord_attribute(
             attribute_selection
         ):
-            attributes = self._medrecord._medrecord.node(*self._medrecord.nodes)
+            attributes = self._medrecord._medrecord.node(self._medrecord.nodes)
 
             return {x: attributes[x][attribute_selection] for x in attributes.keys()}
 
         if is_node_index(index_selection) and isinstance(attribute_selection, list):
             return {
-                x: self._medrecord._medrecord.node(index_selection)[index_selection][x]
+                x: self._medrecord._medrecord.node([index_selection])[index_selection][
+                    x
+                ]
                 for x in attribute_selection
             }
 
         if isinstance(index_selection, list) and isinstance(attribute_selection, list):
-            attributes = self._medrecord._medrecord.node(*index_selection)
+            attributes = self._medrecord._medrecord.node(index_selection)
 
             return {
                 x: {y: attributes[x][y] for y in attribute_selection}
@@ -100,7 +102,7 @@ class _NodeIndexer:
             attribute_selection, list
         ):
             attributes = self._medrecord._medrecord.node(
-                *self._medrecord.select_nodes(index_selection)
+                self._medrecord.select_nodes(index_selection)
             )
 
             return {
@@ -109,7 +111,7 @@ class _NodeIndexer:
             }
 
         if isinstance(index_selection, slice) and isinstance(attribute_selection, list):
-            attributes = self._medrecord._medrecord.node(*self._medrecord.nodes)
+            attributes = self._medrecord._medrecord.node(self._medrecord.nodes)
 
             return {
                 x: {y: attributes[x][y] for y in attribute_selection}
@@ -117,22 +119,22 @@ class _NodeIndexer:
             }
 
         if is_node_index(index_selection) and isinstance(attribute_selection, slice):
-            return self._medrecord._medrecord.node(index_selection)[index_selection]
+            return self._medrecord._medrecord.node([index_selection])[index_selection]
 
         if isinstance(index_selection, list) and isinstance(attribute_selection, slice):
-            return self._medrecord._medrecord.node(*index_selection)
+            return self._medrecord._medrecord.node(index_selection)
 
         if isinstance(index_selection, NodeOperation) and isinstance(
             attribute_selection, slice
         ):
             return self._medrecord._medrecord.node(
-                *self._medrecord.select_nodes(index_selection)
+                self._medrecord.select_nodes(index_selection)
             )
 
         if isinstance(index_selection, slice) and isinstance(
             attribute_selection, slice
         ):
-            return self._medrecord._medrecord.node(*self._medrecord.nodes)
+            return self._medrecord._medrecord.node(self._medrecord.nodes)
 
     def __setitem__(
         self,
@@ -149,19 +151,19 @@ class _NodeIndexer:
         value: Union[Attributes, MedRecordValue],
     ) -> None:
         if is_node_index(key):
-            return self._medrecord._medrecord.replace_node_attributes(value, key)
+            return self._medrecord._medrecord.replace_node_attributes(value, [key])
 
         if isinstance(key, list):
-            return self._medrecord._medrecord.replace_node_attributes(value, *key)
+            return self._medrecord._medrecord.replace_node_attributes(value, key)
 
         if isinstance(key, NodeOperation):
             return self._medrecord._medrecord.replace_node_attributes(
-                value, *self._medrecord.select_nodes(key)
+                value, self._medrecord.select_nodes(key)
             )
 
         if isinstance(key, slice):
             return self._medrecord._medrecord.replace_node_attributes(
-                value, *self._medrecord.nodes
+                value, self._medrecord.nodes
             )
 
         if not isinstance(key, tuple):
@@ -173,14 +175,14 @@ class _NodeIndexer:
             attribute_selection
         ):
             return self._medrecord._medrecord.update_node_attribute(
-                attribute_selection, value, index_selection
+                attribute_selection, value, [index_selection]
             )
 
         if isinstance(index_selection, list) and is_medrecord_attribute(
             attribute_selection
         ):
             return self._medrecord._medrecord.update_node_attribute(
-                attribute_selection, value, *index_selection
+                attribute_selection, value, index_selection
             )
 
         if isinstance(index_selection, NodeOperation) and is_medrecord_attribute(
@@ -189,7 +191,7 @@ class _NodeIndexer:
             return self._medrecord._medrecord.update_node_attribute(
                 attribute_selection,
                 value,
-                *self._medrecord.select_nodes(index_selection),
+                self._medrecord.select_nodes(index_selection),
             )
 
         if isinstance(index_selection, slice) and is_medrecord_attribute(
@@ -198,13 +200,13 @@ class _NodeIndexer:
             return self._medrecord._medrecord.update_node_attribute(
                 attribute_selection,
                 value,
-                *self._medrecord.nodes,
+                self._medrecord.nodes,
             )
 
         if is_node_index(index_selection) and isinstance(attribute_selection, list):
             for attribute in attribute_selection:
                 self._medrecord._medrecord.update_node_attribute(
-                    attribute, value, index_selection
+                    attribute, value, [index_selection]
                 )
 
             return
@@ -212,7 +214,7 @@ class _NodeIndexer:
         if isinstance(index_selection, list) and isinstance(attribute_selection, list):
             for attribute in attribute_selection:
                 self._medrecord._medrecord.update_node_attribute(
-                    attribute, value, *index_selection
+                    attribute, value, index_selection
                 )
 
             return
@@ -222,7 +224,7 @@ class _NodeIndexer:
         ):
             for attribute in attribute_selection:
                 self._medrecord._medrecord.update_node_attribute(
-                    attribute, value, *self._medrecord.select_nodes(index_selection)
+                    attribute, value, self._medrecord.select_nodes(index_selection)
                 )
 
             return
@@ -230,30 +232,30 @@ class _NodeIndexer:
         if isinstance(index_selection, slice) and isinstance(attribute_selection, list):
             for attribute in attribute_selection:
                 self._medrecord._medrecord.update_node_attribute(
-                    attribute, value, *self._medrecord.nodes
+                    attribute, value, self._medrecord.nodes
                 )
 
             return
 
         if is_node_index(index_selection) and isinstance(attribute_selection, slice):
-            attributes = self._medrecord._medrecord.node(index_selection)[
+            attributes = self._medrecord._medrecord.node([index_selection])[
                 index_selection
             ]
 
             for attribute in attributes.keys():
                 self._medrecord._medrecord.update_node_attribute(
-                    attribute, value, index_selection
+                    attribute, value, [index_selection]
                 )
 
             return
 
         if isinstance(index_selection, list) and isinstance(attribute_selection, slice):
-            attributes = self._medrecord._medrecord.node(*index_selection)
+            attributes = self._medrecord._medrecord.node(index_selection)
 
             for node in attributes.keys():
                 for attribute in attributes[node].keys():
                     self._medrecord._medrecord.update_node_attribute(
-                        attribute, value, node
+                        attribute, value, [node]
                     )
 
             return
@@ -262,13 +264,13 @@ class _NodeIndexer:
             attribute_selection, slice
         ):
             attributes = self._medrecord._medrecord.node(
-                *self._medrecord.select_nodes(index_selection)
+                self._medrecord.select_nodes(index_selection)
             )
 
             for node in attributes.keys():
                 for attribute in attributes[node].keys():
                     self._medrecord._medrecord.update_node_attribute(
-                        attribute, value, node
+                        attribute, value, [node]
                     )
 
             return
@@ -276,12 +278,12 @@ class _NodeIndexer:
         if isinstance(index_selection, slice) and isinstance(
             attribute_selection, slice
         ):
-            attributes = self._medrecord._medrecord.node(*self._medrecord.nodes)
+            attributes = self._medrecord._medrecord.node(self._medrecord.nodes)
 
             for node in attributes.keys():
                 for attribute in attributes[node].keys():
                     self._medrecord._medrecord.update_node_attribute(
-                        attribute, value, node
+                        attribute, value, [node]
                     )
 
             return
@@ -304,14 +306,14 @@ class _NodeIndexer:
             attribute_selection
         ):
             return self._medrecord._medrecord.remove_node_attribute(
-                attribute_selection, index_selection
+                attribute_selection, [index_selection]
             )
 
         if isinstance(index_selection, list) and is_medrecord_attribute(
             attribute_selection
         ):
             return self._medrecord._medrecord.remove_node_attribute(
-                attribute_selection, *index_selection
+                attribute_selection, index_selection
             )
 
         if isinstance(index_selection, NodeOperation) and is_medrecord_attribute(
@@ -319,7 +321,7 @@ class _NodeIndexer:
         ):
             return self._medrecord._medrecord.remove_node_attribute(
                 attribute_selection,
-                *self._medrecord.select_nodes(index_selection),
+                self._medrecord.select_nodes(index_selection),
             )
 
         if isinstance(index_selection, slice) and is_medrecord_attribute(
@@ -327,13 +329,13 @@ class _NodeIndexer:
         ):
             return self._medrecord._medrecord.remove_node_attribute(
                 attribute_selection,
-                *self._medrecord.nodes,
+                self._medrecord.nodes,
             )
 
         if is_node_index(index_selection) and isinstance(attribute_selection, list):
             for attribute in attribute_selection:
                 self._medrecord._medrecord.remove_node_attribute(
-                    attribute, index_selection
+                    attribute, [index_selection]
                 )
 
             return
@@ -341,7 +343,7 @@ class _NodeIndexer:
         if isinstance(index_selection, list) and isinstance(attribute_selection, list):
             for attribute in attribute_selection:
                 self._medrecord._medrecord.remove_node_attribute(
-                    attribute, *index_selection
+                    attribute, index_selection
                 )
 
             return
@@ -351,7 +353,7 @@ class _NodeIndexer:
         ):
             for attribute in attribute_selection:
                 self._medrecord._medrecord.remove_node_attribute(
-                    attribute, *self._medrecord.select_nodes(index_selection)
+                    attribute, self._medrecord.select_nodes(index_selection)
                 )
 
             return
@@ -359,33 +361,33 @@ class _NodeIndexer:
         if isinstance(index_selection, slice) and isinstance(attribute_selection, list):
             for attribute in attribute_selection:
                 self._medrecord._medrecord.remove_node_attribute(
-                    attribute, *self._medrecord.nodes
+                    attribute, self._medrecord.nodes
                 )
 
             return
 
         if is_node_index(index_selection) and isinstance(attribute_selection, slice):
             return self._medrecord._medrecord.replace_node_attributes(
-                {}, index_selection
+                {}, [index_selection]
             )
 
         if isinstance(index_selection, list) and isinstance(attribute_selection, slice):
             return self._medrecord._medrecord.replace_node_attributes(
-                {}, *index_selection
+                {}, index_selection
             )
 
         if isinstance(index_selection, NodeOperation) and isinstance(
             attribute_selection, slice
         ):
             return self._medrecord._medrecord.replace_node_attributes(
-                {}, *self._medrecord.select_nodes(index_selection)
+                {}, self._medrecord.select_nodes(index_selection)
             )
 
         if isinstance(index_selection, slice) and isinstance(
             attribute_selection, slice
         ):
             return self._medrecord._medrecord.replace_node_attributes(
-                {}, *self._medrecord.nodes
+                {}, self._medrecord.nodes
             )
 
 
@@ -411,16 +413,16 @@ class _EdgeIndexer:
         Attributes, Dict[EdgeIndex, Attributes], Dict[EdgeIndex, MedRecordValue]
     ]:
         if is_edge_index(key):
-            return self._medrecord._medrecord.edge(key)[key]
+            return self._medrecord._medrecord.edge([key])[key]
 
         if isinstance(key, list):
-            return self._medrecord._medrecord.edge(*key)
+            return self._medrecord._medrecord.edge(key)
 
         if isinstance(key, EdgeOperation):
-            return self._medrecord._medrecord.edge(*self._medrecord.select_edges(key))
+            return self._medrecord._medrecord.edge(self._medrecord.select_edges(key))
 
         if isinstance(key, slice):
-            return self._medrecord._medrecord.edge(*self._medrecord.edges)
+            return self._medrecord._medrecord.edge(self._medrecord.edges)
 
         if not isinstance(key, tuple):
             raise TypeError("Invalid key type")
@@ -430,14 +432,14 @@ class _EdgeIndexer:
         if is_edge_index(index_selection) and is_medrecord_attribute(
             attribute_selection
         ):
-            return self._medrecord._medrecord.edge(index_selection)[index_selection][
+            return self._medrecord._medrecord.edge([index_selection])[index_selection][
                 attribute_selection
             ]
 
         if isinstance(index_selection, list) and is_medrecord_attribute(
             attribute_selection
         ):
-            attributes = self._medrecord._medrecord.edge(*index_selection)
+            attributes = self._medrecord._medrecord.edge(index_selection)
 
             return {x: attributes[x][attribute_selection] for x in attributes.keys()}
 
@@ -445,7 +447,7 @@ class _EdgeIndexer:
             attribute_selection
         ):
             attributes = self._medrecord._medrecord.edge(
-                *self._medrecord.select_edges(index_selection)
+                self._medrecord.select_edges(index_selection)
             )
 
             return {x: attributes[x][attribute_selection] for x in attributes.keys()}
@@ -453,18 +455,20 @@ class _EdgeIndexer:
         if isinstance(index_selection, slice) and is_medrecord_attribute(
             attribute_selection
         ):
-            attributes = self._medrecord._medrecord.edge(*self._medrecord.edges)
+            attributes = self._medrecord._medrecord.edge(self._medrecord.edges)
 
             return {x: attributes[x][attribute_selection] for x in attributes.keys()}
 
         if is_edge_index(index_selection) and isinstance(attribute_selection, list):
             return {
-                x: self._medrecord._medrecord.edge(index_selection)[index_selection][x]
+                x: self._medrecord._medrecord.edge([index_selection])[index_selection][
+                    x
+                ]
                 for x in attribute_selection
             }
 
         if isinstance(index_selection, list) and isinstance(attribute_selection, list):
-            attributes = self._medrecord._medrecord.edge(*index_selection)
+            attributes = self._medrecord._medrecord.edge(index_selection)
 
             return {
                 x: {y: attributes[x][y] for y in attribute_selection}
@@ -475,7 +479,7 @@ class _EdgeIndexer:
             attribute_selection, list
         ):
             attributes = self._medrecord._medrecord.edge(
-                *self._medrecord.select_edges(index_selection)
+                self._medrecord.select_edges(index_selection)
             )
 
             return {
@@ -484,7 +488,7 @@ class _EdgeIndexer:
             }
 
         if isinstance(index_selection, slice) and isinstance(attribute_selection, list):
-            attributes = self._medrecord._medrecord.edge(*self._medrecord.edges)
+            attributes = self._medrecord._medrecord.edge(self._medrecord.edges)
 
             return {
                 x: {y: attributes[x][y] for y in attribute_selection}
@@ -492,22 +496,22 @@ class _EdgeIndexer:
             }
 
         if is_edge_index(index_selection) and isinstance(attribute_selection, slice):
-            return self._medrecord._medrecord.edge(index_selection)[index_selection]
+            return self._medrecord._medrecord.edge([index_selection])[index_selection]
 
         if isinstance(index_selection, list) and isinstance(attribute_selection, slice):
-            return self._medrecord._medrecord.edge(*index_selection)
+            return self._medrecord._medrecord.edge(index_selection)
 
         if isinstance(index_selection, EdgeOperation) and isinstance(
             attribute_selection, slice
         ):
             return self._medrecord._medrecord.edge(
-                *self._medrecord.select_edges(index_selection)
+                self._medrecord.select_edges(index_selection)
             )
 
         if isinstance(index_selection, slice) and isinstance(
             attribute_selection, slice
         ):
-            return self._medrecord._medrecord.edge(*self._medrecord.edges)
+            return self._medrecord._medrecord.edge(self._medrecord.edges)
 
     def __setitem__(
         self,
@@ -524,19 +528,19 @@ class _EdgeIndexer:
         value: Union[Attributes, MedRecordValue],
     ) -> None:
         if is_edge_index(key):
-            return self._medrecord._medrecord.replace_edge_attributes(value, key)
+            return self._medrecord._medrecord.replace_edge_attributes(value, [key])
 
         if isinstance(key, list):
-            return self._medrecord._medrecord.replace_edge_attributes(value, *key)
+            return self._medrecord._medrecord.replace_edge_attributes(value, key)
 
         if isinstance(key, EdgeOperation):
             return self._medrecord._medrecord.replace_edge_attributes(
-                value, *self._medrecord.select_edges(key)
+                value, self._medrecord.select_edges(key)
             )
 
         if isinstance(key, slice):
             return self._medrecord._medrecord.replace_edge_attributes(
-                value, *self._medrecord.edges
+                value, self._medrecord.edges
             )
 
         if not isinstance(key, tuple):
@@ -548,14 +552,14 @@ class _EdgeIndexer:
             attribute_selection
         ):
             return self._medrecord._medrecord.update_edge_attribute(
-                attribute_selection, value, index_selection
+                attribute_selection, value, [index_selection]
             )
 
         if isinstance(index_selection, list) and is_medrecord_attribute(
             attribute_selection
         ):
             return self._medrecord._medrecord.update_edge_attribute(
-                attribute_selection, value, *index_selection
+                attribute_selection, value, index_selection
             )
 
         if isinstance(index_selection, EdgeOperation) and is_medrecord_attribute(
@@ -564,7 +568,7 @@ class _EdgeIndexer:
             return self._medrecord._medrecord.update_edge_attribute(
                 attribute_selection,
                 value,
-                *self._medrecord.select_edges(index_selection),
+                self._medrecord.select_edges(index_selection),
             )
 
         if isinstance(index_selection, slice) and is_medrecord_attribute(
@@ -573,13 +577,13 @@ class _EdgeIndexer:
             return self._medrecord._medrecord.update_edge_attribute(
                 attribute_selection,
                 value,
-                *self._medrecord.edges,
+                self._medrecord.edges,
             )
 
         if is_edge_index(index_selection) and isinstance(attribute_selection, list):
             for attribute in attribute_selection:
                 self._medrecord._medrecord.update_edge_attribute(
-                    attribute, value, index_selection
+                    attribute, value, [index_selection]
                 )
 
             return
@@ -587,7 +591,7 @@ class _EdgeIndexer:
         if isinstance(index_selection, list) and isinstance(attribute_selection, list):
             for attribute in attribute_selection:
                 self._medrecord._medrecord.update_edge_attribute(
-                    attribute, value, *index_selection
+                    attribute, value, index_selection
                 )
 
             return
@@ -597,7 +601,7 @@ class _EdgeIndexer:
         ):
             for attribute in attribute_selection:
                 self._medrecord._medrecord.update_edge_attribute(
-                    attribute, value, *self._medrecord.select_edges(index_selection)
+                    attribute, value, self._medrecord.select_edges(index_selection)
                 )
 
             return
@@ -605,30 +609,30 @@ class _EdgeIndexer:
         if isinstance(index_selection, slice) and isinstance(attribute_selection, list):
             for attribute in attribute_selection:
                 self._medrecord._medrecord.update_edge_attribute(
-                    attribute, value, *self._medrecord.edges
+                    attribute, value, self._medrecord.edges
                 )
 
             return
 
         if is_edge_index(index_selection) and isinstance(attribute_selection, slice):
-            attributes = self._medrecord._medrecord.edge(index_selection)[
+            attributes = self._medrecord._medrecord.edge([index_selection])[
                 index_selection
             ]
 
             for attribute in attributes.keys():
                 self._medrecord._medrecord.update_edge_attribute(
-                    attribute, value, index_selection
+                    attribute, value, [index_selection]
                 )
 
             return
 
         if isinstance(index_selection, list) and isinstance(attribute_selection, slice):
-            attributes = self._medrecord._medrecord.edge(*index_selection)
+            attributes = self._medrecord._medrecord.edge(index_selection)
 
             for edge in attributes.keys():
                 for attribute in attributes[edge].keys():
                     self._medrecord._medrecord.update_edge_attribute(
-                        attribute, value, edge
+                        attribute, value, [edge]
                     )
 
             return
@@ -637,13 +641,13 @@ class _EdgeIndexer:
             attribute_selection, slice
         ):
             attributes = self._medrecord._medrecord.edge(
-                *self._medrecord.select_edges(index_selection)
+                self._medrecord.select_edges(index_selection)
             )
 
             for edge in attributes.keys():
                 for attribute in attributes[edge].keys():
                     self._medrecord._medrecord.update_edge_attribute(
-                        attribute, value, edge
+                        attribute, value, [edge]
                     )
 
             return
@@ -651,12 +655,12 @@ class _EdgeIndexer:
         if isinstance(index_selection, slice) and isinstance(
             attribute_selection, slice
         ):
-            attributes = self._medrecord._medrecord.edge(*self._medrecord.edges)
+            attributes = self._medrecord._medrecord.edge(self._medrecord.edges)
 
             for edge in attributes.keys():
                 for attribute in attributes[edge].keys():
                     self._medrecord._medrecord.update_edge_attribute(
-                        attribute, value, edge
+                        attribute, value, [edge]
                     )
 
             return
@@ -679,14 +683,14 @@ class _EdgeIndexer:
             attribute_selection
         ):
             return self._medrecord._medrecord.remove_edge_attribute(
-                attribute_selection, index_selection
+                attribute_selection, [index_selection]
             )
 
         if isinstance(index_selection, list) and is_medrecord_attribute(
             attribute_selection
         ):
             return self._medrecord._medrecord.remove_edge_attribute(
-                attribute_selection, *index_selection
+                attribute_selection, index_selection
             )
 
         if isinstance(index_selection, EdgeOperation) and is_medrecord_attribute(
@@ -694,7 +698,7 @@ class _EdgeIndexer:
         ):
             return self._medrecord._medrecord.remove_edge_attribute(
                 attribute_selection,
-                *self._medrecord.select_edges(index_selection),
+                self._medrecord.select_edges(index_selection),
             )
 
         if isinstance(index_selection, slice) and is_medrecord_attribute(
@@ -702,13 +706,13 @@ class _EdgeIndexer:
         ):
             return self._medrecord._medrecord.remove_edge_attribute(
                 attribute_selection,
-                *self._medrecord.edges,
+                self._medrecord.edges,
             )
 
         if is_edge_index(index_selection) and isinstance(attribute_selection, list):
             for attribute in attribute_selection:
                 self._medrecord._medrecord.remove_edge_attribute(
-                    attribute, index_selection
+                    attribute, [index_selection]
                 )
 
             return
@@ -716,7 +720,7 @@ class _EdgeIndexer:
         if isinstance(index_selection, list) and isinstance(attribute_selection, list):
             for attribute in attribute_selection:
                 self._medrecord._medrecord.remove_edge_attribute(
-                    attribute, *index_selection
+                    attribute, index_selection
                 )
 
             return
@@ -726,7 +730,7 @@ class _EdgeIndexer:
         ):
             for attribute in attribute_selection:
                 self._medrecord._medrecord.remove_edge_attribute(
-                    attribute, *self._medrecord.select_edges(index_selection)
+                    attribute, self._medrecord.select_edges(index_selection)
                 )
 
             return
@@ -734,31 +738,31 @@ class _EdgeIndexer:
         if isinstance(index_selection, slice) and isinstance(attribute_selection, list):
             for attribute in attribute_selection:
                 self._medrecord._medrecord.remove_edge_attribute(
-                    attribute, *self._medrecord.edges
+                    attribute, self._medrecord.edges
                 )
 
             return
 
         if is_edge_index(index_selection) and isinstance(attribute_selection, slice):
             return self._medrecord._medrecord.replace_edge_attributes(
-                {}, index_selection
+                {}, [index_selection]
             )
 
         if isinstance(index_selection, list) and isinstance(attribute_selection, slice):
             return self._medrecord._medrecord.replace_edge_attributes(
-                {}, *index_selection
+                {}, index_selection
             )
 
         if isinstance(index_selection, EdgeOperation) and isinstance(
             attribute_selection, slice
         ):
             return self._medrecord._medrecord.replace_edge_attributes(
-                {}, *self._medrecord.select_edges(index_selection)
+                {}, self._medrecord.select_edges(index_selection)
             )
 
         if isinstance(index_selection, slice) and isinstance(
             attribute_selection, slice
         ):
             return self._medrecord._medrecord.replace_edge_attributes(
-                {}, *self._medrecord.edges
+                {}, self._medrecord.edges
             )

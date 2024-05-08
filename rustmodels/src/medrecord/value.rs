@@ -5,6 +5,7 @@ use pyo3::{
     types::{PyAnyMethods, PyBool, PyFloat, PyInt, PyString},
     Bound, FromPyObject, IntoPy, PyAny, PyObject, PyResult, Python,
 };
+use std::ops::Deref;
 
 #[repr(transparent)]
 #[derive(Clone, Debug)]
@@ -48,11 +49,13 @@ pub(crate) fn convert_pyobject_to_medrecordvalue(
     }
 
     fn throw_error(ob: &Bound<'_, PyAny>) -> PyResult<MedRecordValue> {
-        Err(PyMedRecordError(MedRecordError::ConversionError(format!(
-            "Failed to convert {} into MedRecordValue",
-            ob,
-        )))
-        .into())
+        Err(
+            PyMedRecordError::from(MedRecordError::ConversionError(format!(
+                "Failed to convert {} into MedRecordValue",
+                ob,
+            )))
+            .into(),
+        )
     }
 
     let type_pointer = ob.get_type_ptr() as usize;
@@ -107,5 +110,13 @@ impl DeepFrom<PyMedRecordValue> for MedRecordValue {
 impl DeepFrom<MedRecordValue> for PyMedRecordValue {
     fn deep_from(value: MedRecordValue) -> Self {
         value.into()
+    }
+}
+
+impl Deref for PyMedRecordValue {
+    type Target = MedRecordValue;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
     }
 }
