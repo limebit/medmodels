@@ -2,7 +2,7 @@ use super::{traits::DeepFrom, value::convert_pyobject_to_medrecordvalue};
 use crate::medrecord::errors::PyMedRecordError;
 use medmodels_core::medrecord::MedRecordAttribute;
 use pyo3::{Bound, FromPyObject, IntoPy, PyAny, PyObject, PyResult, Python};
-use std::hash::Hash;
+use std::{hash::Hash, ops::Deref};
 
 #[repr(transparent)]
 #[derive(PartialEq, Eq, Hash, Clone, Debug)]
@@ -47,5 +47,13 @@ impl DeepFrom<PyMedRecordAttribute> for MedRecordAttribute {
 impl DeepFrom<MedRecordAttribute> for PyMedRecordAttribute {
     fn deep_from(value: MedRecordAttribute) -> Self {
         value.into()
+    }
+}
+
+impl Deref for PyMedRecordAttribute {
+    type Target = MedRecordAttribute;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
     }
 }
