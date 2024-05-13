@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import List, Union
 
 from medmodels._medmodels import (
@@ -34,7 +36,7 @@ class NodeOperation:
     def __init__(self, node_operation: PyNodeOperation):
         self._node_operation = node_operation
 
-    def logical_and(self, operation: "NodeOperation") -> "NodeOperation":
+    def logical_and(self, operation: NodeOperation) -> NodeOperation:
         """
         Combines this NodeOperation with another using a logical AND, resulting in a
         new NodeOperation that is true only if both original operations are true.
@@ -52,10 +54,10 @@ class NodeOperation:
             self._node_operation.logical_and(operation._node_operation)
         )
 
-    def __and__(self, operation: "NodeOperation") -> "NodeOperation":
+    def __and__(self, operation: NodeOperation) -> NodeOperation:
         return self.logical_and(operation)
 
-    def logical_or(self, operation: "NodeOperation") -> "NodeOperation":
+    def logical_or(self, operation: NodeOperation) -> NodeOperation:
         """
         Combines this NodeOperation with another using a logical OR, resulting in a
         new NodeOperation that is true if either of the original operations is true.
@@ -71,10 +73,10 @@ class NodeOperation:
         """
         return NodeOperation(self._node_operation.logical_or(operation._node_operation))
 
-    def __or__(self, operation: "NodeOperation") -> "NodeOperation":
+    def __or__(self, operation: NodeOperation) -> NodeOperation:
         return self.logical_or(operation)
 
-    def logical_xor(self, operation: "NodeOperation") -> "NodeOperation":
+    def logical_xor(self, operation: NodeOperation) -> NodeOperation:
         """
         Combines this NodeOperation with another using a logical XOR, resulting in a
         new NodeOperation that is true only if exactly one of the original operations
@@ -93,10 +95,10 @@ class NodeOperation:
             self._node_operation.logical_xor(operation._node_operation)
         )
 
-    def __xor__(self, operation: "NodeOperation") -> "NodeOperation":
+    def __xor__(self, operation: NodeOperation) -> NodeOperation:
         return self.logical_xor(operation)
 
-    def logical_not(self) -> "NodeOperation":
+    def logical_not(self) -> NodeOperation:
         """
         Creates a new NodeOperation that is the logical NOT of this operation,
         inversing the current condition. This method is useful for negating a condition
@@ -108,7 +110,7 @@ class NodeOperation:
         """
         return NodeOperation(self._node_operation.logical_not())
 
-    def __invert__(self) -> "NodeOperation":
+    def __invert__(self) -> NodeOperation:
         return self.logical_not()
 
 
@@ -118,7 +120,7 @@ class EdgeOperation:
     def __init__(self, edge_operation: PyEdgeOperation) -> None:
         self._edge_operation = edge_operation
 
-    def logical_and(self, operation: "EdgeOperation") -> "EdgeOperation":
+    def logical_and(self, operation: EdgeOperation) -> EdgeOperation:
         """
         Combines this EdgeOperation with another using a logical AND, resulting in a
         new EdgeOperation that is true only if both original operations are true.
@@ -136,10 +138,10 @@ class EdgeOperation:
             self._edge_operation.logical_and(operation._edge_operation)
         )
 
-    def __and__(self, operation: "EdgeOperation") -> "EdgeOperation":
+    def __and__(self, operation: EdgeOperation) -> EdgeOperation:
         return self.logical_and(operation)
 
-    def logical_or(self, operation: "EdgeOperation") -> "EdgeOperation":
+    def logical_or(self, operation: EdgeOperation) -> EdgeOperation:
         """
         Combines this EdgeOperation with another using a logical OR, resulting in a
         new EdgeOperation that is true if either of the original operations is true.
@@ -155,10 +157,10 @@ class EdgeOperation:
         """
         return EdgeOperation(self._edge_operation.logical_or(operation._edge_operation))
 
-    def __or__(self, operation: "EdgeOperation") -> "EdgeOperation":
+    def __or__(self, operation: EdgeOperation) -> EdgeOperation:
         return self.logical_or(operation)
 
-    def logical_xor(self, operation: "EdgeOperation") -> "EdgeOperation":
+    def logical_xor(self, operation: EdgeOperation) -> EdgeOperation:
         """
         Combines this EdgeOperation with another using a logical XOR, resulting in a
         new EdgeOperation that is true only if exactly one of the original operations
@@ -177,10 +179,10 @@ class EdgeOperation:
             self._edge_operation.logical_xor(operation._edge_operation)
         )
 
-    def __xor__(self, operation: "EdgeOperation") -> "EdgeOperation":
+    def __xor__(self, operation: EdgeOperation) -> EdgeOperation:
         return self.logical_xor(operation)
 
-    def logical_not(self) -> "EdgeOperation":
+    def logical_not(self) -> EdgeOperation:
         """
         Creates a new EdgeOperation that is the logical NOT of this operation,
         inversing the current condition. This method is useful for negating a condition
@@ -192,7 +194,7 @@ class EdgeOperation:
         """
         return EdgeOperation(self._edge_operation.logical_not())
 
-    def __invert__(self) -> "EdgeOperation":
+    def __invert__(self) -> EdgeOperation:
         return self.logical_not()
 
 
@@ -202,7 +204,9 @@ class NodeAttributeOperand:
     def __init__(self, node_attribute_operand: PyNodeAttributeOperand) -> None:
         self._node_attribute_operand = node_attribute_operand
 
-    def greater(self, operand: ValueOperand) -> NodeOperation:
+    def greater(
+        self, operand: Union[ValueOperand, NodeAttributeOperand]
+    ) -> NodeOperation:
         """
         Creates a NodeOperation that evaluates to true if the attribute represented
         by this operand is greater than the specified value or operand.
@@ -214,14 +218,18 @@ class NodeAttributeOperand:
             NodeOperation: A NodeOperation representing the greater-than comparison.
         """
         if isinstance(operand, NodeAttributeOperand):
-            operand = operand._node_attribute_operand
+            return NodeOperation(
+                self._node_attribute_operand.greater(operand._node_attribute_operand)
+            )
 
         return NodeOperation(self._node_attribute_operand.greater(operand))
 
-    def __gt__(self, operand: ValueOperand) -> NodeOperation:
+    def __gt__(
+        self, operand: Union[ValueOperand, NodeAttributeOperand]
+    ) -> NodeOperation:
         return self.greater(operand)
 
-    def less(self, operand: ValueOperand) -> NodeOperation:
+    def less(self, operand: Union[ValueOperand, NodeAttributeOperand]) -> NodeOperation:
         """
         Creates a NodeOperation that evaluates to true if the attribute represented
         by this operand is less than the specified value or operand.
@@ -233,14 +241,20 @@ class NodeAttributeOperand:
             NodeOperation: A NodeOperation representing the less-than comparison.
         """
         if isinstance(operand, NodeAttributeOperand):
-            operand = operand._node_attribute_operand
+            return NodeOperation(
+                self._node_attribute_operand.less(operand._node_attribute_operand)
+            )
 
         return NodeOperation(self._node_attribute_operand.less(operand))
 
-    def __lt__(self, operand: ValueOperand) -> NodeOperation:
+    def __lt__(
+        self, operand: Union[ValueOperand, NodeAttributeOperand]
+    ) -> NodeOperation:
         return self.less(operand)
 
-    def greater_or_equal(self, operand: ValueOperand) -> NodeOperation:
+    def greater_or_equal(
+        self, operand: Union[ValueOperand, NodeAttributeOperand]
+    ) -> NodeOperation:
         """
         Creates a NodeOperation that evaluates to true if the attribute represented
         by this operand is greater than or equal to the specified value or operand.
@@ -253,14 +267,22 @@ class NodeAttributeOperand:
                 greater-than-or-equal-to comparison.
         """
         if isinstance(operand, NodeAttributeOperand):
-            operand = operand._node_attribute_operand
+            return NodeOperation(
+                self._node_attribute_operand.greater_or_equal(
+                    operand._node_attribute_operand
+                )
+            )
 
         return NodeOperation(self._node_attribute_operand.greater_or_equal(operand))
 
-    def __ge__(self, operand: ValueOperand) -> NodeOperation:
+    def __ge__(
+        self, operand: Union[ValueOperand, NodeAttributeOperand]
+    ) -> NodeOperation:
         return self.greater_or_equal(operand)
 
-    def less_or_equal(self, operand: ValueOperand) -> NodeOperation:
+    def less_or_equal(
+        self, operand: Union[ValueOperand, NodeAttributeOperand]
+    ) -> NodeOperation:
         """
         Creates a NodeOperation that evaluates to true if the attribute represented
         by this operand is less than or equal to the specified value or operand.
@@ -273,14 +295,22 @@ class NodeAttributeOperand:
                 less-than-or-equal-to comparison.
         """
         if isinstance(operand, NodeAttributeOperand):
-            operand = operand._node_attribute_operand
+            return NodeOperation(
+                self._node_attribute_operand.less_or_equal(
+                    operand._node_attribute_operand
+                )
+            )
 
         return NodeOperation(self._node_attribute_operand.less_or_equal(operand))
 
-    def __le__(self, operand: ValueOperand) -> NodeOperation:
+    def __le__(
+        self, operand: Union[ValueOperand, NodeAttributeOperand]
+    ) -> NodeOperation:
         return self.less_or_equal(operand)
 
-    def equal(self, operand: ValueOperand) -> NodeOperation:
+    def equal(
+        self, operand: Union[ValueOperand, NodeAttributeOperand]
+    ) -> NodeOperation:
         """
         Creates a NodeOperation that evaluates to true if the attribute represented
         by this operand is equal to the specified value or operand.
@@ -292,14 +322,20 @@ class NodeAttributeOperand:
             NodeOperation: A NodeOperation representing the equality comparison.
         """
         if isinstance(operand, NodeAttributeOperand):
-            operand = operand._node_attribute_operand
+            return NodeOperation(
+                self._node_attribute_operand.equal(operand._node_attribute_operand)
+            )
 
         return NodeOperation(self._node_attribute_operand.equal(operand))
 
-    def __eq__(self, operand: ValueOperand) -> NodeOperation:
+    def __eq__(
+        self, operand: Union[ValueOperand, NodeAttributeOperand]
+    ) -> NodeOperation:
         return self.equal(operand)
 
-    def not_equal(self, operand: ValueOperand) -> NodeOperation:
+    def not_equal(
+        self, operand: Union[ValueOperand, NodeAttributeOperand]
+    ) -> NodeOperation:
         """
         Creates a NodeOperation that evaluates to true if the attribute represented
         by this operand is not equal to the specified value or operand.
@@ -311,11 +347,15 @@ class NodeAttributeOperand:
             NodeOperation: A NodeOperation representing the not-equal comparison.
         """
         if isinstance(operand, NodeAttributeOperand):
-            operand = operand._node_attribute_operand
+            return NodeOperation(
+                self._node_attribute_operand.not_equal(operand._node_attribute_operand)
+            )
 
         return NodeOperation(self._node_attribute_operand.not_equal(operand))
 
-    def __ne__(self, operand: ValueOperand) -> NodeOperation:
+    def __ne__(
+        self, operand: Union[ValueOperand, NodeAttributeOperand]
+    ) -> NodeOperation:
         return self.not_equal(operand)
 
     def is_in(self, values: List[MedRecordValue]) -> NodeOperation:
@@ -359,11 +399,17 @@ class NodeAttributeOperand:
             NodeOperation: A NodeOperation representing the starts-with condition.
         """
         if isinstance(operand, NodeAttributeOperand):
-            operand = operand._node_attribute_operand
+            return NodeOperation(
+                self._node_attribute_operand.starts_with(
+                    operand._node_attribute_operand
+                )
+            )
 
         return NodeOperation(self._node_attribute_operand.starts_with(operand))
 
-    def ends_with(self, operand: ValueOperand) -> NodeOperation:
+    def ends_with(
+        self, operand: Union[ValueOperand, NodeAttributeOperand]
+    ) -> NodeOperation:
         """
         Creates a NodeOperation that evaluates to true if the attribute represented
         by this operand ends with the specified value or operand.
@@ -376,11 +422,15 @@ class NodeAttributeOperand:
             NodeOperation: A NodeOperation representing the ends-with condition.
         """
         if isinstance(operand, NodeAttributeOperand):
-            operand = operand._node_attribute_operand
+            return NodeOperation(
+                self._node_attribute_operand.ends_with(operand._node_attribute_operand)
+            )
 
         return NodeOperation(self._node_attribute_operand.ends_with(operand))
 
-    def contains(self, operand: ValueOperand) -> NodeOperation:
+    def contains(
+        self, operand: Union[ValueOperand, NodeAttributeOperand]
+    ) -> NodeOperation:
         """
         Creates a NodeOperation that evaluates to true if the attribute represented
         by this operand contains the specified value or operand within it.
@@ -392,7 +442,9 @@ class NodeAttributeOperand:
             NodeOperation: A NodeOperation representing the contains condition.
         """
         if isinstance(operand, NodeAttributeOperand):
-            operand = operand._node_attribute_operand
+            return NodeOperation(
+                self._node_attribute_operand.contains(operand._node_attribute_operand)
+            )
 
         return NodeOperation(self._node_attribute_operand.contains(operand))
 
@@ -616,7 +668,9 @@ class EdgeAttributeOperand:
     def __init__(self, edge_attribute_operand: PyEdgeAttributeOperand) -> None:
         self._edge_attribute_operand = edge_attribute_operand
 
-    def greater(self, operand: ValueOperand) -> EdgeOperation:
+    def greater(
+        self, operand: Union[ValueOperand, EdgeAttributeOperand]
+    ) -> EdgeOperation:
         """
         Creates a EdgeOperation that evaluates to true if the attribute represented
         by this operand is greater than the specified value or operand.
@@ -628,14 +682,18 @@ class EdgeAttributeOperand:
             EdgeOperation: A EdgeOperation representing the greater-than comparison.
         """
         if isinstance(operand, EdgeAttributeOperand):
-            operand = operand._edge_attribute_operand
+            return EdgeOperation(
+                self._edge_attribute_operand.greater(operand._edge_attribute_operand)
+            )
 
         return EdgeOperation(self._edge_attribute_operand.greater(operand))
 
-    def __gt__(self, operand: ValueOperand) -> EdgeOperation:
+    def __gt__(
+        self, operand: Union[ValueOperand, EdgeAttributeOperand]
+    ) -> EdgeOperation:
         return self.greater(operand)
 
-    def less(self, operand: ValueOperand) -> EdgeOperation:
+    def less(self, operand: Union[ValueOperand, EdgeAttributeOperand]) -> EdgeOperation:
         """
         Creates a EdgeOperation that evaluates to true if the attribute represented
         by this operand is less than the specified value or operand.
@@ -647,14 +705,18 @@ class EdgeAttributeOperand:
             EdgeOperation: A EdgeOperation representing the less-than comparison.
         """
         if isinstance(operand, EdgeAttributeOperand):
-            operand = operand._edge_attribute_operand
+            return EdgeOperation(
+                self._edge_attribute_operand.less(operand._edge_attribute_operand)
+            )
 
         return EdgeOperation(self._edge_attribute_operand.less(operand))
 
     def __lt__(self, operand: ValueOperand) -> EdgeOperation:
         return self.less(operand)
 
-    def greater_or_equal(self, operand: ValueOperand) -> EdgeOperation:
+    def greater_or_equal(
+        self, operand: Union[ValueOperand, EdgeAttributeOperand]
+    ) -> EdgeOperation:
         """
         Creates a EdgeOperation that evaluates to true if the attribute represented
         by this operand is greater than or equal to the specified value or operand.
@@ -667,14 +729,20 @@ class EdgeAttributeOperand:
                 greater-than-or-equal-to comparison.
         """
         if isinstance(operand, EdgeAttributeOperand):
-            operand = operand._edge_attribute_operand
+            return EdgeOperation(
+                self._edge_attribute_operand.greater_or_equal(
+                    operand._edge_attribute_operand
+                )
+            )
 
         return EdgeOperation(self._edge_attribute_operand.greater_or_equal(operand))
 
     def __ge__(self, operand: ValueOperand) -> EdgeOperation:
         return self.greater_or_equal(operand)
 
-    def less_or_equal(self, operand: ValueOperand) -> EdgeOperation:
+    def less_or_equal(
+        self, operand: Union[ValueOperand, EdgeAttributeOperand]
+    ) -> EdgeOperation:
         """
         Creates a EdgeOperation that evaluates to true if the attribute represented
         by this operand is less than or equal to the specified value or operand.
@@ -687,33 +755,45 @@ class EdgeAttributeOperand:
                 less-than-or-equal-to comparison.
         """
         if isinstance(operand, EdgeAttributeOperand):
-            operand = operand._edge_attribute_operand
+            return EdgeOperation(
+                self._edge_attribute_operand.less_or_equal(
+                    operand._edge_attribute_operand
+                )
+            )
 
         return EdgeOperation(self._edge_attribute_operand.less_or_equal(operand))
 
     def __le__(self, operand: ValueOperand) -> EdgeOperation:
         return self.less_or_equal(operand)
 
-    def equal(self, operand: ValueOperand) -> EdgeOperation:
+    def equal(
+        self, operand: Union[ValueOperand, EdgeAttributeOperand]
+    ) -> EdgeOperation:
         """
         Creates a EdgeOperation that evaluates to true if the attribute represented
         by this operand is equal to the specified value or operand.
 
         Args:
-            operand (ValueOperand): The value or operand to compare against.y
+            operand (ValueOperand): The value or operand to compare against.
 
         Returns:
             EdgeOperation: A EdgeOperation representing the equality comparison.
         """
         if isinstance(operand, EdgeAttributeOperand):
-            operand = operand._edge_attribute_operand
+            return EdgeOperation(
+                self._edge_attribute_operand.equal(operand._edge_attribute_operand)
+            )
 
         return EdgeOperation(self._edge_attribute_operand.equal(operand))
 
-    def __eq__(self, operand: ValueOperand) -> EdgeOperation:
+    def __eq__(
+        self, operand: Union[ValueOperand, EdgeAttributeOperand]
+    ) -> EdgeOperation:
         return self.equal(operand)
 
-    def not_equal(self, operand: ValueOperand) -> EdgeOperation:
+    def not_equal(
+        self, operand: Union[ValueOperand, EdgeAttributeOperand]
+    ) -> EdgeOperation:
         """
         Creates a EdgeOperation that evaluates to true if the attribute represented
         by this operand is not equal to the specified value or operand.
@@ -725,11 +805,15 @@ class EdgeAttributeOperand:
             EdgeOperation: A EdgeOperation representing the not-equal comparison.
         """
         if isinstance(operand, EdgeAttributeOperand):
-            operand = operand._edge_attribute_operand
+            return EdgeOperation(
+                self._edge_attribute_operand.not_equal(operand._edge_attribute_operand)
+            )
 
         return EdgeOperation(self._edge_attribute_operand.not_equal(operand))
 
-    def __ne__(self, operand: ValueOperand) -> EdgeOperation:
+    def __ne__(
+        self, operand: Union[ValueOperand, EdgeAttributeOperand]
+    ) -> EdgeOperation:
         return self.not_equal(operand)
 
     def is_in(self, values: List[MedRecordValue]) -> EdgeOperation:
@@ -760,7 +844,9 @@ class EdgeAttributeOperand:
         """
         return EdgeOperation(self._edge_attribute_operand.not_in(values))
 
-    def starts_with(self, operand: ValueOperand) -> EdgeOperation:
+    def starts_with(
+        self, operand: Union[ValueOperand, EdgeAttributeOperand]
+    ) -> EdgeOperation:
         """
         Creates a EdgeOperation that evaluates to true if the attribute represented
         by this operand starts with the specified value or operand.
@@ -773,11 +859,17 @@ class EdgeAttributeOperand:
             EdgeOperation: A EdgeOperation representing the starts-with condition.
         """
         if isinstance(operand, EdgeAttributeOperand):
-            operand = operand._edge_attribute_operand
+            return EdgeOperation(
+                self._edge_attribute_operand.starts_with(
+                    operand._edge_attribute_operand
+                )
+            )
 
         return EdgeOperation(self._edge_attribute_operand.starts_with(operand))
 
-    def ends_with(self, operand: ValueOperand) -> EdgeOperation:
+    def ends_with(
+        self, operand: Union[ValueOperand, EdgeAttributeOperand]
+    ) -> EdgeOperation:
         """
         Creates a EdgeOperation that evaluates to true if the attribute represented
         by this operand ends with the specified value or operand.
@@ -790,11 +882,15 @@ class EdgeAttributeOperand:
             EdgeOperation: A EdgeOperation representing the ends-with condition.
         """
         if isinstance(operand, EdgeAttributeOperand):
-            operand = operand._edge_attribute_operand
+            return EdgeOperation(
+                self._edge_attribute_operand.ends_with(operand._edge_attribute_operand)
+            )
 
         return EdgeOperation(self._edge_attribute_operand.ends_with(operand))
 
-    def contains(self, operand: ValueOperand) -> EdgeOperation:
+    def contains(
+        self, operand: Union[ValueOperand, EdgeAttributeOperand]
+    ) -> EdgeOperation:
         """
         Creates a EdgeOperation that evaluates to true if the attribute represented
         by this operand contains the specified value or operand within it.
@@ -806,7 +902,9 @@ class EdgeAttributeOperand:
             EdgeOperation: A EdgeOperation representing the contains condition.
         """
         if isinstance(operand, EdgeAttributeOperand):
-            operand = operand._edge_attribute_operand
+            return EdgeOperation(
+                self._edge_attribute_operand.contains(operand._edge_attribute_operand)
+            )
 
         return EdgeOperation(self._edge_attribute_operand.contains(operand))
 
@@ -1021,7 +1119,7 @@ class EdgeAttributeOperand:
         Returns:
             ValueOperand: The attribute's value with the specified slice applied.
         """
-        return self._node_attribute_operand.slice(start, end)
+        return self._edge_attribute_operand.slice(start, end)
 
 
 class NodeIndexOperand:
