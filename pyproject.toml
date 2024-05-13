@@ -12,7 +12,13 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["maturin==1.5.1", "ruff==0.4.2", "black==24.4.2", "py-spy==0.3.14"]
+dev = [
+    "maturin==1.5.1",
+    "ruff==0.4.2",
+    "py-spy==0.3.14",
+    "pyright==1.1.363",
+    "pandas-stubs==2.2.1.240316",
+]
 tests = ["pytest==8.2.0"]
 
 [build-system]
@@ -35,6 +41,16 @@ exclude = [
     ".venv",
 ]
 line-length = 88
+
+[tool.pyright]
+typeCheckingMode = "strict"
+include = ["medmodels/medrecord", "medmodels/_medmodels"]
+reportPrivateUsage = false
+reportIncompatibleMethodOverride = false
+reportUnknownArgumentType = false
+reportUnknownVariableType = false
+reportUnknownMemberType = false
+reportMissingModuleSource = false
 
 [tool.pytest]
 python_files = "test_*.py"

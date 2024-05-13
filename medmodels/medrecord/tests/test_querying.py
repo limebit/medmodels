@@ -1,10 +1,12 @@
 import unittest
+from typing import List, Tuple
 
 from medmodels import MedRecord
 from medmodels.medrecord import edge, node
+from medmodels.medrecord.types import Attributes, NodeIndex
 
 
-def create_nodes():
+def create_nodes() -> List[Tuple[NodeIndex, Attributes]]:
     return [
         (
             "0",
@@ -22,7 +24,7 @@ def create_nodes():
     ]
 
 
-def create_edges():
+def create_edges() -> List[Tuple[NodeIndex, NodeIndex, Attributes]]:
     return [
         ("0", "1", {"sed": "do", "eiusmod": "tempor", "dolor": "  do  ", "test": "DO"}),
         ("1", "2", {"incididunt": "ut"}),
@@ -31,7 +33,7 @@ def create_edges():
     ]
 
 
-def create_medrecord():
+def create_medrecord() -> MedRecord:
     return MedRecord.from_tuples(create_nodes(), create_edges())
 
 

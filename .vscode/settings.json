@@ -21,7 +21,8 @@
   "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
   "python.terminal.activateEnvInCurrentTerminal": true,
   "autoDocstring.docstringFormat": "sphinx",
+  "python.analysis.typeCheckingMode": "strict",
   "[python]": {
-    "editor.defaultFormatter": "ms-python.black-formatter"
+    "editor.defaultFormatter": "charliermarsh.ruff"
   }
 }
