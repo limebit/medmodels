@@ -1,5 +1,6 @@
 import tempfile
 import unittest
+from typing import List, Tuple
 
 import pandas as pd
 import polars as pl
@@ -7,9 +8,10 @@ import polars as pl
 from medmodels import MedRecord
 from medmodels.medrecord import edge as edge_select
 from medmodels.medrecord import node as node_select
+from medmodels.medrecord.types import Attributes, NodeIndex
 
 
-def create_nodes():
+def create_nodes() -> List[Tuple[NodeIndex, Attributes]]:
     return [
         ("0", {"lorem": "ipsum", "dolor": "sit"}),
         ("1", {"amet": "consectetur"}),
@@ -18,7 +20,7 @@ def create_nodes():
     ]
 
 
-def create_edges():
+def create_edges() -> List[Tuple[NodeIndex, NodeIndex, Attributes]]:
     return [
         ("0", "1", {"sed": "do", "eiusmod": "tempor"}),
         ("1", "2", {"incididunt": "ut"}),
@@ -26,7 +28,7 @@ def create_edges():
     ]
 
 
-def create_pandas_nodes_dataframe():
+def create_pandas_nodes_dataframe() -> pd.DataFrame:
     return pd.DataFrame(
         {
             "index": ["0", "1"],
@@ -35,7 +37,7 @@ def create_pandas_nodes_dataframe():
     )
 
 
-def create_second_pandas_nodes_dataframe():
+def create_second_pandas_nodes_dataframe() -> pd.DataFrame:
     return pd.DataFrame(
         {
             "index": ["2", "3"],
@@ -44,7 +46,7 @@ def create_second_pandas_nodes_dataframe():
     )
 
 
-def create_pandas_edges_dataframe():
+def create_pandas_edges_dataframe() -> pd.DataFrame:
     return pd.DataFrame(
         {
             "source": ["0", "1"],
@@ -54,7 +56,7 @@ def create_pandas_edges_dataframe():
     )
 
 
-def create_second_pandas_edges_dataframe():
+def create_second_pandas_edges_dataframe() -> pd.DataFrame:
     return pd.DataFrame(
         {
             "source": ["0", "1"],
@@ -64,23 +66,23 @@ def create_second_pandas_edges_dataframe():
     )
 
 
-def create_pandas_nodes_dataframe_with_index():
+def create_pandas_nodes_dataframe_with_index() -> pd.DataFrame:
     return create_pandas_nodes_dataframe().set_index("index")
 
 
-def create_second_pandas_nodes_dataframe_with_index():
+def create_second_pandas_nodes_dataframe_with_index() -> pd.DataFrame:
     return create_second_pandas_nodes_dataframe().set_index("index")
 
 
-def create_pandas_edges_dataframe_with_index():
+def create_pandas_edges_dataframe_with_index() -> pd.DataFrame:
     return create_pandas_edges_dataframe().set_index(["source", "target"])
 
 
-def create_second_pandas_edges_dataframe_with_index():
+def create_second_pandas_edges_dataframe_with_index() -> pd.DataFrame:
     return create_second_pandas_edges_dataframe().set_index(["source", "target"])
 
 
-def create_medrecord():
+def create_medrecord() -> MedRecord:
     return MedRecord.from_tuples(create_nodes(), create_edges())
 
 

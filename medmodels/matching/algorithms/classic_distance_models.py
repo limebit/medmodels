@@ -45,7 +45,6 @@ def nearest_neighbor(
     matched_group = pd.DataFrame(columns=columns)
 
     for element_ss in treated_array:
-
         dist = []
 
         if metric == "mahalanobis":
@@ -59,7 +58,6 @@ def nearest_neighbor(
             for element_bs in control_array:
                 dist.append(metric_function(element_ss, element_bs, inv_cov=inv_cov))
         else:
-
             for element_bs in control_array:
                 dist.append(metric_function(element_ss, element_bs))
 

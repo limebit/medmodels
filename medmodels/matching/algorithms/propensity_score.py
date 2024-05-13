@@ -50,11 +50,9 @@ def calculate_propensity(
     propensity_metric = PROP_MODEL[metric]
 
     if hyperparam:
-
         pm = propensity_metric(**hyperparam)
 
     else:
-
         pm = propensity_metric()
 
     pm.fit(x_train, y_train)

@@ -10,7 +10,6 @@
     "ms-vscode.makefile-tools",
     "rust-lang.rust-analyzer",
     "njpwerner.autodocstring",
-    "ms-python.black-formatter",
     "usernamehw.errorlens"
   ],
 }
