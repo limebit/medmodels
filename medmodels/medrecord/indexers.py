@@ -45,6 +45,9 @@ class _NodeIndexer:
             return self._medrecord._medrecord.node(self._medrecord.select_nodes(key))
 
         if isinstance(key, slice):
+            if key.start is not None or key.stop is not None or key.step is not None:
+                raise ValueError("Invalid slice, only ':' is allowed")
+
             return self._medrecord._medrecord.node(self._medrecord.nodes)
 
         if not isinstance(key, tuple):
@@ -78,6 +81,13 @@ class _NodeIndexer:
         if isinstance(index_selection, slice) and is_medrecord_attribute(
             attribute_selection
         ):
+            if (
+                index_selection.start is not None
+                or index_selection.stop is not None
+                or index_selection.step is not None
+            ):
+                raise ValueError("Invalid slice, only ':' is allowed")
+
             attributes = self._medrecord._medrecord.node(self._medrecord.nodes)
 
             return {x: attributes[x][attribute_selection] for x in attributes.keys()}
@@ -111,6 +121,13 @@ class _NodeIndexer:
             }
 
         if isinstance(index_selection, slice) and isinstance(attribute_selection, list):
+            if (
+                index_selection.start is not None
+                or index_selection.stop is not None
+                or index_selection.step is not None
+            ):
+                raise ValueError("Invalid slice, only ':' is allowed")
+
             attributes = self._medrecord._medrecord.node(self._medrecord.nodes)
 
             return {
@@ -119,14 +136,35 @@ class _NodeIndexer:
             }
 
         if is_node_index(index_selection) and isinstance(attribute_selection, slice):
+            if (
+                attribute_selection.start is not None
+                or attribute_selection.stop is not None
+                or attribute_selection.step is not None
+            ):
+                raise ValueError("Invalid slice, only ':' is allowed")
+
             return self._medrecord._medrecord.node([index_selection])[index_selection]
 
         if isinstance(index_selection, list) and isinstance(attribute_selection, slice):
+            if (
+                attribute_selection.start is not None
+                or attribute_selection.stop is not None
+                or attribute_selection.step is not None
+            ):
+                raise ValueError("Invalid slice, only ':' is allowed")
+
             return self._medrecord._medrecord.node(index_selection)
 
         if isinstance(index_selection, NodeOperation) and isinstance(
             attribute_selection, slice
         ):
+            if (
+                attribute_selection.start is not None
+                or attribute_selection.stop is not None
+                or attribute_selection.step is not None
+            ):
+                raise ValueError("Invalid slice, only ':' is allowed")
+
             return self._medrecord._medrecord.node(
                 self._medrecord.select_nodes(index_selection)
             )
@@ -134,6 +172,16 @@ class _NodeIndexer:
         if isinstance(index_selection, slice) and isinstance(
             attribute_selection, slice
         ):
+            if (
+                index_selection.start is not None
+                or index_selection.stop is not None
+                or index_selection.step is not None
+                or attribute_selection.start is not None
+                or attribute_selection.stop is not None
+                or attribute_selection.step is not None
+            ):
+                raise ValueError("Invalid slice, only ':' is allowed")
+
             return self._medrecord._medrecord.node(self._medrecord.nodes)
 
     def __setitem__(
@@ -162,6 +210,9 @@ class _NodeIndexer:
             )
 
         if isinstance(key, slice):
+            if key.start is not None or key.stop is not None or key.step is not None:
+                raise ValueError("Invalid slice, only ':' is allowed")
+
             return self._medrecord._medrecord.replace_node_attributes(
                 value, self._medrecord.nodes
             )
@@ -197,6 +248,13 @@ class _NodeIndexer:
         if isinstance(index_selection, slice) and is_medrecord_attribute(
             attribute_selection
         ):
+            if (
+                index_selection.start is not None
+                or index_selection.stop is not None
+                or index_selection.step is not None
+            ):
+                raise ValueError("Invalid slice, only ':' is allowed")
+
             return self._medrecord._medrecord.update_node_attribute(
                 attribute_selection,
                 value,
@@ -230,6 +288,13 @@ class _NodeIndexer:
             return
 
         if isinstance(index_selection, slice) and isinstance(attribute_selection, list):
+            if (
+                index_selection.start is not None
+                or index_selection.stop is not None
+                or index_selection.step is not None
+            ):
+                raise ValueError("Invalid slice, only ':' is allowed")
+
             for attribute in attribute_selection:
                 self._medrecord._medrecord.update_node_attribute(
                     attribute, value, self._medrecord.nodes
@@ -238,6 +303,13 @@ class _NodeIndexer:
             return
 
         if is_node_index(index_selection) and isinstance(attribute_selection, slice):
+            if (
+                attribute_selection.start is not None
+                or attribute_selection.stop is not None
+                or attribute_selection.step is not None
+            ):
+                raise ValueError("Invalid slice, only ':' is allowed")
+
             attributes = self._medrecord._medrecord.node([index_selection])[
                 index_selection
             ]
@@ -250,6 +322,13 @@ class _NodeIndexer:
             return
 
         if isinstance(index_selection, list) and isinstance(attribute_selection, slice):
+            if (
+                attribute_selection.start is not None
+                or attribute_selection.stop is not None
+                or attribute_selection.step is not None
+            ):
+                raise ValueError("Invalid slice, only ':' is allowed")
+
             attributes = self._medrecord._medrecord.node(index_selection)
 
             for node in attributes.keys():
@@ -263,6 +342,13 @@ class _NodeIndexer:
         if isinstance(index_selection, NodeOperation) and isinstance(
             attribute_selection, slice
         ):
+            if (
+                attribute_selection.start is not None
+                or attribute_selection.stop is not None
+                or attribute_selection.step is not None
+            ):
+                raise ValueError("Invalid slice, only ':' is allowed")
+
             attributes = self._medrecord._medrecord.node(
                 self._medrecord.select_nodes(index_selection)
             )
@@ -278,6 +364,16 @@ class _NodeIndexer:
         if isinstance(index_selection, slice) and isinstance(
             attribute_selection, slice
         ):
+            if (
+                index_selection.start is not None
+                or index_selection.stop is not None
+                or index_selection.step is not None
+                or attribute_selection.start is not None
+                or attribute_selection.stop is not None
+                or attribute_selection.step is not None
+            ):
+                raise ValueError("Invalid slice, only ':' is allowed")
+
             attributes = self._medrecord._medrecord.node(self._medrecord.nodes)
 
             for node in attributes.keys():
@@ -327,6 +423,13 @@ class _NodeIndexer:
         if isinstance(index_selection, slice) and is_medrecord_attribute(
             attribute_selection
         ):
+            if (
+                index_selection.start is not None
+                or index_selection.stop is not None
+                or index_selection.step is not None
+            ):
+                raise ValueError("Invalid slice, only ':' is allowed")
+
             return self._medrecord._medrecord.remove_node_attribute(
                 attribute_selection,
                 self._medrecord.nodes,
@@ -359,6 +462,13 @@ class _NodeIndexer:
             return
 
         if isinstance(index_selection, slice) and isinstance(attribute_selection, list):
+            if (
+                index_selection.start is not None
+                or index_selection.stop is not None
+                or index_selection.step is not None
+            ):
+                raise ValueError("Invalid slice, only ':' is allowed")
+
             for attribute in attribute_selection:
                 self._medrecord._medrecord.remove_node_attribute(
                     attribute, self._medrecord.nodes
@@ -367,11 +477,25 @@ class _NodeIndexer:
             return
 
         if is_node_index(index_selection) and isinstance(attribute_selection, slice):
+            if (
+                attribute_selection.start is not None
+                or attribute_selection.stop is not None
+                or attribute_selection.step is not None
+            ):
+                raise ValueError("Invalid slice, only ':' is allowed")
+
             return self._medrecord._medrecord.replace_node_attributes(
                 {}, [index_selection]
             )
 
         if isinstance(index_selection, list) and isinstance(attribute_selection, slice):
+            if (
+                attribute_selection.start is not None
+                or attribute_selection.stop is not None
+                or attribute_selection.step is not None
+            ):
+                raise ValueError("Invalid slice, only ':' is allowed")
+
             return self._medrecord._medrecord.replace_node_attributes(
                 {}, index_selection
             )
@@ -379,6 +503,13 @@ class _NodeIndexer:
         if isinstance(index_selection, NodeOperation) and isinstance(
             attribute_selection, slice
         ):
+            if (
+                attribute_selection.start is not None
+                or attribute_selection.stop is not None
+                or attribute_selection.step is not None
+            ):
+                raise ValueError("Invalid slice, only ':' is allowed")
+
             return self._medrecord._medrecord.replace_node_attributes(
                 {}, self._medrecord.select_nodes(index_selection)
             )
@@ -386,6 +517,16 @@ class _NodeIndexer:
         if isinstance(index_selection, slice) and isinstance(
             attribute_selection, slice
         ):
+            if (
+                index_selection.start is not None
+                or index_selection.stop is not None
+                or index_selection.step is not None
+                or attribute_selection.start is not None
+                or attribute_selection.stop is not None
+                or attribute_selection.step is not None
+            ):
+                raise ValueError("Invalid slice, only ':' is allowed")
+
             return self._medrecord._medrecord.replace_node_attributes(
                 {}, self._medrecord.nodes
             )
@@ -422,6 +563,9 @@ class _EdgeIndexer:
             return self._medrecord._medrecord.edge(self._medrecord.select_edges(key))
 
         if isinstance(key, slice):
+            if key.start is not None or key.stop is not None or key.step is not None:
+                raise ValueError("Invalid slice, only ':' is allowed")
+
             return self._medrecord._medrecord.edge(self._medrecord.edges)
 
         if not isinstance(key, tuple):
@@ -455,6 +599,13 @@ class _EdgeIndexer:
         if isinstance(index_selection, slice) and is_medrecord_attribute(
             attribute_selection
         ):
+            if (
+                index_selection.start is not None
+                or index_selection.stop is not None
+                or index_selection.step is not None
+            ):
+                raise ValueError("Invalid slice, only ':' is allowed")
+
             attributes = self._medrecord._medrecord.edge(self._medrecord.edges)
 
             return {x: attributes[x][attribute_selection] for x in attributes.keys()}
@@ -488,6 +639,13 @@ class _EdgeIndexer:
             }
 
         if isinstance(index_selection, slice) and isinstance(attribute_selection, list):
+            if (
+                index_selection.start is not None
+                or index_selection.stop is not None
+                or index_selection.step is not None
+            ):
+                raise ValueError("Invalid slice, only ':' is allowed")
+
             attributes = self._medrecord._medrecord.edge(self._medrecord.edges)
 
             return {
@@ -496,14 +654,35 @@ class _EdgeIndexer:
             }
 
         if is_edge_index(index_selection) and isinstance(attribute_selection, slice):
+            if (
+                attribute_selection.start is not None
+                or attribute_selection.stop is not None
+                or attribute_selection.step is not None
+            ):
+                raise ValueError("Invalid slice, only ':' is allowed")
+
             return self._medrecord._medrecord.edge([index_selection])[index_selection]
 
         if isinstance(index_selection, list) and isinstance(attribute_selection, slice):
+            if (
+                attribute_selection.start is not None
+                or attribute_selection.stop is not None
+                or attribute_selection.step is not None
+            ):
+                raise ValueError("Invalid slice, only ':' is allowed")
+
             return self._medrecord._medrecord.edge(index_selection)
 
         if isinstance(index_selection, EdgeOperation) and isinstance(
             attribute_selection, slice
         ):
+            if (
+                attribute_selection.start is not None
+                or attribute_selection.stop is not None
+                or attribute_selection.step is not None
+            ):
+                raise ValueError("Invalid slice, only ':' is allowed")
+
             return self._medrecord._medrecord.edge(
                 self._medrecord.select_edges(index_selection)
             )
@@ -511,6 +690,16 @@ class _EdgeIndexer:
         if isinstance(index_selection, slice) and isinstance(
             attribute_selection, slice
         ):
+            if (
+                index_selection.start is not None
+                or index_selection.stop is not None
+                or index_selection.step is not None
+                or attribute_selection.start is not None
+                or attribute_selection.stop is not None
+                or attribute_selection.step is not None
+            ):
+                raise ValueError("Invalid slice, only ':' is allowed")
+
             return self._medrecord._medrecord.edge(self._medrecord.edges)
 
     def __setitem__(
@@ -539,6 +728,9 @@ class _EdgeIndexer:
             )
 
         if isinstance(key, slice):
+            if key.start is not None or key.stop is not None or key.step is not None:
+                raise ValueError("Invalid slice, only ':' is allowed")
+
             return self._medrecord._medrecord.replace_edge_attributes(
                 value, self._medrecord.edges
             )
@@ -574,6 +766,13 @@ class _EdgeIndexer:
         if isinstance(index_selection, slice) and is_medrecord_attribute(
             attribute_selection
         ):
+            if (
+                index_selection.start is not None
+                or index_selection.stop is not None
+                or index_selection.step is not None
+            ):
+                raise ValueError("Invalid slice, only ':' is allowed")
+
             return self._medrecord._medrecord.update_edge_attribute(
                 attribute_selection,
                 value,
@@ -607,6 +806,13 @@ class _EdgeIndexer:
             return
 
         if isinstance(index_selection, slice) and isinstance(attribute_selection, list):
+            if (
+                index_selection.start is not None
+                or index_selection.stop is not None
+                or index_selection.step is not None
+            ):
+                raise ValueError("Invalid slice, only ':' is allowed")
+
             for attribute in attribute_selection:
                 self._medrecord._medrecord.update_edge_attribute(
                     attribute, value, self._medrecord.edges
@@ -615,6 +821,13 @@ class _EdgeIndexer:
             return
 
         if is_edge_index(index_selection) and isinstance(attribute_selection, slice):
+            if (
+                attribute_selection.start is not None
+                or attribute_selection.stop is not None
+                or attribute_selection.step is not None
+            ):
+                raise ValueError("Invalid slice, only ':' is allowed")
+
             attributes = self._medrecord._medrecord.edge([index_selection])[
                 index_selection
             ]
@@ -627,6 +840,13 @@ class _EdgeIndexer:
             return
 
         if isinstance(index_selection, list) and isinstance(attribute_selection, slice):
+            if (
+                attribute_selection.start is not None
+                or attribute_selection.stop is not None
+                or attribute_selection.step is not None
+            ):
+                raise ValueError("Invalid slice, only ':' is allowed")
+
             attributes = self._medrecord._medrecord.edge(index_selection)
 
             for edge in attributes.keys():
@@ -640,6 +860,13 @@ class _EdgeIndexer:
         if isinstance(index_selection, EdgeOperation) and isinstance(
             attribute_selection, slice
         ):
+            if (
+                attribute_selection.start is not None
+                or attribute_selection.stop is not None
+                or attribute_selection.step is not None
+            ):
+                raise ValueError("Invalid slice, only ':' is allowed")
+
             attributes = self._medrecord._medrecord.edge(
                 self._medrecord.select_edges(index_selection)
             )
@@ -655,6 +882,16 @@ class _EdgeIndexer:
         if isinstance(index_selection, slice) and isinstance(
             attribute_selection, slice
         ):
+            if (
+                index_selection.start is not None
+                or index_selection.stop is not None
+                or index_selection.step is not None
+                or attribute_selection.start is not None
+                or attribute_selection.stop is not None
+                or attribute_selection.step is not None
+            ):
+                raise ValueError("Invalid slice, only ':' is allowed")
+
             attributes = self._medrecord._medrecord.edge(self._medrecord.edges)
 
             for edge in attributes.keys():
@@ -704,6 +941,13 @@ class _EdgeIndexer:
         if isinstance(index_selection, slice) and is_medrecord_attribute(
             attribute_selection
         ):
+            if (
+                index_selection.start is not None
+                or index_selection.stop is not None
+                or index_selection.step is not None
+            ):
+                raise ValueError("Invalid slice, only ':' is allowed")
+
             return self._medrecord._medrecord.remove_edge_attribute(
                 attribute_selection,
                 self._medrecord.edges,
@@ -736,6 +980,13 @@ class _EdgeIndexer:
             return
 
         if isinstance(index_selection, slice) and isinstance(attribute_selection, list):
+            if (
+                index_selection.start is not None
+                or index_selection.stop is not None
+                or index_selection.step is not None
+            ):
+                raise ValueError("Invalid slice, only ':' is allowed")
+
             for attribute in attribute_selection:
                 self._medrecord._medrecord.remove_edge_attribute(
                     attribute, self._medrecord.edges
@@ -744,11 +995,25 @@ class _EdgeIndexer:
             return
 
         if is_edge_index(index_selection) and isinstance(attribute_selection, slice):
+            if (
+                attribute_selection.start is not None
+                or attribute_selection.stop is not None
+                or attribute_selection.step is not None
+            ):
+                raise ValueError("Invalid slice, only ':' is allowed")
+
             return self._medrecord._medrecord.replace_edge_attributes(
                 {}, [index_selection]
             )
 
         if isinstance(index_selection, list) and isinstance(attribute_selection, slice):
+            if (
+                attribute_selection.start is not None
+                or attribute_selection.stop is not None
+                or attribute_selection.step is not None
+            ):
+                raise ValueError("Invalid slice, only ':' is allowed")
+
             return self._medrecord._medrecord.replace_edge_attributes(
                 {}, index_selection
             )
@@ -756,6 +1021,13 @@ class _EdgeIndexer:
         if isinstance(index_selection, EdgeOperation) and isinstance(
             attribute_selection, slice
         ):
+            if (
+                attribute_selection.start is not None
+                or attribute_selection.stop is not None
+                or attribute_selection.step is not None
+            ):
+                raise ValueError("Invalid slice, only ':' is allowed")
+
             return self._medrecord._medrecord.replace_edge_attributes(
                 {}, self._medrecord.select_edges(index_selection)
             )
@@ -763,6 +1035,16 @@ class _EdgeIndexer:
         if isinstance(index_selection, slice) and isinstance(
             attribute_selection, slice
         ):
+            if (
+                index_selection.start is not None
+                or index_selection.stop is not None
+                or index_selection.step is not None
+                or attribute_selection.start is not None
+                or attribute_selection.stop is not None
+                or attribute_selection.step is not None
+            ):
+                raise ValueError("Invalid slice, only ':' is allowed")
+
             return self._medrecord._medrecord.replace_edge_attributes(
                 {}, self._medrecord.edges
             )
