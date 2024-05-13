@@ -398,20 +398,49 @@ class MedRecord:
         return endpoints[edge]
 
     def edges_connecting(
-        self, source_node_index: NodeIndex, target_node_index: NodeIndex
+        self,
+        source_node_index: Union[NodeIndex, List[NodeIndex], NodeOperation],
+        target_node_index: Union[NodeIndex, List[NodeIndex], NodeOperation],
     ) -> List[EdgeIndex]:
         """
-        Retrieves edge indices between specified source and target nodes in
+        Retrieves the edges connecting the specified source and target nodes in
         the MedRecord.
 
+        If a NodeOperation is provided for either the source or target nodes, it is
+        first evaluated to obtain the corresponding node indices. The method then
+        returns a list of edge indices that connect the specified source and
+        target nodes.
+
         Args:
-            source_node_index (NodeIndex): The index of the source node.
-            target_node_index (NodeIndex): The index of the target node.
+            source_node_index (Union[NodeIndex, List[NodeIndex] | NodeOperation]):
+                The index or indices of the source node(s), or a NodeOperation to
+                select source nodes.
+            target_node_index (Union[NodeIndex, List[NodeIndex] | NodeOperation]):
+                The index or indices of the target node(s), or a NodeOperation to
+                select target nodes.
 
         Returns:
-            List[EdgeIndex]: A list of edge indices between the specified nodes.
+            List[EdgeIndex]: A list of edge indices connecting the specified source and
+                target nodes.
         """
-        return self._medrecord.edges_connecting(source_node_index, target_node_index)
+        if isinstance(source_node_index, NodeOperation):
+            source_node_index = self.select_nodes(source_node_index)
+
+        if isinstance(target_node_index, NodeOperation):
+            target_node_index = self.select_nodes(target_node_index)
+
+        return self._medrecord.edges_connecting(
+            (
+                source_node_index
+                if isinstance(source_node_index, list)
+                else [source_node_index]
+            ),
+            (
+                target_node_index
+                if isinstance(target_node_index, list)
+                else [target_node_index]
+            ),
+        )
 
     def add_node(self, node: NodeIndex, attributes: Attributes) -> None:
         """

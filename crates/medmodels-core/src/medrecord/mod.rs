@@ -236,8 +236,8 @@ impl MedRecord {
 
     pub fn edges_connecting<'a>(
         &'a self,
-        outgoing_node_index: &'a NodeIndex,
-        incoming_node_index: &'a NodeIndex,
+        outgoing_node_index: Vec<&'a NodeIndex>,
+        incoming_node_index: Vec<&'a NodeIndex>,
     ) -> impl Iterator<Item = &EdgeIndex> + 'a {
         self.graph
             .edges_connecting(outgoing_node_index, incoming_node_index)
@@ -771,15 +771,43 @@ mod test {
 
         let first_index = "0".into();
         let second_index = "1".into();
-        let edges_connecting = medrecord.edges_connecting(&first_index, &second_index);
+        let edges_connecting = medrecord.edges_connecting(vec![&first_index], vec![&second_index]);
 
         assert_eq!(vec![&0], edges_connecting.collect::<Vec<_>>());
 
         let first_index = "0".into();
         let second_index = "3".into();
-        let edges_connecting = medrecord.edges_connecting(&first_index, &second_index);
+        let edges_connecting = medrecord.edges_connecting(vec![&first_index], vec![&second_index]);
 
         assert_eq!(0, edges_connecting.count());
+
+        let first_index = "0".into();
+        let second_index = "1".into();
+        let third_index = "2".into();
+        let mut edges_connecting = medrecord
+            .edges_connecting(vec![&first_index, &second_index], vec![&third_index])
+            .collect::<Vec<_>>();
+
+        let mut compare_to = vec![&1, &2];
+        compare_to.sort();
+        edges_connecting.sort();
+        assert_eq!(compare_to, edges_connecting);
+
+        let first_index = "0".into();
+        let second_index = "1".into();
+        let third_index = "2".into();
+        let fourth_index = "3".into();
+        let mut edges_connecting = medrecord
+            .edges_connecting(
+                vec![&first_index, &second_index],
+                vec![&third_index, &fourth_index],
+            )
+            .collect::<Vec<_>>();
+
+        let mut compare_to = vec![&1, &2];
+        compare_to.sort();
+        edges_connecting.sort();
+        assert_eq!(compare_to, edges_connecting);
     }
 
     #[test]
