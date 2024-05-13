@@ -51,6 +51,13 @@ class TestMedRecord(unittest.TestCase):
             {"foo": "bar", "bar": "foo", "lorem": "ipsum"}, medrecord.node[0, :]
         )
 
+        with self.assertRaises(ValueError):
+            medrecord.node[0, 1:]
+        with self.assertRaises(ValueError):
+            medrecord.node[0, :1]
+        with self.assertRaises(ValueError):
+            medrecord.node[0, ::1]
+
         self.assertEqual(
             {
                 0: {"foo": "bar", "bar": "foo", "lorem": "ipsum"},
@@ -102,6 +109,13 @@ class TestMedRecord(unittest.TestCase):
             medrecord.node[[0, 1], :],
         )
 
+        with self.assertRaises(ValueError):
+            medrecord.node[[0, 1], 1:]
+        with self.assertRaises(ValueError):
+            medrecord.node[[0, 1], :1]
+        with self.assertRaises(ValueError):
+            medrecord.node[[0, 1], ::1]
+
         self.assertEqual(
             {2: {"foo": "bar", "bar": "foo"}, 3: {"foo": "bar", "bar": "test"}},
             medrecord.node[node().index() >= 2],
@@ -146,6 +160,13 @@ class TestMedRecord(unittest.TestCase):
             medrecord.node[node().index() >= 2, :],
         )
 
+        with self.assertRaises(ValueError):
+            medrecord.node[node().index() >= 2, 1:]
+        with self.assertRaises(ValueError):
+            medrecord.node[node().index() >= 2, :1]
+        with self.assertRaises(ValueError):
+            medrecord.node[node().index() >= 2, ::1]
+
         self.assertEqual(
             {
                 0: {"foo": "bar", "bar": "foo", "lorem": "ipsum"},
@@ -155,6 +176,13 @@ class TestMedRecord(unittest.TestCase):
             },
             medrecord.node[:],
         )
+
+        with self.assertRaises(ValueError):
+            medrecord.node[1:]
+        with self.assertRaises(ValueError):
+            medrecord.node[:1]
+        with self.assertRaises(ValueError):
+            medrecord.node[::1]
 
         self.assertEqual(
             {
@@ -169,6 +197,13 @@ class TestMedRecord(unittest.TestCase):
         # Accessing a non-existing key should fail
         with self.assertRaises(KeyError):
             medrecord.node[:, "test"]
+
+        with self.assertRaises(ValueError):
+            medrecord.node[1:, "foo"]
+        with self.assertRaises(ValueError):
+            medrecord.node[:1, "foo"]
+        with self.assertRaises(ValueError):
+            medrecord.node[::1, "foo"]
 
         self.assertEqual(
             {
@@ -188,6 +223,13 @@ class TestMedRecord(unittest.TestCase):
         with self.assertRaises(KeyError):
             medrecord.node[:, ["foo", "lorem"]]
 
+        with self.assertRaises(ValueError):
+            medrecord.node[1:, ["foo", "bar"]]
+        with self.assertRaises(ValueError):
+            medrecord.node[:1, ["foo", "bar"]]
+        with self.assertRaises(ValueError):
+            medrecord.node[::1, ["foo", "bar"]]
+
         self.assertEqual(
             {
                 0: {"foo": "bar", "bar": "foo", "lorem": "ipsum"},
@@ -197,6 +239,19 @@ class TestMedRecord(unittest.TestCase):
             },
             medrecord.node[:, :],
         )
+
+        with self.assertRaises(ValueError):
+            medrecord.node[1:, :]
+        with self.assertRaises(ValueError):
+            medrecord.node[:1, :]
+        with self.assertRaises(ValueError):
+            medrecord.node[::1, :]
+        with self.assertRaises(ValueError):
+            medrecord.node[:, 1:]
+        with self.assertRaises(ValueError):
+            medrecord.node[:, :1]
+        with self.assertRaises(ValueError):
+            medrecord.node[:, ::1]
 
     def test_node_setitem(self):
         # Updating existing attributes
@@ -254,6 +309,13 @@ class TestMedRecord(unittest.TestCase):
             medrecord.node[:],
         )
 
+        with self.assertRaises(ValueError):
+            medrecord.node[0, 1:] = "test"
+        with self.assertRaises(ValueError):
+            medrecord.node[0, :1] = "test"
+        with self.assertRaises(ValueError):
+            medrecord.node[0, ::1] = "test"
+
         medrecord = create_medrecord()
         medrecord.node[[0, 1], "foo"] = "test"
         self.assertEqual(
@@ -289,6 +351,13 @@ class TestMedRecord(unittest.TestCase):
             },
             medrecord.node[:],
         )
+
+        with self.assertRaises(ValueError):
+            medrecord.node[[0, 1], 1:] = "test"
+        with self.assertRaises(ValueError):
+            medrecord.node[[0, 1], :1] = "test"
+        with self.assertRaises(ValueError):
+            medrecord.node[[0, 1], ::1] = "test"
 
         medrecord = create_medrecord()
         medrecord.node[node().index() >= 2] = {"foo": "bar", "bar": "test"}
@@ -342,6 +411,13 @@ class TestMedRecord(unittest.TestCase):
             medrecord.node[:],
         )
 
+        with self.assertRaises(ValueError):
+            medrecord.node[node().index() >= 2, 1:] = "test"
+        with self.assertRaises(ValueError):
+            medrecord.node[node().index() >= 2, :1] = "test"
+        with self.assertRaises(ValueError):
+            medrecord.node[node().index() >= 2, ::1] = "test"
+
         medrecord = create_medrecord()
         medrecord.node[:, "foo"] = "test"
         self.assertEqual(
@@ -353,6 +429,13 @@ class TestMedRecord(unittest.TestCase):
             },
             medrecord.node[:],
         )
+
+        with self.assertRaises(ValueError):
+            medrecord.node[1:, "foo"] = "test"
+        with self.assertRaises(ValueError):
+            medrecord.node[:1, "foo"] = "test"
+        with self.assertRaises(ValueError):
+            medrecord.node[::1, "foo"] = "test"
 
         medrecord = create_medrecord()
         medrecord.node[:, ["foo", "bar"]] = "test"
@@ -366,6 +449,13 @@ class TestMedRecord(unittest.TestCase):
             medrecord.node[:],
         )
 
+        with self.assertRaises(ValueError):
+            medrecord.node[1:, ["foo", "bar"]] = "test"
+        with self.assertRaises(ValueError):
+            medrecord.node[:1, ["foo", "bar"]] = "test"
+        with self.assertRaises(ValueError):
+            medrecord.node[::1, ["foo", "bar"]] = "test"
+
         medrecord = create_medrecord()
         medrecord.node[:, :] = "test"
         self.assertEqual(
@@ -377,6 +467,19 @@ class TestMedRecord(unittest.TestCase):
             },
             medrecord.node[:],
         )
+
+        with self.assertRaises(ValueError):
+            medrecord.node[1:, :] = "test"
+        with self.assertRaises(ValueError):
+            medrecord.node[:1, :] = "test"
+        with self.assertRaises(ValueError):
+            medrecord.node[::1, :] = "test"
+        with self.assertRaises(ValueError):
+            medrecord.node[:, 1:] = "test"
+        with self.assertRaises(ValueError):
+            medrecord.node[:, :1] = "test"
+        with self.assertRaises(ValueError):
+            medrecord.node[:, ::1] = "test"
 
         # Adding new attributes
 
@@ -630,6 +733,13 @@ class TestMedRecord(unittest.TestCase):
             medrecord.node[:],
         )
 
+        with self.assertRaises(ValueError):
+            del medrecord.node[0, 1:]
+        with self.assertRaises(ValueError):
+            del medrecord.node[0, :1]
+        with self.assertRaises(ValueError):
+            del medrecord.node[0, ::1]
+
         medrecord = create_medrecord()
         del medrecord.node[[0, 1], "foo"]
         self.assertEqual(
@@ -685,6 +795,13 @@ class TestMedRecord(unittest.TestCase):
             },
             medrecord.node[:],
         )
+
+        with self.assertRaises(ValueError):
+            del medrecord.node[[0, 1], 1:]
+        with self.assertRaises(ValueError):
+            del medrecord.node[[0, 1], :1]
+        with self.assertRaises(ValueError):
+            del medrecord.node[[0, 1], ::1]
 
         medrecord = create_medrecord()
         del medrecord.node[node().index() >= 2, "foo"]
@@ -750,6 +867,13 @@ class TestMedRecord(unittest.TestCase):
             medrecord.node[:],
         )
 
+        with self.assertRaises(ValueError):
+            del medrecord.node[node().index() >= 2, 1:]
+        with self.assertRaises(ValueError):
+            del medrecord.node[node().index() >= 2, :1]
+        with self.assertRaises(ValueError):
+            del medrecord.node[node().index() >= 2, ::1]
+
         medrecord = create_medrecord()
         del medrecord.node[:, "foo"]
         self.assertEqual(
@@ -766,6 +890,13 @@ class TestMedRecord(unittest.TestCase):
         # Removing a non-existing key should fail
         with self.assertRaises(KeyError):
             del medrecord.node[:, "test"]
+
+        with self.assertRaises(ValueError):
+            del medrecord.node[1:, "foo"]
+        with self.assertRaises(ValueError):
+            del medrecord.node[:1, "foo"]
+        with self.assertRaises(ValueError):
+            del medrecord.node[::1, "foo"]
 
         medrecord = create_medrecord()
         del medrecord.node[:, ["foo", "bar"]]
@@ -789,6 +920,13 @@ class TestMedRecord(unittest.TestCase):
         with self.assertRaises(KeyError):
             del medrecord.node[:, ["foo", "lorem"]]
 
+        with self.assertRaises(ValueError):
+            del medrecord.node[1:, ["foo", "bar"]]
+        with self.assertRaises(ValueError):
+            del medrecord.node[:1, ["foo", "bar"]]
+        with self.assertRaises(ValueError):
+            del medrecord.node[::1, ["foo", "bar"]]
+
         medrecord = create_medrecord()
         del medrecord.node[:, :]
         self.assertEqual(
@@ -800,6 +938,19 @@ class TestMedRecord(unittest.TestCase):
             },
             medrecord.node[:],
         )
+
+        with self.assertRaises(ValueError):
+            del medrecord.node[1:, :]
+        with self.assertRaises(ValueError):
+            del medrecord.node[:1, :]
+        with self.assertRaises(ValueError):
+            del medrecord.node[::1, :]
+        with self.assertRaises(ValueError):
+            del medrecord.node[:, 1:]
+        with self.assertRaises(ValueError):
+            del medrecord.node[:, :1]
+        with self.assertRaises(ValueError):
+            del medrecord.node[:, ::1]
 
     def test_edge_getitem(self):
         medrecord = create_medrecord()
@@ -829,6 +980,13 @@ class TestMedRecord(unittest.TestCase):
         self.assertEqual(
             {"foo": "bar", "bar": "foo", "lorem": "ipsum"}, medrecord.edge[0, :]
         )
+
+        with self.assertRaises(ValueError):
+            medrecord.edge[0, 1:]
+        with self.assertRaises(ValueError):
+            medrecord.edge[0, :1]
+        with self.assertRaises(ValueError):
+            medrecord.edge[0, ::1]
 
         self.assertEqual(
             {
@@ -881,6 +1039,13 @@ class TestMedRecord(unittest.TestCase):
             medrecord.edge[[0, 1], :],
         )
 
+        with self.assertRaises(ValueError):
+            medrecord.edge[[0, 1], 1:]
+        with self.assertRaises(ValueError):
+            medrecord.edge[[0, 1], :1]
+        with self.assertRaises(ValueError):
+            medrecord.edge[[0, 1], ::1]
+
         self.assertEqual(
             {2: {"foo": "bar", "bar": "foo"}, 3: {"foo": "bar", "bar": "test"}},
             medrecord.edge[edge().index() >= 2],
@@ -925,6 +1090,13 @@ class TestMedRecord(unittest.TestCase):
             medrecord.edge[edge().index() >= 2, :],
         )
 
+        with self.assertRaises(ValueError):
+            medrecord.edge[edge().index() >= 2, 1:]
+        with self.assertRaises(ValueError):
+            medrecord.edge[edge().index() >= 2, :1]
+        with self.assertRaises(ValueError):
+            medrecord.edge[edge().index() >= 2, ::1]
+
         self.assertEqual(
             {
                 0: {"foo": "bar", "bar": "foo", "lorem": "ipsum"},
@@ -934,6 +1106,13 @@ class TestMedRecord(unittest.TestCase):
             },
             medrecord.edge[:],
         )
+
+        with self.assertRaises(ValueError):
+            medrecord.edge[1:]
+        with self.assertRaises(ValueError):
+            medrecord.edge[:1]
+        with self.assertRaises(ValueError):
+            medrecord.edge[::1]
 
         self.assertEqual(
             {
@@ -948,6 +1127,13 @@ class TestMedRecord(unittest.TestCase):
         # Accessing a non-existing key should fail
         with self.assertRaises(KeyError):
             medrecord.edge[:, "test"]
+
+        with self.assertRaises(ValueError):
+            medrecord.edge[1:, "foo"]
+        with self.assertRaises(ValueError):
+            medrecord.edge[:1, "foo"]
+        with self.assertRaises(ValueError):
+            medrecord.edge[::1, "foo"]
 
         self.assertEqual(
             {
@@ -967,6 +1153,13 @@ class TestMedRecord(unittest.TestCase):
         with self.assertRaises(KeyError):
             medrecord.edge[:, ["foo", "lorem"]]
 
+        with self.assertRaises(ValueError):
+            medrecord.edge[1:, ["foo", "bar"]]
+        with self.assertRaises(ValueError):
+            medrecord.edge[:1, ["foo", "bar"]]
+        with self.assertRaises(ValueError):
+            medrecord.edge[::1, ["foo", "bar"]]
+
         self.assertEqual(
             {
                 0: {"foo": "bar", "bar": "foo", "lorem": "ipsum"},
@@ -976,6 +1169,19 @@ class TestMedRecord(unittest.TestCase):
             },
             medrecord.edge[:, :],
         )
+
+        with self.assertRaises(ValueError):
+            medrecord.edge[1:, :]
+        with self.assertRaises(ValueError):
+            medrecord.edge[:1, :]
+        with self.assertRaises(ValueError):
+            medrecord.edge[::1, :]
+        with self.assertRaises(ValueError):
+            medrecord.edge[:, 1:]
+        with self.assertRaises(ValueError):
+            medrecord.edge[:, :1]
+        with self.assertRaises(ValueError):
+            medrecord.edge[:, ::1]
 
     def test_edge_setitem(self):
         # Updating existing attributes
@@ -1033,6 +1239,13 @@ class TestMedRecord(unittest.TestCase):
             medrecord.edge[:],
         )
 
+        with self.assertRaises(ValueError):
+            medrecord.edge[0, 1:] = "test"
+        with self.assertRaises(ValueError):
+            medrecord.edge[0, :1] = "test"
+        with self.assertRaises(ValueError):
+            medrecord.edge[0, ::1] = "test"
+
         medrecord = create_medrecord()
         medrecord.edge[[0, 1], "foo"] = "test"
         self.assertEqual(
@@ -1068,6 +1281,13 @@ class TestMedRecord(unittest.TestCase):
             },
             medrecord.edge[:],
         )
+
+        with self.assertRaises(ValueError):
+            medrecord.edge[[0, 1], 1:] = "test"
+        with self.assertRaises(ValueError):
+            medrecord.edge[[0, 1], :1] = "test"
+        with self.assertRaises(ValueError):
+            medrecord.edge[[0, 1], ::1] = "test"
 
         medrecord = create_medrecord()
         medrecord.edge[edge().index() >= 2] = {"foo": "bar", "bar": "test"}
@@ -1121,6 +1341,13 @@ class TestMedRecord(unittest.TestCase):
             medrecord.edge[:],
         )
 
+        with self.assertRaises(ValueError):
+            medrecord.edge[edge().index() >= 2, 1:] = "test"
+        with self.assertRaises(ValueError):
+            medrecord.edge[edge().index() >= 2, :1] = "test"
+        with self.assertRaises(ValueError):
+            medrecord.edge[edge().index() >= 2, ::1] = "test"
+
         medrecord = create_medrecord()
         medrecord.edge[:, "foo"] = "test"
         self.assertEqual(
@@ -1132,6 +1359,13 @@ class TestMedRecord(unittest.TestCase):
             },
             medrecord.edge[:],
         )
+
+        with self.assertRaises(ValueError):
+            medrecord.edge[1:, "foo"] = "test"
+        with self.assertRaises(ValueError):
+            medrecord.edge[:1, "foo"] = "test"
+        with self.assertRaises(ValueError):
+            medrecord.edge[::1, "foo"] = "test"
 
         medrecord = create_medrecord()
         medrecord.edge[:, ["foo", "bar"]] = "test"
@@ -1145,6 +1379,13 @@ class TestMedRecord(unittest.TestCase):
             medrecord.edge[:],
         )
 
+        with self.assertRaises(ValueError):
+            medrecord.edge[1:, ["foo", "bar"]] = "test"
+        with self.assertRaises(ValueError):
+            medrecord.edge[:1, ["foo", "bar"]] = "test"
+        with self.assertRaises(ValueError):
+            medrecord.edge[::1, ["foo", "bar"]] = "test"
+
         medrecord = create_medrecord()
         medrecord.edge[:, :] = "test"
         self.assertEqual(
@@ -1156,6 +1397,19 @@ class TestMedRecord(unittest.TestCase):
             },
             medrecord.edge[:],
         )
+
+        with self.assertRaises(ValueError):
+            medrecord.edge[1:, :] = "test"
+        with self.assertRaises(ValueError):
+            medrecord.edge[:1, :] = "test"
+        with self.assertRaises(ValueError):
+            medrecord.edge[::1, :] = "test"
+        with self.assertRaises(ValueError):
+            medrecord.edge[:, 1:] = "test"
+        with self.assertRaises(ValueError):
+            medrecord.edge[:, :1] = "test"
+        with self.assertRaises(ValueError):
+            medrecord.edge[:, ::1] = "test"
 
         # Adding new attributes
 
@@ -1409,6 +1663,13 @@ class TestMedRecord(unittest.TestCase):
             medrecord.edge[:],
         )
 
+        with self.assertRaises(ValueError):
+            del medrecord.edge[0, 1:]
+        with self.assertRaises(ValueError):
+            del medrecord.edge[0, :1]
+        with self.assertRaises(ValueError):
+            del medrecord.edge[0, ::1]
+
         medrecord = create_medrecord()
         del medrecord.edge[[0, 1], "foo"]
         self.assertEqual(
@@ -1464,6 +1725,13 @@ class TestMedRecord(unittest.TestCase):
             },
             medrecord.edge[:],
         )
+
+        with self.assertRaises(ValueError):
+            del medrecord.edge[[0, 1], 1:]
+        with self.assertRaises(ValueError):
+            del medrecord.edge[[0, 1], :1]
+        with self.assertRaises(ValueError):
+            del medrecord.edge[[0, 1], ::1]
 
         medrecord = create_medrecord()
         del medrecord.edge[edge().index() >= 2, "foo"]
@@ -1529,6 +1797,13 @@ class TestMedRecord(unittest.TestCase):
             medrecord.edge[:],
         )
 
+        with self.assertRaises(ValueError):
+            del medrecord.edge[edge().index() >= 2, 1:]
+        with self.assertRaises(ValueError):
+            del medrecord.edge[edge().index() >= 2, :1]
+        with self.assertRaises(ValueError):
+            del medrecord.edge[edge().index() >= 2, ::1]
+
         medrecord = create_medrecord()
         del medrecord.edge[:, "foo"]
         self.assertEqual(
@@ -1545,6 +1820,13 @@ class TestMedRecord(unittest.TestCase):
         # Removing a non-existing key should fail
         with self.assertRaises(KeyError):
             del medrecord.edge[:, "test"]
+
+        with self.assertRaises(ValueError):
+            del medrecord.edge[1:, "foo"]
+        with self.assertRaises(ValueError):
+            del medrecord.edge[:1, "foo"]
+        with self.assertRaises(ValueError):
+            del medrecord.edge[::1, "foo"]
 
         medrecord = create_medrecord()
         del medrecord.edge[:, ["foo", "bar"]]
@@ -1568,6 +1850,13 @@ class TestMedRecord(unittest.TestCase):
         with self.assertRaises(KeyError):
             del medrecord.edge[:, ["foo", "lorem"]]
 
+        with self.assertRaises(ValueError):
+            del medrecord.edge[1:, ["foo", "bar"]]
+        with self.assertRaises(ValueError):
+            del medrecord.edge[:1, ["foo", "bar"]]
+        with self.assertRaises(ValueError):
+            del medrecord.edge[::1, ["foo", "bar"]]
+
         medrecord = create_medrecord()
         del medrecord.edge[:, :]
         self.assertEqual(
@@ -1579,3 +1868,16 @@ class TestMedRecord(unittest.TestCase):
             },
             medrecord.edge[:],
         )
+
+        with self.assertRaises(ValueError):
+            del medrecord.edge[1:, :]
+        with self.assertRaises(ValueError):
+            del medrecord.edge[:1, :]
+        with self.assertRaises(ValueError):
+            del medrecord.edge[::1, :]
+        with self.assertRaises(ValueError):
+            del medrecord.edge[:, 1:]
+        with self.assertRaises(ValueError):
+            del medrecord.edge[:, :1]
+        with self.assertRaises(ValueError):
+            del medrecord.edge[:, ::1]
