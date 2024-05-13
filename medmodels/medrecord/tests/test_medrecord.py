@@ -424,7 +424,34 @@ class TestMedRecord(unittest.TestCase):
 
         edges = medrecord.edges_connecting("0", "1")
 
-        self.assertEqual(1, len(edges))
+        self.assertEqual([0], edges)
+
+        edges = medrecord.edges_connecting(["0", "1"], "1")
+
+        self.assertEqual([0], edges)
+
+        edges = medrecord.edges_connecting(node_select().index().is_in(["0", "1"]), "1")
+
+        self.assertEqual([0], edges)
+
+        edges = medrecord.edges_connecting("0", ["1", "3"])
+
+        self.assertEqual(sorted([0, 2]), sorted(edges))
+
+        edges = medrecord.edges_connecting("0", node_select().index().is_in(["1", "3"]))
+
+        self.assertEqual(sorted([0, 2]), sorted(edges))
+
+        edges = medrecord.edges_connecting(["0", "1"], ["1", "2", "3"])
+
+        self.assertEqual(sorted([0, 1, 2]), sorted(edges))
+
+        edges = medrecord.edges_connecting(
+            node_select().index().is_in(["0", "1"]),
+            node_select().index().is_in(["1", "2", "3"]),
+        )
+
+        self.assertEqual(sorted([0, 1, 2]), sorted(edges))
 
     def test_add_node(self):
         medrecord = MedRecord()

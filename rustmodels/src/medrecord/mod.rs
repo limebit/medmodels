@@ -198,11 +198,16 @@ impl PyMedRecord {
 
     fn edges_connecting(
         &self,
-        source_node_index: PyNodeIndex,
-        target_node_index: PyNodeIndex,
+        source_node_index: Vec<PyNodeIndex>,
+        target_node_index: Vec<PyNodeIndex>,
     ) -> Vec<EdgeIndex> {
+        let source_node_index: Vec<MedRecordAttribute> = source_node_index.deep_into();
+        let target_node_index: Vec<MedRecordAttribute> = target_node_index.deep_into();
         self.0
-            .edges_connecting(&source_node_index.into(), &target_node_index.into())
+            .edges_connecting(
+                source_node_index.iter().collect(),
+                target_node_index.iter().collect(),
+            )
             .copied()
             .collect()
     }

@@ -231,7 +231,7 @@ impl EdgeOperation {
             };
 
             let edges = medrecord
-                .edges_connecting(endpoints.0, endpoints.1)
+                .edges_connecting(vec![endpoints.0], vec![endpoints.1])
                 .filter(|other_index| other_index != index);
 
             operation.clone().evaluate(medrecord, edges).count() > 0
@@ -305,7 +305,7 @@ impl EdgeOperation {
             };
 
             let edges = medrecord
-                .edges_connecting(endpoints.0, endpoints.1)
+                .edges_connecting(vec![endpoints.0], vec![endpoints.1])
                 .filter(|other_index| other_index != index);
 
             let operation = operation.clone();
