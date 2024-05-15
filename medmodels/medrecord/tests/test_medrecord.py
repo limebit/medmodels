@@ -274,6 +274,17 @@ class TestMedRecord(unittest.TestCase):
                 [(edges, "source", "target"), (edges, "source", "invalid")],
             )
 
+    def test_from_example_dataset(self):
+        medrecord = MedRecord.from_example_dataset()
+
+        self.assertEqual(73, medrecord.node_count())
+        self.assertEqual(160, medrecord.edge_count())
+
+        self.assertEqual(25, len(medrecord.group("diagnosis")))
+        self.assertEqual(19, len(medrecord.group("drug")))
+        self.assertEqual(5, len(medrecord.group("patient")))
+        self.assertEqual(24, len(medrecord.group("procedure")))
+
     def test_ron(self):
         medrecord = create_medrecord()
 

@@ -1,4 +1,5 @@
 mod datatypes;
+mod example_dataset;
 mod graph;
 mod group_mapping;
 mod polars;
