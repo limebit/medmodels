@@ -190,6 +190,21 @@ class MedRecord:
         return medrecord
 
     @classmethod
+    def from_example_dataset(cls) -> MedRecord:
+        """
+        Creates a MedRecord instance from an example dataset.
+
+        The example dataset was created using the Synthea™ Patient Generator:
+        https://github.com/synthetichealth/synthea
+
+        Returns:
+            MedRecord: A new instance created from the example dataset.
+        """
+        medrecord = cls.__new__(cls)
+        medrecord._medrecord = PyMedRecord.from_example_dataset()
+        return medrecord
+
+    @classmethod
     def from_ron(cls, path: str) -> MedRecord:
         """
         Creates a MedRecord instance from a RON file.

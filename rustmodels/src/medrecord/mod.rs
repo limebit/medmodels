@@ -63,6 +63,11 @@ impl PyMedRecord {
     }
 
     #[staticmethod]
+    fn from_example_dataset() -> Self {
+        Self(MedRecord::from_example_dataset())
+    }
+
+    #[staticmethod]
     fn from_ron(path: &str) -> PyResult<Self> {
         Ok(Self(
             MedRecord::from_ron(path).map_err(PyMedRecordError::from)?,
