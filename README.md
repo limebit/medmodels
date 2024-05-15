@@ -1,14 +1,10 @@
-<h1 align="center">
-  MedModels <br/> Using High-End Machine Learning to Enhance Medical Data Analyses
-</h1>
-
 <div align="center">
-  <br />
-  <img alt="MedModels Logo" src="images/medmodels_logo.svg">
-  <br />
-  <br />
-  <br />
+  <img alt="MedModels Logo" src="https://raw.githubusercontent.com/limebit/medmodels/main/images/medmodels_logo.svg">
 </div>
+
+<h1 align="center">
+  Using High-End Machine Learning to Enhance Medical Data Analyses
+</h1>
 
 <div align="center">
   <a href="https://black.readthedocs.io/en/stable/">
