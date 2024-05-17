@@ -492,14 +492,14 @@ dependencies = [
 
 [[package]]
 name = "medmodels"
-version = "0.0.1"
+version = "0.0.1-a1"
 dependencies = [
  "medmodels-core",
 ]
 
 [[package]]
 name = "medmodels-core"
-version = "0.0.1"
+version = "0.0.1-a1"
 dependencies = [
  "medmodels-utils",
  "polars",
@@ -509,7 +509,7 @@ dependencies = [
 
 [[package]]
 name = "medmodels-utils"
-version = "0.0.1"
+version = "0.0.1-a1"
 dependencies = [
  "hashbrown",
 ]
