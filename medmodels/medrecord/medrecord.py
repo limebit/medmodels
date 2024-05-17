@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Dict, List, Optional, Union, overload
+from typing import Dict, List, Optional, Sequence, Union, overload
 
 import pandas as pd
 import polars as pl
@@ -11,8 +11,13 @@ from medmodels.medrecord.querying import EdgeOperation, NodeOperation
 from medmodels.medrecord.types import (
     Attributes,
     EdgeIndex,
+    EdgeIndexInputList,
+    EdgeTuple,
     Group,
+    GroupInputList,
     NodeIndex,
+    NodeIndexInputList,
+    NodeTuple,
     PolarsEdgeDataFrameInput,
     PolarsNodeDataFrameInput,
     is_pandas_dataframe_list,
@@ -83,8 +88,8 @@ class MedRecord:
     @classmethod
     def from_tuples(
         cls,
-        nodes: List[tuple[NodeIndex, Attributes]],
-        edges: Optional[List[tuple[NodeIndex, NodeIndex, Attributes]]] = None,
+        nodes: Sequence[NodeTuple],
+        edges: Optional[Sequence[EdgeTuple]] = None,
     ) -> MedRecord:
         """
         Creates a MedRecord instance from lists of node and edge tuples.
@@ -94,9 +99,9 @@ class MedRecord:
         target nodes and edge attributes.
 
         Args:
-            nodes (List[tuple[NodeIndex, Attributes]]): List of node tuples.
-            edges (Optional[List[tuple[NodeIndex, NodeIndex, Attributes]]]): List of
-                edge tuples, defaults to an empty list.
+            nodes (Sequence[NodeTuple]): Sequence of node tuples.
+            edges (Optional[Sequence[EdgeTuple]]): Sequence of
+                edge tuples.
 
         Returns:
             MedRecord: A new instance created from the provided tuples.
@@ -304,10 +309,10 @@ class MedRecord:
     def group(self, group: Group) -> List[NodeIndex]: ...
 
     @overload
-    def group(self, group: List[Group]) -> Dict[Group, List[NodeIndex]]: ...
+    def group(self, group: GroupInputList) -> Dict[Group, List[NodeIndex]]: ...
 
     def group(
-        self, group: Union[Group, List[Group]]
+        self, group: Union[Group, GroupInputList]
     ) -> Union[List[NodeIndex], Dict[Group, List[NodeIndex]]]:
         """
         Returns the node indices associated with the specified group(s)
@@ -334,11 +339,11 @@ class MedRecord:
 
     @overload
     def outgoing_edges(
-        self, node: Union[List[NodeIndex], NodeOperation]
+        self, node: Union[NodeIndexInputList, NodeOperation]
     ) -> Dict[NodeIndex, List[EdgeIndex]]: ...
 
     def outgoing_edges(
-        self, node: Union[NodeIndex, List[NodeIndex], NodeOperation]
+        self, node: Union[NodeIndex, NodeIndexInputList, NodeOperation]
     ) -> Union[List[EdgeIndex], Dict[NodeIndex, List[EdgeIndex]]]:
         """
         Lists the outgoing edges of the specified node(s) in the MedRecord.
@@ -348,7 +353,7 @@ class MedRecord:
         its list of outgoing edge indices.
 
         Args:
-            node (Union[NodeIndex, List[NodeIndex], NodeOperation]): One or more
+            node (Union[NodeIndex, NodeIndexInputList, NodeOperation]): One or more
                 node indices.
 
         Returns:
@@ -372,11 +377,11 @@ class MedRecord:
 
     @overload
     def incoming_edges(
-        self, node: Union[List[NodeIndex], NodeOperation]
+        self, node: Union[NodeIndexInputList, NodeOperation]
     ) -> Dict[NodeIndex, List[EdgeIndex]]: ...
 
     def incoming_edges(
-        self, node: Union[NodeIndex, List[NodeIndex], NodeOperation]
+        self, node: Union[NodeIndex, NodeIndexInputList, NodeOperation]
     ) -> Union[List[EdgeIndex], Dict[NodeIndex, List[EdgeIndex]]]:
         """
         Lists the incoming edges of the specified node(s) in the MedRecord.
@@ -386,7 +391,7 @@ class MedRecord:
         its list of incoming edge indices.
 
         Args:
-            node (Union[NodeIndex, List[NodeIndex], NodeOperation]): One or more
+            node (Union[NodeIndex, NodeIndexInputList, NodeOperation]): One or more
                 node indices.
 
         Returns:
@@ -410,11 +415,11 @@ class MedRecord:
 
     @overload
     def edge_endpoints(
-        self, edge: Union[List[EdgeIndex], EdgeOperation]
+        self, edge: Union[EdgeIndexInputList, EdgeOperation]
     ) -> Dict[EdgeIndex, tuple[NodeIndex, NodeIndex]]: ...
 
     def edge_endpoints(
-        self, edge: Union[EdgeIndex, List[EdgeIndex], EdgeOperation]
+        self, edge: Union[EdgeIndex, EdgeIndexInputList, EdgeOperation]
     ) -> Union[
         tuple[NodeIndex, NodeIndex], Dict[EdgeIndex, tuple[NodeIndex, NodeIndex]]
     ]:
@@ -426,7 +431,7 @@ class MedRecord:
         a dictionary mapping each edge index to its tuple of node indices.
 
         Args:
-            edge (Union[EdgeIndex, List[EdgeIndex], EdgeOperation]): One or more
+            edge (Union[EdgeIndex, EdgeIndexInputList, EdgeOperation]): One or more
                 edge indices.
 
         Returns:
@@ -449,8 +454,8 @@ class MedRecord:
 
     def edges_connecting(
         self,
-        source_node: Union[NodeIndex, List[NodeIndex], NodeOperation],
-        target_node: Union[NodeIndex, List[NodeIndex], NodeOperation],
+        source_node: Union[NodeIndex, NodeIndexInputList, NodeOperation],
+        target_node: Union[NodeIndex, NodeIndexInputList, NodeOperation],
     ) -> List[EdgeIndex]:
         """
         Retrieves the edges connecting the specified source and target nodes in
@@ -462,10 +467,10 @@ class MedRecord:
         target nodes.
 
         Args:
-            source_node (Union[NodeIndex, List[NodeIndex], NodeOperation]):
+            source_node (Union[NodeIndex, NodeIndexInputList, NodeOperation]):
                 The index or indices of the source node(s), or a NodeOperation to
                 select source nodes.
-            target_node (Union[NodeIndex, List[NodeIndex], NodeOperation]):
+            target_node (Union[NodeIndex, NodeIndexInputList, NodeOperation]):
                 The index or indices of the target node(s), or a NodeOperation to
                 select target nodes.
 
@@ -502,11 +507,11 @@ class MedRecord:
 
     @overload
     def remove_node(
-        self, node: Union[List[NodeIndex], NodeOperation]
+        self, node: Union[NodeIndexInputList, NodeOperation]
     ) -> Dict[NodeIndex, Attributes]: ...
 
     def remove_node(
-        self, node: Union[NodeIndex, List[NodeIndex], NodeOperation]
+        self, node: Union[NodeIndex, NodeIndexInputList, NodeOperation]
     ) -> Union[Attributes, Dict[NodeIndex, Attributes]]:
         """
         Removes a node or multiple nodes from the MedRecord and returns
@@ -517,7 +522,7 @@ class MedRecord:
         index to its attributes.
 
         Args:
-            node (Union[NodeIndex, List[NodeIndex], NodeOperation]): Node index or
+            node (Union[NodeIndex, NodeIndexInputList, NodeOperation]): Node index or
                 indices.
 
         Returns:
@@ -539,7 +544,7 @@ class MedRecord:
     def add_nodes(
         self,
         nodes: Union[
-            List[tuple[NodeIndex, Attributes]],
+            Sequence[NodeTuple],
             pd.DataFrame,
             List[pd.DataFrame],
             PolarsNodeDataFrameInput,
@@ -555,7 +560,7 @@ class MedRecord:
         a DataFrame and the index column.
 
         Args:
-            nodes (Union[List[tuple[NodeIndex, Attributes]], pd.DataFrame,
+            nodes (Union[Sequence[NodeTuple], pd.DataFrame,
                 List[pd.DataFrame], PolarsNodeDataFrameInput,
                 List[PolarsNodeDataFrameInput]]): Data representing nodes
                 in various formats.
@@ -636,11 +641,11 @@ class MedRecord:
 
     @overload
     def remove_edge(
-        self, edge: Union[List[EdgeIndex], EdgeOperation]
+        self, edge: Union[EdgeIndexInputList, EdgeOperation]
     ) -> Dict[EdgeIndex, Attributes]: ...
 
     def remove_edge(
-        self, edge: Union[EdgeIndex, List[EdgeIndex], EdgeOperation]
+        self, edge: Union[EdgeIndex, EdgeIndexInputList, EdgeOperation]
     ) -> Union[Attributes, Dict[EdgeIndex, Attributes]]:
         """
         Removes an edge or multiple edges from the MedRecord and returns
@@ -651,7 +656,7 @@ class MedRecord:
         index to its attributes.
 
         Args:
-            edge (Union[EdgeIndex, List[EdgeIndex], EdgeOperation]): Edge index
+            edge (Union[EdgeIndex, EdgeIndexInputList, EdgeOperation]): Edge index
                 or indices.
 
         Returns:
@@ -673,7 +678,7 @@ class MedRecord:
     def add_edges(
         self,
         edges: Union[
-            List[tuple[NodeIndex, NodeIndex, Attributes]],
+            Sequence[EdgeTuple],
             pd.DataFrame,
             List[pd.DataFrame],
             PolarsEdgeDataFrameInput,
@@ -689,7 +694,7 @@ class MedRecord:
         the add_edges_dataframe method is invoked.
 
         Args:
-            edges (Union[List[tuple[NodeIndex, NodeIndex, Attributes]], pd.DataFrame,
+            edges (Union[Sequence[EdgeTuple], pd.DataFrame,
                 List[pd.DataFrame], PolarsEdgeDataFrameInput,
                 List[PolarsEdgeDataFrameInput]]):
                 Data representing edges in several formats.
@@ -755,7 +760,7 @@ class MedRecord:
     def add_group(
         self,
         group: Group,
-        node: Optional[Union[NodeIndex, List[NodeIndex], NodeOperation]] = None,
+        node: Optional[Union[NodeIndex, NodeIndexInputList, NodeOperation]] = None,
     ) -> None:
         """
         Adds a group to the MedRecord instance with an optional list of node indices.
@@ -765,7 +770,7 @@ class MedRecord:
 
         Args:
             group (Group): The name of the group to add.
-            node (Optional[Union[NodeIndex, List[NodeIndex], NodeOperation]]):
+            node (Optional[Union[NodeIndex, NodeIndexInputList, NodeOperation]]):
                 Node index or indices to add to the group, optional.
 
         Returns:
@@ -781,12 +786,12 @@ class MedRecord:
             group, node if isinstance(node, list) else [node]
         )
 
-    def remove_group(self, group: Union[Group, List[Group]]) -> None:
+    def remove_group(self, group: Union[Group, GroupInputList]) -> None:
         """
         Removes one or more groups from the MedRecord instance.
 
         Args:
-            group (Union[Group, List[Group]]): One or more group names to remove.
+            group (Union[Group, GroupInputList]): One or more group names to remove.
 
         Returns:
             None
@@ -796,14 +801,14 @@ class MedRecord:
         )
 
     def add_node_to_group(
-        self, group: Group, node: Union[NodeIndex, List[NodeIndex], NodeOperation]
+        self, group: Group, node: Union[NodeIndex, NodeIndexInputList, NodeOperation]
     ) -> None:
         """
         Adds one or more nodes to a specified group in the MedRecord.
 
         Args:
             group (Group): The name of the group to add nodes to.
-            node (Union[NodeIndex, List[NodeIndex], NodeOperation]): Node index
+            node (Union[NodeIndex, NodeIndexInputList, NodeOperation]): Node index
                 or indices to add to the group.
 
         Returns:
@@ -817,14 +822,14 @@ class MedRecord:
         )
 
     def remove_node_from_group(
-        self, group: Group, node: Union[NodeIndex, List[NodeIndex], NodeOperation]
+        self, group: Group, node: Union[NodeIndex, NodeIndexInputList, NodeOperation]
     ) -> None:
         """
         Removes one or more nodes from a specified group in the MedRecord.
 
         Args:
             group (Group): The name of the group from which to remove nodes.
-            node (Union[NodeIndex, List[NodeIndex], NodeOperation]): Node index
+            node (Union[NodeIndex, NodeIndexInputList, NodeOperation]): Node index
                 or indices to remove from the group.
 
         Returns:
@@ -844,11 +849,11 @@ class MedRecord:
 
     @overload
     def groups_of_node(
-        self, node: Union[List[NodeIndex], NodeOperation]
+        self, node: Union[NodeIndexInputList, NodeOperation]
     ) -> Dict[NodeIndex, List[Group]]: ...
 
     def groups_of_node(
-        self, node: Union[NodeIndex, List[NodeIndex], NodeOperation]
+        self, node: Union[NodeIndex, NodeIndexInputList, NodeOperation]
     ) -> Union[List[Group], Dict[NodeIndex, List[Group]]]:
         """
         Retrieves the groups associated with the specified node(s) in the MedRecord.
@@ -858,7 +863,7 @@ class MedRecord:
         its list of groups.
 
         Args:
-            node (Union[NodeIndex, List[NodeIndex], NodeOperation]): Node index
+            node (Union[NodeIndex, NodeIndexInputList, NodeOperation]): Node index
                 or indices.
 
         Returns:
@@ -945,11 +950,11 @@ class MedRecord:
 
     @overload
     def neighbors(
-        self, node: Union[List[NodeIndex], NodeOperation]
+        self, node: Union[NodeIndexInputList, NodeOperation]
     ) -> Dict[NodeIndex, List[NodeIndex]]: ...
 
     def neighbors(
-        self, node: Union[NodeIndex, List[NodeIndex], NodeOperation]
+        self, node: Union[NodeIndex, NodeIndexInputList, NodeOperation]
     ) -> Union[List[NodeIndex], Dict[NodeIndex, List[NodeIndex]]]:
         """
         Retrieves the neighbors of the specified node(s) in the MedRecord.
@@ -959,7 +964,7 @@ class MedRecord:
         each node index to its list of neighboring nodes.
 
         Args:
-            node (Union[NodeIndex, List[NodeIndex], NodeOperation]): Node index
+            node (Union[NodeIndex, NodeIndexInputList, NodeOperation]): Node index
                 or indices.
 
         Returns:
