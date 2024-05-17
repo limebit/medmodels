@@ -24,11 +24,28 @@ NodeIndexInputList: TypeAlias = MedRecordAttributeInputList
 EdgeIndex: TypeAlias = int
 EdgeIndexInputList: TypeAlias = List[EdgeIndex]
 Group: TypeAlias = MedRecordAttribute
+GroupInputList: TypeAlias = MedRecordAttributeInputList
 Attributes: TypeAlias = Dict[MedRecordAttribute, MedRecordValue]
 AttributesInput: TypeAlias = Union[
     Mapping[MedRecordAttribute, MedRecordValue],
     Mapping[str, MedRecordValue],
     Mapping[int, MedRecordValue],
+]
+NodeTuple: TypeAlias = Union[
+    Tuple[str, AttributesInput],
+    Tuple[int, AttributesInput],
+    Tuple[NodeIndex, AttributesInput],
+]
+EdgeTuple: TypeAlias = Union[
+    Tuple[str, str, AttributesInput],
+    Tuple[str, int, AttributesInput],
+    Tuple[str, NodeIndex, AttributesInput],
+    Tuple[int, str, AttributesInput],
+    Tuple[int, int, AttributesInput],
+    Tuple[int, NodeIndex, AttributesInput],
+    Tuple[NodeIndex, str, AttributesInput],
+    Tuple[NodeIndex, int, AttributesInput],
+    Tuple[NodeIndex, NodeIndex, AttributesInput],
 ]
 PolarsNodeDataFrameInput: TypeAlias = Tuple[pl.DataFrame, str]
 PolarsEdgeDataFrameInput: TypeAlias = Tuple[pl.DataFrame, str, str]
