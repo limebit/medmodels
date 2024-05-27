@@ -31,6 +31,11 @@ class TestClassicDistanceModels(unittest.TestCase):
         result_abs = cdm.nearest_neighbor(t_set, c_set, "absolute", covariates=covs)
         pd.testing.assert_frame_equal(result_abs, expected_abs)
 
+        # mahalanobis metric
+        expected_mah = pd.DataFrame(np.array([[1.0, 3.0, 5.0]]), columns=cols)
+        result_mah = cdm.nearest_neighbor(t_set, c_set, "mahalanobis", covariates=covs)
+        pd.testing.assert_frame_equal(result_mah, expected_mah)
+
 
 if __name__ == "__main__":
     run_test = unittest.TestLoader().loadTestsFromTestCase(TestClassicDistanceModels)

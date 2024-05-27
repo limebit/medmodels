@@ -45,26 +45,33 @@ def nearest_neighbor(
     control_array_full = control_set.to_numpy()  # To keep all the information
     matched_group = pd.DataFrame(columns=columns)
 
+    cov = np.array([])
+    if metric == "mahalanobis":
+        cov = np.cov(np.concatenate((treated_array, control_array)).T)
+
     for element_ss in treated_array:
-        dist = []
-
         if metric == "mahalanobis":
-            # Calculate the covariance matrix
-            cov = np.cov(np.concatenate((treated_array, control_array)).T)
-            try:
-                inv_cov = np.linalg.inv(cov)
-            except np.linalg.LinAlgError:
-                inv_cov = np.array([1 / cov])  # For the 1D case
+            if cov.ndim == 0:
+                inv_cov = 1 / cov
+            else:
+                try:
+                    inv_cov = np.linalg.inv(cov)
+                except np.linalg.LinAlgError:
+                    raise ValueError(
+                        "The covariance matrix is singular. Please, check the data."
+                    )
 
-            for element_bs in control_array:
-                dist.append(
-                    metrics.mahalanobis_metric(element_ss, element_bs, inv_cov=inv_cov)
-                )
+            dist = [
+                metrics.mahalanobis_metric(element_ss, element_bs, inv_cov=inv_cov)
+                for element_bs in control_array
+            ]
+
         else:
             metric_function = metrics.METRICS[metric]
 
-            for element_bs in control_array:
-                dist.append(metric_function(element_ss, element_bs))
+            dist = [
+                metric_function(element_ss, element_bs) for element_bs in control_array
+            ]
 
         nn_index = np.argmin(dist)
 

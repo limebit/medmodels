@@ -16,7 +16,7 @@ dev = [
     "maturin==1.5.1",
     "ruff==0.4.2",
     "py-spy==0.3.14",
-    "pyright==1.1.363",
+    "pyright==1.1.364",
     "pandas-stubs==2.2.1.240316",
 ]
 tests = ["pytest==8.2.0"]
