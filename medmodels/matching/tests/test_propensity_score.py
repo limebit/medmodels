@@ -14,24 +14,36 @@ class TestPropensityScore(unittest.TestCase):
         # Set random state by each propensity estimator:
         hyperparam = {"random_state": 1}
         hyperparam_logit = {"random_state": 1, "max_iter": 200}
+        x = np.array(x)
+        y = np.array(y)
 
         # Logistic Regression metric:
         result_1, result_2 = ps.calculate_propensity(
-            x, y, [x[0, :]], [x[1, :]], hyperparam=hyperparam_logit
+            x, y, np.array([x[0, :]]), np.array([x[1, :]]), hyperparam=hyperparam_logit
         )
         self.assertAlmostEqual(result_1[0], 1.43580537e-08, places=9)
         self.assertAlmostEqual(result_2[0], 3.00353141e-08, places=9)
 
         # Decision Tree Classifier metric:
         result_1, result_2 = ps.calculate_propensity(
-            x, y, [x[0, :]], [x[1, :]], metric="dec_tree", hyperparam=hyperparam
+            x,
+            y,
+            np.array([x[0, :]]),
+            np.array([x[1, :]]),
+            metric="dec_tree",
+            hyperparam=hyperparam,
         )
         self.assertAlmostEqual(result_1[0], 0, places=2)
         self.assertAlmostEqual(result_2[0], 0, places=2)
 
         # Random Forest Classifier metric:
         result_1, result_2 = ps.calculate_propensity(
-            x, y, [x[0, :]], [x[1, :]], metric="forest", hyperparam=hyperparam
+            x,
+            y,
+            np.array([x[0, :]]),
+            np.array([x[1, :]]),
+            metric="forest",
+            hyperparam=hyperparam,
         )
         self.assertAlmostEqual(result_1[0], 0, places=2)
         self.assertAlmostEqual(result_2[0], 0, places=2)

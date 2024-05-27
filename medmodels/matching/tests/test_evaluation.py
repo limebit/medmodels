@@ -2,11 +2,21 @@ import unittest
 
 import numpy as np
 import pandas as pd
+from pandas.testing import assert_frame_equal
 
 from medmodels.matching import evaluation
 
 
 class TestEvaluation(unittest.TestCase):
+    """Test class for the evaluation module."""
+
+    def test_relative_diff(self):
+        """Test the calculate_relative_diff function."""
+        row = pd.Series({"control_mean": 2.0, "treated_mean": 3.0})
+        expected = 50.0  # (3 - 2) / 2 * 100 = 50%
+        result = evaluation.calculate_relative_diff(row)
+        self.assertAlmostEqual(result, expected)
+
     def test_relative_diff_in_means(self):
         df_control = pd.DataFrame(np.array([[1, 3], [3, -3]]), columns=["a", "b"])
         df_treated = pd.DataFrame(np.array([[3, 4], [4, -10]]), columns=["a", "b"])
@@ -19,7 +29,7 @@ class TestEvaluation(unittest.TestCase):
 
         result = evaluation.relative_diff_in_means(df_control, df_treated)
 
-        return pd._testing.assert_frame_equal(result, expected)
+        assert_frame_equal(result, expected)
 
     def test_average_value_over_features(self):
         s = pd.Series(["control_mean", "treated_mean", "Diff (in %)"])
