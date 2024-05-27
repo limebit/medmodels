@@ -1,6 +1,29 @@
-from typing import List, Optional, Tuple
+from __future__ import annotations
+
+from typing import List, Optional, Tuple, Union
 
 import pandas as pd
+
+
+def calculate_relative_diff(row: pd.Series[float]) -> float:
+    """
+    Calculates the absolute relative difference for a single feature, expressed as a
+    percentage of the control's mean. Handles division by zero by returning the
+    absolute difference when the control mean is zero.
+    Args:
+        row (pd.Series[float]): A Series object representing a row from the DataFrame of
+            means, containing 'control_mean' and 'treated_mean' for a feature.
+    Returns:
+        float: The absolute relative difference in means, as a percentage.
+    """
+
+    control_mean = row["control_mean"]
+    treated_mean = row["treated_mean"]
+
+    if control_mean == 0:
+        return abs(treated_mean - control_mean) * 100
+    else:
+        return abs((treated_mean - control_mean) / control_mean) * 100
 
 
 def relative_diff_in_means(
@@ -27,25 +50,6 @@ def relative_diff_in_means(
     treatment.
     """
 
-    def calculate_relative_diff(row: pd.Series) -> float:
-        """
-        Calculates the absolute relative difference for a single feature, expressed as a
-        percentage of the control's mean. Handles division by zero by returning the
-        absolute difference when the control mean is zero.
-
-        Args:
-            row (pd.Series): A Series object representing a row from the DataFrame of
-                means, containing 'control_mean' and 'treated_mean' for a feature.
-
-        Returns:
-            float: The absolute relative difference in means, as a percentage.
-        """
-
-        if row.control_mean == 0:
-            return abs(row.treated_mean - row.control_mean) * 100
-        else:
-            return abs((row.treated_mean - row.control_mean) / row.control_mean) * 100
-
     control_mean = pd.DataFrame(control_set.mean()).transpose()
     treated_mean = pd.DataFrame(treated_set.mean()).transpose()
     df_mean = pd.concat([control_mean, treated_mean], ignore_index=True)
@@ -53,7 +57,6 @@ def relative_diff_in_means(
     df_mean = df_mean.rename(index={0: "control_mean", 1: "treated_mean"})
 
     df_mean = df_mean.transpose()
-
     df_mean["Diff (in %)"] = df_mean.apply(calculate_relative_diff, axis=1)
 
     return df_mean.transpose()
@@ -84,7 +87,7 @@ def average_value_over_features(df: pd.DataFrame) -> float:
 def average_abs_relative_diff(
     control_set: pd.DataFrame,
     treated_set: pd.DataFrame,
-    covariates: Optional[List[str]] = None,
+    covariates: Optional[Union[List[str], pd.Index[str]]] = None,
 ) -> Tuple[float, pd.DataFrame]:
     """
     Calculates the average absolute relative difference in means over specified
@@ -98,8 +101,8 @@ def average_abs_relative_diff(
     Args:
         control_set (pd.DataFrame): DataFrame for the control group.
         treated_set (pd.DataFrame): DataFrame for the treated group.
-        covariates (Optional[List[str]], optional): List of covariate names to include.
-            If None, considers all features.
+        covariates (Optional[Union[List[str], pd.Index[str]]] optional): List
+            of covariate names to include. If None, considers all features.
 
     Returns:
         Tuple[float, pd.DataFrame]: A tuple containing the average absolute relative
