@@ -1,5 +1,7 @@
 """Metrics for comparing vectors in the context of matching classes."""
 
+import math
+
 import numpy as np
 from numpy.typing import NDArray
 
@@ -61,6 +63,43 @@ def exact_metric(vector1: NDArray[np.float64], vector2: NDArray[np.float64]) -> 
         return 0
 
     return np.inf
+
+
+def mahalanobis_metric(*vectors: NDArray[np.float64], inv_cov: NDArray[np.float64]):
+    """
+    Returns mahalanobis metric for matching. Works better with continuous covariates.
+
+    .. math::
+        D(x, y) = \\sqrt{(x-y)^T S^{-1} (x-y)} where S is the covariate matrix of
+        the whole distribution
+
+    Args:
+        vectors (NDArray[np.float64]): Two numpy arrays to be compared. They must
+            belong to the same distribution.
+        inv_cov (NDArray[np.float64]): The inverse of the covariance matrix of the
+            whole distribution (data set).
+
+    Returns:
+        float: The Mahalanobis distance between the two vectors.
+
+    The covariance matrix and its inverse are calculated at most ones per item to be
+    paired, hence, they won't be included inside of the method in order to avoid the
+    repeated computation.
+
+    By matching without replacement the found paired item will be removed from the set,
+    hence,the covariance matrix of the whole distribution and its inverse need to be
+    recalculated for every entry. This can be time consuming for big data sets (esp.
+    with a big amount of features).
+    """
+
+    diff = vectors[0] - vectors[1]
+    left = np.dot(diff, inv_cov)
+    right = np.dot(left, diff)
+
+    if isinstance(right, np.ndarray):
+        right = right.item()
+
+    return float(math.sqrt(right))
 
 
 METRICS = {
