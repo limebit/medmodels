@@ -48,6 +48,7 @@ typeCheckingMode = "strict"
 include = [
     "medmodels/medrecord",
     "medmodels/_medmodels.pyi",
+    "medmodels/treatment_effect_estimation",
     "medmodels/matching",
 ]
 reportPrivateUsage = false

@@ -55,7 +55,6 @@ def relative_diff_in_means(
     df_mean = pd.concat([control_mean, treated_mean], ignore_index=True)
 
     df_mean = df_mean.rename(index={0: "control_mean", 1: "treated_mean"})
-
     df_mean = df_mean.transpose()
     df_mean["Diff (in %)"] = df_mean.apply(calculate_relative_diff, axis=1)
 
