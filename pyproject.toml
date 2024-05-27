@@ -44,13 +44,18 @@ line-length = 88
 
 [tool.pyright]
 typeCheckingMode = "strict"
-include = ["medmodels/medrecord", "medmodels/_medmodels.pyi"]
+include = [
+    "medmodels/medrecord",
+    "medmodels/_medmodels.pyi",
+    "medmodels/matching",
+]
 reportPrivateUsage = false
 reportIncompatibleMethodOverride = false
 reportUnknownArgumentType = false
 reportUnknownVariableType = false
 reportUnknownMemberType = false
 reportMissingModuleSource = false
+reportMissingTypeStubs = false
 
 [tool.pytest]
 python_files = "test_*.py"

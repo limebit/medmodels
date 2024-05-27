@@ -1,4 +1,6 @@
-from typing import List, Optional
+from __future__ import annotations
+
+from typing import List, Optional, Union
 
 import numpy as np
 import pandas as pd
@@ -10,7 +12,7 @@ def nearest_neighbor(
     treated_set: pd.DataFrame,
     control_set: pd.DataFrame,
     metric: str,
-    covariates: Optional[List[str]] = None,
+    covariates: Optional[Union[List[str], pd.Index[str]]] = None,
 ) -> pd.DataFrame:
     """
     Performs nearest neighbor matching between two dataframes using a specified metric.
@@ -26,8 +28,8 @@ def nearest_neighbor(
         control_set (pd.DataFrame): DataFrame from which matches are selected.
         metric (str): Metric to measure closeness between units, e.g., "absolute",
             "mahalanobis".
-        covariates (Optional[List[str]], optional): Covariates considered for matching.
-            Defaults to all variables.
+        covariates (Optional[Union[List[str], pd.Index[str]]], optional): Covariates
+            considered for matching. Defaults to all variables.
 
     Returns:
         pd.DataFrame: Matched subset from the control set.
@@ -45,21 +47,7 @@ def nearest_neighbor(
     matched_group = pd.DataFrame(columns=columns)
 
     for element_ss in treated_array:
-        dist = []
-
-        if metric == "mahalanobis":
-            # Calculate the covariance matrix
-            cov = np.cov(np.concatenate((treated_array, control_array)).T)
-            try:
-                inv_cov = np.linalg.inv(cov)
-            except np.linalg.LinAlgError:
-                inv_cov = np.array([1 / cov])  # For the 1D case
-
-            for element_bs in control_array:
-                dist.append(metric_function(element_ss, element_bs, inv_cov=inv_cov))
-        else:
-            for element_bs in control_array:
-                dist.append(metric_function(element_ss, element_bs))
+        dist = [metric_function(element_ss, element_bs) for element_bs in control_array]
 
         nn_index = np.argmin(dist)
 

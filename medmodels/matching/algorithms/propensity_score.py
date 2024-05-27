@@ -1,7 +1,10 @@
-from typing import Any, Optional, Tuple
+from __future__ import annotations
+
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
+from numpy.typing import NDArray
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.tree import DecisionTreeClassifier
@@ -10,13 +13,13 @@ from medmodels.matching.algorithms.classic_distance_models import nearest_neighb
 
 
 def calculate_propensity(
-    x_train: np.ndarray,
-    y_train: np.ndarray,
-    treated_test: np.ndarray,
-    control_test: np.ndarray,
-    hyperparam: Optional[dict] = None,
+    x_train: NDArray[Union[np.int64, np.float64]],
+    y_train: NDArray[Union[np.int64, np.float64]],
+    treated_test: NDArray[Union[np.int64, np.float64]],
+    control_test: NDArray[Union[np.int64, np.float64]],
+    hyperparam: Optional[Dict[str, Any]] = None,
     metric: str = "logit",
-) -> Tuple[np.ndarray, np.ndarray]:
+) -> Tuple[NDArray[np.float64], NDArray[np.float64]]:
     """
     Trains a classification algorithm on training data, predicts the probability of
     being in the last class for treated and control test datasets, and returns these
@@ -27,20 +30,20 @@ def calculate_propensity(
     probability of the positive class.
 
     Args:
-        x_train (np.ndarray): Feature matrix for training.
-        y_train (np.ndarray): Target variable for training.
-        treated_test (np.ndarray): Feature matrix for the treated group to predict
-            probabilities.
-        control_test (np.ndarray): Feature matrix for the control group to predict
-            probabilities.
-        hyperparam (Optional[dict], optional): Manual hyperparameter settings. Uses
-            default if None.
+        x_train (NDArray[Union[np.int64, np.float64]]): Feature matrix for training.
+        y_train (NDArray[Union[np.int64, np.float64]]): Target variable for training.
+        treated_test (NDArray[Union[np.int64, np.float64]]): Feature matrix for the
+            treated group to predict probabilities.
+        control_test (NDArray[Union[np.int64, np.float64]]): Feature matrix for the
+            control group to predict probabilities.
+        hyperparam (Optional[Dict[str, Any]], optional): Manual hyperparameter settings.
+            Uses default if None.
         metric (str, optional): Classification algorithm to use. Options: "logit",
             "dec_tree", "forest".
 
     Returns:
-        Tuple[np.ndarray, np.ndarray]: Probabilities of the positive class for treated
-            and control groups.
+        Tuple[NDArray[np.float64], NDArray[np.float64]: Probabilities of the positive
+            class for treated and control groups.
 
     Example:
         For "dec_tree" metric with iris dataset inputs, returns probabilities of the
@@ -57,7 +60,11 @@ def calculate_propensity(
 
     pm.fit(x_train, y_train)
 
-    return pm.predict_proba(treated_test).T[-1], pm.predict_proba(control_test).T[-1]
+    # Predict the probability of the treated and control groups
+    treated_probability = np.array(pm.predict_proba(treated_test)).T[-1]
+    control_probability = np.array(pm.predict_proba(control_test)).T[-1]
+
+    return treated_probability, control_probability
 
 
 def run_propensity_score(
@@ -65,7 +72,7 @@ def run_propensity_score(
     control_set: pd.DataFrame,
     model: str = "logit",
     hyperparam: Optional[Any] = None,
-    covariates: Optional[list] = None,
+    covariates: Optional[Union[List[str], pd.Index[str]]] = None,
 ) -> pd.DataFrame:
     """
     Executes Propensity Score matching using a specified classification algorithm.
@@ -80,7 +87,8 @@ def run_propensity_score(
             Options include "logit", "dec_tree", "forest".
         hyperparam (Optional[Any], optional): Hyperparameters for model tuning.
             Increases computation time if set.
-        covariates (Optional[list], optional): Features for matching. Uses all if None.
+        covariates (Optional[Union[List[str], pd.Index[str]]], optional): Features for
+            matching. Uses all if None.
 
     Returns:
         pd.DataFrame: Matched subset from the control set corresponding to the treated

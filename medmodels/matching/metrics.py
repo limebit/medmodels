@@ -1,19 +1,23 @@
-from typing import Tuple
+"""Metrics for comparing vectors in the context of matching classes."""
 
 import numpy as np
+from numpy.typing import NDArray
 
 
-def absolute_metric(*vectors: Tuple[np.ndarray, np.ndarray]) -> float:
+def absolute_metric(
+    vector1: NDArray[np.float64], vector2: NDArray[np.float64]
+) -> float:
     """
-    Calculates the Euclidean distance (L1 norm) between two vectors, providing a measure
+    Calculates the Manhattan distance (L1 norm) between two vectors, providing a measure
     of the absolute difference between them. This distance is the sum of the absolute
     differences between each corresponding pair of elements in the two vectors.
 
     Args:
-        vectors (Tuple[np.ndarray, np.ndarray]): Two numpy arrays to be compared.
+        vector1 (NDArray[np.float64]): The first vector to be compared.
+        vector2 (NDArray[np.float64]): The second vector to be compared.
 
     Returns:
-        float: The Euclidean distance between the two vectors.
+        float: The Manhattan distance between the two vectors.
 
     The calculation is based on the formula:
         $$
@@ -21,12 +25,12 @@ def absolute_metric(*vectors: Tuple[np.ndarray, np.ndarray]) -> float:
         $$
     """
 
-    diff = vectors[0] - vectors[1]
+    diff = vector1 - vector2
 
     return sum(np.abs(diff))
 
 
-def exact_metric(*vectors: Tuple[np.ndarray, np.ndarray]) -> float:
+def exact_metric(vector1: NDArray[np.float64], vector2: NDArray[np.float64]) -> float:
     """
     Computes the exact metric for matching, which is particularly applicable for
     discrete or categorical covariates rather than continuous ones. This metric returns
@@ -44,7 +48,8 @@ def exact_metric(*vectors: Tuple[np.ndarray, np.ndarray]) -> float:
     $$
 
     Args:
-        vectors (Tuple[np.ndarray, np.ndarray]): Two numpy arrays to be compared.
+        vector1 (NDArray[np.float64]): The first vector to be compared.
+        vector2 (NDArray[np.float64]): The second vector to be compared.
 
     Returns:
         float: 0 if the vectors are equal, infinity if they are not.
@@ -52,11 +57,10 @@ def exact_metric(*vectors: Tuple[np.ndarray, np.ndarray]) -> float:
     Note:
         This function is designed for exactly two input vectors.
     """
-    v1, v2 = vectors[0], vectors[1]
-    if np.array_equal(v1, v2):
+    if np.array_equal(vector1, vector2):
         return 0
-    else:
-        return np.inf
+
+    return np.inf
 
 
 METRICS = {
