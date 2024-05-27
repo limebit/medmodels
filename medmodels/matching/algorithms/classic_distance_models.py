@@ -35,7 +35,6 @@ def nearest_neighbor(
         pd.DataFrame: Matched subset from the control set.
     """
 
-    metric_function = metrics.METRICS[metric]
     columns = treated_set.columns
 
     if not covariates:
@@ -43,11 +42,29 @@ def nearest_neighbor(
 
     treated_array = treated_set[covariates].to_numpy().astype(float)
     control_array = control_set[covariates].to_numpy().astype(float)
-    control_array_full = control_set.to_numpy()  # To keep all the infos
+    control_array_full = control_set.to_numpy()  # To keep all the information
     matched_group = pd.DataFrame(columns=columns)
 
     for element_ss in treated_array:
-        dist = [metric_function(element_ss, element_bs) for element_bs in control_array]
+        dist = []
+
+        if metric == "mahalanobis":
+            # Calculate the covariance matrix
+            cov = np.cov(np.concatenate((treated_array, control_array)).T)
+            try:
+                inv_cov = np.linalg.inv(cov)
+            except np.linalg.LinAlgError:
+                inv_cov = np.array([1 / cov])  # For the 1D case
+
+            for element_bs in control_array:
+                dist.append(
+                    metrics.mahalanobis_metric(element_ss, element_bs, inv_cov=inv_cov)
+                )
+        else:
+            metric_function = metrics.METRICS[metric]
+
+            for element_bs in control_array:
+                dist.append(metric_function(element_ss, element_bs))
 
         nn_index = np.argmin(dist)
 
