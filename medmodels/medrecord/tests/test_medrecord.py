@@ -107,6 +107,23 @@ class TestMedRecord(unittest.TestCase):
     def test_from_pandas(self):
         medrecord = MedRecord.from_pandas(
             create_pandas_nodes_dataframe_with_index(),
+        )
+
+        self.assertEqual(2, medrecord.node_count())
+        self.assertEqual(0, medrecord.edge_count())
+
+        medrecord = MedRecord.from_pandas(
+            [
+                create_pandas_nodes_dataframe_with_index(),
+                create_second_pandas_nodes_dataframe_with_index(),
+            ],
+        )
+
+        self.assertEqual(4, medrecord.node_count())
+        self.assertEqual(0, medrecord.edge_count())
+
+        medrecord = MedRecord.from_pandas(
+            create_pandas_nodes_dataframe_with_index(),
             create_pandas_edges_dataframe_with_index(),
         )
 
