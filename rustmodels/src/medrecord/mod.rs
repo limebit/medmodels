@@ -56,7 +56,7 @@ impl PyMedRecord {
     }
 
     #[staticmethod]
-    fn from_nodes_dataframe(nodes_dataframes: Vec<(PyDataFrame, String)>) -> PyResult<Self> {
+    fn from_nodes_dataframes(nodes_dataframes: Vec<(PyDataFrame, String)>) -> PyResult<Self> {
         Ok(Self(
             MedRecord::from_nodes_dataframes(nodes_dataframes).map_err(PyMedRecordError::from)?,
         ))
