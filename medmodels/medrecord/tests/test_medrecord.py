@@ -66,22 +66,6 @@ def create_second_pandas_edges_dataframe() -> pd.DataFrame:
     )
 
 
-def create_pandas_nodes_dataframe_with_index() -> pd.DataFrame:
-    return create_pandas_nodes_dataframe().set_index("index")
-
-
-def create_second_pandas_nodes_dataframe_with_index() -> pd.DataFrame:
-    return create_second_pandas_nodes_dataframe().set_index("index")
-
-
-def create_pandas_edges_dataframe_with_index() -> pd.DataFrame:
-    return create_pandas_edges_dataframe().set_index(["source", "target"])
-
-
-def create_second_pandas_edges_dataframe_with_index() -> pd.DataFrame:
-    return create_second_pandas_edges_dataframe().set_index(["source", "target"])
-
-
 def create_medrecord() -> MedRecord:
     return MedRecord.from_tuples(create_nodes(), create_edges())
 
@@ -106,7 +90,7 @@ class TestMedRecord(unittest.TestCase):
 
     def test_from_pandas(self):
         medrecord = MedRecord.from_pandas(
-            create_pandas_nodes_dataframe_with_index(),
+            (create_pandas_nodes_dataframe(), "index"),
         )
 
         self.assertEqual(2, medrecord.node_count())
@@ -114,8 +98,8 @@ class TestMedRecord(unittest.TestCase):
 
         medrecord = MedRecord.from_pandas(
             [
-                create_pandas_nodes_dataframe_with_index(),
-                create_second_pandas_nodes_dataframe_with_index(),
+                (create_pandas_nodes_dataframe(), "index"),
+                (create_second_pandas_nodes_dataframe(), "index"),
             ],
         )
 
@@ -123,8 +107,8 @@ class TestMedRecord(unittest.TestCase):
         self.assertEqual(0, medrecord.edge_count())
 
         medrecord = MedRecord.from_pandas(
-            create_pandas_nodes_dataframe_with_index(),
-            create_pandas_edges_dataframe_with_index(),
+            (create_pandas_nodes_dataframe(), "index"),
+            (create_pandas_edges_dataframe(), "source", "target"),
         )
 
         self.assertEqual(2, medrecord.node_count())
@@ -132,20 +116,20 @@ class TestMedRecord(unittest.TestCase):
 
         medrecord = MedRecord.from_pandas(
             [
-                create_pandas_nodes_dataframe_with_index(),
-                create_second_pandas_nodes_dataframe_with_index(),
+                (create_pandas_nodes_dataframe(), "index"),
+                (create_second_pandas_nodes_dataframe(), "index"),
             ],
-            create_pandas_edges_dataframe_with_index(),
+            (create_pandas_edges_dataframe(), "source", "target"),
         )
 
         self.assertEqual(4, medrecord.node_count())
         self.assertEqual(2, medrecord.edge_count())
 
         medrecord = MedRecord.from_pandas(
-            create_pandas_nodes_dataframe_with_index(),
+            (create_pandas_nodes_dataframe(), "index"),
             [
-                create_pandas_edges_dataframe_with_index(),
-                create_second_pandas_edges_dataframe_with_index(),
+                (create_pandas_edges_dataframe(), "source", "target"),
+                (create_second_pandas_edges_dataframe(), "source", "target"),
             ],
         )
 
@@ -154,69 +138,17 @@ class TestMedRecord(unittest.TestCase):
 
         medrecord = MedRecord.from_pandas(
             [
-                create_pandas_nodes_dataframe_with_index(),
-                create_second_pandas_nodes_dataframe_with_index(),
+                (create_pandas_nodes_dataframe(), "index"),
+                (create_second_pandas_nodes_dataframe(), "index"),
             ],
             [
-                create_pandas_edges_dataframe_with_index(),
-                create_second_pandas_edges_dataframe_with_index(),
+                (create_pandas_edges_dataframe(), "source", "target"),
+                (create_second_pandas_edges_dataframe(), "source", "target"),
             ],
         )
 
         self.assertEqual(4, medrecord.node_count())
         self.assertEqual(4, medrecord.edge_count())
-
-    def test_invalid_from_pandas(self):
-        nodes = create_pandas_nodes_dataframe()
-        nodes_with_index = create_pandas_nodes_dataframe_with_index()
-        second_nodes = create_second_pandas_nodes_dataframe()
-        edges = create_pandas_edges_dataframe()
-        edges_with_index = create_pandas_edges_dataframe_with_index()
-        second_edges = create_second_pandas_edges_dataframe()
-
-        # Creating a MedRecord from a node DataFrame without an index should fail
-        with self.assertRaises(AssertionError):
-            MedRecord.from_pandas(nodes, edges_with_index)
-
-        # Creating a MedRecord from a node DataFrame without an index should fail
-        with self.assertRaises(AssertionError):
-            MedRecord.from_pandas([nodes_with_index, second_nodes], edges_with_index)
-
-        # Creating a MedRecord from an edge DataFrame without an index should fail
-        with self.assertRaises(AssertionError):
-            MedRecord.from_pandas(nodes_with_index, edges)
-
-        # Creating a MedRecord from an edge DataFrame without an index should fail
-        with self.assertRaises(AssertionError):
-            MedRecord.from_pandas(nodes_with_index, [edges_with_index, second_edges])
-
-        # Creating a MedRecord from an edge DataFrame without 2 level index should fail
-        with self.assertRaises(AssertionError):
-            MedRecord.from_pandas(nodes_with_index, edges.set_index("source"))
-
-        # Creating a MedRecord from an edge DataFrame without 2 level index should fail
-        with self.assertRaises(AssertionError):
-            MedRecord.from_pandas(
-                nodes_with_index, [edges_with_index, second_edges.set_index("source")]
-            )
-
-        # Creating a MedRecord from an edge DataFrame with more than 2 level index
-        # should fail
-        with self.assertRaises(AssertionError):
-            MedRecord.from_pandas(
-                nodes_with_index, edges.set_index(["source", "target", "attribute"])
-            )
-
-        # Creating a MedRecord from an edge DataFrame with more than 2 level index
-        # should fail
-        with self.assertRaises(AssertionError):
-            MedRecord.from_pandas(
-                nodes_with_index,
-                [
-                    edges_with_index,
-                    second_edges.set_index(["source", "target", "attribute"]),
-                ],
-            )
 
     def test_from_polars(self):
         nodes = pl.from_pandas(create_pandas_nodes_dataframe())
@@ -551,7 +483,7 @@ class TestMedRecord(unittest.TestCase):
 
         self.assertEqual(0, medrecord.node_count())
 
-        medrecord.add_nodes(create_pandas_nodes_dataframe_with_index())
+        medrecord.add_nodes((create_pandas_nodes_dataframe(), "index"))
 
         self.assertEqual(2, medrecord.node_count())
 
@@ -573,8 +505,8 @@ class TestMedRecord(unittest.TestCase):
 
         medrecord.add_nodes(
             [
-                create_pandas_nodes_dataframe_with_index(),
-                create_second_pandas_nodes_dataframe_with_index(),
+                (create_pandas_nodes_dataframe(), "index"),
+                (create_second_pandas_nodes_dataframe(), "index"),
             ]
         )
 
@@ -605,7 +537,7 @@ class TestMedRecord(unittest.TestCase):
     def test_add_nodes_pandas(self):
         medrecord = MedRecord()
 
-        nodes = create_pandas_nodes_dataframe_with_index()
+        nodes = (create_pandas_nodes_dataframe(), "index")
 
         self.assertEqual(0, medrecord.node_count())
 
@@ -615,28 +547,13 @@ class TestMedRecord(unittest.TestCase):
 
         medrecord = MedRecord()
 
-        second_nodes = create_second_pandas_nodes_dataframe_with_index()
+        second_nodes = (create_second_pandas_nodes_dataframe(), "index")
 
         self.assertEqual(0, medrecord.node_count())
 
         medrecord.add_nodes([nodes, second_nodes])
 
         self.assertEqual(4, medrecord.node_count())
-
-    def test_invalid_add_nodes_pandas(self):
-        medrecord = MedRecord()
-
-        nodes = create_pandas_nodes_dataframe()
-        nodes_with_index = create_pandas_nodes_dataframe_with_index()
-        second_nodes = create_second_pandas_nodes_dataframe()
-
-        # Adding a nodes dataframe without an index should fail
-        with self.assertRaises(AssertionError):
-            medrecord.add_nodes(nodes)
-
-        # Adding a nodes dataframe without an index should fail
-        with self.assertRaises(AssertionError):
-            medrecord.add_nodes([nodes_with_index, second_nodes])
 
     def test_add_nodes_polars(self):
         medrecord = MedRecord()
@@ -748,7 +665,7 @@ class TestMedRecord(unittest.TestCase):
 
         self.assertEqual(0, medrecord.edge_count())
 
-        medrecord.add_edges(create_pandas_edges_dataframe_with_index())
+        medrecord.add_edges((create_pandas_edges_dataframe(), "source", "target"))
 
         self.assertEqual(2, medrecord.edge_count())
 
@@ -774,8 +691,8 @@ class TestMedRecord(unittest.TestCase):
 
         medrecord.add_edges(
             [
-                create_pandas_edges_dataframe_with_index(),
-                create_second_pandas_edges_dataframe_with_index(),
+                (create_pandas_edges_dataframe(), "source", "target"),
+                (create_second_pandas_edges_dataframe(), "source", "target"),
             ]
         )
 
@@ -806,30 +723,13 @@ class TestMedRecord(unittest.TestCase):
 
         medrecord.add_nodes(nodes)
 
-        edges = create_pandas_edges_dataframe_with_index()
+        edges = (create_pandas_edges_dataframe(), "source", "target")
 
         self.assertEqual(0, medrecord.edge_count())
 
         medrecord.add_edges(edges)
 
         self.assertEqual(2, medrecord.edge_count())
-
-    def test_invalid_add_edges_pandas(self):
-        medrecord = MedRecord()
-
-        nodes = create_nodes()
-
-        medrecord.add_nodes(nodes)
-
-        edges = create_pandas_edges_dataframe()
-
-        # Adding an edges dataframe without an index should fail
-        with self.assertRaises(AssertionError):
-            medrecord.add_edges(edges)
-
-        # Adding an edges dataframe without a 2-level index should fail
-        with self.assertRaises(AssertionError):
-            medrecord.add_edges(edges.set_index("source"))
 
     def test_add_edges_polars(self):
         medrecord = MedRecord()
