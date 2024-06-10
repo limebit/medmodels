@@ -96,9 +96,6 @@ class NodeIndexer:
 
             return self._medrecord._medrecord.node(self._medrecord.nodes)
 
-        if not isinstance(key, tuple):
-            raise TypeError("Invalid key type")
-
         index_selection, attribute_selection = key
 
         if is_node_index(index_selection) and is_medrecord_attribute(
@@ -291,9 +288,6 @@ class NodeIndexer:
             return self._medrecord._medrecord.replace_node_attributes(
                 value, self._medrecord.nodes
             )
-
-        if not isinstance(key, tuple):
-            raise TypeError("Invalid key type")
 
         index_selection, attribute_selection = key
 
@@ -710,9 +704,6 @@ class EdgeIndexer:
 
             return self._medrecord._medrecord.edge(self._medrecord.edges)
 
-        if not isinstance(key, tuple):
-            raise TypeError("Invalid key type")
-
         index_selection, attribute_selection = key
 
         if is_edge_index(index_selection) and is_medrecord_attribute(
@@ -905,9 +896,6 @@ class EdgeIndexer:
             return self._medrecord._medrecord.replace_edge_attributes(
                 value, self._medrecord.edges
             )
-
-        if not isinstance(key, tuple):
-            raise TypeError("Invalid key type")
 
         index_selection, attribute_selection = key
 

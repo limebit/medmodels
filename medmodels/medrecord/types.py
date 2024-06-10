@@ -9,9 +9,9 @@ if TYPE_CHECKING:
     import sys
 
     if sys.version_info >= (3, 10):
-        from typing import TypeAlias, TypeGuard
+        from typing import TypeAlias, TypeIs
     else:
-        from typing_extensions import TypeAlias, TypeGuard
+        from typing_extensions import TypeAlias, TypeIs
 
 
 MedRecordAttribute: TypeAlias = Union[str, int]
@@ -49,35 +49,37 @@ EdgeTuple: TypeAlias = Union[
 ]
 PolarsNodeDataFrameInput: TypeAlias = Tuple[pl.DataFrame, str]
 PolarsEdgeDataFrameInput: TypeAlias = Tuple[pl.DataFrame, str, str]
+PandasNodeDataFrameInput: TypeAlias = Tuple[pd.DataFrame, str]
+PandasEdgeDataFrameInput: TypeAlias = Tuple[pd.DataFrame, str, str]
 
 
-def is_medrecord_attribute(value: object) -> TypeGuard[MedRecordAttribute]:
+def is_medrecord_attribute(value: object) -> TypeIs[MedRecordAttribute]:
     return isinstance(value, (str, int))
 
 
-def is_medrecord_value(value: object) -> TypeGuard[MedRecordValue]:
+def is_medrecord_value(value: object) -> TypeIs[MedRecordValue]:
     return isinstance(value, (str, int, float, bool)) or value is None
 
 
-def is_node_index(value: object) -> TypeGuard[NodeIndex]:
+def is_node_index(value: object) -> TypeIs[NodeIndex]:
     return is_medrecord_attribute(value)
 
 
-def is_edge_index(value: object) -> TypeGuard[EdgeIndex]:
+def is_edge_index(value: object) -> TypeIs[EdgeIndex]:
     return isinstance(value, int)
 
 
-def is_group(value: object) -> TypeGuard[Group]:
+def is_group(value: object) -> TypeIs[Group]:
     return is_medrecord_attribute(value)
 
 
-def is_attributes(value: object) -> TypeGuard[Attributes]:
+def is_attributes(value: object) -> TypeIs[Attributes]:
     return isinstance(value, dict)
 
 
 def is_polars_node_dataframe_input(
     value: object,
-) -> TypeGuard[PolarsNodeDataFrameInput]:
+) -> TypeIs[PolarsNodeDataFrameInput]:
     return (
         isinstance(value, tuple)
         and len(value) == 2
@@ -88,7 +90,7 @@ def is_polars_node_dataframe_input(
 
 def is_polars_node_dataframe_input_list(
     value: object,
-) -> TypeGuard[List[PolarsNodeDataFrameInput]]:
+) -> TypeIs[List[PolarsNodeDataFrameInput]]:
     return isinstance(value, list) and all(
         is_polars_node_dataframe_input(input) for input in value
     )
@@ -96,7 +98,7 @@ def is_polars_node_dataframe_input_list(
 
 def is_polars_edge_dataframe_input(
     value: object,
-) -> TypeGuard[PolarsEdgeDataFrameInput]:
+) -> TypeIs[PolarsEdgeDataFrameInput]:
     return (
         isinstance(value, tuple)
         and len(value) == 3
@@ -108,11 +110,46 @@ def is_polars_edge_dataframe_input(
 
 def is_polars_edge_dataframe_input_list(
     value: object,
-) -> TypeGuard[List[PolarsEdgeDataFrameInput]]:
+) -> TypeIs[List[PolarsEdgeDataFrameInput]]:
     return isinstance(value, list) and all(
         is_polars_edge_dataframe_input(input) for input in value
     )
 
 
-def is_pandas_dataframe_list(value: object) -> TypeGuard[List[pd.DataFrame]]:
-    return isinstance(value, list) and all(isinstance(df, pd.DataFrame) for df in value)
+def is_pandas_node_dataframe_input(
+    value: object,
+) -> TypeIs[PandasNodeDataFrameInput]:
+    return (
+        isinstance(value, tuple)
+        and len(value) == 2
+        and isinstance(value[0], pd.DataFrame)
+        and isinstance(value[1], str)
+    )
+
+
+def is_pandas_node_dataframe_input_list(
+    value: object,
+) -> TypeIs[List[PandasNodeDataFrameInput]]:
+    return isinstance(value, list) and all(
+        is_pandas_node_dataframe_input(input) for input in value
+    )
+
+
+def is_pandas_edge_dataframe_input(
+    value: object,
+) -> TypeIs[PandasEdgeDataFrameInput]:
+    return (
+        isinstance(value, tuple)
+        and len(value) == 3
+        and isinstance(value[0], pd.DataFrame)
+        and isinstance(value[1], str)
+        and isinstance(value[2], str)
+    )
+
+
+def is_pandas_edge_dataframe_input_list(
+    value: object,
+) -> TypeIs[List[PandasEdgeDataFrameInput]]:
+    return isinstance(value, list) and all(
+        is_pandas_edge_dataframe_input(input) for input in value
+    )
