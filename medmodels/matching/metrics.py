@@ -1,9 +1,11 @@
 """Metrics for comparing vectors in the context of matching classes."""
 
 import math
+from typing import Literal
 
 import numpy as np
 from numpy.typing import NDArray
+from typing_extensions import TypeAlias
 
 
 def absolute_metric(
@@ -108,6 +110,8 @@ def mahalanobis_metric(
 
     return float(math.sqrt(distance_squared))
 
+
+Metric: TypeAlias = Literal["absolute", "exact", "mahalanobis"]
 
 METRICS = {
     "absolute": absolute_metric,
