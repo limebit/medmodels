@@ -237,11 +237,20 @@ impl MedRecord {
 
     pub fn edges_connecting<'a>(
         &'a self,
-        outgoing_node_index: Vec<&'a NodeIndex>,
-        incoming_node_index: Vec<&'a NodeIndex>,
+        outgoing_node_indices: Vec<&'a NodeIndex>,
+        incoming_node_indices: Vec<&'a NodeIndex>,
     ) -> impl Iterator<Item = &EdgeIndex> + 'a {
         self.graph
-            .edges_connecting(outgoing_node_index, incoming_node_index)
+            .edges_connecting(outgoing_node_indices, incoming_node_indices)
+    }
+
+    pub fn edges_connecting_undirected<'a>(
+        &'a self,
+        first_node_indices: Vec<&'a NodeIndex>,
+        second_node_indices: Vec<&'a NodeIndex>,
+    ) -> impl Iterator<Item = &EdgeIndex> + 'a {
+        self.graph
+            .edges_connecting_undirected(first_node_indices, second_node_indices)
     }
 
     pub fn add_node(
@@ -462,6 +471,15 @@ impl MedRecord {
             .map_err(MedRecordError::from)
     }
 
+    pub fn neighbors_undirected(
+        &self,
+        node_index: &NodeIndex,
+    ) -> Result<impl Iterator<Item = &NodeIndex>, MedRecordError> {
+        self.graph
+            .neighbors_undirected(node_index)
+            .map_err(MedRecordError::from)
+    }
+
     pub fn clear(&mut self) {
         self.graph.clear();
         self.group_mapping.clear();
@@ -519,6 +537,14 @@ mod test {
             ),
             (
                 "1".into(),
+                "0".into(),
+                HashMap::from([
+                    ("sed".into(), "do".into()),
+                    ("eiusmod".into(), "tempor".into()),
+                ]),
+            ),
+            (
+                "1".into(),
                 "2".into(),
                 HashMap::from([("incididunt".into(), "ut".into())]),
             ),
@@ -551,7 +577,7 @@ mod test {
         let medrecord = create_medrecord();
 
         assert_eq!(4, medrecord.node_count());
-        assert_eq!(3, medrecord.edge_count());
+        assert_eq!(4, medrecord.edge_count());
     }
 
     #[test]
@@ -692,7 +718,7 @@ mod test {
     #[test]
     fn test_edge_indices() {
         let medrecord = create_medrecord();
-        let edges = [0, 1, 2];
+        let edges = [0, 1, 2, 3];
 
         for edge in medrecord.edge_indices() {
             assert!(edges.contains(edge));
@@ -789,10 +815,8 @@ mod test {
             .edges_connecting(vec![&first_index, &second_index], vec![&third_index])
             .collect::<Vec<_>>();
 
-        let mut compare_to = vec![&1, &2];
-        compare_to.sort();
         edges_connecting.sort();
-        assert_eq!(compare_to, edges_connecting);
+        assert_eq!(vec![&2, &3], edges_connecting);
 
         let first_index = "0".into();
         let second_index = "1".into();
@@ -805,10 +829,22 @@ mod test {
             )
             .collect::<Vec<_>>();
 
-        let mut compare_to = vec![&1, &2];
-        compare_to.sort();
         edges_connecting.sort();
-        assert_eq!(compare_to, edges_connecting);
+        assert_eq!(vec![&2, &3], edges_connecting);
+    }
+
+    #[test]
+    fn test_edges_connecting_undirected() {
+        let medrecord = create_medrecord();
+
+        let first_index = "0".into();
+        let second_index = "1".into();
+        let mut edges_connecting = medrecord
+            .edges_connecting_undirected(vec![&first_index], vec![&second_index])
+            .collect::<Vec<_>>();
+
+        edges_connecting.sort();
+        assert_eq!(vec![&0, &1], edges_connecting);
     }
 
     #[test]
@@ -892,13 +928,13 @@ mod test {
     fn test_add_edge() {
         let mut medrecord = create_medrecord();
 
-        assert_eq!(3, medrecord.edge_count());
+        assert_eq!(4, medrecord.edge_count());
 
         medrecord
             .add_edge("0".into(), "3".into(), HashMap::new())
             .unwrap();
 
-        assert_eq!(4, medrecord.edge_count());
+        assert_eq!(5, medrecord.edge_count());
     }
 
     #[test]
@@ -953,7 +989,7 @@ mod test {
 
         medrecord.add_edges(edges).unwrap();
 
-        assert_eq!(3, medrecord.edge_count());
+        assert_eq!(4, medrecord.edge_count());
     }
 
     #[test]
@@ -1254,6 +1290,26 @@ mod test {
         // Querying neighbors of a non-existing node sohuld fail
         assert!(medrecord
             .neighbors(&"0".into())
+            .is_err_and(|e| matches!(e, MedRecordError::IndexError(_))));
+    }
+
+    #[test]
+    fn test_neighbors_undirected() {
+        let medrecord = create_medrecord();
+
+        let neighbors = medrecord.neighbors(&"2".into()).unwrap();
+        assert_eq!(0, neighbors.count());
+
+        let neighbors = medrecord.neighbors_undirected(&"2".into()).unwrap();
+        assert_eq!(2, neighbors.count());
+    }
+
+    #[test]
+    fn test_invalid_neighbors_undirected() {
+        let medrecord = create_medrecord();
+
+        assert!(medrecord
+            .neighbors_undirected(&"50".into())
             .is_err_and(|e| matches!(e, MedRecordError::IndexError(_))));
     }
 

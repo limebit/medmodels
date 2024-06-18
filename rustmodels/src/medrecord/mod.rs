@@ -203,15 +203,33 @@ impl PyMedRecord {
 
     fn edges_connecting(
         &self,
-        source_node_index: Vec<PyNodeIndex>,
-        target_node_index: Vec<PyNodeIndex>,
+        source_node_indices: Vec<PyNodeIndex>,
+        target_node_indices: Vec<PyNodeIndex>,
     ) -> Vec<EdgeIndex> {
-        let source_node_index: Vec<MedRecordAttribute> = source_node_index.deep_into();
-        let target_node_index: Vec<MedRecordAttribute> = target_node_index.deep_into();
+        let source_node_indices: Vec<MedRecordAttribute> = source_node_indices.deep_into();
+        let target_node_indices: Vec<MedRecordAttribute> = target_node_indices.deep_into();
+
         self.0
             .edges_connecting(
-                source_node_index.iter().collect(),
-                target_node_index.iter().collect(),
+                source_node_indices.iter().collect(),
+                target_node_indices.iter().collect(),
+            )
+            .copied()
+            .collect()
+    }
+
+    fn edges_connecting_undirected(
+        &self,
+        first_node_indices: Vec<PyNodeIndex>,
+        second_node_indices: Vec<PyNodeIndex>,
+    ) -> Vec<EdgeIndex> {
+        let first_node_indices: Vec<MedRecordAttribute> = first_node_indices.deep_into();
+        let second_node_indices: Vec<MedRecordAttribute> = second_node_indices.deep_into();
+
+        self.0
+            .edges_connecting_undirected(
+                first_node_indices.iter().collect(),
+                second_node_indices.iter().collect(),
             )
             .copied()
             .collect()
@@ -528,14 +546,33 @@ impl PyMedRecord {
 
     fn neighbors(
         &self,
-        node_index: Vec<PyNodeIndex>,
+        node_indices: Vec<PyNodeIndex>,
     ) -> PyResult<HashMap<PyNodeIndex, Vec<PyNodeIndex>>> {
-        node_index
+        node_indices
             .into_iter()
             .map(|node_index| {
                 let neighbors = self
                     .0
                     .neighbors(&node_index)
+                    .map_err(PyMedRecordError::from)?
+                    .map(|neighbor| neighbor.clone().into())
+                    .collect();
+
+                Ok((node_index, neighbors))
+            })
+            .collect()
+    }
+
+    fn neighbors_undirected(
+        &self,
+        node_indices: Vec<PyNodeIndex>,
+    ) -> PyResult<HashMap<PyNodeIndex, Vec<PyNodeIndex>>> {
+        node_indices
+            .into_iter()
+            .map(|node_index| {
+                let neighbors = self
+                    .0
+                    .neighbors_undirected(&node_index)
                     .map_err(PyMedRecordError::from)?
                     .map(|neighbor| neighbor.clone().into())
                     .collect();
