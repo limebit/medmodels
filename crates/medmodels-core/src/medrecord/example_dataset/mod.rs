@@ -1,6 +1,6 @@
 use super::MedRecordAttribute;
 use crate::MedRecord;
-use polars::io::{csv::CsvReader, SerReader};
+use polars::{io::SerReader, prelude::CsvReadOptions};
 use std::io::Cursor;
 
 const DIAGNOSIS_DATA: &[u8] = include_bytes!("./synthetic_data/diagnosis.csv");
@@ -14,8 +14,9 @@ const PATIENT_PROCEDURE: &[u8] = include_bytes!("./synthetic_data/patient_proced
 impl MedRecord {
     pub fn from_example_dataset() -> Self {
         let cursor = Cursor::new(DIAGNOSIS_DATA);
-        let diagnosis = CsvReader::new(cursor)
-            .has_header(true)
+        let diagnosis = CsvReadOptions::default()
+            .with_has_header(true)
+            .into_reader_with_file_handle(cursor)
             .finish()
             .expect("DataFrame can be built");
         let diagnosis_ids = diagnosis
@@ -26,8 +27,9 @@ impl MedRecord {
             .collect::<Vec<_>>();
 
         let cursor = Cursor::new(DRUG_DATA);
-        let drug = CsvReader::new(cursor)
-            .has_header(true)
+        let drug = CsvReadOptions::default()
+            .with_has_header(true)
+            .into_reader_with_file_handle(cursor)
             .finish()
             .expect("DataFrame can be built");
         let drug_ids = drug
@@ -38,8 +40,9 @@ impl MedRecord {
             .collect::<Vec<_>>();
 
         let cursor = Cursor::new(PATIENT_DATA);
-        let patient = CsvReader::new(cursor)
-            .has_header(true)
+        let patient = CsvReadOptions::default()
+            .with_has_header(true)
+            .into_reader_with_file_handle(cursor)
             .finish()
             .expect("DataFrame can be built");
         let patient_ids = patient
@@ -50,8 +53,9 @@ impl MedRecord {
             .collect::<Vec<_>>();
 
         let cursor = Cursor::new(PROCEDURE_DATA);
-        let procedure = CsvReader::new(cursor)
-            .has_header(true)
+        let procedure = CsvReadOptions::default()
+            .with_has_header(true)
+            .into_reader_with_file_handle(cursor)
             .finish()
             .expect("DataFrame can be built");
         let procedure_ids = procedure
@@ -62,20 +66,23 @@ impl MedRecord {
             .collect::<Vec<_>>();
 
         let cursor = Cursor::new(PATIENT_DIAGNOSIS);
-        let patient_diagnosis = CsvReader::new(cursor)
-            .has_header(true)
+        let patient_diagnosis = CsvReadOptions::default()
+            .with_has_header(true)
+            .into_reader_with_file_handle(cursor)
             .finish()
             .expect("DataFrame can be built");
 
         let cursor = Cursor::new(PATIENT_DRUG);
-        let patient_drug = CsvReader::new(cursor)
-            .has_header(true)
+        let patient_drug = CsvReadOptions::default()
+            .with_has_header(true)
+            .into_reader_with_file_handle(cursor)
             .finish()
             .expect("DataFrame can be built");
 
         let cursor = Cursor::new(PATIENT_PROCEDURE);
-        let patient_procedure = CsvReader::new(cursor)
-            .has_header(true)
+        let patient_procedure = CsvReadOptions::default()
+            .with_has_header(true)
+            .into_reader_with_file_handle(cursor)
             .finish()
             .expect("DataFrame can be built");
 
