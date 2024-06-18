@@ -458,6 +458,7 @@ class MedRecord:
         self,
         source_node: Union[NodeIndex, NodeIndexInputList, NodeOperation],
         target_node: Union[NodeIndex, NodeIndexInputList, NodeOperation],
+        directed: bool = True,
     ) -> List[EdgeIndex]:
         """
         Retrieves the edges connecting the specified source and target nodes in
@@ -475,6 +476,7 @@ class MedRecord:
             target_node (Union[NodeIndex, NodeIndexInputList, NodeOperation]):
                 The index or indices of the target node(s), or a NodeOperation to
                 select target nodes.
+            directed (bool, optional): Whether to consider edges as directed.
 
         Returns:
             List[EdgeIndex]: A list of edge indices connecting the specified source and
@@ -486,10 +488,16 @@ class MedRecord:
         if isinstance(target_node, NodeOperation):
             target_node = self.select_nodes(target_node)
 
-        return self._medrecord.edges_connecting(
-            (source_node if isinstance(source_node, list) else [source_node]),
-            (target_node if isinstance(target_node, list) else [target_node]),
-        )
+        if directed:
+            return self._medrecord.edges_connecting(
+                (source_node if isinstance(source_node, list) else [source_node]),
+                (target_node if isinstance(target_node, list) else [target_node]),
+            )
+        else:
+            return self._medrecord.edges_connecting_undirected(
+                (source_node if isinstance(source_node, list) else [source_node]),
+                (target_node if isinstance(target_node, list) else [target_node]),
+            )
 
     def add_node(self, node: NodeIndex, attributes: Attributes) -> None:
         """
@@ -955,15 +963,23 @@ class MedRecord:
         return self._medrecord.contains_group(group)
 
     @overload
-    def neighbors(self, node: NodeIndex) -> List[NodeIndex]: ...
+    def neighbors(
+        self,
+        node: NodeIndex,
+        directed: bool = True,
+    ) -> List[NodeIndex]: ...
 
     @overload
     def neighbors(
-        self, node: Union[NodeIndexInputList, NodeOperation]
+        self,
+        node: Union[NodeIndexInputList, NodeOperation],
+        directed: bool = True,
     ) -> Dict[NodeIndex, List[NodeIndex]]: ...
 
     def neighbors(
-        self, node: Union[NodeIndex, NodeIndexInputList, NodeOperation]
+        self,
+        node: Union[NodeIndex, NodeIndexInputList, NodeOperation],
+        directed: bool = True,
     ) -> Union[List[NodeIndex], Dict[NodeIndex, List[NodeIndex]]]:
         """
         Retrieves the neighbors of the specified node(s) in the MedRecord.
@@ -975,16 +991,22 @@ class MedRecord:
         Args:
             node (Union[NodeIndex, NodeIndexInputList, NodeOperation]): Node index
                 or indices.
+            directed (bool, optional): Whether to consider edges as directed
 
         Returns:
             Union[List[NodeIndex], Dict[NodeIndex, List[NodeIndex]]]: Neighboring nodes.
         """
         if isinstance(node, NodeOperation):
-            return self._medrecord.neighbors(self.select_nodes(node))
+            node = self.select_nodes(node)
 
-        neighbors = self._medrecord.neighbors(
-            node if isinstance(node, list) else [node]
-        )
+        if directed:
+            neighbors = self._medrecord.neighbors(
+                node if isinstance(node, list) else [node]
+            )
+        else:
+            neighbors = self._medrecord.neighbors_undirected(
+                node if isinstance(node, list) else [node]
+            )
 
         if isinstance(node, list):
             return neighbors

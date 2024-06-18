@@ -7,7 +7,10 @@ use edge::Edge;
 use medmodels_utils::aliases::MrHashMap;
 use node::Node;
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, sync::atomic::AtomicUsize};
+use std::{
+    collections::{HashMap, HashSet},
+    sync::atomic::AtomicUsize,
+};
 
 pub type NodeIndex = MedRecordAttribute;
 pub type EdgeIndex = usize;
@@ -313,14 +316,30 @@ impl Graph {
 
     pub fn edges_connecting<'a>(
         &'a self,
-        source_node_index: Vec<&'a NodeIndex>,
-        target_node_index: Vec<&'a NodeIndex>,
+        source_node_indices: Vec<&'a NodeIndex>,
+        target_node_indices: Vec<&'a NodeIndex>,
     ) -> impl Iterator<Item = &'a EdgeIndex> {
         self.edges
             .iter()
             .filter(move |(_, edge)| {
-                source_node_index.contains(&&edge.source_node_index)
-                    && target_node_index.contains(&&edge.target_node_index)
+                source_node_indices.contains(&&edge.source_node_index)
+                    && target_node_indices.contains(&&edge.target_node_index)
+            })
+            .map(|(edge_index, _)| edge_index)
+    }
+
+    pub fn edges_connecting_undirected<'a>(
+        &'a self,
+        first_node_indices: Vec<&'a NodeIndex>,
+        second_node_indices: Vec<&'a NodeIndex>,
+    ) -> impl Iterator<Item = &'a EdgeIndex> {
+        self.edges
+            .iter()
+            .filter(move |(_, edge)| {
+                (first_node_indices.contains(&&edge.source_node_index)
+                    && second_node_indices.contains(&&edge.target_node_index))
+                    || (first_node_indices.contains(&&edge.target_node_index)
+                        && second_node_indices.contains(&&edge.source_node_index))
             })
             .map(|(edge_index, _)| edge_index)
     }
@@ -349,6 +368,39 @@ impl Graph {
                     .expect("Edge must exist")
                     .target_node_index
             }))
+    }
+
+    pub fn neighbors_undirected(
+        &self,
+        node_index: &NodeIndex,
+    ) -> Result<impl Iterator<Item = &NodeIndex>, GraphError> {
+        let node = self
+            .nodes
+            .get(node_index)
+            .ok_or(GraphError::IndexError(format!(
+                "Cannot find node with index {}",
+                node_index
+            )))?;
+
+        Ok(node
+            .outgoing_edge_indices
+            .iter()
+            .map(|edge_index| {
+                &self
+                    .edges
+                    .get(edge_index)
+                    .expect("Edge must exist")
+                    .target_node_index
+            })
+            .chain(node.incoming_edge_indices.iter().map(|edge_index| {
+                &self
+                    .edges
+                    .get(edge_index)
+                    .expect("Edge must exist")
+                    .source_node_index
+            }))
+            .collect::<HashSet<_>>()
+            .into_iter())
     }
 }
 
@@ -391,6 +443,14 @@ mod test {
             ),
             (
                 "1".into(),
+                "0".into(),
+                HashMap::from([
+                    ("sed".into(), "do".into()),
+                    ("eiusmod".into(), "tempor".into()),
+                ]),
+            ),
+            (
+                "1".into(),
                 "2".into(),
                 HashMap::from([("incididunt".into(), "ut".into())]),
             ),
@@ -410,7 +470,7 @@ mod test {
         let graph = create_graph();
 
         assert_eq!(4, graph.node_count());
-        assert_eq!(3, graph.edge_count());
+        assert_eq!(4, graph.edge_count());
     }
 
     #[test]
@@ -533,13 +593,13 @@ mod test {
     fn test_add_edge() {
         let mut graph = create_graph();
 
-        assert_eq!(3, graph.edge_count());
+        assert_eq!(4, graph.edge_count());
 
         graph
             .add_edge("0".into(), "3".into(), HashMap::new())
             .unwrap();
 
-        assert_eq!(4, graph.edge_count());
+        assert_eq!(5, graph.edge_count());
     }
 
     #[test]
@@ -564,7 +624,7 @@ mod test {
 
         let attributes = graph.remove_edge(&0).unwrap();
 
-        assert_eq!(2, graph.edge_count());
+        assert_eq!(3, graph.edge_count());
 
         assert_eq!(create_edges()[0].2, attributes);
     }
@@ -575,7 +635,7 @@ mod test {
 
         // Removing an edge with a non-existing edge index should fail
         assert!(graph
-            .remove_edge(&3)
+            .remove_edge(&50)
             .is_err_and(|e| matches!(e, GraphError::IndexError(_))));
     }
 
@@ -779,7 +839,7 @@ mod test {
     fn test_edge_indices() {
         let graph = create_graph();
 
-        let edge_indices = [0, 1, 2];
+        let edge_indices = [0, 1, 2, 3];
 
         for edge_index in graph.edge_indices() {
             assert!(edge_indices.contains(edge_index));
@@ -809,10 +869,8 @@ mod test {
             .edges_connecting(vec![&first_index, &second_index], vec![&third_index])
             .collect::<Vec<_>>();
 
-        let mut compare_to = vec![&1, &2];
-        compare_to.sort();
         edges_connecting.sort();
-        assert_eq!(compare_to, edges_connecting);
+        assert_eq!(vec![&2, &3], edges_connecting);
 
         let first_index = "0".into();
         let second_index = "1".into();
@@ -825,10 +883,22 @@ mod test {
             )
             .collect::<Vec<_>>();
 
-        let mut compare_to = vec![&1, &2];
-        compare_to.sort();
         edges_connecting.sort();
-        assert_eq!(compare_to, edges_connecting);
+        assert_eq!(vec![&2, &3], edges_connecting);
+    }
+
+    #[test]
+    fn test_edges_connecting_undirected() {
+        let graph = create_graph();
+
+        let first_index = "0".into();
+        let second_index = "1".into();
+        let mut edges_connecting = graph
+            .edges_connecting_undirected(vec![&first_index], vec![&second_index])
+            .collect::<Vec<_>>();
+
+        edges_connecting.sort();
+        assert_eq!(vec![&0, &1], edges_connecting);
     }
 
     #[test]
@@ -855,6 +925,26 @@ mod test {
 
         assert!(graph
             .neighbors(&"50".into())
+            .is_err_and(|e| matches!(e, GraphError::IndexError(_))));
+    }
+
+    #[test]
+    fn test_neighbors_undirected() {
+        let graph = create_graph();
+
+        let neighbors = graph.neighbors(&"2".into()).unwrap();
+        assert_eq!(0, neighbors.count());
+
+        let neighbors = graph.neighbors_undirected(&"2".into()).unwrap();
+        assert_eq!(2, neighbors.count());
+    }
+
+    #[test]
+    fn test_invalid_neighbors_undirected() {
+        let graph = create_graph();
+
+        assert!(graph
+            .neighbors_undirected(&"50".into())
             .is_err_and(|e| matches!(e, GraphError::IndexError(_))));
     }
 }
