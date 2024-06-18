@@ -9,19 +9,28 @@ to treatment groups using a specified matching class.
 """
 
 import logging
-from typing import Optional, Set, Tuple
+from typing import Optional, Set, Tuple, Dict, Literal, Any
 
 import pandas as pd
 
 from medmodels import MedRecord
 from medmodels.medrecord import node
 from medmodels.medrecord.querying import NodeOperation
-from medmodels.medrecord.types import Group, MedRecordAttribute, NodeIndex
+from medmodels.medrecord.types import (
+    Group,
+    MedRecordAttribute,
+    MedRecordAttributeInputList,
+    NodeIndex,
+)
 from medmodels.treatment_effect_estimation.analysis_modules.adjust import Adjust
-from medmodels.treatment_effect_estimation.analysis_modules.configure import Configure
 from medmodels.treatment_effect_estimation.analysis_modules.estimate import Estimate
 from medmodels.treatment_effect_estimation.analysis_modules.report import Report
-from medmodels.treatment_effect_estimation.utils import all_neighbors, find_all_edges
+from medmodels.treatment_effect_estimation.builder import TreatmentEffectBuilder
+from medmodels.matching.algorithms.propensity_score import Model
+from medmodels.matching.metrics import Metric
+from medmodels.treatment_effect_estimation.analysis_modules.adjust import (
+    MatchingMethod,
+)
 
 
 class TreatmentEffect:
@@ -30,13 +39,56 @@ class TreatmentEffect:
     different patient groups.
     """
 
+    _treatment: Group
+    _outcome: Group
+
+    _patients_group: Group
+    _time_attribute: MedRecordAttribute
+
+    _washout_period_days: Dict[str, int]
+    _washout_period_reference: Literal["first", "last"]
+
+    _grace_period_days: int
+    _grace_period_reference: Literal["first", "last"]
+
+    _follow_up_period_days: int
+    _follow_up_period_reference: Literal["first", "last"]
+
+    _outcome_before_treatment_days: Optional[int]
+
+    _filter_controls_operation: Optional[NodeOperation]
+
+    _matching_method: MatchingMethod
+
+    _matching_essential_covariates: MedRecordAttributeInputList
+    _matching_one_hot_covariates: MedRecordAttributeInputList
+    _matching_model: Model
+    _matching_distance_metric: Metric
+    _matching_number_of_neighbors: int
+    _matching_hyperparam: Optional[Dict[str, Any]]
+
     def __init__(
         self,
-        medrecord: MedRecord,
+        *,
         treatment: Group,
         outcome: Group,
         patients_group: Group = "patients",
         time_attribute: MedRecordAttribute = "time",
+        washout_period_days: Dict[str, int] = dict(),
+        washout_period_reference: Literal["first", "last"] = "first",
+        grace_period_days: int = 0,
+        grace_period_reference: Literal["first", "last"] = "last",
+        follow_up_period_days: int = 365,
+        follow_up_period_reference: Literal["first", "last"] = "last",
+        outcome_before_treatment_days: Optional[int] = None,
+        filter_controls_operation: Optional[NodeOperation] = None,
+        matching_method: MatchingMethod = None,
+        matching_essential_covariates: MedRecordAttributeInputList = ["gender", "age"],
+        matching_one_hot_covariates: MedRecordAttributeInputList = ["gender"],
+        matching_model: Model = "logit",
+        matching_distance_metric: Metric = "mahalanobis",
+        matching_number_of_neighbors: int = 1,
+        matching_hyperparam: Optional[Dict[str, Any]] = None,
     ) -> None:
         """
         Initializes a Treatment Effect analysis setup with specified treatments and
@@ -46,80 +98,83 @@ class TreatmentEffect:
         valid and available for analysis.
 
         Args:
-            medrecord (MedRecord): An instance of MedRecord containing medical records.
-            treatments (NodeIndexInputList): A list of treatment codes to analyze.
-            outcomes (NodeIndexInputList): A list of outcome codes to analyze.
-            patients_group (Group, optional): The group within MedRecord representing
-                patients within the dataset. Defaults to "patients".
-            time_attribute (MedRecordAttribute, optional): The attribute representing
-                time within the dataset. Defaults to "time".
+            treatment (Group): The group of treatments to analyze.
+            outcome (Group): The group of outcomes to analyze.
+            patients_group (Group, optional): The group of patients to analyze.
+                Defaults to "patients".
+            time_attribute (MedRecordAttribute, optional): The time attribute to use for
+                time-based analysis. Defaults to "time".
+            washout_period_days (Dict[str, int], optional): The washout period in days
+                for each treatment group. Defaults to dict().
+            washout_period_reference (Literal["first", "last"], optional): The reference
+                point for the washout period. Defaults to "first".
+            grace_period_days (int, optional): The grace period in days after the
+                treatment. Defaults to 0.
+            grace_period_reference (Literal["first", "last"], optional): The reference
+                point for the grace period. Defaults to "last".
+            follow_up_period_days (int, optional): The follow-up period in days after
+                the treatment. Defaults to 365.
+            follow_up_period_reference (Literal["first", "last"], optional): The
+                reference point for the follow-up period. Defaults to "last".
+            outcome_before_treatment_days (Optional[int], optional): The number of days
+                before the treatment to consider for outcomes. Defaults to None.
+            filter_controls_operation (Optional[NodeOperation], optional): An optional
+                operation to filter the control group based on specified criteria.
+                Defaults to None.
+            matching_method (Optional[Literal["propensity", "nearest_neighbors"]],
+                optional): The method to match treatment and control groups. Defaults to
+                None.
+            matching_essential_covariates (Optional[List[MedRecordAttribute]], optional):
+                The essential covariates to use for matching
+            matching_one_hot_covariates (Optional[List[MedRecordAttribute]], optional):
+                The one-hot covariates to use for matching
+            matching_model (Optional[Model], optional): The model to use for matching.
+                Defaults to "logit".
+            matching_distance_metric (Optional[Metric], optional): The distance metric
+                to use for matching. Defaults to "mahalanobis".
+            matching_number_of_neighbors (Optional[int], optional): The number of
+                neighbors to match for each treated subject. Defaults to 1.
+            matching_hyperparam (Optional[Dict[str, Any]], optional): The
+                hyperparameters for the matching model. Defaults to None.
 
         Raises:
             AssertionError: If treatments or outcomes are not provided as lists, are
                 empty, or if the specified patients group is not found within the
                 MedRecord groups.
         """
-        assert treatment in medrecord.groups, (
-            "Treatment group not found in the data. "
-            f"Available groups: {medrecord.groups}"
-        )
-        assert outcome in medrecord.groups, (
-            "Outcome group not found in the data. "
-            f"Available groups: {medrecord.groups}"
-        )
-        assert patients_group in medrecord.groups, (
-            f"Patient group {patients_group} not found in the data. "
-            f"Available groups: {medrecord.groups}"
-        )
-
-        self.medrecord = medrecord
-        self.patients_group = patients_group
-        self.time_attribute = time_attribute
+        self._patients_group = patients_group
+        self._time_attribute = time_attribute
 
         # Add the treatments and outcomes to the class
-        self.treatments = medrecord.group(treatment)
-        self.outcomes = medrecord.group(outcome)
+        self._treatments_group = treatment
+        self._outcomes_group = outcome
 
-        # Initialize the groups and attributes and find the groups
-        self._initialize_groups()
-        self._initialize_attributes()
-        self._find_groups()
+        # configure treatment effect
+        self._washout_period_days = washout_period_days
+        self._washout_period_reference = washout_period_reference
+        self._grace_period_days = grace_period_days
+        self._grace_period_reference = grace_period_reference
+        self._follow_up_period_days = follow_up_period_days
+        self._follow_up_period_reference = follow_up_period_reference
+        self._outcome_before_treatment_days = outcome_before_treatment_days
+        self._filter_controls_operation = filter_controls_operation
 
-    def _initialize_groups(self) -> None:
-        """Initialize the groups for the treatment and control groups."""
+        # configure matching
+        self._matching_method = matching_method
+        self._matching_essential_covariates = matching_essential_covariates
+        self._matching_one_hot_covariates = matching_one_hot_covariates
+        self._matching_model = matching_model
+        self._matching_distance_metric = matching_distance_metric
+        self._matching_number_of_neighbors = matching_number_of_neighbors
+        self._matching_hyperparam = matching_hyperparam
 
-        # Set the groups_sorted attribute to False
-        self.groups_sorted = False
-        self._washout_nodes = set()
-        self._outcome_before_treatment_nodes = set()
+    @classmethod
+    def builder(cls) -> TreatmentEffectBuilder:
+        return TreatmentEffectBuilder()
 
-        # Initialize the groups
-        self.control_false = set()
-        self.control_true = set()
-        self.treatment_false = set()
-        self.treatment_true = set()
-
-    def _initialize_attributes(self) -> None:
-        # Set washout period
-        self._washout_period_days = dict()
-        self._washout_period_reference = "first"
-
-        # Set follow-up period
-        self._follow_up_period_days = 365
-        self._follow_up_reference = "last"
-
-        # Set grace period
-        self._grace_period_days = 0
-        # TODO: apply reference, for now together with follow-up period
-        self._grace_period_reference = "last"
-
-        # Set outcome before treatment
-        self._outcome_before_treatment_days: Optional[int] = None
-
-        # Set filter for controls with node operation
-        self._filter_controls: Optional[NodeOperation] = None
-
-    def _find_groups(self) -> None:
+    def _find_groups(
+        self, medrecord: MedRecord
+    ) -> Tuple[Set[NodeIndex], Set[NodeIndex], Set[NodeIndex], Set[NodeIndex]]:
         """
         Identifies patients who underwent treatment and experienced outcomes, and finds
         a control group with similar criteria but without undergoing the treatment. This
@@ -130,76 +185,114 @@ class TreatmentEffect:
         Initializes and sorts patient groups based on treatment and outcome, applying
         specified criteria and time constraints. Optionally matches treatment and
         control groups using a provided matching class and arguments with Adjust class.
-        """
-        # Restart the groups in case the function is called again
-        self._initialize_groups()
 
+        Args:
+            medrecord (MedRecord): An instance of the MedRecord class containing patient
+                medical data.
+
+        Returns:
+            Tuple[Set[NodeIndex], Set[NodeIndex], Set[NodeIndex], Set[NodeIndex]]: A
+                tuple containing the IDs of patients in the treatment true, treatment
+                false, control true, and control false groups, respectively.
+        """
         # Find the patients that underwent the treatment
-        treatment_all = self._find_treated_patients()
-        treatment_all = self._apply_washout_period(treatment_all)
-        treatment_all, self.treatment_true = self._find_outcomes(treatment_all)
-        self.treatment_false = treatment_all - self.treatment_true
+        treated_group = self._find_treated_patients(medrecord)
+        treated_group, washout_nodes = self._apply_washout_period(
+            medrecord, treated_group
+        )
+        treated_group, treatment_true, outcome_before_treatment_nodes = (
+            self._find_outcomes(medrecord, treated_group)
+        )
+        treatment_false = treated_group - treatment_true
 
         # Find the controls (patients that did not undergo the treatment)
-        self.control_true, self.control_false = self._find_controls(
-            treatment_all=treatment_all, filter_controls=self._filter_controls
+        control_group = set(medrecord.group(self._patients_group))
+        control_true, control_false = self._find_controls(
+            medrecord=medrecord,
+            control_group=control_group,
+            treated_group=treated_group,
+            rejected_nodes=washout_nodes | outcome_before_treatment_nodes,
+            filter_controls_operation=self._filter_controls_operation,
         )
-        self.groups_sorted = True
 
-    def _find_treated_patients(self) -> Set[NodeIndex]:
+        return treatment_true, treatment_false, control_true, control_false
+
+    def _find_treated_patients(self, medrecord: MedRecord) -> Set[NodeIndex]:
         """Find the patients that underwent the treatment.
+
+        Args:
+            medrecord (MedRecord): An instance of the MedRecord class containing patient
+                medical data.
 
         Returns:
             Set[NodeIndex]: A set of patient nodes that underwent the treatment.
         """
-        treatment_all = set()
+        treated_group = set()
+
+        treatments = medrecord.group(self._treatments_group)
+
+        treatments = medrecord.group(self._treatments_group)
 
         # Create the group with all the patients that underwent the treatment
-        for treatment in self.treatments:
-            treatment_all.update(
+        for treatment in treatments:
+            treated_group.update(
                 set(
-                    self.medrecord.select_nodes(
-                        node().index().is_in(self.medrecord.group(self.patients_group))
-                        & all_neighbors(self.medrecord, treatment)
+                    medrecord.select_nodes(
+                        node().index().is_in(medrecord.group(self._patients_group))
+                        & node()
+                        .index()
+                        .is_in(medrecord.neighbors(treatment, directed=False))
                     )
                 )
             )
         assert (
-            len(treatment_all) > 0
+            len(treated_group) > 0
         ), "No patients found for the treatment groups in this MedRecord"
 
-        return treatment_all
+        return treated_group
 
     def _find_outcomes(
-        self, treatment_all: Set[NodeIndex]
-    ) -> Tuple[Set[NodeIndex], Set[NodeIndex]]:
+        self, medrecord: MedRecord, treated_group: Set[NodeIndex]
+    ) -> Tuple[Set[NodeIndex], Set[NodeIndex], Set[NodeIndex]]:
         """Find the patients that had the outcome after the treatment and, if specified,
         did not have the outcome before the treatment.
 
         Args:
-            treatment_all (Set[NodeIndex]): A set of patient nodes that underwent the
+            medrecord (MedRecord): An instance of the MedRecord class containing patient
+                medical data.
+            treated_group (Set[NodeIndex]): A set of patient nodes that underwent the
                 treatment.
 
         Returns:
-            Set[NodeIndex]: A set of patient nodes that underwent the treatment and had
-                the outcome.
+            Tuple[Set[NodeIndex], Set[NodeIndex], Set[NodeIndex]]: A tuple containing
+                the updated set of patient nodes that underwent the treatment and the
+                nodes that were dropped due to the outcome before treatment.
         """
         treatment_true = set()
-        for outcome in self.outcomes:
+        outcome_before_treatment_nodes = set()
+
+        # Find nodes with the outcomes
+        outcomes = medrecord.group(self._outcomes_group)
+        assert (
+            outcomes
+        ), f"No outcomes found in the MedRecord for group {self._outcomes_group}"
+
+        for outcome in outcomes:
             nodes_to_check = set(
-                self.medrecord.select_nodes(
-                    all_neighbors(self.medrecord, outcome)
-                    & node().index().is_in(list(treatment_all))
+                medrecord.select_nodes(
+                    node().index().is_in(medrecord.neighbors(outcome, directed=False))
+                    & node().index().is_in(list(treated_group))
                 )
             )
 
             # Finding the patients that had the outcome before the treatment
             if self._outcome_before_treatment_days:
-                self._outcome_before_treatment_nodes.update(
+                outcome_before_treatment_nodes.update(
                     {
                         node_index
                         for node_index in nodes_to_check
                         if self._find_node_in_time_window(
+                            medrecord,
                             node_index,
                             outcome,
                             start_days=-self._outcome_before_treatment_days,
@@ -208,7 +301,7 @@ class TreatmentEffect:
                         )
                     }
                 )
-                nodes_to_check -= self._outcome_before_treatment_nodes
+                nodes_to_check -= outcome_before_treatment_nodes
 
             # Finding the patients that had the outcome after the treatment
             treatment_true.update(
@@ -216,47 +309,56 @@ class TreatmentEffect:
                     node_index
                     for node_index in nodes_to_check
                     if self._find_node_in_time_window(
+                        medrecord,
                         node_index,
                         outcome,
                         start_days=self._grace_period_days,
                         end_days=self._follow_up_period_days,
-                        reference=self._follow_up_reference,
+                        reference=self._follow_up_period_reference,
                     )
                 }
             )
 
-        treatment_all -= self._outcome_before_treatment_nodes
-        if self._outcome_before_treatment_nodes:
-            dropped_num = len(self._outcome_before_treatment_nodes)
+        treated_group -= outcome_before_treatment_nodes
+        if outcome_before_treatment_nodes:
+            dropped_num = len(outcome_before_treatment_nodes)
             logging.warning(
-                f"{dropped_num} subjects were dropped due to outcome before treatment"
+                f"{dropped_num} {'subject' if dropped_num == 1 else 'subjects'} "
+                f" were dropped due to outcome before treatment."
             )
 
-        return treatment_all, treatment_true
+        return treated_group, treatment_true, outcome_before_treatment_nodes
 
-    def _apply_washout_period(self, treatment_all: Set[NodeIndex]) -> Set[NodeIndex]:
+    def _apply_washout_period(
+        self, medrecord: MedRecord, treated_group: Set[NodeIndex]
+    ) -> Tuple[Set[NodeIndex], Set[NodeIndex]]:
         """Apply the washout period to the treatment group.
 
         Args:
-            treatment_all (Set[NodeIndex]): A set of patient nodes that underwent the
+            medrecord (MedRecord): An instance of the MedRecord class containing patient
+                medical data.
+            treated_group (Set[NodeIndex]): A set of patient nodes that underwent the
                 treatment.
 
         Returns:
-            Set[NodeIndex]: A set of patient nodes that underwent the treatment after the
-                washout period.
+            Tuple[Set[NodeIndex], Set[NodeIndex]]: A tuple containing the updated set of
+                patient nodes that underwent the treatment and the nodes that were
+                dropped due to the washout period.
         """
+        washout_nodes = set()
         if not self._washout_period_days:
-            return treatment_all
+            return treated_group, washout_nodes
 
         # Apply the washout period to the treatment group
         # TODO: washout in both directions? We need a List then
         for washout_group_id, washout_days in self._washout_period_days.items():
-            for washout_node in self.medrecord.group(washout_group_id):
-                self._washout_nodes.update(
+            for washout_node in medrecord.group(washout_group_id):
+                washout_nodes.update(
                     {
                         treated_node
-                        for treated_node in treatment_all
+                        for treated_node in treated_group
                         if self._find_node_in_time_window(
+                            medrecord,
                             treated_node,
                             washout_node,
                             start_days=-washout_days,
@@ -266,17 +368,19 @@ class TreatmentEffect:
                     }
                 )
 
-                treatment_all -= self._washout_nodes
+                treated_group -= washout_nodes
 
-        if self._washout_nodes:
-            dropped_num = len(self._washout_nodes)
+        if washout_nodes:
+            dropped_num = len(washout_nodes)
             logging.warning(
-                f"{dropped_num} subjects were dropped due to washout period"
+                f"{dropped_num} {'subject' if dropped_num == 1 else 'subjects'} "
+                f" were dropped due to outcome before treatment."
             )
-        return treatment_all
+        return treated_group, washout_nodes
 
     def _find_node_in_time_window(
         self,
+        medrecord: MedRecord,
         node_index: NodeIndex,
         event_node: NodeIndex,
         start_days: int,
@@ -289,6 +393,8 @@ class TreatmentEffect:
         related to a reference event by considering the temporal sequence of events.
 
         Args:
+            medrecord (MedRecord): An instance of the MedRecord class containing patient
+                medical data.
             node_index (NodeIndex): The patient node to evaluate.
             event_node (NodeIndex): The event node to check for its occurrence.
             start_days (int): The start of the time window in days relative to the
@@ -304,21 +410,22 @@ class TreatmentEffect:
         This method supports the analysis of event timing by ensuring events are
             temporally linked.
         """
+        # Find the reference time for the node
         start_period = pd.Timedelta(days=start_days)
         end_period = pd.Timedelta(days=end_days)
-        reference_time = self._find_reference_time(node_index, reference=reference)
-
-        # TODO: implement adirectional edges method.
-        edges = find_all_edges(self.medrecord, node_index, event_node)
+        reference_time = self._find_reference_time(
+            medrecord, node_index, reference=reference
+        )
 
         # Check if the event happened within the specified time window
+        edges = medrecord.edges_connecting(node_index, event_node, directed=False)
         for edge in edges:
-            edge_attributes = self.medrecord.edge[edge]
+            edge_attributes = medrecord.edge[edge]
             assert (
-                self.time_attribute in edge_attributes
+                self._time_attribute in edge_attributes
             ), "Time attribute not found in the edge attributes"
 
-            event_time = pd.to_datetime(str(edge_attributes[self.time_attribute]))
+            event_time = pd.to_datetime(str(edge_attributes[self._time_attribute]))
             time_diff = event_time - reference_time
 
             # Check that the event happened within the specified time window
@@ -329,7 +436,7 @@ class TreatmentEffect:
         return False
 
     def _find_reference_time(
-        self, node_index: NodeIndex, reference: str
+        self, medrecord: MedRecord, node_index: NodeIndex, reference: str
     ) -> pd.Timestamp:
         """
         Determines the timestamp of the first exposure to any treatment in the
@@ -337,6 +444,8 @@ class TreatmentEffect:
         for analyzing the temporal sequence of treatments and outcomes.
 
         Args:
+            medrecord (MedRecord): An instance of the MedRecord class containing patient
+                medical data.
             node_index (NodeIndex): The patient node for which to determine the first
                 treatment exposure time.
 
@@ -361,23 +470,27 @@ class TreatmentEffect:
                 "The follow_up_from parameter must be either 'first' or 'last'."
             )
 
-        for treatment in self.treatments:
-            # TODO: implement adirectional edges method.
-            edges = find_all_edges(self.medrecord, node_index, treatment)
+        treatments = medrecord.group(self._treatments_group)
+        assert (
+            treatments
+        ), f"No treatments found in the MedRecord for group {self._treatments_group}"
+
+        for treatment in treatments:
+            edges = medrecord.edges_connecting(node_index, treatment, directed=False)
 
             # If the node does not have the treatment, continue
             if not edges:
                 continue
 
             # If the node has the treatment, check if it has the time attribute
-            edge_values = self.medrecord.edge[edges].values()
+            edge_values = medrecord.edge[edges].values()
             assert all(
-                self.time_attribute in edge_attribute for edge_attribute in edge_values
+                self._time_attribute in edge_attribute for edge_attribute in edge_values
             ), "Time attribute not found in the edge attributes"
 
             # Find the minimum time of the treatments
             edge_times = [
-                pd.to_datetime(str(edge_attribute[self.time_attribute]))
+                pd.to_datetime(str(edge_attribute[self._time_attribute]))
                 for edge_attribute in edge_values
             ]
             if edge_times:
@@ -392,8 +505,11 @@ class TreatmentEffect:
 
     def _find_controls(
         self,
-        treatment_all: Set[NodeIndex],
-        filter_controls: Optional[NodeOperation] = None,
+        medrecord: MedRecord,
+        control_group: Set[NodeIndex],
+        treated_group: Set[NodeIndex],
+        rejected_nodes: Set[NodeIndex] = set(),
+        filter_controls_operation: Optional[NodeOperation] = None,
     ) -> Tuple[Set[NodeIndex], Set[NodeIndex]]:
         """
         Identifies control groups among patients who did not undergo the specified
@@ -402,8 +518,15 @@ class TreatmentEffect:
         specified outcome codes.
 
         Args:
-            treatment_all (Set[NodeIndex]): A set of patient nodes that underwent the
+            medrecord (MedRecord): An instance of the MedRecord class containing patient
+                medical data.
+            treated_group (Set[NodeIndex]): A set of patient nodes that underwent the
                 treatment.
+            rejected_nodes (Set[NodeIndex]): A set of patient nodes that were rejected
+                due to the washout period or outcome before treatment.
+            filter_controls_operation (Optional[NodeOperation], optional): An optional
+                operation to filter the control group based on specified criteria.
+                Defaults to None.
 
         Returns:
             Tuple[Set[NodeIndex], Set[NodeIndex]]: Two sets representing the IDs of
@@ -415,68 +538,36 @@ class TreatmentEffect:
         for further analysis of treatment effects, ensuring only those not undergoing
         the treatment are considered for control.
         """
-        # Define the unwanted nodes
-        unwanted_nodes = self._outcome_before_treatment_nodes | self._washout_nodes
-        control_all = set(self.medrecord.group(self.patients_group))
-
         # Apply the filter to the control group if specified
-        if filter_controls:
-            control_all = (
-                set(self.medrecord.select_nodes(filter_controls)) & control_all
+        if filter_controls_operation:
+            control_group = (
+                set(medrecord.select_nodes(filter_controls_operation)) & control_group
             )
 
-        control_all = control_all - treatment_all - unwanted_nodes
+        control_group = control_group - treated_group - rejected_nodes
         assert (
-            len(control_all) > 0
+            len(control_group) > 0
         ), "No patients found for the control groups in this MedRecord"
 
+        # Set the control groups and the outcomes
         control_true = set()
         control_false = set()
+        outcomes = medrecord.group(self._outcomes_group)
+        assert (
+            outcomes
+        ), f"No outcomes found in the MedRecord for group {self._outcomes_group}"
 
         # Finding the patients that had the outcome in the control group
-        for outcome in self.outcomes:
+        for outcome in outcomes:
             control_true.update(
-                self.medrecord.select_nodes(
-                    node().index().is_in(list(control_all))
-                    & all_neighbors(self.medrecord, outcome)
+                medrecord.select_nodes(
+                    node().index().is_in(list(control_group))
+                    & node().index().is_in(medrecord.neighbors(outcome, directed=False))
                 )
             )
-        control_false = control_all - control_true - unwanted_nodes
+        control_false = control_group - control_true
 
         return control_true, control_false
-
-    @property
-    def _subject_counts(self) -> Tuple[int, int, int, int]:
-        """
-        Provides the count of subjects in each of the defined groups: treatment true,
-        treatment false, control true, and control false. This property ensures that
-        group sorting is completed before attempting to count the subjects in each
-        group.
-
-        Returns:
-            Tuple[int, int, int, int]: A tuple containing the number of subjects in the
-                treatment true, treatment false, control true, and control false groups,
-                respectively.
-
-        Raises:
-            AssertionError: If groups have not been sorted using the `find_groups`
-                method, or if any of the groups are found to be empty, indicating a
-                potential issue in group formation or data filtering.
-
-        This method is crucial for understanding the distribution of subjects across
-        different groups for subsequent analysis of treatment effects.
-        """
-
-        num_treat_true = len(self.treatment_true)
-        num_treat_false = len(self.treatment_false)
-        num_control_true = len(self.control_true)
-        num_control_false = len(self.control_false)
-
-        assert num_treat_false != 0, "No subjects found in the treatment false group"
-        assert num_control_true != 0, "No subjects found in the control true group"
-        assert num_control_false != 0, "No subjects found in the control false group"
-
-        return num_treat_true, num_treat_false, num_control_true, num_control_false
 
     @property
     def estimate(self) -> Estimate:
@@ -486,15 +577,6 @@ class TreatmentEffect:
             Estimate: An Estimate object for the current TreatmentEffect instance.
         """
         return Estimate(self)
-
-    @property
-    def configure(self) -> Configure:
-        """Creates a Configure object for the TreatmentEffect instance.
-
-        Returns:
-            Configure: A Configure object for the current TreatmentEffect instance.
-        """
-        return Configure(self)
 
     @property
     def adjust(self) -> Adjust:

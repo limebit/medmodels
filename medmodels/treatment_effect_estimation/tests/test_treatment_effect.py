@@ -260,15 +260,15 @@ class TestTreatmentEffect(unittest.TestCase):
 
         # Test if the controls are found correctly
         te = TreatmentEffect(medrecord, treatments=["M1", "M2"], outcomes=["D1", "D2"])
-        te.treatment_all = set({"P1", "P2"})
+        te.treated_group = set({"P1", "P2"})
         self.assertEqual(te.find_controls(), ({"P4"}, {"P3"}))
 
-        # Find controls requires treatment_all to be set first
-        te.treatment_all = set()
+        # Find controls requires treated_group to be set first
+        te.treated_group = set()
         self.assertNotEqual(te.find_controls(), ({"P4"}, {"P3"}))
 
         # Test if the controls are found correctly when criteria is used
-        te.treatment_all = set({"P1", "P2"})
+        te.treated_group = set({"P1", "P2"})
         self.assertEqual(
             te.find_controls(criteria_filter=node().attribute("gender").equal("male")),
             (set(), {"P3"}),

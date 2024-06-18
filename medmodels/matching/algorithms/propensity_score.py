@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Dict, Literal, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Any, Dict, Literal, Optional, Tuple, Union
 
 import numpy as np
 import polars as pl
@@ -13,6 +13,17 @@ from typing_extensions import TypeAlias
 from medmodels.matching.algorithms.classic_distance_models import nearest_neighbor
 from medmodels.matching.metrics import Metric
 from medmodels.medrecord.types import MedRecordAttributeInputList
+
+if TYPE_CHECKING:
+    import sys
+
+    if sys.version_info >= (3, 10):
+        from typing import TypeAlias
+    else:
+        from typing_extensions import TypeAlias
+
+
+Model: TypeAlias = Literal["logit", "dec_tree", "forest"]
 
 
 def calculate_propensity(
@@ -53,13 +64,13 @@ def calculate_propensity(
         last class for treated and control sets, e.g., ([0.], [0.]).
     """
 
-    propensity_metric = PROP_MODEL[model]
+    propensity_model = PROP_MODEL[model]
 
     if hyperparam:
-        pm = propensity_metric(**hyperparam)
+        pm = propensity_model(**hyperparam)
 
     else:
-        pm = propensity_metric()
+        pm = propensity_model()
 
     pm.fit(x_train, y_train)
 
@@ -107,7 +118,7 @@ def run_propensity_score(
             set.
     """
     if not covariates:
-        covariates = treated_set.columns
+        covariates = [col for col in treated_set.columns if col != "id"]
 
     treated_array = treated_set.select(covariates).to_numpy().astype(float)
     control_array = control_set.select(covariates).to_numpy().astype(float)
@@ -142,9 +153,6 @@ def run_propensity_score(
     control_set = control_set.drop("prop_score")
 
     return matched_control
-
-
-Model: TypeAlias = Literal["logit", "dec_tree", "forest"]
 
 
 PROP_MODEL = {
