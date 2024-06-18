@@ -3,6 +3,8 @@ from __future__ import annotations
 import inspect
 from typing import TYPE_CHECKING, Any, Dict
 
+from medmodels.medrecord.medrecord import MedRecord
+
 if TYPE_CHECKING:
     from medmodels.treatment_effect_estimation.treatment_effect import TreatmentEffect
 
@@ -13,7 +15,7 @@ class Report:
     def __init__(self, treatment_effect: TreatmentEffect) -> None:
         self._treatment_effect = treatment_effect
 
-    def full_report(self) -> Dict[str, Any]:
+    def full_report(self, medrecord: MedRecord) -> Dict[str, Any]:
         """Generates a full report of the treatment effect estimation.
 
         Returns:
@@ -27,7 +29,7 @@ class Report:
         for name, method in methods:
             if not name.startswith("_"):
                 try:
-                    results[name] = method()
+                    results[name] = method(medrecord=medrecord)
                 except Exception as e:
                     results[name] = f"Error: {e}"
         return results

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Tuple
+
+from medmodels.medrecord.medrecord import MedRecord
 
 if TYPE_CHECKING:
     from medmodels.treatment_effect_estimation.treatment_effect import TreatmentEffect
@@ -12,25 +14,69 @@ class Estimate:
     def __init__(self, treatment_effect: TreatmentEffect) -> None:
         self._treatment_effect = treatment_effect
 
-    def _compute_subject_counts(self) -> tuple[int, int, int, int]:
+    def _check_medrecord(self, medrecord: MedRecord) -> None:
+        """Checks if the required groups are present in the MedRecord.
+
+        Args:
+            medrecord (MedRecord): The MedRecord object containing the data.
+
+        Raises:
+            AssertionError: If the required groups are not present in the MedRecord.
+        """
+        assert self._treatment_effect._patients_group in medrecord.groups, (
+            f"Patient group {self._treatment_effect._patients_group} not found in the "
+            f"data. Available groups: {medrecord.groups}"
+        )
+        assert self._treatment_effect._treatments_group in medrecord.groups, (
+            "Treatment group not found in the data. "
+            f"Available groups: {medrecord.groups}"
+        )
+        assert self._treatment_effect._outcomes_group in medrecord.groups, (
+            "Outcome group not found in the data. "
+            f"Available groups: {medrecord.groups}"
+        )
+
+    def _compute_subject_counts(
+        self, medrecord: MedRecord
+    ) -> Tuple[int, int, int, int]:
         """Computes the subject counts for the treatment and control groups.
 
+        Args:
+            medrecord (MedRecord): The MedRecord object containing the data.
+
         Returns:
-            tuple[int, int, int, int]: The number of true and false subjects in the
+            Tuple[int, int, int, int]: The number of true and false subjects in the
                 treatment and control groups, respectively.
+
+        Raises:
+            AssertionError: If the required groups are not present in the MedRecord.
         """
-        if self._treatment_effect.groups_sorted is False:
-            self._treatment_effect._find_groups()
-        (
-            num_treat_true,
-            num_treat_false,
-            num_control_true,
-            num_control_false,
-        ) = self._treatment_effect._subject_counts
+        treatment_true, treatment_false, control_true, control_false = (
+            self._treatment_effect._find_groups(medrecord)
+        )
+        treatment_all = treatment_true | treatment_false
+        control_true, control_false = self._treatment_effect.adjust._apply_matching(
+            self._treatment_effect._matching_method,
+            medrecord,
+            treatment_all,
+            control_true,
+            control_false,
+        )
 
-        return num_treat_true, num_treat_false, num_control_true, num_control_false
+        assert (
+            len(treatment_false) != 0
+        ), "No subjects found in the treatment false group"
+        assert len(control_true) != 0, "No subjects found in the control true group"
+        assert len(control_false) != 0, "No subjects found in the control false group"
 
-    def relative_risk(self) -> float:
+        return (
+            len(treatment_true),
+            len(treatment_false),
+            len(control_true),
+            len(control_false),
+        )
+
+    def relative_risk(self, medrecord: MedRecord) -> float:
         """
         Calculates the relative risk (RR) of an event occurring in the treatment group
         compared to the control group. RR is a key measure in epidemiological studies
@@ -58,13 +104,13 @@ class Estimate:
             num_treat_false,
             num_control_true,
             num_control_false,
-        ) = self._compute_subject_counts()
+        ) = self._compute_subject_counts(medrecord=medrecord)
 
         return (num_treat_true / (num_treat_true + num_treat_false)) / (
             num_control_true / (num_control_true + num_control_false)
         )
 
-    def odds_ratio(self) -> float:
+    def odds_ratio(self, medrecord: MedRecord) -> float:
         """
         Calculates the odds ratio (OR) to quantify the association between exposure to a
         treatment and the occurrence of an outcome. OR compares the odds of an event
@@ -76,6 +122,9 @@ class Estimate:
         - OR = 1 indicates no difference in odds between the two groups.
         - OR > 1 suggests the event is more likely in the treatment group.
         - OR < 1 suggests the event is less likely in the treatment group.
+
+        Args:
+            medrecord (MedRecord): The MedRecord object containing the data.
 
         Returns:
             float: The calculated odds ratio between the treatment and control groups.
@@ -93,13 +142,13 @@ class Estimate:
             num_treat_false,
             num_control_true,
             num_control_false,
-        ) = self._compute_subject_counts()
+        ) = self._compute_subject_counts(medrecord=medrecord)
 
         return (num_treat_true / num_control_true) / (
             num_treat_false / num_control_false
         )
 
-    def confounding_bias(self) -> float:
+    def confounding_bias(self, medrecord: MedRecord) -> float:
         """
         Calculates the confounding bias (CB) to assess the impact of potential
         confounders on the observed association between treatment and outcome. A
@@ -111,25 +160,28 @@ class Estimate:
         - CB != 1 suggests the presence of confounding bias, indicating potential
             confounders.
 
-        Precondition:
-            - Subject counts in each group must be non-zero to avoid division by zero
-                errors.
-
-        Returns:
-            float: The calculated confounding bias.
-
         The method relies on the relative risk (RR) as an intermediary measure and
         adjusts the observed association for potential confounding effects. This
         adjustment helps in identifying whether the observed association might be
         influenced by factors other than the treatment.
+
+        Precondition:
+            - Subject counts in each group must be non-zero to avoid division by zero
+                errors.
+
+        Args:
+            medrecord (MedRecord): The MedRecord object containing the data.
+
+        Returns:
+            float: The calculated confounding bias.
         """
         (
             num_treat_true,
             num_treat_false,
             num_control_true,
             num_control_false,
-        ) = self._compute_subject_counts()
-        relative_risk = self.relative_risk()
+        ) = self._compute_subject_counts(medrecord)
+        relative_risk = self.relative_risk(medrecord)
 
         if relative_risk == 1:
             return 1
@@ -144,11 +196,14 @@ class Estimate:
 
         return numerator / denominator
 
-    def absolute_risk(self) -> float:
+    def absolute_risk(self, medrecord: MedRecord) -> float:
         """
         Calculates the absolute risk (AR) of an event occurring in the treatment group
         compared to the control group. AR is a measure of the incidence of an event in
         each group.
+
+        Args:
+            medrecord (MedRecord): The MedRecord object containing the data.
 
         Returns:
             float: The calculated absolute risk difference between the treatment and control
@@ -167,17 +222,20 @@ class Estimate:
             num_treat_false,
             num_control_true,
             num_control_false,
-        ) = self._compute_subject_counts()
+        ) = self._compute_subject_counts(medrecord)
 
         risk_treat = num_treat_true / (num_treat_true + num_treat_false)
         risk_control = num_control_true / (num_control_true + num_control_false)
 
         return risk_treat - risk_control
 
-    def number_needed_to_treat(self) -> float:
+    def number_needed_to_treat(self, medrecord: MedRecord) -> float:
         """
         Calculates the number needed to treat (NNT) to prevent one additional bad outcome.
         NNT is derived from the absolute risk reduction.
+
+        Args:
+            medrecord (MedRecord): The MedRecord object containing the data.
 
         Returns:
             float: The calculated number needed to treat between the treatment and control
@@ -191,15 +249,18 @@ class Estimate:
             AssertionError: If the preconditions are not met, indicating a potential
                 issue with group formation or subject count retrieval.
         """
-        ar = self.absolute_risk()
+        ar = self.absolute_risk(medrecord)
         if ar == 0:
             raise ValueError("Absolute risk is zero, cannot calculate NNT.")
         return 1 / ar
 
-    def hazard_ratio(self) -> float:
+    def hazard_ratio(self, medrecord: MedRecord) -> float:
         """
         Calculates the hazard ratio (HR) for the treatment group compared to the control
         group. HR is used to compare the hazard rates of two groups in survival analysis.
+
+        Args:
+            medrecord (MedRecord): The MedRecord object containing the data.
 
         Returns:
             float: The calculated hazard ratio between the treatment and control groups.
@@ -216,7 +277,7 @@ class Estimate:
             num_treat_false,
             num_control_true,
             num_control_false,
-        ) = self._compute_subject_counts()
+        ) = self._compute_subject_counts(medrecord)
 
         hazard_treat = num_treat_true / (num_treat_true + num_treat_false)
         hazard_control = num_control_true / (num_control_true + num_control_false)
