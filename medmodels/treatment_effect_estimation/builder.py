@@ -306,4 +306,4 @@ class TreatmentEffectBuilder:
         assert self.treatment is not None
         assert self.outcome is not None
 
-        return tee.TreatmentEffect(**vars(self))
+        return tee.TreatmentEffect._set_configuration(**vars(self))

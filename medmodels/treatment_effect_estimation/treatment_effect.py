@@ -8,6 +8,7 @@ time constraints between treatment and outcome, and optional matching of control
 to treatment groups using a specified matching class.
 """
 
+from __future__ import annotations
 import logging
 from typing import Optional, Set, Tuple, Dict, Literal, Any
 
@@ -39,8 +40,8 @@ class TreatmentEffect:
     different patient groups.
     """
 
-    _treatment: Group
-    _outcome: Group
+    _treatments_group: Group
+    _outcomes_group: Group
 
     _patients_group: Group
     _time_attribute: MedRecordAttribute
@@ -72,6 +73,30 @@ class TreatmentEffect:
         *,
         treatment: Group,
         outcome: Group,
+    ) -> None:
+        """
+        Initializes a Treatment Effect analysis setup with specified treatments and
+        outcomes within a medical record dataset.
+        Validates the presence of specified dimensions and attributes within the
+        provided MedRecord object, ensuring the specified treatments and outcomes are
+        valid and available for analysis.
+
+        Args:
+            treatment (Group): The group of treatments to analyze.
+            outcome (Group): The group of outcomes to analyze.
+        """
+
+        self = self.builder().set_treatment(treatment).set_outcome(outcome).finish()
+
+    @classmethod
+    def builder(cls) -> TreatmentEffectBuilder:
+        return TreatmentEffectBuilder()
+
+    @classmethod
+    def _set_configuration(
+        cls,
+        treatment: Group,
+        outcome: Group,
         patients_group: Group = "patients",
         time_attribute: MedRecordAttribute = "time",
         washout_period_days: Dict[str, int] = dict(),
@@ -89,7 +114,7 @@ class TreatmentEffect:
         matching_distance_metric: Metric = "mahalanobis",
         matching_number_of_neighbors: int = 1,
         matching_hyperparam: Optional[Dict[str, Any]] = None,
-    ) -> None:
+    ) -> TreatmentEffect:
         """
         Initializes a Treatment Effect analysis setup with specified treatments and
         outcomes within a medical record dataset.
@@ -142,35 +167,35 @@ class TreatmentEffect:
                 empty, or if the specified patients group is not found within the
                 MedRecord groups.
         """
-        self._patients_group = patients_group
-        self._time_attribute = time_attribute
+
+        treatment_effect = cls.__new__(cls)
+
+        treatment_effect._patients_group = patients_group
+        treatment_effect._time_attribute = time_attribute
 
         # Add the treatments and outcomes to the class
-        self._treatments_group = treatment
-        self._outcomes_group = outcome
+        treatment_effect._treatments_group = treatment
+        treatment_effect._outcomes_group = outcome
 
         # configure treatment effect
-        self._washout_period_days = washout_period_days
-        self._washout_period_reference = washout_period_reference
-        self._grace_period_days = grace_period_days
-        self._grace_period_reference = grace_period_reference
-        self._follow_up_period_days = follow_up_period_days
-        self._follow_up_period_reference = follow_up_period_reference
-        self._outcome_before_treatment_days = outcome_before_treatment_days
-        self._filter_controls_operation = filter_controls_operation
+        treatment_effect._washout_period_days = washout_period_days
+        treatment_effect._washout_period_reference = washout_period_reference
+        treatment_effect._grace_period_days = grace_period_days
+        treatment_effect._grace_period_reference = grace_period_reference
+        treatment_effect._follow_up_period_days = follow_up_period_days
+        treatment_effect._follow_up_period_reference = follow_up_period_reference
+        treatment_effect._outcome_before_treatment_days = outcome_before_treatment_days
+        treatment_effect._filter_controls_operation = filter_controls_operation
 
         # configure matching
-        self._matching_method = matching_method
-        self._matching_essential_covariates = matching_essential_covariates
-        self._matching_one_hot_covariates = matching_one_hot_covariates
-        self._matching_model = matching_model
-        self._matching_distance_metric = matching_distance_metric
-        self._matching_number_of_neighbors = matching_number_of_neighbors
-        self._matching_hyperparam = matching_hyperparam
-
-    @classmethod
-    def builder(cls) -> TreatmentEffectBuilder:
-        return TreatmentEffectBuilder()
+        treatment_effect._matching_method = matching_method
+        treatment_effect._matching_essential_covariates = matching_essential_covariates
+        treatment_effect._matching_one_hot_covariates = matching_one_hot_covariates
+        treatment_effect._matching_model = matching_model
+        treatment_effect._matching_distance_metric = matching_distance_metric
+        treatment_effect._matching_number_of_neighbors = matching_number_of_neighbors
+        treatment_effect._matching_hyperparam = matching_hyperparam
+        return treatment_effect
 
     def _find_groups(
         self, medrecord: MedRecord
