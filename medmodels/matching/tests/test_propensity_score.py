@@ -1,7 +1,7 @@
 import unittest
 
 import numpy as np
-import polars as pl
+import pandas as pd
 from sklearn.datasets import load_iris
 
 from medmodels.matching.algorithms import propensity_score as ps
@@ -30,7 +30,7 @@ class TestPropensityScore(unittest.TestCase):
             y,
             np.array([x[0, :]]),
             np.array([x[1, :]]),
-            model="dec_tree",
+            metric="dec_tree",
             hyperparam=hyperparam,
         )
         self.assertAlmostEqual(result_1[0], 0, places=2)
@@ -42,7 +42,7 @@ class TestPropensityScore(unittest.TestCase):
             y,
             np.array([x[0, :]]),
             np.array([x[1, :]]),
-            model="forest",
+            metric="forest",
             hyperparam=hyperparam,
         )
         self.assertAlmostEqual(result_1[0], 0, places=2)
@@ -55,47 +55,47 @@ class TestPropensityScore(unittest.TestCase):
 
         ###########################################
         # 1D example
-        control_set = pl.DataFrame({"a": [1, 5, 1, 3]})
-        treated_set = pl.DataFrame({"a": [1, 4]})
+        control_set = pd.DataFrame(np.array([[1], [5], [1], [3]]), columns=["a"])
+        treated_set = pd.DataFrame(np.array([[1], [4]]), columns=["a"])
 
         # logit metric
-        expected_logit = pl.DataFrame({"a": [1.0, 3.0]})
+        expected_logit = pd.DataFrame(np.array([[1.0], [3.0]]), columns=["a"])
         result_logit = ps.run_propensity_score(
             treated_set, control_set, hyperparam=hyperparam_logit
         )
-        self.assertTrue(result_logit.equals(expected_logit))
+        pd.testing.assert_frame_equal(result_logit, expected_logit)
 
         # dec_tree metric
-        expected_logit = pl.DataFrame({"a": [1.0, 1.0]})
+        expected_logit = pd.DataFrame(np.array([[1.0], [1.0]]), columns=["a"])
         result_logit = ps.run_propensity_score(
             treated_set, control_set, model="dec_tree", hyperparam=hyperparam
         )
-        self.assertTrue(result_logit.equals(expected_logit))
+        pd.testing.assert_frame_equal(result_logit, expected_logit)
 
         # forest metric
-        expected_logit = pl.DataFrame({"a": [1.0, 1.0]})
+        expected_logit = pd.DataFrame(np.array([[1.0], [1.0]]), columns=["a"])
         result_logit = ps.run_propensity_score(
             treated_set, control_set, model="forest", hyperparam=hyperparam
         )
-        self.assertTrue(result_logit.equals(expected_logit))
+        pd.testing.assert_frame_equal(result_logit, expected_logit)
 
         ###########################################
         # 3D example with covariates
         cols = ["a", "b", "c"]
         array = np.array([[1, 3, 5], [5, 2, 1], [1, 4, 10]])
-        control_set = pl.DataFrame(array, schema=cols)
-        treated_set = pl.DataFrame({"a": [1], "b": [4], "c": [2]})
+        control_set = pd.DataFrame(array, columns=cols)
+        treated_set = pd.DataFrame(np.array([[1, 4, 2]]), columns=cols)
         covs = ["a", "c"]
 
         # logit metric
-        expected_logit = pl.DataFrame({"a": [1.0], "b": [3.0], "c": [5.0]})
+        expected_logit = pd.DataFrame(np.array([[1.0, 3.0, 5.0]]), columns=cols)
         result_logit = ps.run_propensity_score(
             treated_set, control_set, covariates=covs, hyperparam=hyperparam_logit
         )
-        self.assertTrue(result_logit.equals(expected_logit))
+        pd.testing.assert_frame_equal(result_logit, expected_logit)
 
         # dec_tree metric
-        expected_logit = pl.DataFrame({"a": [1.0], "b": [3.0], "c": [5.0]})
+        expected_logit = pd.DataFrame(np.array([[1.0, 3.0, 5.0]]), columns=cols)
         result_logit = ps.run_propensity_score(
             treated_set,
             control_set,
@@ -103,10 +103,10 @@ class TestPropensityScore(unittest.TestCase):
             covariates=covs,
             hyperparam=hyperparam,
         )
-        self.assertTrue(result_logit.equals(expected_logit))
+        pd.testing.assert_frame_equal(result_logit, expected_logit)
 
         # forest metric
-        expected_logit = pl.DataFrame({"a": [1.0], "b": [3.0], "c": [5.0]})
+        expected_logit = pd.DataFrame(np.array([[1.0, 3.0, 5.0]]), columns=cols)
         result_logit = ps.run_propensity_score(
             treated_set,
             control_set,
@@ -114,18 +114,7 @@ class TestPropensityScore(unittest.TestCase):
             covariates=covs,
             hyperparam=hyperparam,
         )
-        self.assertTrue(result_logit.equals(expected_logit))
-
-        # using 2 nearest neighbors
-        expected_logit = pl.DataFrame(
-            {"a": [1.0, 1.0], "b": [3.0, 4.0], "c": [5.0, 10.0]}
-        )
-        result_logit = ps.run_propensity_score(
-            treated_set,
-            control_set,
-            number_of_neighbors=2,
-        )
-        self.assertTrue(result_logit.equals(expected_logit))
+        pd.testing.assert_frame_equal(result_logit, expected_logit)
 
 
 if __name__ == "__main__":

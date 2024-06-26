@@ -9,7 +9,6 @@ dependencies = [
     "pandas==2.2.2",
     "polars[pandas]==0.20.31",
     "scikit-learn==1.5.0",
-    "typing-extensions==4.12.2",
 ]
 
 [project.optional-dependencies]
