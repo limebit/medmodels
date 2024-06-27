@@ -56,11 +56,11 @@ class Estimate:
         )
         treated_group = treatment_true | treatment_false
         control_true, control_false = self._treatment_effect.adjust._apply_matching(
-            self._treatment_effect._matching_method,
-            medrecord,
-            treated_group,
-            control_true,
-            control_false,
+            method=self._treatment_effect._matching_method,
+            medrecord=medrecord,
+            treated_group=treated_group,
+            control_true=control_true,
+            control_false=control_false,
         )
 
         assert (

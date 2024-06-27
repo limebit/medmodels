@@ -1,15 +1,15 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, Optional, Tuple, Set
+from typing import Any, Dict, Optional, Set, Tuple
 
 import numpy as np
 import polars as pl
 
 from medmodels import MedRecord
-from medmodels.matching.metrics import Metric
 from medmodels.matching.algorithms.classic_distance_models import nearest_neighbor
 from medmodels.matching.algorithms.propensity_score import Model, calculate_propensity
+from medmodels.matching.metrics import Metric
 from medmodels.medrecord.types import MedRecordAttributeInputList, NodeIndex
 
 

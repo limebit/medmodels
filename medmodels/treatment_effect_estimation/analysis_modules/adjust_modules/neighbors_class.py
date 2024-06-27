@@ -5,8 +5,8 @@ from typing import Set, Tuple
 import polars as pl
 
 from medmodels import MedRecord
-from medmodels.matching.metrics import Metric
 from medmodels.matching.algorithms.classic_distance_models import nearest_neighbor
+from medmodels.matching.metrics import Metric
 from medmodels.medrecord.types import (
     MedRecordAttributeInputList,
     NodeIndex,

@@ -1,22 +1,28 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Optional, Set, Literal, Tuple
-from typing_extensions import TypeAlias
+from typing import TYPE_CHECKING, Literal, Optional, Set, Tuple
 
 from medmodels import MedRecord
 from medmodels.medrecord.types import NodeIndex
-from medmodels.treatment_effect_estimation.analysis_modules.adjust_modules.propensity_class import (
-    PropensityMatching,
-)
 from medmodels.treatment_effect_estimation.analysis_modules.adjust_modules.neighbors_class import (
     NeighborsMatching,
 )
+from medmodels.treatment_effect_estimation.analysis_modules.adjust_modules.propensity_class import (
+    PropensityMatching,
+)
 
 if TYPE_CHECKING:
+    import sys
+
     from medmodels.treatment_effect_estimation.treatment_effect import TreatmentEffect
 
+    if sys.version_info >= (3, 10):
+        from typing import TypeAlias
+    else:
+        from typing_extensions import TypeAlias
 
-MatchingMethod: TypeAlias = Optional[Literal["propensity", "nearest_neighbors"]]
+
+MatchingMethod: TypeAlias = Literal["propensity", "nearest_neighbors"]
 
 
 class Adjust:
@@ -27,17 +33,16 @@ class Adjust:
 
     def _apply_matching(
         self,
-        method: MatchingMethod,
         medrecord: MedRecord,
         treated_group: Set[NodeIndex],
         control_true: Set[NodeIndex],
         control_false: Set[NodeIndex],
+        method: Optional[MatchingMethod] = None,
     ) -> Tuple[Set[NodeIndex], Set[NodeIndex]]:
         """
         Update the treatment effect object with the matched controls.
 
         Args:
-            method (MatchingMethod): The method to use for matching.
             medrecord (MedRecord): The MedRecord object containing the data.
             treated_group (Set[NodeIndex]): The set of all patients in the treatment
                 group.
@@ -45,6 +50,8 @@ class Adjust:
                 the outcome of interest.
             control_false (Set[NodeIndex]): The set of patients in the control group
                 without the outcome of interest.
+            method (Optional[MatchingMethod]): The method to use for matching. Defaults
+                to None.
 
         Returns:
             Tuple[Set[NodeIndex], Set[NodeIndex]]: The updated control_true and

@@ -1,16 +1,16 @@
 from __future__ import annotations
 
-from typing import Optional, Dict, Literal, Any
+from typing import Any, Dict, Literal, Optional
 
+import medmodels.treatment_effect_estimation.treatment_effect as tee
+from medmodels.matching.algorithms.propensity_score import Model
+from medmodels.matching.metrics import Metric
+from medmodels.medrecord.querying import NodeOperation
 from medmodels.medrecord.types import (
     Group,
     MedRecordAttribute,
     MedRecordAttributeInputList,
 )
-from medmodels.medrecord.querying import NodeOperation
-import medmodels.treatment_effect_estimation.treatment_effect as tee
-from medmodels.matching.algorithms.propensity_score import Model
-from medmodels.matching.metrics import Metric
 from medmodels.treatment_effect_estimation.analysis_modules.adjust import (
     MatchingMethod,
 )

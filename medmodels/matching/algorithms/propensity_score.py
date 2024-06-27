@@ -24,17 +24,6 @@ if TYPE_CHECKING:
 
 Model: TypeAlias = Literal["logit", "dec_tree", "forest"]
 
-if TYPE_CHECKING:
-    import sys
-
-    if sys.version_info >= (3, 10):
-        from typing import TypeAlias
-    else:
-        from typing_extensions import TypeAlias
-
-
-Model: TypeAlias = Literal["logit", "dec_tree", "forest"]
-
 
 def calculate_propensity(
     x_train: NDArray[Union[np.int64, np.float64]],

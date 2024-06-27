@@ -9,12 +9,15 @@ to treatment groups using a specified matching class.
 """
 
 from __future__ import annotations
+
 import logging
-from typing import Optional, Set, Tuple, Dict, Literal, Any
+from typing import Any, Dict, Literal, Optional, Set, Tuple
 
 import pandas as pd
 
 from medmodels import MedRecord
+from medmodels.matching.algorithms.propensity_score import Model
+from medmodels.matching.metrics import Metric
 from medmodels.medrecord import node
 from medmodels.medrecord.querying import NodeOperation
 from medmodels.medrecord.types import (
@@ -23,15 +26,13 @@ from medmodels.medrecord.types import (
     MedRecordAttributeInputList,
     NodeIndex,
 )
-from medmodels.treatment_effect_estimation.analysis_modules.adjust import Adjust
+from medmodels.treatment_effect_estimation.analysis_modules.adjust import (
+    Adjust,
+    MatchingMethod,
+)
 from medmodels.treatment_effect_estimation.analysis_modules.estimate import Estimate
 from medmodels.treatment_effect_estimation.analysis_modules.report import Report
 from medmodels.treatment_effect_estimation.builder import TreatmentEffectBuilder
-from medmodels.matching.algorithms.propensity_score import Model
-from medmodels.matching.metrics import Metric
-from medmodels.treatment_effect_estimation.analysis_modules.adjust import (
-    MatchingMethod,
-)
 
 
 class TreatmentEffect:
@@ -59,7 +60,7 @@ class TreatmentEffect:
 
     _filter_controls_operation: Optional[NodeOperation]
 
-    _matching_method: MatchingMethod
+    _matching_method: Optional[MatchingMethod]
 
     _matching_essential_covariates: MedRecordAttributeInputList
     _matching_one_hot_covariates: MedRecordAttributeInputList
@@ -107,7 +108,7 @@ class TreatmentEffect:
         follow_up_period_reference: Literal["first", "last"] = "last",
         outcome_before_treatment_days: Optional[int] = None,
         filter_controls_operation: Optional[NodeOperation] = None,
-        matching_method: MatchingMethod = None,
+        matching_method: Optional[MatchingMethod] = None,
         matching_essential_covariates: MedRecordAttributeInputList = ["gender", "age"],
         matching_one_hot_covariates: MedRecordAttributeInputList = ["gender"],
         matching_model: Model = "logit",
@@ -146,9 +147,8 @@ class TreatmentEffect:
             filter_controls_operation (Optional[NodeOperation], optional): An optional
                 operation to filter the control group based on specified criteria.
                 Defaults to None.
-            matching_method (Optional[Literal["propensity", "nearest_neighbors"]],
-                optional): The method to match treatment and control groups. Defaults to
-                None.
+            matching_method (Optional[MatchingMethod]): The method to match treatment
+                and control groups. Defaults to None.
             matching_essential_covariates (Optional[List[MedRecordAttribute]], optional):
                 The essential covariates to use for matching
             matching_one_hot_covariates (Optional[List[MedRecordAttribute]], optional):
