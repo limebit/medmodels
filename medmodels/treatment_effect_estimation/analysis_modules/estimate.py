@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Tuple
+from typing import TYPE_CHECKING, Dict, Tuple
 
 from medmodels.medrecord.medrecord import MedRecord
 
@@ -75,6 +75,34 @@ class Estimate:
             len(control_true),
             len(control_false),
         )
+
+    def subject_counts(self, medrecord: MedRecord) -> Dict[str, int]:
+        """
+        Returns the subject counts for the treatment and control groups in a
+        Dictionary.
+
+        Args:
+            medrecord (MedRecord): The MedRecord object containing the data.
+
+        Returns:
+            Dict[str, int]: Dictionary with description of the subject group and their
+                respective counts.
+        """
+        (
+            num_treat_true,
+            num_treat_false,
+            num_control_true,
+            num_control_false,
+        ) = self._compute_subject_counts(medrecord=medrecord)
+
+        subject_dict = {
+            "treatment_true": num_treat_true,
+            "treatment_false": num_treat_false,
+            "control_true": num_control_true,
+            "control_false": num_control_false,
+        }
+
+        return subject_dict
 
     def relative_risk(self, medrecord: MedRecord) -> float:
         """
