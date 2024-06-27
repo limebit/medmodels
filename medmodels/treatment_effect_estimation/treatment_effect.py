@@ -71,7 +71,6 @@ class TreatmentEffect:
 
     def __init__(
         self,
-        *,
         treatment: Group,
         outcome: Group,
     ) -> None:
@@ -86,16 +85,16 @@ class TreatmentEffect:
             treatment (Group): The group of treatments to analyze.
             outcome (Group): The group of outcomes to analyze.
         """
-
-        self = self.builder().set_treatment(treatment).set_outcome(outcome).finish()
+        TreatmentEffect._set_configuration(self, treatment=treatment, outcome=outcome)
 
     @classmethod
     def builder(cls) -> TreatmentEffectBuilder:
         return TreatmentEffectBuilder()
 
-    @classmethod
+    @staticmethod
     def _set_configuration(
-        cls,
+        treatment_effect: TreatmentEffect,
+        *,
         treatment: Group,
         outcome: Group,
         patients_group: Group = "patients",
@@ -115,7 +114,7 @@ class TreatmentEffect:
         matching_distance_metric: Metric = "mahalanobis",
         matching_number_of_neighbors: int = 1,
         matching_hyperparam: Optional[Dict[str, Any]] = None,
-    ) -> TreatmentEffect:
+    ) -> None:
         """
         Initializes a Treatment Effect analysis setup with specified treatments and
         outcomes within a medical record dataset.
@@ -167,9 +166,6 @@ class TreatmentEffect:
                 empty, or if the specified patients group is not found within the
                 MedRecord groups.
         """
-
-        treatment_effect = cls.__new__(cls)
-
         treatment_effect._patients_group = patients_group
         treatment_effect._time_attribute = time_attribute
 
@@ -195,7 +191,6 @@ class TreatmentEffect:
         treatment_effect._matching_distance_metric = matching_distance_metric
         treatment_effect._matching_number_of_neighbors = matching_number_of_neighbors
         treatment_effect._matching_hyperparam = matching_hyperparam
-        return treatment_effect
 
     def _find_groups(
         self, medrecord: MedRecord
