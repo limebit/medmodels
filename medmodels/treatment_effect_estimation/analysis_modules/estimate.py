@@ -3,6 +3,15 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Dict, Tuple
 
 from medmodels.medrecord.medrecord import MedRecord
+from medmodels.treatment_effect_estimation.analysis_modules.matching.matching import (
+    Matching,
+)
+from medmodels.treatment_effect_estimation.analysis_modules.matching.neighbors import (
+    NeighborsMatching,
+)
+from medmodels.treatment_effect_estimation.analysis_modules.matching.propensity import (
+    PropensityMatching,
+)
 
 if TYPE_CHECKING:
     from medmodels.treatment_effect_estimation.treatment_effect import TreatmentEffect
@@ -55,13 +64,36 @@ class Estimate:
             self._treatment_effect._find_groups(medrecord)
         )
         treated_group = treatment_true | treatment_false
-        control_true, control_false = self._treatment_effect.adjust._apply_matching(
-            method=self._treatment_effect._matching_method,
-            medrecord=medrecord,
-            treated_group=treated_group,
-            control_true=control_true,
-            control_false=control_false,
-        )
+
+        if self._treatment_effect._matching_method:
+            matching: Matching = (
+                NeighborsMatching(
+                    distance_metric=self._treatment_effect._matching_distance_metric,
+                    number_of_neighbors=self._treatment_effect._matching_number_of_neighbors,
+                )
+                if self._treatment_effect._matching_method == "nearest_neighbors"
+                else PropensityMatching(
+                    distance_metric=self._treatment_effect._matching_distance_metric,
+                    number_of_neighbors=self._treatment_effect._matching_number_of_neighbors,
+                    model=self._treatment_effect._matching_model,
+                    hyperparam=self._treatment_effect._matching_hyperparam,
+                )
+            )
+
+            control_group = control_true | control_false
+
+            matched_controls = matching.match_controls(
+                medrecord=medrecord,
+                treated_group=treated_group,
+                control_group=control_group,
+                essential_covariates=self._treatment_effect._matching_essential_covariates,
+                one_hot_covariates=self._treatment_effect._matching_one_hot_covariates,
+            )
+            control_true, control_false = self._treatment_effect._find_controls(
+                medrecord=medrecord,
+                control_group=matched_controls,
+                treated_group=treated_group,
+            )
 
         assert (
             len(treatment_false) != 0
