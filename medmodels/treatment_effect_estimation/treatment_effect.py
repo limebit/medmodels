@@ -26,11 +26,10 @@ from medmodels.medrecord.types import (
     MedRecordAttributeInputList,
     NodeIndex,
 )
-from medmodels.treatment_effect_estimation.analysis_modules.adjust import (
-    Adjust,
+from medmodels.treatment_effect_estimation.analysis_modules.estimate import Estimate
+from medmodels.treatment_effect_estimation.analysis_modules.matching.matching import (
     MatchingMethod,
 )
-from medmodels.treatment_effect_estimation.analysis_modules.estimate import Estimate
 from medmodels.treatment_effect_estimation.analysis_modules.report import Report
 from medmodels.treatment_effect_estimation.builder import TreatmentEffectBuilder
 
@@ -597,15 +596,6 @@ class TreatmentEffect:
             Estimate: An Estimate object for the current TreatmentEffect instance.
         """
         return Estimate(self)
-
-    @property
-    def adjust(self) -> Adjust:
-        """Creates an Adjust object for the TreatmentEffect instance.
-
-        Returns:
-            Adjust: An Adjust object for the current TreatmentEffect instance.
-        """
-        return Adjust(self)
 
     @property
     def report(self) -> Report:

@@ -11,7 +11,7 @@ from medmodels.medrecord.types import (
     MedRecordAttribute,
     MedRecordAttributeInputList,
 )
-from medmodels.treatment_effect_estimation.analysis_modules.adjust import (
+from medmodels.treatment_effect_estimation.analysis_modules.matching.matching import (
     MatchingMethod,
 )
 
