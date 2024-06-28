@@ -50,6 +50,7 @@ class NeighborsMatching(Matching):
             data_control,
             number_of_neighbors=self.number_of_neighbors,
             metric=self.distance_metric,
+            covariates=[col for col in data_treated.columns if col != "id"]
         )
 
         return set(matched_controls["id"])

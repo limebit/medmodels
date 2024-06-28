@@ -76,14 +76,9 @@ class PropensityMatching(Matching):
             essential_covariates=essential_covariates,
             one_hot_covariates=one_hot_covariates,
         )
-
-        # TODO: Check why previous try error
-        data_treated = data_treated.cast(pl.Float64, strict=True)
-        data_control = data_control.cast(pl.Float64, strict=True)
-
         # Convert the Polars DataFrames to NumPy arrays
-        treated_array = data_treated.to_numpy()
-        control_array = data_control.to_numpy()
+        treated_array = data_treated.drop("id").cast(pl.Float64, strict=True).to_numpy()
+        control_array = data_control.drop("id").cast(pl.Float64, strict=True).to_numpy()
 
         # Train the classification model
         x_train = np.concatenate((treated_array, control_array))
@@ -111,7 +106,5 @@ class PropensityMatching(Matching):
             metric=self.distance_metric,
             covariates=["prop_score"],
         )
-
-        matched_control.drop_in_place("prop_score")
 
         return set(matched_control["id"])
