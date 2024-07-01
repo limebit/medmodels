@@ -5,7 +5,7 @@ import unittest
 import pandas as pd
 
 from medmodels import MedRecord
-from medmodels.medrecord import node
+from medmodels.medrecord import edge, node
 from medmodels.treatment_effect_estimation.treatment_effect import TreatmentEffect
 
 
@@ -18,12 +18,22 @@ def create_patients() -> pd.DataFrame:
     """
     patients = pd.DataFrame(
         {
-            "index": ["P1", "P2", "P3", "P4"],
-            "age": [30, 40, 50, 60],
-            "gender": ["male", "female", "male", "female"],
+            "index": ["P1", "P2", "P3", "P4", "P5", "P6", "P7", "P8", "P9"],
+            "age": [20, 30, 40, 30, 40, 50, 60, 70, 80],
+            "gender": [
+                "male",
+                "female",
+                "male",
+                "female",
+                "male",
+                "female",
+                "male",
+                "female",
+                "male",
+            ],
         }
     )
-    return patients.set_index("index")
+    return patients
 
 
 def create_diagnoses() -> pd.DataFrame:
@@ -35,11 +45,11 @@ def create_diagnoses() -> pd.DataFrame:
     """
     diagnoses = pd.DataFrame(
         {
-            "index": ["D1", "D2", "D3"],
-            "code": [1, 2, 3],
+            "index": ["D1"],
+            "name": ["Stroke"],
         }
     )
-    return diagnoses.set_index("index")
+    return diagnoses
 
 
 def create_prescriptions() -> pd.DataFrame:
@@ -52,9 +62,10 @@ def create_prescriptions() -> pd.DataFrame:
     prescriptions = pd.DataFrame(
         {
             "index": ["M1", "M2"],
+            "name": ["Rivaroxaban", "Warfarin"],
         }
     )
-    return prescriptions.set_index("index")
+    return prescriptions
 
 
 def create_edges() -> pd.DataFrame:
@@ -66,19 +77,54 @@ def create_edges() -> pd.DataFrame:
     """
     edges = pd.DataFrame(
         {
-            "source": ["D1", "D2", "D2", "D1", "M1", "M2"],
-            "target": ["P1", "P2", "P4", "P1", "P1", "P2"],
+            "source": [
+                "D1",
+                "M2",
+                "M1",
+                "M2",
+                "D1",
+                "D1",
+                "D1",
+                "M1",
+                "D1",
+                "M2",
+                "M1",
+                "D1",
+                "M2",
+            ],
+            "target": [
+                "P1",
+                "P1",
+                "P2",
+                "P2",
+                "P2",
+                "P3",
+                "P3",
+                "P3",
+                "P4",
+                "P5",
+                "P6",
+                "P7",
+                "P9",
+            ],
             "time": [
                 "2000-01-01",
+                "1999-10-15",
+                "2000-01-01",
+                "1999-12-15",
                 "2000-07-01",
+                "1999-12-15",
+                "2000-01-05",
                 "2000-01-01",
                 "2000-01-01",
-                "2100-01-01",
+                "2000-01-01",
+                "2000-01-01",
+                "2000-01-01",
                 "2000-01-01",
             ],
         }
     )
-    return edges.set_index(["source", "target"])
+    return edges
 
 
 def create_medrecord() -> MedRecord:
@@ -93,273 +139,504 @@ def create_medrecord() -> MedRecord:
     prescriptions = create_prescriptions()
     edges = create_edges()
     medrecord = MedRecord.from_pandas(
-        nodes=[patients, diagnoses, prescriptions], edges=[edges]
+        nodes=[(patients, "index"), (diagnoses, "index"), (prescriptions, "index")],
+        edges=[(edges, "source", "target")],
     )
-    medrecord.add_group(group="patients", node=patients.index.to_list())
+    medrecord.add_group(group="patients", node=patients["index"].to_list())
+    medrecord.add_group(
+        "Stroke",
+        ["D1"],
+    )
+    medrecord.add_group(
+        "Rivaroxaban",
+        ["M1"],
+    )
+    medrecord.add_group(
+        "Warfarin",
+        ["M2"],
+    )
     return medrecord
+
+
+def assert_treatment_effects_equal(
+    test_case: unittest.TestCase,
+    treatment_effect1: TreatmentEffect,
+    treatment_effect2: TreatmentEffect,
+):
+    test_case.assertEqual(
+        treatment_effect1._treatments_group, treatment_effect2._treatments_group
+    )
+    test_case.assertEqual(
+        treatment_effect1._outcomes_group, treatment_effect2._outcomes_group
+    )
+    test_case.assertEqual(
+        treatment_effect1._patients_group, treatment_effect2._patients_group
+    )
+    test_case.assertEqual(
+        treatment_effect1._time_attribute, treatment_effect2._time_attribute
+    )
+    test_case.assertEqual(
+        treatment_effect1._washout_period_days, treatment_effect2._washout_period_days
+    )
+    test_case.assertEqual(
+        treatment_effect1._washout_period_reference,
+        treatment_effect2._washout_period_reference,
+    )
+    test_case.assertEqual(
+        treatment_effect1._grace_period_days, treatment_effect2._grace_period_days
+    )
+    test_case.assertEqual(
+        treatment_effect1._grace_period_reference,
+        treatment_effect2._grace_period_reference,
+    )
+    test_case.assertEqual(
+        treatment_effect1._follow_up_period_days,
+        treatment_effect2._follow_up_period_days,
+    )
+    test_case.assertEqual(
+        treatment_effect1._follow_up_period_reference,
+        treatment_effect2._follow_up_period_reference,
+    )
+    test_case.assertEqual(
+        treatment_effect1._outcome_before_treatment_days,
+        treatment_effect2._outcome_before_treatment_days,
+    )
+    test_case.assertEqual(
+        treatment_effect1._filter_controls_operation,
+        treatment_effect2._filter_controls_operation,
+    )
+    test_case.assertEqual(
+        treatment_effect1._matching_method, treatment_effect2._matching_method
+    )
+    test_case.assertEqual(
+        treatment_effect1._matching_essential_covariates,
+        treatment_effect2._matching_essential_covariates,
+    )
+    test_case.assertEqual(
+        treatment_effect1._matching_one_hot_covariates,
+        treatment_effect2._matching_one_hot_covariates,
+    )
+    test_case.assertEqual(
+        treatment_effect1._matching_model, treatment_effect2._matching_model
+    )
+    test_case.assertEqual(
+        treatment_effect1._matching_distance_metric,
+        treatment_effect2._matching_distance_metric,
+    )
+    test_case.assertEqual(
+        treatment_effect1._matching_number_of_neighbors,
+        treatment_effect2._matching_number_of_neighbors,
+    )
+    test_case.assertEqual(
+        treatment_effect1._matching_hyperparam, treatment_effect2._matching_hyperparam
+    )
 
 
 class TestTreatmentEffect(unittest.TestCase):
     """Class to test the TreatmentEffect class in the treatment_effect module."""
 
+    def setUp(self):
+        self.medrecord = create_medrecord()
+
     def test_init(self):
-        """Test the initialization of the TreatmentEffect class."""
-        medrecord = create_medrecord()
+        # Initialize TreatmentEffect object
+        tee = TreatmentEffect(
+            treatment="Rivaroxaban",
+            outcome="Stroke",
+        )
 
-        # The treatment and outcome must be lists and not empty
-        with self.assertRaises(AssertionError) as context:
-            te = TreatmentEffect(medrecord, treatments=[], outcomes=["D1"])
-            self.assertTrue("Treatment list is empty" in str(context.exception))
-        with self.assertRaises(AssertionError) as context:
-            te = TreatmentEffect(medrecord, treatments=["M1"], outcomes=[])
-            self.assertTrue("Outcome list is empty" in str(context.exception))
+        tee_builder = (
+            TreatmentEffect.builder()
+            .set_treatment("Rivaroxaban")
+            .set_outcome("Stroke")
+            .finish()
+        )
 
-        # Test if the patients dimension is found correctly
-        patients_group = "not_existing_group"
+        assert_treatment_effects_equal(self, tee, tee_builder)
+
+    def test_default_properties(self):
+        tee = TreatmentEffect(
+            treatment="Rivaroxaban",
+            outcome="Stroke",
+        )
+
+        tee_builder = (
+            TreatmentEffect.builder()
+            .set_treatment("Rivaroxaban")
+            .set_outcome("Stroke")
+            .set_time_attribute("time")
+            .set_patients_group("patients")
+            .set_washout_period(reference="first")
+            .set_grace_period(days=0, reference="last")
+            .set_follow_up_period(365, reference="last")
+            .finish()
+        )
+
+        assert_treatment_effects_equal(self, tee, tee_builder)
+
+    def test_check_medrecord(self):
+        tee = (
+            TreatmentEffect.builder()
+            .set_outcome("Stroke")
+            .set_treatment("Aspirin")
+            .finish()
+        )
+
         with self.assertRaises(AssertionError) as context:
-            te = TreatmentEffect(
-                medrecord,
-                treatments=["M1"],
-                outcomes=["D1"],
-                patients_group=patients_group,
-            )
+            tee.estimate.subject_counts(medrecord=self.medrecord)
             self.assertTrue(
-                f"Patient group {patients_group} not found in the data. "
-                f"Available groups: {medrecord.groups}" in str(context.exception)
+                "Treatment group not found in the data." in str(context.exception)
             )
 
-        # Test if the class can be initialized correctly
-        treatments = ["M1", "M3"]
-        outcomes = ["D1", "D3", "D4"]
-        te = TreatmentEffect(medrecord, treatments=treatments, outcomes=outcomes)
-        self.assertEqual(te.patients_group, "patients")
-        self.assertEqual(te.time_attribute, "time")
+        tee2 = (
+            TreatmentEffect.builder()
+            .set_outcome("Headache")
+            .set_treatment("Rivaroxaban")
+            .finish()
+        )
 
-        # In case we parse a treatment/oucome that has a prefix in the medrecord,
-        # the prefix should be added to the treatment/outcome
-        self.assertIn("M1", te.treatments)
-        self.assertEqual(["D1", "D3"], te.outcomes)
+        with self.assertRaises(AssertionError) as context:
+            tee2.estimate.subject_counts(medrecord=self.medrecord)
+            self.assertTrue(
+                "Outcome group not found in the data." in str(context.exception)
+            )
 
-        # Test if the treatments and outcomes are found in the medrecord
-        self.assertIn("M3", te.not_found_treatments)
-        self.assertIn("D4", te.not_found_outcomes)
+    def test_find_treated_patients(self):
+        tee = (
+            TreatmentEffect.builder()
+            .set_outcome("Stroke")
+            .set_treatment("Rivaroxaban")
+            .finish()
+        )
 
-        # Test if the groups are initialized correctly
-        self.assertFalse(te.groups_sorted)
-        self.assertFalse(te.control_true)
-        self.assertFalse(te.control_false)
-        self.assertFalse(te.treatment_true)
-        self.assertFalse(te.treatment_false)
+        treated_group = tee._find_treated_patients(self.medrecord)
+        self.assertEqual(treated_group, set({"P2", "P3", "P6"}))
 
     def test_find_groups(self):
-        """Test the find_groups method of the TreatmentEffect class."""
-        medrecord = create_medrecord()
-
-        # Initialize TreatmentEffect object
-        te = TreatmentEffect(
-            medrecord,
-            treatments=["M1", "M2", "not_appearing_treatment"],
-            outcomes=["D1", "D2"],
-        )
-        self.assertFalse(te.groups_sorted)
-
-        # Test if the groups are found correctly
-        te.find_groups()
-        self.assertEqual(te.control_true, set({"P4"}))
-        self.assertEqual(te.control_false, set({"P3"}))
-        self.assertEqual(te.treatment_true, set({"P2"}))
-        self.assertEqual(te.treatment_false, set({"P1"}))
-        self.assertTrue(te.groups_sorted)
-
-        # Test if the groups are found correctly when criteria is used
-        te.find_groups(criteria_filter=node().attribute("gender").equal("female"))
-        self.assertEqual(
-            te.control_true, set({"P4"})
-        )  # Empty set (we leave out female patients)
-        self.assertFalse(te.control_false)
-        self.assertEqual(te.treatment_true, set({"P2"}))
-        self.assertFalse(te.treatment_false)
-        self.assertTrue(te.groups_sorted)
-
-        # Test what happens with a treatment that is not found
-        te = TreatmentEffect(
-            medrecord,
-            treatments=["non_existing_treatment"],
-            outcomes=["D1", "D2"],
-        )
-        with self.assertRaises(AssertionError) as context:
-            te.find_groups()
-            self.assertTrue(
-                "No patients found for the treatment groups in this MedRecord"
-                in str(context.exception)
-            )
-
-        # Test what happens when the attribute of time is not given correctly
-        te = TreatmentEffect(
-            medrecord,
-            treatments=["M1", "M2"],
-            outcomes=["D1", "D2"],
-            time_attribute="non_existing_time_attribute",
-        )
-        with self.assertRaises(AssertionError) as context:
-            te.find_groups()
-            self.assertTrue(
-                "Time attribute not found in the edge attributes"
-                in str(context.exception)
-            )
-
-    def test_find_first_time(self):
-        """Test the find_first_time method of the TreatmentEffect class."""
-        medrecord = create_medrecord()
-        te = TreatmentEffect(
-            medrecord,
-            treatments=["M1"],
-            outcomes=["D1"],
+        tee = (
+            TreatmentEffect.builder()
+            .set_outcome("Stroke")
+            .set_treatment("Rivaroxaban")
+            .finish()
         )
 
-        # The first occurring time is obtained: we have 2 edges with that node.
-        self.assertEqual(te.find_first_time("P1"), pd.Timestamp("2100-01-01"))
-        with self.assertRaises(AssertionError) as context:
-            te.find_first_time("not_existing_node")
-            self.assertTrue(
-                "No treatment found for node not_existing_node in this MedRecord"
-                in str(context.exception)
-            )
-
-        # Test what happens when the attribute of time is not given correctly
-        te = TreatmentEffect(
-            medrecord,
-            treatments=["M1"],
-            outcomes=["D1"],
-            time_attribute="non_existing_time_attribute",
+        treatment_true, treatment_false, control_true, control_false = tee._find_groups(
+            self.medrecord
         )
-        with self.assertRaises(AssertionError) as context:
-            te.find_first_time("P1")
-            self.assertTrue(
-                "Time attribute not found in the edge attributes"
-                in str(context.exception)
-            )
+        self.assertEqual(treatment_true, set({"P2", "P3"}))
+        self.assertEqual(treatment_false, set({"P6"}))
+        self.assertEqual(control_true, set({"P1", "P4", "P7"}))
+        self.assertEqual(control_false, set({"P5", "P8", "P9"}))
 
-    def test_is_outcome_after_treatment(self):
-        """Test the _is_outcome_after_treatment method of the TreatmentEffect class."""
-        medrecord = create_medrecord()
-        te = TreatmentEffect(medrecord, treatments=["M1", "M2"], outcomes=["D1", "D2"])
+    def test_find_reference_time(self):
+        tee = (
+            TreatmentEffect.builder()
+            .set_treatment("Rivaroxaban")
+            .set_outcome("Stroke")
+            .finish()
+        )
+        time = tee._find_reference_time(
+            self.medrecord, node_index="P6", reference="last"
+        )
+        self.assertEqual(pd.Timestamp("2000-01-01"), time)
 
-        # The outcome occurs here before the treatment
-        self.assertFalse(te._is_outcome_after_treatment("P1", "D2", 1.0))
-
-        # Test if there is an outcome after the treatment within the max time
-        self.assertTrue(te._is_outcome_after_treatment("P2", "D2", 1.0))
-
-        # The max_time here is smaller than the time btw  treatment & outcome
-        self.assertFalse(te._is_outcome_after_treatment("P2", "D2", 1e-3))
-
-    def test_find_controls(self):
-        """Test the find_controls method of the TreatmentEffect class."""
-        medrecord = create_medrecord()
-
-        # Test if the controls are found correctly
-        te = TreatmentEffect(medrecord, treatments=["M1", "M2"], outcomes=["D1", "D2"])
-        te.treated_group = set({"P1", "P2"})
-        self.assertEqual(te.find_controls(), ({"P4"}, {"P3"}))
-
-        # Find controls requires treated_group to be set first
-        te.treated_group = set()
-        self.assertNotEqual(te.find_controls(), ({"P4"}, {"P3"}))
-
-        # Test if the controls are found correctly when criteria is used
-        te.treated_group = set({"P1", "P2"})
-        self.assertEqual(
-            te.find_controls(criteria_filter=node().attribute("gender").equal("male")),
-            (set(), {"P3"}),
+        # adding medication time
+        self.medrecord.add_edge(
+            source_node="M1", target_node="P6", attributes={"time": "2000-01-15"}
         )
 
-        # Test what happens when the criteria is not met
-        with self.assertRaises(AssertionError) as context:
-            (
-                te.find_controls(
-                    criteria_filter=node().attribute("gender").equal("non_existing")
-                )
-            )
-            self.assertTrue(
-                "No patients found for the control groups in this MedRecord"
-                in str(context.exception)
-            )
+        time = tee._find_reference_time(
+            self.medrecord, node_index="P6", reference="last"
+        )
+        self.assertEqual(pd.Timestamp("2000-01-15"), time)
 
-    def test_count_subjects(self):
-        """Test the count_subjects method of the TreatmentEffect class."""
-        medrecord = create_medrecord()
+    def test_node_in_time_window(self):
+        tee = (
+            TreatmentEffect.builder()
+            .set_treatment("Rivaroxaban")
+            .set_outcome("Stroke")
+            .finish()
+        )
+        # check if patient has outcome a year after treatment
+        node_found = tee._find_node_in_time_window(
+            self.medrecord,
+            node_index="P2",
+            event_node="D1",
+            start_days=0,
+            end_days=365,
+            reference="last",
+        )
+        self.assertTrue(node_found)
 
-        # count_subjects should only be called after find_groups()
-        te = TreatmentEffect(medrecord, treatments=["M1", "M2"], outcomes=["D1", "D2"])
-        with self.assertRaises(AssertionError) as context:
-            te.subject_counts
-            self.assertTrue(
-                "Groups must be sorted, use find_groups() method first"
-                in str(context.exception)
+        # check if patient has outcome 30 days after treatment
+        node_found = tee._find_node_in_time_window(
+            self.medrecord,
+            node_index="P2",
+            event_node="D1",
+            start_days=0,
+            end_days=30,
+            reference="last",
+        )
+        self.assertFalse(node_found)
+
+    def test_subject_counts(self):
+        tee = (
+            TreatmentEffect.builder()
+            .set_treatment("Rivaroxaban")
+            .set_outcome("Stroke")
+            .finish()
+        )
+        counts_tee = tee.estimate.subject_counts(medrecord=self.medrecord)
+        counts_test = {
+            "treatment_true": 2,
+            "treatment_false": 1,
+            "control_true": 3,
+            "control_false": 3,
+        }
+
+        self.assertDictEqual(counts_tee, counts_test)
+
+    def test_subjects_treatment_control(self):
+        tee = (
+            TreatmentEffect.builder()
+            .set_treatment("Rivaroxaban")
+            .set_outcome("Stroke")
+            .finish()
+        )
+
+        subjects_test = {
+            "treatment_true": {"P2", "P3"},
+            "treatment_false": {"P6"},
+            "control_true": {"P1", "P4", "P7"},
+            "control_false": {"P5", "P8", "P9"},
+        }
+        subjects_tee = tee.estimate.subjects_treatment_control(self.medrecord)
+        self.assertDictEqual(subjects_test, subjects_tee)
+
+    def test_follow_up_period(self):
+        tee = (
+            TreatmentEffect.builder()
+            .set_treatment("Rivaroxaban")
+            .set_outcome("Stroke")
+            .set_follow_up_period(30)
+            .finish()
+        )
+
+        self.assertEqual(tee._follow_up_period_days, 30)
+
+        counts_test = {
+            "treatment_true": 1,
+            "treatment_false": 2,
+            "control_true": 3,
+            "control_false": 3,
+        }
+        counts_tee = tee.estimate.subject_counts(self.medrecord)
+
+        self.assertDictEqual(counts_tee, counts_test)
+
+    def test_grace_period(self):
+        tee = (
+            TreatmentEffect.builder()
+            .set_treatment("Rivaroxaban")
+            .set_outcome("Stroke")
+            .set_grace_period(10)
+            .finish()
+        )
+
+        self.assertEqual(tee._grace_period_days, 10)
+
+        counts_test = {
+            "treatment_true": 1,
+            "treatment_false": 2,
+            "control_true": 3,
+            "control_false": 3,
+        }
+        counts_tee = tee.estimate.subject_counts(self.medrecord)
+
+        self.assertDictEqual(counts_tee, counts_test)
+
+    def test_washout_period(self):
+        washout_dict = {"Warfarin": 30}
+
+        tee = (
+            TreatmentEffect.builder()
+            .set_treatment("Rivaroxaban")
+            .set_outcome("Stroke")
+            .set_washout_period(washout_dict)
+            .finish()
+        )
+
+        self.assertDictEqual(tee._washout_period_days, washout_dict)
+
+        treated_group = tee._find_treated_patients(self.medrecord)
+        treated_group, washout_nodes = tee._apply_washout_period(
+            self.medrecord, treated_group
+        )
+
+        self.assertEqual(treated_group, set({"P3", "P6"}))
+        self.assertEqual(washout_nodes, set({"P2"}))
+
+        # smaller washout period
+        washout_dict2 = {"Warfarin": 10}
+
+        tee2 = (
+            TreatmentEffect.builder()
+            .set_treatment("Rivaroxaban")
+            .set_outcome("Stroke")
+            .set_washout_period(washout_dict2)
+            .finish()
+        )
+
+        self.assertDictEqual(tee2._washout_period_days, washout_dict2)
+
+        treated_group = tee2._find_treated_patients(self.medrecord)
+        treated_group, washout_nodes = tee2._apply_washout_period(
+            self.medrecord, treated_group
+        )
+
+        self.assertEqual(treated_group, set({"P2", "P3", "P6"}))
+        self.assertEqual(washout_nodes, set({}))
+
+    def test_outcome_before_treatment(self):
+        # find outcomes for default tee
+        tee = (
+            TreatmentEffect.builder()
+            .set_treatment("Rivaroxaban")
+            .set_outcome("Stroke")
+            .finish()
+        )
+        treated_group = tee._find_treated_patients(self.medrecord)
+        treated_group, treatment_true, outcome_before_treatment_nodes = (
+            tee._find_outcomes(self.medrecord, treated_group)
+        )
+        self.assertEqual(treated_group, set({"P2", "P3", "P6"}))
+        self.assertEqual(treatment_true, set({"P2", "P3"}))
+        self.assertEqual(outcome_before_treatment_nodes, set())
+
+        # set exclusion time for outcome before treatment
+        tee2 = (
+            TreatmentEffect.builder()
+            .set_treatment("Rivaroxaban")
+            .set_outcome("Stroke")
+            .set_outcome_before_treatment_exclusion(30)
+            .finish()
+        )
+
+        self.assertEqual(tee2._outcome_before_treatment_days, 30)
+
+        treated_group = tee2._find_treated_patients(self.medrecord)
+        treated_group, treatment_true, outcome_before_treatment_nodes = (
+            tee2._find_outcomes(self.medrecord, treated_group)
+        )
+        self.assertEqual(treated_group, set({"P2", "P6"}))
+        self.assertEqual(treatment_true, set({"P2"}))
+        self.assertEqual(outcome_before_treatment_nodes, set({"P3"}))
+
+    def test_filter_controls(self):
+        tee = (
+            TreatmentEffect.builder()
+            .set_treatment("Rivaroxaban")
+            .set_outcome("Stroke")
+            .filter_controls(
+                node().has_outgoing_edge_with(edge().connected_target("M2"))
+                | node().has_incoming_edge_with(edge().connected_source("M2"))
             )
+            .finish()
+        )
+        counts_test = {
+            "treatment_true": 2,
+            "treatment_false": 1,
+            "control_true": 1,
+            "control_false": 2,
+        }
+        counts_tee = tee.estimate.subject_counts(self.medrecord)
 
-        # Test if the subjects are counted correctly
-        te.find_groups()
-        self.assertEqual(te.subject_counts, (1, 1, 1, 1))
+        self.assertDictEqual(counts_tee, counts_test)
 
-        # Test what happens if no treatment subjects are found
-        te.treatment_false = set()
-        with self.assertRaises(AssertionError) as context:
-            te.subject_counts
-            self.assertTrue(
-                "No subjects found in the treatment false group"
-                in str(context.exception)
-            )
+        # filter females only
 
-        te.find_groups()
-        te.control_true = set()
-        with self.assertRaises(AssertionError) as context:
-            te.subject_counts
-            self.assertTrue(
-                "No subjects found in the control true group" in str(context.exception)
-            )
+        tee2 = (
+            TreatmentEffect.builder()
+            .set_treatment("Rivaroxaban")
+            .set_outcome("Stroke")
+            .filter_controls(node().attribute("gender").equal("female"))
+            .finish()
+        )
 
-        te.find_groups()
-        te.control_false = set()
-        with self.assertRaises(AssertionError) as context:
-            te.subject_counts
-            self.assertTrue(
-                "No subjects found in the control false group" in str(context.exception)
-            )
+        counts_test2 = {
+            "treatment_true": 2,
+            "treatment_false": 1,
+            "control_true": 1,
+            "control_false": 1,
+        }
+        counts_tee2 = tee2.estimate.subject_counts(self.medrecord)
+
+        self.assertDictEqual(counts_tee2, counts_test2)
+
+    def test_nearest_neighbors(self):
+        tee = (
+            TreatmentEffect.builder()
+            .set_treatment("Rivaroxaban")
+            .set_outcome("Stroke")
+            .adjust_with_nearest_neighbors_matching(distance_metric="absolute")
+            .finish()
+        )
+
+        subjects = tee.estimate.subjects_treatment_control(self.medrecord)
+
+        # multiple patients are equally similar to the treatment group
+        # these are exact macthes and should always be included
+        self.assertIn("P4", subjects["control_true"])
+        self.assertIn("P5", subjects["control_false"])
+
+    def test_repeat_test(self):
+        n_tests = 30
+        for n in range(n_tests):
+            print("--------------------------------")
+            print(f"Test {n} out of {n_tests}")
 
     def test_metrics(self):
         """Test the metrics of the TreatmentEffect class."""
-        medrecord = create_medrecord()
 
-        te = TreatmentEffect(medrecord, treatments=["M1", "M2"], outcomes=["D1", "D2"])
-        te.find_groups()
+        tee = (
+            TreatmentEffect.builder()
+            .set_treatment("Rivaroxaban")
+            .set_outcome("Stroke")
+            .finish()
+        )
 
         # Calculate metrics
-        rr = te.relative_risk()
-        self.assertAlmostEqual(rr, 1.0)
+        self.assertAlmostEqual(tee.estimate.absolute_risk(self.medrecord), 1 / 6)
+        self.assertAlmostEqual(tee.estimate.relative_risk(self.medrecord), 4 / 3)
+        self.assertAlmostEqual(tee.estimate.odds_ratio(self.medrecord), 2)
+        self.assertAlmostEqual(tee.estimate.confounding_bias(self.medrecord), 22 / 21)
+        self.assertAlmostEqual(tee.estimate.hazard_ratio(self.medrecord), 4 / 3)
+        self.assertAlmostEqual(tee.estimate.number_needed_to_treat(self.medrecord), 6)
 
-        odds_ratio = te.odds_ratio()
-        self.assertAlmostEqual(odds_ratio, 1.0)
+    def test_full_report(self):
+        """Test the reporting of the TreatmentEffect class."""
 
-        confounding_bias = te.confounding_bias()
-        self.assertAlmostEqual(confounding_bias, 1)
+        tee = (
+            TreatmentEffect.builder()
+            .set_treatment("Rivaroxaban")
+            .set_outcome("Stroke")
+            .finish()
+        )
 
-        # Test with more patients
-        te.treatment_true = set({"P1"})
-        te.treatment_false = set({"P2", "P3"})
-        te.control_true = set({"P4"})
-        te.control_false = set({"P5"})
+        # Calculate metrics
+        full_report = tee.report.full_report(self.medrecord)
 
-        # Calculate relative risk
-        rr = te.relative_risk()
-        self.assertAlmostEqual(rr, 2 / 3)
-
-        odds_ratio = te.odds_ratio()
-        self.assertAlmostEqual(odds_ratio, 0.5)
-
-        confounding_bias = te.confounding_bias()
-        self.assertAlmostEqual(confounding_bias, 16 / 15)
+        report_test = {
+            "absolute_risk": tee.estimate.absolute_risk(self.medrecord),
+            "relative_risk": tee.estimate.relative_risk(self.medrecord),
+            "odds_ratio": tee.estimate.odds_ratio(self.medrecord),
+            "confounding_bias": tee.estimate.confounding_bias(self.medrecord),
+            "hazard_ratio": tee.estimate.hazard_ratio(self.medrecord),
+            "number_needed_to_treat": tee.estimate.number_needed_to_treat(
+                self.medrecord
+            ),
+        }
+        self.assertDictEqual(report_test, full_report)
 
 
 if __name__ == "__main__":

@@ -110,7 +110,7 @@ class TreatmentEffect:
         matching_essential_covariates: MedRecordAttributeInputList = ["gender", "age"],
         matching_one_hot_covariates: MedRecordAttributeInputList = ["gender"],
         matching_model: Model = "logit",
-        matching_distance_metric: Metric = "mahalanobis",
+        matching_distance_metric: Metric = "absolute",
         matching_number_of_neighbors: int = 1,
         matching_hyperparam: Optional[Dict[str, Any]] = None,
     ) -> None:
