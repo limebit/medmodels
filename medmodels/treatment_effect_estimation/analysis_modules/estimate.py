@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Dict, Tuple
+from typing import TYPE_CHECKING, Dict, Set, Tuple
 
 from medmodels.medrecord.medrecord import MedRecord
+from medmodels.medrecord.types import NodeIndex
 from medmodels.treatment_effect_estimation.analysis_modules.matching.matching import (
     Matching,
 )
@@ -45,21 +46,24 @@ class Estimate:
             f"Available groups: {medrecord.groups}"
         )
 
-    def _compute_subject_counts(
+    def _sort_patients_in_contingency_table(
         self, medrecord: MedRecord
-    ) -> Tuple[int, int, int, int]:
-        """Computes the subject counts for the treatment and control groups.
+    ) -> Tuple[Set[NodeIndex], Set[NodeIndex], Set[NodeIndex], Set[NodeIndex]]:
+        """Sorts patients into the contingency table of treatment-outcome, treatment-
+            no outcome, control-outcome and control-no outcome. The treatment group and
+            control matching is determined based on the treatment effect configuration.
 
         Args:
             medrecord (MedRecord): The MedRecord object containing the data.
 
         Returns:
-            Tuple[int, int, int, int]: The number of true and false subjects in the
-                treatment and control groups, respectively.
+            Tuple[Set[NodeIndex], Set[NodeIndex], Set[NodeIndex], Set[NodeIndex]: The
+                patient ids of true and false subjects in the treatment and control groups, respectively.
 
         Raises:
             AssertionError: If the required groups are not present in the MedRecord.
         """
+        self._check_medrecord(medrecord=medrecord)
         treatment_true, treatment_false, control_true, control_false = (
             self._treatment_effect._find_groups(medrecord)
         )
@@ -95,6 +99,27 @@ class Estimate:
                 treated_group=treated_group,
             )
 
+        return treatment_true, treatment_false, control_false, control_true
+
+    def _compute_subject_counts(
+        self, medrecord: MedRecord
+    ) -> Tuple[int, int, int, int]:
+        """Computes the subject counts for the treatment and control groups.
+
+        Args:
+            medrecord (MedRecord): The MedRecord object containing the data.
+
+        Returns:
+            Tuple[int, int, int, int]: The number of true and false subjects in the
+                treatment and control groups, respectively.
+
+        Raises:
+            AssertionError: If the required groups are not present in the MedRecord.
+        """
+        treatment_true, treatment_false, control_false, control_true = (
+            self._sort_patients_in_contingency_table(medrecord=medrecord)
+        )
+
         assert (
             len(treatment_false) != 0
         ), "No subjects found in the treatment false group"
@@ -107,6 +132,33 @@ class Estimate:
             len(control_true),
             len(control_false),
         )
+
+    def subjects_treatment_control(
+        self, medrecord: MedRecord
+    ) -> Dict[str, Set[NodeIndex]]:
+        """
+        Overview of which patients were used for the treatment effect.
+
+        Args:
+            medrecord (MedRecord): The MedRecord object containing the data.
+
+        Returns:
+            Dict[str, Set[NodeIndex]]: Dictionary with description of the subject group
+            and Lists of patient ids belonging to each group.
+        """
+
+        treatment_true, treatment_false, control_false, control_true = (
+            self._sort_patients_in_contingency_table(medrecord=medrecord)
+        )
+
+        subjects = {
+            "treatment_true": treatment_true,
+            "treatment_false": treatment_false,
+            "control_true": control_true,
+            "control_false": control_false,
+        }
+
+        return subjects
 
     def subject_counts(self, medrecord: MedRecord) -> Dict[str, int]:
         """
@@ -127,14 +179,14 @@ class Estimate:
             num_control_false,
         ) = self._compute_subject_counts(medrecord=medrecord)
 
-        subject_dict = {
+        subject_counts = {
             "treatment_true": num_treat_true,
             "treatment_false": num_treat_false,
             "control_true": num_control_true,
             "control_false": num_control_false,
         }
 
-        return subject_dict
+        return subject_counts
 
     def relative_risk(self, medrecord: MedRecord) -> float:
         """

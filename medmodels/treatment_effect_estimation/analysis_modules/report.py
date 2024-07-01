@@ -27,7 +27,7 @@ class Report:
             self._treatment_effect.estimate, predicate=inspect.ismethod
         )
         for name, method in methods:
-            if not name.startswith("_"):
+            if not name.startswith("_") | name.startswith("subject"):
                 try:
                     results[name] = method(medrecord=medrecord)
                 except Exception as e:
