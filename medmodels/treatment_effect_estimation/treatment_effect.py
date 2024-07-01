@@ -342,8 +342,8 @@ class TreatmentEffect:
         if outcome_before_treatment_nodes:
             dropped_num = len(outcome_before_treatment_nodes)
             logging.warning(
-                f"{dropped_num} {'subject' if dropped_num == 1 else 'subjects'} "
-                f" were dropped due to outcome before treatment."
+                f"{dropped_num} {'subject was' if dropped_num == 1 else 'subjects were'} "
+                f"dropped due to outcome before treatment."
             )
 
         return treated_group, treatment_true, outcome_before_treatment_nodes
@@ -392,8 +392,8 @@ class TreatmentEffect:
         if washout_nodes:
             dropped_num = len(washout_nodes)
             logging.warning(
-                f"{dropped_num} {'subject' if dropped_num == 1 else 'subjects'} "
-                f" were dropped due to outcome before treatment."
+                f"{dropped_num} {'subject was' if dropped_num == 1 else 'subjects were'} "
+                f"dropped due to outcome before treatment."
             )
         return treated_group, washout_nodes
 

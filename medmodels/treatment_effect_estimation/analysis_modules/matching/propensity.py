@@ -16,6 +16,15 @@ from medmodels.treatment_effect_estimation.analysis_modules.matching.matching im
 
 
 class PropensityMatching(Matching):
+    """Class for the propensity score matching.
+
+    The algorithm trains the chosen classification method on the treated and control
+    sets. Y_train is constructed as follows: 1 for each entry of the treated and 0
+    for the control set. The probability of the class 1 will be assign as a new
+    variable "Prop. score" and used for the nearest neighbor matching as the only
+    covariate.
+    """
+
     model: Model
     distance_metric: Metric
     number_of_neighbors: int
@@ -23,27 +32,15 @@ class PropensityMatching(Matching):
 
     def __init__(
         self,
+        *,
         model: Model = "logit",
         distance_metric: Metric = "absolute",
         number_of_neighbors: int = 1,
         hyperparam: Optional[Dict[str, Any]] = None,
     ):
-        """Class for the propensity score matching.
-
-        The algorithm trains the chosen classification method on the treated and control
-        sets. Y_train is constructed as follows: 1 for each entry of the treated and 0
-        for the control set. The probability of the class 1 will be assign as a new
-        variable "Prop. score" and used for the nearest neighbor matching as the only
-        covariate.
+        """Initializes the propensity score class.
 
         Args:
-            medrecord (MedRecord): medrecord object containing the data.
-            treated_group (Set[NodeIndex]): Set of treated subjects.
-            control_group (Set[NodeIndex]): Set of control subjects.
-            essential_covariates (MedRecordAttributeInputList, optional): Covariates
-                that are essential for matching. Defaults to ["gender", "age"].
-            one_hot_covariates (MedRecordAttributeInputList, optional): Covariates that
-                are one-hot encoded for matching. Defaults to ["gender"].
             model (Model, optional): classification method to be used, default: "logit".
                 Can be chosen from ["logit", "dec_tree", "forest"].
             distance_metric (Metric, optional): metric to be used for the matching.
@@ -62,12 +59,26 @@ class PropensityMatching(Matching):
     def match_controls(
         self,
         *,
+        medrecord: MedRecord,
         control_group: Set[NodeIndex],
         treated_group: Set[NodeIndex],
-        medrecord: MedRecord,
         essential_covariates: MedRecordAttributeInputList = ["gender", "age"],
         one_hot_covariates: MedRecordAttributeInputList = ["gender"],
     ) -> Set[NodeIndex]:
+        """Matches the controls based on propensity score matching.
+
+        Args:
+            medrecord (MedRecord): medrecord object containing the data.
+            treated_group (Set[NodeIndex]): Set of treated subjects.
+            control_group (Set[NodeIndex]): Set of control subjects.
+            essential_covariates (MedRecordAttributeInputList, optional): Covariates
+                that are essential for matching. Defaults to ["gender", "age"].
+            one_hot_covariates (MedRecordAttributeInputList, optional): Covariates that
+                are one-hot encoded for matching. Defaults to ["gender"].
+
+        Returns:
+            Set[NodeIndex]:  Node Ids of the matched controls.
+        """
         # Preprocess the data
         data_treated, data_control = self._preprocess_data(
             medrecord=medrecord,

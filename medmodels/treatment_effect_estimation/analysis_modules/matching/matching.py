@@ -20,6 +20,10 @@ MatchingMethod: TypeAlias = Literal["propensity", "nearest_neighbors"]
 
 
 class Matching(metaclass=ABCMeta):
+    """
+    The Base Class for matching.
+    """
+
     def _preprocess_data(
         self,
         *,
@@ -29,6 +33,21 @@ class Matching(metaclass=ABCMeta):
         essential_covariates: MedRecordAttributeInputList,
         one_hot_covariates: MedRecordAttributeInputList,
     ) -> Tuple[pl.DataFrame, pl.DataFrame]:
+        """Prepared the data for the matching algorithms.
+
+        Args:
+            medrecord (MedRecord):  MedRecord object containing the data.
+            control_group (Set[NodeIndex]): Set of treated subjects.
+            treated_group (Set[NodeIndex]): Set of control subjects.
+            essential_covariates (MedRecordAttributeInputList):  Covariates
+                that are essential for matching
+            one_hot_covariates (MedRecordAttributeInputList): Covariates that
+                are one-hot encoded for matching
+
+        Returns:
+            Tuple[pl.DataFrame, pl.DataFrame]: Treated and control groups with their
+                preprocessed covariates
+        """
         essential_covariates = [str(covariate) for covariate in essential_covariates]
 
         if "id" not in essential_covariates:
