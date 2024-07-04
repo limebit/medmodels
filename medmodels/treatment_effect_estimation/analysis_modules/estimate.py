@@ -25,43 +25,51 @@ class Estimate:
         self._treatment_effect = treatment_effect
 
     def _check_medrecord(self, medrecord: MedRecord) -> None:
-        """Checks if the required groups are present in the MedRecord.
+        """
+        Checks if the required groups are present in the MedRecord.
 
         Args:
             medrecord (MedRecord): The MedRecord object containing the data.
 
         Raises:
-            AssertionError: If the required groups are not present in the MedRecord.
+            ValueError: Raises Error if the required groups are not present in the
+                MedRecord (patients, treatments, outcomes).
         """
-        assert self._treatment_effect._patients_group in medrecord.groups, (
-            f"Patient group {self._treatment_effect._patients_group} not found in the "
-            f"data. Available groups: {medrecord.groups}"
-        )
-        assert self._treatment_effect._treatments_group in medrecord.groups, (
-            "Treatment group not found in the data. "
-            f"Available groups: {medrecord.groups}"
-        )
-        assert self._treatment_effect._outcomes_group in medrecord.groups, (
-            "Outcome group not found in the data. "
-            f"Available groups: {medrecord.groups}"
-        )
+        if self._treatment_effect._patients_group not in medrecord.groups:
+            raise ValueError(
+                f"Patient group {self._treatment_effect._patients_group} not found in "
+                f"the MedRecord. Available groups: {medrecord.groups}"
+            )
+        if self._treatment_effect._treatments_group not in medrecord.groups:
+            raise ValueError(
+                "Treatment group not found in the MedRecord. "
+                f"Available groups: {medrecord.groups}"
+            )
+        if self._treatment_effect._outcomes_group not in medrecord.groups:
+            raise ValueError(
+                "Outcome group not found in the MedRecord."
+                f"Available groups: {medrecord.groups}"
+            )
 
-    def _sort_patients_in_contingency_table(
+    def _sort_subjects_in_contingency_table(
         self, medrecord: MedRecord
     ) -> Tuple[Set[NodeIndex], Set[NodeIndex], Set[NodeIndex], Set[NodeIndex]]:
-        """Sorts patients into the contingency table of treatment-outcome, treatment-
-            no outcome, control-outcome and control-no outcome. The treatment group and
-            control matching is determined based on the treatment effect configuration.
+        """
+        Sorts subjects into the contingency table of treatment-outcome, treatment-
+        no outcome, control-outcome and control-no outcome. The treatment group and
+        control matching is determined based on the treatment effect configuration.
 
         Args:
             medrecord (MedRecord): The MedRecord object containing the data.
 
         Returns:
             Tuple[Set[NodeIndex], Set[NodeIndex], Set[NodeIndex], Set[NodeIndex]: The
-                patient ids of true and false subjects in the treatment and control groups, respectively.
+                patient ids of true and false subjects in the treatment and control
+                groups, respectively.
 
         Raises:
-            AssertionError: If the required groups are not present in the MedRecord.
+            ValueError: Raises Error if the required groups are not present in the
+                MedRecord (patients, treatments, outcomes).
         """
         self._check_medrecord(medrecord=medrecord)
         treatment_true, treatment_false, control_true, control_false = (
@@ -104,7 +112,8 @@ class Estimate:
     def _compute_subject_counts(
         self, medrecord: MedRecord
     ) -> Tuple[int, int, int, int]:
-        """Computes the subject counts for the treatment and control groups.
+        """
+        Computes the subject counts for the treatment and control groups.
 
         Args:
             medrecord (MedRecord): The MedRecord object containing the data.
@@ -114,17 +123,22 @@ class Estimate:
                 treatment and control groups, respectively.
 
         Raises:
-            AssertionError: If the required groups are not present in the MedRecord.
+            ValueError: Raises Error if the required groups are not present in the
+                MedRecord (patients, treatments, outcomes).
+            ValueError: If there are no subjects in the treatment false, control true
+                or control false groups in the contingency table. This would result in
+                division by zero errors.
         """
         treatment_true, treatment_false, control_false, control_true = (
-            self._sort_patients_in_contingency_table(medrecord=medrecord)
+            self._sort_subjects_in_contingency_table(medrecord=medrecord)
         )
 
-        assert (
-            len(treatment_false) != 0
-        ), "No subjects found in the treatment false group"
-        assert len(control_true) != 0, "No subjects found in the control true group"
-        assert len(control_false) != 0, "No subjects found in the control false group"
+        if len(treatment_false) == 0:
+            raise ValueError("No subjects found in the treatment false group")
+        if len(control_true) == 0:
+            raise ValueError("No subjects found in the control true group")
+        if len(control_false) == 0:
+            raise ValueError("No subjects found in the control false group")
 
         return (
             len(treatment_true),
@@ -133,22 +147,26 @@ class Estimate:
             len(control_false),
         )
 
-    def subjects_treatment_control(
+    def subjects_contigency_table(
         self, medrecord: MedRecord
     ) -> Dict[str, Set[NodeIndex]]:
         """
-        Overview of which patients were used for the treatment effect.
+        Overview of which subjects are in the treatment and control groups and whether
+        they have the outcome or not.
 
         Args:
             medrecord (MedRecord): The MedRecord object containing the data.
 
         Returns:
             Dict[str, Set[NodeIndex]]: Dictionary with description of the subject group
-            and Lists of patient ids belonging to each group.
-        """
+                and Lists of subject ids belonging to each group.
 
+        Raises:
+            ValueError: Raises Error if the required groups are not present in the
+                MedRecord (patients, treatments, outcomes).
+        """
         treatment_true, treatment_false, control_false, control_true = (
-            self._sort_patients_in_contingency_table(medrecord=medrecord)
+            self._sort_subjects_in_contingency_table(medrecord=medrecord)
         )
 
         subjects = {
@@ -171,6 +189,13 @@ class Estimate:
         Returns:
             Dict[str, int]: Dictionary with description of the subject group and their
                 respective counts.
+
+        Raises:
+            ValueError: Raises Error if the required groups are not present in the
+                MedRecord (patients, treatments, outcomes).
+            ValueError: If there are no subjects in the treatment false, control true
+                or control false groups in the contingency table. This would result in
+                division by zero errors.
         """
         (
             num_treat_true,
@@ -199,10 +224,6 @@ class Estimate:
         - RR > 1 indicates a higher risk in the treatment group.
         - RR < 1 indicates a lower risk in the treatment group.
 
-        Preconditions:
-            - Subject counts for each group must be non-zero to avoid division by zero
-                errors.
-
         Args:
             medrecord (MedRecord): The MedRecord object containing the data.
 
@@ -211,8 +232,11 @@ class Estimate:
                 groups.
 
         Raises:
-            AssertionError: If the preconditions are not met, indicating a potential
-                issue with group formation or subject count retrieval.
+            ValueError: Raises Error if the required groups are not present in the
+                MedRecord (patients, treatments, outcomes).
+            ValueError: If there are no subjects in the treatment false, control true
+                or control false groups in the contingency table. This would result in
+                division by zero errors.
         """
         (
             num_treat_true,
@@ -238,20 +262,18 @@ class Estimate:
         - OR > 1 suggests the event is more likely in the treatment group.
         - OR < 1 suggests the event is less likely in the treatment group.
 
-        Preconditions:
-            - Subject counts in each group must be non-zero to ensure valid
-                calculations.
-
         Args:
             medrecord (MedRecord): The MedRecord object containing the data.
 
         Returns:
             float: The calculated odds ratio between the treatment and control groups.
 
-
         Raises:
-            AssertionError: If preconditions are not met, indicating potential issues
-                with group formation or subject count retrieval.
+            ValueError: Raises Error if the required groups are not present in the
+                MedRecord (patients, treatments, outcomes).
+            ValueError: If there are no subjects in the treatment false, control true
+                or control false groups in the contingency table. This would result in
+                division by zero errors.
         """
         (
             num_treat_true,
@@ -281,15 +303,18 @@ class Estimate:
         adjustment helps in identifying whether the observed association might be
         influenced by factors other than the treatment.
 
-        Precondition:
-            - Subject counts in each group must be non-zero to avoid division by zero
-                errors.
-
         Args:
             medrecord (MedRecord): The MedRecord object containing the data.
 
         Returns:
             float: The calculated confounding bias.
+
+        Raises:
+            ValueError: Raises Error if the required groups are not present in the
+                MedRecord (patients, treatments, outcomes).
+            ValueError: If there are no subjects in the treatment false, control true
+                or control false groups in the contingency table. This would result in
+                division by zero errors.
         """
         (
             num_treat_true,
@@ -300,7 +325,7 @@ class Estimate:
         relative_risk = self.relative_risk(medrecord)
 
         if relative_risk == 1:
-            return 1
+            return 1.0
 
         multiplier = relative_risk - 1
         numerator = (
@@ -318,11 +343,6 @@ class Estimate:
         compared to the control group. AR is a measure of the incidence of an event in
         each group.
 
-
-        Preconditions:
-            - Subject counts for each group must be non-zero to avoid division by zero
-                errors.
-
         Args:
             medrecord (MedRecord): The MedRecord object containing the data.
 
@@ -331,8 +351,11 @@ class Estimate:
                 control groups.
 
         Raises:
-            AssertionError: If the preconditions are not met, indicating a potential
-                issue with group formation or subject count retrieval.
+            ValueError: Raises Error if the required groups are not present in the
+                MedRecord (patients, treatments, outcomes).
+            ValueError: If there are no subjects in the treatment false, control true
+                or control false groups in the contingency table. This would result in
+                division by zero errors.
         """
         (
             num_treat_true,
@@ -351,11 +374,7 @@ class Estimate:
         Calculates the number needed to treat (NNT) to prevent one additional bad
         outcome. NNT is derived from the absolute risk reduction.
 
-        Preconditions:
-            - Subject counts for each group must be non-zero to avoid division by zero
-                errors.
-
-        Args:
+                Args:
             medrecord (MedRecord): The MedRecord object containing the data.
 
         Returns:
@@ -363,8 +382,12 @@ class Estimate:
             control groups.
 
         Raises:
-            AssertionError: If the preconditions are not met, indicating a potential
-                issue with group formation or subject count retrieval.
+            ValueError: Raises Error if the required groups are not present in the
+                MedRecord (patients, treatments, outcomes).
+            ValueError: If there are no subjects in the treatment false, control true
+                or control false groups in the contingency table. This would result in
+                division by zero errors.
+            ValueError: If the absolute risk is zero, cannot calculate NNT.
         """
         ar = self.absolute_risk(medrecord)
         if ar == 0:
@@ -374,10 +397,8 @@ class Estimate:
     def hazard_ratio(self, medrecord: MedRecord) -> float:
         """
         Calculates the hazard ratio (HR) for the treatment group compared to the control
-        group. HR is used to compare the hazard rates of two groups in survival analysis.
-
-        Preconditions:
-            - Hazard rates for each group must be calculable.
+        group. HR is used to compare the hazard rates of two groups in survival
+        analysis.
 
         Args:
             medrecord (MedRecord): The MedRecord object containing the data.
@@ -386,8 +407,12 @@ class Estimate:
             float: The calculated hazard ratio between the treatment and control groups.
 
         Raises:
-            AssertionError: If the preconditions are not met, indicating a potential
-                issue with group formation or hazard rate calculation.
+            ValueError: Raises Error if the required groups are not present in the
+                MedRecord (patients, treatments, outcomes).
+            ValueError: If there are no subjects in the treatment false, control true
+                or control false groups in the contingency table. This would result in
+                division by zero errors.
+            ValueError: If the control hazard rate is zero, cannot calculate HR.
         """
         (
             num_treat_true,

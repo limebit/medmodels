@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import inspect
 from typing import TYPE_CHECKING, Any, Dict
 
 from medmodels.medrecord.medrecord import MedRecord
@@ -16,20 +15,23 @@ class Report:
         self._treatment_effect = treatment_effect
 
     def full_report(self, medrecord: MedRecord) -> Dict[str, Any]:
-        """Generates a full report of the treatment effect estimation.
+        """
+        Generates a full report of the treatment effect estimation.
 
         Returns:
-            Dict[str, Any]: A dictionary containing the results of all available
-                estimation methods.
+            Dict[str, float]: A dictionary containing the results of all estimation
+                methods: relative risk, odds ratio, confounding bias, absolute risk,
+                number needed to treat, and hazard ratio.
         """
-        results = {}
-        methods = inspect.getmembers(
-            self._treatment_effect.estimate, predicate=inspect.ismethod
-        )
-        for name, method in methods:
-            if not name.startswith("_") | name.startswith("subject"):
-                try:
-                    results[name] = method(medrecord=medrecord)
-                except Exception as e:
-                    results[name] = f"Error: {e}"
-        return results
+        return {
+            "relative_risk": self._treatment_effect.estimate.relative_risk(medrecord),
+            "odds_ratio": self._treatment_effect.estimate.odds_ratio(medrecord),
+            "confounding_bias": self._treatment_effect.estimate.confounding_bias(
+                medrecord
+            ),
+            "absolute_risk": self._treatment_effect.estimate.absolute_risk(medrecord),
+            "number_needed_to_treat": self._treatment_effect.estimate.number_needed_to_treat(
+                medrecord
+            ),
+            "hazard_ratio": self._treatment_effect.estimate.hazard_ratio(medrecord),
+        }

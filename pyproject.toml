@@ -44,12 +44,6 @@ line-length = 88
 
 [tool.pyright]
 typeCheckingMode = "strict"
-include = [
-    "medmodels/medrecord",
-    "medmodels/_medmodels.pyi",
-    "medmodels/treatment_effect_estimation",
-    "medmodels/matching",
-]
 reportPrivateUsage = false
 reportIncompatibleMethodOverride = false
 reportUnknownArgumentType = false

@@ -44,11 +44,9 @@ class TreatmentEffectBuilder:
     matching_number_of_neighbors: Optional[int]
     matching_hyperparam: Optional[Dict[str, Any]]
 
-    def __init__(self) -> None:
-        pass
-
-    def set_treatment(self, treatment: Group) -> TreatmentEffectBuilder:
-        """Sets the treatment group for the treatment effect estimation.
+    def with_treatment(self, treatment: Group) -> TreatmentEffectBuilder:
+        """
+        Sets the treatment group for the treatment effect estimation.
 
         Args:
             treatment (Group): The treatment group.
@@ -60,7 +58,7 @@ class TreatmentEffectBuilder:
 
         return self
 
-    def set_outcome(self, outcome: Group) -> TreatmentEffectBuilder:
+    def with_outcome(self, outcome: Group) -> TreatmentEffectBuilder:
         """
         Sets the outcome group for the treatment effect estimation.
 
@@ -75,8 +73,9 @@ class TreatmentEffectBuilder:
 
         return self
 
-    def set_patients_group(self, group: Group) -> TreatmentEffectBuilder:
-        """Sets the group of patients to be used in the treatment effect estimation.
+    def with_patients_group(self, group: Group) -> TreatmentEffectBuilder:
+        """
+        Sets the group of patients to be used in the treatment effect estimation.
 
         Args:
             group (Group): The group of patients.
@@ -89,7 +88,7 @@ class TreatmentEffectBuilder:
 
         return self
 
-    def set_time_attribute(
+    def with_time_attribute(
         self, attribute: MedRecordAttribute
     ) -> TreatmentEffectBuilder:
         """Sets the time attribute to be used in the treatment effect estimation.
@@ -105,12 +104,13 @@ class TreatmentEffectBuilder:
 
         return self
 
-    def set_washout_period(
+    def with_washout_period(
         self,
         days: Optional[Dict[str, int]] = None,
         reference: Optional[Literal["first", "last"]] = None,
     ) -> TreatmentEffectBuilder:
-        """Sets the washout period for the treatment effect estimation. The washout
+        """
+        Sets the washout period for the treatment effect estimation. The washout
         period is the period of time before the treatment that is not considered in the
         estimation.
 
@@ -134,12 +134,13 @@ class TreatmentEffectBuilder:
 
         return self
 
-    def set_grace_period(
+    def with_grace_period(
         self,
         days: Optional[int] = None,
         reference: Optional[Literal["first", "last"]] = None,
     ) -> TreatmentEffectBuilder:
-        """Sets the grace period for the treatment effect estimation. The grace period
+        """
+        Sets the grace period for the treatment effect estimation. The grace period
         is the period of time after the treatment that is not considered in the
         estimation.
 
@@ -162,12 +163,13 @@ class TreatmentEffectBuilder:
 
         return self
 
-    def set_follow_up_period(
+    def with_follow_up_period(
         self,
         days: Optional[int] = None,
         reference: Optional[Literal["first", "last"]] = None,
     ) -> TreatmentEffectBuilder:
-        """Sets the follow-up period for the treatment effect estimation.
+        """
+        Sets the follow-up period for the treatment effect estimation.
 
         Args:
             days (Optional[int], optional): The duration of the follow-up period
@@ -188,10 +190,11 @@ class TreatmentEffectBuilder:
 
         return self
 
-    def set_outcome_before_treatment_exclusion(
+    def with_outcome_before_treatment_exclusion(
         self, days: int
     ) -> TreatmentEffectBuilder:
-        """Define whether we allow the outcome to exist before the treatment or not.
+        """
+        Define whether we allow the outcome to exist before the treatment or not.
         The outcome_before_treatment_days parameter is used to set the number of days
         before the treatment that the outcome should not exist. If not set, the outcome
         is allowed to exist before the treatment.
@@ -209,7 +212,8 @@ class TreatmentEffectBuilder:
         return self
 
     def filter_controls(self, operation: NodeOperation) -> TreatmentEffectBuilder:
-        """Filter the control group based on the provided operation.
+        """
+        Filter the control group based on the provided operation.
 
         Args:
             operation (NodeOperation): The operation to be applied to the control group.
@@ -222,7 +226,7 @@ class TreatmentEffectBuilder:
 
         return self
 
-    def adjust_with_propensity_matching(
+    def with_propensity_matching(
         self,
         essential_covariates: MedRecordAttributeInputList = ["gender", "age"],
         one_hot_covariates: MedRecordAttributeInputList = ["gender"],
@@ -231,7 +235,8 @@ class TreatmentEffectBuilder:
         number_of_neighbors: int = 1,
         hyperparam: Optional[Dict[str, Any]] = None,
     ) -> TreatmentEffectBuilder:
-        """Adjust the treatment effect estimate using propensity score matching.
+        """
+        Adjust the treatment effect estimate using propensity score matching.
 
         Args:
             essential_covariates (MedRecordAttributeInputList, optional):
@@ -263,14 +268,15 @@ class TreatmentEffectBuilder:
 
         return self
 
-    def adjust_with_nearest_neighbors_matching(
+    def with_nearest_neighbors_matching(
         self,
         essential_covariates: MedRecordAttributeInputList = ["gender", "age"],
         one_hot_covariates: MedRecordAttributeInputList = ["gender"],
         distance_metric: Metric = "mahalanobis",
         number_of_neighbors: int = 1,
     ) -> TreatmentEffectBuilder:
-        """Adjust the treatment effect estimate using nearest neighbors matching.
+        """
+        Adjust the treatment effect estimate using nearest neighbors matching.
 
         Args:
             essential_covariates (MedRecordAttributeInputList, optional):
@@ -280,7 +286,8 @@ class TreatmentEffectBuilder:
                 Covariates that are one-hot encoded for matching. Defaults to
                 ["gender"].
             distance_metric (Metric, optional): Metric to use for the distance
-                calculation. Defaults to "mahalanobis".number_of_neighbors (int, optional): Number of neighbors to consider for the
+                calculation. Defaults to "mahalanobis".
+            number_of_neighbors (int, optional): Number of neighbors to consider for the
                 matching. Defaults to 1.
             hyperparam (Optional[Dict[str, Any]], optional): Hyperparameters for the
                 matching model. Defaults to None.
@@ -298,14 +305,12 @@ class TreatmentEffectBuilder:
         return self
 
     def finish(self) -> tee.TreatmentEffect:
-        """builds the treatment effect with all the provided configurations.
+        """
+        Builds the treatment effect with all the provided configurations.
 
         Returns:
             tee.TreatmentEffect: treatment effect object
         """
-        assert self.treatment is not None
-        assert self.outcome is not None
-
         treatment_effect = tee.TreatmentEffect.__new__(tee.TreatmentEffect)
         tee.TreatmentEffect._set_configuration(treatment_effect, **vars(self))
 

@@ -16,7 +16,8 @@ from medmodels.treatment_effect_estimation.analysis_modules.matching.matching im
 
 
 class PropensityMatching(Matching):
-    """Class for the propensity score matching.
+    """
+    Class for the propensity score matching.
 
     The algorithm trains the chosen classification method on the treated and control
     sets. Y_train is constructed as follows: 1 for each entry of the treated and 0
@@ -38,7 +39,8 @@ class PropensityMatching(Matching):
         number_of_neighbors: int = 1,
         hyperparam: Optional[Dict[str, Any]] = None,
     ):
-        """Initializes the propensity score class.
+        """
+        Initializes the propensity score class.
 
         Args:
             model (Model, optional): classification method to be used, default: "logit".
@@ -65,7 +67,8 @@ class PropensityMatching(Matching):
         essential_covariates: MedRecordAttributeInputList = ["gender", "age"],
         one_hot_covariates: MedRecordAttributeInputList = ["gender"],
     ) -> Set[NodeIndex]:
-        """Matches the controls based on propensity score matching.
+        """
+        Matches the controls based on propensity score matching.
 
         Args:
             medrecord (MedRecord): medrecord object containing the data.

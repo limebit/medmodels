@@ -33,7 +33,8 @@ class Matching(metaclass=ABCMeta):
         essential_covariates: MedRecordAttributeInputList,
         one_hot_covariates: MedRecordAttributeInputList,
     ) -> Tuple[pl.DataFrame, pl.DataFrame]:
-        """Prepared the data for the matching algorithms.
+        """
+        Prepared the data for the matching algorithms.
 
         Args:
             medrecord (MedRecord):  MedRecord object containing the data.

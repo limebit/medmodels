@@ -247,8 +247,8 @@ class TestTreatmentEffect(unittest.TestCase):
 
         tee_builder = (
             TreatmentEffect.builder()
-            .set_treatment("Rivaroxaban")
-            .set_outcome("Stroke")
+            .with_treatment("Rivaroxaban")
+            .with_outcome("Stroke")
             .finish()
         )
 
@@ -262,13 +262,13 @@ class TestTreatmentEffect(unittest.TestCase):
 
         tee_builder = (
             TreatmentEffect.builder()
-            .set_treatment("Rivaroxaban")
-            .set_outcome("Stroke")
-            .set_time_attribute("time")
-            .set_patients_group("patients")
-            .set_washout_period(reference="first")
-            .set_grace_period(days=0, reference="last")
-            .set_follow_up_period(365, reference="last")
+            .with_treatment("Rivaroxaban")
+            .with_outcome("Stroke")
+            .with_time_attribute("time")
+            .with_patients_group("patients")
+            .with_washout_period(reference="first")
+            .with_grace_period(days=0, reference="last")
+            .with_follow_up_period(365, reference="last")
             .finish()
         )
 
@@ -277,35 +277,35 @@ class TestTreatmentEffect(unittest.TestCase):
     def test_check_medrecord(self):
         tee = (
             TreatmentEffect.builder()
-            .set_outcome("Stroke")
-            .set_treatment("Aspirin")
+            .with_outcome("Stroke")
+            .with_treatment("Aspirin")
             .finish()
         )
 
-        with self.assertRaises(AssertionError) as context:
+        with self.assertRaises(ValueError) as context:
             tee.estimate.subject_counts(medrecord=self.medrecord)
             self.assertTrue(
-                "Treatment group not found in the data." in str(context.exception)
+                "Treatment group not found in the MedRecord." in str(context.exception)
             )
 
         tee2 = (
             TreatmentEffect.builder()
-            .set_outcome("Headache")
-            .set_treatment("Rivaroxaban")
+            .with_outcome("Headache")
+            .with_treatment("Rivaroxaban")
             .finish()
         )
 
-        with self.assertRaises(AssertionError) as context:
+        with self.assertRaises(ValueError) as context:
             tee2.estimate.subject_counts(medrecord=self.medrecord)
             self.assertTrue(
-                "Outcome group not found in the data." in str(context.exception)
+                "Outcome group not found in the MedRecord." in str(context.exception)
             )
 
     def test_find_treated_patients(self):
         tee = (
             TreatmentEffect.builder()
-            .set_outcome("Stroke")
-            .set_treatment("Rivaroxaban")
+            .with_outcome("Stroke")
+            .with_treatment("Rivaroxaban")
             .finish()
         )
 
@@ -315,8 +315,8 @@ class TestTreatmentEffect(unittest.TestCase):
     def test_find_groups(self):
         tee = (
             TreatmentEffect.builder()
-            .set_outcome("Stroke")
-            .set_treatment("Rivaroxaban")
+            .with_outcome("Stroke")
+            .with_treatment("Rivaroxaban")
             .finish()
         )
 
@@ -331,8 +331,8 @@ class TestTreatmentEffect(unittest.TestCase):
     def test_find_reference_time(self):
         tee = (
             TreatmentEffect.builder()
-            .set_treatment("Rivaroxaban")
-            .set_outcome("Stroke")
+            .with_treatment("Rivaroxaban")
+            .with_outcome("Stroke")
             .finish()
         )
         time = tee._find_reference_time(
@@ -353,8 +353,8 @@ class TestTreatmentEffect(unittest.TestCase):
     def test_node_in_time_window(self):
         tee = (
             TreatmentEffect.builder()
-            .set_treatment("Rivaroxaban")
-            .set_outcome("Stroke")
+            .with_treatment("Rivaroxaban")
+            .with_outcome("Stroke")
             .finish()
         )
         # check if patient has outcome a year after treatment
@@ -382,8 +382,8 @@ class TestTreatmentEffect(unittest.TestCase):
     def test_subject_counts(self):
         tee = (
             TreatmentEffect.builder()
-            .set_treatment("Rivaroxaban")
-            .set_outcome("Stroke")
+            .with_treatment("Rivaroxaban")
+            .with_outcome("Stroke")
             .finish()
         )
         counts_tee = tee.estimate.subject_counts(medrecord=self.medrecord)
@@ -396,11 +396,11 @@ class TestTreatmentEffect(unittest.TestCase):
 
         self.assertDictEqual(counts_tee, counts_test)
 
-    def test_subjects_treatment_control(self):
+    def test_subjects_contigency_table(self):
         tee = (
             TreatmentEffect.builder()
-            .set_treatment("Rivaroxaban")
-            .set_outcome("Stroke")
+            .with_treatment("Rivaroxaban")
+            .with_outcome("Stroke")
             .finish()
         )
 
@@ -410,15 +410,15 @@ class TestTreatmentEffect(unittest.TestCase):
             "control_true": {"P1", "P4", "P7"},
             "control_false": {"P5", "P8", "P9"},
         }
-        subjects_tee = tee.estimate.subjects_treatment_control(self.medrecord)
+        subjects_tee = tee.estimate.subjects_contigency_table(self.medrecord)
         self.assertDictEqual(subjects_test, subjects_tee)
 
     def test_follow_up_period(self):
         tee = (
             TreatmentEffect.builder()
-            .set_treatment("Rivaroxaban")
-            .set_outcome("Stroke")
-            .set_follow_up_period(30)
+            .with_treatment("Rivaroxaban")
+            .with_outcome("Stroke")
+            .with_follow_up_period(30)
             .finish()
         )
 
@@ -437,9 +437,9 @@ class TestTreatmentEffect(unittest.TestCase):
     def test_grace_period(self):
         tee = (
             TreatmentEffect.builder()
-            .set_treatment("Rivaroxaban")
-            .set_outcome("Stroke")
-            .set_grace_period(10)
+            .with_treatment("Rivaroxaban")
+            .with_outcome("Stroke")
+            .with_grace_period(10)
             .finish()
         )
 
@@ -460,9 +460,9 @@ class TestTreatmentEffect(unittest.TestCase):
 
         tee = (
             TreatmentEffect.builder()
-            .set_treatment("Rivaroxaban")
-            .set_outcome("Stroke")
-            .set_washout_period(washout_dict)
+            .with_treatment("Rivaroxaban")
+            .with_outcome("Stroke")
+            .with_washout_period(washout_dict)
             .finish()
         )
 
@@ -481,9 +481,9 @@ class TestTreatmentEffect(unittest.TestCase):
 
         tee2 = (
             TreatmentEffect.builder()
-            .set_treatment("Rivaroxaban")
-            .set_outcome("Stroke")
-            .set_washout_period(washout_dict2)
+            .with_treatment("Rivaroxaban")
+            .with_outcome("Stroke")
+            .with_washout_period(washout_dict2)
             .finish()
         )
 
@@ -501,8 +501,8 @@ class TestTreatmentEffect(unittest.TestCase):
         # find outcomes for default tee
         tee = (
             TreatmentEffect.builder()
-            .set_treatment("Rivaroxaban")
-            .set_outcome("Stroke")
+            .with_treatment("Rivaroxaban")
+            .with_outcome("Stroke")
             .finish()
         )
         treated_group = tee._find_treated_patients(self.medrecord)
@@ -516,9 +516,9 @@ class TestTreatmentEffect(unittest.TestCase):
         # set exclusion time for outcome before treatment
         tee2 = (
             TreatmentEffect.builder()
-            .set_treatment("Rivaroxaban")
-            .set_outcome("Stroke")
-            .set_outcome_before_treatment_exclusion(30)
+            .with_treatment("Rivaroxaban")
+            .with_outcome("Stroke")
+            .with_outcome_before_treatment_exclusion(30)
             .finish()
         )
 
@@ -535,8 +535,8 @@ class TestTreatmentEffect(unittest.TestCase):
     def test_filter_controls(self):
         tee = (
             TreatmentEffect.builder()
-            .set_treatment("Rivaroxaban")
-            .set_outcome("Stroke")
+            .with_treatment("Rivaroxaban")
+            .with_outcome("Stroke")
             .filter_controls(
                 node().has_outgoing_edge_with(edge().connected_target("M2"))
                 | node().has_incoming_edge_with(edge().connected_source("M2"))
@@ -557,8 +557,8 @@ class TestTreatmentEffect(unittest.TestCase):
 
         tee2 = (
             TreatmentEffect.builder()
-            .set_treatment("Rivaroxaban")
-            .set_outcome("Stroke")
+            .with_treatment("Rivaroxaban")
+            .with_outcome("Stroke")
             .filter_controls(node().attribute("gender").equal("female"))
             .finish()
         )
@@ -576,13 +576,13 @@ class TestTreatmentEffect(unittest.TestCase):
     def test_nearest_neighbors(self):
         tee = (
             TreatmentEffect.builder()
-            .set_treatment("Rivaroxaban")
-            .set_outcome("Stroke")
-            .adjust_with_nearest_neighbors_matching(distance_metric="absolute")
+            .with_treatment("Rivaroxaban")
+            .with_outcome("Stroke")
+            .with_nearest_neighbors_matching(distance_metric="absolute")
             .finish()
         )
 
-        subjects = tee.estimate.subjects_treatment_control(self.medrecord)
+        subjects = tee.estimate.subjects_contigency_table(self.medrecord)
 
         # multiple patients are equally similar to the treatment group
         # these are exact macthes and should always be included
@@ -600,8 +600,8 @@ class TestTreatmentEffect(unittest.TestCase):
 
         tee = (
             TreatmentEffect.builder()
-            .set_treatment("Rivaroxaban")
-            .set_outcome("Stroke")
+            .with_treatment("Rivaroxaban")
+            .with_outcome("Stroke")
             .finish()
         )
 
@@ -618,8 +618,8 @@ class TestTreatmentEffect(unittest.TestCase):
 
         tee = (
             TreatmentEffect.builder()
-            .set_treatment("Rivaroxaban")
-            .set_outcome("Stroke")
+            .with_treatment("Rivaroxaban")
+            .with_outcome("Stroke")
             .finish()
         )
 

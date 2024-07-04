@@ -1,4 +1,5 @@
-"""This module provides a class for analyzing treatment effects in medical records.
+"""
+This module provides a class for analyzing treatment effects in medical records.
 
 The TreatmentEffect class facilitates the analysis of treatment effects over time or
 across different patient groups. It allows users to identify patients who underwent
@@ -36,7 +37,7 @@ from medmodels.treatment_effect_estimation.builder import TreatmentEffectBuilder
 
 class TreatmentEffect:
     """
-    This class facilitates the analysis of treatment effects over time or across
+    This class facilitates the analysis of treatment effects over time and across
     different patient groups.
     """
 
@@ -60,7 +61,6 @@ class TreatmentEffect:
     _filter_controls_operation: Optional[NodeOperation]
 
     _matching_method: Optional[MatchingMethod]
-
     _matching_essential_covariates: MedRecordAttributeInputList
     _matching_one_hot_covariates: MedRecordAttributeInputList
     _matching_model: Model
@@ -74,11 +74,9 @@ class TreatmentEffect:
         outcome: Group,
     ) -> None:
         """
-        Initializes a Treatment Effect analysis setup with specified treatments and
-        outcomes within a medical record dataset.
-        Validates the presence of specified dimensions and attributes within the
-        provided MedRecord object, ensuring the specified treatments and outcomes are
-        valid and available for analysis.
+        Initializes a Treatment Effect analysis setup with the group of the Medrecord
+        that contains the treatment node IDs and the group of the Medrecord that
+        contains the outcome node IDs.
 
         Args:
             treatment (Group): The group of treatments to analyze.
@@ -88,6 +86,8 @@ class TreatmentEffect:
 
     @classmethod
     def builder(cls) -> TreatmentEffectBuilder:
+        """Creates a TreatmentEffectBuilder instance for the TreatmentEffect class."""
+
         return TreatmentEffectBuilder()
 
     @staticmethod
@@ -147,23 +147,20 @@ class TreatmentEffect:
                 Defaults to None.
             matching_method (Optional[MatchingMethod]): The method to match treatment
                 and control groups. Defaults to None.
-            matching_essential_covariates (Optional[List[MedRecordAttribute]], optional):
-                The essential covariates to use for matching
-            matching_one_hot_covariates (Optional[List[MedRecordAttribute]], optional):
-                The one-hot covariates to use for matching
-            matching_model (Optional[Model], optional): The model to use for matching.
+            matching_essential_covariates (MedRecordAttributeInputList, optional):
+                The essential covariates to use for matching. Defaults to
+                ["gender", "age"].
+            matching_one_hot_covariates (MedRecordAttributeInputList, optional):
+                The one-hot covariates to use for matching. Defaults to
+                ["gender"].
+            matching_model (Model, optional): The model to use for matching.
                 Defaults to "logit".
-            matching_distance_metric (Optional[Metric], optional): The distance metric
+            matching_distance_metric (Metric, optional): The distance metric
                 to use for matching. Defaults to "mahalanobis".
-            matching_number_of_neighbors (Optional[int], optional): The number of
+            matching_number_of_neighbors (int, optional): The number of
                 neighbors to match for each treated subject. Defaults to 1.
             matching_hyperparam (Optional[Dict[str, Any]], optional): The
                 hyperparameters for the matching model. Defaults to None.
-
-        Raises:
-            AssertionError: If treatments or outcomes are not provided as lists, are
-                empty, or if the specified patients group is not found within the
-                MedRecord groups.
         """
         treatment_effect._patients_group = patients_group
         treatment_effect._time_attribute = time_attribute
@@ -200,10 +197,6 @@ class TreatmentEffect:
         method supports customizable criteria filtering, time constraints between
         treatment and outcome, and optional matching of control groups to treatment
         groups using a specified matching class.
-
-        Initializes and sorts patient groups based on treatment and outcome, applying
-        specified criteria and time constraints. Optionally matches treatment and
-        control groups using a provided matching class and arguments with Adjust class.
 
         Args:
             medrecord (MedRecord): An instance of the MedRecord class containing patient
@@ -245,10 +238,12 @@ class TreatmentEffect:
 
         Returns:
             Set[NodeIndex]: A set of patient nodes that underwent the treatment.
+
+        Raises:
+            ValueError: If no patients are found for the treatment groups in the
+                MedRecord.
         """
         treated_group = set()
-
-        treatments = medrecord.group(self._treatments_group)
 
         treatments = medrecord.group(self._treatments_group)
 
@@ -257,24 +252,26 @@ class TreatmentEffect:
             treated_group.update(
                 set(
                     medrecord.select_nodes(
-                        node().index().is_in(medrecord.group(self._patients_group))
+                        node().in_group(self._patients_group)
                         & node()
                         .index()
                         .is_in(medrecord.neighbors(treatment, directed=False))
                     )
                 )
             )
-        assert (
-            len(treated_group) > 0
-        ), "No patients found for the treatment groups in this MedRecord"
+        if not treated_group:
+            raise ValueError(
+                "No patients found for the treatment groups in this MedRecord."
+            )
 
         return treated_group
 
     def _find_outcomes(
         self, medrecord: MedRecord, treated_group: Set[NodeIndex]
     ) -> Tuple[Set[NodeIndex], Set[NodeIndex], Set[NodeIndex]]:
-        """Find the patients that had the outcome after the treatment and, if specified,
-        did not have the outcome before the treatment.
+        """Find the patients that had the outcome after the treatment. If set in the
+        configuration, remove the ones that already had the outcome before the
+        treatment.
 
         Args:
             medrecord (MedRecord): An instance of the MedRecord class containing patient
@@ -283,18 +280,25 @@ class TreatmentEffect:
                 treatment.
 
         Returns:
-            Tuple[Set[NodeIndex], Set[NodeIndex], Set[NodeIndex]]: A tuple containing
-                the updated set of patient nodes that underwent the treatment and the
-                nodes that were dropped due to the outcome before treatment.
+            Tuple[Set[NodeIndex], Set[NodeIndex], Set[NodeIndex]]: A tuple containing:
+                - The updated set of patient nodes that underwent the treatment.
+                - The nodes that had the outcome after the treatment.
+                - The nodes that had the outcome before the treatment (to be rejected).
+                    Only if the outcome_before_treatment_days is set.
+
+        Raises:
+            ValueError: If no outcomes are found in the MedRecord for the specified
+                outcome group.
         """
         treatment_true = set()
         outcome_before_treatment_nodes = set()
 
         # Find nodes with the outcomes
         outcomes = medrecord.group(self._outcomes_group)
-        assert (
-            outcomes
-        ), f"No outcomes found in the MedRecord for group {self._outcomes_group}"
+        if not outcomes:
+            raise ValueError(
+                f"No outcomes found in the MedRecord for group {self._outcomes_group}"
+            )
 
         for outcome in outcomes:
             nodes_to_check = set(
@@ -342,7 +346,7 @@ class TreatmentEffect:
         if outcome_before_treatment_nodes:
             dropped_num = len(outcome_before_treatment_nodes)
             logging.warning(
-                f"{dropped_num} {'subject was' if dropped_num == 1 else 'subjects were'} "
+                f"{dropped_num} subject{' was' if dropped_num == 1 else 's were'} "
                 f"dropped due to outcome before treatment."
             )
 
@@ -392,7 +396,7 @@ class TreatmentEffect:
         if washout_nodes:
             dropped_num = len(washout_nodes)
             logging.warning(
-                f"{dropped_num} {'subject was' if dropped_num == 1 else 'subjects were'} "
+                f"{dropped_num} subject{' was' if dropped_num == 1 else 's were'} "
                 f"dropped due to outcome before treatment."
             )
         return treated_group, washout_nodes
@@ -404,7 +408,7 @@ class TreatmentEffect:
         event_node: NodeIndex,
         start_days: int,
         end_days: int,
-        reference: str,
+        reference: Literal["first", "last"],
     ) -> bool:
         """
         Determines whether an event occurred within a specified time window for a given
@@ -420,14 +424,15 @@ class TreatmentEffect:
                 reference event.
             end_days (int): The end of the time window in days relative to the
                 reference event.
-            reference (str): The reference event to calculate the time window from.
+            reference (Literal["first", "last"]): The reference point for the time
+                window.
 
         Returns:
             bool: True if the event occurred within the specified time window;
-            False otherwise.
+                False otherwise.
 
-        This method supports the analysis of event timing by ensuring events are
-            temporally linked.
+        Raises:
+            ValueError: If the time attribute is not found in the edge attributes.
         """
         # Find the reference time for the node
         start_period = pd.Timedelta(days=start_days)
@@ -440,9 +445,8 @@ class TreatmentEffect:
         edges = medrecord.edges_connecting(node_index, event_node, directed=False)
         for edge in edges:
             edge_attributes = medrecord.edge[edge]
-            assert (
-                self._time_attribute in edge_attributes
-            ), "Time attribute not found in the edge attributes"
+            if self._time_attribute not in edge_attributes:
+                raise ValueError("Time attribute not found in the edge attributes")
 
             event_time = pd.to_datetime(str(edge_attributes[self._time_attribute]))
             time_diff = event_time - reference_time
@@ -455,28 +459,38 @@ class TreatmentEffect:
         return False
 
     def _find_reference_time(
-        self, medrecord: MedRecord, node_index: NodeIndex, reference: str
+        self,
+        medrecord: MedRecord,
+        node_index: NodeIndex,
+        reference: Literal["first", "last"],
     ) -> pd.Timestamp:
         """
-        Determines the timestamp of the first exposure to any treatment in the
+        Determines the timestamp of the reference exposure to any treatment in the
         predefined treatment list for a specified patient node. This method is crucial
         for analyzing the temporal sequence of treatments and outcomes.
+
+        This function iterates over all treatments and finds the reference timestamp
+        among them (first or last), ensuring that the analysis considers the reference
+        treatment exposure.
 
         Args:
             medrecord (MedRecord): An instance of the MedRecord class containing patient
                 medical data.
             node_index (NodeIndex): The patient node for which to determine the first
                 treatment exposure time.
+            reference (Literal["first", "last"]): The reference point for the treatment
+                exposure time. Options include "first" and "last".
 
         Returns:
-            pd.Timestamp: The timestamp of the first treatment exposure.
+            pd.Timestamp: The timestamp of the reference treatment exposure.
 
         Raises:
-            AssertionError: If no treatment edge with a time attribute is found for the
+            ValueError: If no treatments are found in the MedRecord for the specified
+                treatment group.
+            ValueError: If no treatment edge with a time attribute is found for the
                 node, indicating an issue with the data or the specified treatments.
-
-        This function iterates over all treatments and finds the earliest timestamp
-        among them, ensuring that the analysis considers the initial treatment exposure.
+            ValueError: If no treatment is found for the specified node in the
+                MedRecord.
         """
         if reference == "first":
             time_treat = pd.Timestamp.max
@@ -484,15 +498,12 @@ class TreatmentEffect:
         elif reference == "last":
             time_treat = pd.Timestamp.min
             operation = max
-        else:
-            raise ValueError(
-                "The follow_up_from parameter must be either 'first' or 'last'."
-            )
 
         treatments = medrecord.group(self._treatments_group)
-        assert (
-            treatments
-        ), f"No treatments found in the MedRecord for group {self._treatments_group}"
+        if not treatments:
+            raise ValueError(
+                f"No treatments found in MedRecord for group {self._treatments_group}"
+            )
 
         for treatment in treatments:
             edges = medrecord.edges_connecting(node_index, treatment, directed=False)
@@ -503,9 +514,11 @@ class TreatmentEffect:
 
             # If the node has the treatment, check if it has the time attribute
             edge_values = medrecord.edge[edges].values()
-            assert all(
+
+            if not all(
                 self._time_attribute in edge_attribute for edge_attribute in edge_values
-            ), "Time attribute not found in the edge attributes"
+            ):
+                raise ValueError("Time attribute not found in the edge attributes")
 
             # Find the minimum time of the treatments
             edge_times = [
@@ -516,9 +529,10 @@ class TreatmentEffect:
                 reference_time = operation(edge_times)
                 time_treat = operation(reference_time, time_treat)
 
-        assert (
-            time_treat != pd.Timestamp.max and time_treat != pd.Timestamp.min
-        ), f"No treatment found for node {node_index} in this MedRecord"
+        if time_treat == pd.Timestamp.max or time_treat == pd.Timestamp.min:
+            raise ValueError(
+                f"No treatment found for node {node_index} in this MedRecord"
+            )
 
         return time_treat
 
@@ -532,13 +546,20 @@ class TreatmentEffect:
     ) -> Tuple[Set[NodeIndex], Set[NodeIndex]]:
         """
         Identifies control groups among patients who did not undergo the specified
-        treatments. Control groups are divided into those who had the outcome
+        treatments.
+
+        It takes the control group and removes the rejected nodes, the treated nodes,
+        and applies the filter_controls_operation if specified.
+
+        Control groups are divided into those who had the outcome
         (control_true) and those who did not (control_false), based on the presence of
-        specified outcome codes.
+        the specified outcome codes.
 
         Args:
             medrecord (MedRecord): An instance of the MedRecord class containing patient
                 medical data.
+            control_group (Set[NodeIndex]): A set of patient nodes that did not undergo
+                the treatment.
             treated_group (Set[NodeIndex]): A set of patient nodes that underwent the
                 treatment.
             rejected_nodes (Set[NodeIndex]): A set of patient nodes that were rejected
@@ -553,9 +574,11 @@ class TreatmentEffect:
                 specified outcomes (control_true), and the second set includes those who
                 did not (control_false).
 
-        This method facilitates the separation of patients into relevant control groups
-        for further analysis of treatment effects, ensuring only those not undergoing
-        the treatment are considered for control.
+        Raises:
+            ValueError: If no patients are found for the control groups in the
+                MedRecord.
+            ValueError: If no outcomes are found in the MedRecord for the specified
+                outcome group.
         """
         # Apply the filter to the control group if specified
         if filter_controls_operation:
@@ -564,17 +587,17 @@ class TreatmentEffect:
             )
 
         control_group = control_group - treated_group - rejected_nodes
-        assert (
-            len(control_group) > 0
-        ), "No patients found for the control groups in this MedRecord"
+        if len(control_group) == 0:
+            raise ValueError("No patients found for control groups in this MedRecord.")
 
         # Set the control groups and the outcomes
         control_true = set()
         control_false = set()
         outcomes = medrecord.group(self._outcomes_group)
-        assert (
-            outcomes
-        ), f"No outcomes found in the MedRecord for group {self._outcomes_group}"
+        if not outcomes:
+            raise ValueError(
+                f"No outcomes found in the MedRecord for group {self._outcomes_group}"
+            )
 
         # Finding the patients that had the outcome in the control group
         for outcome in outcomes:
@@ -590,7 +613,8 @@ class TreatmentEffect:
 
     @property
     def estimate(self) -> Estimate:
-        """Creates an Estimate object for the TreatmentEffect instance.
+        """
+        Creates an Estimate object for the TreatmentEffect instance.
 
         Returns:
             Estimate: An Estimate object for the current TreatmentEffect instance.
@@ -599,7 +623,8 @@ class TreatmentEffect:
 
     @property
     def report(self) -> Report:
-        """Creates a Report object for the TreatmentEffect instance.
+        """
+        Creates a Report object for the TreatmentEffect instance.
 
         Returns:
             Report: A Report object for the current TreatmentEffect instance.

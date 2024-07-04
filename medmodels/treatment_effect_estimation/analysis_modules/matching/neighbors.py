@@ -15,7 +15,8 @@ from medmodels.treatment_effect_estimation.analysis_modules.matching.matching im
 
 
 class NeighborsMatching(Matching):
-    """Class for the nearest neighbor matching.
+    """
+    Class for the nearest neighbor matching.
 
     The algorithm finds the nearest neighbors in the control group for each treated
     subject based on the given distance metric. The essential covariates are used
@@ -32,7 +33,8 @@ class NeighborsMatching(Matching):
         distance_metric: Metric = "absolute",
         number_of_neighbors: int = 1,
     ):
-        """Initializes the nearest neighbors class.
+        """
+        Initializes the nearest neighbors class.
 
         Args:
             distance_metric (Metric, optional):  Metric for matching. Defaults to
@@ -52,7 +54,8 @@ class NeighborsMatching(Matching):
         essential_covariates: MedRecordAttributeInputList = ["gender", "age"],
         one_hot_covariates: MedRecordAttributeInputList = ["gender"],
     ) -> Set[NodeIndex]:
-        """Matches the controls based on the nearest neighbor algorithm.
+        """
+        Matches the controls based on the nearest neighbor algorithm.
 
         Args:
             medrecord (MedRecord): MedRecord object containing the data.
