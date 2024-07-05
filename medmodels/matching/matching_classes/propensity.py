@@ -8,11 +8,9 @@ import polars as pl
 from medmodels import MedRecord
 from medmodels.matching.algorithms.classic_distance_models import nearest_neighbor
 from medmodels.matching.algorithms.propensity_score import Model, calculate_propensity
+from medmodels.matching.matching_classes.matching import Matching
 from medmodels.matching.metrics import Metric
 from medmodels.medrecord.types import MedRecordAttributeInputList, NodeIndex
-from medmodels.treatment_effect_estimation.analysis_modules.matching.matching import (
-    Matching,
-)
 
 
 class PropensityMatching(Matching):

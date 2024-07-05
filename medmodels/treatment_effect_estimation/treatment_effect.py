@@ -18,6 +18,7 @@ import pandas as pd
 
 from medmodels import MedRecord
 from medmodels.matching.algorithms.propensity_score import Model
+from medmodels.matching.matching_classes.matching import MatchingMethod
 from medmodels.matching.metrics import Metric
 from medmodels.medrecord import node
 from medmodels.medrecord.querying import NodeOperation
@@ -28,9 +29,6 @@ from medmodels.medrecord.types import (
     NodeIndex,
 )
 from medmodels.treatment_effect_estimation.analysis_modules.estimate import Estimate
-from medmodels.treatment_effect_estimation.analysis_modules.matching.matching import (
-    MatchingMethod,
-)
 from medmodels.treatment_effect_estimation.analysis_modules.report import Report
 from medmodels.treatment_effect_estimation.builder import TreatmentEffectBuilder
 

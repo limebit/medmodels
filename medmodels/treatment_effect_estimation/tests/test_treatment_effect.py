@@ -1,15 +1,17 @@
 """Tests for the TreatmentEffect class in the treatment_effect module."""
 
 import unittest
+from typing import List
 
 import pandas as pd
 
 from medmodels import MedRecord
 from medmodels.medrecord import edge, node
+from medmodels.medrecord.types import NodeIndex
 from medmodels.treatment_effect_estimation.treatment_effect import TreatmentEffect
 
 
-def create_patients() -> pd.DataFrame:
+def create_patients(patient_list: List[NodeIndex]) -> pd.DataFrame:
     """
     Create a patients dataframe.
 
@@ -33,6 +35,8 @@ def create_patients() -> pd.DataFrame:
             ],
         }
     )
+
+    patients = patients.loc[patients["index"].isin(patient_list)]
     return patients
 
 
@@ -68,7 +72,7 @@ def create_prescriptions() -> pd.DataFrame:
     return prescriptions
 
 
-def create_edges() -> pd.DataFrame:
+def create_edges(patient_list: List[NodeIndex]) -> pd.DataFrame:
     """
     Create an edges dataframe.
 
@@ -124,20 +128,33 @@ def create_edges() -> pd.DataFrame:
             ],
         }
     )
+    edges = edges.loc[edges["target"].isin(patient_list)]
     return edges
 
 
-def create_medrecord() -> MedRecord:
+def create_medrecord(
+    patient_list: List[NodeIndex] = [
+        "P1",
+        "P2",
+        "P3",
+        "P4",
+        "P5",
+        "P6",
+        "P7",
+        "P8",
+        "P9",
+    ],
+) -> MedRecord:
     """
     Create a MedRecord object.
 
     Returns:
         MedRecord: A MedRecord object.
     """
-    patients = create_patients()
+    patients = create_patients(patient_list=patient_list)
     diagnoses = create_diagnoses()
     prescriptions = create_prescriptions()
-    edges = create_edges()
+    edges = create_edges(patient_list=patient_list)
     medrecord = MedRecord.from_pandas(
         nodes=[(patients, "index"), (diagnoses, "index"), (prescriptions, "index")],
         edges=[(edges, "source", "target")],
@@ -282,11 +299,10 @@ class TestTreatmentEffect(unittest.TestCase):
             .finish()
         )
 
-        with self.assertRaises(ValueError) as context:
-            tee.estimate.subject_counts(medrecord=self.medrecord)
-            self.assertTrue(
-                "Treatment group not found in the MedRecord." in str(context.exception)
-            )
+        with self.assertRaisesRegex(
+            ValueError, "Treatment group not found in the MedRecord"
+        ):
+            tee.estimate._check_medrecord(medrecord=self.medrecord)
 
         tee2 = (
             TreatmentEffect.builder()
@@ -295,11 +311,24 @@ class TestTreatmentEffect(unittest.TestCase):
             .finish()
         )
 
-        with self.assertRaises(ValueError) as context:
-            tee2.estimate.subject_counts(medrecord=self.medrecord)
-            self.assertTrue(
-                "Outcome group not found in the MedRecord." in str(context.exception)
-            )
+        with self.assertRaisesRegex(
+            ValueError, "Outcome group not found in the MedRecord"
+        ):
+            tee2.estimate._check_medrecord(medrecord=self.medrecord)
+
+        patient_group = "subjects"
+        tee3 = (
+            TreatmentEffect.builder()
+            .with_outcome("Stroke")
+            .with_treatment("Rivaroxaban")
+            .with_patients_group(patient_group)
+            .finish()
+        )
+
+        with self.assertRaisesRegex(
+            ValueError, f"Patient group {patient_group} not found in the MedRecord"
+        ):
+            tee3.estimate._check_medrecord(medrecord=self.medrecord)
 
     def test_find_treated_patients(self):
         tee = (
@@ -311,6 +340,15 @@ class TestTreatmentEffect(unittest.TestCase):
 
         treated_group = tee._find_treated_patients(self.medrecord)
         self.assertEqual(treated_group, set({"P2", "P3", "P6"}))
+
+        # no treatment_group
+        patients = set(self.medrecord.group("patients"))
+        medrecord2 = create_medrecord(list(patients - treated_group))
+
+        with self.assertRaisesRegex(
+            ValueError, "No patients found for the treatment groups in this MedRecord."
+        ):
+            tee.estimate.subject_counts(medrecord=medrecord2)
 
     def test_find_groups(self):
         tee = (
@@ -350,6 +388,18 @@ class TestTreatmentEffect(unittest.TestCase):
         )
         self.assertEqual(pd.Timestamp("2000-01-15"), time)
 
+        tee2 = (
+            TreatmentEffect.builder()
+            .with_treatment("Rivaroxaban")
+            .with_outcome("Stroke")
+            .with_time_attribute("admission")
+            .finish()
+        )
+        with self.assertRaisesRegex(
+            ValueError, "Time attribute not found in the edge attributes"
+        ):
+            tee2._find_reference_time(self.medrecord, node_index="P6", reference="last")
+
     def test_node_in_time_window(self):
         tee = (
             TreatmentEffect.builder()
@@ -378,6 +428,62 @@ class TestTreatmentEffect(unittest.TestCase):
             reference="last",
         )
         self.assertFalse(node_found)
+
+        tee2 = (
+            TreatmentEffect.builder()
+            .with_treatment("Rivaroxaban")
+            .with_outcome("Stroke")
+            .with_time_attribute("admission")
+            .finish()
+        )
+        with self.assertRaisesRegex(
+            ValueError, "Time attribute not found in the edge attributes"
+        ):
+            tee2._find_node_in_time_window(
+                self.medrecord,
+                node_index="P2",
+                event_node="D1",
+                start_days=0,
+                end_days=30,
+                reference="last",
+            )
+
+    def test_compute_subject_counts(self):
+        tee = (
+            TreatmentEffect.builder()
+            .with_treatment("Rivaroxaban")
+            .with_outcome("Stroke")
+            .finish()
+        )
+        counts = tee.estimate._compute_subject_counts(self.medrecord)
+
+        self.assertEqual(counts, (2, 1, 3, 3))
+
+        # test value errors if no subjects are found
+        treatment_true, treatment_false, control_true, control_false = tee._find_groups(
+            self.medrecord
+        )
+        all_patients = set().union(
+            *[treatment_true, treatment_false, control_true, control_false]
+        )
+
+        medrecord2 = create_medrecord(patient_list=list(all_patients - control_false))
+        with self.assertRaisesRegex(
+            ValueError, "No subjects found in the control false group"
+        ):
+            tee.estimate.subject_counts(medrecord=medrecord2)
+
+        medrecord3 = create_medrecord(patient_list=list(all_patients - treatment_false))
+        with self.assertRaisesRegex(
+            ValueError, "No subjects found in the treatment false group"
+        ):
+            tee.estimate.subject_counts(medrecord=medrecord3)
+
+        medrecord4 = create_medrecord(patient_list=list(all_patients - control_true))
+        with self.assertRaisesRegex(
+            ValueError, "No subjects found in the control true group"
+        ):
+            tee.estimate.subject_counts(medrecord=medrecord4)
 
     def test_subject_counts(self):
         tee = (
@@ -498,7 +604,7 @@ class TestTreatmentEffect(unittest.TestCase):
         self.assertEqual(washout_nodes, set({}))
 
     def test_outcome_before_treatment(self):
-        # find outcomes for default tee
+        # case 1 find outcomes for default tee
         tee = (
             TreatmentEffect.builder()
             .with_treatment("Rivaroxaban")
@@ -513,7 +619,7 @@ class TestTreatmentEffect(unittest.TestCase):
         self.assertEqual(treatment_true, set({"P2", "P3"}))
         self.assertEqual(outcome_before_treatment_nodes, set())
 
-        # set exclusion time for outcome before treatment
+        # case 2 set exclusion time for outcome before treatment
         tee2 = (
             TreatmentEffect.builder()
             .with_treatment("Rivaroxaban")
@@ -531,6 +637,23 @@ class TestTreatmentEffect(unittest.TestCase):
         self.assertEqual(treated_group, set({"P2", "P6"}))
         self.assertEqual(treatment_true, set({"P2"}))
         self.assertEqual(outcome_before_treatment_nodes, set({"P3"}))
+
+        # case 3 no outcome
+
+        self.medrecord.add_group("Headache")
+
+        tee3 = (
+            TreatmentEffect.builder()
+            .with_treatment("Rivaroxaban")
+            .with_outcome("Headache")
+            .with_outcome_before_treatment_exclusion(30)
+            .finish()
+        )
+
+        with self.assertRaisesRegex(
+            ValueError, "No outcomes found in the MedRecord for group "
+        ):
+            tee3._find_outcomes(medrecord=self.medrecord, treated_group=treated_group)
 
     def test_filter_controls(self):
         tee = (
@@ -589,11 +712,66 @@ class TestTreatmentEffect(unittest.TestCase):
         self.assertIn("P4", subjects["control_true"])
         self.assertIn("P5", subjects["control_false"])
 
-    def test_repeat_test(self):
-        n_tests = 30
-        for n in range(n_tests):
-            print("--------------------------------")
-            print(f"Test {n} out of {n_tests}")
+    def test_propensity_matching(self):
+        tee = (
+            TreatmentEffect.builder()
+            .with_treatment("Rivaroxaban")
+            .with_outcome("Stroke")
+            .with_propensity_matching()
+            .finish()
+        )
+
+        subjects = tee.estimate.subjects_contigency_table(self.medrecord)
+
+        self.assertIn("P4", subjects["control_true"])
+        self.assertIn("P5", subjects["control_false"])
+
+    def test_find_controls(self):
+        tee = (
+            TreatmentEffect.builder()
+            .with_treatment("Rivaroxaban")
+            .with_outcome("Stroke")
+            .finish()
+        )
+
+        patients = set(self.medrecord.group("patients"))
+        treated_group = {"P2", "P3", "P6"}
+
+        control_true, control_false = tee._find_controls(
+            self.medrecord,
+            control_group=patients - treated_group,
+            treated_group=patients.intersection(treated_group),
+        )
+        self.assertEqual(control_true, {"P1", "P4", "P7"})
+        self.assertEqual(control_false, {"P5", "P8", "P9"})
+
+        with self.assertRaisesRegex(
+            ValueError, "No patients found for control groups in this MedRecord."
+        ):
+            tee._find_controls(
+                self.medrecord,
+                control_group=patients - treated_group,
+                treated_group=patients.intersection(treated_group),
+                rejected_nodes=patients - treated_group,
+            )
+
+        tee2 = (
+            TreatmentEffect.builder()
+            .with_treatment("Rivaroxaban")
+            .with_outcome("Headache")
+            .finish()
+        )
+
+        self.medrecord.add_group("Headache")
+
+        with self.assertRaisesRegex(
+            ValueError, "No outcomes found in the MedRecord for group."
+        ):
+            tee2._find_controls(
+                self.medrecord,
+                control_group=patients - treated_group,
+                treated_group=patients.intersection(treated_group),
+            )
 
     def test_metrics(self):
         """Test the metrics of the TreatmentEffect class."""
