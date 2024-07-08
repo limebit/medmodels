@@ -116,7 +116,7 @@ mod test {
         let nodes = create_nodes();
         let edges = create_edges();
 
-        MedRecord::from_tuples(nodes, Some(edges)).unwrap()
+        MedRecord::from_tuples(nodes, Some(edges), None).unwrap()
     }
 
     #[test]
@@ -164,7 +164,7 @@ mod test {
         let mut medrecord = create_medrecord();
 
         medrecord
-            .add_group("test".into(), Some(vec!["0".into()]))
+            .add_group("test".into(), Some(vec!["0".into()]), None)
             .unwrap();
 
         // Node in group

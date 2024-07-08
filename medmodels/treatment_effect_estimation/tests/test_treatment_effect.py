@@ -159,7 +159,7 @@ def create_medrecord(
         nodes=[(patients, "index"), (diagnoses, "index"), (prescriptions, "index")],
         edges=[(edges, "source", "target")],
     )
-    medrecord.add_group(group="patients", node=patients["index"].to_list())
+    medrecord.add_group(group="patients", nodes=patients["index"].to_list())
     medrecord.add_group(
         "Stroke",
         ["D1"],
@@ -342,7 +342,7 @@ class TestTreatmentEffect(unittest.TestCase):
         self.assertEqual(treated_group, set({"P2", "P3", "P6"}))
 
         # no treatment_group
-        patients = set(self.medrecord.group("patients"))
+        patients = set(self.medrecord.nodes_in_group("patients"))
         medrecord2 = create_medrecord(list(patients - treated_group))
 
         with self.assertRaisesRegex(
@@ -768,7 +768,7 @@ class TestTreatmentEffect(unittest.TestCase):
             .build()
         )
 
-        patients = set(self.medrecord.group("patients"))
+        patients = set(self.medrecord.nodes_in_group("patients"))
         treated_group = {"P2", "P3", "P6"}
 
         control_true, control_false = tee._find_controls(

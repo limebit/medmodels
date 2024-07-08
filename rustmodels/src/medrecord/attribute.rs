@@ -20,24 +20,6 @@ impl From<PyMedRecordAttribute> for MedRecordAttribute {
     }
 }
 
-impl<'a> FromPyObject<'a> for PyMedRecordAttribute {
-    fn extract_bound(ob: &Bound<'_, PyAny>) -> PyResult<Self> {
-        Ok(convert_pyobject_to_medrecordvalue(ob)?
-            .try_into()
-            .map(|value: MedRecordAttribute| value.into())
-            .map_err(PyMedRecordError::from)?)
-    }
-}
-
-impl IntoPy<PyObject> for PyMedRecordAttribute {
-    fn into_py(self, py: Python<'_>) -> PyObject {
-        match self.0 {
-            MedRecordAttribute::String(value) => value.into_py(py),
-            MedRecordAttribute::Int(value) => value.into_py(py),
-        }
-    }
-}
-
 impl DeepFrom<PyMedRecordAttribute> for MedRecordAttribute {
     fn deep_from(value: PyMedRecordAttribute) -> Self {
         value.into()
@@ -55,5 +37,23 @@ impl Deref for PyMedRecordAttribute {
 
     fn deref(&self) -> &Self::Target {
         &self.0
+    }
+}
+
+impl<'a> FromPyObject<'a> for PyMedRecordAttribute {
+    fn extract_bound(ob: &Bound<'_, PyAny>) -> PyResult<Self> {
+        Ok(convert_pyobject_to_medrecordvalue(ob)?
+            .try_into()
+            .map(|value: MedRecordAttribute| value.into())
+            .map_err(PyMedRecordError::from)?)
+    }
+}
+
+impl IntoPy<PyObject> for PyMedRecordAttribute {
+    fn into_py(self, py: Python<'_>) -> PyObject {
+        match self.0 {
+            MedRecordAttribute::String(value) => value.into_py(py),
+            MedRecordAttribute::Int(value) => value.into_py(py),
+        }
     }
 }

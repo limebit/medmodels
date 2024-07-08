@@ -1,4 +1,4 @@
-use super::{MedRecordAttribute, NodeIndex};
+use super::{EdgeIndex, MedRecordAttribute, NodeIndex};
 use crate::errors::MedRecordError;
 use medmodels_utils::aliases::{MrHashMap, MrHashMapEntry, MrHashSet};
 use serde::{Deserialize, Serialize};
@@ -8,14 +8,18 @@ pub type Group = MedRecordAttribute;
 #[derive(Debug, Serialize, Deserialize)]
 pub(super) struct GroupMapping {
     nodes_in_group: MrHashMap<Group, MrHashSet<NodeIndex>>,
+    edges_in_group: MrHashMap<Group, MrHashSet<EdgeIndex>>,
     groups_of_node: MrHashMap<NodeIndex, MrHashSet<Group>>,
+    groups_of_edge: MrHashMap<EdgeIndex, MrHashSet<Group>>,
 }
 
 impl GroupMapping {
     pub fn new() -> Self {
         Self {
             nodes_in_group: MrHashMap::new(),
+            edges_in_group: MrHashMap::new(),
             groups_of_node: MrHashMap::new(),
+            groups_of_edge: MrHashMap::new(),
         }
     }
 
@@ -23,6 +27,7 @@ impl GroupMapping {
         &mut self,
         group: Group,
         node_indices: Option<Vec<NodeIndex>>,
+        edge_indices: Option<Vec<EdgeIndex>>,
     ) -> Result<(), MedRecordError> {
         match self.nodes_in_group.entry(group.clone()) {
             MrHashMapEntry::Occupied(o) => Err(MedRecordError::AssertionError(format!(
@@ -37,17 +42,53 @@ impl GroupMapping {
             }
         }?;
 
-        let Some(node_indices) = node_indices else {
-            return Ok(());
+        match self.edges_in_group.entry(group.clone()) {
+            MrHashMapEntry::Occupied(o) => Err(MedRecordError::AssertionError(format!(
+                "Group {} already exists",
+                o.key()
+            ))),
+            MrHashMapEntry::Vacant(v) => {
+                v.insert(MrHashSet::from_iter(
+                    edge_indices.clone().unwrap_or_default().into_iter(),
+                ));
+                Ok(())
+            }
+        }?;
+
+        match (node_indices, edge_indices) {
+            (None, None) => (),
+            (None, Some(edge_indices)) => {
+                for edge_index in edge_indices {
+                    self.groups_of_edge
+                        .entry(edge_index)
+                        .or_default()
+                        .insert(group.clone());
+                }
+            }
+            (Some(node_indices), None) => {
+                for node_index in node_indices {
+                    self.groups_of_node
+                        .entry(node_index)
+                        .or_default()
+                        .insert(group.clone());
+                }
+            }
+            (Some(node_indices), Some(edge_indices)) => {
+                for node_index in node_indices {
+                    self.groups_of_node
+                        .entry(node_index)
+                        .or_default()
+                        .insert(group.clone());
+                }
+
+                for edge_index in edge_indices {
+                    self.groups_of_edge
+                        .entry(edge_index)
+                        .or_default()
+                        .insert(group.clone());
+                }
+            }
         };
-
-        for node_index in node_indices {
-            self.groups_of_node
-                .entry(node_index)
-                .or_default()
-                .insert(group.clone());
-        }
-
         Ok(())
     }
 
@@ -73,6 +114,34 @@ impl GroupMapping {
 
         self.groups_of_node
             .entry(node_index)
+            .or_default()
+            .insert(group);
+
+        Ok(())
+    }
+
+    pub fn add_edge_to_group(
+        &mut self,
+        group: Group,
+        edge_index: EdgeIndex,
+    ) -> Result<(), MedRecordError> {
+        let edges_in_group =
+            self.edges_in_group
+                .get_mut(&group)
+                .ok_or(MedRecordError::IndexError(format!(
+                    "Cannot find group {}",
+                    group
+                )))?;
+
+        if !edges_in_group.insert(edge_index) {
+            return Err(MedRecordError::AssertionError(format!(
+                "Edge with index {} already in group {}",
+                edge_index, group
+            )));
+        }
+
+        self.groups_of_edge
+            .entry(edge_index)
             .or_default()
             .insert(group);
 
@@ -113,6 +182,21 @@ impl GroupMapping {
         }
     }
 
+    pub fn remove_edge(&mut self, edge_index: &EdgeIndex) {
+        let groups_of_edge = self.groups_of_edge.remove(edge_index);
+
+        let Some(groups_of_edge) = groups_of_edge else {
+            return;
+        };
+
+        for group in groups_of_edge {
+            self.edges_in_group
+                .get_mut(&group)
+                .expect("Group must exist")
+                .remove(edge_index);
+        }
+    }
+
     pub fn remove_node_from_group(
         &mut self,
         group: &Group,
@@ -135,6 +219,28 @@ impl GroupMapping {
             )))
     }
 
+    pub fn remove_edge_from_group(
+        &mut self,
+        group: &Group,
+        edge_index: &EdgeIndex,
+    ) -> Result<(), MedRecordError> {
+        let edges_in_group =
+            self.edges_in_group
+                .get_mut(group)
+                .ok_or(MedRecordError::IndexError(format!(
+                    "Cannot find group {}",
+                    group
+                )))?;
+
+        edges_in_group
+            .remove(edge_index)
+            .then_some(())
+            .ok_or(MedRecordError::AssertionError(format!(
+                "Edge with index {} not in group {}",
+                edge_index, group
+            )))
+    }
+
     pub fn groups(&self) -> impl Iterator<Item = &Group> {
         self.nodes_in_group.keys()
     }
@@ -153,8 +259,26 @@ impl GroupMapping {
             .iter())
     }
 
+    pub fn edges_in_group(
+        &self,
+        group: &Group,
+    ) -> Result<impl Iterator<Item = &EdgeIndex>, MedRecordError> {
+        Ok(self
+            .edges_in_group
+            .get(group)
+            .ok_or(MedRecordError::IndexError(format!(
+                "Cannot find group {}",
+                group
+            )))?
+            .iter())
+    }
+
     pub fn groups_of_node(&self, node_index: &NodeIndex) -> impl Iterator<Item = &Group> {
         self.groups_of_node.get(node_index).into_iter().flatten()
+    }
+
+    pub fn groups_of_edge(&self, edge_index: &EdgeIndex) -> impl Iterator<Item = &Group> {
+        self.groups_of_edge.get(edge_index).into_iter().flatten()
     }
 
     pub fn group_count(&self) -> usize {
@@ -167,7 +291,9 @@ impl GroupMapping {
 
     pub fn clear(&mut self) {
         self.nodes_in_group.clear();
+        self.edges_in_group.clear();
         self.groups_of_node.clear();
+        self.groups_of_edge.clear();
     }
 }
 
@@ -182,12 +308,12 @@ mod test {
 
         assert_eq!(0, group_mapping.group_count());
 
-        group_mapping.add_group("0".into(), None).unwrap();
+        group_mapping.add_group("0".into(), None, None).unwrap();
 
         assert_eq!(1, group_mapping.group_count());
 
         group_mapping
-            .add_group("1".into(), Some(vec!["0".into(), "1".into()]))
+            .add_group("1".into(), Some(vec!["0".into(), "1".into()]), None)
             .unwrap();
 
         assert_eq!(2, group_mapping.group_count());
@@ -202,11 +328,11 @@ mod test {
     fn test_invalid_add_group() {
         let mut group_mapping = GroupMapping::new();
 
-        group_mapping.add_group("0".into(), None).unwrap();
+        group_mapping.add_group("0".into(), None, None).unwrap();
 
         // Adding an already existing group should fail
         assert!(group_mapping
-            .add_group("0".into(), None)
+            .add_group("0".into(), None, None)
             .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
     }
 
@@ -214,7 +340,7 @@ mod test {
     fn test_add_node_to_group() {
         let mut group_mapping = GroupMapping::new();
 
-        group_mapping.add_group("0".into(), None).unwrap();
+        group_mapping.add_group("0".into(), None, None).unwrap();
 
         assert_eq!(
             0,
@@ -236,7 +362,7 @@ mod test {
         let mut group_mapping = GroupMapping::new();
 
         group_mapping
-            .add_group("0".into(), Some(vec!["0".into()]))
+            .add_group("0".into(), Some(vec!["0".into()]), None)
             .unwrap();
 
         // Adding to a non-existing group should fail
@@ -254,7 +380,7 @@ mod test {
     fn test_remove_group() {
         let mut group_mapping = GroupMapping::new();
 
-        group_mapping.add_group("0".into(), None).unwrap();
+        group_mapping.add_group("0".into(), None, None).unwrap();
 
         assert_eq!(1, group_mapping.group_count());
 
@@ -278,7 +404,7 @@ mod test {
         let mut group_mapping = GroupMapping::new();
 
         group_mapping
-            .add_group("0".into(), Some(vec!["0".into()]))
+            .add_group("0".into(), Some(vec!["0".into()]), None)
             .unwrap();
 
         assert_eq!(
@@ -299,7 +425,7 @@ mod test {
         let mut group_mapping = GroupMapping::new();
 
         group_mapping
-            .add_group("0".into(), Some(vec!["0".into(), "1".into()]))
+            .add_group("0".into(), Some(vec!["0".into(), "1".into()]), None)
             .unwrap();
 
         assert_eq!(
@@ -322,7 +448,7 @@ mod test {
         let mut group_mapping = GroupMapping::new();
 
         group_mapping
-            .add_group("0".into(), Some(vec!["0".into()]))
+            .add_group("0".into(), Some(vec!["0".into()]), None)
             .unwrap();
 
         // Removing a node from a non-existing group should fail
@@ -340,7 +466,7 @@ mod test {
     fn test_groups() {
         let mut group_mapping = GroupMapping::new();
 
-        group_mapping.add_group("0".into(), None).unwrap();
+        group_mapping.add_group("0".into(), None, None).unwrap();
 
         assert_eq!(1, group_mapping.groups().count());
     }
@@ -350,7 +476,7 @@ mod test {
         let mut group_mapping = GroupMapping::new();
 
         group_mapping
-            .add_group("0".into(), Some(vec!["0".into(), "1".into()]))
+            .add_group("0".into(), Some(vec!["0".into(), "1".into()]), None)
             .unwrap();
 
         assert_eq!(
@@ -374,7 +500,7 @@ mod test {
         let mut group_mapping = GroupMapping::new();
 
         group_mapping
-            .add_group("0".into(), Some(vec!["0".into()]))
+            .add_group("0".into(), Some(vec!["0".into()]), None)
             .unwrap();
 
         assert_eq!(1, group_mapping.groups_of_node(&"0".into()).count());
@@ -386,7 +512,7 @@ mod test {
 
         assert_eq!(0, group_mapping.group_count());
 
-        group_mapping.add_group("0".into(), None).unwrap();
+        group_mapping.add_group("0".into(), None, None).unwrap();
 
         assert_eq!(1, group_mapping.group_count());
     }
@@ -397,7 +523,7 @@ mod test {
 
         assert!(!group_mapping.contains_group(&"0".into()));
 
-        group_mapping.add_group("0".into(), None).unwrap();
+        group_mapping.add_group("0".into(), None, None).unwrap();
 
         assert!(group_mapping.contains_group(&"0".into()));
     }
@@ -406,7 +532,7 @@ mod test {
     fn test_clear() {
         let mut group_mapping = GroupMapping::new();
 
-        group_mapping.add_group("0".into(), None).unwrap();
+        group_mapping.add_group("0".into(), None, None).unwrap();
 
         assert_eq!(1, group_mapping.group_count());
 

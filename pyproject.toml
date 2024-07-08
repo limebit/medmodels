@@ -16,7 +16,7 @@ dev = [
     "maturin==1.6.0",
     "ruff==0.4.9",
     "py-spy==0.3.14",
-    "pyright==1.1.367",
+    "pyright==1.1.370",
     "pandas-stubs==2.2.2.240603",
 ]
 tests = ["pytest==8.2.2"]
@@ -51,6 +51,7 @@ reportUnknownVariableType = false
 reportUnknownMemberType = false
 reportMissingModuleSource = false
 reportMissingTypeStubs = false
+enableTypeIgnoreComments = false
 
 [tool.pytest]
 python_files = "test_*.py"

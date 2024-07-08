@@ -262,20 +262,20 @@ class NodeIndexer:
             if not is_attributes(value):
                 raise ValueError("Invalid value type. Expected Attributes")
 
-            return self._medrecord._medrecord.replace_node_attributes(value, [key])
+            return self._medrecord._medrecord.replace_node_attributes([key], value)
 
         if isinstance(key, list):
             if not is_attributes(value):
                 raise ValueError("Invalid value type. Expected Attributes")
 
-            return self._medrecord._medrecord.replace_node_attributes(value, key)
+            return self._medrecord._medrecord.replace_node_attributes(key, value)
 
         if isinstance(key, NodeOperation):
             if not is_attributes(value):
                 raise ValueError("Invalid value type. Expected Attributes")
 
             return self._medrecord._medrecord.replace_node_attributes(
-                value, self._medrecord.select_nodes(key)
+                self._medrecord.select_nodes(key), value
             )
 
         if isinstance(key, slice):
@@ -286,7 +286,7 @@ class NodeIndexer:
                 raise ValueError("Invalid value type. Expected Attributes")
 
             return self._medrecord._medrecord.replace_node_attributes(
-                value, self._medrecord.nodes
+                self._medrecord.nodes, value
             )
 
         index_selection, attribute_selection = key
@@ -298,7 +298,7 @@ class NodeIndexer:
                 raise ValueError("Invalid value type. Expected MedRecordValue")
 
             return self._medrecord._medrecord.update_node_attribute(
-                attribute_selection, value, [index_selection]
+                [index_selection], attribute_selection, value
             )
 
         if isinstance(index_selection, list) and is_medrecord_attribute(
@@ -308,7 +308,7 @@ class NodeIndexer:
                 raise ValueError("Invalid value type. Expected MedRecordValue")
 
             return self._medrecord._medrecord.update_node_attribute(
-                attribute_selection, value, index_selection
+                index_selection, attribute_selection, value
             )
 
         if isinstance(index_selection, NodeOperation) and is_medrecord_attribute(
@@ -318,9 +318,9 @@ class NodeIndexer:
                 raise ValueError("Invalid value type. Expected MedRecordValue")
 
             return self._medrecord._medrecord.update_node_attribute(
+                self._medrecord.select_nodes(index_selection),
                 attribute_selection,
                 value,
-                self._medrecord.select_nodes(index_selection),
             )
 
         if isinstance(index_selection, slice) and is_medrecord_attribute(
@@ -337,9 +337,9 @@ class NodeIndexer:
                 raise ValueError("Invalid value type. Expected MedRecordValue")
 
             return self._medrecord._medrecord.update_node_attribute(
+                self._medrecord.nodes,
                 attribute_selection,
                 value,
-                self._medrecord.nodes,
             )
 
         if is_node_index(index_selection) and isinstance(attribute_selection, list):
@@ -348,7 +348,7 @@ class NodeIndexer:
 
             for attribute in attribute_selection:
                 self._medrecord._medrecord.update_node_attribute(
-                    attribute, value, [index_selection]
+                    [index_selection], attribute, value
                 )
 
             return
@@ -359,7 +359,7 @@ class NodeIndexer:
 
             for attribute in attribute_selection:
                 self._medrecord._medrecord.update_node_attribute(
-                    attribute, value, index_selection
+                    index_selection, attribute, value
                 )
 
             return
@@ -372,7 +372,7 @@ class NodeIndexer:
 
             for attribute in attribute_selection:
                 self._medrecord._medrecord.update_node_attribute(
-                    attribute, value, self._medrecord.select_nodes(index_selection)
+                    self._medrecord.select_nodes(index_selection), attribute, value
                 )
 
             return
@@ -390,7 +390,7 @@ class NodeIndexer:
 
             for attribute in attribute_selection:
                 self._medrecord._medrecord.update_node_attribute(
-                    attribute, value, self._medrecord.nodes
+                    self._medrecord.nodes, attribute, value
                 )
 
             return
@@ -412,7 +412,9 @@ class NodeIndexer:
 
             for attribute in attributes.keys():
                 self._medrecord._medrecord.update_node_attribute(
-                    attribute, value, [index_selection]
+                    [index_selection],
+                    attribute,
+                    value,
                 )
 
             return
@@ -433,7 +435,7 @@ class NodeIndexer:
             for node in attributes.keys():
                 for attribute in attributes[node].keys():
                     self._medrecord._medrecord.update_node_attribute(
-                        attribute, value, [node]
+                        [node], attribute, value
                     )
 
             return
@@ -458,7 +460,7 @@ class NodeIndexer:
             for node in attributes.keys():
                 for attribute in attributes[node].keys():
                     self._medrecord._medrecord.update_node_attribute(
-                        attribute, value, [node]
+                        [node], attribute, value
                     )
 
             return
@@ -484,7 +486,7 @@ class NodeIndexer:
             for node in attributes.keys():
                 for attribute in attributes[node].keys():
                     self._medrecord._medrecord.update_node_attribute(
-                        attribute, value, [node]
+                        [node], attribute, value
                     )
 
             return
@@ -502,22 +504,22 @@ class NodeIndexer:
             attribute_selection
         ):
             return self._medrecord._medrecord.remove_node_attribute(
-                attribute_selection, [index_selection]
+                [index_selection], attribute_selection
             )
 
         if isinstance(index_selection, list) and is_medrecord_attribute(
             attribute_selection
         ):
             return self._medrecord._medrecord.remove_node_attribute(
-                attribute_selection, index_selection
+                index_selection, attribute_selection
             )
 
         if isinstance(index_selection, NodeOperation) and is_medrecord_attribute(
             attribute_selection
         ):
             return self._medrecord._medrecord.remove_node_attribute(
-                attribute_selection,
                 self._medrecord.select_nodes(index_selection),
+                attribute_selection,
             )
 
         if isinstance(index_selection, slice) and is_medrecord_attribute(
@@ -531,14 +533,14 @@ class NodeIndexer:
                 raise ValueError("Invalid slice, only ':' is allowed")
 
             return self._medrecord._medrecord.remove_node_attribute(
-                attribute_selection,
                 self._medrecord.nodes,
+                attribute_selection,
             )
 
         if is_node_index(index_selection) and isinstance(attribute_selection, list):
             for attribute in attribute_selection:
                 self._medrecord._medrecord.remove_node_attribute(
-                    attribute, [index_selection]
+                    [index_selection], attribute
                 )
 
             return
@@ -546,7 +548,7 @@ class NodeIndexer:
         if isinstance(index_selection, list) and isinstance(attribute_selection, list):
             for attribute in attribute_selection:
                 self._medrecord._medrecord.remove_node_attribute(
-                    attribute, index_selection
+                    index_selection, attribute
                 )
 
             return
@@ -556,7 +558,7 @@ class NodeIndexer:
         ):
             for attribute in attribute_selection:
                 self._medrecord._medrecord.remove_node_attribute(
-                    attribute, self._medrecord.select_nodes(index_selection)
+                    self._medrecord.select_nodes(index_selection), attribute
                 )
 
             return
@@ -571,7 +573,7 @@ class NodeIndexer:
 
             for attribute in attribute_selection:
                 self._medrecord._medrecord.remove_node_attribute(
-                    attribute, self._medrecord.nodes
+                    self._medrecord.nodes, attribute
                 )
 
             return
@@ -585,7 +587,7 @@ class NodeIndexer:
                 raise ValueError("Invalid slice, only ':' is allowed")
 
             return self._medrecord._medrecord.replace_node_attributes(
-                {}, [index_selection]
+                [index_selection], {}
             )
 
         if isinstance(index_selection, list) and isinstance(attribute_selection, slice):
@@ -597,7 +599,7 @@ class NodeIndexer:
                 raise ValueError("Invalid slice, only ':' is allowed")
 
             return self._medrecord._medrecord.replace_node_attributes(
-                {}, index_selection
+                index_selection, {}
             )
 
         if isinstance(index_selection, NodeOperation) and isinstance(
@@ -611,7 +613,7 @@ class NodeIndexer:
                 raise ValueError("Invalid slice, only ':' is allowed")
 
             return self._medrecord._medrecord.replace_node_attributes(
-                {}, self._medrecord.select_nodes(index_selection)
+                self._medrecord.select_nodes(index_selection), {}
             )
 
         if isinstance(index_selection, slice) and isinstance(
@@ -628,7 +630,7 @@ class NodeIndexer:
                 raise ValueError("Invalid slice, only ':' is allowed")
 
             return self._medrecord._medrecord.replace_node_attributes(
-                {}, self._medrecord.nodes
+                self._medrecord.nodes, {}
             )
 
 
@@ -870,20 +872,20 @@ class EdgeIndexer:
             if not is_attributes(value):
                 raise ValueError("Invalid value type. Expected Attributes")
 
-            return self._medrecord._medrecord.replace_edge_attributes(value, [key])
+            return self._medrecord._medrecord.replace_edge_attributes([key], value)
 
         if isinstance(key, list):
             if not is_attributes(value):
                 raise ValueError("Invalid value type. Expected Attributes")
 
-            return self._medrecord._medrecord.replace_edge_attributes(value, key)
+            return self._medrecord._medrecord.replace_edge_attributes(key, value)
 
         if isinstance(key, EdgeOperation):
             if not is_attributes(value):
                 raise ValueError("Invalid value type. Expected Attributes")
 
             return self._medrecord._medrecord.replace_edge_attributes(
-                value, self._medrecord.select_edges(key)
+                self._medrecord.select_edges(key), value
             )
 
         if isinstance(key, slice):
@@ -894,7 +896,7 @@ class EdgeIndexer:
                 raise ValueError("Invalid value type. Expected Attributes")
 
             return self._medrecord._medrecord.replace_edge_attributes(
-                value, self._medrecord.edges
+                self._medrecord.edges, value
             )
 
         index_selection, attribute_selection = key
@@ -906,7 +908,7 @@ class EdgeIndexer:
                 raise ValueError("Invalid value type. Expected MedRecordValue")
 
             return self._medrecord._medrecord.update_edge_attribute(
-                attribute_selection, value, [index_selection]
+                [index_selection], attribute_selection, value
             )
 
         if isinstance(index_selection, list) and is_medrecord_attribute(
@@ -916,7 +918,7 @@ class EdgeIndexer:
                 raise ValueError("Invalid value type. Expected MedRecordValue")
 
             return self._medrecord._medrecord.update_edge_attribute(
-                attribute_selection, value, index_selection
+                index_selection, attribute_selection, value
             )
 
         if isinstance(index_selection, EdgeOperation) and is_medrecord_attribute(
@@ -926,9 +928,9 @@ class EdgeIndexer:
                 raise ValueError("Invalid value type. Expected MedRecordValue")
 
             return self._medrecord._medrecord.update_edge_attribute(
+                self._medrecord.select_edges(index_selection),
                 attribute_selection,
                 value,
-                self._medrecord.select_edges(index_selection),
             )
 
         if isinstance(index_selection, slice) and is_medrecord_attribute(
@@ -945,9 +947,9 @@ class EdgeIndexer:
                 raise ValueError("Invalid value type. Expected MedRecordValue")
 
             return self._medrecord._medrecord.update_edge_attribute(
+                self._medrecord.edges,
                 attribute_selection,
                 value,
-                self._medrecord.edges,
             )
 
         if is_edge_index(index_selection) and isinstance(attribute_selection, list):
@@ -956,7 +958,7 @@ class EdgeIndexer:
 
             for attribute in attribute_selection:
                 self._medrecord._medrecord.update_edge_attribute(
-                    attribute, value, [index_selection]
+                    [index_selection], attribute, value
                 )
 
             return
@@ -967,7 +969,7 @@ class EdgeIndexer:
 
             for attribute in attribute_selection:
                 self._medrecord._medrecord.update_edge_attribute(
-                    attribute, value, index_selection
+                    index_selection, attribute, value
                 )
 
             return
@@ -980,7 +982,7 @@ class EdgeIndexer:
 
             for attribute in attribute_selection:
                 self._medrecord._medrecord.update_edge_attribute(
-                    attribute, value, self._medrecord.select_edges(index_selection)
+                    self._medrecord.select_edges(index_selection), attribute, value
                 )
 
             return
@@ -998,7 +1000,7 @@ class EdgeIndexer:
 
             for attribute in attribute_selection:
                 self._medrecord._medrecord.update_edge_attribute(
-                    attribute, value, self._medrecord.edges
+                    self._medrecord.edges, attribute, value
                 )
 
             return
@@ -1020,7 +1022,7 @@ class EdgeIndexer:
 
             for attribute in attributes.keys():
                 self._medrecord._medrecord.update_edge_attribute(
-                    attribute, value, [index_selection]
+                    [index_selection], attribute, value
                 )
 
             return
@@ -1041,7 +1043,7 @@ class EdgeIndexer:
             for edge in attributes.keys():
                 for attribute in attributes[edge].keys():
                     self._medrecord._medrecord.update_edge_attribute(
-                        attribute, value, [edge]
+                        [edge], attribute, value
                     )
 
             return
@@ -1066,7 +1068,7 @@ class EdgeIndexer:
             for edge in attributes.keys():
                 for attribute in attributes[edge].keys():
                     self._medrecord._medrecord.update_edge_attribute(
-                        attribute, value, [edge]
+                        [edge], attribute, value
                     )
 
             return
@@ -1092,7 +1094,7 @@ class EdgeIndexer:
             for edge in attributes.keys():
                 for attribute in attributes[edge].keys():
                     self._medrecord._medrecord.update_edge_attribute(
-                        attribute, value, [edge]
+                        [edge], attribute, value
                     )
 
             return
@@ -1110,22 +1112,22 @@ class EdgeIndexer:
             attribute_selection
         ):
             return self._medrecord._medrecord.remove_edge_attribute(
-                attribute_selection, [index_selection]
+                [index_selection], attribute_selection
             )
 
         if isinstance(index_selection, list) and is_medrecord_attribute(
             attribute_selection
         ):
             return self._medrecord._medrecord.remove_edge_attribute(
-                attribute_selection, index_selection
+                index_selection, attribute_selection
             )
 
         if isinstance(index_selection, EdgeOperation) and is_medrecord_attribute(
             attribute_selection
         ):
             return self._medrecord._medrecord.remove_edge_attribute(
-                attribute_selection,
                 self._medrecord.select_edges(index_selection),
+                attribute_selection,
             )
 
         if isinstance(index_selection, slice) and is_medrecord_attribute(
@@ -1139,14 +1141,14 @@ class EdgeIndexer:
                 raise ValueError("Invalid slice, only ':' is allowed")
 
             return self._medrecord._medrecord.remove_edge_attribute(
-                attribute_selection,
                 self._medrecord.edges,
+                attribute_selection,
             )
 
         if is_edge_index(index_selection) and isinstance(attribute_selection, list):
             for attribute in attribute_selection:
                 self._medrecord._medrecord.remove_edge_attribute(
-                    attribute, [index_selection]
+                    [index_selection], attribute
                 )
 
             return
@@ -1154,7 +1156,7 @@ class EdgeIndexer:
         if isinstance(index_selection, list) and isinstance(attribute_selection, list):
             for attribute in attribute_selection:
                 self._medrecord._medrecord.remove_edge_attribute(
-                    attribute, index_selection
+                    index_selection, attribute
                 )
 
             return
@@ -1164,7 +1166,7 @@ class EdgeIndexer:
         ):
             for attribute in attribute_selection:
                 self._medrecord._medrecord.remove_edge_attribute(
-                    attribute, self._medrecord.select_edges(index_selection)
+                    self._medrecord.select_edges(index_selection), attribute
                 )
 
             return
@@ -1179,7 +1181,7 @@ class EdgeIndexer:
 
             for attribute in attribute_selection:
                 self._medrecord._medrecord.remove_edge_attribute(
-                    attribute, self._medrecord.edges
+                    self._medrecord.edges, attribute
                 )
 
             return
@@ -1193,7 +1195,7 @@ class EdgeIndexer:
                 raise ValueError("Invalid slice, only ':' is allowed")
 
             return self._medrecord._medrecord.replace_edge_attributes(
-                {}, [index_selection]
+                [index_selection], {}
             )
 
         if isinstance(index_selection, list) and isinstance(attribute_selection, slice):
@@ -1205,7 +1207,7 @@ class EdgeIndexer:
                 raise ValueError("Invalid slice, only ':' is allowed")
 
             return self._medrecord._medrecord.replace_edge_attributes(
-                {}, index_selection
+                index_selection, {}
             )
 
         if isinstance(index_selection, EdgeOperation) and isinstance(
@@ -1219,7 +1221,7 @@ class EdgeIndexer:
                 raise ValueError("Invalid slice, only ':' is allowed")
 
             return self._medrecord._medrecord.replace_edge_attributes(
-                {}, self._medrecord.select_edges(index_selection)
+                self._medrecord.select_edges(index_selection), {}
             )
 
         if isinstance(index_selection, slice) and isinstance(
@@ -1236,5 +1238,5 @@ class EdgeIndexer:
                 raise ValueError("Invalid slice, only ':' is allowed")
 
             return self._medrecord._medrecord.replace_edge_attributes(
-                {}, self._medrecord.edges
+                self._medrecord.edges, {}
             )

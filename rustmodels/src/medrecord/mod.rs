@@ -1,6 +1,8 @@
 mod attribute;
+pub mod datatype;
 mod errors;
 pub mod querying;
+pub mod schema;
 mod traits;
 mod value;
 
@@ -14,6 +16,7 @@ use medmodels_core::{
 use pyo3::prelude::*;
 use pyo3_polars::PyDataFrame;
 use querying::{PyEdgeOperation, PyNodeOperation};
+use schema::PySchema;
 use std::collections::HashMap;
 use traits::DeepInto;
 use value::PyMedRecordValue;
@@ -24,6 +27,7 @@ type PyNodeIndex = PyMedRecordAttribute;
 type Lut<T> = GILHashMap<usize, fn(&Bound<'_, PyAny>) -> PyResult<T>>;
 
 #[pyclass]
+#[repr(transparent)]
 pub struct PyMedRecord(MedRecord);
 
 #[pymethods]
@@ -34,12 +38,17 @@ impl PyMedRecord {
     }
 
     #[staticmethod]
+    fn with_schema(schema: PySchema) -> Self {
+        Self(MedRecord::with_schema(schema.into()))
+    }
+
+    #[staticmethod]
     fn from_tuples(
         nodes: Vec<(PyNodeIndex, PyAttributes)>,
         edges: Option<Vec<(PyNodeIndex, PyNodeIndex, PyAttributes)>>,
     ) -> PyResult<Self> {
         Ok(Self(
-            MedRecord::from_tuples(nodes.deep_into(), edges.deep_into())
+            MedRecord::from_tuples(nodes.deep_into(), edges.deep_into(), None)
                 .map_err(PyMedRecordError::from)?,
         ))
     }
@@ -50,7 +59,7 @@ impl PyMedRecord {
         edges_dataframes: Vec<(PyDataFrame, String, String)>,
     ) -> PyResult<Self> {
         Ok(Self(
-            MedRecord::from_dataframes(nodes_dataframes, edges_dataframes)
+            MedRecord::from_dataframes(nodes_dataframes, edges_dataframes, None)
                 .map_err(PyMedRecordError::from)?,
         ))
     }
@@ -58,7 +67,8 @@ impl PyMedRecord {
     #[staticmethod]
     fn from_nodes_dataframes(nodes_dataframes: Vec<(PyDataFrame, String)>) -> PyResult<Self> {
         Ok(Self(
-            MedRecord::from_nodes_dataframes(nodes_dataframes).map_err(PyMedRecordError::from)?,
+            MedRecord::from_nodes_dataframes(nodes_dataframes, None)
+                .map_err(PyMedRecordError::from)?,
         ))
     }
 
@@ -76,6 +86,13 @@ impl PyMedRecord {
 
     fn to_ron(&self, path: &str) -> PyResult<()> {
         Ok(self.0.to_ron(path).map_err(PyMedRecordError::from)?)
+    }
+
+    fn update_schema(&mut self, schema: PySchema) -> PyResult<()> {
+        Ok(self
+            .0
+            .update_schema(schema.into())
+            .map_err(PyMedRecordError::from)?)
     }
 
     #[getter]
@@ -122,22 +139,6 @@ impl PyMedRecord {
     #[getter]
     fn groups(&self) -> Vec<PyGroup> {
         self.0.groups().map(|group| group.clone().into()).collect()
-    }
-
-    fn group(&self, group: Vec<PyGroup>) -> PyResult<HashMap<PyGroup, Vec<PyNodeIndex>>> {
-        group
-            .into_iter()
-            .map(|group| {
-                let nodes_attributes = self
-                    .0
-                    .nodes_in_group(&group)
-                    .map_err(PyMedRecordError::from)?
-                    .map(|node_index| node_index.clone().into())
-                    .collect();
-
-                Ok((group, nodes_attributes))
-            })
-            .collect()
     }
 
     fn outgoing_edges(
@@ -261,8 +262,8 @@ impl PyMedRecord {
 
     fn replace_node_attributes(
         &mut self,
-        attributes: PyAttributes,
         node_index: Vec<PyNodeIndex>,
+        attributes: PyAttributes,
     ) -> PyResult<()> {
         let attributes: Attributes = attributes.deep_into();
 
@@ -280,9 +281,9 @@ impl PyMedRecord {
 
     fn update_node_attribute(
         &mut self,
+        node_index: Vec<PyNodeIndex>,
         attribute: PyMedRecordAttribute,
         value: PyMedRecordValue,
-        node_index: Vec<PyNodeIndex>,
     ) -> PyResult<()> {
         let attribute: MedRecordAttribute = attribute.into();
         let value: MedRecordValue = value.into();
@@ -295,7 +296,7 @@ impl PyMedRecord {
 
             node_attributes
                 .entry(attribute.clone())
-                .or_insert(MedRecordValue::Null)
+                .or_default()
                 .clone_from(&value)
         }
 
@@ -304,8 +305,8 @@ impl PyMedRecord {
 
     fn remove_node_attribute(
         &mut self,
-        attribute: PyMedRecordAttribute,
         node_index: Vec<PyNodeIndex>,
+        attribute: PyMedRecordAttribute,
     ) -> PyResult<()> {
         let attribute: MedRecordAttribute = attribute.into();
 
@@ -378,8 +379,8 @@ impl PyMedRecord {
 
     fn replace_edge_attributes(
         &mut self,
-        attributes: PyAttributes,
         edge_index: Vec<EdgeIndex>,
+        attributes: PyAttributes,
     ) -> PyResult<()> {
         let attributes: Attributes = attributes.deep_into();
 
@@ -397,9 +398,9 @@ impl PyMedRecord {
 
     fn update_edge_attribute(
         &mut self,
+        edge_index: Vec<EdgeIndex>,
         attribute: PyMedRecordAttribute,
         value: PyMedRecordValue,
-        edge_index: Vec<EdgeIndex>,
     ) -> PyResult<()> {
         for edge_index in edge_index {
             let edge_attributes = self
@@ -409,7 +410,7 @@ impl PyMedRecord {
 
             edge_attributes
                 .entry((*attribute).clone())
-                .or_insert(MedRecordValue::Null)
+                .or_default()
                 .clone_from(&value);
         }
 
@@ -418,8 +419,8 @@ impl PyMedRecord {
 
     fn remove_edge_attribute(
         &mut self,
-        attribute: PyMedRecordAttribute,
         edge_index: Vec<EdgeIndex>,
+        attribute: PyMedRecordAttribute,
     ) -> PyResult<()> {
         for edge_index in edge_index {
             let edge_attributes = self
@@ -462,10 +463,15 @@ impl PyMedRecord {
         &mut self,
         group: PyGroup,
         node_indices_to_add: Option<Vec<PyNodeIndex>>,
+        edge_indices_to_add: Option<Vec<EdgeIndex>>,
     ) -> PyResult<()> {
         Ok(self
             .0
-            .add_group(group.into(), node_indices_to_add.deep_into())
+            .add_group(
+                group.into(),
+                node_indices_to_add.deep_into(),
+                edge_indices_to_add,
+            )
             .map_err(PyMedRecordError::from)?)
     }
 
@@ -488,6 +494,15 @@ impl PyMedRecord {
         })
     }
 
+    fn add_edge_to_group(&mut self, group: PyGroup, edge_index: Vec<EdgeIndex>) -> PyResult<()> {
+        edge_index.into_iter().try_for_each(|edge_index| {
+            Ok(self
+                .0
+                .add_edge_to_group(group.clone().into(), edge_index)
+                .map_err(PyMedRecordError::from)?)
+        })
+    }
+
     fn remove_node_from_group(
         &mut self,
         group: PyGroup,
@@ -499,6 +514,51 @@ impl PyMedRecord {
                 .remove_node_from_group(&group, &node_index)
                 .map_err(PyMedRecordError::from)?)
         })
+    }
+
+    fn remove_edge_from_group(
+        &mut self,
+        group: PyGroup,
+        edge_index: Vec<EdgeIndex>,
+    ) -> PyResult<()> {
+        edge_index.into_iter().try_for_each(|edge_index| {
+            Ok(self
+                .0
+                .remove_edge_from_group(&group, &edge_index)
+                .map_err(PyMedRecordError::from)?)
+        })
+    }
+
+    fn nodes_in_group(&self, group: Vec<PyGroup>) -> PyResult<HashMap<PyGroup, Vec<PyNodeIndex>>> {
+        group
+            .into_iter()
+            .map(|group| {
+                let nodes_attributes = self
+                    .0
+                    .nodes_in_group(&group)
+                    .map_err(PyMedRecordError::from)?
+                    .map(|node_index| node_index.clone().into())
+                    .collect();
+
+                Ok((group, nodes_attributes))
+            })
+            .collect()
+    }
+
+    fn edges_in_group(&self, group: Vec<PyGroup>) -> PyResult<HashMap<PyGroup, Vec<EdgeIndex>>> {
+        group
+            .into_iter()
+            .map(|group| {
+                let edges = self
+                    .0
+                    .edges_in_group(&group)
+                    .map_err(PyMedRecordError::from)?
+                    .copied()
+                    .collect();
+
+                Ok((group, edges))
+            })
+            .collect()
     }
 
     fn groups_of_node(
@@ -516,6 +576,25 @@ impl PyMedRecord {
                     .collect();
 
                 Ok((node_index, groups))
+            })
+            .collect()
+    }
+
+    fn groups_of_edge(
+        &self,
+        edge_index: Vec<EdgeIndex>,
+    ) -> PyResult<HashMap<EdgeIndex, Vec<PyGroup>>> {
+        edge_index
+            .into_iter()
+            .map(|edge_index| {
+                let groups = self
+                    .0
+                    .groups_of_edge(&edge_index)
+                    .map_err(PyMedRecordError::from)?
+                    .map(|group| group.clone().into())
+                    .collect();
+
+                Ok((edge_index, groups))
             })
             .collect()
     }

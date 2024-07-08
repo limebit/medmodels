@@ -1,7 +1,7 @@
-use super::MedRecordAttribute;
+use super::{datatypes::DataType, GroupSchema, MedRecordAttribute, Schema};
 use crate::MedRecord;
 use polars::{io::SerReader, prelude::CsvReadOptions};
-use std::io::Cursor;
+use std::{collections::HashMap, io::Cursor};
 
 const DIAGNOSIS_DATA: &[u8] = include_bytes!("./synthetic_data/diagnosis.csv");
 const DRUG_DATA: &[u8] = include_bytes!("./synthetic_data/drug.csv");
@@ -71,6 +71,7 @@ impl MedRecord {
             .into_reader_with_file_handle(cursor)
             .finish()
             .expect("DataFrame can be built");
+        let patient_diagnosis_ids = (0..patient_diagnosis.height()).collect::<Vec<_>>();
 
         let cursor = Cursor::new(PATIENT_DRUG);
         let patient_drug = CsvReadOptions::default()
@@ -78,6 +79,9 @@ impl MedRecord {
             .into_reader_with_file_handle(cursor)
             .finish()
             .expect("DataFrame can be built");
+        let patient_drug_ids = (patient_diagnosis.height()
+            ..patient_diagnosis.height() + patient_drug.height())
+            .collect::<Vec<_>>();
 
         let cursor = Cursor::new(PATIENT_PROCEDURE);
         let patient_procedure = CsvReadOptions::default()
@@ -85,6 +89,9 @@ impl MedRecord {
             .into_reader_with_file_handle(cursor)
             .finish()
             .expect("DataFrame can be built");
+        let patient_procedure_ids = (patient_diagnosis.height() + patient_drug.height()
+            ..patient_diagnosis.height() + patient_drug.height() + patient_procedure.height())
+            .collect::<Vec<_>>();
 
         let mut medrecord = Self::from_dataframes(
             vec![
@@ -98,21 +105,119 @@ impl MedRecord {
                 (patient_drug, "patient_id", "drug_code"),
                 (patient_procedure, "patient_id", "procedure_code"),
             ],
+            None,
         )
         .expect("MedRecord can be built");
 
         medrecord
-            .add_group("diagnosis".into(), Some(diagnosis_ids))
+            .add_group("diagnosis".into(), Some(diagnosis_ids), None)
             .expect("Group can be added");
         medrecord
-            .add_group("drug".into(), Some(drug_ids))
+            .add_group("drug".into(), Some(drug_ids), None)
             .expect("Group can be added");
         medrecord
-            .add_group("patient".into(), Some(patient_ids))
+            .add_group("patient".into(), Some(patient_ids), None)
             .expect("Group can be added");
         medrecord
-            .add_group("procedure".into(), Some(procedure_ids))
+            .add_group("procedure".into(), Some(procedure_ids), None)
             .expect("Group can be added");
+
+        medrecord
+            .add_group(
+                "patient_diagnosis".into(),
+                None,
+                Some(patient_diagnosis_ids),
+            )
+            .expect("Group can be added");
+        medrecord
+            .add_group("patient_drug".into(), None, Some(patient_drug_ids))
+            .expect("Group can be added");
+        medrecord
+            .add_group(
+                "patient_procedure".into(),
+                None,
+                Some(patient_procedure_ids),
+            )
+            .expect("Group can be added");
+
+        medrecord.schema = Schema {
+            groups: HashMap::from([
+                (
+                    "diagnosis".into(),
+                    GroupSchema {
+                        nodes: HashMap::from([("description".into(), DataType::String)]),
+                        edges: HashMap::new(),
+                        strict: Some(true),
+                    },
+                ),
+                (
+                    "drug".into(),
+                    GroupSchema {
+                        nodes: HashMap::from([("description".into(), DataType::String)]),
+                        edges: HashMap::new(),
+                        strict: Some(true),
+                    },
+                ),
+                (
+                    "patient".into(),
+                    GroupSchema {
+                        nodes: HashMap::from([
+                            ("gender".into(), DataType::String),
+                            ("age".into(), DataType::Int),
+                        ]),
+                        edges: HashMap::new(),
+                        strict: Some(true),
+                    },
+                ),
+                (
+                    "procedure".into(),
+                    GroupSchema {
+                        nodes: HashMap::from([("description".into(), DataType::String)]),
+                        edges: HashMap::new(),
+                        strict: Some(true),
+                    },
+                ),
+                (
+                    "patient_diagnosis".into(),
+                    GroupSchema {
+                        nodes: HashMap::new(),
+                        edges: HashMap::from([
+                            ("diagnosis_time".into(), DataType::String),
+                            (
+                                "duration_days".into(),
+                                DataType::Option(Box::new(DataType::Float)),
+                            ),
+                        ]),
+                        strict: Some(true),
+                    },
+                ),
+                (
+                    "patient_drug".into(),
+                    GroupSchema {
+                        nodes: HashMap::new(),
+                        edges: HashMap::from([
+                            ("start_time".into(), DataType::String),
+                            ("quantity".into(), DataType::Int),
+                            ("cost".into(), DataType::Float),
+                        ]),
+                        strict: Some(true),
+                    },
+                ),
+                (
+                    "patient_procedure".into(),
+                    GroupSchema {
+                        nodes: HashMap::new(),
+                        edges: HashMap::from([
+                            ("procedure_time".into(), DataType::String),
+                            ("duration_minutes".into(), DataType::Int),
+                        ]),
+                        strict: Some(true),
+                    },
+                ),
+            ]),
+            default: None,
+            strict: Some(true),
+        };
 
         medrecord
     }

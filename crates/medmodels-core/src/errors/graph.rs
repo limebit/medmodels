@@ -7,6 +7,7 @@ use std::{
 pub enum GraphError {
     IndexError(String),
     AssertionError(String),
+    SchemaError(String),
 }
 
 impl Error for GraphError {
@@ -14,6 +15,7 @@ impl Error for GraphError {
         match self {
             GraphError::IndexError(message) => message,
             GraphError::AssertionError(message) => message,
+            GraphError::SchemaError(message) => message,
         }
     }
 }
@@ -23,6 +25,7 @@ impl Display for GraphError {
         match self {
             GraphError::IndexError(message) => write!(f, "IndexError: {}", message),
             GraphError::AssertionError(message) => write!(f, "AssertionError: {}", message),
+            GraphError::SchemaError(message) => write!(f, "AssertionError: {}", message),
         }
     }
 }

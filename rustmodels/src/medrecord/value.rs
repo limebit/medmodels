@@ -23,6 +23,26 @@ impl From<PyMedRecordValue> for MedRecordValue {
     }
 }
 
+impl DeepFrom<PyMedRecordValue> for MedRecordValue {
+    fn deep_from(value: PyMedRecordValue) -> Self {
+        value.into()
+    }
+}
+
+impl DeepFrom<MedRecordValue> for PyMedRecordValue {
+    fn deep_from(value: MedRecordValue) -> Self {
+        value.into()
+    }
+}
+
+impl Deref for PyMedRecordValue {
+    type Target = MedRecordValue;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
 static MEDRECORDVALUE_CONVERSION_LUT: Lut<MedRecordValue> = GILHashMap::new();
 
 pub(crate) fn convert_pyobject_to_medrecordvalue(
@@ -98,25 +118,5 @@ impl IntoPy<PyObject> for PyMedRecordValue {
             MedRecordValue::Bool(value) => value.into_py(py),
             MedRecordValue::Null => py.None(),
         }
-    }
-}
-
-impl DeepFrom<PyMedRecordValue> for MedRecordValue {
-    fn deep_from(value: PyMedRecordValue) -> Self {
-        value.into()
-    }
-}
-
-impl DeepFrom<MedRecordValue> for PyMedRecordValue {
-    fn deep_from(value: MedRecordValue) -> Self {
-        value.into()
-    }
-}
-
-impl Deref for PyMedRecordValue {
-    type Target = MedRecordValue;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
     }
 }

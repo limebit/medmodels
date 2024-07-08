@@ -213,7 +213,7 @@ class TreatmentEffect:
         treatment_false = treated_group - treatment_true
 
         # Find the controls (patients that did not undergo the treatment)
-        control_group = set(medrecord.group(self._patients_group))
+        control_group = set(medrecord.nodes_in_group(self._patients_group))
         control_true, control_false = self._find_controls(
             medrecord=medrecord,
             control_group=control_group,
@@ -240,7 +240,7 @@ class TreatmentEffect:
         """
         treated_group = set()
 
-        treatments = medrecord.group(self._treatments_group)
+        treatments = medrecord.nodes_in_group(self._treatments_group)
 
         # Create the group with all the patients that underwent the treatment
         for treatment in treatments:
@@ -289,7 +289,7 @@ class TreatmentEffect:
         outcome_before_treatment_nodes = set()
 
         # Find nodes with the outcomes
-        outcomes = medrecord.group(self._outcomes_group)
+        outcomes = medrecord.nodes_in_group(self._outcomes_group)
         if not outcomes:
             raise ValueError(
                 f"No outcomes found in the MedRecord for group {self._outcomes_group}"
@@ -370,7 +370,7 @@ class TreatmentEffect:
         # Apply the washout period to the treatment group
         # TODO: washout in both directions? We need a List then
         for washout_group_id, washout_days in self._washout_period_days.items():
-            for washout_node in medrecord.group(washout_group_id):
+            for washout_node in medrecord.nodes_in_group(washout_group_id):
                 washout_nodes.update(
                     {
                         treated_node
@@ -494,7 +494,7 @@ class TreatmentEffect:
             time_treat = pd.Timestamp.min
             operation = max
 
-        treatments = medrecord.group(self._treatments_group)
+        treatments = medrecord.nodes_in_group(self._treatments_group)
         if not treatments:
             raise ValueError(
                 f"No treatments found in MedRecord for group {self._treatments_group}"
@@ -587,7 +587,7 @@ class TreatmentEffect:
 
         control_true = set()
         control_false = set()
-        outcomes = medrecord.group(self._outcomes_group)
+        outcomes = medrecord.nodes_in_group(self._outcomes_group)
         if not outcomes:
             raise ValueError(
                 f"No outcomes found in the MedRecord for group {self._outcomes_group}"
