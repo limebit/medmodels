@@ -62,15 +62,8 @@ def calculate_propensity(
         For "dec_tree" model with iris dataset inputs, returns probabilities of the
         last class for treated and control sets, e.g., ([0.], [0.]).
     """
-
-    propensity_metric = PROP_MODEL[model]
-
-    if hyperparam:
-        pm = propensity_metric(**hyperparam)
-
-    else:
-        pm = propensity_metric()
-
+    propensity_model = PROP_MODEL[model]
+    pm = propensity_model(**hyperparam) if hyperparam else propensity_model()
     pm.fit(x_train, y_train)
 
     # Predict the probability of the treated and control groups
@@ -117,7 +110,7 @@ def run_propensity_score(
             set.
     """
     if not covariates:
-        covariates = treated_set.columns
+        covariates = [col for col in treated_set.columns if col != "id"]
 
     treated_array = treated_set.select(covariates).to_numpy().astype(float)
     control_array = control_set.select(covariates).to_numpy().astype(float)

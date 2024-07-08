@@ -18,6 +18,7 @@ class TestEvaluation(unittest.TestCase):
         self.assertAlmostEqual(result, expected)
 
     def test_relative_diff_in_means(self):
+        """Test the relative_diff_in_means function."""
         df_control = pd.DataFrame(np.array([[1, 3], [3, -3]]), columns=["a", "b"])
         df_treated = pd.DataFrame(np.array([[3, 4], [4, -10]]), columns=["a", "b"])
 
@@ -32,6 +33,7 @@ class TestEvaluation(unittest.TestCase):
         assert_frame_equal(result, expected)
 
     def test_average_value_over_features(self):
+        """Test the average_value_over_features function."""
         s = pd.Series(["control_mean", "treated_mean", "Diff (in %)"])
         df = pd.DataFrame(np.array([[2, 2], [3.5, 7], [75, 250]]), columns=["a", "b"])
         df = df.set_index(s)
@@ -39,6 +41,7 @@ class TestEvaluation(unittest.TestCase):
         self.assertEqual(evaluation.average_value_over_features(df), 162.5)
 
     def test_aard(self):
+        """Test the absolute average relative difference function."""
         cols = ["a", "b", "c"]
         df_control = pd.DataFrame(np.array([[1, 3, 5], [3, 1, 7]]), columns=cols)
         df_treated = pd.DataFrame(np.array([[3, 4, 10], [4, 10, 5]]), columns=cols)
