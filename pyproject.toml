@@ -1,28 +1,50 @@
 [project]
 name = "medmodels"
-version = "0.0.1"
+version = "0.1.0"
 description = "Limebit Medmodels Package"
 readme = "README.md"
 requires-python = ">=3.9"
+classifiers = [
+    'Development Status :: 3 - Alpha',
+    'Intended Audience :: Developers',
+    'Intended Audience :: Healthcare Industry',
+    'Intended Audience :: Science/Research',
+    'License :: OSI Approved :: BSD License',
+    'Operating System :: MacOS :: MacOS X',
+    'Operating System :: Microsoft :: Windows',
+    'Operating System :: POSIX',
+    'Operating System :: Unix',
+    'Programming Language :: Python',
+    'Programming Language :: Python :: 3',
+    'Programming Language :: Python :: 3.9',
+    'Programming Language :: Python :: 3.10',
+    'Programming Language :: Python :: 3.11',
+    'Programming Language :: Python :: 3.12',
+    'Programming Language :: Python :: 3 :: Only',
+    'Programming Language :: Rust',
+    'Topic :: Scientific/Engineering',
+    'Topic :: Software Development',
+    'Typing :: Typed',
+]
 dependencies = [
-    "numpy==2.0.0",
-    "pandas==2.2.2",
-    "polars[pandas]==0.20.31",
-    "scikit-learn==1.5.0",
+    "numpy>=2.0.0",
+    "pandas>=2.2.2",
+    "polars[pandas]>=0.20.31",
+    "scikit-learn>=1.5.0",
 ]
 
 [project.optional-dependencies]
 dev = [
-    "maturin==1.6.0",
-    "ruff==0.4.9",
-    "py-spy==0.3.14",
-    "pyright==1.1.370",
-    "pandas-stubs==2.2.2.240603",
+    "maturin>=1.6.0",
+    "ruff>=0.4.9",
+    "py-spy",
+    "pyright>=1.1.370",
+    "pandas-stubs>=2.2.2.240603",
 ]
-tests = ["pytest==8.2.2"]
+tests = ["pytest>=8.2.2"]
 
 [build-system]
-requires = ["maturin==1.6.0", "setuptools"]
+requires = ["maturin>=1.6.0", "setuptools"]
 build-backend = "maturin"
 
 [tool.maturin]

@@ -67,4 +67,4 @@ We recommend to use `pip` to install the latest version of MedModels:
 pip install medmodels
 ```
 
-For detailed information on how to use MedModels, please read the [MedModels documentation](https://www.medmodels.de/documentation).
+For detailed information on how to use MedModels, please read the [MedModels documentation](https://www.medmodels.de/api-reference/latest).
