@@ -23,21 +23,21 @@ class TestClassicDistanceModels(unittest.TestCase):
         cols = ["a", "b", "c"]
         array = np.array([[1, 3, 5], [5, 2, 1], [1, 4, 10]])
         c_set = pl.DataFrame(array, schema=cols)
-        t_set = pl.DataFrame([[1, 4, 2]], schema=cols)
+        t_set = pl.DataFrame([[1, 4, 2]], schema=cols, orient="row")
         covs = ["a", "c"]
 
         # absolute metric
-        expected_abs = pl.DataFrame([[1.0, 3.0, 5.0]], schema=cols)
+        expected_abs = pl.DataFrame([[1.0, 3.0, 5.0]], schema=cols, orient="row")
         result_abs = cdm.nearest_neighbor(t_set, c_set, "absolute", covariates=covs)
         self.assertTrue(result_abs.equals(expected_abs))
 
         # mahalanobis metric
-        expected_mah = pl.DataFrame([[1.0, 3.0, 5.0]], schema=cols)
+        expected_mah = pl.DataFrame([[1.0, 3.0, 5.0]], schema=cols, orient="row")
         result_mah = cdm.nearest_neighbor(t_set, c_set, "mahalanobis", covariates=covs)
         self.assertTrue(result_mah.equals(expected_mah))
 
         expected_abs_2nn = pl.DataFrame(
-            [[1.0, 3.0, 5.0], [1.0, 4.0, 10.0]], schema=cols
+            [[1.0, 3.0, 5.0], [1.0, 4.0, 10.0]], schema=cols, orient="row"
         )
         result_abs_2nn = cdm.nearest_neighbor(
             t_set, c_set, "absolute", covariates=covs, number_of_neighbors=2

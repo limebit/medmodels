@@ -84,7 +84,9 @@ def nearest_neighbor(
 
         for neighbor_index in neighbor_indices:
             new_row = pl.DataFrame(
-                [control_array_full[neighbor_index]], schema=treated_set.columns
+                [control_array_full[neighbor_index]],
+                schema=treated_set.columns,
+                orient="row",
             )
             matched_control.append(new_row)
 
