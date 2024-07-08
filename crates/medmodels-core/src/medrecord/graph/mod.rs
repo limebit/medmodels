@@ -113,11 +113,23 @@ impl Graph {
             )))?;
 
         for edge_index in node.outgoing_edge_indices {
-            self.edges.remove(&edge_index);
+            let edge = self.edges.remove(&edge_index).expect("Edge must exist");
+
+            self.nodes
+                .get_mut(&edge.target_node_index)
+                .expect("Node must exist")
+                .incoming_edge_indices
+                .remove(&edge_index);
         }
 
         for edge_index in node.incoming_edge_indices {
-            self.edges.remove(&edge_index);
+            let edge = self.edges.remove(&edge_index).expect("Edge must exist");
+
+            self.nodes
+                .get_mut(&edge.source_node_index)
+                .expect("Node must exist")
+                .outgoing_edge_indices
+                .remove(&edge_index);
         }
 
         Ok(node.attributes)
