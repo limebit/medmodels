@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Dict, Set, Tuple
 
-from medmodels.matching.matching_classes.matching import Matching
-from medmodels.matching.matching_classes.neighbors import NeighborsMatching
-from medmodels.matching.matching_classes.propensity import PropensityMatching
+from medmodels.matching.matching import Matching
+from medmodels.matching.neighbors import NeighborsMatching
+from medmodels.matching.propensity import PropensityMatching
 from medmodels.medrecord.medrecord import MedRecord
 from medmodels.medrecord.types import NodeIndex
 

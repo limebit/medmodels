@@ -18,7 +18,7 @@ import pandas as pd
 
 from medmodels import MedRecord
 from medmodels.matching.algorithms.propensity_score import Model
-from medmodels.matching.matching_classes.matching import MatchingMethod
+from medmodels.matching.matching import MatchingMethod
 from medmodels.matching.metrics import Metric
 from medmodels.medrecord import node
 from medmodels.medrecord.querying import NodeOperation
@@ -28,9 +28,9 @@ from medmodels.medrecord.types import (
     MedRecordAttributeInputList,
     NodeIndex,
 )
-from medmodels.treatment_effect_estimation.analysis_modules.estimate import Estimate
-from medmodels.treatment_effect_estimation.analysis_modules.report import Report
 from medmodels.treatment_effect_estimation.builder import TreatmentEffectBuilder
+from medmodels.treatment_effect_estimation.estimate import Estimate
+from medmodels.treatment_effect_estimation.report import Report
 
 
 class TreatmentEffect:
@@ -163,11 +163,9 @@ class TreatmentEffect:
         treatment_effect._patients_group = patients_group
         treatment_effect._time_attribute = time_attribute
 
-        # Add the treatments and outcomes to the class
         treatment_effect._treatments_group = treatment
         treatment_effect._outcomes_group = outcome
 
-        # configure treatment effect
         treatment_effect._washout_period_days = washout_period_days
         treatment_effect._washout_period_reference = washout_period_reference
         treatment_effect._grace_period_days = grace_period_days
@@ -177,7 +175,6 @@ class TreatmentEffect:
         treatment_effect._outcome_before_treatment_days = outcome_before_treatment_days
         treatment_effect._filter_controls_operation = filter_controls_operation
 
-        # configure matching
         treatment_effect._matching_method = matching_method
         treatment_effect._matching_essential_covariates = matching_essential_covariates
         treatment_effect._matching_one_hot_covariates = matching_one_hot_covariates
@@ -205,7 +202,7 @@ class TreatmentEffect:
                 tuple containing the IDs of patients in the treatment true, treatment
                 false, control true, and control false groups, respectively.
         """
-        # Find the patients that underwent the treatment
+        # Find patients that underwent the treatment
         treated_group = self._find_treated_patients(medrecord)
         treated_group, washout_nodes = self._apply_washout_period(
             medrecord, treated_group
@@ -306,7 +303,7 @@ class TreatmentEffect:
                 )
             )
 
-            # Finding the patients that had the outcome before the treatment
+            # Find patients that had the outcome before the treatment
             if self._outcome_before_treatment_days:
                 outcome_before_treatment_nodes.update(
                     {
@@ -324,7 +321,7 @@ class TreatmentEffect:
                 )
                 nodes_to_check -= outcome_before_treatment_nodes
 
-            # Finding the patients that had the outcome after the treatment
+            # Find patients that had the outcome after the treatment
             treatment_true.update(
                 {
                     node_index
@@ -588,7 +585,6 @@ class TreatmentEffect:
         if len(control_group) == 0:
             raise ValueError("No patients found for control groups in this MedRecord.")
 
-        # Set the control groups and the outcomes
         control_true = set()
         control_false = set()
         outcomes = medrecord.group(self._outcomes_group)

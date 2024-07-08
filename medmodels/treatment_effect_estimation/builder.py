@@ -4,7 +4,7 @@ from typing import Any, Dict, Literal, Optional
 
 import medmodels.treatment_effect_estimation.treatment_effect as tee
 from medmodels.matching.algorithms.propensity_score import Model
-from medmodels.matching.matching_classes.matching import MatchingMethod
+from medmodels.matching.matching import MatchingMethod
 from medmodels.matching.metrics import Metric
 from medmodels.medrecord.querying import NodeOperation
 from medmodels.medrecord.types import (
@@ -302,7 +302,7 @@ class TreatmentEffectBuilder:
 
         return self
 
-    def finish(self) -> tee.TreatmentEffect:
+    def build(self) -> tee.TreatmentEffect:
         """
         Builds the treatment effect with all the provided configurations.
 

@@ -4,7 +4,7 @@ from typing import Set
 
 from medmodels import MedRecord
 from medmodels.matching.algorithms.classic_distance_models import nearest_neighbor
-from medmodels.matching.matching_classes.matching import Matching
+from medmodels.matching.matching import Matching
 from medmodels.matching.metrics import Metric
 from medmodels.medrecord.types import (
     MedRecordAttributeInputList,
