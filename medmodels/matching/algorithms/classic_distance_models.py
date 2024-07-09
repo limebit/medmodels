@@ -54,25 +54,27 @@ def nearest_neighbor(
         (treated_array.shape[0], number_of_neighbors), -1, dtype=int
     )
 
-    for i in range(number_of_neighbors):
+    for neighbor_index in range(number_of_neighbors):
         # Solve the assignment problem using the Hungarian algorithm
-        row_ind, col_ind = linear_sum_assignment(cost_matrix)
+        row_indices, column_indices = linear_sum_assignment(cost_matrix)
 
         # Filter out already used control indices
-        row_ind_filtered = []
-        col_ind_filtered = []
+        row_indices_filtered = []
+        column_indices_filtered = []
 
-        for r, c in zip(row_ind, col_ind):
-            if c not in used_control_indices:
-                row_ind_filtered.append(r)
-                col_ind_filtered.append(c)
-                used_control_indices.add(c)
+        for row, column in zip(row_indices, column_indices):
+            if column not in used_control_indices:
+                row_indices_filtered.append(row)
+                column_indices_filtered.append(column)
+                used_control_indices.add(column)
 
         # Store the matched indices
-        final_matches[np.array(row_ind_filtered), i] = col_ind_filtered
+        final_matches[np.array(row_indices_filtered), neighbor_index] = (
+            column_indices_filtered
+        )
 
         # Remove matched controls from the cost matrix to avoid re-selection
-        cost_matrix[:, col_ind_filtered] = np.inf
+        cost_matrix[:, column_indices_filtered] = np.inf
 
     # Flatten the final matches to get unique control indices
     matched_indices = final_matches.flatten()
@@ -107,11 +109,15 @@ def normalize_data(
     treated_array = treated_set.select(covariates).to_numpy().astype(float)
 
     # Normalize data: take the maximums and minimums per columns of both arrays combined
-    max_vals = np.maximum(np.max(treated_array, axis=0), np.max(control_array, axis=0))
-    min_vals = np.minimum(np.min(treated_array, axis=0), np.min(control_array, axis=0))
+    maximum_values = np.maximum(
+        np.max(treated_array, axis=0), np.max(control_array, axis=0)
+    )
+    minimum_values = np.minimum(
+        np.min(treated_array, axis=0), np.min(control_array, axis=0)
+    )
 
     # Normalize the data
-    control_array = (control_array - min_vals) / (max_vals - min_vals)
-    treated_array = (treated_array - min_vals) / (max_vals - min_vals)
+    control_array = (control_array - minimum_values) / (maximum_values - minimum_values)
+    treated_array = (treated_array - minimum_values) / (maximum_values - minimum_values)
 
     return control_array, treated_array
