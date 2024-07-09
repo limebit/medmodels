@@ -313,14 +313,21 @@ mod test {
         assert_eq!(1, group_mapping.group_count());
 
         group_mapping
-            .add_group("1".into(), Some(vec!["0".into(), "1".into()]), None)
+            .add_group(
+                "1".into(),
+                Some(vec!["0".into(), "1".into()]),
+                Some(vec![0, 1]),
+            )
             .unwrap();
 
         assert_eq!(2, group_mapping.group_count());
-
         assert_eq!(
             2,
             group_mapping.nodes_in_group(&"1".into()).unwrap().count()
+        );
+        assert_eq!(
+            2,
+            group_mapping.edges_in_group(&"1".into()).unwrap().count()
         );
     }
 
@@ -377,6 +384,44 @@ mod test {
     }
 
     #[test]
+    fn test_add_edge_to_group() {
+        let mut group_mapping = GroupMapping::new();
+
+        group_mapping.add_group("0".into(), None, None).unwrap();
+
+        assert_eq!(
+            0,
+            group_mapping.edges_in_group(&"0".into()).unwrap().count()
+        );
+
+        group_mapping.add_edge_to_group("0".into(), 0).unwrap();
+
+        assert_eq!(
+            1,
+            group_mapping.edges_in_group(&"0".into()).unwrap().count()
+        );
+    }
+
+    #[test]
+    fn test_invalid_add_edge_to_group() {
+        let mut group_mapping = GroupMapping::new();
+
+        group_mapping
+            .add_group("0".into(), None, Some(vec![0]))
+            .unwrap();
+
+        // Adding to a non-existing group should fail
+        assert!(group_mapping
+            .add_edge_to_group("50".into(), 1)
+            .is_err_and(|e| matches!(e, MedRecordError::IndexError(_))));
+
+        // Adding an edge to a group that already is in the group should fail
+        assert!(group_mapping
+            .add_edge_to_group("0".into(), 0)
+            .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
+    }
+
+    #[test]
     fn test_remove_group() {
         let mut group_mapping = GroupMapping::new();
 
@@ -421,6 +466,27 @@ mod test {
     }
 
     #[test]
+    fn test_remove_edge() {
+        let mut group_mapping = GroupMapping::new();
+
+        group_mapping
+            .add_group("0".into(), None, Some(vec![0]))
+            .unwrap();
+
+        assert_eq!(
+            1,
+            group_mapping.edges_in_group(&"0".into()).unwrap().count()
+        );
+
+        group_mapping.remove_edge(&0);
+
+        assert_eq!(
+            0,
+            group_mapping.edges_in_group(&"0".into()).unwrap().count()
+        );
+    }
+
+    #[test]
     fn test_remove_node_from_group() {
         let mut group_mapping = GroupMapping::new();
 
@@ -444,7 +510,7 @@ mod test {
     }
 
     #[test]
-    fn test_invalid_remove_from_group() {
+    fn test_invalid_remove_node_from_group() {
         let mut group_mapping = GroupMapping::new();
 
         group_mapping
@@ -459,6 +525,48 @@ mod test {
         // Removing a non-existing node from a group should fail
         assert!(group_mapping
             .remove_node_from_group(&"0".into(), &"50".into())
+            .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
+    }
+
+    #[test]
+    fn test_remove_edge_from_group() {
+        let mut group_mapping = GroupMapping::new();
+
+        group_mapping
+            .add_group("0".into(), None, Some(vec![0, 1]))
+            .unwrap();
+
+        assert_eq!(
+            2,
+            group_mapping.edges_in_group(&"0".into()).unwrap().count()
+        );
+
+        group_mapping
+            .remove_edge_from_group(&"0".into(), &0)
+            .unwrap();
+
+        assert_eq!(
+            1,
+            group_mapping.edges_in_group(&"0".into()).unwrap().count()
+        );
+    }
+
+    #[test]
+    fn test_invalid_remove_edge_from_group() {
+        let mut group_mapping = GroupMapping::new();
+
+        group_mapping
+            .add_group("0".into(), None, Some(vec![0]))
+            .unwrap();
+
+        // Removing an edge from a non-existing group should fail
+        assert!(group_mapping
+            .remove_edge_from_group(&"50".into(), &0)
+            .is_err_and(|e| matches!(e, MedRecordError::IndexError(_))));
+
+        // Removing a non-existing edge from a group should fail
+        assert!(group_mapping
+            .remove_edge_from_group(&"0".into(), &50)
             .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
     }
 
@@ -496,6 +604,30 @@ mod test {
     }
 
     #[test]
+    fn test_edges_in_group() {
+        let mut group_mapping = GroupMapping::new();
+
+        group_mapping
+            .add_group("0".into(), None, Some(vec![0, 1]))
+            .unwrap();
+
+        assert_eq!(
+            2,
+            group_mapping.edges_in_group(&"0".into()).unwrap().count()
+        );
+    }
+
+    #[test]
+    fn test_invalid_edges_in_group() {
+        let group_mapping = GroupMapping::new();
+
+        // Querying the edges in a non-existing group should fail
+        assert!(group_mapping
+            .edges_in_group(&"0".into())
+            .is_err_and(|e| matches!(e, MedRecordError::IndexError(_))));
+    }
+
+    #[test]
     fn test_groups_of_node() {
         let mut group_mapping = GroupMapping::new();
 
@@ -504,6 +636,17 @@ mod test {
             .unwrap();
 
         assert_eq!(1, group_mapping.groups_of_node(&"0".into()).count());
+    }
+
+    #[test]
+    fn test_groups_of_edge() {
+        let mut group_mapping = GroupMapping::new();
+
+        group_mapping
+            .add_group("0".into(), None, Some(vec![0]))
+            .unwrap();
+
+        assert_eq!(1, group_mapping.groups_of_edge(&0).count());
     }
 
     #[test]

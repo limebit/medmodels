@@ -1,6 +1,6 @@
 use medmodels_core::errors::MedRecordError;
 use pyo3::{
-    exceptions::{PyAssertionError, PyIndexError, PyKeyError, PyRuntimeError},
+    exceptions::{PyAssertionError, PyIndexError, PyKeyError, PyRuntimeError, PyValueError},
     PyErr,
 };
 
@@ -20,7 +20,7 @@ impl From<PyMedRecordError> for PyErr {
             MedRecordError::KeyError(message) => PyKeyError::new_err(message),
             MedRecordError::ConversionError(message) => PyRuntimeError::new_err(message),
             MedRecordError::AssertionError(message) => PyAssertionError::new_err(message),
-            MedRecordError::SchemaError(message) => PyAssertionError::new_err(message),
+            MedRecordError::SchemaError(message) => PyValueError::new_err(message),
         }
     }
 }

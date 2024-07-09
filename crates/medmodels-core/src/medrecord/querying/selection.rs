@@ -939,7 +939,11 @@ mod test {
 
     #[test]
     fn test_select_edges_edge() {
-        let medrecord = create_medrecord();
+        let mut medrecord = create_medrecord();
+
+        medrecord
+            .add_group("test".into(), None, Some(vec![0]))
+            .unwrap();
 
         // Edge connected to target
         assert_eq!(
@@ -963,6 +967,15 @@ mod test {
         assert_eq!(
             2,
             medrecord.select_edges(edge().connected("1")).iter().count(),
+        );
+
+        // Edge in group
+        assert_eq!(
+            1,
+            medrecord
+                .select_edges(edge().in_group("test"))
+                .iter()
+                .count(),
         );
 
         // Edge has attribute

@@ -41,6 +41,7 @@ format: install-dev
 	${VENV_PYTHON} -m ruff check --select I --fix
 	${VENV_PYTHON} -m ruff format
 	cargo fmt
+	cargo clippy --all-features --fix --allow-staged
 
 clean:
 	rm -rf $(VENV_NAME)

@@ -18,30 +18,6 @@ pub enum DataType {
     Option(Box<DataType>),
 }
 
-impl DataType {
-    pub(crate) fn evaluate(&self, other: &Self) -> bool {
-        match (self, other) {
-            (DataType::Union(_), DataType::Union(_)) => self == other,
-            (DataType::Union((first_datatype, second_datatype)), _) => {
-                first_datatype.evaluate(other) || second_datatype.evaluate(other)
-            }
-            (DataType::Option(_), DataType::Option(_)) => self == other,
-            (DataType::Option(_), DataType::Null) => true,
-            (DataType::Option(datatype), _) => datatype.evaluate(other),
-            (DataType::Any, _) => true,
-            _ => matches!(
-                (self, other),
-                (DataType::String, DataType::String)
-                    | (DataType::Int, DataType::Int)
-                    | (DataType::Float, DataType::Float)
-                    | (DataType::Bool, DataType::Bool)
-                    | (DataType::Null, DataType::Null)
-                    | (DataType::Any, DataType::Any)
-            ),
-        }
-    }
-}
-
 impl Default for DataType {
     fn default() -> Self {
         Self::Any
@@ -112,10 +88,34 @@ impl Display for DataType {
                 write!(f, "]")
             }
             DataType::Option(data_type) => {
-                write!(f, "Option(")?;
+                write!(f, "Option[")?;
                 data_type.fmt(f)?;
-                write!(f, ")")
+                write!(f, "]")
             }
+        }
+    }
+}
+
+impl DataType {
+    pub(crate) fn evaluate(&self, other: &Self) -> bool {
+        match (self, other) {
+            (DataType::Union(_), DataType::Union(_)) => self == other,
+            (DataType::Union((first_datatype, second_datatype)), _) => {
+                first_datatype.evaluate(other) || second_datatype.evaluate(other)
+            }
+            (DataType::Option(_), DataType::Option(_)) => self == other,
+            (DataType::Option(_), DataType::Null) => true,
+            (DataType::Option(datatype), _) => datatype.evaluate(other),
+            (DataType::Any, _) => true,
+            _ => matches!(
+                (self, other),
+                (DataType::String, DataType::String)
+                    | (DataType::Int, DataType::Int)
+                    | (DataType::Float, DataType::Float)
+                    | (DataType::Bool, DataType::Bool)
+                    | (DataType::Null, DataType::Null)
+                    | (DataType::Any, DataType::Any)
+            ),
         }
     }
 }
@@ -194,5 +194,207 @@ where
 {
     fn neq(&self, other: &Self) -> bool {
         self != other
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::{DataType, MedRecordValue};
+
+    #[test]
+    fn test_default() {
+        assert_eq!(DataType::Any, DataType::default());
+    }
+
+    #[test]
+    fn test_from_medrecordvalue() {
+        assert_eq!(
+            DataType::String,
+            DataType::from(MedRecordValue::String("".to_string()))
+        );
+        assert_eq!(DataType::Int, DataType::from(MedRecordValue::Int(0)));
+        assert_eq!(DataType::Float, DataType::from(MedRecordValue::Float(0.0)));
+        assert_eq!(DataType::Bool, DataType::from(MedRecordValue::Bool(false)));
+        assert_eq!(DataType::Null, DataType::from(MedRecordValue::Null));
+    }
+
+    #[test]
+    fn test_from_medrecordvalue_reference() {
+        assert_eq!(
+            DataType::String,
+            DataType::from(&MedRecordValue::String("".to_string()))
+        );
+        assert_eq!(DataType::Int, DataType::from(&MedRecordValue::Int(0)));
+        assert_eq!(DataType::Float, DataType::from(&MedRecordValue::Float(0.0)));
+        assert_eq!(DataType::Bool, DataType::from(&MedRecordValue::Bool(false)));
+        assert_eq!(DataType::Null, DataType::from(&MedRecordValue::Null));
+    }
+
+    #[test]
+    fn test_partial_eq() {
+        assert!(DataType::String == DataType::String);
+        assert!(DataType::Int == DataType::Int);
+        assert!(DataType::Float == DataType::Float);
+        assert!(DataType::Bool == DataType::Bool);
+        assert!(DataType::Null == DataType::Null);
+        assert!(DataType::Any == DataType::Any);
+
+        assert!(
+            DataType::Union((Box::new(DataType::String), Box::new(DataType::Int)))
+                == DataType::Union((Box::new(DataType::String), Box::new(DataType::Int)))
+        );
+        assert!(
+            DataType::Union((Box::new(DataType::String), Box::new(DataType::Int)))
+                == DataType::Union((Box::new(DataType::Int), Box::new(DataType::String)))
+        );
+
+        assert!(
+            DataType::Option(Box::new(DataType::String))
+                == DataType::Option(Box::new(DataType::String))
+        );
+
+        assert!(DataType::String != DataType::Int);
+        assert!(DataType::String != DataType::Float);
+        assert!(DataType::String != DataType::Bool);
+        assert!(DataType::String != DataType::Null);
+        assert!(DataType::String != DataType::Any);
+
+        assert!(DataType::Int != DataType::String);
+        assert!(DataType::Int != DataType::Float);
+        assert!(DataType::Int != DataType::Bool);
+        assert!(DataType::Int != DataType::Null);
+        assert!(DataType::Int != DataType::Any);
+
+        assert!(DataType::Float != DataType::String);
+        assert!(DataType::Float != DataType::Int);
+        assert!(DataType::Float != DataType::Bool);
+        assert!(DataType::Float != DataType::Null);
+        assert!(DataType::Float != DataType::Any);
+
+        assert!(DataType::Bool != DataType::String);
+        assert!(DataType::Bool != DataType::Int);
+        assert!(DataType::Bool != DataType::Float);
+        assert!(DataType::Bool != DataType::Null);
+        assert!(DataType::Bool != DataType::Any);
+
+        assert!(DataType::Null != DataType::String);
+        assert!(DataType::Null != DataType::Int);
+        assert!(DataType::Null != DataType::Float);
+        assert!(DataType::Null != DataType::Bool);
+        assert!(DataType::Null != DataType::Any);
+
+        assert!(DataType::Any != DataType::String);
+        assert!(DataType::Any != DataType::Int);
+        assert!(DataType::Any != DataType::Float);
+        assert!(DataType::Any != DataType::Bool);
+        assert!(DataType::Any != DataType::Null);
+
+        // If all the basic datatypes have been tested, it should be safe to assume that the
+        // Union and Option variants will work as expected.
+        assert!(
+            DataType::Union((Box::new(DataType::String), Box::new(DataType::Int)))
+                != DataType::Union((Box::new(DataType::Int), Box::new(DataType::Float)))
+        );
+        assert!(
+            DataType::Option(Box::new(DataType::String))
+                != DataType::Option(Box::new(DataType::Int))
+        );
+    }
+
+    #[test]
+    fn test_display() {
+        assert_eq!("String", format!("{}", DataType::String));
+        assert_eq!("Integer", format!("{}", DataType::Int));
+        assert_eq!("Float", format!("{}", DataType::Float));
+        assert_eq!("Boolean", format!("{}", DataType::Bool));
+        assert_eq!("Null", format!("{}", DataType::Null));
+        assert_eq!("Any", format!("{}", DataType::Any));
+        assert_eq!(
+            "Union[String, Integer]",
+            format!(
+                "{}",
+                DataType::Union((Box::new(DataType::String), Box::new(DataType::Int)))
+            )
+        );
+        assert_eq!(
+            "Option[String]",
+            format!("{}", DataType::Option(Box::new(DataType::String)))
+        );
+    }
+
+    #[test]
+    fn test_evaluate() {
+        assert!(DataType::String.evaluate(&DataType::String));
+        assert!(DataType::Int.evaluate(&DataType::Int));
+        assert!(DataType::Float.evaluate(&DataType::Float));
+        assert!(DataType::Bool.evaluate(&DataType::Bool));
+        assert!(DataType::Null.evaluate(&DataType::Null));
+        assert!(DataType::Any.evaluate(&DataType::Any));
+
+        assert!(
+            DataType::Union((Box::new(DataType::String), Box::new(DataType::Int))).evaluate(
+                &DataType::Union((Box::new(DataType::String), Box::new(DataType::Int)))
+            )
+        );
+        assert!(
+            DataType::Union((Box::new(DataType::String), Box::new(DataType::Int))).evaluate(
+                &DataType::Union((Box::new(DataType::Int), Box::new(DataType::String)))
+            )
+        );
+
+        assert!(
+            DataType::Union((Box::new(DataType::String), Box::new(DataType::Int)))
+                .evaluate(&DataType::String)
+        );
+        assert!(
+            DataType::Union((Box::new(DataType::String), Box::new(DataType::Int)))
+                .evaluate(&DataType::Int)
+        );
+
+        assert!(DataType::Option(Box::new(DataType::String))
+            .evaluate(&DataType::Option(Box::new(DataType::String))));
+        assert!(DataType::Option(Box::new(DataType::String)).evaluate(&DataType::Null));
+        assert!(DataType::Option(Box::new(DataType::String)).evaluate(&DataType::String));
+
+        assert!(DataType::Any.evaluate(&DataType::String));
+
+        assert!(!DataType::String.evaluate(&DataType::Int));
+        assert!(!DataType::String.evaluate(&DataType::Float));
+        assert!(!DataType::String.evaluate(&DataType::Bool));
+        assert!(!DataType::String.evaluate(&DataType::Null));
+        assert!(!DataType::String.evaluate(&DataType::Any));
+
+        assert!(!DataType::Int.evaluate(&DataType::String));
+        assert!(!DataType::Int.evaluate(&DataType::Float));
+        assert!(!DataType::Int.evaluate(&DataType::Bool));
+        assert!(!DataType::Int.evaluate(&DataType::Null));
+        assert!(!DataType::Int.evaluate(&DataType::Any));
+
+        assert!(!DataType::Float.evaluate(&DataType::String));
+        assert!(!DataType::Float.evaluate(&DataType::Int));
+        assert!(!DataType::Float.evaluate(&DataType::Bool));
+        assert!(!DataType::Float.evaluate(&DataType::Null));
+        assert!(!DataType::Float.evaluate(&DataType::Any));
+
+        assert!(!DataType::Bool.evaluate(&DataType::String));
+        assert!(!DataType::Bool.evaluate(&DataType::Int));
+        assert!(!DataType::Bool.evaluate(&DataType::Float));
+        assert!(!DataType::Bool.evaluate(&DataType::Null));
+        assert!(!DataType::Bool.evaluate(&DataType::Any));
+
+        assert!(!DataType::Null.evaluate(&DataType::String));
+        assert!(!DataType::Null.evaluate(&DataType::Int));
+        assert!(!DataType::Null.evaluate(&DataType::Float));
+        assert!(!DataType::Null.evaluate(&DataType::Bool));
+        assert!(!DataType::Null.evaluate(&DataType::Any));
+
+        assert!(
+            !DataType::Union((Box::new(DataType::String), Box::new(DataType::Int))).evaluate(
+                &DataType::Union((Box::new(DataType::Int), Box::new(DataType::Float)))
+            )
+        );
+
+        assert!(!DataType::Option(Box::new(DataType::String))
+            .evaluate(&DataType::Option(Box::new(DataType::Int))));
     }
 }

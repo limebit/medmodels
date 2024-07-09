@@ -591,6 +591,8 @@ class TestMedRecord(unittest.TestCase):
     def test_select_edges_edge(self):
         medrecord = create_medrecord()
 
+        medrecord.add_group("test", edges=[0])
+
         # Edge connected to target
         self.assertEqual(
             sorted([1, 2, 3]),
@@ -607,6 +609,12 @@ class TestMedRecord(unittest.TestCase):
         self.assertEqual(
             sorted([0, 1]),
             sorted(medrecord.select_edges(edge().connected("1"))),
+        )
+
+        # Edge in group
+        self.assertEqual(
+            [0],
+            medrecord.select_edges(edge().in_group("test")),
         )
 
         # Edge has attribute

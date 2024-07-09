@@ -99,6 +99,15 @@ class MedRecord:
 
     @classmethod
     def with_schema(cls, schema: Schema) -> MedRecord:
+        """
+        Creates a MedRecord instance with the specified schema.
+
+        Args:
+            schema (Schema): The schema to apply to the MedRecord.
+
+        Returns:
+            MedRecord: A new instance with the provided schema.
+        """
         medrecord = cls.__new__(cls)
         medrecord._medrecord = PyMedRecord.with_schema(schema._schema)
         return medrecord
@@ -263,9 +272,20 @@ class MedRecord:
         """
         self._medrecord.to_ron(path)
 
-    def update_schema(self, schema: Schema) -> None:
+    @property
+    def schema(self) -> Schema:
         """
-        Updates the schema of the MedRecord instance.
+        Returns the schema of the MedRecord instance.
+
+        Returns:
+            Schema: The schema of the MedRecord.
+        """
+        return Schema._from_pyschema(self._medrecord.schema)
+
+    @schema.setter
+    def schema(self, schema: Schema) -> None:
+        """
+        Sets the schema of the MedRecord instance.
 
         Args:
             schema (Schema): The new schema to apply.
