@@ -550,7 +550,7 @@ class TestTreatmentEffect(unittest.TestCase):
             "control_true": {"P1", "P4", "P7"},
             "control_false": {"P5", "P8", "P9"},
         }
-        subjects_tee = tee.estimate.subjects_contigency_table(self.medrecord)
+        subjects_tee = tee.estimate.subjects_contingency_table(self.medrecord)
         self.assertDictEqual(subjects_test, subjects_tee)
 
     def test_follow_up_period(self):
@@ -739,7 +739,7 @@ class TestTreatmentEffect(unittest.TestCase):
             .build()
         )
 
-        subjects = tee.estimate.subjects_contigency_table(self.medrecord)
+        subjects = tee.estimate.subjects_contingency_table(self.medrecord)
 
         # multiple patients are equally similar to the treatment group
         # these are exact macthes and should always be included
@@ -755,7 +755,7 @@ class TestTreatmentEffect(unittest.TestCase):
             .build()
         )
 
-        subjects = tee.estimate.subjects_contigency_table(self.medrecord)
+        subjects = tee.estimate.subjects_contingency_table(self.medrecord)
 
         self.assertIn("P4", subjects["control_true"])
         self.assertIn("P5", subjects["control_false"])
