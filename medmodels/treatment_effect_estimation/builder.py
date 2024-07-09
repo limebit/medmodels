@@ -3,7 +3,6 @@ from __future__ import annotations
 from typing import Any, Dict, Literal, Optional
 
 import medmodels.treatment_effect_estimation.treatment_effect as tee
-from medmodels.matching.algorithms.classic_distance_models import Metric, NNAlgorithm
 from medmodels.matching.algorithms.propensity_score import Model
 from medmodels.matching.matching import MatchingMethod
 from medmodels.medrecord.querying import NodeOperation
@@ -38,9 +37,7 @@ class TreatmentEffectBuilder:
     matching_essential_covariates: Optional[MedRecordAttributeInputList]
     matching_one_hot_covariates: Optional[MedRecordAttributeInputList]
     matching_model: Optional[Model]
-    matching_distance_metric: Optional[Metric]
     matching_number_of_neighbors: Optional[int]
-    matching_nearest_neighbors_algorithm: Optional[NNAlgorithm]
     matching_hyperparam: Optional[Dict[str, Any]]
 
     def with_treatment(self, treatment: Group) -> TreatmentEffectBuilder:
@@ -230,8 +227,6 @@ class TreatmentEffectBuilder:
         essential_covariates: MedRecordAttributeInputList = ["gender", "age"],
         one_hot_covariates: MedRecordAttributeInputList = ["gender"],
         model: Model = "logit",
-        distance_metric: Metric = "minkowski",
-        nearest_neighbors_algorithm: NNAlgorithm = "auto",
         number_of_neighbors: int = 1,
         hyperparam: Optional[Dict[str, Any]] = None,
     ) -> TreatmentEffectBuilder:
@@ -247,10 +242,6 @@ class TreatmentEffectBuilder:
                 ["gender"].
             model (Model, optional): Model to choose for the matching. Defaults to
                 "logit".
-            distance_metric (Metric, optional): Metric to use for the distance
-                calculation. Defaults to "minkowski".
-            nearest_neighbors_algorithm (NNAlgorithm, optional): Algorithm used to
-                compute nearest neighbors. Defaults to "auto".
             number_of_neighbors (int, optional): Number of neighbors to consider
                 for the matching. Defaults to 1.
             hyperparam (Optional[Dict[str, Any]], optional): Hyperparameters for the
@@ -264,9 +255,7 @@ class TreatmentEffectBuilder:
         self.matching_essential_covariates = essential_covariates
         self.matching_one_hot_covariates = one_hot_covariates
         self.matching_model = model
-        self.matching_distance_metric = distance_metric
         self.matching_number_of_neighbors = number_of_neighbors
-        self.matching_nearest_neighbors_algorithm = nearest_neighbors_algorithm
         self.matching_hyperparam = hyperparam
 
         return self
@@ -275,8 +264,6 @@ class TreatmentEffectBuilder:
         self,
         essential_covariates: MedRecordAttributeInputList = ["gender", "age"],
         one_hot_covariates: MedRecordAttributeInputList = ["gender"],
-        distance_metric: Metric = "minkowski",
-        nearest_neighbors_algorithm: NNAlgorithm = "auto",
         number_of_neighbors: int = 1,
     ) -> TreatmentEffectBuilder:
         """
@@ -289,12 +276,8 @@ class TreatmentEffectBuilder:
             one_hot_covariates (MedRecordAttributeInputList, optional):
                 Covariates that are one-hot encoded for matching. Defaults to
                 ["gender"].
-            distance_metric (Metric, optional): Metric to use for the distance
-                calculation. Defaults to "minkowski".
             number_of_neighbors (int, optional): Number of neighbors to consider for the
                 matching. Defaults to 1.
-            nearest_neighbors_algorithm (NNAlgorithm, optional): Algorithm used to
-                compute nearest neighbors. Defaults to "auto".
 
         Returns:
             TreatmentEffectBuilder: The current instance of the TreatmentEffectBuilder
@@ -303,9 +286,7 @@ class TreatmentEffectBuilder:
         self.matching_method = "nearest_neighbors"
         self.matching_essential_covariates = essential_covariates
         self.matching_one_hot_covariates = one_hot_covariates
-        self.matching_distance_metric = distance_metric
         self.matching_number_of_neighbors = number_of_neighbors
-        self.matching_nearest_neighbors_algorithm = nearest_neighbors_algorithm
 
         return self
 

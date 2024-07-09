@@ -74,12 +74,10 @@ class Estimate:
         if self._treatment_effect._matching_method:
             matching: Matching = (
                 NeighborsMatching(
-                    distance_metric=self._treatment_effect._matching_distance_metric,
                     number_of_neighbors=self._treatment_effect._matching_number_of_neighbors,
                 )
                 if self._treatment_effect._matching_method == "nearest_neighbors"
                 else PropensityMatching(
-                    distance_metric=self._treatment_effect._matching_distance_metric,
                     number_of_neighbors=self._treatment_effect._matching_number_of_neighbors,
                     model=self._treatment_effect._matching_model,
                     hyperparam=self._treatment_effect._matching_hyperparam,

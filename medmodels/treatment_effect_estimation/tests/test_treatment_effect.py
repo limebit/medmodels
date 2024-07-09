@@ -237,10 +237,6 @@ def assert_treatment_effects_equal(
         treatment_effect1._matching_model, treatment_effect2._matching_model
     )
     test_case.assertEqual(
-        treatment_effect1._matching_distance_metric,
-        treatment_effect2._matching_distance_metric,
-    )
-    test_case.assertEqual(
         treatment_effect1._matching_number_of_neighbors,
         treatment_effect2._matching_number_of_neighbors,
     )
@@ -735,9 +731,7 @@ class TestTreatmentEffect(unittest.TestCase):
             TreatmentEffect.builder()
             .with_treatment("Rivaroxaban")
             .with_outcome("Stroke")
-            .with_nearest_neighbors_matching(
-                distance_metric="euclidean",
-            )
+            .with_nearest_neighbors_matching()
             .build()
         )
 
@@ -747,6 +741,7 @@ class TestTreatmentEffect(unittest.TestCase):
         # these are exact macthes and should always be included
         self.assertIn("P4", subjects["control_true"])
         self.assertIn("P5", subjects["control_false"])
+        self.assertIn("P8", subjects["control_false"])
 
     def test_propensity_matching(self):
         tee = (
@@ -761,6 +756,7 @@ class TestTreatmentEffect(unittest.TestCase):
 
         self.assertIn("P4", subjects["control_true"])
         self.assertIn("P5", subjects["control_false"])
+        self.assertIn("P1", subjects["control_true"])
 
     def test_find_controls(self):
         tee = (
