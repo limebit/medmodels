@@ -68,26 +68,23 @@ def nearest_neighbor(
 
     treated_array = treated_set.select(covariates).to_numpy().astype(float)
     control_array = control_set.select(covariates).to_numpy().astype(float)
+    control_array_full = control_set.to_numpy()
 
     nn = NearestNeighbors(
         n_neighbors=number_of_neighbors, metric=metric, algorithm=algorithm
     )
     nn.fit(control_array)
-
     _, indices = nn.kneighbors(treated_array)
 
-    matched_control = []
-    control_array_full = control_set.to_numpy()
-    for neighbor_indices in indices:
-        for neighbor_index in neighbor_indices:
-            new_row = pl.DataFrame(
-                [control_array_full[neighbor_index]],
-                schema=treated_set.columns,
-                orient="row",
-            )
-            matched_control.append(new_row)
-
-    return pl.concat(matched_control, how="vertical")
+    return pl.DataFrame(
+        [
+            control_array_full[neighbor_index]
+            for neighbor_indices in indices
+            for neighbor_index in neighbor_indices
+        ],
+        orient="row",
+        schema=treated_set.columns,
+    )
 
 
 ALGORITHMS = {"nearest neighbor": nearest_neighbor}

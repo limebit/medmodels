@@ -101,6 +101,8 @@ def run_propensity_score(
         model (Model, optional): Classification algorithm for predicting probabilities.
             Options include "logit", "dec_tree", "forest".
         metric (Metric, optional): Metric for matching. Defaults to "minkowski".
+        algorithm (NNAlgorithm, optional): Algorithm for computing nearest neighbors.
+            Defaults to "auto".
         number_of_neighbors (int, optional): Number of nearest neighbors to find for
             each treated unit. Defaults to 1.
         hyperparam (Optional[Dict[str, Any]], optional): Hyperparameters for model
@@ -139,7 +141,7 @@ def run_propensity_score(
         treated_set,
         control_set,
         metric=metric,
-        algorithm="auto",
+        algorithm=algorithm,
         number_of_neighbors=number_of_neighbors,
         covariates=["prop_score"],
     )

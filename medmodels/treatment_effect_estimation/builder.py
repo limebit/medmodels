@@ -35,12 +35,12 @@ class TreatmentEffectBuilder:
     filter_controls_operation: Optional[NodeOperation]
 
     matching_method: Optional[MatchingMethod]
-    matching_essential_covariates: MedRecordAttributeInputList
-    matching_one_hot_covariates: MedRecordAttributeInputList
-    matching_model: Model
-    matching_distance_metric: Metric
-    matching_number_of_neighbors: int
-    matching_nearest_neighbors_algorithm: NNAlgorithm
+    matching_essential_covariates: Optional[MedRecordAttributeInputList]
+    matching_one_hot_covariates: Optional[MedRecordAttributeInputList]
+    matching_model: Optional[Model]
+    matching_distance_metric: Optional[Metric]
+    matching_number_of_neighbors: Optional[int]
+    matching_nearest_neighbors_algorithm: Optional[NNAlgorithm]
     matching_hyperparam: Optional[Dict[str, Any]]
 
     def with_treatment(self, treatment: Group) -> TreatmentEffectBuilder:
@@ -248,7 +248,7 @@ class TreatmentEffectBuilder:
             model (Model, optional): Model to choose for the matching. Defaults to
                 "logit".
             distance_metric (Metric, optional): Metric to use for the distance
-                calculation. Defaults to "mahalanobis".
+                calculation. Defaults to "minkowski".
             nearest_neighbors_algorithm (NNAlgorithm, optional): Algorithm used to
                 compute nearest neighbors. Defaults to "auto".
             number_of_neighbors (int, optional): Number of neighbors to consider
