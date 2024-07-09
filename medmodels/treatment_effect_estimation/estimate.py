@@ -141,7 +141,7 @@ class Estimate:
             len(control_false),
         )
 
-    def subjects_contigency_table(
+    def subjects_contingency_table(
         self, medrecord: MedRecord
     ) -> Dict[str, Set[NodeIndex]]:
         """
