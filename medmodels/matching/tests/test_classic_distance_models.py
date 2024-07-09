@@ -38,6 +38,19 @@ class TestClassicDistanceModels(unittest.TestCase):
         )
         self.assertTrue(result_abs_2nn.equals(expected_abs_2nn))
 
+    def test_nearest_neighbor_value_error(self):
+        # Test case for checking the ValueError when all control units have been matched
+        c_set = pl.DataFrame({"a": [1, 2]})
+        t_set = pl.DataFrame({"a": [1, 2, 3]})
+
+        with self.assertRaises(ValueError) as context:
+            cdm.nearest_neighbor(t_set, c_set, number_of_neighbors=2)
+
+        self.assertEqual(
+            str(context.exception),
+            "The treated set is too large for the given number of neighbors.",
+        )
+
 
 if __name__ == "__main__":
     run_test = unittest.TestLoader().loadTestsFromTestCase(TestClassicDistanceModels)

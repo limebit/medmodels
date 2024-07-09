@@ -36,7 +36,7 @@ def nearest_neighbor(
         pl.DataFrame: DataFrame containing the matched control units for each treated
             unit.
     """
-    if treated_set.shape[0] > control_set.shape[0] * number_of_neighbors:
+    if treated_set.shape[0] * number_of_neighbors > control_set.shape[0]:
         raise ValueError(
             "The treated set is too large for the given number of neighbors."
         )
@@ -44,12 +44,7 @@ def nearest_neighbor(
         covariates = treated_set.columns
 
     control_array, treated_array = normalize_data(control_set, treated_set, covariates)
-
-    # Create the cost matrix
     cost_matrix = np.linalg.norm(treated_array[:, np.newaxis] - control_array, axis=2)
-
-    # Initialize a list to store the final matches and the used control indices
-    used_control_indices = set()
     final_matches = np.full(
         (treated_array.shape[0], number_of_neighbors), -1, dtype=int
     )
@@ -58,23 +53,11 @@ def nearest_neighbor(
         # Solve the assignment problem using the Hungarian algorithm
         row_indices, column_indices = linear_sum_assignment(cost_matrix)
 
-        # Filter out already used control indices
-        row_indices_filtered = []
-        column_indices_filtered = []
-
-        for row, column in zip(row_indices, column_indices):
-            if column not in used_control_indices:
-                row_indices_filtered.append(row)
-                column_indices_filtered.append(column)
-                used_control_indices.add(column)
-
         # Store the matched indices
-        final_matches[np.array(row_indices_filtered), neighbor_index] = (
-            column_indices_filtered
-        )
+        final_matches[np.array(row_indices), neighbor_index] = column_indices
 
         # Remove matched controls from the cost matrix to avoid re-selection
-        cost_matrix[:, column_indices_filtered] = np.inf
+        cost_matrix[:, column_indices] = np.inf
 
     # Flatten the final matches to get unique control indices
     matched_indices = final_matches.flatten()
