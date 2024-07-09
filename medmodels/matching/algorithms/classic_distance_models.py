@@ -1,18 +1,40 @@
 from __future__ import annotations
 
-from typing import Optional
+from typing import TYPE_CHECKING, Literal, Optional
 
-import numpy as np
 import polars as pl
+from sklearn.neighbors import NearestNeighbors
 
-from medmodels.matching import metrics
+if TYPE_CHECKING:
+    import sys
+
+    if sys.version_info >= (3, 10):
+        from typing import TypeAlias
+    else:
+        from typing_extensions import TypeAlias
+
 from medmodels.medrecord.types import MedRecordAttributeInputList
+
+Metric: TypeAlias = Literal[
+    "minkowski",
+    "euclidean",
+    "cosine",
+    "cityblock",
+    "l1",
+    "l2",
+    "manhattan",
+    "haversine",
+    "nan_euclidean",
+]
+
+NNAlgorithm: TypeAlias = Literal["auto", "ball_tree", "kd_tree", "brute"]
 
 
 def nearest_neighbor(
     treated_set: pl.DataFrame,
     control_set: pl.DataFrame,
-    metric: metrics.Metric,
+    metric: Metric = "minkowski",
+    algorithm: NNAlgorithm = "auto",
     number_of_neighbors: int = 1,
     covariates: Optional[MedRecordAttributeInputList] = None,
 ) -> pl.DataFrame:
@@ -28,9 +50,11 @@ def nearest_neighbor(
     Args:
         treated_set (pl.DataFrame): DataFrame for which matches are sought.
         control_set (pl.DataFrame): DataFrame from which matches are selected.
-        metric (metrics.Metric): Metric to measure closeness between units, e.g.,
-            "absolute", "mahalanobis". The metric must be available in the metrics
-            module.
+        metric (Metric): Metric to measure closeness between units, e.g.,
+            "minkowski", "euclidean", "cosine", "cityblock", "l1", "l2", "manhattan",
+            "haversine", "nan_euclidean". Defaults to "minkowski".
+        algorithm (NNAlgorithm, optional): Algorithm used to compute nearest neighbors.
+            Defaults to "auto". Options: "auto", "ball_tree", "kd_tree", "brute".
         number_of_neighbors (int, optional): Number of nearest neighbors to find for
             each treated unit. Defaults to 1.
         covariates (Optional[MedRecordAttributeInputList], optional): Covariates
@@ -44,44 +68,17 @@ def nearest_neighbor(
 
     treated_array = treated_set.select(covariates).to_numpy().astype(float)
     control_array = control_set.select(covariates).to_numpy().astype(float)
-    control_array_full = control_set.to_numpy()  # To keep all the information
+
+    nn = NearestNeighbors(
+        n_neighbors=number_of_neighbors, metric=metric, algorithm=algorithm
+    )
+    nn.fit(control_array)
+
+    _, indices = nn.kneighbors(treated_array)
+
     matched_control = []
-
-    cov = np.array([])
-    if metric == "mahalanobis":
-        cov = np.cov(np.concatenate((treated_array, control_array)).T)
-
-    for treated_subject in treated_array:
-        if metric == "mahalanobis":
-            if cov.ndim == 0:
-                inv_cov = 1 / cov
-            else:
-                try:
-                    inv_cov = np.linalg.inv(cov)
-                except np.linalg.LinAlgError:
-                    raise ValueError(
-                        "The covariance matrix is singular. Please, check the data."
-                    )
-
-            dist = [
-                metrics.mahalanobis_metric(
-                    treated_subject, control_subject, inv_cov=inv_cov
-                )
-                for control_subject in control_array
-            ]
-
-        else:
-            metric_function = metrics.METRICS[metric]
-
-            dist = [
-                metric_function(treated_subject, control_subject)
-                for control_subject in control_array
-            ]
-
-        neighbor_indices = np.argpartition(dist, number_of_neighbors)[
-            :number_of_neighbors
-        ]
-
+    control_array_full = control_set.to_numpy()
+    for neighbor_indices in indices:
         for neighbor_index in neighbor_indices:
             new_row = pl.DataFrame(
                 [control_array_full[neighbor_index]],
@@ -89,10 +86,6 @@ def nearest_neighbor(
                 orient="row",
             )
             matched_control.append(new_row)
-
-            # For the k:1 matching don't consider the chosen row any more.
-            control_array_full = np.delete(control_array_full, neighbor_index, 0)
-            control_array = np.delete(control_array, neighbor_index, 0)
 
     return pl.concat(matched_control, how="vertical")
 

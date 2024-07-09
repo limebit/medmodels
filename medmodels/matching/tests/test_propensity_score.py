@@ -118,7 +118,7 @@ class TestPropensityScore(unittest.TestCase):
 
         # using 2 nearest neighbors
         expected_logit = pl.DataFrame(
-            {"a": [1.0, 1.0], "b": [3.0, 4.0], "c": [5.0, 10.0]}
+            {"a": [1.0, 5.0], "b": [3.0, 2.0], "c": [5.0, 1.0]}
         )
         result_logit = ps.run_propensity_score(
             treated_set,

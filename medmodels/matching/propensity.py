@@ -6,10 +6,13 @@ import numpy as np
 import polars as pl
 
 from medmodels import MedRecord
-from medmodels.matching.algorithms.classic_distance_models import nearest_neighbor
+from medmodels.matching.algorithms.classic_distance_models import (
+    Metric,
+    NNAlgorithm,
+    nearest_neighbor,
+)
 from medmodels.matching.algorithms.propensity_score import Model, calculate_propensity
 from medmodels.matching.matching import Matching
-from medmodels.matching.metrics import Metric
 from medmodels.medrecord.types import MedRecordAttributeInputList, NodeIndex
 
 
@@ -26,6 +29,7 @@ class PropensityMatching(Matching):
 
     model: Model
     distance_metric: Metric
+    nearest_neighbors_algorithm: NNAlgorithm
     number_of_neighbors: int
     hyperparam: Optional[Dict[str, Any]]
 
@@ -33,7 +37,8 @@ class PropensityMatching(Matching):
         self,
         *,
         model: Model = "logit",
-        distance_metric: Metric = "absolute",
+        distance_metric: Metric = "minkowski",
+        nearest_neighbors_algorithm: NNAlgorithm = "auto",
         number_of_neighbors: int = 1,
         hyperparam: Optional[Dict[str, Any]] = None,
     ):
@@ -44,8 +49,9 @@ class PropensityMatching(Matching):
             model (Model, optional): classification method to be used, default: "logit".
                 Can be chosen from ["logit", "dec_tree", "forest"].
             distance_metric (Metric, optional): metric to be used for the matching.
-                Defaults to "absolute". Can be chosen from ["absolute", "exact",
-                "mahalanobis"].
+                Defaults to "minkowski".
+            nearest_neighbors_algorithm (NNAlgorithm, optional): algorithm used to
+                compute nearest neighbors. Defaults to "auto".
             number_of_neighbors (int, optional): number of neighbors to be matched per
                 treated subject. Defaults to 1.
             hyperparam (Optional[Dict[str, Any]], optional): hyperparameters for the
@@ -53,6 +59,7 @@ class PropensityMatching(Matching):
         """
         self.model = model
         self.distance_metric = distance_metric
+        self.nearest_neighbors_algorithm = nearest_neighbors_algorithm
         self.number_of_neighbors = number_of_neighbors
         self.hyperparam = hyperparam
 
@@ -114,6 +121,7 @@ class PropensityMatching(Matching):
         matched_control = nearest_neighbor(
             data_treated,
             data_control,
+            algorithm=self.nearest_neighbors_algorithm,
             number_of_neighbors=self.number_of_neighbors,
             metric=self.distance_metric,
             covariates=["prop_score"],

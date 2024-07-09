@@ -13,9 +13,9 @@ class TestClassicDistanceModels(unittest.TestCase):
         c_set = pl.DataFrame({"a": [1, 5, 1, 3]})
         t_set = pl.DataFrame({"a": [1, 4]})
 
-        # absolute metric
+        # minkowski metric
         expected_abs = pl.DataFrame({"a": [1.0, 5.0]})
-        result_abs = cdm.nearest_neighbor(t_set, c_set, "absolute")
+        result_abs = cdm.nearest_neighbor(t_set, c_set, "minkowski")
         self.assertTrue(result_abs.equals(expected_abs))
 
         ###########################################
@@ -26,21 +26,31 @@ class TestClassicDistanceModels(unittest.TestCase):
         t_set = pl.DataFrame([[1, 4, 2]], schema=cols, orient="row")
         covs = ["a", "c"]
 
-        # absolute metric
-        expected_abs = pl.DataFrame([[1.0, 3.0, 5.0]], schema=cols, orient="row")
-        result_abs = cdm.nearest_neighbor(t_set, c_set, "absolute", covariates=covs)
-        self.assertTrue(result_abs.equals(expected_abs))
+        # minkowksi metric
+        expected_mink = pl.DataFrame([[1.0, 3.0, 5.0]], schema=cols, orient="row")
+        result_mink = cdm.nearest_neighbor(
+            t_set, c_set, metric="minkowski", covariates=covs
+        )
+        self.assertTrue(result_mink.equals(expected_mink))
 
-        # mahalanobis metric
-        expected_mah = pl.DataFrame([[1.0, 3.0, 5.0]], schema=cols, orient="row")
-        result_mah = cdm.nearest_neighbor(t_set, c_set, "mahalanobis", covariates=covs)
-        self.assertTrue(result_mah.equals(expected_mah))
+        # euclidean metric
+        expected_euc = pl.DataFrame([[1.0, 3.0, 5.0]], schema=cols, orient="row")
+        result_euc = cdm.nearest_neighbor(t_set, c_set, "euclidean", covariates=covs)
+        self.assertTrue(result_euc.equals(expected_euc))
 
+        # ball_tree algorithm
+        expected_ball_tree = pl.DataFrame([[1.0, 3.0, 5.0]], schema=cols, orient="row")
+        result_ball_tree = cdm.nearest_neighbor(
+            t_set, c_set, algorithm="ball_tree", covariates=covs
+        )
+        self.assertTrue(result_ball_tree.equals(expected_ball_tree))
+
+        # 2 nearest neighbors
         expected_abs_2nn = pl.DataFrame(
-            [[1.0, 3.0, 5.0], [1.0, 4.0, 10.0]], schema=cols, orient="row"
+            [[1.0, 3.0, 5.0], [5.0, 2.0, 1.0]], schema=cols, orient="row"
         )
         result_abs_2nn = cdm.nearest_neighbor(
-            t_set, c_set, "absolute", covariates=covs, number_of_neighbors=2
+            t_set, c_set, "minkowski", covariates=covs, number_of_neighbors=2
         )
         self.assertTrue(result_abs_2nn.equals(expected_abs_2nn))
 

@@ -735,7 +735,9 @@ class TestTreatmentEffect(unittest.TestCase):
             TreatmentEffect.builder()
             .with_treatment("Rivaroxaban")
             .with_outcome("Stroke")
-            .with_nearest_neighbors_matching(distance_metric="absolute")
+            .with_nearest_neighbors_matching(
+                distance_metric="euclidean",
+            )
             .build()
         )
 

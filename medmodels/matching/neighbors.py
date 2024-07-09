@@ -3,13 +3,12 @@ from __future__ import annotations
 from typing import Set
 
 from medmodels import MedRecord
-from medmodels.matching.algorithms.classic_distance_models import nearest_neighbor
-from medmodels.matching.matching import Matching
-from medmodels.matching.metrics import Metric
-from medmodels.medrecord.types import (
-    MedRecordAttributeInputList,
-    NodeIndex,
+from medmodels.matching.algorithms.classic_distance_models import (
+    Metric,
+    nearest_neighbor,
 )
+from medmodels.matching.matching import Matching
+from medmodels.medrecord.types import MedRecordAttributeInputList, NodeIndex
 
 
 class NeighborsMatching(Matching):
@@ -28,15 +27,15 @@ class NeighborsMatching(Matching):
     def __init__(
         self,
         *,
-        distance_metric: Metric = "absolute",
+        distance_metric: Metric = "minkowski",
         number_of_neighbors: int = 1,
     ):
         """
         Initializes the nearest neighbors class.
 
         Args:
-            distance_metric (Metric, optional):  Metric for matching. Defaults to
-                "absolute".
+            distance_metric (Metric, optional): Distance metric to use for matching.
+                Defaults to "minkowski".
             number_of_neighbors (int, optional): Number of nearest neighbors to find for
                 each treated unit. Defaults to 1.
         """

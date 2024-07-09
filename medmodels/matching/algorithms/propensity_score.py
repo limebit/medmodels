@@ -9,8 +9,11 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.tree import DecisionTreeClassifier
 
-from medmodels.matching.algorithms.classic_distance_models import nearest_neighbor
-from medmodels.matching.metrics import Metric
+from medmodels.matching.algorithms.classic_distance_models import (
+    Metric,
+    NNAlgorithm,
+    nearest_neighbor,
+)
 from medmodels.medrecord.types import MedRecordAttributeInputList
 
 if TYPE_CHECKING:
@@ -77,7 +80,8 @@ def run_propensity_score(
     treated_set: pl.DataFrame,
     control_set: pl.DataFrame,
     model: Model = "logit",
-    metric: Metric = "absolute",
+    metric: Metric = "minkowski",
+    algorithm: NNAlgorithm = "auto",
     number_of_neighbors: int = 1,
     hyperparam: Optional[Dict[str, Any]] = None,
     covariates: Optional[MedRecordAttributeInputList] = None,
@@ -96,8 +100,7 @@ def run_propensity_score(
         control_set (pl.DataFrame): Data for the control group.
         model (Model, optional): Classification algorithm for predicting probabilities.
             Options include "logit", "dec_tree", "forest".
-        metric (Metric, optional): Metric for matching. Options include "absolute",
-            "mahalanobis", "exact". Defaults to "absolute".
+        metric (Metric, optional): Metric for matching. Defaults to "minkowski".
         number_of_neighbors (int, optional): Number of nearest neighbors to find for
             each treated unit. Defaults to 1.
         hyperparam (Optional[Dict[str, Any]], optional): Hyperparameters for model
@@ -136,6 +139,7 @@ def run_propensity_score(
         treated_set,
         control_set,
         metric=metric,
+        algorithm="auto",
         number_of_neighbors=number_of_neighbors,
         covariates=["prop_score"],
     )
