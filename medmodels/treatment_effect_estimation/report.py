@@ -1,11 +1,20 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Dict
+from typing import TYPE_CHECKING, TypedDict
 
 from medmodels.medrecord.medrecord import MedRecord
 
 if TYPE_CHECKING:
     from medmodels.treatment_effect_estimation.treatment_effect import TreatmentEffect
+
+
+class FullReport(TypedDict):
+    relative_risk: float
+    odds_ratio: float
+    confounding_bias: float
+    absolute_risk: float
+    number_needed_to_treat: float
+    hazard_ratio: float
 
 
 class Report:
@@ -14,12 +23,12 @@ class Report:
     def __init__(self, treatment_effect: TreatmentEffect) -> None:
         self._treatment_effect = treatment_effect
 
-    def full_report(self, medrecord: MedRecord) -> Dict[str, Any]:
+    def full_report(self, medrecord: MedRecord) -> FullReport:
         """
         Generates a full report of the treatment effect estimation.
 
         Returns:
-            Dict[str, float]: A dictionary containing the results of all estimation
+            FullReport: A dictionary containing the results of all estimation
                 methods: relative risk, odds ratio, confounding bias, absolute risk,
                 number needed to treat, and hazard ratio.
         """
