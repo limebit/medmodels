@@ -13,10 +13,9 @@ class TestClassicDistanceModels(unittest.TestCase):
         c_set = pl.DataFrame({"a": [1, 5, 1, 3]})
         t_set = pl.DataFrame({"a": [1, 4]})
 
-        # absolute metric
-        expected_abs = pl.DataFrame({"a": [1.0, 5.0]})
-        result_abs = cdm.nearest_neighbor(t_set, c_set, "absolute")
-        self.assertTrue(result_abs.equals(expected_abs))
+        expected_result = pl.DataFrame({"a": [1.0, 5.0]})
+        result = cdm.nearest_neighbor(t_set, c_set)
+        self.assertTrue(result.equals(expected_result))
 
         ###########################################
         # 3D example with covariates
@@ -26,23 +25,31 @@ class TestClassicDistanceModels(unittest.TestCase):
         t_set = pl.DataFrame([[1, 4, 2]], schema=cols, orient="row")
         covs = ["a", "c"]
 
-        # absolute metric
-        expected_abs = pl.DataFrame([[1.0, 3.0, 5.0]], schema=cols, orient="row")
-        result_abs = cdm.nearest_neighbor(t_set, c_set, "absolute", covariates=covs)
-        self.assertTrue(result_abs.equals(expected_abs))
+        expected_result = pl.DataFrame([[1.0, 3.0, 5.0]], schema=cols, orient="row")
+        result = cdm.nearest_neighbor(t_set, c_set, covariates=covs)
+        self.assertTrue(result.equals(expected_result))
 
-        # mahalanobis metric
-        expected_mah = pl.DataFrame([[1.0, 3.0, 5.0]], schema=cols, orient="row")
-        result_mah = cdm.nearest_neighbor(t_set, c_set, "mahalanobis", covariates=covs)
-        self.assertTrue(result_mah.equals(expected_mah))
-
+        # 2 nearest neighbors
         expected_abs_2nn = pl.DataFrame(
             [[1.0, 3.0, 5.0], [1.0, 4.0, 10.0]], schema=cols, orient="row"
         )
         result_abs_2nn = cdm.nearest_neighbor(
-            t_set, c_set, "absolute", covariates=covs, number_of_neighbors=2
+            t_set, c_set, covariates=covs, number_of_neighbors=2
         )
         self.assertTrue(result_abs_2nn.equals(expected_abs_2nn))
+
+    def test_nearest_neighbor_value_error(self):
+        # Test case for checking the ValueError when all control units have been matched
+        c_set = pl.DataFrame({"a": [1, 2]})
+        t_set = pl.DataFrame({"a": [1, 2, 3]})
+
+        with self.assertRaises(ValueError) as context:
+            cdm.nearest_neighbor(t_set, c_set, number_of_neighbors=2)
+
+        self.assertEqual(
+            str(context.exception),
+            "The treated set is too large for the given number of neighbors.",
+        )
 
 
 if __name__ == "__main__":

@@ -19,7 +19,6 @@ import pandas as pd
 from medmodels import MedRecord
 from medmodels.matching.algorithms.propensity_score import Model
 from medmodels.matching.matching import MatchingMethod
-from medmodels.matching.metrics import Metric
 from medmodels.medrecord import node
 from medmodels.medrecord.querying import NodeOperation
 from medmodels.medrecord.types import (
@@ -62,7 +61,6 @@ class TreatmentEffect:
     _matching_essential_covariates: MedRecordAttributeInputList
     _matching_one_hot_covariates: MedRecordAttributeInputList
     _matching_model: Model
-    _matching_distance_metric: Metric
     _matching_number_of_neighbors: int
     _matching_hyperparam: Optional[Dict[str, Any]]
 
@@ -108,7 +106,6 @@ class TreatmentEffect:
         matching_essential_covariates: MedRecordAttributeInputList = ["gender", "age"],
         matching_one_hot_covariates: MedRecordAttributeInputList = ["gender"],
         matching_model: Model = "logit",
-        matching_distance_metric: Metric = "absolute",
         matching_number_of_neighbors: int = 1,
         matching_hyperparam: Optional[Dict[str, Any]] = None,
     ) -> None:
@@ -153,8 +150,6 @@ class TreatmentEffect:
                 ["gender"].
             matching_model (Model, optional): The model to use for matching.
                 Defaults to "logit".
-            matching_distance_metric (Metric, optional): The distance metric
-                to use for matching. Defaults to "mahalanobis".
             matching_number_of_neighbors (int, optional): The number of
                 neighbors to match for each treated subject. Defaults to 1.
             matching_hyperparam (Optional[Dict[str, Any]], optional): The
@@ -179,7 +174,6 @@ class TreatmentEffect:
         treatment_effect._matching_essential_covariates = matching_essential_covariates
         treatment_effect._matching_one_hot_covariates = matching_one_hot_covariates
         treatment_effect._matching_model = matching_model
-        treatment_effect._matching_distance_metric = matching_distance_metric
         treatment_effect._matching_number_of_neighbors = matching_number_of_neighbors
         treatment_effect._matching_hyperparam = matching_hyperparam
 

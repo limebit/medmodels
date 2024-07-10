@@ -1,22 +1,9 @@
 """Metrics for comparing vectors in the context of matching classes."""
 
-from __future__ import annotations
-
 import math
-from typing import TYPE_CHECKING, Literal
 
 import numpy as np
 from numpy.typing import NDArray
-
-if TYPE_CHECKING:
-    import sys
-
-    if sys.version_info >= (3, 10):
-        from typing import TypeAlias
-    else:
-        from typing_extensions import TypeAlias
-
-Metric: TypeAlias = Literal["absolute", "exact", "mahalanobis"]
 
 
 def absolute_metric(

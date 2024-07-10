@@ -5,7 +5,6 @@ from typing import Any, Dict, Literal, Optional
 import medmodels.treatment_effect_estimation.treatment_effect as tee
 from medmodels.matching.algorithms.propensity_score import Model
 from medmodels.matching.matching import MatchingMethod
-from medmodels.matching.metrics import Metric
 from medmodels.medrecord.querying import NodeOperation
 from medmodels.medrecord.types import (
     Group,
@@ -38,7 +37,6 @@ class TreatmentEffectBuilder:
     matching_essential_covariates: Optional[MedRecordAttributeInputList]
     matching_one_hot_covariates: Optional[MedRecordAttributeInputList]
     matching_model: Optional[Model]
-    matching_distance_metric: Optional[Metric]
     matching_number_of_neighbors: Optional[int]
     matching_hyperparam: Optional[Dict[str, Any]]
 
@@ -229,7 +227,6 @@ class TreatmentEffectBuilder:
         essential_covariates: MedRecordAttributeInputList = ["gender", "age"],
         one_hot_covariates: MedRecordAttributeInputList = ["gender"],
         model: Model = "logit",
-        distance_metric: Metric = "mahalanobis",
         number_of_neighbors: int = 1,
         hyperparam: Optional[Dict[str, Any]] = None,
     ) -> TreatmentEffectBuilder:
@@ -245,8 +242,6 @@ class TreatmentEffectBuilder:
                 ["gender"].
             model (Model, optional): Model to choose for the matching. Defaults to
                 "logit".
-            distance_metric (Metric, optional): Metric to use for the distance
-                calculation. Defaults to "mahalanobis".
             number_of_neighbors (int, optional): Number of neighbors to consider
                 for the matching. Defaults to 1.
             hyperparam (Optional[Dict[str, Any]], optional): Hyperparameters for the
@@ -260,7 +255,6 @@ class TreatmentEffectBuilder:
         self.matching_essential_covariates = essential_covariates
         self.matching_one_hot_covariates = one_hot_covariates
         self.matching_model = model
-        self.matching_distance_metric = distance_metric
         self.matching_number_of_neighbors = number_of_neighbors
         self.matching_hyperparam = hyperparam
 
@@ -270,7 +264,6 @@ class TreatmentEffectBuilder:
         self,
         essential_covariates: MedRecordAttributeInputList = ["gender", "age"],
         one_hot_covariates: MedRecordAttributeInputList = ["gender"],
-        distance_metric: Metric = "mahalanobis",
         number_of_neighbors: int = 1,
     ) -> TreatmentEffectBuilder:
         """
@@ -283,12 +276,8 @@ class TreatmentEffectBuilder:
             one_hot_covariates (MedRecordAttributeInputList, optional):
                 Covariates that are one-hot encoded for matching. Defaults to
                 ["gender"].
-            distance_metric (Metric, optional): Metric to use for the distance
-                calculation. Defaults to "mahalanobis".
             number_of_neighbors (int, optional): Number of neighbors to consider for the
                 matching. Defaults to 1.
-            hyperparam (Optional[Dict[str, Any]], optional): Hyperparameters for the
-                matching model. Defaults to None.
 
         Returns:
             TreatmentEffectBuilder: The current instance of the TreatmentEffectBuilder
@@ -297,7 +286,6 @@ class TreatmentEffectBuilder:
         self.matching_method = "nearest_neighbors"
         self.matching_essential_covariates = essential_covariates
         self.matching_one_hot_covariates = one_hot_covariates
-        self.matching_distance_metric = distance_metric
         self.matching_number_of_neighbors = number_of_neighbors
 
         return self

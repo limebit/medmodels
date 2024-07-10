@@ -9,7 +9,6 @@ from medmodels import MedRecord
 from medmodels.matching.algorithms.classic_distance_models import nearest_neighbor
 from medmodels.matching.algorithms.propensity_score import Model, calculate_propensity
 from medmodels.matching.matching import Matching
-from medmodels.matching.metrics import Metric
 from medmodels.medrecord.types import MedRecordAttributeInputList, NodeIndex
 
 
@@ -25,7 +24,6 @@ class PropensityMatching(Matching):
     """
 
     model: Model
-    distance_metric: Metric
     number_of_neighbors: int
     hyperparam: Optional[Dict[str, Any]]
 
@@ -33,7 +31,6 @@ class PropensityMatching(Matching):
         self,
         *,
         model: Model = "logit",
-        distance_metric: Metric = "absolute",
         number_of_neighbors: int = 1,
         hyperparam: Optional[Dict[str, Any]] = None,
     ):
@@ -43,16 +40,14 @@ class PropensityMatching(Matching):
         Args:
             model (Model, optional): classification method to be used, default: "logit".
                 Can be chosen from ["logit", "dec_tree", "forest"].
-            distance_metric (Metric, optional): metric to be used for the matching.
-                Defaults to "absolute". Can be chosen from ["absolute", "exact",
-                "mahalanobis"].
+            nearest_neighbors_algorithm (NNAlgorithm, optional): algorithm used to
+                compute nearest neighbors. Defaults to "auto".
             number_of_neighbors (int, optional): number of neighbors to be matched per
                 treated subject. Defaults to 1.
             hyperparam (Optional[Dict[str, Any]], optional): hyperparameters for the
                 classification model, default: None.
         """
         self.model = model
-        self.distance_metric = distance_metric
         self.number_of_neighbors = number_of_neighbors
         self.hyperparam = hyperparam
 
@@ -115,7 +110,6 @@ class PropensityMatching(Matching):
             data_treated,
             data_control,
             number_of_neighbors=self.number_of_neighbors,
-            metric=self.distance_metric,
             covariates=["prop_score"],
         )
 

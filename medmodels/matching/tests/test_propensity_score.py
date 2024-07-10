@@ -17,14 +17,14 @@ class TestPropensityScore(unittest.TestCase):
         x = np.array(x)
         y = np.array(y)
 
-        # Logistic Regression metric:
+        # Logistic Regression model:
         result_1, result_2 = ps.calculate_propensity(
             x, y, np.array([x[0, :]]), np.array([x[1, :]]), hyperparam=hyperparam_logit
         )
         self.assertAlmostEqual(result_1[0], 1.43580537e-08, places=9)
         self.assertAlmostEqual(result_2[0], 3.00353141e-08, places=9)
 
-        # Decision Tree Classifier metric:
+        # Decision Tree Classifier model:
         result_1, result_2 = ps.calculate_propensity(
             x,
             y,
@@ -36,7 +36,7 @@ class TestPropensityScore(unittest.TestCase):
         self.assertAlmostEqual(result_1[0], 0, places=2)
         self.assertAlmostEqual(result_2[0], 0, places=2)
 
-        # Random Forest Classifier metric:
+        # Random Forest Classifier model:
         result_1, result_2 = ps.calculate_propensity(
             x,
             y,
@@ -58,7 +58,7 @@ class TestPropensityScore(unittest.TestCase):
         control_set = pl.DataFrame({"a": [1, 5, 1, 3]})
         treated_set = pl.DataFrame({"a": [1, 4]})
 
-        # logit metric
+        # logit model
         expected_logit = pl.DataFrame({"a": [1.0, 3.0]})
         result_logit = ps.run_propensity_score(
             treated_set, control_set, hyperparam=hyperparam_logit
@@ -72,7 +72,7 @@ class TestPropensityScore(unittest.TestCase):
         )
         self.assertTrue(result_logit.equals(expected_logit))
 
-        # forest metric
+        # forest model
         expected_logit = pl.DataFrame({"a": [1.0, 1.0]})
         result_logit = ps.run_propensity_score(
             treated_set, control_set, model="forest", hyperparam=hyperparam
@@ -87,14 +87,14 @@ class TestPropensityScore(unittest.TestCase):
         treated_set = pl.DataFrame({"a": [1], "b": [4], "c": [2]})
         covs = ["a", "c"]
 
-        # logit metric
+        # logit model
         expected_logit = pl.DataFrame({"a": [1.0], "b": [3.0], "c": [5.0]})
         result_logit = ps.run_propensity_score(
             treated_set, control_set, covariates=covs, hyperparam=hyperparam_logit
         )
         self.assertTrue(result_logit.equals(expected_logit))
 
-        # dec_tree metric
+        # dec_tree model
         expected_logit = pl.DataFrame({"a": [1.0], "b": [3.0], "c": [5.0]})
         result_logit = ps.run_propensity_score(
             treated_set,
@@ -105,7 +105,7 @@ class TestPropensityScore(unittest.TestCase):
         )
         self.assertTrue(result_logit.equals(expected_logit))
 
-        # forest metric
+        # forest model
         expected_logit = pl.DataFrame({"a": [1.0], "b": [3.0], "c": [5.0]})
         result_logit = ps.run_propensity_score(
             treated_set,
@@ -118,7 +118,7 @@ class TestPropensityScore(unittest.TestCase):
 
         # using 2 nearest neighbors
         expected_logit = pl.DataFrame(
-            {"a": [1.0, 1.0], "b": [3.0, 4.0], "c": [5.0, 10.0]}
+            {"a": [1.0, 5.0], "b": [3.0, 2.0], "c": [5.0, 1.0]}
         )
         result_logit = ps.run_propensity_score(
             treated_set,

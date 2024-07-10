@@ -1,100 +1,106 @@
-from __future__ import annotations
-
-from typing import Optional
+from typing import Optional, Tuple
 
 import numpy as np
 import polars as pl
+from numpy.typing import NDArray
+from scipy.optimize import linear_sum_assignment
 
-from medmodels.matching import metrics
 from medmodels.medrecord.types import MedRecordAttributeInputList
 
 
 def nearest_neighbor(
     treated_set: pl.DataFrame,
     control_set: pl.DataFrame,
-    metric: metrics.Metric,
     number_of_neighbors: int = 1,
     covariates: Optional[MedRecordAttributeInputList] = None,
 ) -> pl.DataFrame:
     """
-    Performs nearest neighbor matching between two dataframes using a specified metric.
-    This method employs a greedy algorithm to pair elements from the treated set with
-    their closest matches in the control set based on the given metric. The algorithm
-    does not optimize for the best overall matching but ensures a straightforward,
-    commonly used approach. The method is flexible to different metrics and requires
-    preliminary size comparison of treated and control sets to determine the direction
-    of matching. It supports optional specification of covariates for focused matching.
+    Performs nearest neighbor matching between two dataframes using the Hungarian
+    algorithm.
+
+    This method matches elements from the treated set with their closest matches in the
+    control set based on the specified covariates. The function leverages the Hungarian
+    algorithm (linear_sum_assignment) to find the optimal matching and ensures that each
+    treated unit is matched with the specified number of nearest control units without
+    reusing any control unit.
 
     Args:
         treated_set (pl.DataFrame): DataFrame for which matches are sought.
         control_set (pl.DataFrame): DataFrame from which matches are selected.
-        metric (metrics.Metric): Metric to measure closeness between units, e.g.,
-            "absolute", "mahalanobis". The metric must be available in the metrics
-            module.
         number_of_neighbors (int, optional): Number of nearest neighbors to find for
             each treated unit. Defaults to 1.
         covariates (Optional[MedRecordAttributeInputList], optional): Covariates
             considered for matching. Defaults to all variables.
 
     Returns:
-        pl.DataFrame: Matched subset from the control set.
+        pl.DataFrame: DataFrame containing the matched control units for each treated
+            unit.
     """
+    if treated_set.shape[0] * number_of_neighbors > control_set.shape[0]:
+        raise ValueError(
+            "The treated set is too large for the given number of neighbors."
+        )
     if not covariates:
         covariates = treated_set.columns
 
-    treated_array = treated_set.select(covariates).to_numpy().astype(float)
+    control_array, treated_array = normalize_data(control_set, treated_set, covariates)
+    cost_matrix = np.linalg.norm(treated_array[:, np.newaxis] - control_array, axis=2)
+    final_matches = np.full(
+        (treated_array.shape[0], number_of_neighbors), -1, dtype=int
+    )
+
+    for neighbor_index in range(number_of_neighbors):
+        # Solve the assignment problem using the Hungarian algorithm
+        row_indices, column_indices = linear_sum_assignment(cost_matrix)
+
+        # Store the matched indices
+        final_matches[np.array(row_indices), neighbor_index] = column_indices
+
+        # Remove matched controls from the cost matrix to avoid re-selection
+        cost_matrix[:, column_indices] = np.inf
+
+    # Flatten the final matches to get unique control indices
+    matched_indices = final_matches.flatten()
+    matched_indices = matched_indices[matched_indices != -1]
+
+    return pl.DataFrame(
+        control_set[matched_indices],
+        orient="row",
+        schema=control_set.columns,
+    )
+
+
+def normalize_data(
+    control_set: pl.DataFrame,
+    treated_set: pl.DataFrame,
+    covariates: MedRecordAttributeInputList,
+) -> Tuple[NDArray[np.float64], NDArray[np.float64]]:
+    """
+    Normalizes the data by taking the maximum and minimum values of the combined
+    treated and control sets.
+
+    Args:
+        control_set (pl.DataFrame): Control set.
+        treated_set (pl.DataFrame): Treated set.
+        covariates (MedRecordAttributeInputList): Covariates to be normalized.
+
+    Returns:
+        Tuple[NDArray[np.float64], NDArray[np.float64]]: Normalized control and treated
+            arrays.
+    """
     control_array = control_set.select(covariates).to_numpy().astype(float)
-    control_array_full = control_set.to_numpy()  # To keep all the information
-    matched_control = []
+    treated_array = treated_set.select(covariates).to_numpy().astype(float)
 
-    cov = np.array([])
-    if metric == "mahalanobis":
-        cov = np.cov(np.concatenate((treated_array, control_array)).T)
+    # Normalize data: take the maximums and minimums per columns of both arrays combined
+    maximum_values = np.maximum(
+        np.max(treated_array, axis=0), np.max(control_array, axis=0)
+    )
+    minimum_values = np.minimum(
+        np.min(treated_array, axis=0), np.min(control_array, axis=0)
+    )
 
-    for treated_subject in treated_array:
-        if metric == "mahalanobis":
-            if cov.ndim == 0:
-                inv_cov = 1 / cov
-            else:
-                try:
-                    inv_cov = np.linalg.inv(cov)
-                except np.linalg.LinAlgError:
-                    raise ValueError(
-                        "The covariance matrix is singular. Please, check the data."
-                    )
+    # Normalize the data
+    control_array = (control_array - minimum_values) / (maximum_values - minimum_values)
+    treated_array = (treated_array - minimum_values) / (maximum_values - minimum_values)
 
-            dist = [
-                metrics.mahalanobis_metric(
-                    treated_subject, control_subject, inv_cov=inv_cov
-                )
-                for control_subject in control_array
-            ]
-
-        else:
-            metric_function = metrics.METRICS[metric]
-
-            dist = [
-                metric_function(treated_subject, control_subject)
-                for control_subject in control_array
-            ]
-
-        neighbor_indices = np.argpartition(dist, number_of_neighbors)[
-            :number_of_neighbors
-        ]
-
-        for neighbor_index in neighbor_indices:
-            new_row = pl.DataFrame(
-                [control_array_full[neighbor_index]],
-                schema=treated_set.columns,
-                orient="row",
-            )
-            matched_control.append(new_row)
-
-            # For the k:1 matching don't consider the chosen row any more.
-            control_array_full = np.delete(control_array_full, neighbor_index, 0)
-            control_array = np.delete(control_array, neighbor_index, 0)
-
-    return pl.concat(matched_control, how="vertical")
-
-
-ALGORITHMS = {"nearest neighbor": nearest_neighbor}
+    return control_array, treated_array
