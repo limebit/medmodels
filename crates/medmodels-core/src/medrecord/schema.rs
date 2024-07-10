@@ -10,14 +10,14 @@ use std::collections::{HashMap, HashSet};
 
 type AttributeSchema = HashMap<MedRecordAttribute, DataType>;
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct GroupSchema {
     pub nodes: AttributeSchema,
     pub edges: AttributeSchema,
     pub strict: Option<bool>,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct Schema {
     pub groups: HashMap<Group, GroupSchema>,
     pub default: Option<GroupSchema>,
@@ -47,7 +47,7 @@ impl GroupSchema {
             }
         }
 
-        if strict {
+        if self.strict.unwrap_or(strict) {
             let attributes = attributes.keys().collect::<HashSet<_>>();
             let schema_attributes = self.nodes.keys().collect::<HashSet<_>>();
             let attributes_not_in_schema = attributes
@@ -102,7 +102,7 @@ impl GroupSchema {
             }
         }
 
-        if strict {
+        if self.strict.unwrap_or(strict) {
             let attributes = attributes.keys().collect::<HashSet<_>>();
             let schema_attributes = self.edges.keys().collect::<HashSet<_>>();
             let attributes_not_in_schema = attributes
@@ -147,7 +147,7 @@ impl Schema {
 
         match (group_schema, &self.default, self.strict) {
             (Some(group_schema), _, Some(true)) => {
-                group_schema.validate_node(index, attributes, false)?;
+                group_schema.validate_node(index, attributes, true)?;
 
                 Ok(())
             }
@@ -160,7 +160,7 @@ impl Schema {
                 defalt_schema.validate_node(index, attributes, true)
             }
             (_, Some(default_schema), _) => default_schema.validate_node(index, attributes, false),
-            (_, None, None) | (_, None, Some(false)) => Ok(()),
+            (None, None, None) | (None, None, Some(false)) => Ok(()),
 
             _ => Err(GraphError::SchemaError(format!(
                 "No schema provided for node {} wit no group",
@@ -179,7 +179,7 @@ impl Schema {
 
         match (group_schema, &self.default, self.strict) {
             (Some(group_schema), _, Some(true)) => {
-                group_schema.validate_edge(index, attributes, false)?;
+                group_schema.validate_edge(index, attributes, true)?;
 
                 Ok(())
             }
@@ -192,7 +192,7 @@ impl Schema {
                 defalt_schema.validate_edge(index, attributes, true)
             }
             (_, Some(default_schema), _) => default_schema.validate_edge(index, attributes, false),
-            (_, None, None) | (_, None, Some(false)) => Ok(()),
+            (None, None, None) | (None, None, Some(false)) => Ok(()),
 
             _ => Err(GraphError::SchemaError(format!(
                 "No schema provided for edge {} wit no group",
@@ -209,5 +209,381 @@ impl Default for Schema {
             default: None,
             strict: Some(false),
         }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::{GroupSchema, Schema};
+    use crate::{
+        errors::GraphError,
+        medrecord::{Attributes, DataType, EdgeIndex, NodeIndex},
+    };
+    use std::collections::HashMap;
+
+    #[test]
+    fn test_validate_node_default_schema() {
+        let strict_schema = Schema {
+            groups: Default::default(),
+            default: Some(GroupSchema {
+                nodes: HashMap::from([("attribute".into(), DataType::Int)]),
+                edges: Default::default(),
+                strict: None,
+            }),
+            strict: Some(true),
+        };
+        let second_strict_schema = Schema {
+            groups: Default::default(),
+            default: Some(GroupSchema {
+                nodes: HashMap::from([("attribute".into(), DataType::Int)]),
+                edges: Default::default(),
+                strict: Some(true),
+            }),
+            strict: Some(false),
+        };
+        let non_strict_schema = Schema {
+            groups: Default::default(),
+            default: Some(GroupSchema {
+                nodes: HashMap::from([("attribute".into(), DataType::Int)]),
+                edges: Default::default(),
+                strict: None,
+            }),
+            strict: Some(false),
+        };
+        let second_non_strict_schema = Schema {
+            groups: Default::default(),
+            default: Some(GroupSchema {
+                nodes: HashMap::from([("attribute".into(), DataType::Int)]),
+                edges: Default::default(),
+                strict: Some(false),
+            }),
+            strict: Some(true),
+        };
+
+        let attributes: Attributes = HashMap::from([("attribute".into(), 1.into())]);
+        let index: NodeIndex = 0.into();
+
+        assert!(strict_schema
+            .validate_node(&index, &attributes, None)
+            .is_ok());
+        assert!(second_strict_schema
+            .validate_node(&index, &attributes, None)
+            .is_ok());
+
+        let attributes: Attributes = HashMap::from([("attribute".into(), "1".into())]);
+
+        assert!(strict_schema
+            .validate_node(&index, &attributes, None)
+            .is_err_and(|e| matches!(e, GraphError::SchemaError(_))));
+        assert!(second_strict_schema
+            .validate_node(&index, &attributes, None)
+            .is_err_and(|e| matches!(e, GraphError::SchemaError(_))));
+
+        let attributes: Attributes =
+            HashMap::from([("attribute".into(), 1.into()), ("extra".into(), 1.into())]);
+
+        assert!(strict_schema
+            .validate_node(&index, &attributes, None)
+            .is_err_and(|e| matches!(e, GraphError::SchemaError(_))));
+        assert!(second_strict_schema
+            .validate_node(&index, &attributes, None)
+            .is_err_and(|e| matches!(e, GraphError::SchemaError(_))));
+        assert!(non_strict_schema
+            .validate_node(&index, &attributes, None)
+            .is_ok());
+        assert!(second_non_strict_schema
+            .validate_node(&index, &attributes, None)
+            .is_ok());
+    }
+
+    #[test]
+    fn test_invalid_validate_node_default_schema() {
+        let schema = Schema {
+            groups: Default::default(),
+            default: None,
+            strict: Some(true),
+        };
+
+        let attributes: Attributes = HashMap::from([("attribute".into(), 1.into())]);
+        let index: NodeIndex = 0.into();
+
+        assert!(schema
+            .validate_node(&index, &attributes, None)
+            .is_err_and(|e| matches!(e, GraphError::SchemaError(_))));
+    }
+
+    #[test]
+    fn test_validate_node_group_schema() {
+        let strict_schema = Schema {
+            groups: HashMap::from([(
+                "group".into(),
+                GroupSchema {
+                    nodes: HashMap::from([("attribute".into(), DataType::Int)]),
+                    edges: Default::default(),
+                    strict: None,
+                },
+            )]),
+            default: None,
+            strict: Some(true),
+        };
+        let second_strict_schema = Schema {
+            groups: HashMap::from([(
+                "group".into(),
+                GroupSchema {
+                    nodes: HashMap::from([("attribute".into(), DataType::Int)]),
+                    edges: Default::default(),
+                    strict: Some(true),
+                },
+            )]),
+            default: None,
+            strict: Some(false),
+        };
+        let non_strict_schema = Schema {
+            groups: HashMap::from([(
+                "group".into(),
+                GroupSchema {
+                    nodes: HashMap::from([("attribute".into(), DataType::Int)]),
+                    edges: Default::default(),
+                    strict: None,
+                },
+            )]),
+            default: None,
+            strict: Some(false),
+        };
+        let second_non_strict_schema = Schema {
+            groups: HashMap::from([(
+                "group".into(),
+                GroupSchema {
+                    nodes: HashMap::from([("attribute".into(), DataType::Int)]),
+                    edges: Default::default(),
+                    strict: Some(false),
+                },
+            )]),
+            default: None,
+            strict: Some(true),
+        };
+
+        let attributes: Attributes = HashMap::from([("attribute".into(), 1.into())]);
+        let index: NodeIndex = 0.into();
+
+        assert!(strict_schema
+            .validate_node(&index, &attributes, Some(&"group".into()))
+            .is_ok());
+        assert!(second_strict_schema
+            .validate_node(&index, &attributes, Some(&"group".into()))
+            .is_ok());
+
+        let attributes: Attributes = HashMap::from([("attribute".into(), "1".into())]);
+
+        assert!(strict_schema
+            .validate_node(&index, &attributes, Some(&"group".into()))
+            .is_err_and(|e| matches!(e, GraphError::SchemaError(_))));
+        assert!(second_strict_schema
+            .validate_node(&index, &attributes, Some(&"group".into()))
+            .is_err_and(|e| matches!(e, GraphError::SchemaError(_))));
+
+        let attributes: Attributes =
+            HashMap::from([("attribute".into(), 1.into()), ("extra".into(), 1.into())]);
+
+        assert!(strict_schema
+            .validate_node(&index, &attributes, Some(&"group".into()))
+            .is_err_and(|e| matches!(e, GraphError::SchemaError(_))));
+        assert!(second_strict_schema
+            .validate_node(&index, &attributes, Some(&"group".into()))
+            .is_err_and(|e| matches!(e, GraphError::SchemaError(_))));
+        assert!(non_strict_schema
+            .validate_node(&index, &attributes, Some(&"group".into()))
+            .is_ok());
+        assert!(second_non_strict_schema
+            .validate_node(&index, &attributes, Some(&"group".into()))
+            .is_ok());
+
+        // Checking schema of non existing group should fail because no default schema exists
+        assert!(strict_schema
+            .validate_node(&index, &attributes, Some(&"test".into()))
+            .is_err_and(|e| matches!(e, GraphError::SchemaError(_))));
+    }
+
+    #[test]
+    fn test_validate_edge_default_schema() {
+        let strict_schema = Schema {
+            groups: Default::default(),
+            default: Some(GroupSchema {
+                nodes: Default::default(),
+                edges: HashMap::from([("attribute".into(), DataType::Int)]),
+                strict: None,
+            }),
+            strict: Some(true),
+        };
+        let second_strict_schema = Schema {
+            groups: Default::default(),
+            default: Some(GroupSchema {
+                nodes: Default::default(),
+                edges: HashMap::from([("attribute".into(), DataType::Int)]),
+                strict: Some(true),
+            }),
+            strict: Some(false),
+        };
+        let non_strict_schema = Schema {
+            groups: Default::default(),
+            default: Some(GroupSchema {
+                nodes: Default::default(),
+                edges: HashMap::from([("attribute".into(), DataType::Int)]),
+                strict: None,
+            }),
+            strict: Some(false),
+        };
+        let second_non_strict_schema = Schema {
+            groups: Default::default(),
+            default: Some(GroupSchema {
+                nodes: Default::default(),
+                edges: HashMap::from([("attribute".into(), DataType::Int)]),
+                strict: Some(false),
+            }),
+            strict: Some(true),
+        };
+
+        let attributes: Attributes = HashMap::from([("attribute".into(), 1.into())]);
+        let index: EdgeIndex = 0;
+
+        assert!(strict_schema
+            .validate_edge(&index, &attributes, None)
+            .is_ok());
+        assert!(second_strict_schema
+            .validate_edge(&index, &attributes, None)
+            .is_ok());
+
+        let attributes: Attributes = HashMap::from([("attribute".into(), "1".into())]);
+
+        assert!(strict_schema
+            .validate_edge(&index, &attributes, None)
+            .is_err_and(|e| matches!(e, GraphError::SchemaError(_))));
+        assert!(second_strict_schema
+            .validate_edge(&index, &attributes, None)
+            .is_err_and(|e| matches!(e, GraphError::SchemaError(_))));
+
+        let attributes: Attributes =
+            HashMap::from([("attribute".into(), 1.into()), ("extra".into(), 1.into())]);
+
+        assert!(strict_schema
+            .validate_edge(&index, &attributes, None)
+            .is_err_and(|e| matches!(e, GraphError::SchemaError(_))));
+        assert!(second_strict_schema
+            .validate_edge(&index, &attributes, None)
+            .is_err_and(|e| matches!(e, GraphError::SchemaError(_))));
+        assert!(non_strict_schema
+            .validate_edge(&index, &attributes, None)
+            .is_ok());
+        assert!(second_non_strict_schema
+            .validate_edge(&index, &attributes, None)
+            .is_ok());
+    }
+
+    #[test]
+    fn test_invalid_validate_edge_default_schema() {
+        let schema = Schema {
+            groups: Default::default(),
+            default: None,
+            strict: Some(true),
+        };
+
+        let attributes: Attributes = HashMap::from([("attribute".into(), 1.into())]);
+        let index: EdgeIndex = 0;
+
+        assert!(schema
+            .validate_edge(&index, &attributes, None)
+            .is_err_and(|e| matches!(e, GraphError::SchemaError(_))));
+    }
+
+    #[test]
+    fn test_validate_edge_group_schema() {
+        let strict_schema = Schema {
+            groups: HashMap::from([(
+                "group".into(),
+                GroupSchema {
+                    nodes: Default::default(),
+                    edges: HashMap::from([("attribute".into(), DataType::Int)]),
+                    strict: None,
+                },
+            )]),
+            default: None,
+            strict: Some(true),
+        };
+        let second_strict_schema = Schema {
+            groups: HashMap::from([(
+                "group".into(),
+                GroupSchema {
+                    nodes: Default::default(),
+                    edges: HashMap::from([("attribute".into(), DataType::Int)]),
+                    strict: Some(true),
+                },
+            )]),
+            default: None,
+            strict: Some(false),
+        };
+        let non_strict_schema = Schema {
+            groups: HashMap::from([(
+                "group".into(),
+                GroupSchema {
+                    nodes: Default::default(),
+                    edges: HashMap::from([("attribute".into(), DataType::Int)]),
+                    strict: None,
+                },
+            )]),
+            default: None,
+            strict: Some(false),
+        };
+        let second_non_strict_schema = Schema {
+            groups: HashMap::from([(
+                "group".into(),
+                GroupSchema {
+                    nodes: Default::default(),
+                    edges: HashMap::from([("attribute".into(), DataType::Int)]),
+                    strict: Some(false),
+                },
+            )]),
+            default: None,
+            strict: Some(true),
+        };
+
+        let attributes: Attributes = HashMap::from([("attribute".into(), 1.into())]);
+        let index: EdgeIndex = 0;
+
+        assert!(strict_schema
+            .validate_edge(&index, &attributes, Some(&"group".into()))
+            .is_ok());
+        assert!(second_strict_schema
+            .validate_edge(&index, &attributes, Some(&"group".into()))
+            .is_ok());
+
+        let attributes: Attributes = HashMap::from([("attribute".into(), "1".into())]);
+
+        assert!(strict_schema
+            .validate_edge(&index, &attributes, Some(&"group".into()))
+            .is_err_and(|e| matches!(e, GraphError::SchemaError(_))));
+        assert!(second_strict_schema
+            .validate_edge(&index, &attributes, Some(&"group".into()))
+            .is_err_and(|e| matches!(e, GraphError::SchemaError(_))));
+
+        let attributes: Attributes =
+            HashMap::from([("attribute".into(), 1.into()), ("extra".into(), 1.into())]);
+
+        assert!(strict_schema
+            .validate_edge(&index, &attributes, Some(&"group".into()))
+            .is_err_and(|e| matches!(e, GraphError::SchemaError(_))));
+        assert!(second_strict_schema
+            .validate_edge(&index, &attributes, Some(&"group".into()))
+            .is_err_and(|e| matches!(e, GraphError::SchemaError(_))));
+        assert!(non_strict_schema
+            .validate_edge(&index, &attributes, Some(&"group".into()))
+            .is_ok());
+        assert!(second_non_strict_schema
+            .validate_edge(&index, &attributes, Some(&"group".into()))
+            .is_ok());
+
+        // Checking schema of non existing group should fail because no default schema exists
+        assert!(strict_schema
+            .validate_edge(&index, &attributes, Some(&"test".into()))
+            .is_err_and(|e| matches!(e, GraphError::SchemaError(_))));
     }
 }

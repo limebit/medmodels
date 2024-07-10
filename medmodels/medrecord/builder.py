@@ -65,12 +65,22 @@ EdgeInputWithGroup = Tuple[EdgeInput, Group]
 
 
 class MedRecordBuilder:
+    """
+    A builder class for constructing MedRecord instances.
+
+    Allows for adding nodes, edges, and groups incrementally, and optionally
+    specifying a schema.
+    """
+
     _nodes: List[Union[NodeInput, NodeInputWithGroup]]
     _edges: List[Union[EdgeInput, EdgeInputWithGroup]]
     _groups: Dict[Group, GroupInfo]
     _schema: Optional[Schema]
 
     def __init__(self) -> None:
+        """
+        Initializes a new MedRecordBuilder instance.
+        """
         self._nodes = []
         self._edges = []
         self._groups = {}
@@ -82,6 +92,16 @@ class MedRecordBuilder:
         *,
         group: Optional[Group] = None,
     ) -> MedRecordBuilder:
+        """
+        Adds nodes to the builder.
+
+        Args:
+            nodes (NodeInput): Nodes to add.
+            group (Optional[Group], optional): Group to associate with the nodes.
+
+        Returns:
+            MedRecordBuilder: The current instance of the builder.
+        """
         if group is not None:
             self._nodes.append((nodes, group))
         else:
@@ -95,6 +115,16 @@ class MedRecordBuilder:
         *,
         group: Optional[Group] = None,
     ) -> MedRecordBuilder:
+        """
+        Adds edges to the builder.
+
+        Args:
+            edges (EdgeInput): Edges to add.
+            group (Optional[Group], optional): Group to associate with the edges.
+
+        Returns:
+            MedRecordBuilder: The current instance of the builder.
+        """
         if group is not None:
             self._edges.append((edges, group))
         else:
@@ -105,14 +135,39 @@ class MedRecordBuilder:
     def add_group(
         self, group: Group, *, nodes: List[NodeIndex] = []
     ) -> MedRecordBuilder:
+        """
+        Adds a group to the builder with an optional list of nodes.
+
+        Args:
+            group (Group): The name of the group to add.
+            nodes (List[NodeIndex], optional): Node indices to add to the group.
+
+        Returns:
+            MedRecordBuilder: The current instance of the builder.
+        """
         self._groups[group] = {"nodes": nodes, "edges": []}
         return self
 
     def with_schema(self, schema: Schema) -> MedRecordBuilder:
+        """
+        Specifies a schema for the MedRecord.
+
+        Args:
+            schema (Schema): The schema to apply.
+
+        Returns:
+            MedRecordBuilder: The current instance of the builder.
+        """
         self._schema = schema
         return self
 
     def build(self) -> mm.MedRecord:
+        """
+        Constructs a MedRecord instance from the builder's configuration.
+
+        Returns:
+            MedRecord: The constructed MedRecord instance.
+        """
         medrecord = mm.MedRecord()
 
         for node in self._nodes:
@@ -219,6 +274,6 @@ class MedRecordBuilder:
                 )
 
         if self._schema is not None:
-            medrecord.update_schema(self._schema)
+            medrecord.schema = self._schema
 
         return medrecord

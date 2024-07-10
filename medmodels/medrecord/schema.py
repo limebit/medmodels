@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import Dict, Optional
 
 from medmodels._medmodels import PyGroupSchema, PySchema
@@ -43,3 +45,9 @@ class Schema:
                 groups={x: groups[x]._group_schema for x in groups},
                 strict=strict,
             )
+
+    @classmethod
+    def _from_pyschema(cls, schema: PySchema) -> Schema:
+        new_schema = cls()
+        new_schema._schema = schema
+        return new_schema

@@ -96,6 +96,11 @@ impl PyMedRecord {
     }
 
     #[getter]
+    fn schema(&self) -> PySchema {
+        self.0.get_schema().clone().into()
+    }
+
+    #[getter]
     fn nodes(&self) -> Vec<PyNodeIndex> {
         self.0
             .node_indices()

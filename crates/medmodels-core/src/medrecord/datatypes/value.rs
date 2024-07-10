@@ -919,6 +919,13 @@ mod test {
     };
 
     #[test]
+    fn test_default() {
+        let value = MedRecordValue::default();
+
+        assert_eq!(MedRecordValue::Null, value);
+    }
+
+    #[test]
     fn test_from_str() {
         let value = MedRecordValue::from("value");
 

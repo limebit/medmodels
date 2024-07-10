@@ -3,7 +3,7 @@ use std::{
     fmt::{Display, Formatter, Result},
 };
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum MedRecordError {
     IndexError(String),
     KeyError(String),
@@ -31,7 +31,36 @@ impl Display for MedRecordError {
             Self::KeyError(message) => write!(f, "KeyError: {}", message),
             Self::ConversionError(message) => write!(f, "ConversionError: {}", message),
             Self::AssertionError(message) => write!(f, "AssertionError: {}", message),
-            Self::SchemaError(message) => write!(f, "AssertionError: {}", message),
+            Self::SchemaError(message) => write!(f, "SchemaError: {}", message),
         }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::MedRecordError;
+
+    #[test]
+    fn test_display() {
+        assert_eq!(
+            "IndexError: value",
+            MedRecordError::IndexError("value".to_string()).to_string()
+        );
+        assert_eq!(
+            "KeyError: value",
+            MedRecordError::KeyError("value".to_string()).to_string()
+        );
+        assert_eq!(
+            "ConversionError: value",
+            MedRecordError::ConversionError("value".to_string()).to_string()
+        );
+        assert_eq!(
+            "AssertionError: value",
+            MedRecordError::AssertionError("value".to_string()).to_string()
+        );
+        assert_eq!(
+            "SchemaError: value",
+            MedRecordError::SchemaError("value".to_string()).to_string()
+        );
     }
 }

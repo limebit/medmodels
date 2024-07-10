@@ -673,6 +673,10 @@ impl PyEdgeOperand {
         self.clone().0.connected(operand).into()
     }
 
+    fn in_group(&self, operand: PyGroup) -> PyEdgeOperation {
+        self.clone().0.in_group(operand).into()
+    }
+
     fn has_attribute(&self, operand: PyMedRecordAttribute) -> PyEdgeOperation {
         self.clone().0.has_attribute(operand).into()
     }

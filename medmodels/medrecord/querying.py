@@ -1616,6 +1616,20 @@ class EdgeOperand:
         """
         return EdgeOperation(self._edge_operand.connected(operand))
 
+    def in_group(self, operand: Group) -> EdgeOperation:
+        """
+        Creates an EdgeOperation that evaluates to true if the edge is part of the
+        specified group.
+
+        Args:
+            operand (Group): The group to check the edge against.
+
+        Returns:
+            EdgeOperation: An EdgeOperation indicating if the edge is part of the
+                specified group.
+        """
+        return EdgeOperation(self._edge_operand.in_group(operand))
+
     def has_attribute(self, operand: MedRecordAttribute) -> EdgeOperation:
         """
         Creates an EdgeOperation that evaluates to true if the edge has the

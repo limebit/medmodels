@@ -25,7 +25,28 @@ impl Display for GraphError {
         match self {
             GraphError::IndexError(message) => write!(f, "IndexError: {}", message),
             GraphError::AssertionError(message) => write!(f, "AssertionError: {}", message),
-            GraphError::SchemaError(message) => write!(f, "AssertionError: {}", message),
+            GraphError::SchemaError(message) => write!(f, "SchemaError: {}", message),
         }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::GraphError;
+
+    #[test]
+    fn test_display() {
+        assert_eq!(
+            "IndexError: value",
+            GraphError::IndexError("value".to_string()).to_string()
+        );
+        assert_eq!(
+            "AssertionError: value",
+            GraphError::AssertionError("value".to_string()).to_string()
+        );
+        assert_eq!(
+            "SchemaError: value",
+            GraphError::SchemaError("value".to_string()).to_string()
+        );
     }
 }
