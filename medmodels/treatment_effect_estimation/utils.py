@@ -1,12 +1,9 @@
-import pandas as pd
 from typing import Literal
+
+import pandas as pd
+
 from medmodels.medrecord.medrecord import MedRecord
-from medmodels.medrecord.types import (
-    EdgeIndex,
-    Group,
-    MedRecordAttribute,
-    NodeIndex,
-)
+from medmodels.medrecord.types import EdgeIndex, Group, MedRecordAttribute, NodeIndex
 
 
 def find_reference_edge(

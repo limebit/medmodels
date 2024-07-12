@@ -1,14 +1,14 @@
 import unittest
+from typing import List
+
+import pandas as pd
 
 from medmodels.medrecord.medrecord import MedRecord
-
-from medmodels.treatment_effect_estimation.utils import (
-    find_reference_edge,
-    find_node_in_time_window,
-)
-from typing import List
-import pandas as pd
 from medmodels.medrecord.types import NodeIndex
+from medmodels.treatment_effect_estimation.utils import (
+    find_node_in_time_window,
+    find_reference_edge,
+)
 
 
 def create_patients(patient_list: List[NodeIndex]) -> pd.DataFrame:

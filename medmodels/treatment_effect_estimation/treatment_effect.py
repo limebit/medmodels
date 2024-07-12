@@ -25,10 +25,10 @@ from medmodels.medrecord.types import (
     MedRecordAttributeInputList,
     NodeIndex,
 )
-from medmodels.treatment_effect_estimation.utils import find_node_in_time_window
 from medmodels.treatment_effect_estimation.builder import TreatmentEffectBuilder
 from medmodels.treatment_effect_estimation.estimate import Estimate
 from medmodels.treatment_effect_estimation.report import Report
+from medmodels.treatment_effect_estimation.utils import find_node_in_time_window
 
 
 class TreatmentEffect:
