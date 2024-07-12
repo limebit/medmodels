@@ -1,4 +1,3 @@
-import logging
 from math import sqrt
 from typing import Literal, Set
 
@@ -7,9 +6,6 @@ import numpy as np
 from medmodels.medrecord.medrecord import MedRecord
 from medmodels.medrecord.types import Group, MedRecordAttribute, NodeIndex
 from medmodels.treatment_effect_estimation.utils import find_reference_edge
-
-logging.getLogger().setLevel(logging.WARNING)
-logging.basicConfig(format="%(message)s")
 
 
 def average_treatment_effect(
@@ -50,7 +46,7 @@ def average_treatment_effect(
             control group.
         outcome_group (Group): The group of nodes that contain the outcome variable.
         outcome_variable (MedRecordAttribute): The attribute in the edge that contains
-            the outcome variable.
+            the outcome variable. It must be numeric and continuous.
         reference (Literal["first", "last"], optional): The reference point for the
             exposure time. Options include "first" and "last". If "first", the function
             returns the earliest exposure edge. If "last", the function returns the
@@ -60,6 +56,9 @@ def average_treatment_effect(
 
     Returns:
         float: The average treatment effect.
+
+    Raises:
+        ValueError: If the outcome variable is not numeric.
     """
     treated_outcomes = np.array(
         [
@@ -92,7 +91,7 @@ def average_treatment_effect(
             for node_index in control_true_set
         ]
     )
-    if not all(isinstance(i, (int, float)) for i in treated_outcomes):
+    if not all(isinstance(i, (int, float)) for i in control_outcomes):
         raise ValueError("Outcome variable must be numeric")
 
     return treated_outcomes.mean() - control_outcomes.mean()
@@ -115,6 +114,10 @@ def cohens_d(
     many standard deviations the two groups differ by, with 1 standard deviation equal
     to 1 z-score.
 
+    The correction factor is applied when the sample size is small, as the standard
+    deviation of the sample is not an accurate estimate of the population standard
+    deviation, using Hedges' g formula instead.
+
     A rule of thumb for interpreting Cohen's D
     - Small effect = +-0.2
     - Medium effect = +-0.5
@@ -135,7 +138,7 @@ def cohens_d(
             control group.
         outcome_group (Group): The group of nodes that contain the outcome variable.
         outcome_variable (MedRecordAttribute): The attribute in the edge that contains
-            the outcome variable.
+            the outcome variable. It must be numeric and continuous.
         reference (Literal["first", "last"], optional): The reference point for the
             exposure time. Options include "first" and "last". If "first", the function
             returns the earliest exposure edge. If "last", the function returns the
@@ -143,10 +146,14 @@ def cohens_d(
         time_attribute (MedRecordAttribute, optional): The attribute in the edge that
             contains the time information. Defaults to "time".
         add_correction (bool, optional): Whether to apply a correction factor for small
-            sample sizes. Defaults to False.
+            sample sizes. When True, using Hedges' g formula instead of Cohens' D.
+            Defaults to False.
 
     Returns:
         float: The Cohen's D coefficient, representing the effect size.
+
+    Raises:
+        ValueError: If the outcome variable is not numeric.
     """
     treated_outcomes = np.array(
         [
@@ -179,19 +186,15 @@ def cohens_d(
             for node_index in control_true_set
         ]
     )
-    if not all(isinstance(i, (int, float)) for i in treated_outcomes):
+    if not all(isinstance(i, (int, float)) for i in control_outcomes):
         raise ValueError("Outcome variable must be numeric")
 
     min_len = min(len(treated_outcomes), len(control_outcomes))
     cf = 1  # correction factor
 
     if min_len < 50:
-        logging.warning(
-            "For sets with size < 50 better use the alternative method "
-            "Hedges' g, which provides a slightly smaller bias towards "
-            "small samples."
-        )
-        # correction factor
+        # correction factor for small sample sizes, using Hedges' g formula instead
+        # TODO: logging asking to use Hedges'g formula instead
         if add_correction:
             cf = (min_len - 3) * sqrt((min_len - 2) / min_len) / (min_len - 2.25)
 

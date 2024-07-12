@@ -442,7 +442,7 @@ class Estimate:
             medrecord (MedRecord): An instance of the MedRecord class containing medical
                 data.
             outcome_variable (MedRecordAttribute): The attribute in the edge that
-                contains the outcome variable.
+                contains the outcome variable. It must be numeric and continuous.
             reference (Literal["first", "last"], optional): The reference point for the
                 exposure time. Options include "first" and "last". If "first", the
                 function returns the earliest exposure edge. If "last", the function
@@ -489,7 +489,7 @@ class Estimate:
             medrecord (MedRecord): An instance of the MedRecord class containing medical
                 data.
             outcome_variable (MedRecordAttribute): The attribute in the edge that
-                contains the outcome variable.
+                contains the outcome variable. It must be numeric and continuous.
             reference (Literal["first", "last"], optional): The reference point for the
                 exposure time. Options include "first" and "last". If "first", the
                 function returns the earliest exposure edge. If "last", the function
