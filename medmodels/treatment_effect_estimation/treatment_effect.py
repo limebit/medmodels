@@ -14,8 +14,6 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, Literal, Optional, Set, Tuple
 
-import pandas as pd
-
 from medmodels import MedRecord
 from medmodels.matching.algorithms.propensity_score import Model
 from medmodels.matching.matching import MatchingMethod
@@ -30,6 +28,7 @@ from medmodels.medrecord.types import (
 from medmodels.treatment_effect_estimation.builder import TreatmentEffectBuilder
 from medmodels.treatment_effect_estimation.estimate import Estimate
 from medmodels.treatment_effect_estimation.report import Report
+from medmodels.treatment_effect_estimation.utils import find_node_in_time_window
 
 
 class TreatmentEffect:
@@ -303,10 +302,11 @@ class TreatmentEffect:
                     {
                         node_index
                         for node_index in nodes_to_check
-                        if self._find_node_in_time_window(
+                        if find_node_in_time_window(
                             medrecord,
                             node_index,
                             outcome,
+                            connected_group=self._treatments_group,
                             start_days=-self._outcome_before_treatment_days,
                             end_days=0,
                             reference="first",
@@ -320,10 +320,11 @@ class TreatmentEffect:
                 {
                     node_index
                     for node_index in nodes_to_check
-                    if self._find_node_in_time_window(
+                    if find_node_in_time_window(
                         medrecord,
                         node_index,
                         outcome,
+                        connected_group=self._treatments_group,
                         start_days=self._grace_period_days,
                         end_days=self._follow_up_period_days,
                         reference=self._follow_up_period_reference,
@@ -369,10 +370,11 @@ class TreatmentEffect:
                     {
                         treated_node
                         for treated_node in treated_group
-                        if self._find_node_in_time_window(
+                        if find_node_in_time_window(
                             medrecord,
                             treated_node,
                             washout_node,
+                            connected_group=self._treatments_group,
                             start_days=-washout_days,
                             end_days=0,
                             reference=self._washout_period_reference,
@@ -389,141 +391,6 @@ class TreatmentEffect:
                 f"dropped due to outcome before treatment."
             )
         return treated_group, washout_nodes
-
-    def _find_node_in_time_window(
-        self,
-        medrecord: MedRecord,
-        node_index: NodeIndex,
-        event_node: NodeIndex,
-        start_days: int,
-        end_days: int,
-        reference: Literal["first", "last"],
-    ) -> bool:
-        """
-        Determines whether an event occurred within a specified time window for a given
-        patient node. This method helps in identifying events that are temporally
-        related to a reference event by considering the temporal sequence of events.
-
-        Args:
-            medrecord (MedRecord): An instance of the MedRecord class containing patient
-                medical data.
-            node_index (NodeIndex): The patient node to evaluate.
-            event_node (NodeIndex): The event node to check for its occurrence.
-            start_days (int): The start of the time window in days relative to the
-                reference event.
-            end_days (int): The end of the time window in days relative to the
-                reference event.
-            reference (Literal["first", "last"]): The reference point for the time
-                window.
-
-        Returns:
-            bool: True if the event occurred within the specified time window;
-                False otherwise.
-
-        Raises:
-            ValueError: If the time attribute is not found in the edge attributes.
-        """
-        # Find the reference time for the node
-        start_period = pd.Timedelta(days=start_days)
-        end_period = pd.Timedelta(days=end_days)
-        reference_time = self._find_reference_time(
-            medrecord, node_index, reference=reference
-        )
-
-        # Check if the event happened within the specified time window
-        edges = medrecord.edges_connecting(node_index, event_node, directed=False)
-        for edge in edges:
-            edge_attributes = medrecord.edge[edge]
-            if self._time_attribute not in edge_attributes:
-                raise ValueError("Time attribute not found in the edge attributes")
-
-            event_time = pd.to_datetime(str(edge_attributes[self._time_attribute]))
-            time_diff = event_time - reference_time
-
-            # Check that the event happened within the specified time window
-            if start_period <= time_diff <= end_period:
-                return True
-
-        # Return False if no event happened within the time window
-        return False
-
-    def _find_reference_time(
-        self,
-        medrecord: MedRecord,
-        node_index: NodeIndex,
-        reference: Literal["first", "last"],
-    ) -> pd.Timestamp:
-        """
-        Determines the timestamp of the reference exposure to any treatment in the
-        predefined treatment list for a specified patient node. This method is crucial
-        for analyzing the temporal sequence of treatments and outcomes.
-
-        This function iterates over all treatments and finds the reference timestamp
-        among them (first or last), ensuring that the analysis considers the reference
-        treatment exposure.
-
-        Args:
-            medrecord (MedRecord): An instance of the MedRecord class containing patient
-                medical data.
-            node_index (NodeIndex): The patient node for which to determine the first
-                treatment exposure time.
-            reference (Literal["first", "last"]): The reference point for the treatment
-                exposure time. Options include "first" and "last".
-
-        Returns:
-            pd.Timestamp: The timestamp of the reference treatment exposure.
-
-        Raises:
-            ValueError: If no treatments are found in the MedRecord for the specified
-                treatment group.
-            ValueError: If no treatment edge with a time attribute is found for the
-                node, indicating an issue with the data or the specified treatments.
-            ValueError: If no treatment is found for the specified node in the
-                MedRecord.
-        """
-        if reference == "first":
-            time_treat = pd.Timestamp.max
-            operation = min
-        elif reference == "last":
-            time_treat = pd.Timestamp.min
-            operation = max
-
-        treatments = medrecord.nodes_in_group(self._treatments_group)
-        if not treatments:
-            raise ValueError(
-                f"No treatments found in MedRecord for group {self._treatments_group}"
-            )
-
-        for treatment in treatments:
-            edges = medrecord.edges_connecting(node_index, treatment, directed=False)
-
-            # If the node does not have the treatment, continue
-            if not edges:
-                continue
-
-            # If the node has the treatment, check if it has the time attribute
-            edge_values = medrecord.edge[edges].values()
-
-            if not all(
-                self._time_attribute in edge_attribute for edge_attribute in edge_values
-            ):
-                raise ValueError("Time attribute not found in the edge attributes")
-
-            # Find the minimum time of the treatments
-            edge_times = [
-                pd.to_datetime(str(edge_attribute[self._time_attribute]))
-                for edge_attribute in edge_values
-            ]
-            if edge_times:
-                reference_time = operation(edge_times)
-                time_treat = operation(reference_time, time_treat)
-
-        if time_treat == pd.Timestamp.max or time_treat == pd.Timestamp.min:
-            raise ValueError(
-                f"No treatment found for node {node_index} in this MedRecord"
-            )
-
-        return time_treat
 
     def _find_controls(
         self,
