@@ -45,6 +45,7 @@ pub enum NodeOperation {
     HasIncomingEdgeWith(Box<EdgeOperation>),
     HasOutgoingEdgeWith(Box<EdgeOperation>),
     HasNeighborWith(Box<NodeOperation>),
+    HasNeighborUndirectedWith(Box<NodeOperation>),
 
     And(Box<(NodeOperation, NodeOperation)>),
     Or(Box<(NodeOperation, NodeOperation)>),
@@ -88,6 +89,9 @@ impl Operation for NodeOperation {
             ),
             NodeOperation::HasNeighborWith(operation) => Box::new(
                 Self::evaluate_has_neighbor_with(medrecord, indices, *operation),
+            ),
+            NodeOperation::HasNeighborUndirectedWith(operation) => Box::new(
+                Self::evaluate_has_neighbor_undirected_with(medrecord, indices, *operation),
             ),
 
             NodeOperation::And(operations) => Box::new(Self::evaluate_and(
@@ -219,6 +223,20 @@ impl NodeOperation {
     ) -> impl Iterator<Item = &'a NodeIndex> {
         node_indices.filter(move |index| {
             let Ok(neighbors) = medrecord.neighbors(index) else {
+                return false;
+            };
+
+            operation.clone().evaluate(medrecord, neighbors).count() > 0
+        })
+    }
+
+    fn evaluate_has_neighbor_undirected_with<'a>(
+        medrecord: &'a MedRecord,
+        node_indices: impl Iterator<Item = &'a NodeIndex>,
+        operation: NodeOperation,
+    ) -> impl Iterator<Item = &'a NodeIndex> {
+        node_indices.filter(move |index| {
+            let Ok(neighbors) = medrecord.neighbors_undirected(index) else {
                 return false;
             };
 

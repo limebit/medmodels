@@ -241,9 +241,9 @@ class TreatmentEffect:
                 set(
                     medrecord.select_nodes(
                         node().in_group(self._patients_group)
-                        & node()
-                        .index()
-                        .is_in(medrecord.neighbors(treatment, directed=False))
+                        & node().has_neighbor_with(
+                            node().index() == treatment, directed=False
+                        )
                     )
                 )
             )
@@ -291,7 +291,8 @@ class TreatmentEffect:
         for outcome in outcomes:
             nodes_to_check = set(
                 medrecord.select_nodes(
-                    node().index().is_in(medrecord.neighbors(outcome, directed=False))
+                    node().has_neighbor_with(node().index() == outcome, directed=False)
+                    # This could probably be refactored to a proper query
                     & node().index().is_in(list(treated_group))
                 )
             )
@@ -458,8 +459,11 @@ class TreatmentEffect:
         for outcome in outcomes:
             control_true.update(
                 medrecord.select_nodes(
+                    # This could probably be refactored to a proper query
                     node().index().is_in(list(control_group))
-                    & node().index().is_in(medrecord.neighbors(outcome, directed=False))
+                    & node().has_neighbor_with(
+                        node().index() == outcome, directed=False
+                    )
                 )
             )
         control_false = control_group - control_true

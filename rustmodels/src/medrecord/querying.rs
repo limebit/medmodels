@@ -639,6 +639,12 @@ impl PyNodeOperand {
     fn has_neighbor_with(&self, operation: PyNodeOperation) -> PyNodeOperation {
         self.clone().0.has_neighbor_with(operation.into()).into()
     }
+    fn has_neighbor_undirected_with(&self, operation: PyNodeOperation) -> PyNodeOperation {
+        self.clone()
+            .0
+            .has_neighbor_undirected_with(operation.into())
+            .into()
+    }
 
     fn attribute(&self, attribute: PyMedRecordAttribute) -> PyNodeAttributeOperand {
         self.clone().0.attribute(attribute).into()
