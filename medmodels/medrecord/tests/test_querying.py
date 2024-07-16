@@ -82,6 +82,24 @@ class TestMedRecord(unittest.TestCase):
                 )
             ),
         )
+        self.assertEqual(
+            sorted(["0"]),
+            sorted(
+                medrecord.select_nodes(
+                    node().has_neighbor_with(node().index().equal("1"), directed=True)
+                )
+            ),
+        )
+
+        # Node has neighbor with
+        self.assertEqual(
+            sorted(["0", "2"]),
+            sorted(
+                medrecord.select_nodes(
+                    node().has_neighbor_with(node().index().equal("1"), directed=False)
+                )
+            ),
+        )
 
     def test_select_nodes_node_index(self):
         medrecord = create_medrecord()

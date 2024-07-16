@@ -220,6 +220,22 @@ mod test {
                 .iter()
                 .count(),
         );
+        assert_eq!(
+            1,
+            medrecord
+                .select_nodes(node().has_neighbor_with(node().index().equal("1")))
+                .iter()
+                .count(),
+        );
+
+        // Node has undirected neighbor with
+        assert_eq!(
+            2,
+            medrecord
+                .select_nodes(node().has_neighbor_undirected_with(node().index().equal("1")))
+                .iter()
+                .count(),
+        );
     }
 
     #[test]
