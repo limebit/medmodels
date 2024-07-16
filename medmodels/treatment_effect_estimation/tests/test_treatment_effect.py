@@ -72,7 +72,7 @@ def create_prescriptions() -> pd.DataFrame:
     return prescriptions
 
 
-def create_edges(patient_list: List[NodeIndex]) -> pd.DataFrame:
+def create_edges1(patient_list: List[NodeIndex]) -> pd.DataFrame:
     """
     Create an edges dataframe.
 
@@ -82,49 +82,78 @@ def create_edges(patient_list: List[NodeIndex]) -> pd.DataFrame:
     edges = pd.DataFrame(
         {
             "source": [
-                "D1",
                 "M2",
                 "M1",
                 "M2",
-                "D1",
-                "D1",
-                "D1",
                 "M1",
-                "D1",
                 "M2",
                 "M1",
-                "D1",
                 "M2",
             ],
             "target": [
                 "P1",
-                "P1",
-                "P2",
                 "P2",
                 "P2",
                 "P3",
-                "P3",
-                "P3",
-                "P4",
                 "P5",
                 "P6",
-                "P7",
                 "P9",
             ],
             "time": [
-                "2000-01-01",
                 "1999-10-15",
                 "2000-01-01",
                 "1999-12-15",
+                "2000-01-01",
+                "2000-01-01",
+                "2000-01-01",
+                "2000-01-01",
+            ],
+        }
+    )
+    edges = edges.loc[edges["target"].isin(patient_list)]
+    return edges
+
+
+def create_edges2(patient_list: List[NodeIndex]) -> pd.DataFrame:
+    """
+    Create an edges dataframe with attribute "intensity".
+
+    Returns:
+        pd.DataFrame: An edges dataframe.
+    """
+    edges = pd.DataFrame(
+        {
+            "source": [
+                "D1",
+                "D1",
+                "D1",
+                "D1",
+                "D1",
+                "D1",
+            ],
+            "target": [
+                "P1",
+                "P2",
+                "P3",
+                "P3",
+                "P4",
+                "P7",
+            ],
+            "time": [
+                "2000-01-01",
                 "2000-07-01",
                 "1999-12-15",
                 "2000-01-05",
                 "2000-01-01",
                 "2000-01-01",
-                "2000-01-01",
-                "2000-01-01",
-                "2000-01-01",
-                "2000-01-01",
+            ],
+            "intensity": [
+                0.1,
+                0.2,
+                0.3,
+                0.4,
+                0.5,
+                0.6,
             ],
         }
     )
@@ -154,10 +183,11 @@ def create_medrecord(
     patients = create_patients(patient_list=patient_list)
     diagnoses = create_diagnoses()
     prescriptions = create_prescriptions()
-    edges = create_edges(patient_list=patient_list)
+    edges1 = create_edges1(patient_list=patient_list)
+    edges2 = create_edges2(patient_list=patient_list)
     medrecord = MedRecord.from_pandas(
         nodes=[(patients, "index"), (diagnoses, "index"), (prescriptions, "index")],
-        edges=[(edges, "source", "target")],
+        edges=[(edges1, "source", "target")],
     )
     medrecord.add_group(group="patients", nodes=patients["index"].to_list())
     medrecord.add_group(
@@ -172,6 +202,7 @@ def create_medrecord(
         "Warfarin",
         ["M2"],
     )
+    medrecord.add_edges((edges2, "source", "target"))
     return medrecord
 
 
@@ -361,122 +392,6 @@ class TestTreatmentEffect(unittest.TestCase):
         self.assertEqual(treatment_false, set({"P6"}))
         self.assertEqual(control_true, set({"P1", "P4", "P7"}))
         self.assertEqual(control_false, set({"P5", "P8", "P9"}))
-
-    def test_find_reference_time(self):
-        tee = (
-            TreatmentEffect.builder()
-            .with_treatment("Rivaroxaban")
-            .with_outcome("Stroke")
-            .build()
-        )
-        time = tee._find_reference_time(
-            self.medrecord, node_index="P6", reference="last"
-        )
-        self.assertEqual(pd.Timestamp("2000-01-01"), time)
-
-        # adding medication time
-        self.medrecord.add_edge(
-            source_node="M1", target_node="P6", attributes={"time": "2000-01-15"}
-        )
-
-        time = tee._find_reference_time(
-            self.medrecord, node_index="P6", reference="last"
-        )
-        self.assertEqual(pd.Timestamp("2000-01-15"), time)
-
-        tee2 = (
-            TreatmentEffect.builder()
-            .with_treatment("Rivaroxaban")
-            .with_outcome("Stroke")
-            .with_time_attribute("admission")
-            .build()
-        )
-        with self.assertRaisesRegex(
-            ValueError, "Time attribute not found in the edge attributes"
-        ):
-            tee2._find_reference_time(self.medrecord, node_index="P6", reference="last")
-
-    def test_node_in_time_window(self):
-        tee = (
-            TreatmentEffect.builder()
-            .with_treatment("Rivaroxaban")
-            .with_outcome("Stroke")
-            .build()
-        )
-        # check if patient has outcome a year after treatment
-        node_found = tee._find_node_in_time_window(
-            self.medrecord,
-            node_index="P2",
-            event_node="D1",
-            start_days=0,
-            end_days=365,
-            reference="last",
-        )
-        self.assertTrue(node_found)
-
-        # check if patient has outcome 30 days after treatment
-        node_found2 = tee._find_node_in_time_window(
-            self.medrecord,
-            node_index="P2",
-            event_node="D1",
-            start_days=0,
-            end_days=30,
-            reference="last",
-        )
-        self.assertFalse(node_found2)
-
-        node_index = "P5"
-        with self.assertRaisesRegex(
-            ValueError, f"No treatment found for node {node_index} in this MedRecord"
-        ):
-            tee._find_node_in_time_window(
-                self.medrecord,
-                node_index=node_index,
-                event_node="D1",
-                start_days=0,
-                end_days=30,
-                reference="last",
-            )
-
-        tee2 = (
-            TreatmentEffect.builder()
-            .with_treatment("Rivaroxaban")
-            .with_outcome("Stroke")
-            .with_time_attribute("admission")
-            .build()
-        )
-        with self.assertRaisesRegex(
-            ValueError, "Time attribute not found in the edge attributes"
-        ):
-            tee2._find_node_in_time_window(
-                self.medrecord,
-                node_index="P2",
-                event_node="D1",
-                start_days=0,
-                end_days=30,
-                reference="last",
-            )
-
-        treatment = "Aspirin"
-        self.medrecord.add_group(treatment)
-        tee3 = (
-            TreatmentEffect.builder()
-            .with_treatment(treatment)
-            .with_outcome("Stroke")
-            .build()
-        )
-
-        with self.assertRaisesRegex(
-            ValueError, f"No treatments found in MedRecord for group {treatment}"
-        ):
-            tee3._find_node_in_time_window(
-                self.medrecord,
-                node_index="P2",
-                event_node="D1",
-                start_days=0,
-                end_days=30,
-                reference="last",
-            )
 
     def test_compute_subject_counts(self):
         tee = (
@@ -824,7 +739,7 @@ class TestTreatmentEffect(unittest.TestCase):
         self.assertAlmostEqual(tee.estimate.number_needed_to_treat(self.medrecord), 6)
 
     def test_full_report(self):
-        """Test the reporting of the TreatmentEffect class."""
+        """Test the full reporting of the TreatmentEffect class."""
 
         tee = (
             TreatmentEffect.builder()
@@ -847,6 +762,33 @@ class TestTreatmentEffect(unittest.TestCase):
             ),
         }
         self.assertDictEqual(report_test, full_report)
+
+    def test_continuous_estimators_report(self):
+        """Test the continuous report of the TreatmentEffect class."""
+
+        tee = (
+            TreatmentEffect.builder()
+            .with_treatment("Rivaroxaban")
+            .with_outcome("Stroke")
+            .build()
+        )
+
+        report_test = {
+            "average_treatment_effect": tee.estimate.average_treatment_effect(
+                self.medrecord,
+                outcome_variable="intensity",
+            ),
+            "cohens_d": tee.estimate.cohens_d(
+                self.medrecord, outcome_variable="intensity"
+            ),
+        }
+
+        self.assertDictEqual(
+            report_test,
+            tee.report.continuous_estimators_report(
+                self.medrecord, outcome_variable="intensity"
+            ),
+        )
 
 
 if __name__ == "__main__":

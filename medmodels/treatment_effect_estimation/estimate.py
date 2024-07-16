@@ -1,12 +1,16 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Dict, Set, Tuple
+from typing import TYPE_CHECKING, Dict, Literal, Set, Tuple
 
 from medmodels.matching.matching import Matching
 from medmodels.matching.neighbors import NeighborsMatching
 from medmodels.matching.propensity import PropensityMatching
 from medmodels.medrecord.medrecord import MedRecord
-from medmodels.medrecord.types import NodeIndex
+from medmodels.medrecord.types import MedRecordAttribute, NodeIndex
+from medmodels.treatment_effect_estimation.continuous_estimators import (
+    average_treatment_effect,
+    cohens_d,
+)
 
 if TYPE_CHECKING:
     from medmodels.treatment_effect_estimation.treatment_effect import TreatmentEffect
@@ -422,3 +426,89 @@ class Estimate:
             )
 
         return hazard_treat / hazard_control
+
+    def average_treatment_effect(
+        self,
+        medrecord: MedRecord,
+        outcome_variable: MedRecordAttribute,
+        reference: Literal["first", "last"] = "last",
+    ) -> float:
+        """
+        Calculates the Average Treatment Effect (ATE) as the difference between the
+        outcome means of the treated and control sets. A positive ATE indicates that the
+        treatment increased the outcome, while a negative ATE suggests a decrease.
+
+        Args:
+            medrecord (MedRecord): An instance of the MedRecord class containing medical
+                data.
+            outcome_variable (MedRecordAttribute): The attribute in the edge that
+                contains the outcome variable. It must be numeric and continuous.
+            reference (Literal["first", "last"], optional): The reference point for the
+                exposure time. Options include "first" and "last". If "first", the
+                function returns the earliest exposure edge. If "last", the function
+                returns the latest exposure edge. Defaults to "last".
+
+        Returns:
+            float: The average treatment effect.
+        """
+        subjects = self.subjects_contingency_table(medrecord=medrecord)
+
+        return average_treatment_effect(
+            medrecord=medrecord,
+            treatment_true_set=subjects["treatment_true"],
+            control_true_set=subjects["control_true"],
+            outcome_group=self._treatment_effect._outcomes_group,
+            outcome_variable=outcome_variable,
+            reference=reference,
+            time_attribute=self._treatment_effect._time_attribute,
+        )
+
+    def cohens_d(
+        self,
+        medrecord: MedRecord,
+        outcome_variable: MedRecordAttribute,
+        reference: Literal["first", "last"] = "last",
+        add_correction: bool = False,
+    ) -> float:
+        """
+        Calculates Cohen's D, the standardized mean difference between two sets,
+        measuring the effect size of the difference between two outcome means. It's
+        applicable for any two sets but is recommended for sets of the same size.
+        Cohen's D indicates how many standard deviations the two groups differ by, with
+        1 standard deviation equal to 1 z-score.
+
+        A rule of thumb for interpreting Cohen's D:
+        - Small effect = 0.2
+        - Medium effect = 0.5
+        - Large effect = 0.8
+
+        This metric provides a dimensionless measure of effect size, facilitating the
+        comparison across different studies and contexts.
+
+        Args:
+            medrecord (MedRecord): An instance of the MedRecord class containing medical
+                data.
+            outcome_variable (MedRecordAttribute): The attribute in the edge that
+                contains the outcome variable. It must be numeric and continuous.
+            reference (Literal["first", "last"], optional): The reference point for the
+                exposure time. Options include "first" and "last". If "first", the
+                function returns the earliest exposure edge. If "last", the function
+                returns the latest exposure edge. Defaults to "last".
+            add_correction (bool, optional): Whether to apply a correction factor for
+                small sample sizes. Defaults to False.
+
+        Returns:
+            float: The Cohen's D coefficient, representing the effect size.
+        """
+        subjects = self.subjects_contingency_table(medrecord=medrecord)
+
+        return cohens_d(
+            medrecord=medrecord,
+            treatment_true_set=subjects["treatment_true"],
+            control_true_set=subjects["control_true"],
+            outcome_group=self._treatment_effect._outcomes_group,
+            outcome_variable=outcome_variable,
+            reference=reference,
+            time_attribute=self._treatment_effect._time_attribute,
+            add_correction=add_correction,
+        )
