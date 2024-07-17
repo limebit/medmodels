@@ -9,3 +9,4 @@ target
 *.so
 .vscode
 .devcontainer
+.python-version
