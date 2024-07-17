@@ -501,6 +501,9 @@ impl NodeOperand {
     pub fn has_neighbor_with(self, operation: NodeOperation) -> NodeOperation {
         NodeOperation::HasNeighborWith(Box::new(operation))
     }
+    pub fn has_neighbor_undirected_with(self, operation: NodeOperation) -> NodeOperation {
+        NodeOperation::HasNeighborUndirectedWith(Box::new(operation))
+    }
 
     pub fn attribute(self, attribute: impl Into<MedRecordAttribute>) -> NodeAttributeOperand {
         NodeAttributeOperand(attribute.into())

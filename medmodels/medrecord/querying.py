@@ -1512,7 +1512,9 @@ class NodeOperand:
             self._node_operand.has_edge_with(operation._edge_operation)
         )
 
-    def has_neighbor_with(self, operation: NodeOperation) -> NodeOperation:
+    def has_neighbor_with(
+        self, operation: NodeOperation, *, directed: bool = True
+    ) -> NodeOperation:
         """
         Creates a NodeOperation that evaluates to true if the node has a
         neighboring node that satisfies the specified NodeOperation.
@@ -1520,14 +1522,22 @@ class NodeOperand:
         Args:
             operation (NodeOperation): A NodeOperation to evaluate against
                 neighboring nodes.
+            directed (bool): Whether to consider edges as directed
 
         Returns:
             NodeOperation: A NodeOperation indicating if the node has a neighboring node
                 satisfying the specified operation.
         """
-        return NodeOperation(
-            self._node_operand.has_neighbor_with(operation._node_operation)
-        )
+        if directed:
+            return NodeOperation(
+                self._node_operand.has_neighbor_with(operation._node_operation)
+            )
+        else:
+            return NodeOperation(
+                self._node_operand.has_neighbor_undirected_with(
+                    operation._node_operation
+                )
+            )
 
     def attribute(self, attribute: MedRecordAttribute) -> NodeAttributeOperand:
         """
