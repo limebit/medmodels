@@ -217,7 +217,7 @@ class TreatmentEffect:
 
         return treatment_true, treatment_false, control_true, control_false
 
-    def _find_treated_patients(self, medrecord: MedRecord) -> Set[NodeIndex]:
+    def _find_treated_patients(self, medrecord: MedRecord) -> NodeOperation:
         """Find the patients that underwent the treatment.
 
         Args:
@@ -231,28 +231,19 @@ class TreatmentEffect:
             ValueError: If no patients are found for the treatment groups in the
                 MedRecord.
         """
-        treated_group = set()
 
-        treatments = medrecord.nodes_in_group(self._treatments_group)
+        treatment_query = node().in_group(
+            self._patients_group
+        ) & node().has_neighbor_with(
+            node().in_group(self._treatments_group), directed=False
+        )
 
-        # Create the group with all the patients that underwent the treatment
-        for treatment in treatments:
-            treated_group.update(
-                set(
-                    medrecord.select_nodes(
-                        node().in_group(self._patients_group)
-                        & node().has_neighbor_with(
-                            node().index() == treatment, directed=False
-                        )
-                    )
-                )
-            )
-        if not treated_group:
-            raise ValueError(
-                "No patients found for the treatment groups in this MedRecord."
-            )
+        # TODO check how to do this
+        # raise ValueError(
+        #     "No patients found for the treatment groups in this MedRecord."
+        # )
 
-        return treated_group
+        return treatment_query
 
     def _find_outcomes(
         self, medrecord: MedRecord, treated_group: Set[NodeIndex]
@@ -396,11 +387,11 @@ class TreatmentEffect:
     def _find_controls(
         self,
         medrecord: MedRecord,
-        control_group: Set[NodeIndex],
-        treated_group: Set[NodeIndex],
-        rejected_nodes: Set[NodeIndex] = set(),
+        control_query: NodeOperation,
+        treated_query: NodeOperation,
+        rejected_query: NodeOperation,
         filter_controls_operation: Optional[NodeOperation] = None,
-    ) -> Tuple[Set[NodeIndex], Set[NodeIndex]]:
+    ) -> Tuple[NodeOperation, NodeOperation]:
         """
         Identifies control groups among patients who did not undergo the specified
         treatments.
@@ -439,34 +430,22 @@ class TreatmentEffect:
         """
         # Apply the filter to the control group if specified
         if filter_controls_operation:
-            control_group = (
-                set(medrecord.select_nodes(filter_controls_operation)) & control_group
-            )
+            control_query = control_query & filter_controls_operation
 
-        control_group = control_group - treated_group - rejected_nodes
-        if len(control_group) == 0:
-            raise ValueError("No patients found for control groups in this MedRecord.")
+        control_query = control_query & ~treated_query & ~rejected_query
+        # TODO: how to check for empty queries?
+        # if len(control_group) == 0:
+        #     raise ValueError("No patients found for control groups in this MedRecord.")
+        # raise ValueError(
+        #     f"No outcomes found in the MedRecord for group {self._outcomes_group}"
+        # )
 
-        control_true = set()
-        control_false = set()
-        outcomes = medrecord.nodes_in_group(self._outcomes_group)
-        if not outcomes:
-            raise ValueError(
-                f"No outcomes found in the MedRecord for group {self._outcomes_group}"
-            )
+        outcome_query = node().has_neighbor_with(
+            node().in_group(self._outcomes_group), directed=False
+        )
 
-        # Finding the patients that had the outcome in the control group
-        for outcome in outcomes:
-            control_true.update(
-                medrecord.select_nodes(
-                    # This could probably be refactored to a proper query
-                    node().index().is_in(list(control_group))
-                    & node().has_neighbor_with(
-                        node().index() == outcome, directed=False
-                    )
-                )
-            )
-        control_false = control_group - control_true
+        control_true = control_query & outcome_query
+        control_false = control_query & ~outcome_query
 
         return control_true, control_false
 
