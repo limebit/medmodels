@@ -3,9 +3,11 @@ from __future__ import annotations
 from typing import Set
 
 from medmodels import MedRecord
-from medmodels.matching.algorithms.classic_distance_models import nearest_neighbor
-from medmodels.matching.matching import Matching
 from medmodels.medrecord.types import MedRecordAttributeInputList, NodeIndex
+from medmodels.treatment_effect.matching.algorithms.classic_distance_models import (
+    nearest_neighbor,
+)
+from medmodels.treatment_effect.matching.matching import Matching
 
 
 class NeighborsMatching(Matching):

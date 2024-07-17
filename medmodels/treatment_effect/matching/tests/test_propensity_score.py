@@ -4,7 +4,7 @@ import numpy as np
 import polars as pl
 from sklearn.datasets import load_iris
 
-from medmodels.matching.algorithms import propensity_score as ps
+from medmodels.treatment_effect.matching.algorithms import propensity_score as ps
 
 
 class TestPropensityScore(unittest.TestCase):

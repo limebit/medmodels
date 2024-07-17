@@ -2,7 +2,7 @@ import unittest
 
 import numpy as np
 
-from medmodels.matching import metrics
+from medmodels.treatment_effect.matching.covariates import metrics
 
 
 class TestMetrics(unittest.TestCase):
