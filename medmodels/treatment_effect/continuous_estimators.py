@@ -5,7 +5,7 @@ import numpy as np
 
 from medmodels.medrecord.medrecord import MedRecord
 from medmodels.medrecord.types import Group, MedRecordAttribute, NodeIndex
-from medmodels.treatment_effect_estimation.utils import find_reference_edge
+from medmodels.treatment_effect.temporal_analysis import find_reference_edge
 
 
 def average_treatment_effect(

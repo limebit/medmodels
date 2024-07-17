@@ -7,7 +7,7 @@ import pandas as pd
 
 from medmodels import MedRecord
 from medmodels.medrecord.types import NodeIndex
-from medmodels.treatment_effect_estimation.continuous_estimators import (
+from medmodels.treatment_effect.continuous_estimators import (
     average_treatment_effect,
     cohens_d,
 )

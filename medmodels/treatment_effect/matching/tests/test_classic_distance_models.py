@@ -3,7 +3,9 @@ import unittest
 import numpy as np
 import polars as pl
 
-from medmodels.matching.algorithms import classic_distance_models as cdm
+from medmodels.treatment_effect.matching.algorithms import (
+    classic_distance_models as cdm,
+)
 
 
 class TestClassicDistanceModels(unittest.TestCase):

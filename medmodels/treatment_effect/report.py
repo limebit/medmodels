@@ -6,7 +6,7 @@ from medmodels.medrecord.medrecord import MedRecord
 from medmodels.medrecord.types import MedRecordAttribute
 
 if TYPE_CHECKING:
-    from medmodels.treatment_effect_estimation.treatment_effect import TreatmentEffect
+    from medmodels.treatment_effect.treatment_effect import TreatmentEffect
 
 
 class FullReport(TypedDict):

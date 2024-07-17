@@ -2,18 +2,18 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Dict, Literal, Set, Tuple
 
-from medmodels.matching.matching import Matching
-from medmodels.matching.neighbors import NeighborsMatching
-from medmodels.matching.propensity import PropensityMatching
 from medmodels.medrecord.medrecord import MedRecord
 from medmodels.medrecord.types import MedRecordAttribute, NodeIndex
-from medmodels.treatment_effect_estimation.continuous_estimators import (
+from medmodels.treatment_effect.continuous_estimators import (
     average_treatment_effect,
     cohens_d,
 )
+from medmodels.treatment_effect.matching.matching import Matching
+from medmodels.treatment_effect.matching.neighbors import NeighborsMatching
+from medmodels.treatment_effect.matching.propensity import PropensityMatching
 
 if TYPE_CHECKING:
-    from medmodels.treatment_effect_estimation.treatment_effect import TreatmentEffect
+    from medmodels.treatment_effect.treatment_effect import TreatmentEffect
 
 
 class Estimate:

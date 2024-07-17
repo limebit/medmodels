@@ -15,8 +15,6 @@ import logging
 from typing import Any, Dict, Literal, Optional, Set, Tuple
 
 from medmodels import MedRecord
-from medmodels.matching.algorithms.propensity_score import Model
-from medmodels.matching.matching import MatchingMethod
 from medmodels.medrecord import node
 from medmodels.medrecord.querying import NodeOperation
 from medmodels.medrecord.types import (
@@ -25,10 +23,12 @@ from medmodels.medrecord.types import (
     MedRecordAttributeInputList,
     NodeIndex,
 )
-from medmodels.treatment_effect_estimation.builder import TreatmentEffectBuilder
-from medmodels.treatment_effect_estimation.estimate import Estimate
-from medmodels.treatment_effect_estimation.report import Report
-from medmodels.treatment_effect_estimation.utils import find_node_in_time_window
+from medmodels.treatment_effect.builder import TreatmentEffectBuilder
+from medmodels.treatment_effect.estimate import Estimate
+from medmodels.treatment_effect.matching.algorithms.propensity_score import Model
+from medmodels.treatment_effect.matching.matching import MatchingMethod
+from medmodels.treatment_effect.report import Report
+from medmodels.treatment_effect.temporal_analysis import find_node_in_time_window
 
 
 class TreatmentEffect:

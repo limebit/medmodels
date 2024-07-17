@@ -6,10 +6,15 @@ import numpy as np
 import polars as pl
 
 from medmodels import MedRecord
-from medmodels.matching.algorithms.classic_distance_models import nearest_neighbor
-from medmodels.matching.algorithms.propensity_score import Model, calculate_propensity
-from medmodels.matching.matching import Matching
 from medmodels.medrecord.types import MedRecordAttributeInputList, NodeIndex
+from medmodels.treatment_effect.matching.algorithms.classic_distance_models import (
+    nearest_neighbor,
+)
+from medmodels.treatment_effect.matching.algorithms.propensity_score import (
+    Model,
+    calculate_propensity,
+)
+from medmodels.treatment_effect.matching.matching import Matching
 
 
 class PropensityMatching(Matching):

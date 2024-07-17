@@ -5,7 +5,7 @@ import pandas as pd
 
 from medmodels.medrecord.medrecord import MedRecord
 from medmodels.medrecord.types import NodeIndex
-from medmodels.treatment_effect_estimation.utils import (
+from medmodels.treatment_effect.temporal_analysis import (
     find_node_in_time_window,
     find_reference_edge,
 )

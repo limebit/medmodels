@@ -2,15 +2,15 @@ from __future__ import annotations
 
 from typing import Any, Dict, Literal, Optional
 
-import medmodels.treatment_effect_estimation.treatment_effect as tee
-from medmodels.matching.algorithms.propensity_score import Model
-from medmodels.matching.matching import MatchingMethod
+import medmodels.treatment_effect.treatment_effect as tee
 from medmodels.medrecord.querying import NodeOperation
 from medmodels.medrecord.types import (
     Group,
     MedRecordAttribute,
     MedRecordAttributeInputList,
 )
+from medmodels.treatment_effect.matching.algorithms.propensity_score import Model
+from medmodels.treatment_effect.matching.matching import MatchingMethod
 
 
 class TreatmentEffectBuilder:

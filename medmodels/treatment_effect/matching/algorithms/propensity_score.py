@@ -9,8 +9,10 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.tree import DecisionTreeClassifier
 
-from medmodels.matching.algorithms.classic_distance_models import nearest_neighbor
 from medmodels.medrecord.types import MedRecordAttributeInputList
+from medmodels.treatment_effect.matching.algorithms.classic_distance_models import (
+    nearest_neighbor,
+)
 
 if TYPE_CHECKING:
     import sys

@@ -8,7 +8,7 @@ import pandas as pd
 from medmodels import MedRecord
 from medmodels.medrecord import edge, node
 from medmodels.medrecord.types import NodeIndex
-from medmodels.treatment_effect_estimation.treatment_effect import TreatmentEffect
+from medmodels.treatment_effect.treatment_effect import TreatmentEffect
 
 
 def create_patients(patient_list: List[NodeIndex]) -> pd.DataFrame:
