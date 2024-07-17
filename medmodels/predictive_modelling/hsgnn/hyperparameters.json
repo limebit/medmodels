@@ -1,0 +1,13 @@
+{
+  "preprocessing": {
+    "WORKERS": 5,
+    "DIMENSIONS_NODE2VEC": 64,
+    "DIMENSIONS_MCE": 1024
+  },
+  "model": {
+    "HIDDEN_CHANNELS": 128,
+    "OUT_CHANNELS": 64,
+    "NUM_EPOCHS": 100,
+    "LEARNING_RATE": 0.01
+  }
+}
