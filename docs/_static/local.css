@@ -1,0 +1,90 @@
+/** landing page logo **/
+#landing-page-logo {
+  background: none;
+}
+
+/** Add a counter before subsections **/
+h1:not(.rubric) {
+  counter-reset: subsection;
+  text-decoration: underline;
+}
+
+/** MyST examples */
+.myst-example {
+  border: 1px solid var(--pst-color-border);
+  border-left-color: var(--pst-color-info);
+  border-left-width: .2em;
+  box-shadow: rgba(0, 0, 0, 0.25) 0px 5px 15px;
+  margin-bottom: 1rem;
+}
+
+.myst-example-source>div[class*="highlight-"] {
+  margin: 0;
+}
+
+.myst-example-render {
+  padding: 0.5rem;
+}
+
+.myst-example-render> :first-child {
+  margin-top: 0.5rem;
+}
+
+/** No icon for admonitions with no-icon class */
+div.admonition.no-icon>.admonition-title::before {
+  content: "";
+}
+
+div.admonition.no-icon>.admonition-title {
+  padding-left: .6rem;
+}
+
+/* Live preview page */
+@media (min-width: 768px) {
+  .preview-input-tabs {
+    height: 100%;
+  }
+
+  textarea.pyscript.input {
+    height: 100%;
+  }
+}
+
+textarea.pyscript {
+  width: 100%;
+  min-height: 300px;
+  padding: 30px 20px 20px;
+  border-radius: 8px;
+  resize: vertical;
+  font-size: 16px;
+  font-family: monospace;
+}
+
+textarea.pyscript.output {
+  height: 100%;
+}
+
+div.pyscript {
+  min-height: 300px;
+}
+
+.display-flex {
+  display: flex;
+}
+
+.display-inline-block {
+  display: inline-block;
+  margin-right: 1rem;
+  margin-bottom: 0;
+}
+
+span.label {
+  /* pyscript changes this and it messes up footnote labels */
+  all: unset;
+}
+
+.tippy-box {
+  background-color: var(--pst-color-surface);
+  color: var(--pst-color-text-base);
+  border: 1px solid var(--pst-color-border);
+}

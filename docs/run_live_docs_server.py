@@ -1,5 +1,5 @@
 from livereload import Server, shell
-from docs.source.conf import html_static_path, templates_path
+from docs.conf import html_static_path, templates_path
 
 # -------------------------------------------------------------------------
 # To use, just execute `python run_live_docs_server.py` in a terminal
@@ -19,9 +19,11 @@ if __name__ == "__main__":
     # watch for source file changes and trigger rebuild/refresh
     svr.watch("*.rst", refresh_docs, delay=1)
     svr.watch("*.md", refresh_docs, delay=1)
-    svr.watch("source/reference/*", refresh_docs, delay=1)
+    svr.watch("api/*", refresh_docs, delay=1)
+    svr.watch("apidocs/*", refresh_docs, delay=1)
+    svr.watch("user_guide/*", refresh_docs, delay=1)
     for path in html_static_path + templates_path:
-        svr.watch(f"source/{path}/*", refresh_docs, delay=1)
+        svr.watch(f"./{path}/*", refresh_docs, delay=1)
 
     # path from which to serve the docs
-    svr.serve(root="build/html")
+    svr.serve(root="_build/html")
