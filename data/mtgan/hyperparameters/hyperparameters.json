@@ -1,0 +1,36 @@
+{
+  "preprocessing": {
+    "time_interval_days": 7,
+    "minimum_occurrences_concept": 5,
+    "minimum_codes_per_window": 2,
+    "number_sampled_patients": 0
+  },
+  "training": {
+    "batch_size": 5,
+    "critic_hidden_dim": 128,
+    "generator_hidden_dim": 256,
+    "generator_attention_dim":128,
+    "real_gru_lr": 0.01,
+    "generator_lr": 1e-4,
+    "critic_lr": 1e-5,
+    "real_gru_training_epochs":200,
+    "critic_iterations": 5,
+    "generator_iterations": 1,
+    "gan_training_epochs": 200,
+    "lambda_sparseness": 1,
+    "lambda_gradient": 10,
+    "beta0": 0.5,
+    "beta1": 0.9,
+    "decay_step": 100000,
+    "decay_rate": 0.1,
+    "test_freq": 100
+  },
+  "postprocessing": {
+    "number_patients_generated": 1000,
+    "training_epochs": 200,
+    "hidden_dim": 16,
+    "number_layers": 4,
+    "number_previous_admissions": 1,
+    "top_k_codes": 500
+  }
+}

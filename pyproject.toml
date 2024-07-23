@@ -31,6 +31,8 @@ dependencies = [
     "pandas>=2.2.2",
     "polars[pandas]>=0.20.31",
     "scikit-learn>=1.5.0",
+    "sparse>=0.15.4",
+    "xgboost>=2.1.1",
 ]
 
 [project.optional-dependencies]
