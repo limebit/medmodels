@@ -71,7 +71,7 @@ impl MedRecord {
             .into_reader_with_file_handle(cursor)
             .finish()
             .expect("DataFrame can be built");
-        let patient_diagnosis_ids = (0..patient_diagnosis.height()).collect::<Vec<_>>();
+        let patient_diagnosis_ids = (0..patient_diagnosis.height() as u32).collect::<Vec<_>>();
 
         let cursor = Cursor::new(PATIENT_DRUG);
         let patient_drug = CsvReadOptions::default()
@@ -79,8 +79,8 @@ impl MedRecord {
             .into_reader_with_file_handle(cursor)
             .finish()
             .expect("DataFrame can be built");
-        let patient_drug_ids = (patient_diagnosis.height()
-            ..patient_diagnosis.height() + patient_drug.height())
+        let patient_drug_ids = (patient_diagnosis.height() as u32
+            ..(patient_diagnosis.height() + patient_drug.height()) as u32)
             .collect::<Vec<_>>();
 
         let cursor = Cursor::new(PATIENT_PROCEDURE);
@@ -89,8 +89,9 @@ impl MedRecord {
             .into_reader_with_file_handle(cursor)
             .finish()
             .expect("DataFrame can be built");
-        let patient_procedure_ids = (patient_diagnosis.height() + patient_drug.height()
-            ..patient_diagnosis.height() + patient_drug.height() + patient_procedure.height())
+        let patient_procedure_ids = ((patient_diagnosis.height() + patient_drug.height()) as u32
+            ..(patient_diagnosis.height() + patient_drug.height() + patient_procedure.height())
+                as u32)
             .collect::<Vec<_>>();
 
         let mut medrecord = Self::from_dataframes(

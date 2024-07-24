@@ -1,3 +1,6 @@
+#![allow(dead_code)]
+// TODO: Remove the above line once the dead code has been removed.
+
 mod attribute;
 mod value;
 

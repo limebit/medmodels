@@ -1,7 +1,6 @@
 mod attribute;
 pub mod datatype;
 mod errors;
-pub mod querying;
 pub mod schema;
 mod traits;
 mod value;
@@ -15,7 +14,6 @@ use medmodels_core::{
 };
 use pyo3::prelude::*;
 use pyo3_polars::PyDataFrame;
-use querying::{PyEdgeOperation, PyNodeOperation};
 use schema::PySchema;
 use std::collections::HashMap;
 use traits::DeepInto;
@@ -668,21 +666,5 @@ impl PyMedRecord {
 
     fn clear(&mut self) {
         self.0.clear();
-    }
-
-    fn select_nodes(&self, operation: PyNodeOperation) -> Vec<PyNodeIndex> {
-        self.0
-            .select_nodes(operation.into())
-            .iter()
-            .map(|index| index.clone().into())
-            .collect()
-    }
-
-    fn select_edges(&self, operation: PyEdgeOperation) -> Vec<EdgeIndex> {
-        self.0
-            .select_edges(operation.into())
-            .iter()
-            .copied()
-            .collect()
     }
 }

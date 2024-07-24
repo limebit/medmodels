@@ -10,11 +10,6 @@ pub use self::{
     datatypes::{DataType, MedRecordAttribute, MedRecordValue},
     graph::{Attributes, EdgeIndex, NodeIndex},
     group_mapping::Group,
-    querying::{
-        edge, node, ArithmeticOperation, EdgeAttributeOperand, EdgeIndexOperand, EdgeOperand,
-        EdgeOperation, NodeAttributeOperand, NodeIndexOperand, NodeOperand, NodeOperation,
-        TransformationOperation, ValueOperand,
-    },
     schema::{GroupSchema, Schema},
 };
 use crate::errors::MedRecordError;
@@ -22,7 +17,10 @@ use ::polars::frame::DataFrame;
 use graph::Graph;
 use group_mapping::GroupMapping;
 use polars::{dataframe_to_edges, dataframe_to_nodes};
-use querying::{EdgeSelection, NodeSelection};
+use querying::{
+    edges::{EdgeOperandWrapper, EdgeSelection},
+    nodes::{NodeOperandWrapper, NodeSelection},
+};
 use serde::{Deserialize, Serialize};
 use std::{fs, mem, path::Path};
 
@@ -706,12 +704,18 @@ impl MedRecord {
         self.group_mapping.clear();
     }
 
-    pub fn select_nodes(&self, operation: NodeOperation) -> NodeSelection {
-        NodeSelection::new(self, operation)
+    pub fn select_nodes<Q>(&self, query: Q) -> NodeSelection
+    where
+        Q: FnOnce(&mut NodeOperandWrapper),
+    {
+        NodeSelection::new(self, query)
     }
 
-    pub fn select_edges(&self, operation: EdgeOperation) -> EdgeSelection {
-        EdgeSelection::new(self, operation)
+    pub fn select_edges<Q>(&self, query: Q) -> EdgeSelection
+    where
+        Q: FnOnce(&mut EdgeOperandWrapper),
+    {
+        EdgeSelection::new(self, query)
     }
 }
 
@@ -1888,5 +1892,68 @@ mod test {
         assert_eq!(0, medrecord.node_count());
         assert_eq!(0, medrecord.edge_count());
         assert_eq!(0, medrecord.group_count());
+    }
+
+    #[test]
+    fn test_test() {
+        let nodes = vec![
+            ("0".into(), HashMap::new()),
+            ("1".into(), HashMap::new()),
+            ("2".into(), HashMap::new()),
+            ("3".into(), HashMap::new()),
+        ];
+
+        let edges = vec![
+            (
+                "0".into(),
+                "1".into(),
+                HashMap::from([("time".into(), 0.into())]),
+            ),
+            (
+                "0".into(),
+                "1".into(),
+                HashMap::from([("time".into(), 2.into())]),
+            ),
+            (
+                "0".into(),
+                "1".into(),
+                HashMap::from([("time".into(), 3.into())]),
+            ),
+            (
+                "0".into(),
+                "1".into(),
+                HashMap::from([("time".into(), 6.into())]),
+            ),
+            (
+                "0".into(),
+                "2".into(),
+                HashMap::from([("time".into(), 5.into())]),
+            ),
+        ];
+
+        let mut medrecord = MedRecord::from_tuples(nodes, Some(edges), None).unwrap();
+
+        medrecord
+            .add_group("treatment".into(), Some(vec!["1".into()]), None)
+            .unwrap();
+        medrecord
+            .add_group("outcome".into(), Some(vec!["2".into()]), None)
+            .unwrap();
+
+        let nodes = medrecord.select_nodes(|node| {
+            let edges_to_treatment = node.outgoing_edges();
+            edges_to_treatment
+                .connects_to(|node2| node2.in_group(MedRecordAttribute::from("treatment")));
+
+            let edges_to_outcome = node.outgoing_edges();
+            edges_to_outcome
+                .connects_to(|node2| node2.in_group(MedRecordAttribute::from("outcome")));
+
+            let max_time_edge = edges_to_treatment.attribute("time");
+
+            // max_time_edge.less_than(edges_to_outcome.attribute("time"));
+        });
+
+        println!("{:?}", nodes.collect::<Vec<_>>());
     }
 }
