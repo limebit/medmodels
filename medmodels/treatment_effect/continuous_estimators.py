@@ -17,25 +17,24 @@ def average_treatment_effect(
     reference: Literal["first", "last"] = "last",
     time_attribute: MedRecordAttribute = "time",
 ) -> float:
-    """
-    Calculates the Average Treatment Effect (ATE) as the difference between the outcome
-    means of the treated and control sets. A positive ATE indicates that the treatment
-    increased the outcome, while a negative ATE suggests a decrease.
+    r"""Calculates the Average Treatment Effect (ATE) as the difference between the outcome means of the treated and control sets.
+
+    A positive ATE indicates that the treatment increased the outcome, while a negative ATE suggests a decrease.
 
     The ATE is computed as follows when the numbers of observations in treated and
     control sets are N and M, respectively:
 
-    $$
-    \\text{ATE} = \\frac{1}{N} \\sum_i y_1(i) - \\frac{1}{M} \\sum_j y_0(j),
-    $$
+    .. math::
 
-    where $y_1(i)$ and $y_0(j)$ represent outcome values for individual treated and
+        \\text{ATE} = \\frac{1}{N} \\sum_i y_1(i) - \\frac{1}{M} \\sum_j y_0(j),
+
+    where :math:`y_1(i)` and :math:`y_0(j)` represent outcome values for individual treated and
     control observations. In the case of matched sets with equal sizes (N = M), the
     formula simplifies to:
 
-    $$
-    \\text{ATE} = \\frac{1}{N} \\sum_i (y_1(i) - y_0(i)).
-    $$
+    .. math::
+
+        \\text{ATE} = \\frac{1}{N} \\sum_i (y_1(i) - y_0(i)).
 
     Args:
         medrecord (MedRecord): An instance of the MedRecord class containing medical
@@ -107,10 +106,9 @@ def cohens_d(
     time_attribute: MedRecordAttribute = "time",
     add_correction: bool = False,
 ) -> float:
-    """
-    Calculates Cohen's D, the standardized mean difference between two sets, measuring
-    the effect size of the difference between two outcome means. It's applicable for
-    any two sets but is recommended for sets of the same size. Cohen's D indicates how
+    """Calculates Cohen's D, the standardized mean difference between two sets, measuring the effect size of the difference between two outcome means.
+
+    It's applicable for any two sets but is recommended for sets of the same size. Cohen's D indicates how
     many standard deviations the two groups differ by, with 1 standard deviation equal
     to 1 z-score.
 

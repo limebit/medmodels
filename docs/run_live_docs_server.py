@@ -1,5 +1,5 @@
+import os
 from livereload import Server, shell
-from docs.conf import html_static_path, templates_path
 
 # -------------------------------------------------------------------------
 # To use, just execute `python run_live_docs_server.py` in a terminal
@@ -13,17 +13,23 @@ if __name__ == "__main__":
     # establish a local docs server
     svr = Server()
 
+    # get the directory of the script
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+
+    # change to the script directory
+    os.chdir(script_dir)
+
     # command to rebuild the docs
-    refresh_docs = shell("make html")
+    refresh_docs = shell("make html", cwd=script_dir)
 
     # watch for source file changes and trigger rebuild/refresh
     svr.watch("*.rst", refresh_docs, delay=1)
     svr.watch("*.md", refresh_docs, delay=1)
+    svr.watch("conf.py", refresh_docs, delay=1)
     svr.watch("api/*", refresh_docs, delay=1)
-    svr.watch("apidocs/*", refresh_docs, delay=1)
     svr.watch("user_guide/*", refresh_docs, delay=1)
-    for path in html_static_path + templates_path:
-        svr.watch(f"./{path}/*", refresh_docs, delay=1)
+    svr.watch("developer_guide/*", refresh_docs, delay=1)
+    svr.watch("../medmodels/**/*", refresh_docs, delay=1)
 
     # path from which to serve the docs
-    svr.serve(root="_build/html")
+    svr.serve(root="_build/html", host="0.0.0.0")

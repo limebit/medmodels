@@ -1,4 +1,6 @@
-# MedRecord
+# Getting started
+
+## MedRecord
 
 A _MedRecord_ is a data class that contains medical data in a network structure. It is based on _nodes_ and _edges_, which are connections between nodes. The MedRecord makes it easy to connect a dataset with different medical data tables or DataFrames into one structure with the necessary relationships.
 The MedModels framework is based on the MedRecord class and all MedModels methods take a MedRecord as input.

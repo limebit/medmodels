@@ -39,8 +39,7 @@ from medmodels.medrecord.types import (
 def process_nodes_dataframe(
     nodes: PandasNodeDataFrameInput,
 ) -> PolarsNodeDataFrameInput:
-    """
-    Converts a PandasNodeDataFrameInput to a PolarsNodeDataFrameInput.
+    """Converts a PandasNodeDataFrameInput to a PolarsNodeDataFrameInput.
 
     Args:
         nodes (PandasNodeDataFrameInput): A tuple of the Pandas DataFrame and index
@@ -56,8 +55,7 @@ def process_nodes_dataframe(
 def process_edges_dataframe(
     edges: PandasEdgeDataFrameInput,
 ) -> PolarsEdgeDataFrameInput:
-    """
-    Converts a PandasEdgeDataFrameInput to a PolarsEdgeDataFrameInput.
+    """Converts a PandasEdgeDataFrameInput to a PolarsEdgeDataFrameInput.
 
     Args:
         edges (PandasEdgeDataFrameInput): A tuple of the Pandas DataFrame,
@@ -72,8 +70,7 @@ def process_edges_dataframe(
 
 
 class MedRecord:
-    """
-    A class to manage medical records with node and edge data structures.
+    """A class to manage medical records with node and edge data structures.
 
     Provides methods to create instances from different data formats, manage node and
     edge attributes, and perform operations like adding or removing nodes and edges.
@@ -82,15 +79,12 @@ class MedRecord:
     _medrecord: PyMedRecord
 
     def __init__(self) -> None:
-        """
-        Initializes a new MedRecord instance with an underlying PyMedRecord object.
-        """
+        """Initializes a new MedRecord instance with an underlying PyMedRecord object."""
         self._medrecord = PyMedRecord()
 
     @staticmethod
     def builder() -> MedRecordBuilder:
-        """
-        Creates a new MedRecordBuilder instance to build a MedRecord.
+        """Creates a new MedRecordBuilder instance to build a MedRecord.
 
         Returns:
             MedRecordBuilder: A new builder instance.
@@ -99,8 +93,7 @@ class MedRecord:
 
     @classmethod
     def with_schema(cls, schema: Schema) -> MedRecord:
-        """
-        Creates a MedRecord instance with the specified schema.
+        """Creates a MedRecord instance with the specified schema.
 
         Args:
             schema (Schema): The schema to apply to the MedRecord.
@@ -118,8 +111,7 @@ class MedRecord:
         nodes: Sequence[NodeTuple],
         edges: Optional[Sequence[EdgeTuple]] = None,
     ) -> MedRecord:
-        """
-        Creates a MedRecord instance from lists of node and edge tuples.
+        """Creates a MedRecord instance from lists of node and edge tuples.
 
         Nodes and edges are specified as lists of tuples. Each node tuple contains a
         node index and attributes. Each edge tuple includes indices of the source and
@@ -127,8 +119,7 @@ class MedRecord:
 
         Args:
             nodes (Sequence[NodeTuple]): Sequence of node tuples.
-            edges (Optional[Sequence[EdgeTuple]]): Sequence of
-                edge tuples.
+            edges (Optional[Sequence[EdgeTuple]]): Sequence of edge tuples.
 
         Returns:
             MedRecord: A new instance created from the provided tuples.
@@ -145,8 +136,7 @@ class MedRecord:
             Union[PandasEdgeDataFrameInput, List[PandasEdgeDataFrameInput]]
         ] = None,
     ) -> MedRecord:
-        """
-        Creates a MedRecord from Pandas DataFrames of nodes and optionally edges.
+        """Creates a MedRecord from Pandas DataFrames of nodes and optionally edges.
 
         Accepts a tuple or a list of tuples for nodes and edges. Each node tuple
         consists of a Pandas DataFrame and an index column. Edge tuples include
@@ -155,8 +145,7 @@ class MedRecord:
         Args:
             nodes (Union[PolarsNodeDataFrameInput, List[PolarsNodeDataFrameInput]]):
                 Node DataFrame(s).
-            edges (Optional[Union[PolarsEdgeDataFrameInput,
-                List[PolarsEdgeDataFrameInput]]]):
+            edges (Optional[Union[PolarsEdgeDataFrameInput, List[PolarsEdgeDataFrameInput]]]):
                 Edge DataFrame(s), optional.
 
         Returns:
@@ -194,8 +183,7 @@ class MedRecord:
             Union[PolarsEdgeDataFrameInput, List[PolarsEdgeDataFrameInput]]
         ] = None,
     ) -> MedRecord:
-        """
-        Creates a MedRecord from Polars DataFrames of nodes and optionally edges.
+        """Creates a MedRecord from Polars DataFrames of nodes and optionally edges.
 
         Accepts a tuple or a list of tuples for nodes and edges. Each node tuple
         consists of a Polars DataFrame and an index column. Edge tuples include
@@ -204,8 +192,7 @@ class MedRecord:
         Args:
             nodes (Union[PolarsNodeDataFrameInput, List[PolarsNodeDataFrameInput]]):
                 Node data.
-            edges (Optional[Union[PolarsEdgeDataFrameInput,
-                List[PolarsEdgeDataFrameInput]]]):
+            edges (Optional[Union[PolarsEdgeDataFrameInput, List[PolarsEdgeDataFrameInput]]]):
                 Edge data, optional.
 
         Returns:
@@ -227,8 +214,7 @@ class MedRecord:
 
     @classmethod
     def from_example_dataset(cls) -> MedRecord:
-        """
-        Creates a MedRecord instance from an example dataset.
+        """Creates a MedRecord instance from an example dataset.
 
         The example dataset was created using the Synthea™ Patient Generator:
         https://github.com/synthetichealth/synthea
@@ -242,8 +228,7 @@ class MedRecord:
 
     @classmethod
     def from_ron(cls, path: str) -> MedRecord:
-        """
-        Creates a MedRecord instance from a RON file.
+        """Creates a MedRecord instance from a RON file.
 
         Reads node and edge data from a RON file specified by the path and creates a new
         MedRecord instance using this data.
@@ -259,8 +244,7 @@ class MedRecord:
         return medrecord
 
     def to_ron(self, path: str) -> None:
-        """
-        Writes the MedRecord instance to a RON file.
+        """Writes the MedRecord instance to a RON file.
 
         Serializes the MedRecord instance to a RON file at the specified path.
 
@@ -274,8 +258,7 @@ class MedRecord:
 
     @property
     def schema(self) -> Schema:
-        """
-        Returns the schema of the MedRecord instance.
+        """Returns the schema of the MedRecord instance.
 
         Returns:
             Schema: The schema of the MedRecord.
@@ -284,8 +267,7 @@ class MedRecord:
 
     @schema.setter
     def schema(self, schema: Schema) -> None:
-        """
-        Sets the schema of the MedRecord instance.
+        """Sets the schema of the MedRecord instance.
 
         Args:
             schema (Schema): The new schema to apply.
@@ -297,8 +279,7 @@ class MedRecord:
 
     @property
     def nodes(self) -> List[NodeIndex]:
-        """
-        Lists the node indices in the MedRecord instance.
+        """Lists the node indices in the MedRecord instance.
 
         Returns a list of all node indices currently managed by the MedRecord instance.
 
@@ -309,8 +290,7 @@ class MedRecord:
 
     @property
     def node(self) -> NodeIndexer:
-        """
-        Provides access to node attributes within the MedRecord instance via an indexer.
+        """Provides access to node attributes within the MedRecord instance via an indexer.
 
         Facilitates querying, accessing, manipulating, and setting node attributes using
         various indexing methods. Supports conditions and ranges for more
@@ -323,8 +303,7 @@ class MedRecord:
 
     @property
     def edges(self) -> List[EdgeIndex]:
-        """
-        Lists the edge indices in the MedRecord instance.
+        """Lists the edge indices in the MedRecord instance.
 
         Returns a list of all edge indices currently managed by the MedRecord instance.
 
@@ -335,8 +314,7 @@ class MedRecord:
 
     @property
     def edge(self) -> EdgeIndexer:
-        """
-        Provides access to edge attributes within the MedRecord instance via an indexer.
+        """Provides access to edge attributes within the MedRecord instance via an indexer.
 
         Facilitates querying, accessing, manipulating, and setting edge attributes using
         various indexing methods. Supports conditions and ranges for more
@@ -349,8 +327,7 @@ class MedRecord:
 
     @property
     def groups(self) -> List[Group]:
-        """
-        Lists the groups in the MedRecord instance.
+        """Lists the groups in the MedRecord instance.
 
         Returns a list of all groups currently defined within the MedRecord instance.
 
@@ -368,9 +345,7 @@ class MedRecord:
     def group(
         self, group: Union[Group, GroupInputList]
     ) -> Union[GroupInfo, Dict[Group, GroupInfo]]:
-        """
-        Returns the node and edge indices associated with the specified group(s)
-        in the MedRecord.
+        """Returns the node and edge indices associated with the specified group/s in the MedRecord.
 
         If a single group is specified, returns a list of node and edge indices
         for that group.
@@ -384,7 +359,6 @@ class MedRecord:
             Union[GroupInfo, Dict[Group, GroupInfo]]: Node and edge indices for
                 the specified group(s).
         """
-
         if isinstance(group, list):
             nodes_in_group = self._medrecord.nodes_in_group(group)
             edges_in_group = self._medrecord.edges_in_group(group)
@@ -410,8 +384,7 @@ class MedRecord:
     def outgoing_edges(
         self, node: Union[NodeIndex, NodeIndexInputList, NodeOperation]
     ) -> Union[List[EdgeIndex], Dict[NodeIndex, List[EdgeIndex]]]:
-        """
-        Lists the outgoing edges of the specified node(s) in the MedRecord.
+        """Lists the outgoing edges of the specified node(s) in the MedRecord.
 
         If a single node index is provided, returns a list of its outgoing edge indices.
         If multiple nodes are specified, returns a dictionary mapping each node index to
@@ -448,8 +421,7 @@ class MedRecord:
     def incoming_edges(
         self, node: Union[NodeIndex, NodeIndexInputList, NodeOperation]
     ) -> Union[List[EdgeIndex], Dict[NodeIndex, List[EdgeIndex]]]:
-        """
-        Lists the incoming edges of the specified node(s) in the MedRecord.
+        """Lists the incoming edges of the specified node(s) in the MedRecord.
 
         If a single node index is provided, returns a list of its incoming edge indices.
         If multiple nodes are specified, returns a dictionary mapping each node index to
@@ -488,8 +460,7 @@ class MedRecord:
     ) -> Union[
         tuple[NodeIndex, NodeIndex], Dict[EdgeIndex, tuple[NodeIndex, NodeIndex]]
     ]:
-        """
-        Retrieves the source and target nodes of the specified edge(s) in the MedRecord.
+        """Retrieves the source and target nodes of the specified edge(s) in the MedRecord.
 
         If a single edge index is provided, returns a tuple of
         node indices (source, target). If multiple edges are specified, returns
@@ -523,9 +494,7 @@ class MedRecord:
         target_node: Union[NodeIndex, NodeIndexInputList, NodeOperation],
         directed: bool = True,
     ) -> List[EdgeIndex]:
-        """
-        Retrieves the edges connecting the specified source and target nodes in
-        the MedRecord.
+        """Retrieves the edges connecting the specified source and target nodes in the MedRecord.
 
         If a NodeOperation is provided for either the source or target nodes, it is
         first evaluated to obtain the corresponding node indices. The method then
@@ -544,6 +513,7 @@ class MedRecord:
         Returns:
             List[EdgeIndex]: A list of edge indices connecting the specified source and
                 target nodes.
+
         """
         if isinstance(source_node, NodeOperation):
             source_node = self.select_nodes(source_node)
@@ -563,8 +533,7 @@ class MedRecord:
             )
 
     def add_node(self, node: NodeIndex, attributes: AttributesInput) -> None:
-        """
-        Adds a node with specified attributes to the MedRecord instance.
+        """Adds a node with specified attributes to the MedRecord instance.
 
         Args:
             node (NodeIndex): The index of the node to add.
@@ -586,9 +555,7 @@ class MedRecord:
     def remove_node(
         self, node: Union[NodeIndex, NodeIndexInputList, NodeOperation]
     ) -> Union[Attributes, Dict[NodeIndex, Attributes]]:
-        """
-        Removes a node or multiple nodes from the MedRecord and returns
-        their attributes.
+        """Removes a node or multiple nodes from the MedRecord and returns their attributes.
 
         If a single node index is provided, returns the attributes of the removed node.
         If multiple node indices are specified, returns a dictionary mapping each node
@@ -624,8 +591,7 @@ class MedRecord:
             List[PolarsNodeDataFrameInput],
         ],
     ) -> None:
-        """
-        Adds multiple nodes to the MedRecord from different data formats.
+        """Adds multiple nodes to the MedRecord from different data formats.
 
         Accepts a list of tuples, DataFrame(s), or PolarsNodeDataFrameInput(s) to add
         nodes. If a DataFrame or list of DataFrames is used, the add_nodes_pandas method
@@ -633,10 +599,8 @@ class MedRecord:
         a DataFrame and the index column.
 
         Args:
-            nodes (Union[Sequence[NodeTuple], PandasNodeDataFrameInput,
-                List[PandasNodeDataFrameInput], PolarsNodeDataFrameInput,
-                List[PolarsNodeDataFrameInput]]): Data representing nodes
-                in various formats.
+            nodes (Union[Sequence[NodeTuple], PandasNodeDataFrameInput, List[PandasNodeDataFrameInput], PolarsNodeDataFrameInput, List[PolarsNodeDataFrameInput]]):
+                Data representing nodes in various formats.
 
         Returns:
             None
@@ -655,8 +619,7 @@ class MedRecord:
     def add_nodes_pandas(
         self, nodes: Union[PandasNodeDataFrameInput, List[PandasNodeDataFrameInput]]
     ) -> None:
-        """
-        Adds nodes to the MedRecord instance from one or more Pandas DataFrames.
+        """Adds nodes to the MedRecord instance from one or more Pandas DataFrames.
 
         This method accepts either a single tuple or a list of tuples, where each tuple
         consists of a Pandas DataFrame and an index column string.
@@ -677,8 +640,7 @@ class MedRecord:
     def add_nodes_polars(
         self, nodes: Union[PolarsNodeDataFrameInput, List[PolarsNodeDataFrameInput]]
     ) -> None:
-        """
-        Adds nodes to the MedRecord instance from one or more Polars DataFrames.
+        """Adds nodes to the MedRecord instance from one or more Polars DataFrames.
 
         This method accepts either a single tuple or a list of tuples, where each tuple
         consists of a Polars DataFrame and an index column string.
@@ -700,13 +662,12 @@ class MedRecord:
         target_node: NodeIndex,
         attributes: AttributesInput,
     ) -> EdgeIndex:
-        """
-        Adds an edge between two specified nodes with given attributes.
+        """Adds an edge between two specified nodes with given attributes.
 
         Args:
             source_node (NodeIndex): Index of the source node.
             target_node (NodeIndex): Index of the target node.
-            attributes (Attributes): Dictionary of edge attributes.
+            attributes (AttributesInput): Dictionary or mapping of edge attributes.
 
         Returns:
             EdgeIndex: The index of the added edge.
@@ -724,9 +685,7 @@ class MedRecord:
     def remove_edge(
         self, edge: Union[EdgeIndex, EdgeIndexInputList, EdgeOperation]
     ) -> Union[Attributes, Dict[EdgeIndex, Attributes]]:
-        """
-        Removes an edge or multiple edges from the MedRecord and returns
-        their attributes.
+        """Removes an edge or multiple edges from the MedRecord and returns their attributes.
 
         If a single edge index is provided, returns the attributes of the removed edge.
         If multiple edge indices are specified, returns a dictionary mapping each edge
@@ -762,8 +721,7 @@ class MedRecord:
             List[PolarsEdgeDataFrameInput],
         ],
     ) -> List[EdgeIndex]:
-        """
-        Adds edges to the MedRecord instance from various data formats.
+        """Adds edges to the MedRecord instance from various data formats.
 
         Accepts lists of tuples, DataFrame(s), or EdgeDataFrameInput(s) to add edges.
         Each tuple must have indices for source and target nodes and a dictionary of
@@ -771,9 +729,8 @@ class MedRecord:
         the add_edges_dataframe method is invoked.
 
         Args:
-            edges (Union[Sequence[EdgeTuple], PandasEdgeDataFrameInput,
+            edges (Union[Sequence[EdgeTuple], PandasEdgeDataFrameInput, List[PolarsEdgeDataFrameInput]]):
                 List[PandasEdgeDataFrameInput], PolarsEdgeDataFrameInput,
-                List[PolarsEdgeDataFrameInput]]):
                 Data representing edges in several formats.
 
         Returns:
@@ -793,8 +750,7 @@ class MedRecord:
     def add_edges_pandas(
         self, edges: Union[PandasEdgeDataFrameInput, List[PandasEdgeDataFrameInput]]
     ) -> List[EdgeIndex]:
-        """
-        Adds edges to the MedRecord from one or more Pandas DataFrames.
+        """Adds edges to the MedRecord from one or more Pandas DataFrames.
 
         This method accepts either a single PandasEdgeDataFrameInput tuple or a list of
         such tuples, each including a DataFrame and index columns for the source and
@@ -818,8 +774,7 @@ class MedRecord:
         self,
         edges: Union[PolarsEdgeDataFrameInput, List[PolarsEdgeDataFrameInput]],
     ) -> List[EdgeIndex]:
-        """
-        Adds edges to the MedRecord from one or more Polars DataFrames.
+        """Adds edges to the MedRecord from one or more Polars DataFrames.
 
         This method accepts either a single PolarsEdgeDataFrameInput tuple or a list of
         such tuples, each including a DataFrame and index columns for the source and
@@ -843,8 +798,7 @@ class MedRecord:
         nodes: Optional[Union[NodeIndex, NodeIndexInputList, NodeOperation]] = None,
         edges: Optional[Union[EdgeIndex, EdgeIndexInputList, EdgeOperation]] = None,
     ) -> None:
-        """
-        Adds a group to the MedRecord instance with an optional list of node indices.
+        """Adds a group to the MedRecord instance with an optional list of node indices.
 
         If node indices are specified, they are added to the group. If no nodes are
         specified, the group is created without any nodes.
@@ -885,8 +839,7 @@ class MedRecord:
             return self._medrecord.add_group(group, None, None)
 
     def remove_group(self, group: Union[Group, GroupInputList]) -> None:
-        """
-        Removes one or more groups from the MedRecord instance.
+        """Removes one or more groups from the MedRecord instance.
 
         Args:
             group (Union[Group, GroupInputList]): One or more group names to remove.
@@ -901,8 +854,7 @@ class MedRecord:
     def add_node_to_group(
         self, group: Group, node: Union[NodeIndex, NodeIndexInputList, NodeOperation]
     ) -> None:
-        """
-        Adds one or more nodes to a specified group in the MedRecord.
+        """Adds one or more nodes to a specified group in the MedRecord.
 
         Args:
             group (Group): The name of the group to add nodes to.
@@ -922,8 +874,7 @@ class MedRecord:
     def add_edge_to_group(
         self, group: Group, edge: Union[EdgeIndex, EdgeIndexInputList, EdgeOperation]
     ) -> None:
-        """
-        Adds one or more edges to a specified group in the MedRecord.
+        """Adds one or more edges to a specified group in the MedRecord.
 
         Args:
             group (Group): The name of the group to add edges to.
@@ -943,8 +894,7 @@ class MedRecord:
     def remove_node_from_group(
         self, group: Group, node: Union[NodeIndex, NodeIndexInputList, NodeOperation]
     ) -> None:
-        """
-        Removes one or more nodes from a specified group in the MedRecord.
+        """Removes one or more nodes from a specified group in the MedRecord.
 
         Args:
             group (Group): The name of the group from which to remove nodes.
@@ -966,8 +916,7 @@ class MedRecord:
     def remove_edge_from_group(
         self, group: Group, edge: Union[EdgeIndex, EdgeIndexInputList, EdgeOperation]
     ) -> None:
-        """
-        Removes one or more edges from a specified group in the MedRecord.
+        """Removes one or more edges from a specified group in the MedRecord.
 
         Args:
             group (Group): The name of the group from which to remove edges.
@@ -995,9 +944,7 @@ class MedRecord:
     def nodes_in_group(
         self, group: Union[Group, GroupInputList]
     ) -> Union[List[NodeIndex], Dict[Group, List[NodeIndex]]]:
-        """
-        Retrieves the node indices associated with the specified group(s)
-        in the MedRecord.
+        """Retrieves the node indices associated with the specified group/s in the MedRecord.
 
         If a single group is specified, returns a list of node indices for that group.
         If multiple groups are specified, returns a dictionary mapping each group name
@@ -1010,7 +957,6 @@ class MedRecord:
             Union[List[NodeIndex], Dict[Group, List[NodeIndex]]]: Node indices
                 associated with the specified group(s).
         """
-
         nodes = self._medrecord.nodes_in_group(
             group if isinstance(group, list) else [group]
         )
@@ -1029,9 +975,7 @@ class MedRecord:
     def edges_in_group(
         self, group: Union[Group, GroupInputList]
     ) -> Union[List[EdgeIndex], Dict[Group, List[EdgeIndex]]]:
-        """
-        Retrieves the edge indices associated with the specified group(s)
-        in the MedRecord.
+        """Retrieves the edge indices associated with the specified group(s) in the MedRecord.
 
         If a single group is specified, returns a list of edge indices for that group.
         If multiple groups are specified, returns a dictionary mapping each group name
@@ -1064,8 +1008,7 @@ class MedRecord:
     def groups_of_node(
         self, node: Union[NodeIndex, NodeIndexInputList, NodeOperation]
     ) -> Union[List[Group], Dict[NodeIndex, List[Group]]]:
-        """
-        Retrieves the groups associated with the specified node(s) in the MedRecord.
+        """Retrieves the groups associated with the specified node(s) in the MedRecord.
 
         If a single node index is provided, returns a list of groups for that node.
         If multiple nodes are specified, returns a dictionary mapping each node index to
@@ -1102,8 +1045,7 @@ class MedRecord:
     def groups_of_edge(
         self, edge: Union[EdgeIndex, EdgeIndexInputList, EdgeOperation]
     ) -> Union[List[Group], Dict[EdgeIndex, List[Group]]]:
-        """
-        Retrieves the groups associated with the specified edge(s) in the MedRecord.
+        """Retrieves the groups associated with the specified edge(s) in the MedRecord.
 
         If a single edge index is provided, returns a list of groups for that edge.
         If multiple edges are specified, returns a dictionary mapping each edge index to
@@ -1130,8 +1072,7 @@ class MedRecord:
         return groups[edge]
 
     def node_count(self) -> int:
-        """
-        Returns the total number of nodes currently managed by the MedRecord.
+        """Returns the total number of nodes currently managed by the MedRecord.
 
         Returns:
             int: The total number of nodes.
@@ -1139,8 +1080,7 @@ class MedRecord:
         return self._medrecord.node_count()
 
     def edge_count(self) -> int:
-        """
-        Returns the total number of edges currently managed by the MedRecord.
+        """Returns the total number of edges currently managed by the MedRecord.
 
         Returns:
             int: The total number of edges.
@@ -1148,8 +1088,7 @@ class MedRecord:
         return self._medrecord.edge_count()
 
     def group_count(self) -> int:
-        """
-        Returns the total number of groups currently defined within the MedRecord.
+        """Returns the total number of groups currently defined within the MedRecord.
 
         Returns:
             int: The total number of groups.
@@ -1157,8 +1096,7 @@ class MedRecord:
         return self._medrecord.group_count()
 
     def contains_node(self, node: NodeIndex) -> bool:
-        """
-        Checks whether a specific node exists in the MedRecord.
+        """Checks whether a specific node exists in the MedRecord.
 
         Args:
             node (NodeIndex): The index of the node to check.
@@ -1169,8 +1107,7 @@ class MedRecord:
         return self._medrecord.contains_node(node)
 
     def contains_edge(self, edge: EdgeIndex) -> bool:
-        """
-        Checks whether a specific edge exists in the MedRecord.
+        """Checks whether a specific edge exists in the MedRecord.
 
         Args:
             edge (EdgeIndex): The index of the edge to check.
@@ -1181,8 +1118,7 @@ class MedRecord:
         return self._medrecord.contains_edge(edge)
 
     def contains_group(self, group: Group) -> bool:
-        """
-        Checks whether a specific group exists in the MedRecord.
+        """Checks whether a specific group exists in the MedRecord.
 
         Args:
             group (Group): The name of the group to check.
@@ -1211,8 +1147,7 @@ class MedRecord:
         node: Union[NodeIndex, NodeIndexInputList, NodeOperation],
         directed: bool = True,
     ) -> Union[List[NodeIndex], Dict[NodeIndex, List[NodeIndex]]]:
-        """
-        Retrieves the neighbors of the specified node(s) in the MedRecord.
+        """Retrieves the neighbors of the specified node(s) in the MedRecord.
 
         If a single node index is provided, returns a list of its neighboring
         node indices. If multiple nodes are specified, returns a dictionary mapping
@@ -1244,8 +1179,7 @@ class MedRecord:
         return neighbors[node]
 
     def clear(self) -> None:
-        """
-        Clears all data from the MedRecord instance.
+        """Clears all data from the MedRecord instance.
 
         Removes all nodes, edges, and groups, effectively resetting the instance.
 
@@ -1255,8 +1189,7 @@ class MedRecord:
         return self._medrecord.clear()
 
     def select_nodes(self, operation: NodeOperation) -> List[NodeIndex]:
-        """
-        Selects nodes based on a specified operation and returns their indices.
+        """Selects nodes based on a specified operation and returns their indices.
 
         Args:
             operation (NodeOperation): The operation to apply to select nodes.
@@ -1267,8 +1200,7 @@ class MedRecord:
         return self._medrecord.select_nodes(operation._node_operation)
 
     def select_edges(self, operation: EdgeOperation) -> List[EdgeIndex]:
-        """
-        Selects edges based on a specified operation and returns their indices.
+        """Selects edges based on a specified operation and returns their indices.
 
         Args:
             operation (EdgeOperation): The operation to apply to select edges.
@@ -1287,8 +1219,7 @@ class MedRecord:
     def __getitem__(
         self, key: Union[NodeOperation, EdgeOperation]
     ) -> Union[List[NodeIndex], List[EdgeIndex]]:
-        """
-        Allows selection of nodes or edges using operations directly via indexing.
+        """Allows selection of nodes or edges using operations directly via indexing.
 
         Args:
             key (Union[NodeOperation, EdgeOperation]): Operation to select nodes

@@ -2,20 +2,17 @@
 
 This page contains auto-generated API reference documentation for the `medmodels` package.
 
-```{eval-rst}
-.. autosummary::
-   :toctree: _autosummary
-   :template: mm_class.rst
-   :recursive:
+```{toctree}
+:maxdepth: 1
+:hidden:
 
-   medmodels.MedRecord
-   medmodels.TreatmentEffect
+self
 ```
 
 ```{toctree}
-:hidden:
-:maxdepth: 3
+:maxdepth: 1
+:caption: Contents:
 
-medmodels.MedRecord
-medmodels.TreatmentEffect
+medrecord
+treatment_effect
 ```

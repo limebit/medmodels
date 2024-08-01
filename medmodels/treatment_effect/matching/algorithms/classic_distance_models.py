@@ -14,9 +14,7 @@ def nearest_neighbor(
     number_of_neighbors: int = 1,
     covariates: Optional[MedRecordAttributeInputList] = None,
 ) -> pl.DataFrame:
-    """
-    Performs nearest neighbor matching between two dataframes using the Hungarian
-    algorithm.
+    """Performs nearest neighbor matching between two dataframes using the Hungarian algorithm.
 
     This method matches elements from the treated set with their closest matches in the
     control set based on the specified covariates. The function leverages the Hungarian
@@ -75,9 +73,7 @@ def normalize_data(
     treated_set: pl.DataFrame,
     covariates: MedRecordAttributeInputList,
 ) -> Tuple[NDArray[np.float64], NDArray[np.float64]]:
-    """
-    Normalizes the data by taking the maximum and minimum values of the combined
-    treated and control sets.
+    """Normalizes the data by taking the maximum and minimum values of the combined treated and control sets.
 
     Args:
         control_set (pl.DataFrame): Control set.

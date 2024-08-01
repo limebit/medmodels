@@ -24,12 +24,25 @@ install-tests: prepare-venv
 	${VENV_PYTHON} -m pip install -U pip
 	${VENV_PYTHON} -m pip install -e .\[tests\]
 
+install-all: prepare-venv
+	${VENV_PYTHON} -m pip install -U pip
+	${VENV_PYTHON} -m pip install -e .\[all\]
+
 build-dev: install-dev
 	${VENV_PYTHON} -m maturin develop
 
 test: install-tests
 	${VENV_PYTHON} -m pytest -W error
 	cargo test
+
+docs: install-all
+	$(MAKE) -C docs html
+
+docs-serve: install-all
+	$(VENV_PYTHON) docs/run_live_docs_server.py
+
+docs-clean:
+	$(MAKE) -C docs clean
 
 lint: install-dev
 	${VENV_PYTHON} -m ruff check

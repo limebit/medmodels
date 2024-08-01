@@ -11,8 +11,7 @@ from medmodels.treatment_effect.matching.matching import Matching
 
 
 class NeighborsMatching(Matching):
-    """
-    Class for the nearest neighbor matching.
+    """Class for the nearest neighbor matching.
 
     The algorithm finds the nearest neighbors in the control group for each treated
     subject. The essential covariates are used for matching, and the one-hot covariates
@@ -27,8 +26,7 @@ class NeighborsMatching(Matching):
         *,
         number_of_neighbors: int = 1,
     ):
-        """
-        Initializes the nearest neighbors class.
+        """Initializes the nearest neighbors class.
 
         Args:
             number_of_neighbors (int, optional): Number of nearest neighbors to find for
@@ -45,8 +43,7 @@ class NeighborsMatching(Matching):
         essential_covariates: MedRecordAttributeInputList = ["gender", "age"],
         one_hot_covariates: MedRecordAttributeInputList = ["gender"],
     ) -> Set[NodeIndex]:
-        """
-        Matches the controls based on the nearest neighbor algorithm.
+        """Matches the controls based on the nearest neighbor algorithm.
 
         Args:
             medrecord (MedRecord): MedRecord object containing the data.
@@ -60,7 +57,6 @@ class NeighborsMatching(Matching):
         Returns:
             Set[NodeIndex]: Node Ids of the matched controls.
         """
-
         data_treated, data_control = self._preprocess_data(
             medrecord=medrecord,
             control_group=control_group,

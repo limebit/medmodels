@@ -2,16 +2,16 @@
 sd_hide_title: true
 ---
 
-# 🏠 Home
+# Home
 
 ```{toctree}
-:maxdepth: 3
+:maxdepth: 2
 :caption: Contents:
 :hidden:
 
-index.md
 api/index
-user_guide/getstarted
+user_guide/index
+developer_guide/index
 ```
 
 ::::{grid}
@@ -22,10 +22,13 @@ user_guide/getstarted
 :::{grid-item}
 :columns: 12 4 4 4
 
-```{image} ../images/medmodels_logo.svg
+```{image} https://raw.githubusercontent.com/limebit/medmodels-static/main/logos/icon_white.svg
+:class: only-dark
+```
+
+```{image} https://raw.githubusercontent.com/limebit/medmodels-static/main/logos/icon_black.svg
 :width: 200px
-:class: sd-m-auto
-:name: landing-page-logo
+:class: only-light
 ```
 
 :::
@@ -39,16 +42,16 @@ user_guide/getstarted
 
 ```
 
-Yadda yadda
+The MedModels documentation space serves as a one-stop shop for learning about the package. It offers comprehensive API descriptions alongside a detailed user guide to equip you with the knowledge to leverage its functionalities effectively.
 
 ````{div} sd-d-flex-row
 
-```{button-ref} user_guide/getstarted
+```{button-ref} user_guide/index
 :ref-type: doc
 :color: primary
 :class: sd-rounded-pill sd-mr-3
 
-Getting Started
+User Guide
 ```
 ```{button-ref} api/index
 :ref-type: doc
@@ -60,6 +63,13 @@ API Reference
 
 ````
 
+```{only} html
+[![black](https://img.shields.io/badge/code_style-black-black.svg)](https://black.readthedocs.io/en/stable/)
+![python versions](https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11%20%7C%203.12-blue)
+[![license](https://img.shields.io/github/license/limebit/medmodels.svg)](https://github.com/limebit/medmodels/blob/main/LICENSE)
+[![license](https://github.com/limebit/medmodels/actions/workflows/testing.yml/badge.svg?branch=main)](https://github.com/limebit/medmodels/actions/workflows/testing.yml)
+```
+
 :::
 
 ::::
@@ -69,38 +79,31 @@ API Reference
 ::::{grid} 1 2 2 3
 :gutter: 1 1 1 2
 
-:::{grid-item-card} {octicon}`markdown;1.5em;sd-mr-1` MedRecord
-:link: syntax/core
-:link-type: ref
+:::{grid-item-card} {material-outlined}`hub;1.5em;sd-mr-1` MedRecord
+:link-type: doc
 
-The MedModels MedRecord is providing a straight forward and easy to use dataclass that
-enables you to keep your medical data in a flexible graph format implemented in Rust to
-make data handling as fast and efficient as possible.
+The {py:class}`MedRecord() <medmodels.medrecord.medrecord.MedRecord>` class is providing a straight forward and easy to use dataclass that enables you to keep your medical data in a flexible graph format implemented in Rust to make data handling as fast and efficient as possible.
 
 +++
-[Learn more »](medmodels/medrecord)
+[Learn more »](./api/medrecord.md)
 :::
 
-:::{grid-item-card} {octicon}`plug;1.5em;sd-mr-1` Treatment Effect
-:link: roles-directives
-:link-type: ref
+:::{grid-item-card} {material-outlined}`troubleshoot;1.5em;sd-mr-1` Treatment Effect
+:link-type: doc
 
-Use MedModels to caluclate Treatment Effects with various options of patient matching and controlling for confounding
+Use MedModels to caluclate {py:class}`TreatmentEffect() <medmodels.treatment_effect.treatment_effect.TreatmentEffect>` with various options of patient matching and controlling for confounding
 
 +++
-[Learn more »](roles-directives)
+[Learn more »](./api/treatment_effect.md)
 :::
 
-:::{grid-item-card} {octicon}`tools;1.5em;sd-mr-1` User Guide
-:link: configuration
+:::{grid-item-card} {material-outlined}`school;1.5em;sd-mr-1` User Guide
 :link-type: doc
 
 Checkout our user guide to get strated!
 
 +++
-[Learn more »](configuration)
+[Learn more »](user_guide/index.md)
 :::
 
 ::::
-
----

@@ -13,26 +13,13 @@ def find_reference_edge(
     reference: Literal["first", "last"],
     time_attribute: MedRecordAttribute = "time",
 ) -> EdgeIndex:
-    """
-    Determines the reference edge that represents the first or last exposure of a node
-    index to any node in the connecte_group (list of nodes). This method is crucial for
-    analyzing the temporal sequence of treatments and outcomes.
+    """Determines the reference edge that represents the first or last exposure of a node index to any node in the connecte_group (list of nodes).
+
+    This method is crucial for analyzing the temporal sequence of treatments and outcomes.
 
     This function iterates over all nodes in the gorup and finds the reference edge
     among them (first or last), ensuring that the analysis considers the reference
     exposure.
-
-    Example:
-    ```
-    find_reference_edge(
-        medrecord,
-        node_index="P1",
-        connected_group="medications",
-        reference="last",
-    )
-    ```
-    This function returns the edge containing the timestamp of the last exposure to any
-    medication in the group "medications" for subject "P1".
 
     Args:
         medrecord (MedRecord): An instance of the MedRecord class containing medical
@@ -55,6 +42,21 @@ def find_reference_edge(
             an issue with the data or the connection to the specified nodes.
         ValueError: If no edge is found for the specified node with the nodes in that
             group in the MedRecord.
+
+    Example:
+        This function returns the edge containing the timestamp of the last exposure to any
+        medication in the group "medications" for subject "P1".
+
+        .. highlight:: python
+        .. code-block:: python
+
+            find_reference_edge(
+                medrecord,
+                node_index="P1",
+                connected_group="medications",
+                reference="last",
+            )
+
     """
     if reference == "first":
         reference_time = pd.Timestamp.max
@@ -102,26 +104,10 @@ def find_node_in_time_window(
     reference: Literal["first", "last"],
     time_attribute: MedRecordAttribute = "time",
 ) -> bool:
-    """
-    Determines whether an event occurred within a specified time window for a given
-    subject node. This method helps in identifying events that are temporally
-    related to a reference event by considering the temporal sequence of events.
+    """Determines whether an event occurred within a specified time window for a given subject node.
 
-    Example:
-    ```
-    find_node_in_time_window(
-        medrecord,
-        subject_index="P1",
-        event_node="E1",
-        connected_group="medications",
-        start_days=-30,
-        end_days=30,
-        reference="last",
-    )
-    ```
-    This function checks if the event "E1" occurred within a time window of 30 days
-    before and after the last exposure to any medication in the Group "medications" for
-    the subject "P1".
+    This method helps in identifying events that are temporally related to a reference
+    event by considering the temporal sequence of events.
 
     Args:
         medrecord (MedRecord): An instance of the MedRecord class containing medical
@@ -146,6 +132,25 @@ def find_node_in_time_window(
 
     Raises:
         ValueError: If the time attribute is not found in the edge attributes.
+
+    Examples:
+        This function checks if the event "E1" occurred within a time window of 30 days
+        before and after the last exposure to any medication in the group "medications" for
+        the subject "P1":
+
+        .. highlight:: python
+        .. code-block:: python
+
+            find_node_in_time_window(
+                medrecord,
+                subject_index="P1",
+                event_node="E1",
+                connected_group="medications",
+                start_days=-30,
+                end_days=30,
+                reference="last",
+            )
+
     """
     reference_edge = find_reference_edge(
         medrecord,

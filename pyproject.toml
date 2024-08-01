@@ -39,17 +39,16 @@ dev = [
     "ruff>=0.4.9",
     "py-spy",
     "pyright>=1.1.370,<1.1.374",
-    "pandas-stubs>=2.2.2.240603",
+    "pandas-stubs>=2.2.2.240603"
+]
+
+docs = [
     "sphinx>=7",
-    "ipython",
-    "sphinx-book-theme~=1.1",
     "sphinx-design",
     "sphinx-copybutton",
-    "sphinxext-rediraffe~=0.2.7",
     "sphinxext-opengraph~=0.9.0",
     "sphinx-pyscript",
     "sphinx-tippy>=0.4.3",
-    "sphinx-autodoc2~=0.5.0",
     "sphinx-togglebutton",
     "linkify-it-py>=2.0.0",
     "autodocsumm==0.2.12",
@@ -61,11 +60,16 @@ dev = [
     "sphinx-favicon==1.0.1",
     "sphinx-reredirects==0.1.4",
     "sphinx-toolbox==3.6.0",
-    "myst-parser",
-    "livereload==2.7.0"
+    "myst-parser==3.0.1",
+    "livereload==2.7.0",
+    "sphinx-multiversion==0.2.4"
 ]
 
 tests = ["pytest>=8.2.2"]
+
+all = [
+    "medmodels[dev, docs, tests]"
+]
 
 [build-system]
 requires = ["maturin>=1.6.0", "setuptools"]
@@ -85,8 +89,23 @@ exclude = [
     ".pytest_cache",
     ".ruff_cache",
     ".venv",
+    "docs"
 ]
 line-length = 88
+
+[tool.ruff.lint]
+extend-select = ["D"]
+ignore = [
+    # no-lint missing docs for public module
+    "D100",
+    # no-lint missing docs for public package
+    "D104",
+    # no-lint missing docs for public __init__
+    "D107",
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
 
 [tool.pyright]
 typeCheckingMode = "strict"

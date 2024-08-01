@@ -10,3 +10,4 @@ target
 .vscode
 .devcontainer
 .python-version
+docs/api/_autosummary/*

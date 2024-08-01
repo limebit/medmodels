@@ -1,7 +1,4 @@
-# # Configuration file for the Sphinx documentation builder.
-# #
-# # For the full list of built-in configuration values, see the documentation:
-# # https://www.sphinx-doc.org/en/master/usage/configuration.html
+"""Sphinx configuration file."""
 
 import sys
 from datetime import date
@@ -29,22 +26,30 @@ version = __version__
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
 extensions = [
+    "sphinx.ext.napoleon",
     "myst_parser",
-    "sphinx.ext.intersphinx",
     "sphinx.ext.viewcode",
     "sphinx.ext.autodoc",
     "sphinx.ext.autosummary",
+    "sphinx_autodoc_typehints",
     "sphinx_design",
     "sphinx_copybutton",
-    "sphinxext.rediraffe",
-    "sphinxext.opengraph",
     "sphinx_pyscript",
     "sphinx_tippy",
     "sphinx_togglebutton",
+    "sphinx_multiversion",
+    "sphinx.ext.extlinks",
 ]
 
-templates_path = ["_templates"]
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
+extlinks = {
+    "doi": ("https://doi.org/%s", "DOI: %s"),
+    "gh-issue": (
+        "https://github.com/limebit/medmodels/issues/%s",
+        "issue #%s",
+    ),
+    "gh-user": ("https://github.com/%s", "@%s"),
+}
 
 suppress_warnings = ["myst.strikethrough"]
 
@@ -55,14 +60,11 @@ overloads_location = ["bottom"]
 
 # -- Extension settings  -----------------------------------------------------
 
-# Sphinx-copybutton - add copy button to code blocks
-# https://sphinx-copybutton.readthedocs.io/en/latest/index.html
-# strip the '>>>' and '...' prompt/continuation prefixes.
+# # Sphinx-copybutton - add copy button to code blocks
+# # https://sphinx-copybutton.readthedocs.io/en/latest/index.html
+# # strip the '>>>' and '...' prompt/continuation prefixes.
 copybutton_prompt_text = r">>> |\.\.\. "
 copybutton_prompt_is_regexp = True
-
-# redirect empty root to the actual landing page
-# redirects = {"index": "reference/index.html"}
 
 # Support for markdown
 source_suffix = {
@@ -76,36 +78,31 @@ napoleon_numpy_docstring = False
 napoleon_include_init_with_doc = False
 napoleon_include_private_with_doc = False
 napoleon_include_special_with_doc = True
-napoleon_use_admonition_for_examples = False
-napoleon_use_admonition_for_notes = False
-napoleon_use_admonition_for_references = False
+napoleon_use_admonition_for_examples = True
+napoleon_use_admonition_for_notes = True
+napoleon_use_admonition_for_references = True
 napoleon_use_ivar = False
 napoleon_use_param = True
-napoleon_use_rtype = True
+napoleon_use_rtype = False
 napoleon_preprocess_types = False
-napoleon_type_aliases = None
 napoleon_attr_annotations = True
 
 # Auto Doc settings
-# Autodoc settings
 autodoc_default_options = {
     "members": True,
-    "member-order": "bysource",
-    "special-members": "__init__",
     "undoc-members": False,
-    "exclude-members": "__weakref__",
+    "private-members": False,
+    "inherited-members": True,
+    "show-inheritance": True,
 }
 
-# This setting makes autodoc respect __all__
-autodoc_default_flags = ["imported-members"]
-add_modules_names = True
-# Don't show the full path for classes/functions
-autodoc_typehints = "description"
-# Optionally, you can also use this to remove the module name from the function signature
-autodoc_typehints_format = "short"
 
 autosummary_generate = True
-autosummary_imported_momebers = True
+autosummary_imported_members = False
+add_module_names = False
+autodoc_typehints = "signature"
+autodoc_typehints_format = "short"
+
 # -- MyST settings ---------------------------------------------------
 
 myst_enable_extensions = [
@@ -138,7 +135,7 @@ myst_url_schemes = {
         "classes": ["github"],
     },
     "gh-issue": {
-        "url": "https://github.com/limebit/medmodels/issue/{{path}}#{{fragment}}",
+        "url": "https://github.com/limebit/medmodels/issues/{{path}}#{{fragment}}",
         "title": "Issue #{{path}}",
         "classes": ["github"],
     },
@@ -149,7 +146,7 @@ myst_url_schemes = {
     },
 }
 myst_number_code_blocks = ["typescript"]
-myst_heading_anchors = 2
+myst_heading_anchors = 3
 myst_footnote_transition = True
 myst_dmath_double_inline = True
 myst_enable_checkboxes = True
@@ -161,32 +158,33 @@ myst_substitutions = {
 
 # -- Options for HTML output -------------------------------------------------
 
-html_theme = "sphinx_book_theme"
-html_logo = "../images/medmodels_logo.svg"
-html_favicon = "_static/logo-square.svg"
+html_theme = "pydata_sphinx_theme"
+html_logo = "https://raw.githubusercontent.com/limebit/medmodels-static/main/logos/logo_color.svg"
+html_favicon = "https://raw.githubusercontent.com/limebit/medmodels-static/main/icons/favicon-32x32.png"
 html_title = "MedModels Documentation"
+
 html_theme_options = {
-    "home_page_in_toc": True,
+    "show_toc_level": 2,
     "github_url": "https://github.com/limebit/medmodels",
-    "repository_url": "https://github.com/limebit/medmodels",
-    "repository_branch": "main",
-    "path_to_docs": "docs",
-    "use_repository_button": True,
     "use_edit_page_button": True,
-    "use_issues_button": True,
-    "show_toc_level": 3,
-    # "announcement": "<b>v3.0.0</b> is now out! See the Changelog for details",
+    "navbar_start": ["navbar-logo", "version-switcher"],
+    "navbar_end": ["navbar-icon-links", "theme-switcher"],
+    "show_nav_level": 2,
+    "collapse_navigation": True,
+    "external_links": [
+        {"name": "MedModels Home", "url": "https://medmodels.de"},
+    ],
+    "primary_sidebar_end": ["indices.html"],
+    "secondary_sidebar_items": ["page-toc"],
 }
 
-
-html_last_updated_fmt = ""
-
-html_show_sphinx = False
-
-# OpenGraph metadata
-ogp_site_url = "https://docs.medmodels.de/latest"
-# This is the image that GitHub stores for our social media previews
-ogp_image = "https://repository-images.githubusercontent.com/240151150/316bc480-cc23-11eb-96fc-4ab2f981a65d"
+html_context = {
+    "github_user": "limebit",
+    "github_repo": "medmodels",
+    "github_version": "main",
+    "doc_path": "docs",
+    "default_mode": "dark",
+}
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
@@ -196,11 +194,6 @@ html_css_files = ["local.css"]
 
 tippy_skip_anchor_classes = ("headerlink", "sd-stretched-link", "sd-rounded-pill")
 tippy_anchor_parent_selector = "article.bd-article"
-tippy_rtd_urls = [
-    "https://www.sphinx-doc.org/en/master",
-    "https://markdown-it-py.readthedocs.io/en/latest",
-]
-
 
 # -- LaTeX output -------------------------------------------------
 
