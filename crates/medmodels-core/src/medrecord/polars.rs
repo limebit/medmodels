@@ -2,6 +2,7 @@ use crate::{
     errors::MedRecordError,
     medrecord::{Attributes, MedRecordAttribute, MedRecordValue, NodeIndex},
 };
+use chrono::DateTime;
 use polars::{datatypes::AnyValue, frame::DataFrame};
 
 impl<'a> TryFrom<AnyValue<'a>> for MedRecordValue {
@@ -21,6 +22,30 @@ impl<'a> TryFrom<AnyValue<'a>> for MedRecordValue {
             AnyValue::Float32(value) => Ok(MedRecordValue::Float(value.into())),
             AnyValue::Float64(value) => Ok(MedRecordValue::Float(value)),
             AnyValue::Boolean(value) => Ok(MedRecordValue::Bool(value)),
+            AnyValue::Datetime(value, unit, _) => {
+                // TODO: handle timezone
+                Ok(match unit {
+                    polars::prelude::TimeUnit::Nanoseconds => {
+                        MedRecordValue::DateTime(DateTime::from_timestamp_nanos(value).naive_utc())
+                    }
+                    polars::prelude::TimeUnit::Microseconds => MedRecordValue::DateTime(
+                        DateTime::from_timestamp_micros(value)
+                            .ok_or(MedRecordError::ConversionError(format!(
+                                "Cannot convert {}ms into MedRecordValue",
+                                value
+                            )))?
+                            .naive_utc(),
+                    ),
+                    polars::prelude::TimeUnit::Milliseconds => MedRecordValue::DateTime(
+                        DateTime::from_timestamp_millis(value)
+                            .ok_or(MedRecordError::ConversionError(format!(
+                                "Cannot convert {}ms into MedRecordValue",
+                                value
+                            )))?
+                            .naive_utc(),
+                    ),
+                })
+            }
             AnyValue::Null => Ok(MedRecordValue::Null),
             _ => Err(MedRecordError::ConversionError(format!(
                 "Cannot convert {} into MedRecordValue",
@@ -163,6 +188,7 @@ pub(crate) fn dataframe_to_edges(
 mod test {
     use super::{dataframe_to_edges, dataframe_to_nodes, MedRecordValue};
     use crate::errors::MedRecordError;
+    use chrono::NaiveDateTime;
     use polars::prelude::*;
     use std::collections::HashMap;
 
@@ -236,6 +262,42 @@ mod test {
         let value = MedRecordValue::try_from(any_value).unwrap();
 
         assert_eq!(MedRecordValue::Bool(false), value);
+    }
+
+    #[test]
+    fn test_from_anyvalue_datetime() {
+        let any_value = AnyValue::Datetime(0, polars::prelude::TimeUnit::Microseconds, &None);
+
+        let value = MedRecordValue::try_from(any_value).unwrap();
+
+        assert_eq!(
+            MedRecordValue::DateTime(
+                NaiveDateTime::parse_from_str("1970-01-01 00:00:00", "%Y-%m-%d %H:%M:%S").unwrap()
+            ),
+            value
+        );
+
+        let any_value = AnyValue::Datetime(0, polars::prelude::TimeUnit::Milliseconds, &None);
+
+        let value = MedRecordValue::try_from(any_value).unwrap();
+
+        assert_eq!(
+            MedRecordValue::DateTime(
+                NaiveDateTime::parse_from_str("1970-01-01 00:00:00", "%Y-%m-%d %H:%M:%S").unwrap()
+            ),
+            value
+        );
+
+        let any_value = AnyValue::Datetime(0, polars::prelude::TimeUnit::Nanoseconds, &None);
+
+        let value = MedRecordValue::try_from(any_value).unwrap();
+
+        assert_eq!(
+            MedRecordValue::DateTime(
+                NaiveDateTime::parse_from_str("1970-01-01 00:00:00", "%Y-%m-%d %H:%M:%S").unwrap()
+            ),
+            value
+        );
     }
 
     #[test]
