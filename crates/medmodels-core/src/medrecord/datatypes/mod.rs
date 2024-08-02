@@ -12,6 +12,7 @@ pub enum DataType {
     Int,
     Float,
     Bool,
+    DateTime,
     Null,
     Any,
     Union((Box<DataType>, Box<DataType>)),
@@ -31,6 +32,7 @@ impl From<MedRecordValue> for DataType {
             MedRecordValue::Int(_) => DataType::Int,
             MedRecordValue::Float(_) => DataType::Float,
             MedRecordValue::Bool(_) => DataType::Bool,
+            MedRecordValue::DateTime(_) => DataType::DateTime,
             MedRecordValue::Null => DataType::Null,
         }
     }
@@ -43,6 +45,7 @@ impl From<&MedRecordValue> for DataType {
             MedRecordValue::Int(_) => DataType::Int,
             MedRecordValue::Float(_) => DataType::Float,
             MedRecordValue::Bool(_) => DataType::Bool,
+            MedRecordValue::DateTime(_) => DataType::DateTime,
             MedRecordValue::Null => DataType::Null,
         }
     }
@@ -64,6 +67,7 @@ impl PartialEq for DataType {
                     | (DataType::Int, DataType::Int)
                     | (DataType::Float, DataType::Float)
                     | (DataType::Bool, DataType::Bool)
+                    | (DataType::DateTime, DataType::DateTime)
                     | (DataType::Null, DataType::Null)
                     | (DataType::Any, DataType::Any)
             ),
@@ -78,6 +82,7 @@ impl Display for DataType {
             DataType::Int => write!(f, "Integer"),
             DataType::Float => write!(f, "Float"),
             DataType::Bool => write!(f, "Boolean"),
+            DataType::DateTime => write!(f, "DateTime"),
             DataType::Null => write!(f, "Null"),
             DataType::Any => write!(f, "Any"),
             DataType::Union((first_datatype, second_datatype)) => {
@@ -113,6 +118,7 @@ impl DataType {
                     | (DataType::Int, DataType::Int)
                     | (DataType::Float, DataType::Float)
                     | (DataType::Bool, DataType::Bool)
+                    | (DataType::DateTime, DataType::DateTime)
                     | (DataType::Null, DataType::Null)
                     | (DataType::Any, DataType::Any)
             ),
@@ -200,6 +206,7 @@ where
 #[cfg(test)]
 mod test {
     use super::{DataType, MedRecordValue};
+    use chrono::NaiveDateTime;
 
     #[test]
     fn test_default() {
@@ -215,6 +222,10 @@ mod test {
         assert_eq!(DataType::Int, DataType::from(MedRecordValue::Int(0)));
         assert_eq!(DataType::Float, DataType::from(MedRecordValue::Float(0.0)));
         assert_eq!(DataType::Bool, DataType::from(MedRecordValue::Bool(false)));
+        assert_eq!(
+            DataType::DateTime,
+            DataType::from(MedRecordValue::DateTime(NaiveDateTime::MIN))
+        );
         assert_eq!(DataType::Null, DataType::from(MedRecordValue::Null));
     }
 
@@ -227,6 +238,10 @@ mod test {
         assert_eq!(DataType::Int, DataType::from(&MedRecordValue::Int(0)));
         assert_eq!(DataType::Float, DataType::from(&MedRecordValue::Float(0.0)));
         assert_eq!(DataType::Bool, DataType::from(&MedRecordValue::Bool(false)));
+        assert_eq!(
+            DataType::DateTime,
+            DataType::from(&MedRecordValue::DateTime(NaiveDateTime::MIN))
+        );
         assert_eq!(DataType::Null, DataType::from(&MedRecordValue::Null));
     }
 
@@ -236,6 +251,7 @@ mod test {
         assert!(DataType::Int == DataType::Int);
         assert!(DataType::Float == DataType::Float);
         assert!(DataType::Bool == DataType::Bool);
+        assert!(DataType::DateTime == DataType::DateTime);
         assert!(DataType::Null == DataType::Null);
         assert!(DataType::Any == DataType::Any);
 
@@ -256,37 +272,50 @@ mod test {
         assert!(DataType::String != DataType::Int);
         assert!(DataType::String != DataType::Float);
         assert!(DataType::String != DataType::Bool);
+        assert!(DataType::String != DataType::DateTime);
         assert!(DataType::String != DataType::Null);
         assert!(DataType::String != DataType::Any);
 
         assert!(DataType::Int != DataType::String);
         assert!(DataType::Int != DataType::Float);
         assert!(DataType::Int != DataType::Bool);
+        assert!(DataType::Int != DataType::DateTime);
         assert!(DataType::Int != DataType::Null);
         assert!(DataType::Int != DataType::Any);
 
         assert!(DataType::Float != DataType::String);
         assert!(DataType::Float != DataType::Int);
         assert!(DataType::Float != DataType::Bool);
+        assert!(DataType::Float != DataType::DateTime);
         assert!(DataType::Float != DataType::Null);
         assert!(DataType::Float != DataType::Any);
 
         assert!(DataType::Bool != DataType::String);
         assert!(DataType::Bool != DataType::Int);
         assert!(DataType::Bool != DataType::Float);
+        assert!(DataType::Bool != DataType::DateTime);
         assert!(DataType::Bool != DataType::Null);
         assert!(DataType::Bool != DataType::Any);
+
+        assert!(DataType::DateTime != DataType::String);
+        assert!(DataType::DateTime != DataType::Int);
+        assert!(DataType::DateTime != DataType::Float);
+        assert!(DataType::DateTime != DataType::Bool);
+        assert!(DataType::DateTime != DataType::Null);
+        assert!(DataType::DateTime != DataType::Any);
 
         assert!(DataType::Null != DataType::String);
         assert!(DataType::Null != DataType::Int);
         assert!(DataType::Null != DataType::Float);
         assert!(DataType::Null != DataType::Bool);
+        assert!(DataType::Null != DataType::DateTime);
         assert!(DataType::Null != DataType::Any);
 
         assert!(DataType::Any != DataType::String);
         assert!(DataType::Any != DataType::Int);
         assert!(DataType::Any != DataType::Float);
         assert!(DataType::Any != DataType::Bool);
+        assert!(DataType::Any != DataType::DateTime);
         assert!(DataType::Any != DataType::Null);
 
         // If all the basic datatypes have been tested, it should be safe to assume that the
@@ -307,6 +336,7 @@ mod test {
         assert_eq!("Integer", format!("{}", DataType::Int));
         assert_eq!("Float", format!("{}", DataType::Float));
         assert_eq!("Boolean", format!("{}", DataType::Bool));
+        assert_eq!("DateTime", format!("{}", DataType::DateTime));
         assert_eq!("Null", format!("{}", DataType::Null));
         assert_eq!("Any", format!("{}", DataType::Any));
         assert_eq!(
@@ -328,6 +358,7 @@ mod test {
         assert!(DataType::Int.evaluate(&DataType::Int));
         assert!(DataType::Float.evaluate(&DataType::Float));
         assert!(DataType::Bool.evaluate(&DataType::Bool));
+        assert!(DataType::DateTime.evaluate(&DataType::DateTime));
         assert!(DataType::Null.evaluate(&DataType::Null));
         assert!(DataType::Any.evaluate(&DataType::Any));
 
@@ -361,31 +392,43 @@ mod test {
         assert!(!DataType::String.evaluate(&DataType::Int));
         assert!(!DataType::String.evaluate(&DataType::Float));
         assert!(!DataType::String.evaluate(&DataType::Bool));
+        assert!(!DataType::String.evaluate(&DataType::DateTime));
         assert!(!DataType::String.evaluate(&DataType::Null));
         assert!(!DataType::String.evaluate(&DataType::Any));
 
         assert!(!DataType::Int.evaluate(&DataType::String));
         assert!(!DataType::Int.evaluate(&DataType::Float));
         assert!(!DataType::Int.evaluate(&DataType::Bool));
+        assert!(!DataType::Int.evaluate(&DataType::DateTime));
         assert!(!DataType::Int.evaluate(&DataType::Null));
         assert!(!DataType::Int.evaluate(&DataType::Any));
 
         assert!(!DataType::Float.evaluate(&DataType::String));
         assert!(!DataType::Float.evaluate(&DataType::Int));
         assert!(!DataType::Float.evaluate(&DataType::Bool));
+        assert!(!DataType::Float.evaluate(&DataType::DateTime));
         assert!(!DataType::Float.evaluate(&DataType::Null));
         assert!(!DataType::Float.evaluate(&DataType::Any));
 
         assert!(!DataType::Bool.evaluate(&DataType::String));
         assert!(!DataType::Bool.evaluate(&DataType::Int));
         assert!(!DataType::Bool.evaluate(&DataType::Float));
+        assert!(!DataType::Bool.evaluate(&DataType::DateTime));
         assert!(!DataType::Bool.evaluate(&DataType::Null));
         assert!(!DataType::Bool.evaluate(&DataType::Any));
+
+        assert!(!DataType::DateTime.evaluate(&DataType::String));
+        assert!(!DataType::DateTime.evaluate(&DataType::Int));
+        assert!(!DataType::DateTime.evaluate(&DataType::Float));
+        assert!(!DataType::DateTime.evaluate(&DataType::Bool));
+        assert!(!DataType::DateTime.evaluate(&DataType::Null));
+        assert!(!DataType::DateTime.evaluate(&DataType::Any));
 
         assert!(!DataType::Null.evaluate(&DataType::String));
         assert!(!DataType::Null.evaluate(&DataType::Int));
         assert!(!DataType::Null.evaluate(&DataType::Float));
         assert!(!DataType::Null.evaluate(&DataType::Bool));
+        assert!(!DataType::Null.evaluate(&DataType::DateTime));
         assert!(!DataType::Null.evaluate(&DataType::Any));
 
         assert!(

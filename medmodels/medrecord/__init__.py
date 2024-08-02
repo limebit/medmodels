@@ -1,4 +1,13 @@
-from medmodels.medrecord.datatype import Any, Bool, Int, Null, Option, String, Union
+from medmodels.medrecord.datatype import (
+    Any,
+    Bool,
+    DateTime,
+    Int,
+    Null,
+    Option,
+    String,
+    Union,
+)
 from medmodels.medrecord.medrecord import (
     EdgeIndex,
     EdgeOperation,
@@ -14,6 +23,7 @@ __all__ = [
     "String",
     "Int",
     "Bool",
+    "DateTime",
     "Null",
     "Any",
     "Union",

@@ -6,6 +6,7 @@ from abc import ABCMeta, abstractmethod
 from medmodels._medmodels import (
     PyAny,
     PyBool,
+    PyDateTime,
     PyInt,
     PyNull,
     PyOption,
@@ -25,6 +26,7 @@ PyDataType: TypeAlias = typing.Union[
     PyString,
     PyInt,
     PyBool,
+    PyDateTime,
     PyNull,
     PyAny,
     PyUnion,
@@ -65,6 +67,16 @@ class Bool(DataType):
 
     def _inner(self) -> PyDataType:
         return self._bool
+
+
+class DateTime(DataType):
+    _datetime: PyDateTime
+
+    def __init__(self) -> None:
+        self._datetime = PyDateTime()
+
+    def _inner(self) -> PyDataType:
+        return self._datetime
 
 
 class Null(DataType):

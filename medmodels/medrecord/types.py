@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime
 from typing import TYPE_CHECKING, Dict, List, Mapping, Tuple, TypedDict, Union
 
 import pandas as pd
@@ -20,7 +21,7 @@ MedRecordAttribute: TypeAlias = Union[str, int]
 MedRecordAttributeInputList: TypeAlias = Union[
     List[str], List[int], List[MedRecordAttribute]
 ]
-MedRecordValue: TypeAlias = Union[str, int, float, bool, None]
+MedRecordValue: TypeAlias = Union[str, int, float, bool, datetime, None]
 NodeIndex: TypeAlias = MedRecordAttribute
 NodeIndexInputList: TypeAlias = MedRecordAttributeInputList
 EdgeIndex: TypeAlias = int
@@ -65,7 +66,7 @@ def is_medrecord_attribute(value: object) -> TypeIs[MedRecordAttribute]:
 
 
 def is_medrecord_value(value: object) -> TypeIs[MedRecordValue]:
-    return isinstance(value, (str, int, float, bool)) or value is None
+    return isinstance(value, (str, int, float, bool, datetime)) or value is None
 
 
 def is_node_index(value: object) -> TypeIs[NodeIndex]:
