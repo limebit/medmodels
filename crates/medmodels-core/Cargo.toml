@@ -13,3 +13,4 @@ medmodels-utils = { workspace = true }
 polars = { workspace = true }
 serde = { workspace = true }
 ron = { workspace = true }
+chrono = { workspace = true }

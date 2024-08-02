@@ -3,6 +3,7 @@ use super::{
     Trim, TrimEnd, TrimStart, Uppercase,
 };
 use crate::errors::MedRecordError;
+use chrono::NaiveDateTime;
 use medmodels_utils::implement_from_for_wrapper;
 use serde::{Deserialize, Serialize};
 use std::{
@@ -17,6 +18,7 @@ pub enum MedRecordValue {
     Int(i64),
     Float(f64),
     Bool(bool),
+    DateTime(NaiveDateTime),
     Null,
 }
 
@@ -36,6 +38,7 @@ implement_from_for_wrapper!(MedRecordValue, String, String);
 implement_from_for_wrapper!(MedRecordValue, i64, Int);
 implement_from_for_wrapper!(MedRecordValue, f64, Float);
 implement_from_for_wrapper!(MedRecordValue, bool, Bool);
+implement_from_for_wrapper!(MedRecordValue, NaiveDateTime, DateTime);
 
 impl<T> From<Option<T>> for MedRecordValue
 where
@@ -58,6 +61,7 @@ impl PartialEq for MedRecordValue {
             (MedRecordValue::Float(value), MedRecordValue::Float(other)) => value == other,
             (MedRecordValue::Float(value), MedRecordValue::Int(other)) => value == &(*other as f64),
             (MedRecordValue::Bool(value), MedRecordValue::Bool(other)) => value == other,
+            (MedRecordValue::DateTime(value), MedRecordValue::DateTime(other)) => value == other,
             (MedRecordValue::Null, MedRecordValue::Null) => true,
             _ => false,
         }
@@ -81,6 +85,9 @@ impl PartialOrd for MedRecordValue {
                 value.partial_cmp(other)
             }
             (MedRecordValue::Bool(value), MedRecordValue::Bool(other)) => Some(value.cmp(other)),
+            (MedRecordValue::DateTime(value), MedRecordValue::DateTime(other)) => {
+                Some(value.cmp(other))
+            }
             _ => None,
         }
     }
@@ -93,6 +100,7 @@ impl Display for MedRecordValue {
             Self::Int(value) => write!(f, "{}", value),
             Self::Float(value) => write!(f, "{}", value),
             Self::Bool(value) => write!(f, "{}", value),
+            Self::DateTime(value) => write!(f, "{}", value),
             Self::Null => write!(f, "Null"),
         }
     }
@@ -115,6 +123,9 @@ impl Add for MedRecordValue {
             (MedRecordValue::String(value), MedRecordValue::Bool(rhs)) => Err(
                 MedRecordError::AssertionError(format!("Cannot add {} to {}", rhs, value)),
             ),
+            (MedRecordValue::String(value), MedRecordValue::DateTime(rhs)) => Err(
+                MedRecordError::AssertionError(format!("Cannot add {} to {}", rhs, value)),
+            ),
             (MedRecordValue::String(value), MedRecordValue::Null) => Err(
                 MedRecordError::AssertionError(format!("Cannot add None to {}", value)),
             ),
@@ -128,6 +139,9 @@ impl Add for MedRecordValue {
                 Ok(MedRecordValue::Float(value as f64 + rhs))
             }
             (MedRecordValue::Int(value), MedRecordValue::Bool(rhs)) => Err(
+                MedRecordError::AssertionError(format!("Cannot add {} to {}", rhs, value)),
+            ),
+            (MedRecordValue::Int(value), MedRecordValue::DateTime(rhs)) => Err(
                 MedRecordError::AssertionError(format!("Cannot add {} to {}", rhs, value)),
             ),
             (MedRecordValue::Int(value), MedRecordValue::Null) => Err(
@@ -145,6 +159,9 @@ impl Add for MedRecordValue {
             (MedRecordValue::Float(value), MedRecordValue::Bool(rhs)) => Err(
                 MedRecordError::AssertionError(format!("Cannot add {} to {}", rhs, value)),
             ),
+            (MedRecordValue::Float(value), MedRecordValue::DateTime(rhs)) => Err(
+                MedRecordError::AssertionError(format!("Cannot add {} to {}", rhs, value)),
+            ),
             (MedRecordValue::Float(value), MedRecordValue::Null) => Err(
                 MedRecordError::AssertionError(format!("Cannot add None to {}", value)),
             ),
@@ -158,6 +175,9 @@ impl Add for MedRecordValue {
                 MedRecordError::AssertionError(format!("Cannot add {} to {}", rhs, value)),
             ),
             (MedRecordValue::Bool(value), MedRecordValue::Bool(rhs)) => Err(
+                MedRecordError::AssertionError(format!("Cannot add {} to {}", rhs, value)),
+            ),
+            (MedRecordValue::Bool(value), MedRecordValue::DateTime(rhs)) => Err(
                 MedRecordError::AssertionError(format!("Cannot add {} to {}", rhs, value)),
             ),
             (MedRecordValue::Bool(value), MedRecordValue::Null) => Err(
@@ -174,6 +194,27 @@ impl Add for MedRecordValue {
             ),
             (MedRecordValue::Null, MedRecordValue::Bool(rhs)) => Err(
                 MedRecordError::AssertionError(format!("Cannot add {} to None", rhs)),
+            ),
+            (MedRecordValue::Null, MedRecordValue::DateTime(rhs)) => Err(
+                MedRecordError::AssertionError(format!("Cannot add {} to None", rhs)),
+            ),
+            (MedRecordValue::DateTime(value), MedRecordValue::String(rhs)) => Err(
+                MedRecordError::AssertionError(format!("Cannot add {} to {}", rhs, value)),
+            ),
+            (MedRecordValue::DateTime(value), MedRecordValue::Int(rhs)) => Err(
+                MedRecordError::AssertionError(format!("Cannot add {} to {}", rhs, value)),
+            ),
+            (MedRecordValue::DateTime(value), MedRecordValue::Float(rhs)) => Err(
+                MedRecordError::AssertionError(format!("Cannot add {} to {}", rhs, value)),
+            ),
+            (MedRecordValue::DateTime(value), MedRecordValue::Bool(rhs)) => Err(
+                MedRecordError::AssertionError(format!("Cannot add {} to {}", rhs, value)),
+            ),
+            (MedRecordValue::DateTime(value), MedRecordValue::DateTime(rhs)) => Err(
+                MedRecordError::AssertionError(format!("Cannot add {} to {}", rhs, value)),
+            ),
+            (MedRecordValue::DateTime(value), MedRecordValue::Null) => Err(
+                MedRecordError::AssertionError(format!("Cannot add None to {}", value)),
             ),
             (MedRecordValue::Null, MedRecordValue::Null) => Err(MedRecordError::AssertionError(
                 "Cannot add None to None".to_string(),
@@ -199,6 +240,9 @@ impl Sub for MedRecordValue {
             (MedRecordValue::String(value), MedRecordValue::Bool(rhs)) => Err(
                 MedRecordError::AssertionError(format!("Cannot subtract {} from {}", rhs, value)),
             ),
+            (MedRecordValue::String(value), MedRecordValue::DateTime(rhs)) => Err(
+                MedRecordError::AssertionError(format!("Cannot subtract {} from {}", rhs, value)),
+            ),
             (MedRecordValue::String(value), MedRecordValue::Null) => Err(
                 MedRecordError::AssertionError(format!("Cannot subtract None from {}", value)),
             ),
@@ -212,6 +256,9 @@ impl Sub for MedRecordValue {
                 Ok(MedRecordValue::Float(value as f64 - rhs))
             }
             (MedRecordValue::Int(value), MedRecordValue::Bool(rhs)) => Err(
+                MedRecordError::AssertionError(format!("Cannot subtract {} from {}", rhs, value)),
+            ),
+            (MedRecordValue::Int(value), MedRecordValue::DateTime(rhs)) => Err(
                 MedRecordError::AssertionError(format!("Cannot subtract {} from {}", rhs, value)),
             ),
             (MedRecordValue::Int(value), MedRecordValue::Null) => Err(
@@ -229,6 +276,9 @@ impl Sub for MedRecordValue {
             (MedRecordValue::Float(value), MedRecordValue::Bool(rhs)) => Err(
                 MedRecordError::AssertionError(format!("Cannot subtract {} from {}", rhs, value)),
             ),
+            (MedRecordValue::Float(value), MedRecordValue::DateTime(rhs)) => Err(
+                MedRecordError::AssertionError(format!("Cannot subtract {} from {}", rhs, value)),
+            ),
             (MedRecordValue::Float(value), MedRecordValue::Null) => Err(
                 MedRecordError::AssertionError(format!("Cannot subtract None from {}", value)),
             ),
@@ -242,6 +292,9 @@ impl Sub for MedRecordValue {
                 MedRecordError::AssertionError(format!("Cannot subtract {} from {}", rhs, value)),
             ),
             (MedRecordValue::Bool(value), MedRecordValue::Bool(rhs)) => Err(
+                MedRecordError::AssertionError(format!("Cannot subtract {} from {}", rhs, value)),
+            ),
+            (MedRecordValue::Bool(value), MedRecordValue::DateTime(rhs)) => Err(
                 MedRecordError::AssertionError(format!("Cannot subtract {} from {}", rhs, value)),
             ),
             (MedRecordValue::Bool(value), MedRecordValue::Null) => Err(
@@ -258,6 +311,27 @@ impl Sub for MedRecordValue {
             ),
             (MedRecordValue::Null, MedRecordValue::Bool(rhs)) => Err(
                 MedRecordError::AssertionError(format!("Cannot subtract {} from None", rhs)),
+            ),
+            (MedRecordValue::Null, MedRecordValue::DateTime(rhs)) => Err(
+                MedRecordError::AssertionError(format!("Cannot subtract {} from None", rhs)),
+            ),
+            (MedRecordValue::DateTime(value), MedRecordValue::String(rhs)) => Err(
+                MedRecordError::AssertionError(format!("Cannot subtract {} from {}", rhs, value)),
+            ),
+            (MedRecordValue::DateTime(value), MedRecordValue::Int(rhs)) => Err(
+                MedRecordError::AssertionError(format!("Cannot subtract {} from {}", rhs, value)),
+            ),
+            (MedRecordValue::DateTime(value), MedRecordValue::Float(rhs)) => Err(
+                MedRecordError::AssertionError(format!("Cannot subtract {} from {}", rhs, value)),
+            ),
+            (MedRecordValue::DateTime(value), MedRecordValue::Bool(rhs)) => Err(
+                MedRecordError::AssertionError(format!("Cannot subtract {} from {}", rhs, value)),
+            ),
+            (MedRecordValue::DateTime(value), MedRecordValue::DateTime(rhs)) => Err(
+                MedRecordError::AssertionError(format!("Cannot subtract {} from {}", rhs, value)),
+            ),
+            (MedRecordValue::DateTime(value), MedRecordValue::Null) => Err(
+                MedRecordError::AssertionError(format!("Cannot subtract None from {}", value)),
             ),
             (MedRecordValue::Null, MedRecordValue::Null) => Err(MedRecordError::AssertionError(
                 "Cannot subtract None from None".to_string(),
@@ -298,6 +372,12 @@ impl Mul for MedRecordValue {
                     value, other
                 )))
             }
+            (MedRecordValue::String(value), MedRecordValue::DateTime(other)) => {
+                Err(MedRecordError::AssertionError(format!(
+                    "Cannot multiplty {} with {}",
+                    value, other
+                )))
+            }
             (MedRecordValue::String(value), MedRecordValue::Null) => Err(
                 MedRecordError::AssertionError(format!("Cannot multiplty {} with None", value)),
             ),
@@ -322,6 +402,12 @@ impl Mul for MedRecordValue {
                     value, other
                 )))
             }
+            (MedRecordValue::Int(value), MedRecordValue::DateTime(other)) => {
+                Err(MedRecordError::AssertionError(format!(
+                    "Cannot multiplty {} with {}",
+                    value, other
+                )))
+            }
             (MedRecordValue::Int(value), MedRecordValue::Null) => Err(
                 MedRecordError::AssertionError(format!("Cannot multiplty {} with None", value)),
             ),
@@ -338,6 +424,12 @@ impl Mul for MedRecordValue {
                 Ok(MedRecordValue::Float(value * other))
             }
             (MedRecordValue::Float(value), MedRecordValue::Bool(other)) => {
+                Err(MedRecordError::AssertionError(format!(
+                    "Cannot multiplty {} with {}",
+                    value, other
+                )))
+            }
+            (MedRecordValue::Float(value), MedRecordValue::DateTime(other)) => {
                 Err(MedRecordError::AssertionError(format!(
                     "Cannot multiplty {} with {}",
                     value, other
@@ -370,6 +462,12 @@ impl Mul for MedRecordValue {
                     value, other
                 )))
             }
+            (MedRecordValue::Bool(value), MedRecordValue::DateTime(other)) => {
+                Err(MedRecordError::AssertionError(format!(
+                    "Cannot multiplty {} with {}",
+                    value, other
+                )))
+            }
             (MedRecordValue::Bool(value), MedRecordValue::Null) => Err(
                 MedRecordError::AssertionError(format!("Cannot multiplty {} with None", value)),
             ),
@@ -384,6 +482,42 @@ impl Mul for MedRecordValue {
             ),
             (MedRecordValue::Null, MedRecordValue::Bool(other)) => Err(
                 MedRecordError::AssertionError(format!("Cannot multiplty None with {}", other)),
+            ),
+            (MedRecordValue::Null, MedRecordValue::DateTime(other)) => Err(
+                MedRecordError::AssertionError(format!("Cannot multiplty None with {}", other)),
+            ),
+            (MedRecordValue::DateTime(value), MedRecordValue::String(other)) => {
+                Err(MedRecordError::AssertionError(format!(
+                    "Cannot multiplty {} with {}",
+                    value, other
+                )))
+            }
+            (MedRecordValue::DateTime(value), MedRecordValue::Int(other)) => {
+                Err(MedRecordError::AssertionError(format!(
+                    "Cannot multiplty {} with {}",
+                    value, other
+                )))
+            }
+            (MedRecordValue::DateTime(value), MedRecordValue::Float(other)) => {
+                Err(MedRecordError::AssertionError(format!(
+                    "Cannot multiplty {} with {}",
+                    value, other
+                )))
+            }
+            (MedRecordValue::DateTime(value), MedRecordValue::Bool(other)) => {
+                Err(MedRecordError::AssertionError(format!(
+                    "Cannot multiplty {} with {}",
+                    value, other
+                )))
+            }
+            (MedRecordValue::DateTime(value), MedRecordValue::DateTime(other)) => {
+                Err(MedRecordError::AssertionError(format!(
+                    "Cannot multiplty {} with {}",
+                    value, other
+                )))
+            }
+            (MedRecordValue::DateTime(value), MedRecordValue::Null) => Err(
+                MedRecordError::AssertionError(format!("Cannot multiplty {} with None", value)),
             ),
             (MedRecordValue::Null, MedRecordValue::Null) => Err(MedRecordError::AssertionError(
                 "Cannot multiplty None with None".to_string(),
@@ -409,6 +543,9 @@ impl Div for MedRecordValue {
             (MedRecordValue::String(value), MedRecordValue::Bool(other)) => Err(
                 MedRecordError::AssertionError(format!("Cannot divide {} by {}", value, other)),
             ),
+            (MedRecordValue::String(value), MedRecordValue::DateTime(other)) => Err(
+                MedRecordError::AssertionError(format!("Cannot divide {} by {}", value, other)),
+            ),
             (MedRecordValue::String(value), MedRecordValue::Null) => Err(
                 MedRecordError::AssertionError(format!("Cannot divide {} by None", value)),
             ),
@@ -422,6 +559,9 @@ impl Div for MedRecordValue {
                 Ok(MedRecordValue::Float(value as f64 / other))
             }
             (MedRecordValue::Int(value), MedRecordValue::Bool(other)) => Err(
+                MedRecordError::AssertionError(format!("Cannot divide {} by {}", value, other)),
+            ),
+            (MedRecordValue::Int(value), MedRecordValue::DateTime(other)) => Err(
                 MedRecordError::AssertionError(format!("Cannot divide {} by {}", value, other)),
             ),
             (MedRecordValue::Int(value), MedRecordValue::Null) => Err(
@@ -439,6 +579,9 @@ impl Div for MedRecordValue {
             (MedRecordValue::Float(value), MedRecordValue::Bool(other)) => Err(
                 MedRecordError::AssertionError(format!("Cannot divide {} by {}", value, other)),
             ),
+            (MedRecordValue::Float(value), MedRecordValue::DateTime(other)) => Err(
+                MedRecordError::AssertionError(format!("Cannot divide {} by {}", value, other)),
+            ),
             (MedRecordValue::Float(value), MedRecordValue::Null) => Err(
                 MedRecordError::AssertionError(format!("Cannot divide {} by None", value)),
             ),
@@ -452,6 +595,9 @@ impl Div for MedRecordValue {
                 MedRecordError::AssertionError(format!("Cannot divide {} by {}", value, other)),
             ),
             (MedRecordValue::Bool(value), MedRecordValue::Bool(other)) => Err(
+                MedRecordError::AssertionError(format!("Cannot divide {} by {}", value, other)),
+            ),
+            (MedRecordValue::Bool(value), MedRecordValue::DateTime(other)) => Err(
                 MedRecordError::AssertionError(format!("Cannot divide {} by {}", value, other)),
             ),
             (MedRecordValue::Bool(value), MedRecordValue::Null) => Err(
@@ -468,6 +614,27 @@ impl Div for MedRecordValue {
             ),
             (MedRecordValue::Null, MedRecordValue::Bool(other)) => Err(
                 MedRecordError::AssertionError(format!("Cannot divide None by {}", other)),
+            ),
+            (MedRecordValue::Null, MedRecordValue::DateTime(other)) => Err(
+                MedRecordError::AssertionError(format!("Cannot divide None by {}", other)),
+            ),
+            (MedRecordValue::DateTime(value), MedRecordValue::String(other)) => Err(
+                MedRecordError::AssertionError(format!("Cannot divide {} by {}", value, other)),
+            ),
+            (MedRecordValue::DateTime(value), MedRecordValue::Int(other)) => Err(
+                MedRecordError::AssertionError(format!("Cannot divide {} by {}", value, other)),
+            ),
+            (MedRecordValue::DateTime(value), MedRecordValue::Float(other)) => Err(
+                MedRecordError::AssertionError(format!("Cannot divide {} by {}", value, other)),
+            ),
+            (MedRecordValue::DateTime(value), MedRecordValue::Bool(other)) => Err(
+                MedRecordError::AssertionError(format!("Cannot divide {} by {}", value, other)),
+            ),
+            (MedRecordValue::DateTime(value), MedRecordValue::DateTime(other)) => Err(
+                MedRecordError::AssertionError(format!("Cannot divide {} by {}", value, other)),
+            ),
+            (MedRecordValue::DateTime(value), MedRecordValue::Null) => Err(
+                MedRecordError::AssertionError(format!("Cannot divide {} by None", value)),
             ),
             (MedRecordValue::Null, MedRecordValue::Null) => Err(MedRecordError::AssertionError(
                 "Cannot divide None by None".to_string(),
@@ -503,6 +670,12 @@ impl Pow for MedRecordValue {
                     value, other
                 )))
             }
+            (MedRecordValue::String(value), MedRecordValue::DateTime(other)) => {
+                Err(MedRecordError::AssertionError(format!(
+                    "Cannot raise {} to the power of {}",
+                    value, other
+                )))
+            }
             (MedRecordValue::String(value), MedRecordValue::Null) => {
                 Err(MedRecordError::AssertionError(format!(
                     "Cannot raise {} to the power of None",
@@ -527,6 +700,12 @@ impl Pow for MedRecordValue {
                     value, other
                 )))
             }
+            (MedRecordValue::Int(value), MedRecordValue::DateTime(other)) => {
+                Err(MedRecordError::AssertionError(format!(
+                    "Cannot raise {} to the power of {}",
+                    value, other
+                )))
+            }
             (MedRecordValue::Int(value), MedRecordValue::Null) => {
                 Err(MedRecordError::AssertionError(format!(
                     "Cannot raise {} to the power of None",
@@ -546,6 +725,12 @@ impl Pow for MedRecordValue {
                 Ok(MedRecordValue::Float(value.powf(exp)))
             }
             (MedRecordValue::Float(value), MedRecordValue::Bool(other)) => {
+                Err(MedRecordError::AssertionError(format!(
+                    "Cannot raise {} to the power of {}",
+                    value, other
+                )))
+            }
+            (MedRecordValue::Float(value), MedRecordValue::DateTime(other)) => {
                 Err(MedRecordError::AssertionError(format!(
                     "Cannot raise {} to the power of {}",
                     value, other
@@ -581,6 +766,12 @@ impl Pow for MedRecordValue {
                     value, other
                 )))
             }
+            (MedRecordValue::Bool(value), MedRecordValue::DateTime(other)) => {
+                Err(MedRecordError::AssertionError(format!(
+                    "Cannot raise {} to the power of {}",
+                    value, other
+                )))
+            }
             (MedRecordValue::Bool(value), MedRecordValue::Null) => {
                 Err(MedRecordError::AssertionError(format!(
                     "Cannot raise {} to the power of None",
@@ -611,6 +802,48 @@ impl Pow for MedRecordValue {
                     other
                 )))
             }
+            (MedRecordValue::Null, MedRecordValue::DateTime(other)) => {
+                Err(MedRecordError::AssertionError(format!(
+                    "Cannot raise None to the power of {}",
+                    other
+                )))
+            }
+            (MedRecordValue::DateTime(value), MedRecordValue::String(other)) => {
+                Err(MedRecordError::AssertionError(format!(
+                    "Cannot raise {} to the power of {}",
+                    value, other
+                )))
+            }
+            (MedRecordValue::DateTime(value), MedRecordValue::Int(other)) => {
+                Err(MedRecordError::AssertionError(format!(
+                    "Cannot raise {} to the power of {}",
+                    value, other
+                )))
+            }
+            (MedRecordValue::DateTime(value), MedRecordValue::Float(other)) => {
+                Err(MedRecordError::AssertionError(format!(
+                    "Cannot raise {} to the power of {}",
+                    value, other
+                )))
+            }
+            (MedRecordValue::DateTime(value), MedRecordValue::Bool(other)) => {
+                Err(MedRecordError::AssertionError(format!(
+                    "Cannot raise {} to the power of {}",
+                    value, other
+                )))
+            }
+            (MedRecordValue::DateTime(value), MedRecordValue::DateTime(other)) => {
+                Err(MedRecordError::AssertionError(format!(
+                    "Cannot raise {} to the power of {}",
+                    value, other
+                )))
+            }
+            (MedRecordValue::DateTime(value), MedRecordValue::Null) => {
+                Err(MedRecordError::AssertionError(format!(
+                    "Cannot raise {} to the power of Null",
+                    value
+                )))
+            }
             (MedRecordValue::Null, MedRecordValue::Null) => Err(MedRecordError::AssertionError(
                 "Cannot raise None to the power of None".to_string(),
             )),
@@ -633,6 +866,9 @@ impl Mod for MedRecordValue {
             (MedRecordValue::String(value), MedRecordValue::Bool(other)) => Err(
                 MedRecordError::AssertionError(format!("Cannot mod {} with {}", value, other)),
             ),
+            (MedRecordValue::String(value), MedRecordValue::DateTime(other)) => Err(
+                MedRecordError::AssertionError(format!("Cannot mod {} with {}", value, other)),
+            ),
             (MedRecordValue::String(value), MedRecordValue::Null) => Err(
                 MedRecordError::AssertionError(format!("Cannot mod {} with None", value)),
             ),
@@ -646,6 +882,9 @@ impl Mod for MedRecordValue {
                 Ok(MedRecordValue::Float(value as f64 % other))
             }
             (MedRecordValue::Int(value), MedRecordValue::Bool(other)) => Err(
+                MedRecordError::AssertionError(format!("Cannot mod {} with {}", value, other)),
+            ),
+            (MedRecordValue::Int(value), MedRecordValue::DateTime(other)) => Err(
                 MedRecordError::AssertionError(format!("Cannot mod {} with {}", value, other)),
             ),
             (MedRecordValue::Int(value), MedRecordValue::Null) => Err(
@@ -663,6 +902,9 @@ impl Mod for MedRecordValue {
             (MedRecordValue::Float(value), MedRecordValue::Bool(other)) => Err(
                 MedRecordError::AssertionError(format!("Cannot mod {} with {}", value, other)),
             ),
+            (MedRecordValue::Float(value), MedRecordValue::DateTime(other)) => Err(
+                MedRecordError::AssertionError(format!("Cannot mod {} with {}", value, other)),
+            ),
             (MedRecordValue::Float(value), MedRecordValue::Null) => Err(
                 MedRecordError::AssertionError(format!("Cannot mod {} with None", value)),
             ),
@@ -676,6 +918,9 @@ impl Mod for MedRecordValue {
                 MedRecordError::AssertionError(format!("Cannot mod {} with {}", value, other)),
             ),
             (MedRecordValue::Bool(value), MedRecordValue::Bool(other)) => Err(
+                MedRecordError::AssertionError(format!("Cannot mod {} with {}", value, other)),
+            ),
+            (MedRecordValue::Bool(value), MedRecordValue::DateTime(other)) => Err(
                 MedRecordError::AssertionError(format!("Cannot mod {} with {}", value, other)),
             ),
             (MedRecordValue::Bool(value), MedRecordValue::Null) => Err(
@@ -692,6 +937,27 @@ impl Mod for MedRecordValue {
             ),
             (MedRecordValue::Null, MedRecordValue::Bool(other)) => Err(
                 MedRecordError::AssertionError(format!("Cannot mod None with {}", other)),
+            ),
+            (MedRecordValue::Null, MedRecordValue::DateTime(other)) => Err(
+                MedRecordError::AssertionError(format!("Cannot mod None with {}", other)),
+            ),
+            (MedRecordValue::DateTime(value), MedRecordValue::String(other)) => Err(
+                MedRecordError::AssertionError(format!("Cannot mod {} with {}", value, other)),
+            ),
+            (MedRecordValue::DateTime(value), MedRecordValue::Int(other)) => Err(
+                MedRecordError::AssertionError(format!("Cannot mod {} with {}", value, other)),
+            ),
+            (MedRecordValue::DateTime(value), MedRecordValue::Float(other)) => Err(
+                MedRecordError::AssertionError(format!("Cannot mod {} with {}", value, other)),
+            ),
+            (MedRecordValue::DateTime(value), MedRecordValue::Bool(other)) => Err(
+                MedRecordError::AssertionError(format!("Cannot mod {} with {}", value, other)),
+            ),
+            (MedRecordValue::DateTime(value), MedRecordValue::DateTime(other)) => Err(
+                MedRecordError::AssertionError(format!("Cannot mod {} with {}", value, other)),
+            ),
+            (MedRecordValue::DateTime(value), MedRecordValue::Null) => Err(
+                MedRecordError::AssertionError(format!("Cannot mod {} with None", value)),
             ),
             (MedRecordValue::Null, MedRecordValue::Null) => Err(MedRecordError::AssertionError(
                 "Cannot mod None with None".to_string(),
@@ -917,6 +1183,7 @@ mod test {
             Uppercase,
         },
     };
+    use chrono::NaiveDateTime;
 
     #[test]
     fn test_default() {
@@ -961,6 +1228,13 @@ mod test {
     }
 
     #[test]
+    fn test_from_datetime() {
+        let value = MedRecordValue::from(NaiveDateTime::MIN);
+
+        assert_eq!(MedRecordValue::DateTime(NaiveDateTime::MIN), value);
+    }
+
+    #[test]
     fn test_from_option() {
         let value = MedRecordValue::from(Some("value"));
 
@@ -997,30 +1271,47 @@ mod test {
         assert!(MedRecordValue::Bool(false) == MedRecordValue::Bool(false));
         assert!(MedRecordValue::Bool(true) != MedRecordValue::Bool(false));
 
+        assert!(
+            MedRecordValue::DateTime(NaiveDateTime::MIN)
+                == MedRecordValue::DateTime(NaiveDateTime::MIN)
+        );
+        assert!(
+            MedRecordValue::DateTime(NaiveDateTime::MAX)
+                != MedRecordValue::DateTime(NaiveDateTime::MIN)
+        );
+
         assert!(MedRecordValue::Null == MedRecordValue::Null);
 
         assert!(MedRecordValue::String("0".to_string()) != MedRecordValue::Int(0));
         assert!(MedRecordValue::String("0".to_string()) != MedRecordValue::Float(0_f64));
         assert!(MedRecordValue::String("false".to_string()) != MedRecordValue::Bool(false));
+        assert!(
+            MedRecordValue::String("false".to_string())
+                != MedRecordValue::DateTime(NaiveDateTime::MIN)
+        );
         assert!(MedRecordValue::String("false".to_string()) != MedRecordValue::Null);
 
         assert!(MedRecordValue::Int(0) != MedRecordValue::String("0".to_string()));
         assert!(MedRecordValue::Int(0) != MedRecordValue::Bool(false));
+        assert!(MedRecordValue::Int(0) != MedRecordValue::DateTime(NaiveDateTime::MIN));
         assert!(MedRecordValue::Int(0) != MedRecordValue::Null);
 
         assert!(MedRecordValue::Float(0_f64) != MedRecordValue::String("0.0".to_string()));
         assert!(MedRecordValue::Float(0_f64) != MedRecordValue::Bool(false));
+        assert!(MedRecordValue::Float(0_f64) != MedRecordValue::DateTime(NaiveDateTime::MIN));
         assert!(MedRecordValue::Float(0_f64) != MedRecordValue::Null);
 
         assert!(MedRecordValue::Bool(false) != MedRecordValue::String("false".to_string()));
         assert!(MedRecordValue::Bool(false) != MedRecordValue::Int(0));
         assert!(MedRecordValue::Bool(false) != MedRecordValue::Float(0_f64));
+        assert!(MedRecordValue::Bool(false) != MedRecordValue::DateTime(NaiveDateTime::MIN));
         assert!(MedRecordValue::Bool(false) != MedRecordValue::Null);
 
         assert!(MedRecordValue::Null != MedRecordValue::String("false".to_string()));
         assert!(MedRecordValue::Null != MedRecordValue::Int(0));
         assert!(MedRecordValue::Null != MedRecordValue::Float(0_f64));
         assert!(MedRecordValue::Null != MedRecordValue::Bool(false));
+        assert!(MedRecordValue::Null != MedRecordValue::DateTime(NaiveDateTime::MIN));
     }
 
     #[test]
@@ -1061,6 +1352,31 @@ mod test {
         assert!(MedRecordValue::Bool(false) >= MedRecordValue::Bool(false));
         assert!(MedRecordValue::Bool(false) <= MedRecordValue::Bool(false));
 
+        assert!(
+            MedRecordValue::DateTime(NaiveDateTime::MAX)
+                > MedRecordValue::DateTime(NaiveDateTime::MIN)
+        );
+        assert!(
+            MedRecordValue::DateTime(NaiveDateTime::MAX)
+                >= MedRecordValue::DateTime(NaiveDateTime::MIN)
+        );
+        assert!(
+            MedRecordValue::DateTime(NaiveDateTime::MIN)
+                < MedRecordValue::DateTime(NaiveDateTime::MAX)
+        );
+        assert!(
+            MedRecordValue::DateTime(NaiveDateTime::MIN)
+                <= MedRecordValue::DateTime(NaiveDateTime::MAX)
+        );
+        assert!(
+            MedRecordValue::DateTime(NaiveDateTime::MIN)
+                >= MedRecordValue::DateTime(NaiveDateTime::MIN)
+        );
+        assert!(
+            MedRecordValue::DateTime(NaiveDateTime::MIN)
+                <= MedRecordValue::DateTime(NaiveDateTime::MIN)
+        );
+
         assert!(!(MedRecordValue::String("a".to_string()) > MedRecordValue::Int(1)));
         assert!(!(MedRecordValue::String("a".to_string()) >= MedRecordValue::Int(1)));
         assert!(!(MedRecordValue::String("a".to_string()) < MedRecordValue::Int(1)));
@@ -1075,6 +1391,23 @@ mod test {
         assert!(!(MedRecordValue::String("a".to_string()) >= MedRecordValue::Bool(true)));
         assert!(!(MedRecordValue::String("a".to_string()) < MedRecordValue::Bool(true)));
         assert!(!(MedRecordValue::String("a".to_string()) <= MedRecordValue::Bool(true)));
+
+        assert!(
+            !(MedRecordValue::String("a".to_string())
+                > MedRecordValue::DateTime(NaiveDateTime::MAX))
+        );
+        assert!(
+            !(MedRecordValue::String("a".to_string())
+                >= MedRecordValue::DateTime(NaiveDateTime::MAX))
+        );
+        assert!(
+            !(MedRecordValue::String("a".to_string())
+                < MedRecordValue::DateTime(NaiveDateTime::MAX))
+        );
+        assert!(
+            !(MedRecordValue::String("a".to_string())
+                <= MedRecordValue::DateTime(NaiveDateTime::MAX))
+        );
 
         assert!(!(MedRecordValue::String("a".to_string()) > MedRecordValue::Null));
         assert!(!(MedRecordValue::String("a".to_string()) >= MedRecordValue::Null));
@@ -1091,6 +1424,11 @@ mod test {
         assert!(!(MedRecordValue::Int(1) < MedRecordValue::Bool(true)));
         assert!(!(MedRecordValue::Int(1) <= MedRecordValue::Bool(true)));
 
+        assert!(!(MedRecordValue::Int(1) > MedRecordValue::DateTime(NaiveDateTime::MAX)));
+        assert!(!(MedRecordValue::Int(1) >= MedRecordValue::DateTime(NaiveDateTime::MAX)));
+        assert!(!(MedRecordValue::Int(1) < MedRecordValue::DateTime(NaiveDateTime::MAX)));
+        assert!(!(MedRecordValue::Int(1) <= MedRecordValue::DateTime(NaiveDateTime::MAX)));
+
         assert!(!(MedRecordValue::Int(1) > MedRecordValue::Null));
         assert!(!(MedRecordValue::Int(1) >= MedRecordValue::Null));
         assert!(!(MedRecordValue::Int(1) < MedRecordValue::Null));
@@ -1105,6 +1443,11 @@ mod test {
         assert!(!(MedRecordValue::Float(1_f64) >= MedRecordValue::Bool(true)));
         assert!(!(MedRecordValue::Float(1_f64) < MedRecordValue::Bool(true)));
         assert!(!(MedRecordValue::Float(1_f64) <= MedRecordValue::Bool(true)));
+
+        assert!(!(MedRecordValue::Float(1_f64) > MedRecordValue::DateTime(NaiveDateTime::MAX)));
+        assert!(!(MedRecordValue::Float(1_f64) >= MedRecordValue::DateTime(NaiveDateTime::MAX)));
+        assert!(!(MedRecordValue::Float(1_f64) < MedRecordValue::DateTime(NaiveDateTime::MAX)));
+        assert!(!(MedRecordValue::Float(1_f64) <= MedRecordValue::DateTime(NaiveDateTime::MAX)));
 
         assert!(!(MedRecordValue::Float(1_f64) > MedRecordValue::Null));
         assert!(!(MedRecordValue::Float(1_f64) >= MedRecordValue::Null));
@@ -1126,10 +1469,52 @@ mod test {
         assert!(!(MedRecordValue::Bool(true) < MedRecordValue::Float(1_f64)));
         assert!(!(MedRecordValue::Bool(true) <= MedRecordValue::Float(1_f64)));
 
+        assert!(!(MedRecordValue::Bool(true) > MedRecordValue::DateTime(NaiveDateTime::MAX)));
+        assert!(!(MedRecordValue::Bool(true) >= MedRecordValue::DateTime(NaiveDateTime::MAX)));
+        assert!(!(MedRecordValue::Bool(true) < MedRecordValue::DateTime(NaiveDateTime::MAX)));
+        assert!(!(MedRecordValue::Bool(true) <= MedRecordValue::DateTime(NaiveDateTime::MAX)));
+
         assert!(!(MedRecordValue::Bool(true) > MedRecordValue::Null));
         assert!(!(MedRecordValue::Bool(true) >= MedRecordValue::Null));
         assert!(!(MedRecordValue::Bool(true) < MedRecordValue::Null));
         assert!(!(MedRecordValue::Bool(true) <= MedRecordValue::Null));
+
+        assert!(
+            !(MedRecordValue::DateTime(NaiveDateTime::MAX)
+                > MedRecordValue::String("a".to_string()))
+        );
+        assert!(
+            !(MedRecordValue::DateTime(NaiveDateTime::MAX)
+                >= MedRecordValue::String("a".to_string()))
+        );
+        assert!(
+            !(MedRecordValue::DateTime(NaiveDateTime::MAX)
+                < MedRecordValue::String("a".to_string()))
+        );
+        assert!(
+            !(MedRecordValue::DateTime(NaiveDateTime::MAX)
+                <= MedRecordValue::String("a".to_string()))
+        );
+
+        assert!(!(MedRecordValue::DateTime(NaiveDateTime::MAX) > MedRecordValue::Int(1)));
+        assert!(!(MedRecordValue::DateTime(NaiveDateTime::MAX) >= MedRecordValue::Int(1)));
+        assert!(!(MedRecordValue::DateTime(NaiveDateTime::MAX) < MedRecordValue::Int(1)));
+        assert!(!(MedRecordValue::DateTime(NaiveDateTime::MAX) <= MedRecordValue::Int(1)));
+
+        assert!(!(MedRecordValue::DateTime(NaiveDateTime::MAX) > MedRecordValue::Float(1_f64)));
+        assert!(!(MedRecordValue::DateTime(NaiveDateTime::MAX) >= MedRecordValue::Float(1_f64)));
+        assert!(!(MedRecordValue::DateTime(NaiveDateTime::MAX) < MedRecordValue::Float(1_f64)));
+        assert!(!(MedRecordValue::DateTime(NaiveDateTime::MAX) <= MedRecordValue::Float(1_f64)));
+
+        assert!(!(MedRecordValue::DateTime(NaiveDateTime::MAX) > MedRecordValue::Bool(true)));
+        assert!(!(MedRecordValue::DateTime(NaiveDateTime::MAX) >= MedRecordValue::Bool(true)));
+        assert!(!(MedRecordValue::DateTime(NaiveDateTime::MAX) < MedRecordValue::Bool(true)));
+        assert!(!(MedRecordValue::DateTime(NaiveDateTime::MAX) <= MedRecordValue::Bool(true)));
+
+        assert!(!(MedRecordValue::DateTime(NaiveDateTime::MAX) > MedRecordValue::Null));
+        assert!(!(MedRecordValue::DateTime(NaiveDateTime::MAX) >= MedRecordValue::Null));
+        assert!(!(MedRecordValue::DateTime(NaiveDateTime::MAX) < MedRecordValue::Null));
+        assert!(!(MedRecordValue::DateTime(NaiveDateTime::MAX) <= MedRecordValue::Null));
 
         assert!(!(MedRecordValue::Null > MedRecordValue::String("a".to_string())));
         assert!(!(MedRecordValue::Null >= MedRecordValue::String("a".to_string())));
@@ -1151,6 +1536,11 @@ mod test {
         assert!(!(MedRecordValue::Null < MedRecordValue::Bool(false)));
         assert!(!(MedRecordValue::Null <= MedRecordValue::Bool(false)));
 
+        assert!(!(MedRecordValue::Null > MedRecordValue::DateTime(NaiveDateTime::MAX)));
+        assert!(!(MedRecordValue::Null >= MedRecordValue::DateTime(NaiveDateTime::MAX)));
+        assert!(!(MedRecordValue::Null < MedRecordValue::DateTime(NaiveDateTime::MAX)));
+        assert!(!(MedRecordValue::Null <= MedRecordValue::DateTime(NaiveDateTime::MAX)));
+
         assert!(!(MedRecordValue::Null > MedRecordValue::Null));
         assert!(!(MedRecordValue::Null >= MedRecordValue::Null));
         assert!(!(MedRecordValue::Null < MedRecordValue::Null));
@@ -1169,6 +1559,11 @@ mod test {
         assert_eq!("0.5", MedRecordValue::Float(0.5).to_string());
 
         assert_eq!("false", MedRecordValue::Bool(false).to_string());
+
+        assert_eq!(
+            "-262143-01-01 00:00:00",
+            MedRecordValue::DateTime(NaiveDateTime::MIN).to_string()
+        );
 
         assert_eq!("Null", MedRecordValue::Null.to_string());
     }
@@ -1192,6 +1587,9 @@ mod test {
             (MedRecordValue::String("value".to_string()) + MedRecordValue::Bool(false))
                 .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_)))
         );
+        assert!((MedRecordValue::String("value".to_string())
+            + MedRecordValue::DateTime(NaiveDateTime::MIN))
+        .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
         assert!(
             (MedRecordValue::String("value".to_string()) + MedRecordValue::Null)
                 .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_)))
@@ -1211,6 +1609,10 @@ mod test {
         );
         assert!((MedRecordValue::Int(0) + MedRecordValue::Bool(false))
             .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
+        assert!(
+            (MedRecordValue::Int(0) + MedRecordValue::DateTime(NaiveDateTime::MIN))
+                .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_)))
+        );
         assert!((MedRecordValue::Int(0) + MedRecordValue::Null)
             .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
 
@@ -1228,6 +1630,10 @@ mod test {
         );
         assert!((MedRecordValue::Float(0_f64) + MedRecordValue::Bool(false))
             .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
+        assert!(
+            (MedRecordValue::Float(0_f64) + MedRecordValue::DateTime(NaiveDateTime::MIN))
+                .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_)))
+        );
         assert!((MedRecordValue::Float(0_f64) + MedRecordValue::Null)
             .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
 
@@ -1241,8 +1647,35 @@ mod test {
             .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
         assert!((MedRecordValue::Bool(false) + MedRecordValue::Bool(false))
             .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
+        assert!(
+            (MedRecordValue::Bool(false) + MedRecordValue::DateTime(NaiveDateTime::MIN))
+                .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_)))
+        );
         assert!((MedRecordValue::Bool(false) + MedRecordValue::Null)
             .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
+
+        assert!((MedRecordValue::DateTime(NaiveDateTime::MIN)
+            + MedRecordValue::String("value".to_string()))
+        .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
+        assert!(
+            (MedRecordValue::DateTime(NaiveDateTime::MIN) + MedRecordValue::Int(0))
+                .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_)))
+        );
+        assert!(
+            (MedRecordValue::DateTime(NaiveDateTime::MIN) + MedRecordValue::Float(0_f64))
+                .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_)))
+        );
+        assert!(
+            (MedRecordValue::DateTime(NaiveDateTime::MIN) + MedRecordValue::Bool(false))
+                .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_)))
+        );
+        assert!((MedRecordValue::DateTime(NaiveDateTime::MIN)
+            + MedRecordValue::DateTime(NaiveDateTime::MIN))
+        .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
+        assert!(
+            (MedRecordValue::DateTime(NaiveDateTime::MIN) + MedRecordValue::Null)
+                .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_)))
+        );
 
         assert!(
             (MedRecordValue::Null + MedRecordValue::String("value".to_string()))
@@ -1254,6 +1687,10 @@ mod test {
             .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
         assert!((MedRecordValue::Null + MedRecordValue::Bool(false))
             .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
+        assert!(
+            (MedRecordValue::Null + MedRecordValue::DateTime(NaiveDateTime::MIN))
+                .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_)))
+        );
         assert!((MedRecordValue::Null + MedRecordValue::Null)
             .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
     }
@@ -1275,6 +1712,9 @@ mod test {
             (MedRecordValue::String("value".to_string()) - MedRecordValue::Bool(false))
                 .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_)))
         );
+        assert!((MedRecordValue::String("value".to_string())
+            - MedRecordValue::DateTime(NaiveDateTime::MIN))
+        .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
         assert!(
             (MedRecordValue::String("value".to_string()) - MedRecordValue::Null)
                 .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_)))
@@ -1294,6 +1734,10 @@ mod test {
         );
         assert!((MedRecordValue::Int(0) - MedRecordValue::Bool(false))
             .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
+        assert!(
+            (MedRecordValue::Int(0) - MedRecordValue::DateTime(NaiveDateTime::MIN))
+                .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_)))
+        );
         assert!((MedRecordValue::Int(0) - MedRecordValue::Null)
             .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
 
@@ -1311,6 +1755,10 @@ mod test {
         );
         assert!((MedRecordValue::Float(0_f64) - MedRecordValue::Bool(false))
             .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
+        assert!(
+            (MedRecordValue::Float(0_f64) - MedRecordValue::DateTime(NaiveDateTime::MIN))
+                .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_)))
+        );
         assert!((MedRecordValue::Float(0_f64) - MedRecordValue::Null)
             .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
 
@@ -1324,8 +1772,35 @@ mod test {
             .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
         assert!((MedRecordValue::Bool(false) - MedRecordValue::Bool(false))
             .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
+        assert!(
+            (MedRecordValue::Bool(false) - MedRecordValue::DateTime(NaiveDateTime::MIN))
+                .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_)))
+        );
         assert!((MedRecordValue::Bool(false) - MedRecordValue::Null)
             .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
+
+        assert!((MedRecordValue::DateTime(NaiveDateTime::MIN)
+            - MedRecordValue::String("value".to_string()))
+        .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
+        assert!(
+            (MedRecordValue::DateTime(NaiveDateTime::MIN) - MedRecordValue::Int(0))
+                .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_)))
+        );
+        assert!(
+            (MedRecordValue::DateTime(NaiveDateTime::MIN) - MedRecordValue::Float(0_f64))
+                .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_)))
+        );
+        assert!(
+            (MedRecordValue::DateTime(NaiveDateTime::MIN) - MedRecordValue::Bool(false))
+                .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_)))
+        );
+        assert!((MedRecordValue::DateTime(NaiveDateTime::MIN)
+            - MedRecordValue::DateTime(NaiveDateTime::MIN))
+        .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
+        assert!(
+            (MedRecordValue::DateTime(NaiveDateTime::MIN) - MedRecordValue::Null)
+                .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_)))
+        );
 
         assert!(
             (MedRecordValue::Null - MedRecordValue::String("value".to_string()))
@@ -1337,6 +1812,10 @@ mod test {
             .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
         assert!((MedRecordValue::Null - MedRecordValue::Bool(false))
             .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
+        assert!(
+            (MedRecordValue::Null - MedRecordValue::DateTime(NaiveDateTime::MIN))
+                .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_)))
+        );
         assert!((MedRecordValue::Null - MedRecordValue::Null)
             .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
     }
@@ -1358,6 +1837,9 @@ mod test {
             (MedRecordValue::String("value".to_string()) * MedRecordValue::Bool(false))
                 .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_)))
         );
+        assert!((MedRecordValue::String("value".to_string())
+            * MedRecordValue::DateTime(NaiveDateTime::MIN))
+        .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
         assert!(
             (MedRecordValue::String("value".to_string()) * MedRecordValue::Null)
                 .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_)))
@@ -1377,6 +1859,10 @@ mod test {
         );
         assert!((MedRecordValue::Int(0) * MedRecordValue::Bool(false))
             .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
+        assert!(
+            (MedRecordValue::Int(0) * MedRecordValue::DateTime(NaiveDateTime::MIN))
+                .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_)))
+        );
         assert!((MedRecordValue::Int(0) * MedRecordValue::Null)
             .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
 
@@ -1394,6 +1880,10 @@ mod test {
         );
         assert!((MedRecordValue::Float(0_f64) * MedRecordValue::Bool(false))
             .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
+        assert!(
+            (MedRecordValue::Float(0_f64) * MedRecordValue::DateTime(NaiveDateTime::MIN))
+                .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_)))
+        );
         assert!((MedRecordValue::Float(0_f64) * MedRecordValue::Null)
             .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
 
@@ -1407,8 +1897,35 @@ mod test {
             .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
         assert!((MedRecordValue::Bool(false) * MedRecordValue::Bool(false))
             .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
+        assert!(
+            (MedRecordValue::Bool(false) * MedRecordValue::DateTime(NaiveDateTime::MIN))
+                .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_)))
+        );
         assert!((MedRecordValue::Bool(false) * MedRecordValue::Null)
             .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
+
+        assert!((MedRecordValue::DateTime(NaiveDateTime::MIN)
+            * MedRecordValue::String("value".to_string()))
+        .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
+        assert!(
+            (MedRecordValue::DateTime(NaiveDateTime::MIN) * MedRecordValue::Int(0))
+                .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_)))
+        );
+        assert!(
+            (MedRecordValue::DateTime(NaiveDateTime::MIN) * MedRecordValue::Float(0_f64))
+                .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_)))
+        );
+        assert!(
+            (MedRecordValue::DateTime(NaiveDateTime::MIN) * MedRecordValue::Bool(false))
+                .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_)))
+        );
+        assert!((MedRecordValue::DateTime(NaiveDateTime::MIN)
+            * MedRecordValue::DateTime(NaiveDateTime::MIN))
+        .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
+        assert!(
+            (MedRecordValue::DateTime(NaiveDateTime::MIN) * MedRecordValue::Null)
+                .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_)))
+        );
 
         assert!(
             (MedRecordValue::Null * MedRecordValue::String("value".to_string()))
@@ -1420,6 +1937,10 @@ mod test {
             .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
         assert!((MedRecordValue::Null * MedRecordValue::Bool(false))
             .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
+        assert!(
+            (MedRecordValue::Null * MedRecordValue::DateTime(NaiveDateTime::MIN))
+                .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_)))
+        );
         assert!((MedRecordValue::Null * MedRecordValue::Null)
             .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
     }
@@ -1441,6 +1962,9 @@ mod test {
             (MedRecordValue::String("value".to_string()) / MedRecordValue::Bool(false))
                 .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_)))
         );
+        assert!((MedRecordValue::String("value".to_string())
+            / MedRecordValue::DateTime(NaiveDateTime::MIN))
+        .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
         assert!(
             (MedRecordValue::String("value".to_string()) / MedRecordValue::Null)
                 .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_)))
@@ -1460,6 +1984,10 @@ mod test {
         );
         assert!((MedRecordValue::Int(0) / MedRecordValue::Bool(false))
             .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
+        assert!(
+            (MedRecordValue::Int(0) / MedRecordValue::DateTime(NaiveDateTime::MIN))
+                .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_)))
+        );
         assert!((MedRecordValue::Int(0) / MedRecordValue::Null)
             .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
 
@@ -1477,6 +2005,10 @@ mod test {
         );
         assert!((MedRecordValue::Float(0_f64) / MedRecordValue::Bool(false))
             .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
+        assert!(
+            (MedRecordValue::Float(0_f64) / MedRecordValue::DateTime(NaiveDateTime::MIN))
+                .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_)))
+        );
         assert!((MedRecordValue::Float(0_f64) / MedRecordValue::Null)
             .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
 
@@ -1490,8 +2022,35 @@ mod test {
             .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
         assert!((MedRecordValue::Bool(false) / MedRecordValue::Bool(false))
             .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
+        assert!(
+            (MedRecordValue::Bool(false) / MedRecordValue::DateTime(NaiveDateTime::MIN))
+                .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_)))
+        );
         assert!((MedRecordValue::Bool(false) / MedRecordValue::Null)
             .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
+
+        assert!((MedRecordValue::DateTime(NaiveDateTime::MIN)
+            / MedRecordValue::String("value".to_string()))
+        .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
+        assert!(
+            (MedRecordValue::DateTime(NaiveDateTime::MIN) / MedRecordValue::Int(0))
+                .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_)))
+        );
+        assert!(
+            (MedRecordValue::DateTime(NaiveDateTime::MIN) / MedRecordValue::Float(0_f64))
+                .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_)))
+        );
+        assert!(
+            (MedRecordValue::DateTime(NaiveDateTime::MIN) / MedRecordValue::Bool(false))
+                .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_)))
+        );
+        assert!((MedRecordValue::DateTime(NaiveDateTime::MIN)
+            / MedRecordValue::DateTime(NaiveDateTime::MIN))
+        .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
+        assert!(
+            (MedRecordValue::DateTime(NaiveDateTime::MIN) / MedRecordValue::Null)
+                .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_)))
+        );
 
         assert!(
             (MedRecordValue::Null / MedRecordValue::String("value".to_string()))
@@ -1503,6 +2062,10 @@ mod test {
             .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
         assert!((MedRecordValue::Null / MedRecordValue::Bool(false))
             .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
+        assert!(
+            (MedRecordValue::Null / MedRecordValue::DateTime(NaiveDateTime::MIN))
+                .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_)))
+        );
         assert!((MedRecordValue::Null / MedRecordValue::Null)
             .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
     }
@@ -1524,6 +2087,9 @@ mod test {
             (MedRecordValue::String("value".to_string()).pow(MedRecordValue::Bool(false)))
                 .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_)))
         );
+        assert!((MedRecordValue::String("value".to_string())
+            .pow(MedRecordValue::DateTime(NaiveDateTime::MIN)))
+        .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
         assert!(
             (MedRecordValue::String("value".to_string()).pow(MedRecordValue::Null))
                 .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_)))
@@ -1543,6 +2109,10 @@ mod test {
         );
         assert!((MedRecordValue::Int(0).pow(MedRecordValue::Bool(false)))
             .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
+        assert!(
+            (MedRecordValue::Int(0).pow(MedRecordValue::DateTime(NaiveDateTime::MIN)))
+                .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_)))
+        );
         assert!((MedRecordValue::Int(0).pow(MedRecordValue::Null))
             .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
 
@@ -1562,6 +2132,10 @@ mod test {
             (MedRecordValue::Float(0_f64).pow(MedRecordValue::Bool(false)))
                 .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_)))
         );
+        assert!(
+            (MedRecordValue::Float(0_f64).pow(MedRecordValue::DateTime(NaiveDateTime::MIN)))
+                .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_)))
+        );
         assert!((MedRecordValue::Float(0_f64).pow(MedRecordValue::Null))
             .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
 
@@ -1579,8 +2153,35 @@ mod test {
             (MedRecordValue::Bool(false).pow(MedRecordValue::Bool(false)))
                 .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_)))
         );
+        assert!(
+            (MedRecordValue::Bool(false).pow(MedRecordValue::DateTime(NaiveDateTime::MIN)))
+                .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_)))
+        );
         assert!((MedRecordValue::Bool(false).pow(MedRecordValue::Null))
             .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
+
+        assert!((MedRecordValue::DateTime(NaiveDateTime::MIN)
+            .pow(MedRecordValue::String("value".to_string())))
+        .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
+        assert!(
+            (MedRecordValue::DateTime(NaiveDateTime::MIN).pow(MedRecordValue::Int(0)))
+                .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_)))
+        );
+        assert!(
+            (MedRecordValue::DateTime(NaiveDateTime::MIN).pow(MedRecordValue::Float(0_f64)))
+                .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_)))
+        );
+        assert!(
+            (MedRecordValue::DateTime(NaiveDateTime::MIN).pow(MedRecordValue::Bool(false)))
+                .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_)))
+        );
+        assert!((MedRecordValue::DateTime(NaiveDateTime::MIN)
+            .pow(MedRecordValue::DateTime(NaiveDateTime::MIN)))
+        .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
+        assert!(
+            (MedRecordValue::DateTime(NaiveDateTime::MIN).pow(MedRecordValue::Null))
+                .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_)))
+        );
 
         assert!(
             (MedRecordValue::Null.pow(MedRecordValue::String("value".to_string())))
@@ -1592,6 +2193,10 @@ mod test {
             .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
         assert!((MedRecordValue::Null.pow(MedRecordValue::Bool(false)))
             .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
+        assert!(
+            (MedRecordValue::Null.pow(MedRecordValue::DateTime(NaiveDateTime::MIN)))
+                .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_)))
+        );
         assert!((MedRecordValue::Null.pow(MedRecordValue::Null))
             .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
     }
@@ -1613,6 +2218,9 @@ mod test {
             (MedRecordValue::String("value".to_string()).r#mod(MedRecordValue::Bool(false)))
                 .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_)))
         );
+        assert!((MedRecordValue::String("value".to_string())
+            .r#mod(MedRecordValue::DateTime(NaiveDateTime::MIN)))
+        .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
         assert!(
             (MedRecordValue::String("value".to_string()).r#mod(MedRecordValue::Null))
                 .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_)))
@@ -1632,6 +2240,10 @@ mod test {
         );
         assert!((MedRecordValue::Int(0).r#mod(MedRecordValue::Bool(false)))
             .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
+        assert!(
+            (MedRecordValue::Int(0).r#mod(MedRecordValue::DateTime(NaiveDateTime::MIN)))
+                .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_)))
+        );
         assert!((MedRecordValue::Int(0).r#mod(MedRecordValue::Null))
             .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
 
@@ -1651,6 +2263,10 @@ mod test {
             (MedRecordValue::Float(0_f64).r#mod(MedRecordValue::Bool(false)))
                 .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_)))
         );
+        assert!(
+            (MedRecordValue::Float(0_f64).r#mod(MedRecordValue::DateTime(NaiveDateTime::MIN)))
+                .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_)))
+        );
         assert!((MedRecordValue::Float(0_f64).r#mod(MedRecordValue::Null))
             .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
 
@@ -1668,8 +2284,35 @@ mod test {
             (MedRecordValue::Bool(false).r#mod(MedRecordValue::Bool(false)))
                 .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_)))
         );
+        assert!(
+            (MedRecordValue::Bool(false).r#mod(MedRecordValue::DateTime(NaiveDateTime::MIN)))
+                .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_)))
+        );
         assert!((MedRecordValue::Bool(false).r#mod(MedRecordValue::Null))
             .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
+
+        assert!((MedRecordValue::DateTime(NaiveDateTime::MIN)
+            .r#mod(MedRecordValue::String("value".to_string())))
+        .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
+        assert!(
+            (MedRecordValue::DateTime(NaiveDateTime::MIN).r#mod(MedRecordValue::Int(0)))
+                .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_)))
+        );
+        assert!(
+            (MedRecordValue::DateTime(NaiveDateTime::MIN).r#mod(MedRecordValue::Float(0_f64)))
+                .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_)))
+        );
+        assert!(
+            (MedRecordValue::DateTime(NaiveDateTime::MIN).r#mod(MedRecordValue::Bool(false)))
+                .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_)))
+        );
+        assert!((MedRecordValue::DateTime(NaiveDateTime::MIN)
+            .r#mod(MedRecordValue::DateTime(NaiveDateTime::MIN)))
+        .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
+        assert!(
+            (MedRecordValue::DateTime(NaiveDateTime::MIN).r#mod(MedRecordValue::Null))
+                .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_)))
+        );
 
         assert!(
             (MedRecordValue::Null.r#mod(MedRecordValue::String("value".to_string())))
@@ -1681,6 +2324,10 @@ mod test {
             .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
         assert!((MedRecordValue::Null.r#mod(MedRecordValue::Bool(false)))
             .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
+        assert!(
+            (MedRecordValue::Null.r#mod(MedRecordValue::DateTime(NaiveDateTime::MIN)))
+                .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_)))
+        );
         assert!((MedRecordValue::Null.r#mod(MedRecordValue::Null))
             .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
     }
@@ -1717,12 +2364,19 @@ mod test {
         assert!(
             !MedRecordValue::String("true".to_string()).starts_with(&MedRecordValue::Bool(true))
         );
+        assert!(
+            !MedRecordValue::String("-262143-01-01 00:00:00".to_string())
+                .starts_with(&MedRecordValue::DateTime(NaiveDateTime::MIN))
+        );
         assert!(!MedRecordValue::String("Null".to_string()).starts_with(&MedRecordValue::Null));
 
         assert!(!MedRecordValue::Int(1).starts_with(&MedRecordValue::Bool(true)));
+        assert!(!MedRecordValue::Int(-2).starts_with(&MedRecordValue::DateTime(NaiveDateTime::MIN)));
         assert!(!MedRecordValue::Int(0).starts_with(&MedRecordValue::Null));
 
         assert!(!MedRecordValue::Float(1_f64).starts_with(&MedRecordValue::Bool(true)));
+        assert!(!MedRecordValue::Float(-2_f64)
+            .starts_with(&MedRecordValue::DateTime(NaiveDateTime::MIN)));
         assert!(!MedRecordValue::Float(0_f64).starts_with(&MedRecordValue::Null));
 
         assert!(
@@ -1731,12 +2385,29 @@ mod test {
         assert!(!MedRecordValue::Bool(true).starts_with(&MedRecordValue::Int(1)));
         assert!(!MedRecordValue::Bool(true).starts_with(&MedRecordValue::Float(1_f64)));
         assert!(!MedRecordValue::Bool(true).starts_with(&MedRecordValue::Bool(true)));
+        assert!(
+            !MedRecordValue::Bool(true).starts_with(&MedRecordValue::DateTime(NaiveDateTime::MAX))
+        );
         assert!(!MedRecordValue::Bool(false).starts_with(&MedRecordValue::Null));
+
+        assert!(!MedRecordValue::DateTime(NaiveDateTime::MAX).starts_with(
+            &MedRecordValue::String("-262143-01-01 00:00:00".to_string())
+        ));
+        assert!(!MedRecordValue::DateTime(NaiveDateTime::MAX).starts_with(&MedRecordValue::Int(-2)));
+        assert!(!MedRecordValue::DateTime(NaiveDateTime::MAX)
+            .starts_with(&MedRecordValue::Float(1_f64)));
+        assert!(
+            !MedRecordValue::DateTime(NaiveDateTime::MAX).starts_with(&MedRecordValue::Bool(false))
+        );
+        assert!(!MedRecordValue::DateTime(NaiveDateTime::MAX)
+            .starts_with(&MedRecordValue::DateTime(NaiveDateTime::MAX)));
+        assert!(!MedRecordValue::DateTime(NaiveDateTime::MIN).starts_with(&MedRecordValue::Null));
 
         assert!(!MedRecordValue::Null.starts_with(&MedRecordValue::String("Null".to_string())));
         assert!(!MedRecordValue::Null.starts_with(&MedRecordValue::Int(0)));
         assert!(!MedRecordValue::Null.starts_with(&MedRecordValue::Float(0_f64)));
         assert!(!MedRecordValue::Null.starts_with(&MedRecordValue::Bool(false)));
+        assert!(!MedRecordValue::Null.starts_with(&MedRecordValue::DateTime(NaiveDateTime::MIN)));
         assert!(!MedRecordValue::Null.starts_with(&MedRecordValue::Null));
     }
 
@@ -1766,24 +2437,52 @@ mod test {
         assert!(!MedRecordValue::Float(10_f64).ends_with(&MedRecordValue::Float(1_f64)));
 
         assert!(!MedRecordValue::String("true".to_string()).ends_with(&MedRecordValue::Bool(true)));
+        assert!(
+            !MedRecordValue::String("-262143-01-01 00:00:00".to_string())
+                .ends_with(&MedRecordValue::DateTime(NaiveDateTime::MIN))
+        );
         assert!(!MedRecordValue::String("Null".to_string()).ends_with(&MedRecordValue::Null));
 
         assert!(!MedRecordValue::Int(1).ends_with(&MedRecordValue::Bool(true)));
+        assert!(!MedRecordValue::Int(0).ends_with(&MedRecordValue::DateTime(NaiveDateTime::MIN)));
         assert!(!MedRecordValue::Int(0).ends_with(&MedRecordValue::Null));
 
         assert!(!MedRecordValue::Float(1_f64).ends_with(&MedRecordValue::Bool(true)));
+        assert!(
+            !MedRecordValue::Float(0_f64).ends_with(&MedRecordValue::DateTime(NaiveDateTime::MIN))
+        );
         assert!(!MedRecordValue::Float(0_f64).ends_with(&MedRecordValue::Null));
 
         assert!(!MedRecordValue::Bool(true).ends_with(&MedRecordValue::String("true".to_string())));
         assert!(!MedRecordValue::Bool(true).ends_with(&MedRecordValue::Int(1)));
         assert!(!MedRecordValue::Bool(true).ends_with(&MedRecordValue::Float(1_f64)));
         assert!(!MedRecordValue::Bool(true).ends_with(&MedRecordValue::Bool(true)));
+        assert!(
+            !MedRecordValue::Bool(true).ends_with(&MedRecordValue::DateTime(NaiveDateTime::MAX))
+        );
         assert!(!MedRecordValue::Bool(false).ends_with(&MedRecordValue::Null));
+
+        assert!(
+            !MedRecordValue::DateTime(NaiveDateTime::MIN).ends_with(&MedRecordValue::String(
+                "-262143-01-01 00:00:00".to_string()
+            ))
+        );
+        assert!(!MedRecordValue::DateTime(NaiveDateTime::MAX).ends_with(&MedRecordValue::Int(0)));
+        assert!(
+            !MedRecordValue::DateTime(NaiveDateTime::MAX).ends_with(&MedRecordValue::Float(0_f64))
+        );
+        assert!(
+            !MedRecordValue::DateTime(NaiveDateTime::MAX).ends_with(&MedRecordValue::Bool(false))
+        );
+        assert!(!MedRecordValue::DateTime(NaiveDateTime::MAX)
+            .ends_with(&MedRecordValue::DateTime(NaiveDateTime::MAX)));
+        assert!(!MedRecordValue::DateTime(NaiveDateTime::MAX).ends_with(&MedRecordValue::Null));
 
         assert!(!MedRecordValue::Null.ends_with(&MedRecordValue::String("true".to_string())));
         assert!(!MedRecordValue::Null.ends_with(&MedRecordValue::Int(1)));
         assert!(!MedRecordValue::Null.ends_with(&MedRecordValue::Float(1_f64)));
-        assert!(!MedRecordValue::Null.ends_with(&MedRecordValue::Bool(true)));
+        assert!(!MedRecordValue::Null.ends_with(&MedRecordValue::Bool(false)));
+        assert!(!MedRecordValue::Null.ends_with(&MedRecordValue::DateTime(NaiveDateTime::MIN)));
         assert!(!MedRecordValue::Null.ends_with(&MedRecordValue::Null));
     }
 
@@ -1813,24 +2512,50 @@ mod test {
         assert!(!MedRecordValue::Float(10_f64).contains(&MedRecordValue::Float(2_f64)));
 
         assert!(!MedRecordValue::String("true".to_string()).contains(&MedRecordValue::Bool(true)));
+        assert!(
+            !MedRecordValue::String("-262143-01-01 00:00:00".to_string())
+                .contains(&MedRecordValue::DateTime(NaiveDateTime::MIN))
+        );
         assert!(!MedRecordValue::String("Null".to_string()).contains(&MedRecordValue::Null));
 
         assert!(!MedRecordValue::Int(1).contains(&MedRecordValue::Bool(true)));
+        assert!(!MedRecordValue::Int(0).contains(&MedRecordValue::DateTime(NaiveDateTime::MIN)));
         assert!(!MedRecordValue::Int(0).contains(&MedRecordValue::Null));
 
         assert!(!MedRecordValue::Float(1_f64).contains(&MedRecordValue::Bool(true)));
+        assert!(
+            !MedRecordValue::Float(0_f64).contains(&MedRecordValue::DateTime(NaiveDateTime::MIN))
+        );
         assert!(!MedRecordValue::Float(0_f64).contains(&MedRecordValue::Null));
 
         assert!(!MedRecordValue::Bool(true).contains(&MedRecordValue::String("true".to_string())));
         assert!(!MedRecordValue::Bool(true).contains(&MedRecordValue::Int(1)));
         assert!(!MedRecordValue::Bool(true).contains(&MedRecordValue::Float(1_f64)));
         assert!(!MedRecordValue::Bool(true).contains(&MedRecordValue::Bool(true)));
+        assert!(!MedRecordValue::Bool(true).contains(&MedRecordValue::DateTime(NaiveDateTime::MAX)));
         assert!(!MedRecordValue::Bool(false).contains(&MedRecordValue::Null));
+
+        assert!(
+            !MedRecordValue::DateTime(NaiveDateTime::MIN).contains(&MedRecordValue::String(
+                "-262143-01-01 00:00:00".to_string()
+            ))
+        );
+        assert!(!MedRecordValue::DateTime(NaiveDateTime::MIN).contains(&MedRecordValue::Int(0)));
+        assert!(
+            !MedRecordValue::DateTime(NaiveDateTime::MIN).contains(&MedRecordValue::Float(0_f64))
+        );
+        assert!(
+            !MedRecordValue::DateTime(NaiveDateTime::MIN).contains(&MedRecordValue::Bool(false))
+        );
+        assert!(!MedRecordValue::DateTime(NaiveDateTime::MIN)
+            .contains(&MedRecordValue::DateTime(NaiveDateTime::MIN)));
+        assert!(!MedRecordValue::DateTime(NaiveDateTime::MIN).contains(&MedRecordValue::Null));
 
         assert!(!MedRecordValue::Null.contains(&MedRecordValue::String("true".to_string())));
         assert!(!MedRecordValue::Null.contains(&MedRecordValue::Int(1)));
         assert!(!MedRecordValue::Null.contains(&MedRecordValue::Float(1_f64)));
         assert!(!MedRecordValue::Null.contains(&MedRecordValue::Bool(true)));
+        assert!(!MedRecordValue::Null.contains(&MedRecordValue::DateTime(NaiveDateTime::MIN)));
         assert!(!MedRecordValue::Null.contains(&MedRecordValue::Null));
     }
 
@@ -1856,6 +2581,11 @@ mod test {
             MedRecordValue::Bool(false).slice(1..3)
         );
 
+        assert_eq!(
+            MedRecordValue::DateTime(NaiveDateTime::MIN),
+            MedRecordValue::DateTime(NaiveDateTime::MIN).slice(1..3)
+        );
+
         assert_eq!(MedRecordValue::Null, MedRecordValue::Null.slice(1..3));
     }
 
@@ -1876,6 +2606,11 @@ mod test {
         assert_eq!(
             MedRecordValue::Bool(false),
             MedRecordValue::Bool(false).round()
+        );
+
+        assert_eq!(
+            MedRecordValue::DateTime(NaiveDateTime::MIN),
+            MedRecordValue::DateTime(NaiveDateTime::MIN).round()
         );
 
         assert_eq!(MedRecordValue::Null, MedRecordValue::Null.round());
@@ -1900,6 +2635,11 @@ mod test {
             MedRecordValue::Bool(false).ceil()
         );
 
+        assert_eq!(
+            MedRecordValue::DateTime(NaiveDateTime::MIN),
+            MedRecordValue::DateTime(NaiveDateTime::MIN).ceil()
+        );
+
         assert_eq!(MedRecordValue::Null, MedRecordValue::Null.ceil());
     }
 
@@ -1920,6 +2660,11 @@ mod test {
         assert_eq!(
             MedRecordValue::Bool(false),
             MedRecordValue::Bool(false).floor()
+        );
+
+        assert_eq!(
+            MedRecordValue::DateTime(NaiveDateTime::MAX),
+            MedRecordValue::DateTime(NaiveDateTime::MAX).floor()
         );
 
         assert_eq!(MedRecordValue::Null, MedRecordValue::Null.floor());
@@ -1949,6 +2694,11 @@ mod test {
             MedRecordValue::Bool(false).abs()
         );
 
+        assert_eq!(
+            MedRecordValue::DateTime(NaiveDateTime::MIN),
+            MedRecordValue::DateTime(NaiveDateTime::MIN).abs()
+        );
+
         assert_eq!(MedRecordValue::Null, MedRecordValue::Null.abs());
     }
 
@@ -1971,6 +2721,11 @@ mod test {
             MedRecordValue::Bool(false).sqrt()
         );
 
+        assert_eq!(
+            MedRecordValue::DateTime(NaiveDateTime::MIN),
+            MedRecordValue::DateTime(NaiveDateTime::MIN).sqrt()
+        );
+
         assert_eq!(MedRecordValue::Null, MedRecordValue::Null.sqrt());
     }
 
@@ -1991,6 +2746,11 @@ mod test {
         assert_eq!(
             MedRecordValue::Bool(false),
             MedRecordValue::Bool(false).trim()
+        );
+
+        assert_eq!(
+            MedRecordValue::DateTime(NaiveDateTime::MIN),
+            MedRecordValue::DateTime(NaiveDateTime::MIN).trim()
         );
 
         assert_eq!(MedRecordValue::Null, MedRecordValue::Null.trim());
@@ -2018,6 +2778,11 @@ mod test {
             MedRecordValue::Bool(false).trim_start()
         );
 
+        assert_eq!(
+            MedRecordValue::DateTime(NaiveDateTime::MIN),
+            MedRecordValue::DateTime(NaiveDateTime::MIN).trim_start()
+        );
+
         assert_eq!(MedRecordValue::Null, MedRecordValue::Null.trim_start());
     }
 
@@ -2041,6 +2806,11 @@ mod test {
         assert_eq!(
             MedRecordValue::Bool(false),
             MedRecordValue::Bool(false).trim_end()
+        );
+
+        assert_eq!(
+            MedRecordValue::DateTime(NaiveDateTime::MIN),
+            MedRecordValue::DateTime(NaiveDateTime::MIN).trim_end()
         );
 
         assert_eq!(MedRecordValue::Null, MedRecordValue::Null.trim_end());
@@ -2068,6 +2838,11 @@ mod test {
             MedRecordValue::Bool(false).lowercase()
         );
 
+        assert_eq!(
+            MedRecordValue::DateTime(NaiveDateTime::MIN),
+            MedRecordValue::DateTime(NaiveDateTime::MIN).lowercase()
+        );
+
         assert_eq!(MedRecordValue::Null, MedRecordValue::Null.lowercase());
     }
 
@@ -2091,6 +2866,11 @@ mod test {
         assert_eq!(
             MedRecordValue::Bool(false),
             MedRecordValue::Bool(false).uppercase()
+        );
+
+        assert_eq!(
+            MedRecordValue::DateTime(NaiveDateTime::MIN),
+            MedRecordValue::DateTime(NaiveDateTime::MIN).uppercase()
         );
 
         assert_eq!(MedRecordValue::Null, MedRecordValue::Null.uppercase());
