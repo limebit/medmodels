@@ -2,7 +2,7 @@ mod gil_hash_map;
 mod medrecord;
 
 use medrecord::{
-    datatype::{PyAny, PyBool, PyFloat, PyInt, PyNull, PyOption, PyString, PyUnion},
+    datatype::{PyAny, PyBool, PyDateTime, PyFloat, PyInt, PyNull, PyOption, PyString, PyUnion},
     schema::{PyGroupSchema, PySchema},
     PyMedRecord,
 };
@@ -16,6 +16,7 @@ fn _medmodels(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyInt>()?;
     m.add_class::<PyFloat>()?;
     m.add_class::<PyBool>()?;
+    m.add_class::<PyDateTime>()?;
     m.add_class::<PyNull>()?;
     m.add_class::<PyAny>()?;
     m.add_class::<PyUnion>()?;

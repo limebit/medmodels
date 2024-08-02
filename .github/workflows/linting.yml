@@ -28,5 +28,6 @@ jobs:
         uses: jakebailey/pyright-action@v2
         with:
           python-path: .venv/bin/python
+          version: 1.1.373
       - name: Lint with clippy
         run: cargo clippy --all-targets --all-features -- -D warnings

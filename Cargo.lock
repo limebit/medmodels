@@ -164,13 +164,16 @@ checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
 
 [[package]]
 name = "chrono"
-version = "0.4.34"
+version = "0.4.38"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5bc015644b92d5890fab7489e49d21f879d5c990186827d42ec511919404f38b"
+checksum = "a21f936df1771bf62b77f047b726c4625ff2e8aa607c01ec06e5a05bd8463401"
 dependencies = [
  "android-tzdata",
  "iana-time-zone",
+ "js-sys",
  "num-traits",
+ "serde",
+ "wasm-bindgen",
  "windows-targets 0.52.0",
 ]
 
@@ -519,6 +522,7 @@ dependencies = [
 name = "medmodels-core"
 version = "0.1.1"
 dependencies = [
+ "chrono",
  "medmodels-utils",
  "polars",
  "roaring",
@@ -1118,6 +1122,7 @@ dependencies = [
 name = "py-medmodels"
 version = "0.0.1"
 dependencies = [
+ "chrono",
  "medmodels-core",
  "medmodels-utils",
  "polars",
@@ -1132,6 +1137,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a5e00b96a521718e08e03b1a622f01c8a8deb50719335de3f60b3b3950f069d8"
 dependencies = [
  "cfg-if",
+ "chrono",
  "indoc",
  "libc",
  "memoffset",

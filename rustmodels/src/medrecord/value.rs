@@ -1,8 +1,9 @@
 use super::{traits::DeepFrom, Lut};
 use crate::{gil_hash_map::GILHashMap, medrecord::errors::PyMedRecordError};
+use chrono::NaiveDateTime;
 use medmodels_core::{errors::MedRecordError, medrecord::MedRecordValue};
 use pyo3::{
-    types::{PyAnyMethods, PyBool, PyFloat, PyInt, PyString},
+    types::{PyAnyMethods, PyBool, PyDateTime, PyFloat, PyInt, PyString},
     Bound, FromPyObject, IntoPy, PyAny, PyObject, PyResult, Python,
 };
 use std::ops::Deref;
@@ -64,6 +65,10 @@ pub(crate) fn convert_pyobject_to_medrecordvalue(
         Ok(MedRecordValue::Bool(ob.extract::<bool>()?))
     }
 
+    fn convert_datetime(ob: &Bound<'_, PyAny>) -> PyResult<MedRecordValue> {
+        Ok(MedRecordValue::DateTime(ob.extract::<NaiveDateTime>()?))
+    }
+
     fn convert_null(_ob: &Bound<'_, PyAny>) -> PyResult<MedRecordValue> {
         Ok(MedRecordValue::Null)
     }
@@ -91,6 +96,8 @@ pub(crate) fn convert_pyobject_to_medrecordvalue(
                     convert_int
                 } else if ob.is_instance_of::<PyFloat>() {
                     convert_float
+                } else if ob.is_instance_of::<PyDateTime>() {
+                    convert_datetime
                 } else if ob.is_none() {
                     convert_null
                 } else {
@@ -116,6 +123,7 @@ impl IntoPy<PyObject> for PyMedRecordValue {
             MedRecordValue::Int(value) => value.into_py(py),
             MedRecordValue::Float(value) => value.into_py(py),
             MedRecordValue::Bool(value) => value.into_py(py),
+            MedRecordValue::DateTime(value) => value.into_py(py),
             MedRecordValue::Null => py.None(),
         }
     }

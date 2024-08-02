@@ -4,6 +4,7 @@ import medmodels.medrecord as mr
 from medmodels._medmodels import (
     PyAny,
     PyBool,
+    PyDateTime,
     PyInt,
     PyNull,
     PyOption,
@@ -24,6 +25,10 @@ class TestDataType(unittest.TestCase):
     def test_bool(self):
         bool = mr.Bool()
         self.assertTrue(isinstance(bool._inner(), PyBool))
+
+    def test_datetime(self):
+        datetime = mr.DateTime()
+        self.assertTrue(isinstance(datetime._inner(), PyDateTime))
 
     def test_null(self):
         null = mr.Null()

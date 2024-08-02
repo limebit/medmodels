@@ -3,6 +3,7 @@ from typing import Callable, List, Union
 
 class EdgeOperation: ...
 
+
 class EdgeIndex: ...
 
 
@@ -23,6 +24,7 @@ class EdgeOperand:
     def attribute(self, attribute: str) -> EdgeOperandValues: ...
     def connects_to(self, query: Callable[["NodeOperand"], None]) -> "EdgeOperand": ...
 
+
 class NodeOperation: ...
 
 
@@ -39,6 +41,7 @@ class MedRecord:
 
 
 medrecord = MedRecord()
+
 
 def query(node: NodeOperand):
     edges_to_treatment = node.outgoing_edges().connects_to(

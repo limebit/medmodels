@@ -1,10 +1,11 @@
 use crate::{
-    medrecord::{querying::nodes::NodeOperandWrapper, EdgeIndex},
+    medrecord::{
+        querying::{nodes::NodeOperandWrapper, values::ValuesOperandWrapper},
+        EdgeIndex,
+    },
     MedRecord,
 };
 use std::collections::HashSet;
-
-use super::operand::EdgeValuesOperandWrapper;
 
 #[derive(Debug, Clone)]
 pub enum EdgeOperation {
@@ -12,7 +13,7 @@ pub enum EdgeOperation {
     OutgoingEdgesContext { operand: NodeOperandWrapper },
     ConnectsTo { operand: NodeOperandWrapper },
 
-    Attribute { operand: EdgeValuesOperandWrapper },
+    Attribute { operand: ValuesOperandWrapper },
 }
 
 impl EdgeOperation {
@@ -42,7 +43,7 @@ impl EdgeOperation {
         medrecord: &MedRecord,
         operand: NodeOperandWrapper,
     ) -> impl Iterator<Item = &EdgeIndex> {
-        let node_indices = operand.0.borrow().evaluate(medrecord);
+        let node_indices = operand.evaluate(medrecord);
 
         node_indices.flat_map(|node_index| {
             let outgoing_edges = medrecord
@@ -58,11 +59,7 @@ impl EdgeOperation {
         edge_indices: impl Iterator<Item = &'a EdgeIndex>,
         operand: NodeOperandWrapper,
     ) -> impl Iterator<Item = &'a EdgeIndex> {
-        let node_indices = operand
-            .0
-            .borrow()
-            .evaluate(medrecord)
-            .collect::<HashSet<_>>();
+        let node_indices = operand.evaluate(medrecord).collect::<HashSet<_>>();
 
         edge_indices.filter(move |edge_index| {
             let edge_endpoints = medrecord
@@ -76,12 +73,9 @@ impl EdgeOperation {
     fn evaluate_attribute<'a>(
         _medrecord: &'a MedRecord,
         _edge_indices: impl Iterator<Item = &'a EdgeIndex>,
-        _operand: EdgeValuesOperandWrapper,
+        _operand: ValuesOperandWrapper,
     ) -> impl Iterator<Item = &'a EdgeIndex> {
         // TODO
         Vec::new().into_iter()
     }
 }
-
-#[derive(Debug, Clone)]
-pub enum EdgeValuesOperation {}

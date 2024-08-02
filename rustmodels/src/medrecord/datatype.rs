@@ -64,6 +64,10 @@ pub(crate) fn convert_pyobject_to_datatype(ob: &Bound<'_, pyo3::PyAny>) -> PyRes
         Ok(DataType::Bool)
     }
 
+    fn convert_datetime(_ob: &Bound<'_, pyo3::PyAny>) -> PyResult<DataType> {
+        Ok(DataType::DateTime)
+    }
+
     fn convert_null(_ob: &Bound<'_, pyo3::PyAny>) -> PyResult<DataType> {
         Ok(DataType::Null)
     }
@@ -112,6 +116,8 @@ pub(crate) fn convert_pyobject_to_datatype(ob: &Bound<'_, pyo3::PyAny>) -> PyRes
                     convert_float
                 } else if ob.is_instance_of::<PyBool>() {
                     convert_bool
+                } else if ob.is_instance_of::<PyDateTime>() {
+                    convert_datetime
                 } else if ob.is_instance_of::<PyNull>() {
                     convert_null
                 } else if ob.is_instance_of::<PyAny>() {
@@ -143,6 +149,7 @@ impl IntoPy<PyObject> for PyDataType {
             DataType::Int => PyInt {}.into_py(py),
             DataType::Float => PyFloat {}.into_py(py),
             DataType::Bool => PyBool {}.into_py(py),
+            DataType::DateTime => PyDateTime {}.into_py(py),
             DataType::Null => PyNull {}.into_py(py),
             DataType::Any => PyAny {}.into_py(py),
             DataType::Union((dtype1, dtype2)) => {
@@ -168,6 +175,10 @@ implement_pymethods!(PyFloat);
 #[pyclass]
 pub struct PyBool;
 implement_pymethods!(PyBool);
+
+#[pyclass]
+pub struct PyDateTime;
+implement_pymethods!(PyDateTime);
 
 #[pyclass]
 pub struct PyNull;

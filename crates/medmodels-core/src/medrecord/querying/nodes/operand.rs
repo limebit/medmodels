@@ -2,7 +2,7 @@ use super::NodeOperation;
 use crate::{
     medrecord::{
         querying::{
-            edges::{EdgeOperandWrapper, EdgeOperation},
+            edges::{EdgeOperand, EdgeOperandWrapper, EdgeOperation},
             wrapper::Wrapper,
         },
         Group, NodeIndex,
@@ -47,13 +47,15 @@ impl NodeOperand {
     }
 
     pub fn outgoing_edges(&mut self) -> EdgeOperandWrapper {
-        let operand = EdgeOperandWrapper::new();
+        let mut operand = EdgeOperand::new();
 
         let context = EdgeOperation::OutgoingEdgesContext {
             operand: self.clone().into(),
         };
 
-        operand.0.borrow_mut().operations.push(context);
+        operand.operations.push(context);
+
+        let operand = EdgeOperandWrapper::from(operand);
 
         self.operations.push(NodeOperation::OutgoingEdges {
             operand: operand.clone(),
@@ -65,7 +67,7 @@ impl NodeOperand {
 
 #[repr(transparent)]
 #[derive(Debug, Clone)]
-pub struct NodeOperandWrapper(pub(crate) Rc<RefCell<NodeOperand>>);
+pub struct NodeOperandWrapper(Rc<RefCell<NodeOperand>>);
 
 impl From<NodeOperand> for NodeOperandWrapper {
     fn from(value: NodeOperand) -> Self {
@@ -76,6 +78,13 @@ impl From<NodeOperand> for NodeOperandWrapper {
 impl NodeOperandWrapper {
     pub(crate) fn new() -> Self {
         Self(Rc::new(RefCell::new(NodeOperand::new())))
+    }
+
+    pub(crate) fn evaluate<'a>(
+        &self,
+        medrecord: &'a MedRecord,
+    ) -> impl Iterator<Item = &'a NodeIndex> {
+        self.0.borrow().evaluate(medrecord)
     }
 
     pub fn in_group<G>(&mut self, group: G)

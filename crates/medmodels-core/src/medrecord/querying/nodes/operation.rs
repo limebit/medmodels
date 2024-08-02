@@ -59,11 +59,7 @@ impl NodeOperation {
         node_indices: impl Iterator<Item = &'a NodeIndex> + 'a,
         operand: EdgeOperandWrapper,
     ) -> impl Iterator<Item = &'a NodeIndex> + 'a {
-        let edge_indices = operand
-            .0
-            .borrow()
-            .evaluate(medrecord)
-            .collect::<RoaringBitmap>();
+        let edge_indices = operand.evaluate(medrecord).collect::<RoaringBitmap>();
 
         node_indices.filter(move |node_index| {
             let outgoing_edge_indices = medrecord

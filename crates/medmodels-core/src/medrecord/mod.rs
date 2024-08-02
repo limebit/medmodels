@@ -1949,7 +1949,7 @@ mod test {
             edges_to_outcome
                 .connects_to(|node2| node2.in_group(MedRecordAttribute::from("outcome")));
 
-            let max_time_edge = edges_to_treatment.attribute("time");
+            // let max_time_edge = edges_to_treatment.attribute("time");
 
             // max_time_edge.less_than(edges_to_outcome.attribute("time"));
         });

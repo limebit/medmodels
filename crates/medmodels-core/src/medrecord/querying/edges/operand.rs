@@ -1,6 +1,9 @@
-use super::{operation::EdgeValuesOperation, EdgeOperation};
+use super::EdgeOperation;
 use crate::{
-    medrecord::{querying::nodes::NodeOperandWrapper, EdgeIndex, MedRecordAttribute},
+    medrecord::{
+        querying::{nodes::NodeOperandWrapper, values::ValuesOperandWrapper},
+        EdgeIndex, MedRecordAttribute,
+    },
     MedRecord,
 };
 use std::{cell::RefCell, fmt::Debug, rc::Rc};
@@ -44,8 +47,9 @@ impl EdgeOperand {
         });
     }
 
-    pub fn attribute(&mut self, attribute: MedRecordAttribute) -> EdgeValuesOperandWrapper {
-        let operand = EdgeValuesOperandWrapper::new(self.clone().into(), attribute);
+    pub fn attribute(&mut self, attribute: MedRecordAttribute) -> ValuesOperandWrapper {
+        let operand =
+            ValuesOperandWrapper::new(EdgeOperandWrapper::from(self.clone()).into(), attribute);
 
         self.operations.push(EdgeOperation::Attribute {
             operand: operand.clone(),
@@ -57,7 +61,7 @@ impl EdgeOperand {
 
 #[repr(transparent)]
 #[derive(Debug, Clone)]
-pub struct EdgeOperandWrapper(pub(crate) Rc<RefCell<EdgeOperand>>);
+pub struct EdgeOperandWrapper(Rc<RefCell<EdgeOperand>>);
 
 impl From<EdgeOperand> for EdgeOperandWrapper {
     fn from(value: EdgeOperand) -> Self {
@@ -70,6 +74,13 @@ impl EdgeOperandWrapper {
         Self(Rc::new(RefCell::new(EdgeOperand::new())))
     }
 
+    pub(crate) fn evaluate<'a>(
+        &self,
+        medrecord: &'a MedRecord,
+    ) -> impl Iterator<Item = &'a EdgeIndex> {
+        self.0.borrow().evaluate(medrecord)
+    }
+
     pub fn connects_to<Q>(&self, query: Q)
     where
         Q: FnOnce(&mut NodeOperandWrapper),
@@ -77,45 +88,10 @@ impl EdgeOperandWrapper {
         self.0.borrow_mut().connects_to(query);
     }
 
-    pub fn attribute<A>(&self, attribute: A) -> EdgeValuesOperandWrapper
+    pub fn attribute<A>(&self, attribute: A) -> ValuesOperandWrapper
     where
         A: Into<MedRecordAttribute>,
     {
         self.0.borrow_mut().attribute(attribute.into())
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct EdgeValuesOperand {
-    operand: EdgeOperandWrapper,
-    attribute: MedRecordAttribute,
-    pub(crate) operations: Vec<EdgeValuesOperation>,
-}
-
-impl EdgeValuesOperand {
-    pub(crate) fn new(operand: EdgeOperandWrapper, attribute: MedRecordAttribute) -> Self {
-        Self {
-            operand,
-            attribute,
-            operations: Vec::new(),
-        }
-    }
-}
-
-#[repr(transparent)]
-#[derive(Debug, Clone)]
-pub struct EdgeValuesOperandWrapper(pub(crate) Rc<RefCell<EdgeValuesOperand>>);
-
-impl From<EdgeValuesOperand> for EdgeValuesOperandWrapper {
-    fn from(value: EdgeValuesOperand) -> Self {
-        Self(Rc::new(RefCell::new(value)))
-    }
-}
-
-impl EdgeValuesOperandWrapper {
-    pub(crate) fn new(operand: EdgeOperandWrapper, attribute: MedRecordAttribute) -> Self {
-        Self(Rc::new(RefCell::new(EdgeValuesOperand::new(
-            operand, attribute,
-        ))))
     }
 }
