@@ -1,7 +1,11 @@
-use super::EdgeOperation;
+use super::{values::EdgeValuesOperand, EdgeOperation};
 use crate::{
     medrecord::{
-        querying::{nodes::NodeOperandWrapper, values::ValuesOperandWrapper},
+        querying::{
+            evaluate::{EvaluateOperand, EvaluateOperation},
+            nodes::NodeOperand,
+            wrapper::{OperandContext, Wrapper},
+        },
         EdgeIndex, MedRecordAttribute,
     },
     MedRecord,
@@ -13,6 +17,25 @@ pub struct EdgeOperand {
     pub(crate) operations: Vec<EdgeOperation>,
 }
 
+impl EvaluateOperand for EdgeOperand {
+    type Index = EdgeIndex;
+
+    fn evaluate<'a>(
+        &self,
+        medrecord: &'a MedRecord,
+        end_index: Option<usize>,
+    ) -> Box<dyn Iterator<Item = &'a Self::Index> + 'a> {
+        let edge_indices =
+            Box::new(medrecord.edge_indices()) as Box<dyn Iterator<Item = &'a EdgeIndex>>;
+
+        self.operations[0..end_index.unwrap_or(self.operations.len())]
+            .iter()
+            .fold(Box::new(edge_indices), |edge_indices, operation| {
+                operation.evaluate(medrecord, edge_indices)
+            })
+    }
+}
+
 impl EdgeOperand {
     pub(crate) fn new() -> Self {
         Self {
@@ -20,25 +43,11 @@ impl EdgeOperand {
         }
     }
 
-    pub(crate) fn evaluate<'a>(
-        &self,
-        medrecord: &'a MedRecord,
-    ) -> impl Iterator<Item = &'a EdgeIndex> {
-        let edge_indices =
-            Box::new(medrecord.edge_indices()) as Box<dyn Iterator<Item = &'a EdgeIndex>>;
-
-        self.operations
-            .iter()
-            .fold(edge_indices, |edge_indices, operation| {
-                operation.evaluate(medrecord, edge_indices)
-            })
-    }
-
     pub fn connects_to<Q>(&mut self, query: Q)
     where
-        Q: FnOnce(&mut NodeOperandWrapper),
+        Q: FnOnce(&mut Wrapper<NodeOperand>),
     {
-        let mut node_operand = NodeOperandWrapper::new();
+        let mut node_operand = Wrapper::<NodeOperand>::new();
 
         query(&mut node_operand);
 
@@ -47,9 +56,15 @@ impl EdgeOperand {
         });
     }
 
-    pub fn attribute(&mut self, attribute: MedRecordAttribute) -> ValuesOperandWrapper {
-        let operand =
-            ValuesOperandWrapper::new(EdgeOperandWrapper::from(self.clone()).into(), attribute);
+    pub fn attribute(
+        &mut self,
+        attribute: MedRecordAttribute,
+        self_wrapper: &Wrapper<EdgeOperand>,
+    ) -> Wrapper<EdgeValuesOperand> {
+        let operand = Wrapper::<EdgeValuesOperand>::new(
+            OperandContext::new(self_wrapper.clone(), self.operations.len()),
+            attribute,
+        );
 
         self.operations.push(EdgeOperation::Attribute {
             operand: operand.clone(),
@@ -59,39 +74,22 @@ impl EdgeOperand {
     }
 }
 
-#[repr(transparent)]
-#[derive(Debug, Clone)]
-pub struct EdgeOperandWrapper(Rc<RefCell<EdgeOperand>>);
-
-impl From<EdgeOperand> for EdgeOperandWrapper {
-    fn from(value: EdgeOperand) -> Self {
-        Self(Rc::new(RefCell::new(value)))
-    }
-}
-
-impl EdgeOperandWrapper {
+impl Wrapper<EdgeOperand> {
     pub(crate) fn new() -> Self {
         Self(Rc::new(RefCell::new(EdgeOperand::new())))
     }
 
-    pub(crate) fn evaluate<'a>(
-        &self,
-        medrecord: &'a MedRecord,
-    ) -> impl Iterator<Item = &'a EdgeIndex> {
-        self.0.borrow().evaluate(medrecord)
-    }
-
     pub fn connects_to<Q>(&self, query: Q)
     where
-        Q: FnOnce(&mut NodeOperandWrapper),
+        Q: FnOnce(&mut Wrapper<NodeOperand>),
     {
         self.0.borrow_mut().connects_to(query);
     }
 
-    pub fn attribute<A>(&self, attribute: A) -> ValuesOperandWrapper
+    pub fn attribute<A>(&self, attribute: A) -> Wrapper<EdgeValuesOperand>
     where
         A: Into<MedRecordAttribute>,
     {
-        self.0.borrow_mut().attribute(attribute.into())
+        self.0.borrow_mut().attribute(attribute.into(), self)
     }
 }

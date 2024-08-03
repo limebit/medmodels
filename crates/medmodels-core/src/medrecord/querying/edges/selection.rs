@@ -1,17 +1,21 @@
-use super::EdgeOperandWrapper;
-use crate::medrecord::{EdgeIndex, MedRecord};
+use super::EdgeOperand;
+use crate::medrecord::{
+    querying::{evaluate::EvaluateOperand, wrapper::Wrapper},
+    EdgeIndex, MedRecord,
+};
 
+#[derive(Debug, Clone)]
 pub struct EdgeSelection<'a> {
     medrecord: &'a MedRecord,
-    operand: EdgeOperandWrapper,
+    operand: Wrapper<EdgeOperand>,
 }
 
 impl<'a> EdgeSelection<'a> {
     pub fn new<Q>(medrecord: &'a MedRecord, query: Q) -> Self
     where
-        Q: FnOnce(&mut EdgeOperandWrapper),
+        Q: FnOnce(&mut Wrapper<EdgeOperand>),
     {
-        let mut operand = EdgeOperandWrapper::new();
+        let mut operand = Wrapper::<EdgeOperand>::new();
 
         query(&mut operand);
 
@@ -19,7 +23,7 @@ impl<'a> EdgeSelection<'a> {
     }
 
     pub fn iter(self) -> impl Iterator<Item = &'a EdgeIndex> {
-        self.operand.evaluate(self.medrecord)
+        self.operand.evaluate(self.medrecord, None)
     }
 
     pub fn collect<B: FromIterator<&'a EdgeIndex>>(self) -> B {

@@ -1,42 +1,45 @@
-use crate::{
-    medrecord::{
-        querying::{edges::EdgeOperandWrapper, wrapper::Wrapper},
-        Group, NodeIndex,
+use crate::medrecord::{
+    querying::{
+        edges::EdgeOperand,
+        evaluate::{EvaluateOperand, EvaluateOperation},
+        wrapper::{CardinalityWrapper, Wrapper},
     },
-    MedRecord,
+    Group, MedRecord, NodeIndex,
 };
 use roaring::RoaringBitmap;
 
 #[derive(Debug, Clone)]
 pub enum NodeOperation {
-    InGroup { group: Wrapper<Group> },
-    OutgoingEdges { operand: EdgeOperandWrapper },
+    InGroup { group: CardinalityWrapper<Group> },
+    OutgoingEdges { operand: Wrapper<EdgeOperand> },
 }
 
-impl NodeOperation {
-    pub(crate) fn evaluate<'a>(
+impl EvaluateOperation for NodeOperation {
+    type Index = NodeIndex;
+
+    fn evaluate<'a>(
         &self,
         medrecord: &'a MedRecord,
-        node_indices: impl Iterator<Item = &'a NodeIndex> + 'a,
-    ) -> Box<dyn Iterator<Item = &'a NodeIndex> + 'a> {
+        indices: impl Iterator<Item = &'a Self::Index> + 'a,
+    ) -> Box<dyn Iterator<Item = &'a Self::Index> + 'a> {
         match self {
-            NodeOperation::InGroup { group } => Box::new(Self::evaluate_in_group(
+            Self::InGroup { group } => {
+                Box::new(Self::evaluate_in_group(medrecord, indices, group.clone()))
+            }
+            Self::OutgoingEdges { operand } => Box::new(Self::evaluate_outgoing_edges(
                 medrecord,
-                node_indices,
-                group.clone(),
-            )),
-            NodeOperation::OutgoingEdges { operand } => Box::new(Self::evaluate_outgoing_edges(
-                medrecord,
-                node_indices,
+                indices,
                 operand.clone(),
             )),
         }
     }
+}
 
+impl NodeOperation {
     fn evaluate_in_group<'a>(
         medrecord: &'a MedRecord,
         node_indices: impl Iterator<Item = &'a NodeIndex> + 'a,
-        group: Wrapper<Group>,
+        group: CardinalityWrapper<Group>,
     ) -> impl Iterator<Item = &'a NodeIndex> + 'a {
         node_indices.filter(move |node_index| {
             let groups_of_node = medrecord
@@ -46,8 +49,8 @@ impl NodeOperation {
             let groups_of_node = groups_of_node.collect::<Vec<_>>();
 
             match &group {
-                Wrapper::Single(group) => groups_of_node.contains(&group),
-                Wrapper::Multiple(groups) => {
+                CardinalityWrapper::Single(group) => groups_of_node.contains(&group),
+                CardinalityWrapper::Multiple(groups) => {
                     groups.iter().all(|group| groups_of_node.contains(&group))
                 }
             }
@@ -57,9 +60,9 @@ impl NodeOperation {
     fn evaluate_outgoing_edges<'a>(
         medrecord: &'a MedRecord,
         node_indices: impl Iterator<Item = &'a NodeIndex> + 'a,
-        operand: EdgeOperandWrapper,
+        operand: Wrapper<EdgeOperand>,
     ) -> impl Iterator<Item = &'a NodeIndex> + 'a {
-        let edge_indices = operand.evaluate(medrecord).collect::<RoaringBitmap>();
+        let edge_indices = operand.evaluate(medrecord, None).collect::<RoaringBitmap>();
 
         node_indices.filter(move |node_index| {
             let outgoing_edge_indices = medrecord

@@ -1,49 +1,64 @@
 use crate::{
     medrecord::{
-        querying::{nodes::NodeOperandWrapper, values::ValuesOperandWrapper},
+        querying::{
+            evaluate::{EvaluateOperand, EvaluateOperandContext, EvaluateOperation},
+            nodes::NodeOperand,
+            wrapper::{OperandContext, Wrapper},
+        },
         EdgeIndex,
     },
     MedRecord,
 };
 use std::collections::HashSet;
 
+use super::values::EdgeValuesOperand;
+
 #[derive(Debug, Clone)]
 pub enum EdgeOperation {
     // If this operation is used, it is always the first operation of an operand.
-    OutgoingEdgesContext { operand: NodeOperandWrapper },
-    ConnectsTo { operand: NodeOperandWrapper },
+    OutgoingEdgesContext {
+        context: OperandContext<NodeOperand>,
+    },
 
-    Attribute { operand: ValuesOperandWrapper },
+    ConnectsTo {
+        operand: Wrapper<NodeOperand>,
+    },
+
+    Attribute {
+        operand: Wrapper<EdgeValuesOperand>,
+    },
 }
 
-impl EdgeOperation {
-    pub(crate) fn evaluate<'a>(
+impl EvaluateOperation for EdgeOperation {
+    type Index = EdgeIndex;
+
+    fn evaluate<'a>(
         &self,
         medrecord: &'a MedRecord,
-        edge_indices: impl Iterator<Item = &'a EdgeIndex> + 'a,
-    ) -> Box<dyn Iterator<Item = &'a EdgeIndex> + 'a> {
+        indices: impl Iterator<Item = &'a Self::Index> + 'a,
+    ) -> Box<dyn Iterator<Item = &'a Self::Index> + 'a> {
         match self {
-            Self::OutgoingEdgesContext { operand } => Box::new(
-                Self::evaluate_outgoing_edges_context(medrecord, operand.clone()),
+            Self::OutgoingEdgesContext { context } => Box::new(
+                Self::evaluate_outgoing_edges_context(medrecord, context.clone()),
             ),
             Self::ConnectsTo { operand } => Box::new(Self::evaluate_connects_to(
                 medrecord,
-                edge_indices,
+                indices,
                 operand.clone(),
             )),
-            Self::Attribute { operand } => Box::new(Self::evaluate_attribute(
-                medrecord,
-                edge_indices,
-                operand.clone(),
-            )),
+            Self::Attribute { operand } => {
+                Box::new(Self::evaluate_attribute(medrecord, operand.clone()))
+            }
         }
     }
+}
 
+impl EdgeOperation {
     fn evaluate_outgoing_edges_context(
         medrecord: &MedRecord,
-        operand: NodeOperandWrapper,
+        context: OperandContext<NodeOperand>,
     ) -> impl Iterator<Item = &EdgeIndex> {
-        let node_indices = operand.evaluate(medrecord);
+        let node_indices = context.evaluate(medrecord);
 
         node_indices.flat_map(|node_index| {
             let outgoing_edges = medrecord
@@ -57,9 +72,9 @@ impl EdgeOperation {
     fn evaluate_connects_to<'a>(
         medrecord: &'a MedRecord,
         edge_indices: impl Iterator<Item = &'a EdgeIndex>,
-        operand: NodeOperandWrapper,
+        operand: Wrapper<NodeOperand>,
     ) -> impl Iterator<Item = &'a EdgeIndex> {
-        let node_indices = operand.evaluate(medrecord).collect::<HashSet<_>>();
+        let node_indices = operand.evaluate(medrecord, None).collect::<HashSet<_>>();
 
         edge_indices.filter(move |edge_index| {
             let edge_endpoints = medrecord
@@ -70,12 +85,10 @@ impl EdgeOperation {
         })
     }
 
-    fn evaluate_attribute<'a>(
-        _medrecord: &'a MedRecord,
-        _edge_indices: impl Iterator<Item = &'a EdgeIndex>,
-        _operand: ValuesOperandWrapper,
-    ) -> impl Iterator<Item = &'a EdgeIndex> {
-        // TODO
-        Vec::new().into_iter()
+    fn evaluate_attribute(
+        medrecord: &MedRecord,
+        operand: Wrapper<EdgeValuesOperand>,
+    ) -> impl Iterator<Item = &EdgeIndex> {
+        operand.evaluate(medrecord, None)
     }
 }

@@ -18,8 +18,9 @@ use graph::Graph;
 use group_mapping::GroupMapping;
 use polars::{dataframe_to_edges, dataframe_to_nodes};
 use querying::{
-    edges::{EdgeOperandWrapper, EdgeSelection},
-    nodes::{NodeOperandWrapper, NodeSelection},
+    edges::{EdgeOperand, EdgeSelection},
+    nodes::{NodeOperand, NodeSelection},
+    wrapper::Wrapper,
 };
 use serde::{Deserialize, Serialize};
 use std::{fs, mem, path::Path};
@@ -706,14 +707,14 @@ impl MedRecord {
 
     pub fn select_nodes<Q>(&self, query: Q) -> NodeSelection
     where
-        Q: FnOnce(&mut NodeOperandWrapper),
+        Q: FnOnce(&mut Wrapper<NodeOperand>),
     {
         NodeSelection::new(self, query)
     }
 
     pub fn select_edges<Q>(&self, query: Q) -> EdgeSelection
     where
-        Q: FnOnce(&mut EdgeOperandWrapper),
+        Q: FnOnce(&mut Wrapper<EdgeOperand>),
     {
         EdgeSelection::new(self, query)
     }
@@ -1922,7 +1923,7 @@ mod test {
             (
                 "0".into(),
                 "1".into(),
-                HashMap::from([("time".into(), 6.into())]),
+                HashMap::from([("time".into(), 4.into())]),
             ),
             (
                 "0".into(),
@@ -1949,11 +1950,11 @@ mod test {
             edges_to_outcome
                 .connects_to(|node2| node2.in_group(MedRecordAttribute::from("outcome")));
 
-            // let max_time_edge = edges_to_treatment.attribute("time");
+            let max_time_edge = edges_to_treatment.attribute("time").max();
 
-            // max_time_edge.less_than(edges_to_outcome.attribute("time"));
+            max_time_edge.less_than(edges_to_outcome.attribute("time"));
         });
 
-        println!("{:?}", nodes.collect::<Vec<_>>());
+        println!("\n{:?}", nodes.collect::<Vec<_>>());
     }
 }
