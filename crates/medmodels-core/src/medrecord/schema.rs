@@ -8,7 +8,47 @@ use crate::{
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 
-type AttributeSchema = HashMap<MedRecordAttribute, DataType>;
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+pub enum AttributeType {
+    Categorical,
+    Continuous,
+    Temporal,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+pub struct AttributeDataType {
+    pub data_type: DataType,
+    pub attribute_type: Option<AttributeType>,
+}
+
+impl AttributeDataType {
+    pub fn new(data_type: DataType, attribute_type: Option<AttributeType>) -> Self {
+        Self {
+            data_type,
+            attribute_type,
+        }
+    }
+}
+
+impl From<DataType> for AttributeDataType {
+    fn from(value: DataType) -> Self {
+        Self {
+            data_type: value,
+            attribute_type: None,
+        }
+    }
+}
+
+impl From<(DataType, AttributeType)> for AttributeDataType {
+    fn from(value: (DataType, AttributeType)) -> Self {
+        Self {
+            data_type: value.0,
+            attribute_type: Some(value.1),
+        }
+    }
+}
+
+type AttributeSchema = HashMap<MedRecordAttribute, AttributeDataType>;
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct GroupSchema {
@@ -34,15 +74,15 @@ impl GroupSchema {
         for (key, schema) in &self.nodes {
             let value = attributes.get(key).ok_or(GraphError::SchemaError(format!(
                 "Attribute {} of type {} not found on node with index {}",
-                key, schema, index
+                key, schema.data_type, index
             )))?;
 
             let data_type = DataType::from(value);
 
-            if !schema.evaluate(&data_type) {
+            if !schema.data_type.evaluate(&data_type) {
                 return Err(GraphError::SchemaError(format!(
                     "Attribute {} of node with index {} is of type {}. Expected {}.",
-                    key, index, data_type, schema
+                    key, index, data_type, schema.data_type
                 )));
             }
         }
@@ -89,15 +129,15 @@ impl GroupSchema {
         for (key, schema) in &self.edges {
             let value = attributes.get(key).ok_or(GraphError::SchemaError(format!(
                 "Attribute {} of type {} not found on edge with index {}",
-                key, schema, index
+                key, schema.data_type, index
             )))?;
 
             let data_type = DataType::from(value);
 
-            if !schema.evaluate(&data_type) {
+            if !schema.data_type.evaluate(&data_type) {
                 return Err(GraphError::SchemaError(format!(
                     "Attribute {} of edge with index {} is of type {}. Expected {}.",
-                    key, index, data_type, schema
+                    key, index, data_type, schema.data_type
                 )));
             }
         }
@@ -226,7 +266,7 @@ mod test {
         let strict_schema = Schema {
             groups: Default::default(),
             default: Some(GroupSchema {
-                nodes: HashMap::from([("attribute".into(), DataType::Int)]),
+                nodes: HashMap::from([("attribute".into(), DataType::Int.into())]),
                 edges: Default::default(),
                 strict: None,
             }),
@@ -235,7 +275,7 @@ mod test {
         let second_strict_schema = Schema {
             groups: Default::default(),
             default: Some(GroupSchema {
-                nodes: HashMap::from([("attribute".into(), DataType::Int)]),
+                nodes: HashMap::from([("attribute".into(), DataType::Int.into())]),
                 edges: Default::default(),
                 strict: Some(true),
             }),
@@ -244,7 +284,7 @@ mod test {
         let non_strict_schema = Schema {
             groups: Default::default(),
             default: Some(GroupSchema {
-                nodes: HashMap::from([("attribute".into(), DataType::Int)]),
+                nodes: HashMap::from([("attribute".into(), DataType::Int.into())]),
                 edges: Default::default(),
                 strict: None,
             }),
@@ -253,7 +293,7 @@ mod test {
         let second_non_strict_schema = Schema {
             groups: Default::default(),
             default: Some(GroupSchema {
-                nodes: HashMap::from([("attribute".into(), DataType::Int)]),
+                nodes: HashMap::from([("attribute".into(), DataType::Int.into())]),
                 edges: Default::default(),
                 strict: Some(false),
             }),
@@ -318,7 +358,7 @@ mod test {
             groups: HashMap::from([(
                 "group".into(),
                 GroupSchema {
-                    nodes: HashMap::from([("attribute".into(), DataType::Int)]),
+                    nodes: HashMap::from([("attribute".into(), DataType::Int.into())]),
                     edges: Default::default(),
                     strict: None,
                 },
@@ -330,7 +370,7 @@ mod test {
             groups: HashMap::from([(
                 "group".into(),
                 GroupSchema {
-                    nodes: HashMap::from([("attribute".into(), DataType::Int)]),
+                    nodes: HashMap::from([("attribute".into(), DataType::Int.into())]),
                     edges: Default::default(),
                     strict: Some(true),
                 },
@@ -342,7 +382,7 @@ mod test {
             groups: HashMap::from([(
                 "group".into(),
                 GroupSchema {
-                    nodes: HashMap::from([("attribute".into(), DataType::Int)]),
+                    nodes: HashMap::from([("attribute".into(), DataType::Int.into())]),
                     edges: Default::default(),
                     strict: None,
                 },
@@ -354,7 +394,7 @@ mod test {
             groups: HashMap::from([(
                 "group".into(),
                 GroupSchema {
-                    nodes: HashMap::from([("attribute".into(), DataType::Int)]),
+                    nodes: HashMap::from([("attribute".into(), DataType::Int.into())]),
                     edges: Default::default(),
                     strict: Some(false),
                 },
@@ -410,7 +450,7 @@ mod test {
             groups: Default::default(),
             default: Some(GroupSchema {
                 nodes: Default::default(),
-                edges: HashMap::from([("attribute".into(), DataType::Int)]),
+                edges: HashMap::from([("attribute".into(), DataType::Int.into())]),
                 strict: None,
             }),
             strict: Some(true),
@@ -419,7 +459,7 @@ mod test {
             groups: Default::default(),
             default: Some(GroupSchema {
                 nodes: Default::default(),
-                edges: HashMap::from([("attribute".into(), DataType::Int)]),
+                edges: HashMap::from([("attribute".into(), DataType::Int.into())]),
                 strict: Some(true),
             }),
             strict: Some(false),
@@ -428,7 +468,7 @@ mod test {
             groups: Default::default(),
             default: Some(GroupSchema {
                 nodes: Default::default(),
-                edges: HashMap::from([("attribute".into(), DataType::Int)]),
+                edges: HashMap::from([("attribute".into(), DataType::Int.into())]),
                 strict: None,
             }),
             strict: Some(false),
@@ -437,7 +477,7 @@ mod test {
             groups: Default::default(),
             default: Some(GroupSchema {
                 nodes: Default::default(),
-                edges: HashMap::from([("attribute".into(), DataType::Int)]),
+                edges: HashMap::from([("attribute".into(), DataType::Int.into())]),
                 strict: Some(false),
             }),
             strict: Some(true),
@@ -502,7 +542,7 @@ mod test {
                 "group".into(),
                 GroupSchema {
                     nodes: Default::default(),
-                    edges: HashMap::from([("attribute".into(), DataType::Int)]),
+                    edges: HashMap::from([("attribute".into(), DataType::Int.into())]),
                     strict: None,
                 },
             )]),
@@ -514,7 +554,7 @@ mod test {
                 "group".into(),
                 GroupSchema {
                     nodes: Default::default(),
-                    edges: HashMap::from([("attribute".into(), DataType::Int)]),
+                    edges: HashMap::from([("attribute".into(), DataType::Int.into())]),
                     strict: Some(true),
                 },
             )]),
@@ -526,7 +566,7 @@ mod test {
                 "group".into(),
                 GroupSchema {
                     nodes: Default::default(),
-                    edges: HashMap::from([("attribute".into(), DataType::Int)]),
+                    edges: HashMap::from([("attribute".into(), DataType::Int.into())]),
                     strict: None,
                 },
             )]),
@@ -538,7 +578,7 @@ mod test {
                 "group".into(),
                 GroupSchema {
                     nodes: Default::default(),
-                    edges: HashMap::from([("attribute".into(), DataType::Int)]),
+                    edges: HashMap::from([("attribute".into(), DataType::Int.into())]),
                     strict: Some(false),
                 },
             )]),
