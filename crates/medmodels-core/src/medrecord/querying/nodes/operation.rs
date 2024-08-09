@@ -6,8 +6,9 @@ use crate::medrecord::{
     querying::{
         edges::EdgeOperand,
         evaluate::{EvaluateOperand, EvaluateOperation},
+        traits::DeepClone,
         values::ComparisonOperand,
-        wrapper::{CardinalityWrapper, DeepClone, Wrapper},
+        wrapper::{CardinalityWrapper, Wrapper},
     },
     Group, MedRecord, NodeIndex,
 };
@@ -99,6 +100,21 @@ pub enum NodeValuesOperation {
     Max { operand: Wrapper<NodeValueOperand> },
 }
 
+impl EvaluateOperation for NodeValuesOperation {
+    type Index = NodeIndex;
+
+    fn evaluate<'a>(
+        &self,
+        _medrecord: &'a MedRecord,
+        indices: impl Iterator<Item = &'a Self::Index> + 'a,
+    ) -> Box<dyn Iterator<Item = &'a Self::Index> + 'a> {
+        match self {
+            // TODO
+            Self::Max { operand: _operand } => Box::new(indices),
+        }
+    }
+}
+
 impl DeepClone for NodeValuesOperation {
     fn deep_clone(&self) -> Self {
         match self {
@@ -112,6 +128,21 @@ impl DeepClone for NodeValuesOperation {
 #[derive(Debug, Clone)]
 pub enum NodeValueOperation {
     LessThan { operand: ComparisonOperand },
+}
+
+impl EvaluateOperation for NodeValueOperation {
+    type Index = NodeIndex;
+
+    fn evaluate<'a>(
+        &self,
+        _medrecord: &'a MedRecord,
+        indices: impl Iterator<Item = &'a Self::Index> + 'a,
+    ) -> Box<dyn Iterator<Item = &'a Self::Index> + 'a> {
+        match self {
+            // TODO
+            Self::LessThan { operand: _operand } => Box::new(indices),
+        }
+    }
 }
 
 impl DeepClone for NodeValueOperation {

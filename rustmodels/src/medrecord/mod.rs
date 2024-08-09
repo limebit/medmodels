@@ -1,6 +1,7 @@
 mod attribute;
 pub mod datatype;
 mod errors;
+pub mod querying;
 pub mod schema;
 mod traits;
 mod value;
@@ -12,8 +13,9 @@ use medmodels_core::{
     errors::MedRecordError,
     medrecord::{Attributes, EdgeIndex, MedRecord, MedRecordAttribute, MedRecordValue},
 };
-use pyo3::prelude::*;
+use pyo3::{prelude::*, types::PyFunction};
 use pyo3_polars::PyDataFrame;
+use querying::PyNodeOperand;
 use schema::PySchema;
 use std::collections::HashMap;
 use traits::DeepInto;
@@ -666,5 +668,17 @@ impl PyMedRecord {
 
     fn clear(&mut self) {
         self.0.clear();
+    }
+
+    fn select_nodes(&self, query: &Bound<'_, PyFunction>) -> Vec<PyNodeIndex> {
+        self.0
+            .select_nodes(|node| {
+                query
+                    .call1((PyNodeOperand::from(node.clone()),))
+                    .expect("Operation must succeed");
+            })
+            .iter()
+            .map(|node_index| node_index.clone().into())
+            .collect()
     }
 }

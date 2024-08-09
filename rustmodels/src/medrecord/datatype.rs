@@ -47,7 +47,7 @@ impl DeepFrom<DataType> for PyDataType {
 
 static DATATYPE_CONVERSION_LUT: Lut<DataType> = GILHashMap::new();
 
-pub(crate) fn convert_pyobject_to_datatype(ob: &Bound<'_, pyo3::PyAny>) -> PyResult<DataType> {
+pub fn convert_pyobject_to_datatype(ob: &Bound<'_, pyo3::PyAny>) -> PyResult<DataType> {
     fn convert_string(_ob: &Bound<'_, pyo3::PyAny>) -> PyResult<DataType> {
         Ok(DataType::String)
     }

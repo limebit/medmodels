@@ -4,8 +4,9 @@ use crate::{
         querying::{
             evaluate::{EvaluateOperand, EvaluateOperation},
             nodes::NodeOperand,
+            traits::{DeepClone, ReadWriteOrPanic},
             values::{ComparisonOperand, ValuesOperand},
-            wrapper::{DeepClone, Wrapper},
+            wrapper::Wrapper,
         },
         EdgeIndex, MedRecordAttribute,
     },
@@ -246,7 +247,7 @@ impl EdgeValueOperation {
         };
 
         let comparison_edge_indices = operand.evaluate(medrecord);
-        let comparison_attribute = operand.0.borrow().attribute.clone();
+        let comparison_attribute = operand.0.read_or_panic().attribute.clone();
 
         let comparison_values = comparison_edge_indices.filter_map(|edge_index| {
             medrecord

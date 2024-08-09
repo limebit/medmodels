@@ -7,14 +7,15 @@ use crate::{
         querying::{
             evaluate::{EvaluateOperand, EvaluateOperation},
             nodes::NodeOperand,
+            traits::{DeepClone, ReadWriteOrPanic},
             values::ComparisonOperand,
-            wrapper::{DeepClone, Wrapper},
+            wrapper::Wrapper,
         },
         EdgeIndex, MedRecordAttribute,
     },
     MedRecord,
 };
-use std::{cell::RefCell, fmt::Debug, rc::Rc};
+use std::fmt::Debug;
 
 #[derive(Debug, Clone)]
 pub struct EdgeOperand {
@@ -84,21 +85,21 @@ impl EdgeOperand {
 
 impl Wrapper<EdgeOperand> {
     pub(crate) fn new() -> Self {
-        Self(Rc::new(RefCell::new(EdgeOperand::new())))
+        EdgeOperand::new().into()
     }
 
     pub fn connects_to<Q>(&self, query: Q)
     where
         Q: FnOnce(&mut Wrapper<NodeOperand>),
     {
-        self.0.borrow_mut().connects_to(query);
+        self.0.write_or_panic().connects_to(query);
     }
 
     pub fn attribute<A>(&self, attribute: A) -> Wrapper<EdgeValuesOperand>
     where
         A: Into<MedRecordAttribute>,
     {
-        self.0.borrow_mut().attribute(attribute.into())
+        self.0.write_or_panic().attribute(attribute.into())
     }
 }
 
@@ -171,13 +172,11 @@ impl EdgeValuesOperand {
 
 impl Wrapper<EdgeValuesOperand> {
     pub(crate) fn new(context: EdgeOperand, attribute: MedRecordAttribute) -> Self {
-        Self(Rc::new(RefCell::new(EdgeValuesOperand::new(
-            context, attribute,
-        ))))
+        EdgeValuesOperand::new(context, attribute).into()
     }
 
     pub fn max(&self) -> Wrapper<EdgeValueOperand> {
-        self.0.borrow_mut().max()
+        self.0.write_or_panic().max()
     }
 }
 #[derive(Debug, Clone)]
@@ -217,7 +216,7 @@ impl DeepClone for EdgeValueOperand {
 }
 
 impl EdgeValueOperand {
-    pub fn new(attribute: MedRecordAttribute) -> Self {
+    pub(crate) fn new(attribute: MedRecordAttribute) -> Self {
         Self {
             attribute,
             operations: Vec::new(),
@@ -234,13 +233,13 @@ impl EdgeValueOperand {
 
 impl Wrapper<EdgeValueOperand> {
     pub(crate) fn new(attribute: MedRecordAttribute) -> Self {
-        Self(Rc::new(RefCell::new(EdgeValueOperand::new(attribute))))
+        EdgeValueOperand::new(attribute).into()
     }
 
     pub fn less_than<O>(&self, comparison: O)
     where
         O: Into<ComparisonOperand>,
     {
-        self.0.borrow_mut().less_than(comparison.into());
+        self.0.write_or_panic().less_than(comparison.into());
     }
 }

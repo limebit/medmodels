@@ -1,18 +1,17 @@
-use super::evaluate::EvaluateOperand;
+use super::{
+    evaluate::EvaluateOperand,
+    traits::{DeepClone, ReadWriteOrPanic},
+};
 use crate::MedRecord;
-use std::{cell::RefCell, rc::Rc};
-
-pub(crate) trait DeepClone {
-    fn deep_clone(&self) -> Self;
-}
+use std::sync::{Arc, RwLock};
 
 #[repr(transparent)]
 #[derive(Debug, Clone)]
-pub struct Wrapper<T>(pub(crate) Rc<RefCell<T>>);
+pub struct Wrapper<T>(pub(crate) Arc<RwLock<T>>);
 
 impl<T> From<T> for Wrapper<T> {
     fn from(value: T) -> Self {
-        Self(Rc::new(RefCell::new(value)))
+        Self(Arc::new(RwLock::new(value)))
     }
 }
 
@@ -26,7 +25,7 @@ where
         &self,
         medrecord: &'a MedRecord,
     ) -> Box<dyn Iterator<Item = &'a Self::Index> + 'a> {
-        self.0.borrow().evaluate(medrecord)
+        self.0.read_or_panic().evaluate(medrecord)
     }
 }
 
@@ -35,7 +34,7 @@ where
     T: DeepClone,
 {
     fn deep_clone(&self) -> Self {
-        self.0.borrow().deep_clone().into()
+        self.0.read_or_panic().deep_clone().into()
     }
 }
 

@@ -10,6 +10,12 @@ pub use self::{
     datatypes::{DataType, MedRecordAttribute, MedRecordValue},
     graph::{Attributes, EdgeIndex, NodeIndex},
     group_mapping::Group,
+    querying::{
+        edges::{EdgeOperand, EdgeValueOperand, EdgeValuesOperand},
+        nodes::{NodeOperand, NodeValueOperand, NodeValuesOperand},
+        values::{ComparisonOperand, ValueOperand, ValuesOperand},
+        wrapper::{CardinalityWrapper, Wrapper},
+    },
     schema::{AttributeDataType, AttributeType, GroupSchema, Schema},
 };
 use crate::errors::MedRecordError;
@@ -17,11 +23,7 @@ use ::polars::frame::DataFrame;
 use graph::Graph;
 use group_mapping::GroupMapping;
 use polars::{dataframe_to_edges, dataframe_to_nodes};
-use querying::{
-    edges::{EdgeOperand, EdgeSelection},
-    nodes::{NodeOperand, NodeSelection},
-    wrapper::Wrapper,
-};
+use querying::{edges::EdgeSelection, nodes::NodeSelection};
 use serde::{Deserialize, Serialize};
 use std::{fs, mem, path::Path};
 

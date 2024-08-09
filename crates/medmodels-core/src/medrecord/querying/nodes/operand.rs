@@ -7,13 +7,14 @@ use crate::{
         querying::{
             edges::{EdgeOperand, EdgeOperation},
             evaluate::{EvaluateOperand, EvaluateOperation},
-            wrapper::{CardinalityWrapper, DeepClone, Wrapper},
+            traits::{DeepClone, ReadWriteOrPanic},
+            wrapper::{CardinalityWrapper, Wrapper},
         },
         Group, MedRecordAttribute, NodeIndex,
     },
     MedRecord,
 };
-use std::{cell::RefCell, fmt::Debug, rc::Rc};
+use std::fmt::Debug;
 
 #[derive(Debug, Clone)]
 pub struct NodeOperand {
@@ -87,18 +88,18 @@ impl NodeOperand {
 
 impl Wrapper<NodeOperand> {
     pub(crate) fn new() -> Self {
-        Self(Rc::new(RefCell::new(NodeOperand::new())))
+        NodeOperand::new().into()
     }
 
     pub fn in_group<G>(&mut self, group: G)
     where
         G: Into<CardinalityWrapper<Group>>,
     {
-        self.0.borrow_mut().in_group(group);
+        self.0.write_or_panic().in_group(group);
     }
 
     pub fn outgoing_edges(&mut self) -> Wrapper<EdgeOperand> {
-        self.0.borrow_mut().outgoing_edges()
+        self.0.write_or_panic().outgoing_edges()
     }
 }
 
@@ -116,8 +117,13 @@ impl EvaluateOperand for NodeValuesOperand {
         &self,
         medrecord: &'a MedRecord,
     ) -> Box<dyn Iterator<Item = &'a Self::Index> + 'a> {
-        self.context.evaluate(medrecord)
-        // TODO
+        let node_indices = self.context.evaluate(medrecord);
+
+        self.operations
+            .iter()
+            .fold(Box::new(node_indices), |node_indices, operation| {
+                operation.evaluate(medrecord, node_indices)
+            })
     }
 }
 
@@ -147,9 +153,7 @@ impl NodeValuesOperand {
 
 impl Wrapper<NodeValuesOperand> {
     pub(crate) fn new(context: Wrapper<NodeOperand>, attribute: MedRecordAttribute) -> Self {
-        Self(Rc::new(RefCell::new(NodeValuesOperand::new(
-            context, attribute,
-        ))))
+        NodeValuesOperand::new(context, attribute).into()
     }
 }
 
@@ -183,6 +187,6 @@ impl NodeValueOperand {
 
 impl Wrapper<NodeValueOperand> {
     pub(crate) fn new(context: Wrapper<NodeValuesOperand>) -> Self {
-        Self(Rc::new(RefCell::new(NodeValueOperand::new(context))))
+        NodeValueOperand::new(context).into()
     }
 }

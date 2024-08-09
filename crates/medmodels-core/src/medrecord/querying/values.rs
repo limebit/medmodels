@@ -1,7 +1,8 @@
 use super::{
     edges::{EdgeValueOperand, EdgeValuesOperand},
     nodes::{NodeValueOperand, NodeValuesOperand},
-    wrapper::{DeepClone, Wrapper},
+    traits::{DeepClone, ReadWriteOrPanic},
+    wrapper::Wrapper,
 };
 use crate::medrecord::MedRecordValue;
 
@@ -62,7 +63,7 @@ impl From<Wrapper<NodeValuesOperand>> for ComparisonOperand {
 
 impl From<Wrapper<EdgeValuesOperand>> for ComparisonOperand {
     fn from(value: Wrapper<EdgeValuesOperand>) -> Self {
-        Self::Multiple(ValuesOperand::Edges(value.0.borrow().clone().into()))
+        Self::Multiple(ValuesOperand::Edges(value.0.read_or_panic().clone().into()))
     }
 }
 
