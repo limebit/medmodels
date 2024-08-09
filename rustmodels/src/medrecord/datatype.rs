@@ -155,7 +155,7 @@ impl IntoPy<PyObject> for PyDataType {
             DataType::Union((dtype1, dtype2)) => {
                 PyUnion(((*dtype1).into(), (*dtype2).into())).into_py(py)
             }
-            DataType::Option(_) => todo!(),
+            DataType::Option(dtype) => PyOption((*dtype).into()).into_py(py),
         }
     }
 }
@@ -197,6 +197,16 @@ impl PyUnion {
     fn new(dtype1: PyDataType, dtype2: PyDataType) -> Self {
         Self((dtype1, dtype2))
     }
+
+    #[getter]
+    fn dtype1(&self) -> PyDataType {
+        self.0 .0.clone()
+    }
+
+    #[getter]
+    fn dtype2(&self) -> PyDataType {
+        self.0 .1.clone()
+    }
 }
 
 #[pyclass]
@@ -207,5 +217,10 @@ impl PyOption {
     #[new]
     fn new(dtype: PyDataType) -> Self {
         Self(dtype)
+    }
+
+    #[getter]
+    fn dtype(&self) -> PyDataType {
+        self.0.clone()
     }
 }

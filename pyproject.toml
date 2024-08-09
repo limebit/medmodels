@@ -34,14 +34,15 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+tests = ["pytest>=8.2.2", "coverage>=7.6.1"]
 dev = [
+    "medmodels[tests]",
     "maturin>=1.6.0",
     "ruff>=0.4.9",
     "py-spy",
     "pyright>=1.1.370,<1.1.374",
     "pandas-stubs>=2.2.2.240603",
 ]
-tests = ["pytest>=8.2.2"]
 
 [build-system]
 requires = ["maturin>=1.6.0", "setuptools"]
