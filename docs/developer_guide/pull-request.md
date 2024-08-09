@@ -21,9 +21,7 @@ Once you've made your changes to the MedModels codebase and are ready to share t
 
 **2. Create a Pull Request:**
 
-- Navigate to the MedModels repository on GitHub and go to the "Pull requests" tab.
-- Click on the green "New pull request" button.
-- Select the branch containing your changes from the "head" branch dropdown.
+- Navigate to the [MedModels pull requests](https://github.com/limebit/medmodels/pulls) and create a new PR.
 - Choose the branch you want your changes merged into from the "base" branch dropdown (usually the `main` branch).
 - Provide a clear and descriptive title for your pull request that reflects the changes you made.
   - The title should follow the Conventional Commits type (e.g., "feat: Add support for new image format").

@@ -90,10 +90,6 @@ exclude = [
 ]
 line-length = 88
 
-
-[tool.ruff.lint.pydocstyle]
-convention = "google"
-
 [tool.pyright]
 typeCheckingMode = "strict"
 reportPrivateUsage = false

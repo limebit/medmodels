@@ -24,6 +24,10 @@ install-tests: prepare-venv
 	${VENV_PYTHON} -m pip install -U pip
 	${VENV_PYTHON} -m pip install -e .\[tests\]
 
+install-docs: prepare-venv
+	${VENV_PYTHON} -m pip install -U pip
+	${VENV_PYTHON} -m pip install -e .\[docs\]
+
 build-dev: install-dev
 	${VENV_PYTHON} -m maturin develop
 
@@ -31,10 +35,10 @@ test: install-tests
 	${VENV_PYTHON} -m pytest -W error
 	cargo test
 
-docs: install-dev
+docs: install-docs
 	$(MAKE) -C docs html
 
-docs-serve: install-dev
+docs-serve: install-docs
 	$(MAKE) -C docs serve VENV_PYTHON=$(CURDIR)/$(VENV_PYTHON)
 
 docs-clean:
