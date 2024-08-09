@@ -32,8 +32,5 @@ Once you've made your changes to the MedModels codebase and are ready to share t
 **3. Address Feedback and Merge:**
 
 - Once submitted, reviewers may provide feedback or request changes. Address these comments and make any necessary adjustments to your code.
-- After receiving approval from reviewers, you can merge your pull request into the main branch.
+- After receiving approval from reviewers, admins can merge your pull request into the main branch.
 
-**Using Conventional Commits effectively helps maintain a clear and organized commit history for the project.**
-
-By following these steps and adhering to the Conventional Commits standard, you'll ensure a smooth pull request experience for yourself and the MedModels maintainers.

@@ -288,5 +288,3 @@ def example_function(param1, param2):
         ValueError: If `param1` is not an integer.
     """
 ```
-
-By following these guidelines, you will ensure that the documentation for the `MedModels` package is clear, consistent, and helpful for users and developers alike.

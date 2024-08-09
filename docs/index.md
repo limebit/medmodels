@@ -42,7 +42,7 @@ developer_guide/index
 
 ```
 
-The MedModels documentation space serves as a one-stop shop for learning about the package. It offers comprehensive API descriptions alongside a detailed user guide to equip you with the knowledge to leverage its functionalities effectively.
+The MedModels documentation is your go-to resource for exploring the package. It offers complete API descriptions and a detailed user guide, giving you everything you need to effectively utilize its features.
 
 ````{div} sd-d-flex-row
 

@@ -24,10 +24,6 @@ install-tests: prepare-venv
 	${VENV_PYTHON} -m pip install -U pip
 	${VENV_PYTHON} -m pip install -e .\[tests\]
 
-install-all: prepare-venv
-	${VENV_PYTHON} -m pip install -U pip
-	${VENV_PYTHON} -m pip install -e .\[all\]
-
 build-dev: install-dev
 	${VENV_PYTHON} -m maturin develop
 
@@ -35,11 +31,11 @@ test: install-tests
 	${VENV_PYTHON} -m pytest -W error
 	cargo test
 
-docs: install-all
+docs: install-dev
 	$(MAKE) -C docs html
 
-docs-serve: install-all
-	$(VENV_PYTHON) docs/run_live_docs_server.py
+docs-serve: install-dev
+	$(MAKE) -C docs serve VENV_PYTHON=$(CURDIR)/$(VENV_PYTHON)
 
 docs-clean:
 	$(MAKE) -C docs clean
@@ -56,7 +52,7 @@ format: install-dev
 	cargo fmt
 	cargo clippy --all-features --fix --allow-staged
 
-clean:
+clean: docs-clean
 	rm -rf $(VENV_NAME)
 	rm -rf .pytest_cache
 	rm -rf .ruff_cache

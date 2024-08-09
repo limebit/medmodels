@@ -39,22 +39,23 @@ dev = [
     "ruff>=0.4.9",
     "py-spy",
     "pyright>=1.1.370,<1.1.374",
-    "pandas-stubs>=2.2.2.240603"
+    "pandas-stubs>=2.2.2.240603",
+    "medmodels[docs, tests]",
 ]
 
 docs = [
     "sphinx>=7",
-    "sphinx-design",
+    "sphinx-design==0.6.0",
     "sphinx-copybutton",
     "sphinxext-opengraph~=0.9.0",
-    "sphinx-pyscript",
+    "sphinx-pyscript==0.1.0",
     "sphinx-tippy>=0.4.3",
-    "sphinx-togglebutton",
+    "sphinx-togglebutton==0.3.2",
     "linkify-it-py>=2.0.0",
     "autodocsumm==0.2.12",
     "pydata-sphinx-theme==0.15.4",
     "sphinx-autosummary-accessors==2023.4.0",
-    "sphinx-autodoc-typehints",
+    "sphinx-autodoc-typehints==2.2.3",
     "sphinx-copybutton==0.5.2",
     "sphinx-design==0.6.0",
     "sphinx-favicon==1.0.1",
@@ -62,14 +63,10 @@ docs = [
     "sphinx-toolbox==3.6.0",
     "myst-parser==3.0.1",
     "livereload==2.7.0",
-    "sphinx-multiversion==0.2.4"
+    "sphinx-multiversion==0.2.4",
 ]
 
 tests = ["pytest>=8.2.2"]
-
-all = [
-    "medmodels[dev, docs, tests]"
-]
 
 [build-system]
 requires = ["maturin>=1.6.0", "setuptools"]
@@ -89,20 +86,10 @@ exclude = [
     ".pytest_cache",
     ".ruff_cache",
     ".venv",
-    "docs"
+    "docs",
 ]
 line-length = 88
 
-[tool.ruff.lint]
-extend-select = ["D"]
-ignore = [
-    # no-lint missing docs for public module
-    "D100",
-    # no-lint missing docs for public package
-    "D104",
-    # no-lint missing docs for public __init__
-    "D107",
-]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"

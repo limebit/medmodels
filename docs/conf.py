@@ -1,5 +1,3 @@
-"""Sphinx configuration file."""
-
 import sys
 from datetime import date
 from pathlib import Path
@@ -7,24 +5,16 @@ from pathlib import Path
 from myst_parser import __version__
 from sphinx.application import Sphinx
 
-
-# -- Path setup --------------------------------------------------------------
-
-# If extensions (or modules to document with autodoc) are in another directory,
-# add these directories to sys.path here.
+# Add parent directory to sys.path for autodoc
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-# -- Project information -----------------------------------------------------
-# https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
-
+# Project information
 project = "medmodels"
 author = "Limebit GmbH"
 copyright = f"{date.today().year}, {author}"
 version = __version__
 
-# -- General configuration ---------------------------------------------------
-# https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
-
+# General configuration
 extensions = [
     "sphinx.ext.napoleon",
     "myst_parser",
@@ -41,38 +31,23 @@ extensions = [
     "sphinx.ext.extlinks",
 ]
 
-exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
+exclude_patterns = ["_build"]
 extlinks = {
     "doi": ("https://doi.org/%s", "DOI: %s"),
-    "gh-issue": (
-        "https://github.com/limebit/medmodels/issues/%s",
-        "issue #%s",
-    ),
+    "gh-issue": ("https://github.com/limebit/medmodels/issues/%s", "issue #%s"),
     "gh-user": ("https://github.com/%s", "@%s"),
 }
 
 suppress_warnings = ["myst.strikethrough"]
+overloads_location = ["bottom"]  # Hide overload type signatures
 
-# Hide overload type signatures
-# sphinx_toolbox - Box of handy tools for Sphinx
-# https://sphinx-toolbox.readthedocs.io/en/latest/
-overloads_location = ["bottom"]
-
-# -- Extension settings  -----------------------------------------------------
-
-# # Sphinx-copybutton - add copy button to code blocks
-# # https://sphinx-copybutton.readthedocs.io/en/latest/index.html
-# # strip the '>>>' and '...' prompt/continuation prefixes.
+# Extension settings
 copybutton_prompt_text = r">>> |\.\.\. "
 copybutton_prompt_is_regexp = True
 
-# Support for markdown
-source_suffix = {
-    ".rst": "restructuredtext",
-    ".md": "markdown",
-}
+source_suffix = {".rst": "restructuredtext", ".md": "markdown"}
 
-# Napoleon settings (Support for Google Style DocStrings)
+# Napoleon settings
 napoleon_google_docstring = True
 napoleon_numpy_docstring = False
 napoleon_include_init_with_doc = False
@@ -87,7 +62,7 @@ napoleon_use_rtype = False
 napoleon_preprocess_types = False
 napoleon_attr_annotations = True
 
-# Auto Doc settings
+# AutoDoc settings
 autodoc_default_options = {
     "members": True,
     "undoc-members": False,
@@ -96,37 +71,21 @@ autodoc_default_options = {
     "show-inheritance": True,
 }
 
-
 autosummary_generate = True
 autosummary_imported_members = False
 add_module_names = False
 autodoc_typehints = "signature"
 autodoc_typehints_format = "short"
 
-# -- MyST settings ---------------------------------------------------
-
+# MyST settings
 myst_enable_extensions = [
-    "dollarmath",
-    "amsmath",
-    "deflist",
-    "fieldlist",
-    "html_admonition",
-    "html_image",
-    "colon_fence",
-    "smartquotes",
-    "replacements",
-    "linkify",
-    "strikethrough",
-    "substitution",
-    "tasklist",
-    "attrs_inline",
-    "attrs_block",
+    "dollarmath", "amsmath", "deflist", "fieldlist", "html_admonition",
+    "html_image", "colon_fence", "smartquotes", "replacements", "linkify",
+    "strikethrough", "substitution", "tasklist", "attrs_inline", "attrs_block",
 ]
+
 myst_url_schemes = {
-    "http": None,
-    "https": None,
-    "mailto": None,
-    "ftp": None,
+    "http": None, "https": None, "mailto": None, "ftp": None,
     "wiki": "https://en.wikipedia.org/wiki/{{path}}#{{fragment}}",
     "doi": "https://doi.org/{{path}}",
     "gh-pr": {
@@ -145,6 +104,7 @@ myst_url_schemes = {
         "classes": ["github"],
     },
 }
+
 myst_number_code_blocks = ["typescript"]
 myst_heading_anchors = 3
 myst_footnote_transition = True
@@ -155,9 +115,7 @@ myst_substitutions = {
     "directive": "[directive](#syntax/directives)",
 }
 
-
-# -- Options for HTML output -------------------------------------------------
-
+# HTML output options
 html_theme = "pydata_sphinx_theme"
 html_logo = "https://raw.githubusercontent.com/limebit/medmodels-static/main/logos/logo_color.svg"
 html_favicon = "https://raw.githubusercontent.com/limebit/medmodels-static/main/icons/favicon-32x32.png"
@@ -186,35 +144,22 @@ html_context = {
     "default_mode": "dark",
 }
 
-# Add any paths that contain custom static files (such as style sheets) here,
-# relative to this directory. They are copied after the builtin static files,
-# so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ["_static"]
 html_css_files = ["local.css"]
 
 tippy_skip_anchor_classes = ("headerlink", "sd-stretched-link", "sd-rounded-pill")
 tippy_anchor_parent_selector = "article.bd-article"
 
-# -- LaTeX output -------------------------------------------------
-
+# LaTeX output
 latex_engine = "xelatex"
 
-
-# -- Local Sphinx extensions -------------------------------------------------
-
-
+# Local Sphinx extensions
 def setup(app: Sphinx):
-    """Add functions to the Sphinx setup."""
+    """Add custom directives and transformations to Sphinx."""
     from myst_parser._docs import (
-        DirectiveDoc,
-        DocutilsCliHelpDirective,
-        MystAdmonitionDirective,
-        MystConfigDirective,
-        MystExampleDirective,
-        MystLexer,
-        MystToHTMLDirective,
-        MystWarningsDirective,
-        NumberSections,
+        DirectiveDoc, DocutilsCliHelpDirective, MystAdmonitionDirective,
+        MystConfigDirective, MystExampleDirective, MystLexer,
+        MystToHTMLDirective, MystWarningsDirective, NumberSections,
         StripUnsupportedLatex,
     )
 

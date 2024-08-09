@@ -13,12 +13,14 @@ MedModels leverages a combination of Python and Rust code. To contribute effecti
 
 MedModels utilizes a `Makefile` to manage development tasks. Here's a breakdown of the available commands and their functionalities:
 
-- **prepare-venv:** Creates a virtual environment named `.venv` if it doesn't already exist.
 - **install:** Sets up the virtual environment and installs the project in editable mode (meaning changes to the code are reflected without needing to reinstall).
 - **install-dev:** Similar to `install`, but additionally installs development dependencies needed for running tests, linting, and code formatting.
 - **install-tests:** Creates the virtual environment and installs the project along with its testing dependencies.
 - **build-dev:** Installs Rust dependencies (using `maturin develop`).
 - **test:** Runs both Python (using `pytest`) and Rust unit tests (using `cargo test`).
+- **docs** Builds the docs using `sphinx`.
+- **docs-serve** Builds docs and live serves them to the localhost.
+- **docs-clean** Removes all locally generated documentation files.
 - **lint:** Runs code linters for both Python (using `ruff`) and Rust (using `cargo clippy`).
 - **format:** Formats Python code using `black`.
 - **clean:** Removes the virtual environment, cache directories, build artifacts, and other temporary files.
@@ -56,9 +58,8 @@ The `.vscode/extensions.json` file includes the following extensions to enhance 
     "ms-vscode.makefile-tools",
     "rust-lang.rust-analyzer",
     "njpwerner.autodocstring",
-    "ms-python.black-formatter",
     "usernamehw.errorlens"
-  ]
+  ],
 }
 ```
 
@@ -68,34 +69,30 @@ Once you've installed the recommended extensions, consider adding the following 
 
 ```json
 {
-  "editor.formatOnSave": true, // Format code automatically on save
-  "editor.formatOnPaste": true, // Format pasted content
-  "editor.autoIndent": "advanced", // Enable smart auto-indentation
+  "editor.formatOnSave": true,
+  "editor.formatOnPaste": true,
+  "editor.autoIndent": "advanced",
   "files.associations": {
-    "setup.cfg": "ini", // Associate .setup.cfg files with INI syntax highlighting
-    "rust-toolchain": "toml" // Associate rust-toolchain files with TOML syntax highlighting
+    "setup.cfg": "ini",
+    "rust-toolchain": "toml"
   },
-  "evenBetterToml.schema.enabled": false, // Disable validation schema for TOML files (if preferred)
   "editor.rulers": [
-    // Set a visual guide at column 88 for most files
     88
   ],
   "[rust]": {
     "editor.rulers": [
-      // Set a visual guide at column 100 for Rust files
       100
     ]
   },
-  "files.trimTrailingWhitespace": true, // Remove trailing whitespace on save
-  "files.insertFinalNewline": true, // Ensure a newline at the end of files
-  "python.terminal.activateEnvironment": true, // Activate virtual environment in terminal automatically
-  "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python", // Set the default Python interpreter to the virtual environment
-  "python.terminal.activateEnvInCurrentTerminal": true, // Activate virtual environment in the current terminal window
-  "autoDocstring.docstringFormat": "google", // Use Google-style docstrings
+  "files.trimTrailingWhitespace": true,
+  "files.insertFinalNewline": true,
+  "python.terminal.activateEnvironment": true,
+  "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
+  "python.terminal.activateEnvInCurrentTerminal": true,
+  "autoDocstring.docstringFormat": "google",
+  "python.analysis.typeCheckingMode": "strict",
   "[python]": {
-    "editor.defaultFormatter": "ms-python.black-formatter" // Set Black as the default Python code formatter
+    "editor.defaultFormatter": "charliermarsh.ruff"
   }
 }
 ```
-
-These settings will provide a streamlined development experience for working on the MedModels codebase within VS Code.
