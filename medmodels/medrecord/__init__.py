@@ -2,6 +2,7 @@ from medmodels.medrecord.datatype import (
     Any,
     Bool,
     DateTime,
+    Float,
     Int,
     Null,
     Option,
@@ -16,18 +17,20 @@ from medmodels.medrecord.medrecord import (
     NodeOperation,
 )
 from medmodels.medrecord.querying import edge, node
-from medmodels.medrecord.schema import GroupSchema, Schema
+from medmodels.medrecord.schema import AttributeType, GroupSchema, Schema
 
 __all__ = [
     "MedRecord",
     "String",
     "Int",
+    "Float",
     "Bool",
     "DateTime",
     "Null",
     "Any",
     "Union",
     "Option",
+    "AttributeType",
     "Schema",
     "GroupSchema",
     "node",

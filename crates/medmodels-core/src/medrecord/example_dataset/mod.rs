@@ -1,4 +1,4 @@
-use super::{datatypes::DataType, GroupSchema, MedRecordAttribute, Schema};
+use super::{datatypes::DataType, AttributeType, GroupSchema, MedRecordAttribute, Schema};
 use crate::MedRecord;
 use polars::{io::SerReader, prelude::CsvReadOptions};
 use std::{collections::HashMap, io::Cursor};
@@ -146,7 +146,7 @@ impl MedRecord {
                 (
                     "diagnosis".into(),
                     GroupSchema {
-                        nodes: HashMap::from([("description".into(), DataType::String)]),
+                        nodes: HashMap::from([("description".into(), DataType::String.into())]),
                         edges: HashMap::new(),
                         strict: Some(true),
                     },
@@ -154,7 +154,7 @@ impl MedRecord {
                 (
                     "drug".into(),
                     GroupSchema {
-                        nodes: HashMap::from([("description".into(), DataType::String)]),
+                        nodes: HashMap::from([("description".into(), DataType::String.into())]),
                         edges: HashMap::new(),
                         strict: Some(true),
                     },
@@ -163,8 +163,14 @@ impl MedRecord {
                     "patient".into(),
                     GroupSchema {
                         nodes: HashMap::from([
-                            ("gender".into(), DataType::String),
-                            ("age".into(), DataType::Int),
+                            (
+                                "gender".into(),
+                                (DataType::String, AttributeType::Categorical).into(),
+                            ),
+                            (
+                                "age".into(),
+                                (DataType::Int, AttributeType::Continuous).into(),
+                            ),
                         ]),
                         edges: HashMap::new(),
                         strict: Some(true),
@@ -173,7 +179,7 @@ impl MedRecord {
                 (
                     "procedure".into(),
                     GroupSchema {
-                        nodes: HashMap::from([("description".into(), DataType::String)]),
+                        nodes: HashMap::from([("description".into(), DataType::String.into())]),
                         edges: HashMap::new(),
                         strict: Some(true),
                     },
@@ -183,10 +189,17 @@ impl MedRecord {
                     GroupSchema {
                         nodes: HashMap::new(),
                         edges: HashMap::from([
-                            ("diagnosis_time".into(), DataType::String),
+                            (
+                                "diagnosis_time".into(),
+                                (DataType::DateTime, AttributeType::Temporal).into(),
+                            ),
                             (
                                 "duration_days".into(),
-                                DataType::Option(Box::new(DataType::Float)),
+                                (
+                                    DataType::Option(Box::new(DataType::Float)),
+                                    AttributeType::Continuous,
+                                )
+                                    .into(),
                             ),
                         ]),
                         strict: Some(true),
@@ -197,9 +210,18 @@ impl MedRecord {
                     GroupSchema {
                         nodes: HashMap::new(),
                         edges: HashMap::from([
-                            ("start_time".into(), DataType::String),
-                            ("quantity".into(), DataType::Int),
-                            ("cost".into(), DataType::Float),
+                            (
+                                "start_time".into(),
+                                (DataType::DateTime, AttributeType::Temporal).into(),
+                            ),
+                            (
+                                "quantity".into(),
+                                (DataType::Int, AttributeType::Continuous).into(),
+                            ),
+                            (
+                                "cost".into(),
+                                (DataType::Float, AttributeType::Continuous).into(),
+                            ),
                         ]),
                         strict: Some(true),
                     },
@@ -209,8 +231,14 @@ impl MedRecord {
                     GroupSchema {
                         nodes: HashMap::new(),
                         edges: HashMap::from([
-                            ("procedure_time".into(), DataType::String),
-                            ("duration_minutes".into(), DataType::Int),
+                            (
+                                "procedure_time".into(),
+                                (DataType::DateTime, AttributeType::Temporal).into(),
+                            ),
+                            (
+                                "duration_minutes".into(),
+                                (DataType::Int, AttributeType::Continuous).into(),
+                            ),
                         ]),
                         strict: Some(true),
                     },

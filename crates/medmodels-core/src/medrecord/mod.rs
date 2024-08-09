@@ -10,7 +10,7 @@ pub use self::{
     datatypes::{DataType, MedRecordAttribute, MedRecordValue},
     graph::{Attributes, EdgeIndex, NodeIndex},
     group_mapping::Group,
-    schema::{GroupSchema, Schema},
+    schema::{AttributeDataType, AttributeType, GroupSchema, Schema},
 };
 use crate::errors::MedRecordError;
 use ::polars::frame::DataFrame;
@@ -806,14 +806,14 @@ mod test {
             groups: HashMap::from([(
                 "group".into(),
                 GroupSchema {
-                    nodes: HashMap::from([("attribute2".into(), DataType::Int)]),
-                    edges: HashMap::from([("attribute2".into(), DataType::Int)]),
+                    nodes: HashMap::from([("attribute2".into(), DataType::Int.into())]),
+                    edges: HashMap::from([("attribute2".into(), DataType::Int.into())]),
                     strict: None,
                 },
             )]),
             default: Some(GroupSchema {
-                nodes: HashMap::from([("attribute".into(), DataType::Int)]),
-                edges: HashMap::from([("attribute".into(), DataType::Int)]),
+                nodes: HashMap::from([("attribute".into(), DataType::Int.into())]),
+                edges: HashMap::from([("attribute".into(), DataType::Int.into())]),
                 strict: None,
             }),
             strict: None,
@@ -1006,8 +1006,8 @@ mod test {
         let schema = Schema {
             groups: Default::default(),
             default: Some(GroupSchema {
-                nodes: HashMap::from([("attribute".into(), DataType::Int)]),
-                edges: HashMap::from([("attribute".into(), DataType::Int)]),
+                nodes: HashMap::from([("attribute".into(), DataType::Int.into())]),
+                edges: HashMap::from([("attribute".into(), DataType::Int.into())]),
                 strict: None,
             }),
             strict: None,
@@ -1029,8 +1029,8 @@ mod test {
         let schema = Schema {
             groups: Default::default(),
             default: Some(GroupSchema {
-                nodes: HashMap::from([("attribute".into(), DataType::Int)]),
-                edges: HashMap::from([("attribute".into(), DataType::Int)]),
+                nodes: HashMap::from([("attribute".into(), DataType::Int.into())]),
+                edges: HashMap::from([("attribute".into(), DataType::Int.into())]),
                 strict: None,
             }),
             strict: None,

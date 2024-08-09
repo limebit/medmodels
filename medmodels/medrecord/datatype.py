@@ -7,6 +7,7 @@ from medmodels._medmodels import (
     PyAny,
     PyBool,
     PyDateTime,
+    PyFloat,
     PyInt,
     PyNull,
     PyOption,
@@ -25,6 +26,7 @@ if typing.TYPE_CHECKING:
 PyDataType: TypeAlias = typing.Union[
     PyString,
     PyInt,
+    PyFloat,
     PyBool,
     PyDateTime,
     PyNull,
@@ -38,6 +40,39 @@ class DataType(metaclass=ABCMeta):
     @abstractmethod
     def _inner(self) -> PyDataType: ...
 
+    @abstractmethod
+    def __str__(self) -> str: ...
+
+    @abstractmethod
+    def __repr__(self) -> str: ...
+
+    @abstractmethod
+    def __eq__(self, value: object) -> bool: ...
+
+    @staticmethod
+    def _from_pydatatype(datatype: PyDataType) -> DataType:
+        if isinstance(datatype, PyString):
+            return String()
+        elif isinstance(datatype, PyInt):
+            return Int()
+        elif isinstance(datatype, PyFloat):
+            return Float()
+        elif isinstance(datatype, PyBool):
+            return Bool()
+        elif isinstance(datatype, PyDateTime):
+            return DateTime()
+        elif isinstance(datatype, PyNull):
+            return Null()
+        elif isinstance(datatype, PyAny):
+            return Any()
+        elif isinstance(datatype, PyUnion):
+            return Union(
+                DataType._from_pydatatype(datatype.dtype1),
+                DataType._from_pydatatype(datatype.dtype2),
+            )
+        else:
+            return Option(DataType._from_pydatatype(datatype.dtype))
+
 
 class String(DataType):
     _string: PyString
@@ -47,6 +82,15 @@ class String(DataType):
 
     def _inner(self) -> PyDataType:
         return self._string
+
+    def __str__(self) -> str:
+        return "String"
+
+    def __repr__(self) -> str:
+        return "DataType.String"
+
+    def __eq__(self, value: object) -> bool:
+        return isinstance(value, String)
 
 
 class Int(DataType):
@@ -58,6 +102,34 @@ class Int(DataType):
     def _inner(self) -> PyDataType:
         return self._int
 
+    def __str__(self) -> str:
+        return "Int"
+
+    def __repr__(self) -> str:
+        return "DataType.Int"
+
+    def __eq__(self, value: object) -> bool:
+        return isinstance(value, Int)
+
+
+class Float(DataType):
+    _float: PyFloat
+
+    def __init__(self) -> None:
+        self._float = PyFloat()
+
+    def _inner(self) -> PyDataType:
+        return self._float
+
+    def __str__(self) -> str:
+        return "Float"
+
+    def __repr__(self) -> str:
+        return "DataType.Float"
+
+    def __eq__(self, value: object) -> bool:
+        return isinstance(value, Float)
+
 
 class Bool(DataType):
     _bool: PyBool
@@ -67,6 +139,15 @@ class Bool(DataType):
 
     def _inner(self) -> PyDataType:
         return self._bool
+
+    def __str__(self) -> str:
+        return "Bool"
+
+    def __repr__(self) -> str:
+        return "DataType.Bool"
+
+    def __eq__(self, value: object) -> bool:
+        return isinstance(value, Bool)
 
 
 class DateTime(DataType):
@@ -78,6 +159,15 @@ class DateTime(DataType):
     def _inner(self) -> PyDataType:
         return self._datetime
 
+    def __str__(self) -> str:
+        return "DateTime"
+
+    def __repr__(self) -> str:
+        return "DataType.DateTime"
+
+    def __eq__(self, value: object) -> bool:
+        return isinstance(value, DateTime)
+
 
 class Null(DataType):
     _null: PyNull
@@ -88,6 +178,15 @@ class Null(DataType):
     def _inner(self) -> PyDataType:
         return self._null
 
+    def __str__(self) -> str:
+        return "Null"
+
+    def __repr__(self) -> str:
+        return "DataType.Null"
+
+    def __eq__(self, value: object) -> bool:
+        return isinstance(value, Null)
+
 
 class Any(DataType):
     _any: PyAny
@@ -97,6 +196,15 @@ class Any(DataType):
 
     def _inner(self) -> PyDataType:
         return self._any
+
+    def __str__(self) -> str:
+        return "Any"
+
+    def __repr__(self) -> str:
+        return "DataType.Any"
+
+    def __eq__(self, value: object) -> bool:
+        return isinstance(value, Any)
 
 
 class Union(DataType):
@@ -113,6 +221,21 @@ class Union(DataType):
     def _inner(self) -> PyDataType:
         return self._union
 
+    def __str__(self) -> str:
+        return f"Union({DataType._from_pydatatype(self._union.dtype1).__str__()}, {DataType._from_pydatatype(self._union.dtype2).__str__()})"
+
+    def __repr__(self) -> str:
+        return f"DataType.Union({DataType._from_pydatatype(self._union.dtype1).__repr__()}, {DataType._from_pydatatype(self._union.dtype2).__repr__()})"
+
+    def __eq__(self, value: object) -> bool:
+        return (
+            isinstance(value, Union)
+            and DataType._from_pydatatype(self._union.dtype1)
+            == DataType._from_pydatatype(value._union.dtype1)
+            and DataType._from_pydatatype(self._union.dtype2)
+            == DataType._from_pydatatype(value._union.dtype2)
+        )
+
 
 class Option(DataType):
     _option: PyOption
@@ -122,3 +245,14 @@ class Option(DataType):
 
     def _inner(self) -> PyDataType:
         return self._option
+
+    def __str__(self) -> str:
+        return f"Option({DataType._from_pydatatype(self._option.dtype).__str__()})"
+
+    def __repr__(self) -> str:
+        return f"DataType.Option({DataType._from_pydatatype(self._option.dtype).__repr__()})"
+
+    def __eq__(self, value: object) -> bool:
+        return isinstance(value, Option) and DataType._from_pydatatype(
+            self._option.dtype
+        ) == DataType._from_pydatatype(value._option.dtype)
