@@ -1,9 +1,10 @@
-use super::evaluate::{EvaluateOperand, EvaluateOperandContext};
+use super::evaluate::EvaluateOperand;
 use crate::MedRecord;
-use std::{
-    cell::RefCell,
-    rc::{Rc, Weak},
-};
+use std::{cell::RefCell, rc::Rc};
+
+pub(crate) trait DeepClone {
+    fn deep_clone(&self) -> Self;
+}
 
 #[repr(transparent)]
 #[derive(Debug, Clone)]
@@ -29,60 +30,12 @@ where
     }
 }
 
-#[repr(transparent)]
-#[derive(Debug, Clone)]
-pub struct WeakWrapper<T>(pub(crate) Weak<RefCell<T>>);
-
-impl<T> From<Wrapper<T>> for WeakWrapper<T> {
-    fn from(value: Wrapper<T>) -> Self {
-        Self(Rc::downgrade(&value.0))
-    }
-}
-
-impl<T> EvaluateOperand for WeakWrapper<T>
+impl<T> DeepClone for Wrapper<T>
 where
-    T: EvaluateOperand,
+    T: DeepClone,
 {
-    type Index = T::Index;
-
-    fn evaluate<'a>(
-        &self,
-        medrecord: &'a MedRecord,
-    ) -> Box<dyn Iterator<Item = &'a Self::Index> + 'a> {
-        self.0.upgrade().unwrap().borrow().evaluate(medrecord)
-    }
-}
-
-#[derive(Debug)]
-pub struct OperandContext<T> {
-    operand: Wrapper<T>,
-}
-
-impl<T: Clone> Clone for OperandContext<T> {
-    fn clone(&self) -> Self {
-        Self {
-            operand: self.operand.clone(),
-        }
-    }
-}
-
-impl<T> EvaluateOperandContext for OperandContext<T>
-where
-    T: EvaluateOperand,
-{
-    type Index = T::Index;
-
-    fn evaluate<'a>(
-        &self,
-        medrecord: &'a MedRecord,
-    ) -> Box<dyn Iterator<Item = &'a Self::Index> + 'a> {
-        self.operand.evaluate(medrecord)
-    }
-}
-
-impl<T> OperandContext<T> {
-    pub(crate) fn new(operand: Wrapper<T>) -> Self {
-        Self { operand }
+    fn deep_clone(&self) -> Self {
+        self.0.borrow().deep_clone().into()
     }
 }
 

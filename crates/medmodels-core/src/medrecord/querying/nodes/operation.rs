@@ -7,7 +7,7 @@ use crate::medrecord::{
         edges::EdgeOperand,
         evaluate::{EvaluateOperand, EvaluateOperation},
         values::ComparisonOperand,
-        wrapper::{CardinalityWrapper, Wrapper},
+        wrapper::{CardinalityWrapper, DeepClone, Wrapper},
     },
     Group, MedRecord, NodeIndex,
 };
@@ -36,6 +36,19 @@ impl EvaluateOperation for NodeOperation {
                 indices,
                 operand.clone(),
             )),
+        }
+    }
+}
+
+impl DeepClone for NodeOperation {
+    fn deep_clone(&self) -> Self {
+        match self {
+            Self::InGroup { group } => Self::InGroup {
+                group: group.clone(),
+            },
+            Self::OutgoingEdges { operand } => Self::OutgoingEdges {
+                operand: operand.deep_clone(),
+            },
         }
     }
 }
@@ -86,7 +99,27 @@ pub enum NodeValuesOperation {
     Max { operand: Wrapper<NodeValueOperand> },
 }
 
+impl DeepClone for NodeValuesOperation {
+    fn deep_clone(&self) -> Self {
+        match self {
+            Self::Max { operand } => Self::Max {
+                operand: operand.deep_clone(),
+            },
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub enum NodeValueOperation {
     LessThan { operand: ComparisonOperand },
+}
+
+impl DeepClone for NodeValueOperation {
+    fn deep_clone(&self) -> Self {
+        match self {
+            Self::LessThan { operand } => Self::LessThan {
+                operand: operand.deep_clone(),
+            },
+        }
+    }
 }

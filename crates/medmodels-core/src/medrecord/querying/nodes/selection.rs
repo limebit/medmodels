@@ -19,8 +19,6 @@ impl<'a> NodeSelection<'a> {
 
         query(&mut operand);
 
-        println!("{:?}", operand);
-
         Self { medrecord, operand }
     }
 

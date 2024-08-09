@@ -2,10 +2,10 @@ use super::{EdgeValueOperand, EdgeValuesOperand};
 use crate::{
     medrecord::{
         querying::{
-            evaluate::{EvaluateOperand, EvaluateOperandContext, EvaluateOperation},
+            evaluate::{EvaluateOperand, EvaluateOperation},
             nodes::NodeOperand,
             values::{ComparisonOperand, ValuesOperand},
-            wrapper::{OperandContext, Wrapper},
+            wrapper::{DeepClone, Wrapper},
         },
         EdgeIndex, MedRecordAttribute,
     },
@@ -16,17 +16,11 @@ use std::collections::HashSet;
 #[derive(Debug, Clone)]
 pub enum EdgeOperation {
     // If this operation is used, it is always the first operation of an operand.
-    OutgoingEdgesContext {
-        context: OperandContext<NodeOperand>,
-    },
+    OutgoingEdgesContext { context: NodeOperand },
 
-    ConnectsTo {
-        operand: Wrapper<NodeOperand>,
-    },
+    ConnectsTo { operand: Wrapper<NodeOperand> },
 
-    Attribute {
-        operand: Wrapper<EdgeValuesOperand>,
-    },
+    Attribute { operand: Wrapper<EdgeValuesOperand> },
 }
 
 impl EvaluateOperation for EdgeOperation {
@@ -53,10 +47,26 @@ impl EvaluateOperation for EdgeOperation {
     }
 }
 
+impl DeepClone for EdgeOperation {
+    fn deep_clone(&self) -> Self {
+        match self {
+            Self::OutgoingEdgesContext { context } => Self::OutgoingEdgesContext {
+                context: context.deep_clone(),
+            },
+            Self::ConnectsTo { operand } => Self::ConnectsTo {
+                operand: operand.deep_clone(),
+            },
+            Self::Attribute { operand } => Self::Attribute {
+                operand: operand.deep_clone(),
+            },
+        }
+    }
+}
+
 impl EdgeOperation {
     fn evaluate_outgoing_edges_context(
         medrecord: &MedRecord,
-        context: OperandContext<NodeOperand>,
+        context: NodeOperand,
     ) -> impl Iterator<Item = &EdgeIndex> {
         let node_indices = context.evaluate(medrecord);
 
@@ -112,6 +122,16 @@ impl EvaluateOperation for EdgeValuesOperation {
     }
 }
 
+impl DeepClone for EdgeValuesOperation {
+    fn deep_clone(&self) -> Self {
+        match self {
+            Self::Max { operand } => Self::Max {
+                operand: operand.deep_clone(),
+            },
+        }
+    }
+}
+
 impl EdgeValuesOperation {
     fn evaluate_max(
         medrecord: &MedRecord,
@@ -125,7 +145,7 @@ impl EdgeValuesOperation {
 pub enum EdgeValueOperation {
     // If this operation is used, it is always the first operation of an operand.
     MaxContext {
-        context: OperandContext<EdgeValuesOperand>,
+        context: EdgeValuesOperand,
         attribute: MedRecordAttribute,
     },
 
@@ -159,10 +179,25 @@ impl EvaluateOperation for EdgeValueOperation {
     }
 }
 
+impl DeepClone for EdgeValueOperation {
+    fn deep_clone(&self) -> Self {
+        match self {
+            Self::MaxContext { context, attribute } => Self::MaxContext {
+                context: context.deep_clone(),
+                attribute: attribute.clone(),
+            },
+            Self::LessThan { operand, attribute } => Self::LessThan {
+                operand: operand.deep_clone(),
+                attribute: attribute.clone(),
+            },
+        }
+    }
+}
+
 impl EdgeValueOperation {
     fn evaluate_max_context(
         medrecord: &MedRecord,
-        context: OperandContext<EdgeValuesOperand>,
+        context: EdgeValuesOperand,
         attribute: MedRecordAttribute,
     ) -> impl Iterator<Item = &EdgeIndex> {
         let edge_indices = context.evaluate(medrecord);

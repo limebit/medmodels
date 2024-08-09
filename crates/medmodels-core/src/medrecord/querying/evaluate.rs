@@ -18,12 +18,3 @@ pub(crate) trait EvaluateOperand {
         medrecord: &'a MedRecord,
     ) -> Box<dyn Iterator<Item = &'a Self::Index> + 'a>;
 }
-
-pub(crate) trait EvaluateOperandContext {
-    type Index;
-
-    fn evaluate<'a>(
-        &self,
-        medrecord: &'a MedRecord,
-    ) -> Box<dyn Iterator<Item = &'a Self::Index> + 'a>;
-}

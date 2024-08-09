@@ -5,10 +5,10 @@ use super::operation::{EdgeOperation, EdgeValueOperation, EdgeValuesOperation};
 use crate::{
     medrecord::{
         querying::{
-            evaluate::{EvaluateOperand, EvaluateOperandContext, EvaluateOperation},
+            evaluate::{EvaluateOperand, EvaluateOperation},
             nodes::NodeOperand,
             values::ComparisonOperand,
-            wrapper::{OperandContext, Wrapper},
+            wrapper::{DeepClone, Wrapper},
         },
         EdgeIndex, MedRecordAttribute,
     },
@@ -39,6 +39,18 @@ impl EvaluateOperand for EdgeOperand {
     }
 }
 
+impl DeepClone for EdgeOperand {
+    fn deep_clone(&self) -> Self {
+        Self {
+            operations: self
+                .operations
+                .iter()
+                .map(|operation| operation.deep_clone())
+                .collect(),
+        }
+    }
+}
+
 impl EdgeOperand {
     pub(crate) fn new() -> Self {
         Self {
@@ -60,8 +72,7 @@ impl EdgeOperand {
     }
 
     pub fn attribute(&mut self, attribute: MedRecordAttribute) -> Wrapper<EdgeValuesOperand> {
-        let operand =
-            Wrapper::<EdgeValuesOperand>::new(OperandContext::new(self.clone().into()), attribute);
+        let operand = Wrapper::<EdgeValuesOperand>::new(self.deep_clone(), attribute);
 
         self.operations.push(EdgeOperation::Attribute {
             operand: operand.clone(),
@@ -93,7 +104,7 @@ impl Wrapper<EdgeOperand> {
 
 #[derive(Debug, Clone)]
 pub struct EdgeValuesOperand {
-    context: OperandContext<EdgeOperand>,
+    context: EdgeOperand,
     pub(crate) attribute: MedRecordAttribute,
     operations: Vec<EdgeValuesOperation>,
 }
@@ -115,8 +126,22 @@ impl EvaluateOperand for EdgeValuesOperand {
     }
 }
 
+impl DeepClone for EdgeValuesOperand {
+    fn deep_clone(&self) -> Self {
+        Self {
+            context: self.context.deep_clone(),
+            attribute: self.attribute.clone(),
+            operations: self
+                .operations
+                .iter()
+                .map(|operation| operation.deep_clone())
+                .collect(),
+        }
+    }
+}
+
 impl EdgeValuesOperand {
-    pub(crate) fn new(context: OperandContext<EdgeOperand>, attribute: MedRecordAttribute) -> Self {
+    pub(crate) fn new(context: EdgeOperand, attribute: MedRecordAttribute) -> Self {
         Self {
             context,
             attribute,
@@ -128,7 +153,7 @@ impl EdgeValuesOperand {
         let mut operand = EdgeValueOperand::new(self.attribute.clone());
 
         let context = EdgeValueOperation::MaxContext {
-            context: OperandContext::new(self.clone().into()),
+            context: self.deep_clone(),
             attribute: self.attribute.clone(),
         };
 
@@ -145,7 +170,7 @@ impl EdgeValuesOperand {
 }
 
 impl Wrapper<EdgeValuesOperand> {
-    pub(crate) fn new(context: OperandContext<EdgeOperand>, attribute: MedRecordAttribute) -> Self {
+    pub(crate) fn new(context: EdgeOperand, attribute: MedRecordAttribute) -> Self {
         Self(Rc::new(RefCell::new(EdgeValuesOperand::new(
             context, attribute,
         ))))
@@ -175,6 +200,19 @@ impl EvaluateOperand for EdgeValueOperand {
             .fold(Box::new(edge_indices), |edge_indices, operation| {
                 operation.evaluate(medrecord, edge_indices)
             })
+    }
+}
+
+impl DeepClone for EdgeValueOperand {
+    fn deep_clone(&self) -> Self {
+        Self {
+            attribute: self.attribute.clone(),
+            operations: self
+                .operations
+                .iter()
+                .map(|operation| operation.deep_clone())
+                .collect(),
+        }
     }
 }
 

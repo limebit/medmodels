@@ -1,7 +1,7 @@
 use super::{
     edges::{EdgeValueOperand, EdgeValuesOperand},
     nodes::{NodeValueOperand, NodeValuesOperand},
-    wrapper::Wrapper,
+    wrapper::{DeepClone, Wrapper},
 };
 use crate::medrecord::MedRecordValue;
 
@@ -12,6 +12,16 @@ pub enum ValuesOperand {
     Explicit(Vec<MedRecordValue>),
 }
 
+impl DeepClone for ValuesOperand {
+    fn deep_clone(&self) -> Self {
+        match self {
+            Self::Nodes(context) => Self::Nodes(context.deep_clone()),
+            Self::Edges(context) => Self::Edges(context.deep_clone()),
+            Self::Explicit(values) => Self::Explicit(values.clone()),
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub enum ValueOperand {
     Nodes(Wrapper<NodeValueOperand>),
@@ -19,10 +29,29 @@ pub enum ValueOperand {
     Explicit(MedRecordValue),
 }
 
+impl DeepClone for ValueOperand {
+    fn deep_clone(&self) -> Self {
+        match self {
+            Self::Nodes(context) => Self::Nodes(context.deep_clone()),
+            Self::Edges(context) => Self::Edges(context.deep_clone()),
+            Self::Explicit(value) => Self::Explicit(value.clone()),
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub enum ComparisonOperand {
     Single(ValueOperand),
     Multiple(ValuesOperand),
+}
+
+impl DeepClone for ComparisonOperand {
+    fn deep_clone(&self) -> Self {
+        match self {
+            Self::Single(operand) => Self::Single(operand.deep_clone()),
+            Self::Multiple(operand) => Self::Multiple(operand.deep_clone()),
+        }
+    }
 }
 
 impl From<Wrapper<NodeValuesOperand>> for ComparisonOperand {

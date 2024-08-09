@@ -7,7 +7,7 @@ use crate::{
         querying::{
             edges::{EdgeOperand, EdgeOperation},
             evaluate::{EvaluateOperand, EvaluateOperation},
-            wrapper::{CardinalityWrapper, OperandContext, Wrapper},
+            wrapper::{CardinalityWrapper, DeepClone, Wrapper},
         },
         Group, MedRecordAttribute, NodeIndex,
     },
@@ -38,6 +38,18 @@ impl EvaluateOperand for NodeOperand {
     }
 }
 
+impl DeepClone for NodeOperand {
+    fn deep_clone(&self) -> Self {
+        Self {
+            operations: self
+                .operations
+                .iter()
+                .map(|operation| operation.deep_clone())
+                .collect(),
+        }
+    }
+}
+
 impl NodeOperand {
     pub(crate) fn new() -> Self {
         Self {
@@ -58,7 +70,7 @@ impl NodeOperand {
         let mut operand = EdgeOperand::new();
 
         let context = EdgeOperation::OutgoingEdgesContext {
-            context: OperandContext::new(self.clone().into()),
+            context: self.deep_clone(),
         };
 
         operand.operations.push(context);
@@ -109,6 +121,20 @@ impl EvaluateOperand for NodeValuesOperand {
     }
 }
 
+impl DeepClone for NodeValuesOperand {
+    fn deep_clone(&self) -> Self {
+        Self {
+            context: self.context.deep_clone(),
+            attribute: self.attribute.clone(),
+            operations: self
+                .operations
+                .iter()
+                .map(|operation| operation.deep_clone())
+                .collect(),
+        }
+    }
+}
+
 impl NodeValuesOperand {
     pub(crate) fn new(context: Wrapper<NodeOperand>, attribute: MedRecordAttribute) -> Self {
         Self {
@@ -131,6 +157,19 @@ impl Wrapper<NodeValuesOperand> {
 pub struct NodeValueOperand {
     context: Wrapper<NodeValuesOperand>,
     operations: Vec<NodeValueOperation>,
+}
+
+impl DeepClone for NodeValueOperand {
+    fn deep_clone(&self) -> Self {
+        Self {
+            context: self.context.deep_clone(),
+            operations: self
+                .operations
+                .iter()
+                .map(|operation| operation.deep_clone())
+                .collect(),
+        }
+    }
 }
 
 impl NodeValueOperand {
