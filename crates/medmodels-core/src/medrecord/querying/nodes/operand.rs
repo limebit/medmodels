@@ -26,12 +26,11 @@ impl EvaluateOperand for NodeOperand {
     fn evaluate<'a>(
         &self,
         medrecord: &'a MedRecord,
-        end_index: Option<usize>,
     ) -> Box<dyn Iterator<Item = &'a Self::Index> + 'a> {
         let node_indices =
             Box::new(medrecord.node_indices()) as Box<dyn Iterator<Item = &'a NodeIndex>>;
 
-        self.operations[0..end_index.unwrap_or(self.operations.len())]
+        self.operations
             .iter()
             .fold(Box::new(node_indices), |node_indices, operation| {
                 operation.evaluate(medrecord, node_indices)
@@ -55,11 +54,11 @@ impl NodeOperand {
         });
     }
 
-    pub fn outgoing_edges(&mut self, self_wrapper: &Wrapper<NodeOperand>) -> Wrapper<EdgeOperand> {
+    pub fn outgoing_edges(&mut self) -> Wrapper<EdgeOperand> {
         let mut operand = EdgeOperand::new();
 
         let context = EdgeOperation::OutgoingEdgesContext {
-            context: OperandContext::new(self_wrapper.clone(), self.operations.len()),
+            context: OperandContext::new(self.clone().into()),
         };
 
         operand.operations.push(context);
@@ -87,7 +86,7 @@ impl Wrapper<NodeOperand> {
     }
 
     pub fn outgoing_edges(&mut self) -> Wrapper<EdgeOperand> {
-        self.0.borrow_mut().outgoing_edges(self)
+        self.0.borrow_mut().outgoing_edges()
     }
 }
 
@@ -104,9 +103,8 @@ impl EvaluateOperand for NodeValuesOperand {
     fn evaluate<'a>(
         &self,
         medrecord: &'a MedRecord,
-        end_index: Option<usize>,
     ) -> Box<dyn Iterator<Item = &'a Self::Index> + 'a> {
-        self.context.evaluate(medrecord, end_index)
+        self.context.evaluate(medrecord)
         // TODO
     }
 }

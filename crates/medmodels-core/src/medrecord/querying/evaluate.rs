@@ -16,7 +16,6 @@ pub(crate) trait EvaluateOperand {
     fn evaluate<'a>(
         &self,
         medrecord: &'a MedRecord,
-        end_index: Option<usize>,
     ) -> Box<dyn Iterator<Item = &'a Self::Index> + 'a>;
 }
 

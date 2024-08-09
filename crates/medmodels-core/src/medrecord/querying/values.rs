@@ -1,10 +1,9 @@
-use crate::medrecord::MedRecordValue;
-
 use super::{
     edges::{EdgeValueOperand, EdgeValuesOperand},
     nodes::{NodeValueOperand, NodeValuesOperand},
     wrapper::Wrapper,
 };
+use crate::medrecord::MedRecordValue;
 
 #[derive(Debug, Clone)]
 pub enum ValuesOperand {

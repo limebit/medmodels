@@ -74,7 +74,7 @@ impl EdgeOperation {
         edge_indices: impl Iterator<Item = &'a EdgeIndex>,
         operand: Wrapper<NodeOperand>,
     ) -> impl Iterator<Item = &'a EdgeIndex> {
-        let node_indices = operand.evaluate(medrecord, None).collect::<HashSet<_>>();
+        let node_indices = operand.evaluate(medrecord).collect::<HashSet<_>>();
 
         edge_indices.filter(move |edge_index| {
             let edge_endpoints = medrecord
@@ -89,7 +89,7 @@ impl EdgeOperation {
         medrecord: &MedRecord,
         operand: Wrapper<EdgeValuesOperand>,
     ) -> impl Iterator<Item = &EdgeIndex> {
-        operand.evaluate(medrecord, None)
+        operand.evaluate(medrecord)
     }
 }
 
@@ -117,7 +117,7 @@ impl EdgeValuesOperation {
         medrecord: &MedRecord,
         operand: Wrapper<EdgeValueOperand>,
     ) -> impl Iterator<Item = &EdgeIndex> {
-        operand.evaluate(medrecord, None)
+        operand.evaluate(medrecord)
     }
 }
 
@@ -210,7 +210,7 @@ impl EdgeValueOperation {
             todo!()
         };
 
-        let comparison_edge_indices = operand.evaluate(medrecord, None);
+        let comparison_edge_indices = operand.evaluate(medrecord);
         let comparison_attribute = operand.0.borrow().attribute.clone();
 
         let comparison_values = comparison_edge_indices.filter_map(|edge_index| {

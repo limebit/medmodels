@@ -24,9 +24,8 @@ where
     fn evaluate<'a>(
         &self,
         medrecord: &'a MedRecord,
-        end_index: Option<usize>,
     ) -> Box<dyn Iterator<Item = &'a Self::Index> + 'a> {
-        self.0.borrow().evaluate(medrecord, end_index)
+        self.0.borrow().evaluate(medrecord)
     }
 }
 
@@ -49,20 +48,22 @@ where
     fn evaluate<'a>(
         &self,
         medrecord: &'a MedRecord,
-        end_index: Option<usize>,
     ) -> Box<dyn Iterator<Item = &'a Self::Index> + 'a> {
-        self.0
-            .upgrade()
-            .unwrap()
-            .borrow()
-            .evaluate(medrecord, end_index)
+        self.0.upgrade().unwrap().borrow().evaluate(medrecord)
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct OperandContext<T> {
-    operand: WeakWrapper<T>,
-    position: usize,
+    operand: Wrapper<T>,
+}
+
+impl<T: Clone> Clone for OperandContext<T> {
+    fn clone(&self) -> Self {
+        Self {
+            operand: self.operand.clone(),
+        }
+    }
 }
 
 impl<T> EvaluateOperandContext for OperandContext<T>
@@ -75,16 +76,13 @@ where
         &self,
         medrecord: &'a MedRecord,
     ) -> Box<dyn Iterator<Item = &'a Self::Index> + 'a> {
-        self.operand.evaluate(medrecord, Some(self.position))
+        self.operand.evaluate(medrecord)
     }
 }
 
 impl<T> OperandContext<T> {
-    pub(crate) fn new(operand: Wrapper<T>, position: usize) -> Self {
-        Self {
-            operand: operand.into(),
-            position,
-        }
+    pub(crate) fn new(operand: Wrapper<T>) -> Self {
+        Self { operand }
     }
 }
 

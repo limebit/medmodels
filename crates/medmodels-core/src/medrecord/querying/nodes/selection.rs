@@ -1,9 +1,8 @@
+use super::NodeOperand;
 use crate::medrecord::{
     querying::{evaluate::EvaluateOperand, wrapper::Wrapper},
     MedRecord, NodeIndex,
 };
-
-use super::NodeOperand;
 
 #[derive(Debug, Clone)]
 pub struct NodeSelection<'a> {
@@ -26,7 +25,7 @@ impl<'a> NodeSelection<'a> {
     }
 
     pub fn iter(self) -> impl Iterator<Item = &'a NodeIndex> {
-        self.operand.evaluate(self.medrecord, None)
+        self.operand.evaluate(self.medrecord)
     }
 
     pub fn collect<B>(self) -> B

@@ -1,6 +1,7 @@
 #![allow(dead_code)]
 // TODO: Remove this once the file is complete
 
+use super::NodeValueOperand;
 use crate::medrecord::{
     querying::{
         edges::EdgeOperand,
@@ -11,8 +12,6 @@ use crate::medrecord::{
     Group, MedRecord, NodeIndex,
 };
 use roaring::RoaringBitmap;
-
-use super::NodeValueOperand;
 
 #[derive(Debug, Clone)]
 pub enum NodeOperation {
@@ -68,7 +67,7 @@ impl NodeOperation {
         node_indices: impl Iterator<Item = &'a NodeIndex> + 'a,
         operand: Wrapper<EdgeOperand>,
     ) -> impl Iterator<Item = &'a NodeIndex> + 'a {
-        let edge_indices = operand.evaluate(medrecord, None).collect::<RoaringBitmap>();
+        let edge_indices = operand.evaluate(medrecord).collect::<RoaringBitmap>();
 
         node_indices.filter(move |node_index| {
             let outgoing_edge_indices = medrecord

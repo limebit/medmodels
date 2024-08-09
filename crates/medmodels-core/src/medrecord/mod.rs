@@ -1941,7 +1941,7 @@ mod test {
             .add_group("outcome".into(), Some(vec!["2".into()]), None)
             .unwrap();
 
-        let nodes = medrecord.select_nodes(|node| {
+        let _nodes = medrecord.select_nodes(|node| {
             let edges_to_treatment = node.outgoing_edges();
             edges_to_treatment
                 .connects_to(|node2| node2.in_group(MedRecordAttribute::from("treatment")));
@@ -1955,6 +1955,6 @@ mod test {
             max_time_edge.less_than(edges_to_outcome.attribute("time"));
         });
 
-        println!("\n{:?}", nodes.collect::<Vec<_>>());
+        // println!("\n{:?}", nodes.collect::<Vec<_>>());
     }
 }

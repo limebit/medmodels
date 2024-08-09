@@ -23,7 +23,7 @@ impl<'a> EdgeSelection<'a> {
     }
 
     pub fn iter(self) -> impl Iterator<Item = &'a EdgeIndex> {
-        self.operand.evaluate(self.medrecord, None)
+        self.operand.evaluate(self.medrecord)
     }
 
     pub fn collect<B: FromIterator<&'a EdgeIndex>>(self) -> B {

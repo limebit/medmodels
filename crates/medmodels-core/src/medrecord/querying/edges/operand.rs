@@ -27,12 +27,11 @@ impl EvaluateOperand for EdgeOperand {
     fn evaluate<'a>(
         &self,
         medrecord: &'a MedRecord,
-        end_index: Option<usize>,
     ) -> Box<dyn Iterator<Item = &'a Self::Index> + 'a> {
         let edge_indices =
             Box::new(medrecord.edge_indices()) as Box<dyn Iterator<Item = &'a EdgeIndex>>;
 
-        self.operations[0..end_index.unwrap_or(self.operations.len())]
+        self.operations
             .iter()
             .fold(Box::new(edge_indices), |edge_indices, operation| {
                 operation.evaluate(medrecord, edge_indices)
@@ -60,15 +59,9 @@ impl EdgeOperand {
         });
     }
 
-    pub fn attribute(
-        &mut self,
-        attribute: MedRecordAttribute,
-        self_wrapper: &Wrapper<EdgeOperand>,
-    ) -> Wrapper<EdgeValuesOperand> {
-        let operand = Wrapper::<EdgeValuesOperand>::new(
-            OperandContext::new(self_wrapper.clone(), self.operations.len()),
-            attribute,
-        );
+    pub fn attribute(&mut self, attribute: MedRecordAttribute) -> Wrapper<EdgeValuesOperand> {
+        let operand =
+            Wrapper::<EdgeValuesOperand>::new(OperandContext::new(self.clone().into()), attribute);
 
         self.operations.push(EdgeOperation::Attribute {
             operand: operand.clone(),
@@ -94,7 +87,7 @@ impl Wrapper<EdgeOperand> {
     where
         A: Into<MedRecordAttribute>,
     {
-        self.0.borrow_mut().attribute(attribute.into(), self)
+        self.0.borrow_mut().attribute(attribute.into())
     }
 }
 
@@ -111,11 +104,10 @@ impl EvaluateOperand for EdgeValuesOperand {
     fn evaluate<'a>(
         &self,
         medrecord: &'a MedRecord,
-        end_index: Option<usize>,
     ) -> Box<dyn Iterator<Item = &'a Self::Index> + 'a> {
         let edge_indices = self.context.evaluate(medrecord);
 
-        self.operations[0..end_index.unwrap_or(self.operations.len())]
+        self.operations
             .iter()
             .fold(Box::new(edge_indices), |edge_indices, operation| {
                 operation.evaluate(medrecord, edge_indices)
@@ -132,11 +124,11 @@ impl EdgeValuesOperand {
         }
     }
 
-    pub fn max(&mut self, self_wrapper: &Wrapper<EdgeValuesOperand>) -> Wrapper<EdgeValueOperand> {
+    pub fn max(&mut self) -> Wrapper<EdgeValueOperand> {
         let mut operand = EdgeValueOperand::new(self.attribute.clone());
 
         let context = EdgeValueOperation::MaxContext {
-            context: OperandContext::new(self_wrapper.clone(), self.operations.len()),
+            context: OperandContext::new(self.clone().into()),
             attribute: self.attribute.clone(),
         };
 
@@ -160,7 +152,7 @@ impl Wrapper<EdgeValuesOperand> {
     }
 
     pub fn max(&self) -> Wrapper<EdgeValueOperand> {
-        self.0.borrow_mut().max(self)
+        self.0.borrow_mut().max()
     }
 }
 #[derive(Debug, Clone)]
@@ -175,11 +167,10 @@ impl EvaluateOperand for EdgeValueOperand {
     fn evaluate<'a>(
         &self,
         medrecord: &'a MedRecord,
-        end_index: Option<usize>,
     ) -> Box<dyn Iterator<Item = &'a Self::Index> + 'a> {
         let edge_indices = medrecord.edge_indices();
 
-        self.operations[0..end_index.unwrap_or(self.operations.len())]
+        self.operations
             .iter()
             .fold(Box::new(edge_indices), |edge_indices, operation| {
                 operation.evaluate(medrecord, edge_indices)
