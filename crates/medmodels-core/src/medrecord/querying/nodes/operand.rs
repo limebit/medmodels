@@ -1,4 +1,7 @@
-use super::NodeOperation;
+#![allow(dead_code)]
+// TODO: Remove this once the file is complete
+
+use super::operation::{NodeOperation, NodeValueOperation, NodeValuesOperation};
 use crate::{
     medrecord::{
         querying::{
@@ -6,7 +9,7 @@ use crate::{
             evaluate::{EvaluateOperand, EvaluateOperation},
             wrapper::{CardinalityWrapper, OperandContext, Wrapper},
         },
-        Group, NodeIndex,
+        Group, MedRecordAttribute, NodeIndex,
     },
     MedRecord,
 };
@@ -85,5 +88,64 @@ impl Wrapper<NodeOperand> {
 
     pub fn outgoing_edges(&mut self) -> Wrapper<EdgeOperand> {
         self.0.borrow_mut().outgoing_edges(self)
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct NodeValuesOperand {
+    context: Wrapper<NodeOperand>,
+    attribute: MedRecordAttribute,
+    operations: Vec<NodeValuesOperation>,
+}
+
+impl EvaluateOperand for NodeValuesOperand {
+    type Index = NodeIndex;
+
+    fn evaluate<'a>(
+        &self,
+        medrecord: &'a MedRecord,
+        end_index: Option<usize>,
+    ) -> Box<dyn Iterator<Item = &'a Self::Index> + 'a> {
+        self.context.evaluate(medrecord, end_index)
+        // TODO
+    }
+}
+
+impl NodeValuesOperand {
+    pub(crate) fn new(context: Wrapper<NodeOperand>, attribute: MedRecordAttribute) -> Self {
+        Self {
+            context,
+            attribute,
+            operations: Vec::new(),
+        }
+    }
+}
+
+impl Wrapper<NodeValuesOperand> {
+    pub(crate) fn new(context: Wrapper<NodeOperand>, attribute: MedRecordAttribute) -> Self {
+        Self(Rc::new(RefCell::new(NodeValuesOperand::new(
+            context, attribute,
+        ))))
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct NodeValueOperand {
+    context: Wrapper<NodeValuesOperand>,
+    operations: Vec<NodeValueOperation>,
+}
+
+impl NodeValueOperand {
+    pub(crate) fn new(context: Wrapper<NodeValuesOperand>) -> Self {
+        Self {
+            context,
+            operations: Vec::new(),
+        }
+    }
+}
+
+impl Wrapper<NodeValueOperand> {
+    pub(crate) fn new(context: Wrapper<NodeValuesOperand>) -> Self {
+        Self(Rc::new(RefCell::new(NodeValueOperand::new(context))))
     }
 }

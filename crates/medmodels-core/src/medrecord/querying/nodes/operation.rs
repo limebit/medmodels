@@ -1,12 +1,18 @@
+#![allow(dead_code)]
+// TODO: Remove this once the file is complete
+
 use crate::medrecord::{
     querying::{
         edges::EdgeOperand,
         evaluate::{EvaluateOperand, EvaluateOperation},
+        values::ComparisonOperand,
         wrapper::{CardinalityWrapper, Wrapper},
     },
     Group, MedRecord, NodeIndex,
 };
 use roaring::RoaringBitmap;
+
+use super::NodeValueOperand;
 
 #[derive(Debug, Clone)]
 pub enum NodeOperation {
@@ -74,4 +80,14 @@ impl NodeOperation {
             !outgoing_edge_indices.is_disjoint(&edge_indices)
         })
     }
+}
+
+#[derive(Debug, Clone)]
+pub enum NodeValuesOperation {
+    Max { operand: Wrapper<NodeValueOperand> },
+}
+
+#[derive(Debug, Clone)]
+pub enum NodeValueOperation {
+    LessThan { operand: ComparisonOperand },
 }

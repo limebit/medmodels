@@ -1,17 +1,17 @@
+use super::{EdgeValueOperand, EdgeValuesOperand};
 use crate::{
     medrecord::{
         querying::{
             evaluate::{EvaluateOperand, EvaluateOperandContext, EvaluateOperation},
             nodes::NodeOperand,
+            values::{ComparisonOperand, ValuesOperand},
             wrapper::{OperandContext, Wrapper},
         },
-        EdgeIndex,
+        EdgeIndex, MedRecordAttribute,
     },
     MedRecord,
 };
 use std::collections::HashSet;
-
-use super::values::EdgeValuesOperand;
 
 #[derive(Debug, Clone)]
 pub enum EdgeOperation {
@@ -90,5 +90,142 @@ impl EdgeOperation {
         operand: Wrapper<EdgeValuesOperand>,
     ) -> impl Iterator<Item = &EdgeIndex> {
         operand.evaluate(medrecord, None)
+    }
+}
+
+#[derive(Debug, Clone)]
+pub enum EdgeValuesOperation {
+    Max { operand: Wrapper<EdgeValueOperand> },
+}
+
+impl EvaluateOperation for EdgeValuesOperation {
+    type Index = EdgeIndex;
+
+    fn evaluate<'a>(
+        &self,
+        medrecord: &'a MedRecord,
+        _indices: impl Iterator<Item = &'a Self::Index> + 'a,
+    ) -> Box<dyn Iterator<Item = &'a Self::Index> + 'a> {
+        match self {
+            Self::Max { operand } => Box::new(Self::evaluate_max(medrecord, operand.clone())),
+        }
+    }
+}
+
+impl EdgeValuesOperation {
+    fn evaluate_max(
+        medrecord: &MedRecord,
+        operand: Wrapper<EdgeValueOperand>,
+    ) -> impl Iterator<Item = &EdgeIndex> {
+        operand.evaluate(medrecord, None)
+    }
+}
+
+#[derive(Debug, Clone)]
+pub enum EdgeValueOperation {
+    // If this operation is used, it is always the first operation of an operand.
+    MaxContext {
+        context: OperandContext<EdgeValuesOperand>,
+        attribute: MedRecordAttribute,
+    },
+
+    LessThan {
+        operand: ComparisonOperand,
+        attribute: MedRecordAttribute,
+    },
+}
+
+impl EvaluateOperation for EdgeValueOperation {
+    type Index = EdgeIndex;
+
+    fn evaluate<'a>(
+        &self,
+        medrecord: &'a MedRecord,
+        indices: impl Iterator<Item = &'a Self::Index> + 'a,
+    ) -> Box<dyn Iterator<Item = &'a Self::Index> + 'a> {
+        match self {
+            Self::MaxContext { context, attribute } => Box::new(Self::evaluate_max_context(
+                medrecord,
+                context.clone(),
+                attribute.clone(),
+            )),
+            Self::LessThan { operand, attribute } => Box::new(Self::evaluate_less_than(
+                medrecord,
+                indices,
+                operand.clone(),
+                attribute.clone(),
+            )),
+        }
+    }
+}
+
+impl EdgeValueOperation {
+    fn evaluate_max_context(
+        medrecord: &MedRecord,
+        context: OperandContext<EdgeValuesOperand>,
+        attribute: MedRecordAttribute,
+    ) -> impl Iterator<Item = &EdgeIndex> {
+        let edge_indices = context.evaluate(medrecord);
+
+        let mut edge_attributes = edge_indices.filter_map(|edge_index| {
+            Some((
+                edge_index,
+                medrecord
+                    .edge_attributes(edge_index)
+                    .expect("Edge must exist")
+                    .get(&attribute)?,
+            ))
+        });
+
+        let Some(max) = edge_attributes.next() else {
+            return Vec::new().into_iter();
+        };
+
+        let max_edge =
+            edge_attributes.fold(max, |max, edge| if edge.1 > max.1 { edge } else { max });
+
+        vec![max_edge.0].into_iter()
+    }
+
+    fn evaluate_less_than<'a>(
+        medrecord: &'a MedRecord,
+        mut edge_indices: impl Iterator<Item = &'a EdgeIndex>,
+        operand: ComparisonOperand,
+        attribute: MedRecordAttribute,
+    ) -> impl Iterator<Item = &EdgeIndex> {
+        let Some(edge_index) = edge_indices.next() else {
+            return Vec::new().into_iter();
+        };
+        let value = medrecord
+            .edge_attributes(edge_index)
+            .expect("Edge must exist")
+            .get(&attribute)
+            .expect("Attribute must exist");
+
+        let ComparisonOperand::Multiple(comparison) = operand else {
+            todo!()
+        };
+
+        let ValuesOperand::Edges(operand) = comparison else {
+            todo!()
+        };
+
+        let comparison_edge_indices = operand.evaluate(medrecord, None);
+        let comparison_attribute = operand.0.borrow().attribute.clone();
+
+        let comparison_values = comparison_edge_indices.filter_map(|edge_index| {
+            medrecord
+                .edge_attributes(edge_index)
+                .expect("Edge must exist")
+                .get(&comparison_attribute)
+        });
+
+        for comparison_value in comparison_values {
+            if value >= comparison_value {
+                return Vec::new().into_iter();
+            }
+        }
+
+        vec![edge_index].into_iter()
     }
 }
