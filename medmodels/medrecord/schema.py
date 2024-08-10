@@ -19,7 +19,7 @@ class AttributeType(Enum):
     Temporal = auto()
 
     @staticmethod
-    def _from_pyattributetype(py_attribute_type: PyAttributeType) -> AttributeType:
+    def _from_py_attribute_type(py_attribute_type: PyAttributeType) -> AttributeType:
         """
         Converts a PyAttributeType to an AttributeType.
 
@@ -306,7 +306,7 @@ class GroupSchema:
         )
 
     @classmethod
-    def _from_pygroupschema(cls, group_schema: PyGroupSchema) -> GroupSchema:
+    def _from_py_group_schema(cls, group_schema: PyGroupSchema) -> GroupSchema:
         """
         Creates a GroupSchema instance from an existing PyGroupSchema.
 
@@ -334,8 +334,8 @@ class GroupSchema:
             input: PyAttributeDataType,
         ) -> Tuple[DataType, Optional[AttributeType]]:
             return (
-                DataType._from_pydatatype(input.data_type),
-                AttributeType._from_pyattributetype(input.attribute_type)
+                DataType._from_py_data_type(input.data_type),
+                AttributeType._from_py_attribute_type(input.attribute_type)
                 if input.attribute_type is not None
                 else None,
             )
@@ -361,8 +361,8 @@ class GroupSchema:
             input: PyAttributeDataType,
         ) -> Tuple[DataType, Optional[AttributeType]]:
             return (
-                DataType._from_pydatatype(input.data_type),
-                AttributeType._from_pyattributetype(input.attribute_type)
+                DataType._from_py_data_type(input.data_type),
+                AttributeType._from_py_attribute_type(input.attribute_type)
                 if input.attribute_type is not None
                 else None,
             )
@@ -422,7 +422,7 @@ class Schema:
             )
 
     @classmethod
-    def _from_pyschema(cls, schema: PySchema) -> Schema:
+    def _from_py_schema(cls, schema: PySchema) -> Schema:
         """
         Creates a Schema instance from an existing PySchema.
 
@@ -459,7 +459,7 @@ class Schema:
         Raises:
             ValueError: If the specified group does not exist.
         """
-        return GroupSchema._from_pygroupschema(self._schema.group(group))
+        return GroupSchema._from_py_group_schema(self._schema.group(group))
 
     @property
     def default(self) -> Optional[GroupSchema]:
@@ -473,7 +473,7 @@ class Schema:
         if self._schema.default is None:
             return None
 
-        return GroupSchema._from_pygroupschema(self._schema.default)
+        return GroupSchema._from_py_group_schema(self._schema.default)
 
     @property
     def strict(self) -> Optional[bool]:

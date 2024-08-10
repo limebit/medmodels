@@ -5,13 +5,12 @@ use super::operation::{EdgeOperation, EdgeValueOperation, EdgeValuesOperation};
 use crate::{
     medrecord::{
         querying::{
-            evaluate::{EvaluateOperand, EvaluateOperation},
             nodes::NodeOperand,
-            traits::{DeepClone, ReadWriteOrPanic},
-            values::ComparisonOperand,
+            traits::{DeepClone, EvaluateOperand, EvaluateOperation, ReadWriteOrPanic},
+            values::{ComparisonOperand, ValueKind, ValuesKind},
             wrapper::Wrapper,
         },
-        EdgeIndex, MedRecordAttribute,
+        CardinalityWrapper, EdgeIndex, Group, MedRecordAttribute,
     },
     MedRecord,
 };
@@ -59,23 +58,49 @@ impl EdgeOperand {
         }
     }
 
-    pub fn connects_to<Q>(&mut self, query: Q)
+    pub fn attribute(&mut self, attribute: MedRecordAttribute) -> Wrapper<EdgeValuesOperand> {
+        let operand =
+            Wrapper::<EdgeValuesOperand>::new(self.deep_clone(), ValuesKind::Attribute(attribute));
+
+        self.operations.push(EdgeOperation::Attribute {
+            operand: operand.clone(),
+        });
+
+        operand
+    }
+
+    pub fn in_group<G>(&mut self, group: G)
     where
-        Q: FnOnce(&mut Wrapper<NodeOperand>),
+        G: Into<CardinalityWrapper<Group>>,
     {
-        let mut node_operand = Wrapper::<NodeOperand>::new();
-
-        query(&mut node_operand);
-
-        self.operations.push(EdgeOperation::ConnectsTo {
-            operand: node_operand,
+        self.operations.push(EdgeOperation::InGroup {
+            group: group.into(),
         });
     }
 
-    pub fn attribute(&mut self, attribute: MedRecordAttribute) -> Wrapper<EdgeValuesOperand> {
-        let operand = Wrapper::<EdgeValuesOperand>::new(self.deep_clone(), attribute);
+    pub fn has_attribute<A>(&mut self, attribute: A)
+    where
+        A: Into<CardinalityWrapper<MedRecordAttribute>>,
+    {
+        self.operations.push(EdgeOperation::HasAttribute {
+            attribute: attribute.into(),
+        });
+    }
 
-        self.operations.push(EdgeOperation::Attribute {
+    pub fn source_node(&mut self) -> Wrapper<NodeOperand> {
+        let operand = Wrapper::<NodeOperand>::new();
+
+        self.operations.push(EdgeOperation::SourceNode {
+            operand: operand.clone(),
+        });
+
+        operand
+    }
+
+    pub fn target_node(&mut self) -> Wrapper<NodeOperand> {
+        let operand = Wrapper::<NodeOperand>::new();
+
+        self.operations.push(EdgeOperation::TargetNode {
             operand: operand.clone(),
         });
 
@@ -88,25 +113,40 @@ impl Wrapper<EdgeOperand> {
         EdgeOperand::new().into()
     }
 
-    pub fn connects_to<Q>(&self, query: Q)
-    where
-        Q: FnOnce(&mut Wrapper<NodeOperand>),
-    {
-        self.0.write_or_panic().connects_to(query);
-    }
-
     pub fn attribute<A>(&self, attribute: A) -> Wrapper<EdgeValuesOperand>
     where
         A: Into<MedRecordAttribute>,
     {
         self.0.write_or_panic().attribute(attribute.into())
     }
+
+    pub fn in_group<G>(&mut self, group: G)
+    where
+        G: Into<CardinalityWrapper<Group>>,
+    {
+        self.0.write_or_panic().in_group(group);
+    }
+
+    pub fn has_attribute<A>(&mut self, attribute: A)
+    where
+        A: Into<CardinalityWrapper<MedRecordAttribute>>,
+    {
+        self.0.write_or_panic().has_attribute(attribute);
+    }
+
+    pub fn source_node(&self) -> Wrapper<NodeOperand> {
+        self.0.write_or_panic().source_node()
+    }
+
+    pub fn target_node(&self) -> Wrapper<NodeOperand> {
+        self.0.write_or_panic().target_node()
+    }
 }
 
 #[derive(Debug, Clone)]
 pub struct EdgeValuesOperand {
     context: EdgeOperand,
-    pub(crate) attribute: MedRecordAttribute,
+    kind: ValuesKind,
     operations: Vec<EdgeValuesOperation>,
 }
 
@@ -131,7 +171,7 @@ impl DeepClone for EdgeValuesOperand {
     fn deep_clone(&self) -> Self {
         Self {
             context: self.context.deep_clone(),
-            attribute: self.attribute.clone(),
+            kind: self.kind.clone(),
             operations: self
                 .operations
                 .iter()
@@ -142,25 +182,16 @@ impl DeepClone for EdgeValuesOperand {
 }
 
 impl EdgeValuesOperand {
-    pub(crate) fn new(context: EdgeOperand, attribute: MedRecordAttribute) -> Self {
+    pub(crate) fn new(context: EdgeOperand, kind: ValuesKind) -> Self {
         Self {
             context,
-            attribute,
+            kind,
             operations: Vec::new(),
         }
     }
 
     pub fn max(&mut self) -> Wrapper<EdgeValueOperand> {
-        let mut operand = EdgeValueOperand::new(self.attribute.clone());
-
-        let context = EdgeValueOperation::MaxContext {
-            context: self.deep_clone(),
-            attribute: self.attribute.clone(),
-        };
-
-        operand.operations.push(context);
-
-        let operand = Wrapper::from(operand);
+        let operand = Wrapper::<EdgeValueOperand>::new(ValueKind::Max(self.kind.clone()));
 
         self.operations.push(EdgeValuesOperation::Max {
             operand: operand.clone(),
@@ -171,8 +202,8 @@ impl EdgeValuesOperand {
 }
 
 impl Wrapper<EdgeValuesOperand> {
-    pub(crate) fn new(context: EdgeOperand, attribute: MedRecordAttribute) -> Self {
-        EdgeValuesOperand::new(context, attribute).into()
+    pub(crate) fn new(context: EdgeOperand, kind: ValuesKind) -> Self {
+        EdgeValuesOperand::new(context, kind).into()
     }
 
     pub fn max(&self) -> Wrapper<EdgeValueOperand> {
@@ -181,7 +212,7 @@ impl Wrapper<EdgeValuesOperand> {
 }
 #[derive(Debug, Clone)]
 pub struct EdgeValueOperand {
-    pub(crate) attribute: MedRecordAttribute,
+    kind: ValueKind,
     operations: Vec<EdgeValueOperation>,
 }
 
@@ -205,7 +236,7 @@ impl EvaluateOperand for EdgeValueOperand {
 impl DeepClone for EdgeValueOperand {
     fn deep_clone(&self) -> Self {
         Self {
-            attribute: self.attribute.clone(),
+            kind: self.kind.clone(),
             operations: self
                 .operations
                 .iter()
@@ -216,9 +247,9 @@ impl DeepClone for EdgeValueOperand {
 }
 
 impl EdgeValueOperand {
-    pub(crate) fn new(attribute: MedRecordAttribute) -> Self {
+    pub(crate) fn new(kind: ValueKind) -> Self {
         Self {
-            attribute,
+            kind,
             operations: Vec::new(),
         }
     }
@@ -226,14 +257,14 @@ impl EdgeValueOperand {
     pub fn less_than(&mut self, comparison: ComparisonOperand) {
         self.operations.push(EdgeValueOperation::LessThan {
             operand: comparison,
-            attribute: self.attribute.clone(),
+            kind: self.kind.clone(),
         });
     }
 }
 
 impl Wrapper<EdgeValueOperand> {
-    pub(crate) fn new(attribute: MedRecordAttribute) -> Self {
-        EdgeValueOperand::new(attribute).into()
+    pub(crate) fn new(kind: ValueKind) -> Self {
+        EdgeValueOperand::new(kind).into()
     }
 
     pub fn less_than<O>(&self, comparison: O)

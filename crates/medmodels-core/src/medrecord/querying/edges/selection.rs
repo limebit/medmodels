@@ -1,6 +1,6 @@
 use super::EdgeOperand;
 use crate::medrecord::{
-    querying::{evaluate::EvaluateOperand, wrapper::Wrapper},
+    querying::{traits::EvaluateOperand, wrapper::Wrapper},
     EdgeIndex, MedRecord,
 };
 

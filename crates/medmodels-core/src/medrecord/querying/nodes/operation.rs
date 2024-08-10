@@ -1,23 +1,30 @@
-#![allow(dead_code)]
-// TODO: Remove this once the file is complete
-
 use super::NodeValueOperand;
 use crate::medrecord::{
     querying::{
         edges::EdgeOperand,
-        evaluate::{EvaluateOperand, EvaluateOperation},
-        traits::DeepClone,
+        traits::{DeepClone, EvaluateOperand, EvaluateOperation},
         values::ComparisonOperand,
         wrapper::{CardinalityWrapper, Wrapper},
     },
-    Group, MedRecord, NodeIndex,
+    Group, MedRecord, MedRecordAttribute, NodeIndex,
 };
 use roaring::RoaringBitmap;
 
 #[derive(Debug, Clone)]
 pub enum NodeOperation {
-    InGroup { group: CardinalityWrapper<Group> },
-    OutgoingEdges { operand: Wrapper<EdgeOperand> },
+    InGroup {
+        group: CardinalityWrapper<Group>,
+    },
+    HasAttribute {
+        attribute: CardinalityWrapper<MedRecordAttribute>,
+    },
+
+    OutgoingEdges {
+        operand: Wrapper<EdgeOperand>,
+    },
+    IncomingEdges {
+        operand: Wrapper<EdgeOperand>,
+    },
 }
 
 impl EvaluateOperation for NodeOperation {
@@ -32,7 +39,17 @@ impl EvaluateOperation for NodeOperation {
             Self::InGroup { group } => {
                 Box::new(Self::evaluate_in_group(medrecord, indices, group.clone()))
             }
+            Self::HasAttribute { attribute } => Box::new(Self::evaluate_has_attribute(
+                medrecord,
+                indices,
+                attribute.clone(),
+            )),
             Self::OutgoingEdges { operand } => Box::new(Self::evaluate_outgoing_edges(
+                medrecord,
+                indices,
+                operand.clone(),
+            )),
+            Self::IncomingEdges { operand } => Box::new(Self::evaluate_incoming_edges(
                 medrecord,
                 indices,
                 operand.clone(),
@@ -47,7 +64,13 @@ impl DeepClone for NodeOperation {
             Self::InGroup { group } => Self::InGroup {
                 group: group.clone(),
             },
+            Self::HasAttribute { attribute } => Self::HasAttribute {
+                attribute: attribute.clone(),
+            },
             Self::OutgoingEdges { operand } => Self::OutgoingEdges {
+                operand: operand.deep_clone(),
+            },
+            Self::IncomingEdges { operand } => Self::IncomingEdges {
                 operand: operand.deep_clone(),
             },
         }
@@ -76,6 +99,28 @@ impl NodeOperation {
         })
     }
 
+    fn evaluate_has_attribute<'a>(
+        medrecord: &'a MedRecord,
+        node_indices: impl Iterator<Item = &'a NodeIndex> + 'a,
+        attribute: CardinalityWrapper<MedRecordAttribute>,
+    ) -> impl Iterator<Item = &'a NodeIndex> + 'a {
+        node_indices.filter(move |node_index| {
+            let attributes_of_node = medrecord
+                .node_attributes(node_index)
+                .expect("Node must exist")
+                .keys();
+
+            let attributes_of_node = attributes_of_node.collect::<Vec<_>>();
+
+            match &attribute {
+                CardinalityWrapper::Single(attribute) => attributes_of_node.contains(&attribute),
+                CardinalityWrapper::Multiple(attributes) => attributes
+                    .iter()
+                    .all(|attribute| attributes_of_node.contains(&attribute)),
+            }
+        })
+    }
+
     fn evaluate_outgoing_edges<'a>(
         medrecord: &'a MedRecord,
         node_indices: impl Iterator<Item = &'a NodeIndex> + 'a,
@@ -91,6 +136,24 @@ impl NodeOperation {
             let outgoing_edge_indices = outgoing_edge_indices.collect::<RoaringBitmap>();
 
             !outgoing_edge_indices.is_disjoint(&edge_indices)
+        })
+    }
+
+    fn evaluate_incoming_edges<'a>(
+        medrecord: &'a MedRecord,
+        node_indices: impl Iterator<Item = &'a NodeIndex> + 'a,
+        operand: Wrapper<EdgeOperand>,
+    ) -> impl Iterator<Item = &'a NodeIndex> + 'a {
+        let edge_indices = operand.evaluate(medrecord).collect::<RoaringBitmap>();
+
+        node_indices.filter(move |node_index| {
+            let incoming_edge_indices = medrecord
+                .incoming_edges(node_index)
+                .expect("Node must exist");
+
+            let incoming_edge_indices = incoming_edge_indices.collect::<RoaringBitmap>();
+
+            !incoming_edge_indices.is_disjoint(&edge_indices)
         })
     }
 }

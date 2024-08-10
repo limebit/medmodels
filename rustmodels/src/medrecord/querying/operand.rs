@@ -1,14 +1,12 @@
-use super::values::{PyComparisonOperand, PyGroupCardinalityWrapper};
+use super::values::{
+    PyComparisonOperand, PyGroupCardinalityWrapper, PyMedRecordAttributeCardinalityWrapper,
+};
 use crate::medrecord::attribute::PyMedRecordAttribute;
 use medmodels_core::medrecord::{
     EdgeOperand, EdgeValueOperand, EdgeValuesOperand, NodeOperand, NodeValueOperand,
     NodeValuesOperand, Wrapper,
 };
-use pyo3::{
-    pyclass, pymethods,
-    types::{PyAnyMethods, PyFunction},
-    Bound,
-};
+use pyo3::{pyclass, pymethods};
 
 #[pyclass]
 #[repr(transparent)]
@@ -32,8 +30,16 @@ impl PyNodeOperand {
         self.0.in_group(group);
     }
 
+    pub fn has_attribute(&mut self, attribute: PyMedRecordAttributeCardinalityWrapper) {
+        self.0.has_attribute(attribute);
+    }
+
     pub fn outgoing_edges(&mut self) -> PyEdgeOperand {
         self.0.outgoing_edges().into()
+    }
+
+    pub fn incoming_edges(&mut self) -> PyEdgeOperand {
+        self.0.incoming_edges().into()
     }
 }
 
@@ -55,16 +61,24 @@ impl From<PyEdgeOperand> for Wrapper<EdgeOperand> {
 
 #[pymethods]
 impl PyEdgeOperand {
-    fn connects_to(&mut self, query: &Bound<'_, PyFunction>) {
-        self.0.connects_to(|node| {
-            query
-                .call1((PyNodeOperand::from(node.clone()),))
-                .expect("Operation must succeed");
-        });
-    }
-
     fn attribute(&mut self, attribute: PyMedRecordAttribute) -> PyEdgeValuesOperand {
         self.0.attribute(attribute).into()
+    }
+
+    fn in_group(&mut self, group: PyGroupCardinalityWrapper) {
+        self.0.in_group(group);
+    }
+
+    fn has_attribute(&mut self, attribute: PyMedRecordAttributeCardinalityWrapper) {
+        self.0.has_attribute(attribute);
+    }
+
+    fn source_node(&mut self) -> PyNodeOperand {
+        self.0.target_node().into()
+    }
+
+    fn target_node(&mut self) -> PyNodeOperand {
+        self.0.target_node().into()
     }
 }
 

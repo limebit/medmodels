@@ -280,7 +280,7 @@ class MedRecord:
         Returns:
             Schema: The schema of the MedRecord.
         """
-        return Schema._from_pyschema(self._medrecord.schema)
+        return Schema._from_py_schema(self._medrecord.schema)
 
     @schema.setter
     def schema(self, schema: Schema) -> None:

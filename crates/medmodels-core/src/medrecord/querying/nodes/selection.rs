@@ -1,6 +1,6 @@
 use super::NodeOperand;
 use crate::medrecord::{
-    querying::{evaluate::EvaluateOperand, wrapper::Wrapper},
+    querying::{traits::EvaluateOperand, wrapper::Wrapper},
     MedRecord, NodeIndex,
 };
 

@@ -1,7 +1,4 @@
-use super::{
-    evaluate::EvaluateOperand,
-    traits::{DeepClone, ReadWriteOrPanic},
-};
+use super::traits::{DeepClone, EvaluateOperand, ReadWriteOrPanic};
 use crate::MedRecord;
 use std::sync::{Arc, RwLock};
 

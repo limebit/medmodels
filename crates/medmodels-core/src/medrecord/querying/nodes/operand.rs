@@ -5,9 +5,8 @@ use super::operation::{NodeOperation, NodeValueOperation, NodeValuesOperation};
 use crate::{
     medrecord::{
         querying::{
-            edges::{EdgeOperand, EdgeOperation},
-            evaluate::{EvaluateOperand, EvaluateOperation},
-            traits::{DeepClone, ReadWriteOrPanic},
+            edges::EdgeOperand,
+            traits::{DeepClone, EvaluateOperand, EvaluateOperation, ReadWriteOrPanic},
             wrapper::{CardinalityWrapper, Wrapper},
         },
         Group, MedRecordAttribute, NodeIndex,
@@ -67,18 +66,29 @@ impl NodeOperand {
         });
     }
 
+    pub fn has_attribute<A>(&mut self, attribute: A)
+    where
+        A: Into<CardinalityWrapper<MedRecordAttribute>>,
+    {
+        self.operations.push(NodeOperation::HasAttribute {
+            attribute: attribute.into(),
+        });
+    }
+
     pub fn outgoing_edges(&mut self) -> Wrapper<EdgeOperand> {
-        let mut operand = EdgeOperand::new();
-
-        let context = EdgeOperation::OutgoingEdgesContext {
-            context: self.deep_clone(),
-        };
-
-        operand.operations.push(context);
-
-        let operand = Wrapper::from(operand);
+        let operand = Wrapper::<EdgeOperand>::new();
 
         self.operations.push(NodeOperation::OutgoingEdges {
+            operand: operand.clone(),
+        });
+
+        operand
+    }
+
+    pub fn incoming_edges(&mut self) -> Wrapper<EdgeOperand> {
+        let operand = Wrapper::<EdgeOperand>::new();
+
+        self.operations.push(NodeOperation::IncomingEdges {
             operand: operand.clone(),
         });
 
@@ -98,8 +108,19 @@ impl Wrapper<NodeOperand> {
         self.0.write_or_panic().in_group(group);
     }
 
+    pub fn has_attribute<A>(&mut self, attribute: A)
+    where
+        A: Into<CardinalityWrapper<MedRecordAttribute>>,
+    {
+        self.0.write_or_panic().has_attribute(attribute);
+    }
+
     pub fn outgoing_edges(&mut self) -> Wrapper<EdgeOperand> {
         self.0.write_or_panic().outgoing_edges()
+    }
+
+    pub fn incoming_edges(&mut self) -> Wrapper<EdgeOperand> {
+        self.0.write_or_panic().incoming_edges()
     }
 }
 

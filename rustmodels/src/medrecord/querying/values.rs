@@ -1,11 +1,14 @@
 use super::operand::{
     PyEdgeValueOperand, PyEdgeValuesOperand, PyNodeValueOperand, PyNodeValuesOperand,
 };
-use crate::medrecord::{errors::PyMedRecordError, value::PyMedRecordValue, PyGroup};
+use crate::medrecord::{
+    attribute::PyMedRecordAttribute, errors::PyMedRecordError, value::PyMedRecordValue, PyGroup,
+};
 use medmodels_core::{
     errors::MedRecordError,
     medrecord::{
-        CardinalityWrapper, ComparisonOperand, Group, MedRecordValue, ValueOperand, ValuesOperand,
+        CardinalityWrapper, ComparisonOperand, Group, MedRecordAttribute, MedRecordValue,
+        ValueOperand, ValuesOperand,
     },
 };
 use pyo3::{types::PyAnyMethods, Bound, FromPyObject, PyAny, PyResult};
@@ -31,6 +34,45 @@ impl<'a> FromPyObject<'a> for PyGroupCardinalityWrapper {
             Ok(CardinalityWrapper::Single(Group::from(group)).into())
         } else if let Ok(groups) = ob.extract::<Vec<PyGroup>>() {
             Ok(CardinalityWrapper::Multiple(groups.into_iter().map(Group::from).collect()).into())
+        } else {
+            Err(
+                PyMedRecordError::from(MedRecordError::ConversionError(format!(
+                    "Failed to convert {} into MedRecordAttribute or List[MedREcordAttribute]",
+                    ob,
+                )))
+                .into(),
+            )
+        }
+    }
+}
+
+#[repr(transparent)]
+pub struct PyMedRecordAttributeCardinalityWrapper(CardinalityWrapper<MedRecordAttribute>);
+
+impl From<CardinalityWrapper<MedRecordAttribute>> for PyMedRecordAttributeCardinalityWrapper {
+    fn from(group: CardinalityWrapper<MedRecordAttribute>) -> Self {
+        Self(group)
+    }
+}
+
+impl From<PyMedRecordAttributeCardinalityWrapper> for CardinalityWrapper<MedRecordAttribute> {
+    fn from(py_group: PyMedRecordAttributeCardinalityWrapper) -> Self {
+        py_group.0
+    }
+}
+
+impl<'a> FromPyObject<'a> for PyMedRecordAttributeCardinalityWrapper {
+    fn extract_bound(ob: &Bound<'_, PyAny>) -> PyResult<Self> {
+        if let Ok(attribute) = ob.extract::<PyMedRecordAttribute>() {
+            Ok(CardinalityWrapper::Single(MedRecordAttribute::from(attribute)).into())
+        } else if let Ok(attributes) = ob.extract::<Vec<PyMedRecordAttribute>>() {
+            Ok(CardinalityWrapper::Multiple(
+                attributes
+                    .into_iter()
+                    .map(MedRecordAttribute::from)
+                    .collect(),
+            )
+            .into())
         } else {
             Err(
                 PyMedRecordError::from(MedRecordError::ConversionError(format!(

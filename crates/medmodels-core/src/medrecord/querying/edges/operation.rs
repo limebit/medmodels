@@ -2,13 +2,12 @@ use super::{EdgeValueOperand, EdgeValuesOperand};
 use crate::{
     medrecord::{
         querying::{
-            evaluate::{EvaluateOperand, EvaluateOperation},
             nodes::NodeOperand,
-            traits::{DeepClone, ReadWriteOrPanic},
-            values::{ComparisonOperand, ValuesOperand},
+            traits::{DeepClone, EvaluateOperand, EvaluateOperation, ReadWriteOrPanic},
+            values::{ComparisonOperand, ValueKind, ValuesOperand},
             wrapper::Wrapper,
         },
-        EdgeIndex, MedRecordAttribute,
+        CardinalityWrapper, EdgeIndex, Group, MedRecordAttribute,
     },
     MedRecord,
 };
@@ -16,12 +15,23 @@ use std::collections::HashSet;
 
 #[derive(Debug, Clone)]
 pub enum EdgeOperation {
-    // If this operation is used, it is always the first operation of an operand.
-    OutgoingEdgesContext { context: NodeOperand },
+    Attribute {
+        operand: Wrapper<EdgeValuesOperand>,
+    },
 
-    ConnectsTo { operand: Wrapper<NodeOperand> },
+    InGroup {
+        group: CardinalityWrapper<Group>,
+    },
+    HasAttribute {
+        attribute: CardinalityWrapper<MedRecordAttribute>,
+    },
 
-    Attribute { operand: Wrapper<EdgeValuesOperand> },
+    SourceNode {
+        operand: Wrapper<NodeOperand>,
+    },
+    TargetNode {
+        operand: Wrapper<NodeOperand>,
+    },
 }
 
 impl EvaluateOperation for EdgeOperation {
@@ -33,17 +43,27 @@ impl EvaluateOperation for EdgeOperation {
         indices: impl Iterator<Item = &'a Self::Index> + 'a,
     ) -> Box<dyn Iterator<Item = &'a Self::Index> + 'a> {
         match self {
-            Self::OutgoingEdgesContext { context } => Box::new(
-                Self::evaluate_outgoing_edges_context(medrecord, context.clone()),
-            ),
-            Self::ConnectsTo { operand } => Box::new(Self::evaluate_connects_to(
+            Self::Attribute { operand } => {
+                Box::new(Self::evaluate_attribute(medrecord, operand.clone()))
+            }
+            Self::InGroup { group } => {
+                Box::new(Self::evaluate_in_group(medrecord, indices, group.clone()))
+            }
+            Self::HasAttribute { attribute } => Box::new(Self::evaluate_has_attribute(
+                medrecord,
+                indices,
+                attribute.clone(),
+            )),
+            Self::SourceNode { operand } => Box::new(Self::evaluate_source_node(
                 medrecord,
                 indices,
                 operand.clone(),
             )),
-            Self::Attribute { operand } => {
-                Box::new(Self::evaluate_attribute(medrecord, operand.clone()))
-            }
+            Self::TargetNode { operand } => Box::new(Self::evaluate_target_node(
+                medrecord,
+                indices,
+                operand.clone(),
+            )),
         }
     }
 }
@@ -51,13 +71,19 @@ impl EvaluateOperation for EdgeOperation {
 impl DeepClone for EdgeOperation {
     fn deep_clone(&self) -> Self {
         match self {
-            Self::OutgoingEdgesContext { context } => Self::OutgoingEdgesContext {
-                context: context.deep_clone(),
-            },
-            Self::ConnectsTo { operand } => Self::ConnectsTo {
+            Self::Attribute { operand } => Self::Attribute {
                 operand: operand.deep_clone(),
             },
-            Self::Attribute { operand } => Self::Attribute {
+            Self::InGroup { group } => Self::InGroup {
+                group: group.clone(),
+            },
+            Self::HasAttribute { attribute } => Self::HasAttribute {
+                attribute: attribute.clone(),
+            },
+            Self::SourceNode { operand } => Self::SourceNode {
+                operand: operand.deep_clone(),
+            },
+            Self::TargetNode { operand } => Self::TargetNode {
                 operand: operand.deep_clone(),
             },
         }
@@ -65,22 +91,57 @@ impl DeepClone for EdgeOperation {
 }
 
 impl EdgeOperation {
-    fn evaluate_outgoing_edges_context(
+    fn evaluate_attribute(
         medrecord: &MedRecord,
-        context: NodeOperand,
+        operand: Wrapper<EdgeValuesOperand>,
     ) -> impl Iterator<Item = &EdgeIndex> {
-        let node_indices = context.evaluate(medrecord);
+        operand.evaluate(medrecord)
+    }
 
-        node_indices.flat_map(|node_index| {
-            let outgoing_edges = medrecord
-                .outgoing_edges(node_index)
+    fn evaluate_in_group<'a>(
+        medrecord: &'a MedRecord,
+        edge_indices: impl Iterator<Item = &'a EdgeIndex> + 'a,
+        group: CardinalityWrapper<Group>,
+    ) -> impl Iterator<Item = &'a EdgeIndex> + 'a {
+        edge_indices.filter(move |edge_index| {
+            let groups_of_edge = medrecord
+                .groups_of_edge(edge_index)
                 .expect("Node must exist");
 
-            outgoing_edges
+            let groups_of_edge = groups_of_edge.collect::<Vec<_>>();
+
+            match &group {
+                CardinalityWrapper::Single(group) => groups_of_edge.contains(&group),
+                CardinalityWrapper::Multiple(groups) => {
+                    groups.iter().all(|group| groups_of_edge.contains(&group))
+                }
+            }
         })
     }
 
-    fn evaluate_connects_to<'a>(
+    fn evaluate_has_attribute<'a>(
+        medrecord: &'a MedRecord,
+        edge_indices: impl Iterator<Item = &'a EdgeIndex> + 'a,
+        attribute: CardinalityWrapper<MedRecordAttribute>,
+    ) -> impl Iterator<Item = &'a EdgeIndex> + 'a {
+        edge_indices.filter(move |edge_index| {
+            let attributes_of_edge = medrecord
+                .edge_attributes(edge_index)
+                .expect("Node must exist")
+                .keys();
+
+            let attributes_of_edge = attributes_of_edge.collect::<Vec<_>>();
+
+            match &attribute {
+                CardinalityWrapper::Single(attribute) => attributes_of_edge.contains(&attribute),
+                CardinalityWrapper::Multiple(attributes) => attributes
+                    .iter()
+                    .all(|attribute| attributes_of_edge.contains(&attribute)),
+            }
+        })
+    }
+
+    fn evaluate_source_node<'a>(
         medrecord: &'a MedRecord,
         edge_indices: impl Iterator<Item = &'a EdgeIndex>,
         operand: Wrapper<NodeOperand>,
@@ -96,11 +157,20 @@ impl EdgeOperation {
         })
     }
 
-    fn evaluate_attribute(
-        medrecord: &MedRecord,
-        operand: Wrapper<EdgeValuesOperand>,
-    ) -> impl Iterator<Item = &EdgeIndex> {
-        operand.evaluate(medrecord)
+    fn evaluate_target_node<'a>(
+        medrecord: &'a MedRecord,
+        edge_indices: impl Iterator<Item = &'a EdgeIndex>,
+        operand: Wrapper<NodeOperand>,
+    ) -> impl Iterator<Item = &'a EdgeIndex> {
+        let node_indices = operand.evaluate(medrecord).collect::<HashSet<_>>();
+
+        edge_indices.filter(move |edge_index| {
+            let edge_endpoints = medrecord
+                .edge_endpoints(edge_index)
+                .expect("Edge must exist");
+
+            node_indices.contains(edge_endpoints.1)
+        })
     }
 }
 
@@ -144,15 +214,9 @@ impl EdgeValuesOperation {
 
 #[derive(Debug, Clone)]
 pub enum EdgeValueOperation {
-    // If this operation is used, it is always the first operation of an operand.
-    MaxContext {
-        context: EdgeValuesOperand,
-        attribute: MedRecordAttribute,
-    },
-
     LessThan {
         operand: ComparisonOperand,
-        attribute: MedRecordAttribute,
+        kind: ValueKind,
     },
 }
 
@@ -165,16 +229,11 @@ impl EvaluateOperation for EdgeValueOperation {
         indices: impl Iterator<Item = &'a Self::Index> + 'a,
     ) -> Box<dyn Iterator<Item = &'a Self::Index> + 'a> {
         match self {
-            Self::MaxContext { context, attribute } => Box::new(Self::evaluate_max_context(
-                medrecord,
-                context.clone(),
-                attribute.clone(),
-            )),
-            Self::LessThan { operand, attribute } => Box::new(Self::evaluate_less_than(
+            Self::LessThan { operand, kind } => Box::new(Self::evaluate_less_than(
                 medrecord,
                 indices,
                 operand.clone(),
-                attribute.clone(),
+                kind.clone(),
             )),
         }
     }
@@ -183,85 +242,31 @@ impl EvaluateOperation for EdgeValueOperation {
 impl DeepClone for EdgeValueOperation {
     fn deep_clone(&self) -> Self {
         match self {
-            Self::MaxContext { context, attribute } => Self::MaxContext {
-                context: context.deep_clone(),
-                attribute: attribute.clone(),
-            },
-            Self::LessThan { operand, attribute } => Self::LessThan {
+            Self::LessThan { operand, kind } => Self::LessThan {
                 operand: operand.deep_clone(),
-                attribute: attribute.clone(),
+                kind: kind.clone(),
             },
         }
     }
 }
 
 impl EdgeValueOperation {
-    fn evaluate_max_context(
-        medrecord: &MedRecord,
-        context: EdgeValuesOperand,
-        attribute: MedRecordAttribute,
-    ) -> impl Iterator<Item = &EdgeIndex> {
-        let edge_indices = context.evaluate(medrecord);
-
-        let mut edge_attributes = edge_indices.filter_map(|edge_index| {
-            Some((
-                edge_index,
-                medrecord
-                    .edge_attributes(edge_index)
-                    .expect("Edge must exist")
-                    .get(&attribute)?,
-            ))
-        });
-
-        let Some(max) = edge_attributes.next() else {
-            return Vec::new().into_iter();
-        };
-
-        let max_edge =
-            edge_attributes.fold(max, |max, edge| if edge.1 > max.1 { edge } else { max });
-
-        vec![max_edge.0].into_iter()
-    }
-
     fn evaluate_less_than<'a>(
         medrecord: &'a MedRecord,
-        mut edge_indices: impl Iterator<Item = &'a EdgeIndex>,
+        edge_indices: impl Iterator<Item = &'a EdgeIndex> + 'a,
         operand: ComparisonOperand,
-        attribute: MedRecordAttribute,
+        kind: ValueKind,
     ) -> impl Iterator<Item = &EdgeIndex> {
-        let Some(edge_index) = edge_indices.next() else {
-            return Vec::new().into_iter();
-        };
-        let value = medrecord
-            .edge_attributes(edge_index)
-            .expect("Edge must exist")
-            .get(&attribute)
-            .expect("Attribute must exist");
-
-        let ComparisonOperand::Multiple(comparison) = operand else {
-            todo!()
-        };
-
-        let ValuesOperand::Edges(operand) = comparison else {
-            todo!()
-        };
-
-        let comparison_edge_indices = operand.evaluate(medrecord);
-        let comparison_attribute = operand.0.read_or_panic().attribute.clone();
-
-        let comparison_values = comparison_edge_indices.filter_map(|edge_index| {
-            medrecord
-                .edge_attributes(edge_index)
-                .expect("Edge must exist")
-                .get(&comparison_attribute)
-        });
-
-        for comparison_value in comparison_values {
-            if value >= comparison_value {
-                return Vec::new().into_iter();
+        match kind {
+            ValueKind::Max(values) => {
+                let values = values.evaluate_edge_values(medrecord, edge_indices);
             }
+            ValueKind::Min(_) => todo!(),
+
+            ValueKind::All(_) => todo!(),
+            ValueKind::Any(_) => todo!(),
         }
 
-        vec![edge_index].into_iter()
+        edge_indices
     }
 }

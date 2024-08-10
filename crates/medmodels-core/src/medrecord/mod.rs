@@ -1946,11 +1946,13 @@ mod test {
         let nodes = medrecord.select_nodes(|node| {
             let edges_to_treatment = node.outgoing_edges();
             edges_to_treatment
-                .connects_to(|node2| node2.in_group(MedRecordAttribute::from("treatment")));
+                .target_node()
+                .in_group(MedRecordAttribute::from("treatment"));
 
             let edges_to_outcome = node.outgoing_edges();
             edges_to_outcome
-                .connects_to(|node2| node2.in_group(MedRecordAttribute::from("outcome")));
+                .target_node()
+                .in_group(MedRecordAttribute::from("treatment"));
 
             let max_time_edge = edges_to_treatment.attribute("time").max();
 
