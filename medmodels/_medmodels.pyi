@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from enum import Enum
 from typing import TYPE_CHECKING, Dict, List, Optional, Sequence, Union
 
 from medmodels.medrecord.types import (
@@ -37,6 +38,7 @@ ValueOperand: TypeAlias = Union[
 PyDataType: TypeAlias = Union[
     PyString,
     PyInt,
+    PyFloat,
     PyBool,
     PyDateTime,
     PyNull,
@@ -47,27 +49,54 @@ PyDataType: TypeAlias = Union[
 
 class PyString: ...
 class PyInt: ...
+class PyFloat: ...
 class PyBool: ...
 class PyDateTime: ...
 class PyNull: ...
 class PyAny: ...
 
 class PyUnion:
-    def __init__(self, first_type: PyDataType, second_type: PyDataType) -> None: ...
+    dtype1: PyDataType
+    dtype2: PyDataType
+
+    def __init__(self, dtype1: PyDataType, dtype2: PyDataType) -> None: ...
 
 class PyOption:
-    def __init__(self, inner_type: PyDataType) -> None: ...
+    dtype: PyDataType
+
+    def __init__(self, dtype: PyDataType) -> None: ...
+
+class PyAttributeType(Enum):
+    Categorical = ...
+    Continuous = ...
+    Temporal = ...
+
+class PyAttributeDataType:
+    data_type: PyDataType
+    attribute_type: Optional[PyAttributeType]
+
+    def __init__(
+        self, data_type: PyDataType, attribute_type: Optional[PyAttributeType]
+    ) -> None: ...
 
 class PyGroupSchema:
+    nodes: Dict[MedRecordAttribute, PyAttributeDataType]
+    edges: Dict[MedRecordAttribute, PyAttributeDataType]
+    strict: Optional[bool]
+
     def __init__(
         self,
         *,
-        nodes: Dict[MedRecordAttribute, PyDataType],
-        edges: Dict[MedRecordAttribute, PyDataType],
+        nodes: Dict[MedRecordAttribute, PyAttributeDataType],
+        edges: Dict[MedRecordAttribute, PyAttributeDataType],
         strict: Optional[bool] = None,
     ) -> None: ...
 
 class PySchema:
+    groups: List[Group]
+    default: Optional[PyGroupSchema]
+    strict: Optional[bool]
+
     def __init__(
         self,
         *,
@@ -75,6 +104,7 @@ class PySchema:
         default: Optional[PyGroupSchema] = None,
         strict: Optional[bool] = None,
     ) -> None: ...
+    def group(self, group: Group) -> PyGroupSchema: ...
 
 class PyMedRecord:
     schema: PySchema

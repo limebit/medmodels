@@ -11,3 +11,4 @@ target
 .devcontainer
 .python-version
 docs/api/_autosummary/*
+.coverage

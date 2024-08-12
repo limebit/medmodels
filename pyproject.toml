@@ -34,15 +34,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = [
-    "maturin>=1.6.0",
-    "ruff>=0.4.9",
-    "py-spy",
-    "pyright>=1.1.370,<1.1.374",
-    "pandas-stubs>=2.2.2.240603",
-    "medmodels[docs, tests]",
-]
-
+tests = ["pytest>=8.2.2", "coverage>=7.6.1"]
 docs = [
     "sphinx>=7",
     "sphinx-design==0.6.0",
@@ -65,8 +57,14 @@ docs = [
     "livereload==2.7.0",
     "sphinx-multiversion==0.2.4",
 ]
-
-tests = ["pytest>=8.2.2"]
+dev = [
+    "medmodels[docs, tests]",
+    "maturin>=1.6.0",
+    "ruff>=0.4.9",
+    "py-spy",
+    "pyright>=1.1.370,<1.1.374",
+    "pandas-stubs>=2.2.2.240603",
+]
 
 [build-system]
 requires = ["maturin>=1.6.0", "setuptools"]

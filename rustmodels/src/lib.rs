@@ -8,7 +8,7 @@ use medrecord::{
         PyNodeAttributeOperand, PyNodeIndexOperand, PyNodeOperand, PyNodeOperation,
         PyValueArithmeticOperation, PyValueTransformationOperation,
     },
-    schema::{PyGroupSchema, PySchema},
+    schema::{PyAttributeDataType, PyAttributeType, PyGroupSchema, PySchema},
     PyMedRecord,
 };
 use pyo3::prelude::*;
@@ -27,6 +27,8 @@ fn _medmodels(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyUnion>()?;
     m.add_class::<PyOption>()?;
 
+    m.add_class::<PyAttributeDataType>()?;
+    m.add_class::<PyAttributeType>()?;
     m.add_class::<PyGroupSchema>()?;
     m.add_class::<PySchema>()?;
 
