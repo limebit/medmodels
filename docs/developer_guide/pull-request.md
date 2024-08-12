@@ -4,10 +4,10 @@ Once you've made your changes to the MedModels codebase and are ready to share t
 
 **1. Push your Local Branch:**
 
-- Commit your changes locally using clear and concise commit messages following the Conventional Commits standard ([https://www.conventionalcommits.org/en/v1.0.0/](https://www.conventionalcommits.org/en/v1.0.0/)).
+- Commit your changes locally using clear and concise commit messages following the Conventional Commits standard guideline ([https://www.conventionalcommits.org/en/v1.0.0/](https://www.conventionalcommits.org/en/v1.0.0/)).
 - This standard encourages using a specific format for commit messages that categorizes your changes. Here's the breakdown:
 
-  - **Type:** Start your message with type like `feat`, `fix`, `refactor`, `docs`, etc. We use the following types in this project:
+  - **Type:** SStart your message stating the PR's type like `feat`, `fix`, `refactor`, `docs`, etc. We use the following types in this project:
     - `build`: Changes related to build infrastructure or tools.
     - `chore`: Changes that don't directly affect functionality, like updating dependencies or formatting.
     - `ci`: Changes related to the continuous integration pipeline.

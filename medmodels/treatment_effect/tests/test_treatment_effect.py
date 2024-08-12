@@ -12,7 +12,7 @@ from medmodels.treatment_effect.treatment_effect import TreatmentEffect
 
 
 def create_patients(patient_list: List[NodeIndex]) -> pd.DataFrame:
-    """Create a patients dataframe.
+    """Creates a patients dataframe.
 
     Returns:
         pd.DataFrame: A patients dataframe.
@@ -40,7 +40,7 @@ def create_patients(patient_list: List[NodeIndex]) -> pd.DataFrame:
 
 
 def create_diagnoses() -> pd.DataFrame:
-    """Create a diagnoses dataframe.
+    """Creates a diagnoses dataframe.
 
     Returns:
         pd.DataFrame: A diagnoses dataframe.
@@ -55,7 +55,7 @@ def create_diagnoses() -> pd.DataFrame:
 
 
 def create_prescriptions() -> pd.DataFrame:
-    """Create a prescriptions dataframe.
+    """Creates a prescriptions dataframe.
 
     Returns:
         pd.DataFrame: A prescriptions dataframe.
@@ -70,7 +70,7 @@ def create_prescriptions() -> pd.DataFrame:
 
 
 def create_edges1(patient_list: List[NodeIndex]) -> pd.DataFrame:
-    """Create an edges dataframe.
+    """Creates an edges dataframe.
 
     Returns:
         pd.DataFrame: An edges dataframe.
@@ -111,7 +111,7 @@ def create_edges1(patient_list: List[NodeIndex]) -> pd.DataFrame:
 
 
 def create_edges2(patient_list: List[NodeIndex]) -> pd.DataFrame:
-    """Create an edges dataframe with attribute "intensity".
+    """Creates an edges dataframe with attribute "intensity".
 
     Returns:
         pd.DataFrame: An edges dataframe.
@@ -169,7 +169,7 @@ def create_medrecord(
         "P9",
     ],
 ) -> MedRecord:
-    """Create a MedRecord object.
+    """Creates a MedRecord object.
 
     Returns:
         MedRecord: A MedRecord object.

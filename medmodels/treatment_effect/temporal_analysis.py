@@ -138,8 +138,8 @@ def find_node_in_time_window(
         before and after the last exposure to any medication in the group "medications" for
         the subject "P1":
 
-        .. highlight:: python
         .. code-block:: python
+            :linenos:
 
             find_node_in_time_window(
                 medrecord,
@@ -151,6 +151,9 @@ def find_node_in_time_window(
                 reference="last",
             )
 
+        .. code-block:: python
+
+            >>> True
     """
     reference_edge = find_reference_edge(
         medrecord,

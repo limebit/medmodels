@@ -217,7 +217,7 @@ Refer to the [Sphinx & RST Cheat Sheet](https://sphinx-tutorial.readthedocs.io/c
 
 ### Arguments
 
-Document parameters under the `Args` section. Each parameter should include its name, type, and a brief description. Type definitions cannot have a line break. Use indentation to break long parameter descriptions into multiple lines, ensuring they are clearly readable.
+Document parameters under the `Args` section. Each parameter should include its name, type, and a brief description.
 
 Example:
 
@@ -234,14 +234,12 @@ def example_function(param1, param2, param3):
             broken into multiple lines for better readability. This parameter is used
             to show how to write long descriptions and how to indent them properly in
             the docstring.
-
-    Returns:
-        bool: True if successful, False otherwise.
-
-    Raises:
-        ValueError: If `param1` is not an integer.
     """
 ```
+
+:::{note}
+Type definitions of parameters cannot have a line break. You can not put a line break inside `(Union[str, List[str], Dict[str, Any]])`. When writing docstrings, the max line length setting can be exceeded without triggering linting errors.
+:::
 
 ### Return Types
 
@@ -260,19 +258,86 @@ def example_function(param1, param2):
 
 ### Examples
 
-Provide examples under the `Examples` section. This helps users understand how to use the function or class. Use triple backticks to enclose the example code.
+Provide examples under the `Examples` section by using Sphinx's `.. code-block::` directive within the docstrings.
+You need to decalare two `.. code-block` sections per example. The first one to shows the executed python code. The second one shows the output.
 
-Example:
+1. Execute block
+
+The first code block needs to start as shown below. It sets the code highlighting to `python` and activates line numbers with `:linenos:`.
+
+```{code}
+
+.. code-block:: python
+            :linenos:
+
+            <python code>
+
+```
+
+2. Result block
+
+The second block shows the return value when executing the code. The output value(s) should be entered after `>>>`.
+
+```{code}
+
+.. code-block:: python
+
+            >>> Output
+
+```
+
+
+
+Full Example:
 
 ```python
 def example_function(param1, param2):
     """This function performs an example operation.
 
     Examples:
-        >>> example_function(1, 'a')
-        True
+
+        1. Example
+
+        .. code-block:: python
+            :linenos:
+
+            example_function(
+                arg0=1,
+                arg1="A"
+            )
+
+        .. code-block:: python
+
+            >>> True
+
     """
 ```
+
+Will be shown in the API Docs as:
+
+````{admonition} Examples
+:class: example
+
+```{eval-rst}
+
+1. Example:
+
+.. code-block:: python
+    :linenos:
+
+    example_function(
+        arg0=1,
+        arg1="A"
+    )
+
+.. code-block:: python
+
+    >>> True
+
+```
+````
+
+Check out the docs of [find_node_in_time_window()](medmodels.treatment_effect.temporal_analysis.find_node_in_time_window) for a real example.
 
 ### Raises
 

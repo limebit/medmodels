@@ -424,10 +424,6 @@ medrecord.group(["Young", "Woman"])
     Patients in Group 'Young' if threshold age is 20: ['pat_4']
     Patient pat_4 is in the following groups: ['Young', 'Patient']
 
-
-
-
-
     {'Young': ['pat_4'], 'Woman': ['pat_3', 'pat_1', 'pat_2']}
 
 Nodes can also be added to an existing group later.
