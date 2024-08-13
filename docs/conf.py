@@ -79,13 +79,28 @@ autodoc_typehints_format = "short"
 
 # MyST settings
 myst_enable_extensions = [
-    "dollarmath", "amsmath", "deflist", "fieldlist", "html_admonition",
-    "html_image", "colon_fence", "smartquotes", "replacements", "linkify",
-    "strikethrough", "substitution", "tasklist", "attrs_inline", "attrs_block",
+    "dollarmath",
+    "amsmath",
+    "deflist",
+    "fieldlist",
+    "html_admonition",
+    "html_image",
+    "colon_fence",
+    "smartquotes",
+    "replacements",
+    "linkify",
+    "strikethrough",
+    "substitution",
+    "tasklist",
+    "attrs_inline",
+    "attrs_block",
 ]
 
 myst_url_schemes = {
-    "http": None, "https": None, "mailto": None, "ftp": None,
+    "http": None,
+    "https": None,
+    "mailto": None,
+    "ftp": None,
     "wiki": "https://en.wikipedia.org/wiki/{{path}}#{{fragment}}",
     "doi": "https://doi.org/{{path}}",
     "gh-pr": {
@@ -153,13 +168,20 @@ tippy_anchor_parent_selector = "article.bd-article"
 # LaTeX output
 latex_engine = "xelatex"
 
+
 # Local Sphinx extensions
 def setup(app: Sphinx):
     """Add custom directives and transformations to Sphinx."""
     from myst_parser._docs import (
-        DirectiveDoc, DocutilsCliHelpDirective, MystAdmonitionDirective,
-        MystConfigDirective, MystExampleDirective, MystLexer,
-        MystToHTMLDirective, MystWarningsDirective, NumberSections,
+        DirectiveDoc,
+        DocutilsCliHelpDirective,
+        MystAdmonitionDirective,
+        MystConfigDirective,
+        MystExampleDirective,
+        MystLexer,
+        MystToHTMLDirective,
+        MystWarningsDirective,
+        NumberSections,
         StripUnsupportedLatex,
     )
 

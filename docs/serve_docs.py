@@ -3,7 +3,9 @@
 import os
 import subprocess
 from pathlib import Path
+
 from livereload import Server, shell
+
 
 def setup_live_docs_server():
     """
@@ -28,9 +30,13 @@ def setup_live_docs_server():
 
     # File patterns to watch for changes
     watch_patterns = [
-        "*.rst", "*.md", "conf.py",
-        "api/*", "user_guide/*", "developer_guide/*",
-        "../medmodels/**/*"
+        "*.rst",
+        "*.md",
+        "conf.py",
+        "api/*",
+        "user_guide/*",
+        "developer_guide/*",
+        "../medmodels/**/*",
     ]
 
     # Set up file watchers
@@ -39,6 +45,7 @@ def setup_live_docs_server():
 
     # Serve documentation
     server.serve(root=str(script_path / "_build" / "html"), host="0.0.0.0")
+
 
 if __name__ == "__main__":
     print("Starting live documentation server...")
