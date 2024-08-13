@@ -7,7 +7,8 @@ import polars as pl
 from medmodels._medmodels import PyMedRecord
 from medmodels.medrecord.builder import MedRecordBuilder
 from medmodels.medrecord.indexers import EdgeIndexer, NodeIndexer
-from medmodels.medrecord.querying import EdgeOperation, NodeOperation
+from medmodels.medrecord.overview import extract_attribute_summary, prettify_table
+from medmodels.medrecord.querying import EdgeOperation, NodeOperation, edge, node
 from medmodels.medrecord.schema import Schema
 from medmodels.medrecord.types import (
     Attributes,
@@ -1301,3 +1302,126 @@ class MedRecord:
             return self.select_nodes(key)
 
         return self.select_edges(key)
+
+    def describe_group_nodes(self) -> pl.DataFrame:
+        """Creates a summary of group nodes and their attributes.
+
+        Args:
+            medrecord (MedRecord): medrecord containing node groups.
+
+        Returns:
+            pl.DataFrame: Dataframe with all nodes in medrecord groups and their attributes.
+
+        """
+
+        node_groups = [
+            pl.DataFrame(
+                schema={
+                    "Nodes": pl.String,
+                    "Count": pl.String,
+                    "Attribute": pl.String,
+                    "Info": pl.String,
+                }
+            )
+        ]
+        for group in self.groups:
+            nodes = self.group(group)["nodes"]
+            if nodes:
+                if group in self.schema.groups:
+                    node_info = extract_attribute_summary(
+                        self.node[nodes],
+                        schema=self.schema.group(group).nodes,
+                    )
+                else:
+                    node_info = extract_attribute_summary(self.node[nodes])
+
+                node_info = node_info.select(
+                    [
+                        pl.lit(group).alias("Nodes"),
+                        pl.lit(str(len(nodes))).alias("Count"),
+                        pl.all(),
+                    ]
+                )
+                node_groups.append(node_info)
+        node_table = pl.concat(node_groups)
+        if node_table.is_empty():
+            node_table = pl.DataFrame({col: "-" for col in node_table.columns})
+        return node_table
+
+    def describe_group_edges(self) -> pl.DataFrame:
+        """Creates a summary of edges connecting group nodes and the edge attributes.
+
+        Args:
+            medrecord (MedRecord): MedRecord containing groups and edges.
+
+        Returns:
+            pl.DataFrame: DataFrame with an overview of edges connecting group nodes.
+        """
+
+        edge_groups = [
+            pl.DataFrame(
+                schema={
+                    "Edges": pl.String,
+                    "Count": pl.String,
+                    "Attribute": pl.String,
+                    "Info": pl.String,
+                }
+            )
+        ]
+
+        for group1 in self.groups:
+            # edges in groups
+            edges = self.group(group1)["edges"]
+            if edges:
+                if group1 in self.schema.groups:
+                    edge_info = extract_attribute_summary(
+                        self.edge[edges],
+                        schema=self.schema.group(group1).edges,
+                    )
+                else:
+                    edge_info = extract_attribute_summary(self.edge[edges])
+
+                edge_info = edge_info.select(
+                    [
+                        pl.lit(group1).alias("Edges"),
+                        pl.lit(str(len(edges))).alias("Count"),
+                        pl.all(),
+                    ]
+                )
+                edge_groups.append(edge_info)
+
+            # edges connecting different groups
+            for group2 in self.groups:
+                edges = self.select_edges(
+                    edge().connected_source_with(node().in_group(group1))
+                    & edge().connected_target_with(node().in_group(group2))
+                )
+                if edges:
+                    edge_info = extract_attribute_summary(self.edge[edges])
+                    edge_info = edge_info.select(
+                        [
+                            pl.lit(f"{group1} -> {group2}").alias("Edges"),
+                            pl.lit(str(len(edges))).alias("Count"),
+                            pl.all(),
+                        ]
+                    )
+                    edge_groups.append(edge_info)
+        edge_table = pl.concat(edge_groups)
+        if edge_table.is_empty():
+            edge_table = pl.DataFrame({col: "-" for col in edge_table.columns})
+        return edge_table
+
+    def __repr__(self) -> str:
+        representation = prettify_table(self.describe_group_nodes())
+        representation.append("")
+        representation.extend(prettify_table(self.describe_group_edges()))
+
+        return "\n".join(representation)
+
+    def show_group_nodes(self):
+        nodes_table = prettify_table(self.describe_group_nodes())
+        [print(line) for line in nodes_table]
+
+    def show_group_edges(self):
+        edges_table = prettify_table(self.describe_group_edges())
+        [print(line) for line in edges_table]
