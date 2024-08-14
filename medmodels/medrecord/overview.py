@@ -34,64 +34,66 @@ def extract_attribute_summary(
 
     attributes = [col for col in data.columns if col != "id"]
     attributes.sort()
-    if attributes:
-        for attribute in attributes:
-            if schema and attribute in schema:
-                if schema[attribute][1] == AttributeType.Continuous:
-                    attribute_info = [
-                        f"min: {data[attribute].min()}",
-                        f"max: {data[attribute].max()}",
-                        f"mean: {data[attribute].mean():.{decimal}f}",
-                    ]
 
-                elif schema[attribute][1] == AttributeType.Temporal:
-                    attribute_info = [
-                        f"min: {min(data[attribute])}",
-                        f"max: {max(data[attribute])}",
-                    ]
+    if not attributes:
+        return pl.DataFrame({"Attribute": ["-"], "Info": ["-"]})
 
-                elif schema[attribute][1] == AttributeType.Categorical:
-                    categories = data[attribute].unique().sort()
-                    if len(categories) > 5:
-                        attribute_info = [f"{len(categories)} categories"]
-                    else:
-                        category_str = ", ".join(categories)
-                        if len(category_str) < 100:
-                            attribute_info = [
-                                f"Categories: {', '.join(list(categories))}"
-                            ]
-                        else:
-                            attribute_info = [f"{len(categories)} categories"]
+    for attribute in attributes:
+        if schema and attribute in schema:
+            if schema[attribute][1] == AttributeType.Continuous:
+                attribute_info = [
+                    f"min: {data[attribute].min()}",
+                    f"max: {data[attribute].max()}",
+                    f"mean: {data[attribute].mean():.{decimal}f}",
+                ]
+
+            elif schema[attribute][1] == AttributeType.Temporal:
+                time_attribute = data[attribute].str.to_datetime()
+                attribute_info = [
+                    f"min: {min(time_attribute).strftime('%Y-%m-%d %H:%M:%S')}",
+                    f"max: {max(time_attribute).strftime('%Y-%m-%d %H:%M:%S')}",
+                ]
+
+            elif schema[attribute][1] == AttributeType.Categorical:
+                categories = data[attribute].unique().sort()
+                category_str = ", ".join(categories)
+                if (len(categories) > 5) | (len(category_str) > 100):
+                    attribute_info = [f"{len(categories)} categories"]
                 else:
-                    attribute_info = [f"{len(data[attribute].unique())} unique values"]
-
-            ## Without Schema
+                    attribute_info = [f"Categories: {', '.join(list(categories))}"]
             else:
-                if data[attribute].dtype.is_numeric():
-                    attribute_info = [
-                        f"min: {data[attribute].min()}",
-                        f"max: {data[attribute].max()}",
-                        f"mean: {data[attribute].mean():.{decimal}f}",
-                    ]
+                categories = data[attribute].unique().sort()
+                category_str = ", ".join(categories)
+                if (len(categories) > 5) | (len(category_str) > 100):
+                    attribute_info = [f"{len(categories)} unique values"]
                 else:
-                    try:
-                        time_attribute = data[attribute].str.to_datetime()
-                        attribute_info = [
-                            f"min: {min(time_attribute)}",
-                            f"max: {max(time_attribute)}",
-                        ]
-                    except pl.exceptions.ComputeError:
-                        categories = data[attribute].unique().sort()
-                        category_str = ", ".join(categories)
-                        if (len(categories) > 5) | (len(category_str) > 100):
-                            attribute_info = [f"{len(categories)} unique values"]
-                        else:
-                            attribute_info = [f"Values: {', '.join(list(categories))}"]
+                    attribute_info = [f"Values: {', '.join(list(categories))}"]
 
-            data_dict["Attribute"].extend([attribute] * len(attribute_info))
-            data_dict["Info"].extend(attribute_info)
-    else:
-        [data_dict[x].append("-") for x in data_dict.keys()]
+        ## Without Schema
+        else:
+            if data[attribute].dtype.is_numeric():
+                attribute_info = [
+                    f"min: {data[attribute].min()}",
+                    f"max: {data[attribute].max()}",
+                    f"mean: {data[attribute].mean():.{decimal}f}",
+                ]
+            else:
+                try:
+                    time_attribute = data[attribute].str.to_datetime()
+                    attribute_info = [
+                        f"min: {min(time_attribute).strftime('%Y-%m-%d %H:%M:%S')}",
+                        f"max: {max(time_attribute).strftime('%Y-%m-%d %H:%M:%S')}",
+                    ]
+                except pl.exceptions.ComputeError:
+                    categories = data[attribute].unique().sort()
+                    category_str = ", ".join(categories)
+                    if (len(categories) > 5) | (len(category_str) > 100):
+                        attribute_info = [f"{len(categories)} unique values"]
+                    else:
+                        attribute_info = [f"Values: {', '.join(list(categories))}"]
+
+        data_dict["Attribute"].extend([attribute] * len(attribute_info))
+        data_dict["Info"].extend(attribute_info)
 
     return pl.DataFrame(data_dict)
 
@@ -103,7 +105,7 @@ def prettify_table(table_info: pl.DataFrame) -> List[str]:
         table_info (pl.DataFrame): Table in DataFrame format.
 
     Returns:
-        List[str]: _description_
+        List[str]: List of lines for printing the table.
     """
 
     lengths = []

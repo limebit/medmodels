@@ -122,13 +122,22 @@ class TestOverview(unittest.TestCase):
             }
         )
         self.assertTrue(temporal_attributes.equals(temporal_expected))
+        # string attributes
+        str_attributes = extract_attribute_summary(
+            medrecord.node[node().in_group("Medications")]
+        )
+        self.assertTrue(
+            str_attributes.equals(
+                pl.DataFrame({"Attribute": "ATC", "Info": "Values: B01AA03, B01AF01"})
+            )
+        )
 
         # with schema
-        medrecord2 = mm.MedRecord.from_example_dataset()
-        nodes_schema = medrecord2.group("patient")["nodes"]
+        mr_schema = mm.MedRecord.from_example_dataset()
+        nodes_schema = mr_schema.group("patient")["nodes"]
         node_info = extract_attribute_summary(
-            medrecord2.node[nodes_schema],
-            schema=medrecord2.schema.group("patient").nodes,
+            mr_schema.node[nodes_schema],
+            schema=mr_schema.schema.group("patient").nodes,
         )
         expected_info = pl.DataFrame(
             {
@@ -137,6 +146,20 @@ class TestOverview(unittest.TestCase):
             }
         )
         self.assertTrue(node_info.equals(expected_info))
+
+        # compare schema and not schema
+        schema_attributes = extract_attribute_summary(
+            mr_schema.edge[edge().in_group("patient_diagnosis")]
+        )
+        no_schema_attributes = extract_attribute_summary(
+            mr_schema.edge[
+                mr_schema.select_edges(
+                    edge().connected_source_with(node().in_group("patient"))
+                    & edge().connected_target_with(node().in_group("diagnosis"))
+                )
+            ]
+        )
+        self.assertTrue(schema_attributes.equals(no_schema_attributes))
 
 
 if __name__ == "__main__":
