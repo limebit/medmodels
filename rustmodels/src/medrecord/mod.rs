@@ -13,9 +13,9 @@ use medmodels_core::{
     errors::MedRecordError,
     medrecord::{Attributes, EdgeIndex, MedRecord, MedRecordAttribute, MedRecordValue},
 };
-use pyo3::prelude::*;
+use pyo3::{prelude::*, types::PyFunction};
 use pyo3_polars::PyDataFrame;
-use querying::{PyEdgeOperation, PyNodeOperation};
+use querying::PyNodeOperand;
 use schema::PySchema;
 use std::collections::HashMap;
 use traits::DeepInto;
@@ -670,19 +670,15 @@ impl PyMedRecord {
         self.0.clear();
     }
 
-    fn select_nodes(&self, operation: PyNodeOperation) -> Vec<PyNodeIndex> {
+    fn select_nodes(&self, query: &Bound<'_, PyFunction>) -> Vec<PyNodeIndex> {
         self.0
-            .select_nodes(operation.into())
+            .select_nodes(|node| {
+                query
+                    .call1((PyNodeOperand::from(node.clone()),))
+                    .expect("Operation must succeed");
+            })
             .iter()
-            .map(|index| index.clone().into())
-            .collect()
-    }
-
-    fn select_edges(&self, operation: PyEdgeOperation) -> Vec<EdgeIndex> {
-        self.0
-            .select_edges(operation.into())
-            .iter()
-            .copied()
+            .map(|node_index| node_index.clone().into())
             .collect()
     }
 }

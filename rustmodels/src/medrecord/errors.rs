@@ -5,7 +5,7 @@ use pyo3::{
 };
 
 #[repr(transparent)]
-pub(crate) struct PyMedRecordError(MedRecordError);
+pub struct PyMedRecordError(MedRecordError);
 
 impl From<MedRecordError> for PyMedRecordError {
     fn from(error: MedRecordError) -> Self {

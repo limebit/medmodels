@@ -10,7 +10,7 @@ use std::ops::Deref;
 
 #[repr(transparent)]
 #[derive(Clone, Debug)]
-pub(crate) struct PyMedRecordValue(MedRecordValue);
+pub struct PyMedRecordValue(MedRecordValue);
 
 impl From<MedRecordValue> for PyMedRecordValue {
     fn from(value: MedRecordValue) -> Self {
@@ -46,9 +46,7 @@ impl Deref for PyMedRecordValue {
 
 static MEDRECORDVALUE_CONVERSION_LUT: Lut<MedRecordValue> = GILHashMap::new();
 
-pub(crate) fn convert_pyobject_to_medrecordvalue(
-    ob: &Bound<'_, PyAny>,
-) -> PyResult<MedRecordValue> {
+pub fn convert_pyobject_to_medrecordvalue(ob: &Bound<'_, PyAny>) -> PyResult<MedRecordValue> {
     fn convert_string(ob: &Bound<'_, PyAny>) -> PyResult<MedRecordValue> {
         Ok(MedRecordValue::String(ob.extract::<String>()?))
     }

@@ -11,7 +11,7 @@ crate-type = ["cdylib"]
 medmodels-core = { workspace = true }
 medmodels-utils = { workspace = true }
 
-pyo3 = { workspace = true }
-pyo3-polars = { workspace = true }
+pyo3 = { version = "0.21.2", features = ["chrono"] }
+pyo3-polars = "0.14.0"
 polars = { workspace = true }
 chrono = { workspace = true }

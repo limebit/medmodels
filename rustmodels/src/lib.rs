@@ -4,9 +4,8 @@ mod medrecord;
 use medrecord::{
     datatype::{PyAny, PyBool, PyDateTime, PyFloat, PyInt, PyNull, PyOption, PyString, PyUnion},
     querying::{
-        PyEdgeAttributeOperand, PyEdgeIndexOperand, PyEdgeOperand, PyEdgeOperation,
-        PyNodeAttributeOperand, PyNodeIndexOperand, PyNodeOperand, PyNodeOperation,
-        PyValueArithmeticOperation, PyValueTransformationOperation,
+        PyEdgeOperand, PyEdgeValueOperand, PyEdgeValuesOperand, PyNodeOperand, PyNodeValueOperand,
+        PyNodeValuesOperand,
     },
     schema::{PyAttributeDataType, PyAttributeType, PyGroupSchema, PySchema},
     PyMedRecord,
@@ -32,20 +31,12 @@ fn _medmodels(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyGroupSchema>()?;
     m.add_class::<PySchema>()?;
 
-    m.add_class::<PyValueArithmeticOperation>()?;
-    m.add_class::<PyValueTransformationOperation>()?;
-
-    m.add_class::<PyNodeOperation>()?;
-    m.add_class::<PyEdgeOperation>()?;
-
-    m.add_class::<PyNodeAttributeOperand>()?;
-    m.add_class::<PyEdgeAttributeOperand>()?;
-
-    m.add_class::<PyNodeIndexOperand>()?;
-    m.add_class::<PyEdgeIndexOperand>()?;
-
     m.add_class::<PyNodeOperand>()?;
     m.add_class::<PyEdgeOperand>()?;
+    m.add_class::<PyNodeValuesOperand>()?;
+    m.add_class::<PyEdgeValuesOperand>()?;
+    m.add_class::<PyNodeValueOperand>()?;
+    m.add_class::<PyEdgeValueOperand>()?;
 
     Ok(())
 }

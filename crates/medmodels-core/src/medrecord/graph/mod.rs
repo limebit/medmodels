@@ -9,18 +9,18 @@ use node::Node;
 use serde::{Deserialize, Serialize};
 use std::{
     collections::{HashMap, HashSet},
-    sync::atomic::AtomicUsize,
+    sync::atomic::AtomicU32,
 };
 
 pub type NodeIndex = MedRecordAttribute;
-pub type EdgeIndex = usize;
+pub type EdgeIndex = u32;
 pub type Attributes = HashMap<MedRecordAttribute, MedRecordValue>;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub(super) struct Graph {
     pub(crate) nodes: MrHashMap<NodeIndex, Node>,
     pub(crate) edges: MrHashMap<EdgeIndex, Edge>,
-    edge_index_counter: AtomicUsize,
+    edge_index_counter: AtomicU32,
 }
 
 #[allow(dead_code)]
@@ -29,7 +29,7 @@ impl Graph {
         Self {
             nodes: MrHashMap::new(),
             edges: MrHashMap::new(),
-            edge_index_counter: AtomicUsize::new(0),
+            edge_index_counter: AtomicU32::new(0),
         }
     }
 
@@ -37,7 +37,7 @@ impl Graph {
         Self {
             nodes: MrHashMap::with_capacity(node_capacity),
             edges: MrHashMap::with_capacity(edge_capacity),
-            edge_index_counter: AtomicUsize::new(0),
+            edge_index_counter: AtomicU32::new(0),
         }
     }
 
@@ -45,13 +45,13 @@ impl Graph {
         self.nodes.clear();
         self.edges.clear();
 
-        self.edge_index_counter = AtomicUsize::new(0);
+        self.edge_index_counter = AtomicU32::new(0);
     }
 
     pub fn clear_edges(&mut self) {
         self.edges.clear();
 
-        self.edge_index_counter = AtomicUsize::new(0);
+        self.edge_index_counter = AtomicU32::new(0);
     }
 
     pub fn node_count(&self) -> usize {

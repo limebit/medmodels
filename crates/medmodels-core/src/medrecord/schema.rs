@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use super::{Attributes, EdgeIndex, NodeIndex};
 use crate::{
     errors::GraphError,
