@@ -1,0 +1,40 @@
+name: Label Child Issues
+
+on:
+  issues:
+    types: [opened]
+
+jobs:
+  label_child_issues:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch Linked Issue
+        id: get_linked_issue
+        run: |
+          # Get the first linked issue (assumed to be the parent)
+          linked_issue=$(curl -sH "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            "https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.issue.number }}/timeline" \
+            | jq -r '.[] | select(.event == "cross-referenced") | .source.issue.number' | head -n 1)
+          echo "PARENT_ISSUE=$linked_issue" >> $GITHUB_ENV
+
+      - name: Get Parent Issue Labels
+        if: env.PARENT_ISSUE
+        run: |
+          # Fetch labels from the parent issue, excluding the 'epic' label
+          parent_labels=$(curl -sH "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            "https://api.github.com/repos/${{ github.repository }}/issues/${{ env.PARENT_ISSUE }}" \
+            | jq -r '.labels[].name | select(. != "epic")' | paste -sd,)
+          echo "PARENT_LABELS=$parent_labels" >> $GITHUB_ENV
+
+      - name: Apply Labels
+        if: env.PARENT_ISSUE
+        run: |
+          # Combine "epic-task" with parent labels and apply to the current issue
+          labels=$(echo "epic-task,${{ env.PARENT_LABELS }}" | jq -R 'split(",")')
+
+          curl -X POST -sH "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            "https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.issue.number }}/labels" \
+            -d "{\"labels\":$labels}"
+
+          echo "Applied labels: epic-task,${{ env.PARENT_LABELS }}"
