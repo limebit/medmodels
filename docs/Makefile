@@ -3,7 +3,7 @@
 # Command-line overridable variables
 VENV_PYTHON 	?= ../.venv/bin/python
 SPHINXOPTS    	?=
-SPHINXBUILD   	?= sphinx-build
+SPHINXBUILD   	?= ../.venv/bin/sphinx-build
 SOURCEDIR    	= .
 BUILDDIR      	= _build
 
