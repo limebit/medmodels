@@ -30,8 +30,7 @@ class Report:
         self._treatment_effect = treatment_effect
 
     def full_report(self, medrecord: MedRecord) -> FullReport:
-        """
-        Generates a full report of the treatment effect estimation.
+        """Generates a full report of the treatment effect estimation.
 
         Args:
             medrecord (MedRecord): An instance of the MedRecord class containing medical
@@ -62,8 +61,7 @@ class Report:
         reference: Literal["first", "last"] = "last",
         add_cohens_d_correction: bool = False,
     ) -> ContinuousReport:
-        """
-        Generates a report of continuous treatment effect estimators.
+        """Generates a report of continuous treatment effect estimators.
 
         Args:
             medrecord (MedRecord): An instance of the MedRecord class containing medical

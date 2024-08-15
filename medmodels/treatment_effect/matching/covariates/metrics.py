@@ -9,15 +9,16 @@ from numpy.typing import NDArray
 def absolute_metric(
     vector1: NDArray[np.float64], vector2: NDArray[np.float64]
 ) -> float:
-    """
-    Calculates the Manhattan distance (L1 norm) between two vectors, providing a measure
-    of the absolute difference between them. This distance is the sum of the absolute
-    differences between each corresponding pair of elements in the two vectors.
+    r"""Calculates the Manhattan distance (L1 norm) between two vectors, providing a measure of the absolute difference between them.
+
+    This distance is the sum of the absolute differences between each corresponding pair of elements in the two vectors.
 
     The calculation is based on the formula:
-    $$
-    D(x, y) = ||x - y||_1 = \\sum_{i=1}^n |x_i - y_i| for x, y \\in \\mathbb{R}^n
-    $$
+
+    .. math::
+
+        D(x, y) = \|x - y\|_1 = \sum_{i=1}^n |x_i - y_i| \quad \text{for} \quad x, y \in \mathbb{R}^n
+
 
     Args:
         vector1 (NDArray[np.float64]): The first vector to be compared.
@@ -26,28 +27,27 @@ def absolute_metric(
     Returns:
         float: The Manhattan distance between the two vectors.
     """
-
     diff = vector1 - vector2
 
     return sum(np.abs(diff))
 
 
 def exact_metric(vector1: NDArray[np.float64], vector2: NDArray[np.float64]) -> float:
-    """
-    Computes the exact metric for matching, which is particularly applicable for
-    discrete or categorical covariates rather than continuous ones. This metric returns
-    0 if the two vectors are exactly identical, and infinity otherwise, making it
+    r"""Computes the exact metric for matching, which is particularly applicable for discrete or categorical covariates rather than continuous ones.
+
+    This metric returns 0 if the two vectors are exactly identical, and infinity otherwise, making it
     suitable for scenarios where exact matches are necessary.
 
     The exact metric is defined as:
 
-    $$
-    D(x, y) =
-    \\begin{cases}
-    0      & \\text{if } x = y, \\\\
-    \\infty & \\text{otherwise}.
-    \\end{cases}
-    $$
+    .. math::
+
+        D(x, y) =
+        \begin{cases}
+        0      & \text{if } x = y \\
+        \infty & \text{otherwise}
+        \end{cases}
+
 
     Args:
         vector1 (NDArray[np.float64]): The first vector to be compared.
@@ -59,7 +59,6 @@ def exact_metric(vector1: NDArray[np.float64], vector2: NDArray[np.float64]) -> 
     Note:
         This function is designed for exactly two input vectors.
     """
-
     if np.array_equal(vector1, vector2):
         return 0
 
@@ -71,13 +70,15 @@ def mahalanobis_metric(
     vector2: NDArray[np.float64],
     inv_cov: NDArray[np.float64],
 ) -> float:
-    """
-    Returns mahalanobis metric for matching. Works better with continuous covariates.
+    r"""Returns mahalanobis metric for matching.
 
-    $$
-    D(x, y) = \\sqrt{(x-y)^T S^{-1} (x-y)} \\\\
-    \\text{where } S \\text{ is the covariance matrix of the whole distribution}
-    $$
+    Works better with continuous covariates.
+
+    .. math::
+
+        D(x, y) = \sqrt{(x-y)^T S^{-1} (x-y)}
+
+    where :math:`S` is the covariance matrix of the whole distribution.
 
     The covariance matrix and its inverse are calculated at most once per item to be
     paired, hence, they won't be included inside of the method in order to avoid the
@@ -98,7 +99,6 @@ def mahalanobis_metric(
     Returns:
         float: The Mahalanobis distance between the two vectors.
     """
-
     diff = vector1 - vector2
 
     if inv_cov.ndim == 0:

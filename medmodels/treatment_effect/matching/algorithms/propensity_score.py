@@ -34,10 +34,7 @@ def calculate_propensity(
     model: Model = "logit",
     hyperparam: Optional[Dict[str, Any]] = None,
 ) -> Tuple[NDArray[np.float64], NDArray[np.float64]]:
-    """
-    Trains a classification algorithm on training data, predicts the probability of
-    being in the last class for treated and control test datasets, and returns these
-    probabilities.
+    """Trains a classification algorithm on training data, predicts the probability of being in the last class for treated and control test datasets, and returns these probabilities.
 
     This function supports multiple classification algorithms and allows specifying
     hyperparameters. It is designed for binary classification tasks, focusing on the
@@ -82,8 +79,8 @@ def run_propensity_score(
     hyperparam: Optional[Dict[str, Any]] = None,
     covariates: Optional[MedRecordAttributeInputList] = None,
 ) -> pl.DataFrame:
-    """
-    Executes Propensity Score matching using a specified classification algorithm.
+    """Executes Propensity Score matching using a specified classification algorithm.
+
     Constructs the training target by assigning 1 to the treated set and 0 to the
     control set, then predicts the propensity score. This score is used for matching
     using the nearest neighbor method.
