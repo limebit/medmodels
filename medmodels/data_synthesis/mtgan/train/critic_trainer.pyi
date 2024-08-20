@@ -29,8 +29,8 @@ class CriticTrainer(nn.Module):
 
     batch_size: int
     critic_iterations: int
-    optimizer: torch.optim.Optimizer
-    scheduler: torch.optim.lr_scheduler._LRScheduler
+    optimizer: torch.optim.optimizer.Optimizer
+    scheduler: torch.optim.lr_scheduler.LRScheduler
     loss_function: nn.Module
 
     def __init__(

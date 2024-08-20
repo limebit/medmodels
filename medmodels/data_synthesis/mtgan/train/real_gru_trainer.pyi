@@ -18,7 +18,7 @@ class RealGRUTrainer:
     train_loader: MTGANDataLoader
 
     epochs: int
-    optimizer: torch.optim.Optimizer
+    optimizer: torch.optim.optimizer.Optimizer
     loss_function: nn.Module
 
     def __init__(
