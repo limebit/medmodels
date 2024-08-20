@@ -25,8 +25,8 @@ class GeneratorTrainer(nn.Module):
     batch_size: int
     generator_iterations: int
     number_codes: int
-    optimizer: torch.optim.Optimizer
-    scheduler: torch.optim.lr_scheduler._LRScheduler
+    optimizer: torch.optim.optimizer.Optimizer
+    scheduler: torch.optim.lr_scheduler.LRScheduler
 
     def __init__(
         self,
