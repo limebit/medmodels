@@ -9,8 +9,22 @@ import sparse
 import torch
 from torch import nn
 
+from medmodels.data_synthesis.mtgan.model.generator.generator_layers import (
+    GRU,
+    SmoothAttention,
+)
+
 class Generator(nn.Module):
     """Generator with GRU."""
+
+    number_codes: int
+    max_number_admissions: int
+    hidden_dimension: int
+    attention_dimension: int
+    device: torch.device
+
+    gru: GRU
+    smooth_condition: SmoothAttention
 
     def __init__(
         self,

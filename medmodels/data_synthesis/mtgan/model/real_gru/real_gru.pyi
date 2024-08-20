@@ -9,6 +9,10 @@ from torch import nn
 class RealGRU(nn.Module):
     """RealGRU for calculating the hidden state for real samples."""
 
+    number_codes: int
+    gru: nn.GRU
+    linear: nn.Sequential
+
     def __init__(self, number_codes: int, real_gru_hidden_dimension: int) -> None: ...
     def forward(self, data: torch.Tensor) -> torch.Tensor: ...
     def calculate_hidden(

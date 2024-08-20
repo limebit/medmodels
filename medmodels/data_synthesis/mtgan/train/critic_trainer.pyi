@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Tuple, Union
 
 import torch
+from torch import nn
 
 from medmodels.data_synthesis.mtgan.model.critic.critic import Critic
 from medmodels.data_synthesis.mtgan.model.generator.generator import Generator
@@ -18,8 +19,19 @@ if TYPE_CHECKING:
         TrainingHyperparametersTotal,
     )
 
-class CriticTrainer:
+class CriticTrainer(nn.Module):
     """Class for training the critic."""
+
+    critic: Critic
+    generator: Generator
+    real_gru: RealGRU
+    device: torch.device
+
+    batch_size: int
+    critic_iterations: int
+    optimizer: torch.optim.Optimizer
+    scheduler: torch.optim.lr_scheduler._LRScheduler
+    loss_function: nn.Module
 
     def __init__(
         self,

@@ -1,3 +1,5 @@
+"""Preprocessing class for the MTGAN Model."""
+
 from typing import Dict, List, Tuple, TypedDict
 
 from torch import nn
@@ -23,6 +25,22 @@ class PreprocessingHyperparametersTotal(TypedDict, total=True):
     number_sampled_patients: int
 
 class MTGANPreprocessor(nn.Module):
+    """Preprocessing class for the MTGAN model."""
+
+    patients_group: Group
+    concepts_group: Group
+
+    time_attribute: MedRecordAttribute
+    first_admission_attribute: MedRecordAttribute
+    time_window_attribute: MedRecordAttribute
+    concept_index_attribute: MedRecordAttribute
+    concept_edge_attribute: MedRecordAttribute
+    number_admissions_attribute: MedRecordAttribute
+    absolute_time_window_attribute: MedRecordAttribute
+
+    index_to_concept_dict: Dict[int, NodeIndex]
+    hyperparameters: PreprocessingHyperparametersTotal
+
     def __init__(
         self,
         patients_group: Group = "patients",

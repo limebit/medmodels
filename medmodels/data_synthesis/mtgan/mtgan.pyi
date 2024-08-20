@@ -44,8 +44,10 @@ from medmodels.data_synthesis.synthesizer import Synthesizer
 from medmodels.medrecord.medrecord import MedRecord
 
 class MTGAN(Synthesizer):
-    preprocessor: MTGANPreprocessor
-    postprocessor: MTGANPostprocessor
+    """MTGAN is a generative adversarial network (GAN) that generates synthetic
+    electronic health records (EHRs) with the same statistical properties as the
+    real data. The model is trained on real EHRs and generates synthetic EHRs."""
+
     generator: Optional[Generator]
 
     _preprocessing_hyperparameters: PreprocessingHyperparametersTotal

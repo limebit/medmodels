@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING, Dict, Optional
 
+import torch
 from torch import nn
 
 from medmodels.data_synthesis.builder import SynthesizerBuilder
@@ -19,6 +20,10 @@ class Synthesizer(nn.Module):
     It ensures the correct instantiation, training, and persistence of
     models.
     """
+
+    preprocessor: nn.Module
+    postprocessor: nn.Module
+    device: torch.device
 
     def __init__(
         self,

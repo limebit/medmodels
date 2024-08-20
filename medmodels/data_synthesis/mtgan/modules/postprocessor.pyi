@@ -2,6 +2,7 @@ from datetime import datetime
 from typing import Any, Dict, List, Literal, TypedDict, Union
 
 import sparse
+import torch
 from torch import nn
 from typing_extensions import TypeAlias
 
@@ -33,6 +34,10 @@ class PostprocessingHyperparametersTotal(TypedDict, total=True):
 
 class MTGANPostprocessor(nn.Module):
     """Postprocessing class for the MTGAN model."""
+
+    device: torch.device
+    preprocessor: MTGANPreprocessor
+    real_medrecord: MedRecord
 
     attributes_types: Dict[MedRecordAttribute, AttributeType]
     attributes_concepts_types: Dict[MedRecordAttribute, AttributeType]

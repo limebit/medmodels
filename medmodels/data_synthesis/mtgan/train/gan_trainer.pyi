@@ -3,6 +3,7 @@
 from typing import Tuple, TypedDict
 
 import torch
+from torch import nn
 
 from medmodels.data_synthesis.mtgan.model.critic.critic import Critic
 from medmodels.data_synthesis.mtgan.model.generator.generator import Generator
@@ -10,6 +11,9 @@ from medmodels.data_synthesis.mtgan.model.loaders import (
     MTGANDataset,
 )
 from medmodels.data_synthesis.mtgan.model.real_gru.real_gru import RealGRU
+from medmodels.data_synthesis.mtgan.model.samplers import MTGANDataSampler
+from medmodels.data_synthesis.mtgan.train.critic_trainer import CriticTrainer
+from medmodels.data_synthesis.mtgan.train.generator_trainer import GeneratorTrainer
 
 class TrainingHyperparameters(TypedDict, total=False):
     batch_size: int
@@ -51,8 +55,22 @@ class TrainingHyperparametersTotal(TypedDict, total=True):
     lambda_sparseness: float
     test_freq: int
 
-class GANTrainer:
+class GANTrainer(nn.Module):
     """GAN Trainer. Trains the generator and the critic at the same time."""
+
+    generator: Generator
+    critic: Critic
+    real_gru: RealGRU
+    device: torch.device
+
+    generator_trainer: GeneratorTrainer
+    critic_trainer: CriticTrainer
+    number_admissions_distribution: torch.Tensor
+
+    epochs: int
+    batch_size: int
+    test_frequency: int
+    training_sampler: MTGANDataSampler
 
     def __init__(
         self,
