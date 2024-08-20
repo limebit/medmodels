@@ -1,5 +1,8 @@
 """Trainer for Real-GRU."""
 
+import torch
+from torch import nn
+
 from medmodels.data_synthesis.mtgan.model.loaders import (
     MTGANDataLoader,
 )
@@ -10,6 +13,13 @@ from medmodels.data_synthesis.mtgan.train.gan_trainer import (
 
 class RealGRUTrainer:
     """Trainer for Real-GRU."""
+
+    real_gru: RealGRU
+    train_loader: MTGANDataLoader
+
+    epochs: int
+    optimizer: torch.optim.Optimizer
+    loss_function: nn.Module
 
     def __init__(
         self,

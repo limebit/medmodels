@@ -5,10 +5,9 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import torch
+from torch import nn
 
 from medmodels.data_synthesis.mtgan.model.critic.critic import Critic
-
-# from torch.nn.utils import clip_grad_norm_
 from medmodels.data_synthesis.mtgan.model.generator.generator import Generator
 
 if TYPE_CHECKING:
@@ -16,8 +15,18 @@ if TYPE_CHECKING:
         TrainingHyperparametersTotal,
     )
 
-class GeneratorTrainer:
+class GeneratorTrainer(nn.Module):
     """Trainer for Generator."""
+
+    generator: Generator
+    critic: Critic
+    device: torch.device
+
+    batch_size: int
+    generator_iterations: int
+    number_codes: int
+    optimizer: torch.optim.Optimizer
+    scheduler: torch.optim.lr_scheduler._LRScheduler
 
     def __init__(
         self,
