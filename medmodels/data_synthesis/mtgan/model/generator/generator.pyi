@@ -1,9 +1,13 @@
-from typing import Optional, Tuple, Union
+from typing import Optional, Tuple
 
 import sparse
 import torch
 from torch import nn
 
+from medmodels.data_synthesis.mtgan.model.critic.critic import Critic
+from medmodels.data_synthesis.mtgan.model.gan import (
+    TrainingHyperparametersTotal,
+)
 from medmodels.data_synthesis.mtgan.model.generator.generator_layers import (
     GRU,
     SmoothAttention,
@@ -12,9 +16,14 @@ from medmodels.data_synthesis.mtgan.model.generator.generator_layers import (
 class Generator(nn.Module):
     number_codes: int
     max_number_admissions: int
+    device: torch.device
+
     hidden_dimension: int
     attention_dimension: int
-    device: torch.device
+    batch_size: int
+    generator_iterations: int
+    optimizer: torch.optim.optimizer.Optimizer
+    scheduler: torch.optim.lr_scheduler.LRScheduler
 
     gru: GRU
     smooth_condition: SmoothAttention
@@ -23,9 +32,8 @@ class Generator(nn.Module):
         self,
         number_codes: int,
         max_number_admissions: int,
-        hidden_dimension: int,
-        attention_dimension: int,
-        device: Optional[torch.device] = None,
+        hyperparameters: TrainingHyperparametersTotal,
+        device: torch.device,
     ) -> None: ...
     def forward(
         self,
@@ -33,20 +41,6 @@ class Generator(nn.Module):
         number_admissions: torch.Tensor,
         noise: torch.Tensor,
     ) -> Tuple[torch.Tensor, torch.Tensor]: ...
-    def sample(
-        self,
-        target_codes: torch.Tensor,
-        number_admissions: torch.Tensor,
-        noise: Optional[torch.Tensor] = None,
-    ) -> torch.Tensor: ...
-    def sample_with_hidden_states(
-        self,
-        target_codes: torch.Tensor,
-        number_admissions: torch.Tensor,
-        noise: Optional[torch.Tensor] = None,
-    ) -> Tuple[torch.Tensor, torch.Tensor]: ...
-    def get_noise(self, batch_size: int) -> torch.Tensor: ...
-    def get_target_codes(self, batch_size: int) -> torch.Tensor: ...
     def generate_data_matrix(
         self,
         number_patients: int,
@@ -54,9 +48,9 @@ class Generator(nn.Module):
         batch_size: int,
         noise: Optional[torch.Tensor] = None,
     ) -> sparse.COO: ...
-    def get_required_number(
+    def train(
         self,
-        windows_distribution: torch.Tensor,
-        batch_size: int,
-        upper_bound: int,
-    ) -> Union[bool, int]: ...
+        critic: Critic,
+        target_codes: torch.Tensor,
+        number_admissions: torch.Tensor,
+    ) -> float: ...

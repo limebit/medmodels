@@ -2,8 +2,10 @@ from pathlib import Path
 from typing import Dict, Optional
 
 from medmodels.data_synthesis.mtgan.builder import MTGANBuilder
-from medmodels.data_synthesis.mtgan.model.generator.generator import Generator
-from medmodels.data_synthesis.mtgan.model.real_gru.real_gru import RealGRU
+from medmodels.data_synthesis.mtgan.model.gan import (
+    TrainingHyperparameters,
+    TrainingHyperparametersTotal,
+)
 from medmodels.data_synthesis.mtgan.modules.postprocessor import (
     AttributeType,
     MTGANPostprocessor,
@@ -16,16 +18,12 @@ from medmodels.data_synthesis.mtgan.modules.preprocessor import (
     PreprocessingHyperparametersTotal,
 )
 from medmodels.data_synthesis.mtgan.mtgan_model import MTGANModel
-from medmodels.data_synthesis.mtgan.train.gan_trainer import (
-    TrainingHyperparameters,
-    TrainingHyperparametersTotal,
-)
 from medmodels.data_synthesis.synthesizer import Synthesizer
 from medmodels.medrecord.medrecord import MedRecord
 from medmodels.medrecord.types import MedRecordAttribute
 
 class MTGAN(Synthesizer):
-    generator: Optional[Generator]
+    seed: int
 
     _preprocessing_hyperparameters: PreprocessingHyperparametersTotal
     _postprocessing_hyperparameters: PostprocessingHyperparametersTotal
@@ -34,10 +32,6 @@ class MTGAN(Synthesizer):
     def __init__(
         self,
     ) -> None: ...
-    def _initialize_parent_class(
-        self, preprocessor: MTGANPreprocessor, postprocessor: MTGANPostprocessor
-    ) -> None: ...
-    def _initalize_seed(self, seed: int) -> None: ...
     @classmethod
     def builder(cls) -> MTGANBuilder: ...
     @staticmethod
@@ -55,10 +49,6 @@ class MTGAN(Synthesizer):
         attributes_types: Dict[MedRecordAttribute, AttributeType] = {},
         seed: int = 0,
     ) -> None: ...
-    def _setup_real_gru(
-        self, medrecord: MedRecord, saved_gru_path: Optional[Path] = None
-    ) -> RealGRU: ...
-    def _train_real_gru(self, real_gru: RealGRU, medrecord: MedRecord) -> RealGRU: ...
     def fit(
         self,
         medrecord: MedRecord,
