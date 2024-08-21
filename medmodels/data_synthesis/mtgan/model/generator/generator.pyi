@@ -1,8 +1,3 @@
-"""Generator for MTGAN.
-
-This module contains the Generator class, which is used to generate synthetic data
-using the MTGAN model."""
-
 from typing import Optional, Tuple, Union
 
 import sparse
@@ -15,8 +10,6 @@ from medmodels.data_synthesis.mtgan.model.generator.generator_layers import (
 )
 
 class Generator(nn.Module):
-    """Generator with GRU."""
-
     number_codes: int
     max_number_admissions: int
     hidden_dimension: int
@@ -65,5 +58,5 @@ class Generator(nn.Module):
         self,
         windows_distribution: torch.Tensor,
         batch_size: int,
-        upper_bound: int = int(1e7),
+        upper_bound: int,
     ) -> Union[bool, int]: ...

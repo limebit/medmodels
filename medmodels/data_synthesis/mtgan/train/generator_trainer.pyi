@@ -1,23 +1,13 @@
-"""Generator Trainer for MTGAN."""
-
-from __future__ import annotations
-
-from typing import TYPE_CHECKING
-
 import torch
 from torch import nn
 
 from medmodels.data_synthesis.mtgan.model.critic.critic import Critic
 from medmodels.data_synthesis.mtgan.model.generator.generator import Generator
-
-if TYPE_CHECKING:
-    from medmodels.data_synthesis.mtgan.train.gan_trainer import (
-        TrainingHyperparametersTotal,
-    )
+from medmodels.data_synthesis.mtgan.train.gan_trainer import (
+    TrainingHyperparametersTotal,
+)
 
 class GeneratorTrainer(nn.Module):
-    """Trainer for Generator."""
-
     generator: Generator
     critic: Critic
     device: torch.device

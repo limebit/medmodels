@@ -1,7 +1,3 @@
-"""This module defines the SynthesizerModel class, which is a PyTorch module that
-is used to generate synthetic data using a synthesizer model, after the synthesizer
-model has been trained on real data."""
-
 from pathlib import Path
 from typing import Union
 

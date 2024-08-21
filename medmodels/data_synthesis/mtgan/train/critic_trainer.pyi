@@ -1,8 +1,4 @@
-"""Module for training the Critic."""
-
-from __future__ import annotations
-
-from typing import TYPE_CHECKING, Tuple, Union
+from typing import Tuple, Union
 
 import torch
 from torch import nn
@@ -13,15 +9,11 @@ from medmodels.data_synthesis.mtgan.model.loaders import (
     MTGANDataLoader,
 )
 from medmodels.data_synthesis.mtgan.model.real_gru.real_gru import RealGRU
-
-if TYPE_CHECKING:
-    from medmodels.data_synthesis.mtgan.train.gan_trainer import (
-        TrainingHyperparametersTotal,
-    )
+from medmodels.data_synthesis.mtgan.train.gan_trainer import (
+    TrainingHyperparametersTotal,
+)
 
 class CriticTrainer(nn.Module):
-    """Class for training the critic."""
-
     critic: Critic
     generator: Generator
     real_gru: RealGRU
