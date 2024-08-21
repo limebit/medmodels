@@ -9,10 +9,10 @@ from medmodels.data_synthesis.mtgan.mtgan import MTGAN
 from medmodels.data_synthesis.synthesizer_model import SynthesizerModel
 
 class MTGANModel(SynthesizerModel):
-    medrecord: MedRecord
-    preprocessor: MTGANPreprocessor
-    postprocessor: MTGANPostprocessor
-    generator: Generator
+    _medrecord: MedRecord
+    _preprocessor: MTGANPreprocessor
+    _postprocessor: MTGANPostprocessor
+    _generator: Generator
 
     number_samples: int
     batch_size: int
@@ -20,9 +20,6 @@ class MTGANModel(SynthesizerModel):
     def __init__(
         self, medrecord: MedRecord, mtgan: MTGAN, generator: Generator
     ) -> None: ...
-    def _find_admissions_distribution(
-        self, medrecord: MedRecord, preprocessor: MTGANPreprocessor
-    ) -> torch.Tensor: ...
     def forward(
         self,
         noise: torch.Tensor,

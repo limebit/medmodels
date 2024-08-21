@@ -1,3 +1,4 @@
+from abc import ABCMeta, abstractmethod
 from pathlib import Path
 from typing import Dict, Optional
 
@@ -8,9 +9,9 @@ from medmodels.data_synthesis.builder import SynthesizerBuilder
 from medmodels.data_synthesis.synthesizer_model import SynthesizerModel
 from medmodels.medrecord.medrecord import MedRecord
 
-class Synthesizer(nn.Module):
-    preprocessor: nn.Module
-    postprocessor: nn.Module
+class Synthesizer(nn.Module, metaclass=ABCMeta):
+    _preprocessor: nn.Module
+    _postprocessor: nn.Module
     device: torch.device
 
     def __init__(
@@ -21,14 +22,16 @@ class Synthesizer(nn.Module):
     @classmethod
     def builder(cls) -> SynthesizerBuilder: ...
     def preprocess(self, medrecord: MedRecord) -> MedRecord: ...
+    @abstractmethod
     def fit(
-        self, medrecord: MedRecord, save_directory: Optional[Path]
+        self, medrecord: MedRecord, checkpoint_directory: Optional[Path]
     ) -> SynthesizerModel: ...
+    @abstractmethod
     def fit_from(
         self,
         medrecord: MedRecord,
-        save_directory: Optional[Path],
+        checkpoint_directory: Optional[Path],
         **kwargs: Dict[str, Path],
     ) -> SynthesizerModel: ...
-    def save_model(self, path: Path) -> None: ...
+    @abstractmethod
     def load_model(self, path: Path) -> SynthesizerModel: ...

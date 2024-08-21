@@ -1,5 +1,4 @@
-from datetime import datetime
-from typing import Any, Dict, List, Literal, TypedDict, Union
+from typing import Any, Dict, List, Literal, TypedDict
 
 import sparse
 import torch
@@ -8,9 +7,9 @@ from typing_extensions import TypeAlias
 
 from medmodels.data_synthesis.mtgan.modules.preprocessor import MTGANPreprocessor
 from medmodels.medrecord.medrecord import MedRecord
-from medmodels.medrecord.types import Group, MedRecordAttribute
+from medmodels.medrecord.types import MedRecordAttribute
 
-AttributeType: TypeAlias = Literal["categorical", "regression", "temporal"]
+AttributeType: TypeAlias = Literal["categorical", "continuous", "temporal"]
 
 class PostprocessingHyperparameters(TypedDict, total=False):
     number_patients_generated: int
@@ -44,51 +43,7 @@ class MTGANPostprocessor(nn.Module):
     def __init__(
         self,
     ) -> None: ...
-    def _load_processed_data(
-        self,
-        real_medrecord: MedRecord,
-        preprocessor: MTGANPreprocessor,
-    ) -> None: ...
     def postprocess(self, synthetic_data: sparse.COO) -> MedRecord: ...
-    def _patients_categorical_postprocessing(
-        self,
-        synthetic_data: sparse.COO,
-        group: Group,
-        attribute: MedRecordAttribute,
-    ) -> Dict[MedRecordAttribute, List[Any]]: ...
-    def _patients_regression_postprocessing(
-        self,
-        synthetic_data: sparse.COO,
-        group: Group,
-        attribute: MedRecordAttribute,
-    ) -> Dict[MedRecordAttribute, List[Union[float, int]]]: ...
-    def _patients_temporal_postprocessing(
-        self,
-        synthetic_data: sparse.COO,
-        group: Group,
-        attribute: MedRecordAttribute,
-    ) -> Dict[MedRecordAttribute, List[datetime]]: ...
-    def _find_time(
-        self, synthetic_data: sparse.COO, first_admissions: List[datetime]
-    ) -> Dict[MedRecordAttribute, List[datetime]]: ...
-    def _concepts_categorical_postprocessing(
-        self,
-        synthetic_data: sparse.COO,
-        group: Group,
-        attribute: MedRecordAttribute,
-    ) -> Dict[MedRecordAttribute, List[Any]]: ...
-    def _concepts_regression_postprocessing(
-        self,
-        synthetic_data: sparse.COO,
-        group: Group,
-        attribute: MedRecordAttribute,
-    ) -> Dict[MedRecordAttribute, List[Union[float, int]]]: ...
-    def _concepts_temporal_postprocessing(
-        self,
-        synthetic_data: sparse.COO,
-        group: Group,
-        attribute: MedRecordAttribute,
-    ) -> Dict[MedRecordAttribute, List[datetime]]: ...
     def convert_to_medrecord(
         self,
         synthetic_data: sparse.COO,

@@ -10,8 +10,6 @@ from medmodels.data_synthesis.mtgan.model.loaders import (
 )
 from medmodels.data_synthesis.mtgan.model.real_gru.real_gru import RealGRU
 from medmodels.data_synthesis.mtgan.model.samplers import MTGANDataSampler
-from medmodels.data_synthesis.mtgan.train.critic_trainer import CriticTrainer
-from medmodels.data_synthesis.mtgan.train.generator_trainer import GeneratorTrainer
 
 class TrainingHyperparameters(TypedDict, total=False):
     batch_size: int
@@ -31,7 +29,7 @@ class TrainingHyperparameters(TypedDict, total=False):
     decay_rate: float
     lambda_gradient: float
     lambda_sparseness: float
-    test_freq: int
+    test_frequency: int
 
 class TrainingHyperparametersTotal(TypedDict, total=True):
     batch_size: int
@@ -51,18 +49,15 @@ class TrainingHyperparametersTotal(TypedDict, total=True):
     decay_rate: float
     lambda_gradient: float
     lambda_sparseness: float
-    test_freq: int
+    test_frequency: int
 
-class GANTrainer(nn.Module):
+class GAN(nn.Module):
     generator: Generator
     critic: Critic
     real_gru: RealGRU
     device: torch.device
 
-    generator_trainer: GeneratorTrainer
-    critic_trainer: CriticTrainer
     number_admissions_distribution: torch.Tensor
-
     epochs: int
     batch_size: int
     test_frequency: int
@@ -77,9 +72,4 @@ class GANTrainer(nn.Module):
         hyperparameters: TrainingHyperparametersTotal,
         device: torch.device,
     ) -> None: ...
-    def _find_admissions_distribution(self, dataset: MTGANDataset) -> torch.Tensor: ...
     def train(self) -> Tuple[Generator, Critic]: ...
-    def get_sparseness_loss(
-        self,
-        real_data: torch.Tensor,
-    ) -> Tuple[float, float]: ...

@@ -3,6 +3,7 @@ from typing import Dict
 
 from typing_extensions import Unpack
 
+from medmodels.data_synthesis.mtgan.model.gan import TrainingHyperparameters
 from medmodels.data_synthesis.mtgan.modules.postprocessor import (
     AttributeType,
     PostprocessingHyperparameters,
@@ -11,7 +12,7 @@ from medmodels.data_synthesis.mtgan.modules.preprocessor import (
     PreprocessingHyperparameters,
 )
 from medmodels.data_synthesis.mtgan.mtgan import MTGAN
-from medmodels.data_synthesis.mtgan.train.gan_trainer import TrainingHyperparameters
+from medmodels.data_synthesis.mtgan.mtgan_model import MTGANModel
 from medmodels.medrecord.types import MedRecordAttribute
 
 class MTGANBuilder:
@@ -39,4 +40,5 @@ class MTGANBuilder:
         self, attributes_types: Dict[MedRecordAttribute, AttributeType]
     ) -> MTGANBuilder: ...
     def load_hyperparameters_from(self, path: Path) -> MTGANBuilder: ...
+    def load_model(self, path: Path) -> MTGANModel: ...
     def build(self) -> MTGAN: ...

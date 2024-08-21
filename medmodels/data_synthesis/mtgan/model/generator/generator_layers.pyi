@@ -9,12 +9,12 @@ class GRU(nn.Module):
     device: torch.device
 
     gru_cell: nn.GRUCell
-    hidden2codes: nn.Sequential
+    linear_layer: nn.Sequential
 
     def __init__(
         self,
         number_codes: int,
-        gru_hidden_dim: int,
+        hidden_dimension: int,
         max_number_admissions: int,
         device: Optional[torch.device] = None,
     ) -> None: ...
