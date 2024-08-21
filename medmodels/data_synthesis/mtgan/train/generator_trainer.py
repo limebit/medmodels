@@ -15,6 +15,7 @@ if TYPE_CHECKING:
         TrainingHyperparametersTotal,
     )
 
+
 class GeneratorTrainer(nn.Module):
     """Trainer for Generator."""
 

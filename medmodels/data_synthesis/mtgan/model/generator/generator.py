@@ -14,6 +14,7 @@ from medmodels.data_synthesis.mtgan.model.generator.generator_layers import (
     SmoothAttention,
 )
 
+
 class Generator(nn.Module):
     """Generator with GRU."""
 

@@ -12,6 +12,7 @@ from torch import nn
 from medmodels import MedRecord
 from medmodels.data_synthesis.synthesizer import Synthesizer
 
+
 class SynthesizerModel(nn.Module):
     number_samples: int
     device: torch.device

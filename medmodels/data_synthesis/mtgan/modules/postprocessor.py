@@ -12,6 +12,7 @@ from medmodels.medrecord.types import Group, MedRecordAttribute
 
 AttributeType: TypeAlias = Literal["categorical", "regression", "temporal"]
 
+
 class PostprocessingHyperparameters(TypedDict, total=False):
     number_patients_generated: int
     training_epochs: int
@@ -22,6 +23,7 @@ class PostprocessingHyperparameters(TypedDict, total=False):
     number_previous_admissions: int
     top_k_codes: int
 
+
 class PostprocessingHyperparametersTotal(TypedDict, total=True):
     number_patients_generated: int
     training_epochs: int
@@ -31,6 +33,7 @@ class PostprocessingHyperparametersTotal(TypedDict, total=True):
     batch_size: int
     number_previous_admissions: int
     top_k_codes: int
+
 
 class MTGANPostprocessor(nn.Module):
     """Postprocessing class for the MTGAN model."""
