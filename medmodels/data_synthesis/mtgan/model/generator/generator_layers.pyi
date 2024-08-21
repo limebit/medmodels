@@ -1,22 +1,9 @@
-"""Generator Layers.
-
-Equations and sections refer to the paper:
-"Multi-level Generative Adversarial Networks for Synthetic Electronic Health Record Generation" by Chang Lu et al. 2023.
-
-This module contains the layers used in the Generator of MTGAN:
-    - GRU
-    - AttentionScore
-    - SmoothAttention
-"""
-
 from typing import Optional, Tuple
 
 import torch
 from torch import nn
 
 class GRU(nn.Module):
-    """GRU layer for generator."""
-
     hidden_dimension: int
     max_number_admissions: int
     device: torch.device
@@ -37,8 +24,6 @@ class GRU(nn.Module):
     def forward(self, noise: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]: ...
 
 class AttentionScore(nn.Module):
-    """Module computing the attention scores for computing smooth conditional matrix."""
-
     number_codes: int
     attention_dimension: int
 
@@ -48,8 +33,6 @@ class AttentionScore(nn.Module):
     ) -> torch.Tensor: ...
 
 class SmoothAttention(nn.Module):
-    """Smooth Attention - compute attention scores as smooth conditional matrix with AttentionScore()."""
-
     atention: AttentionScore
 
     def __init__(self, number_codes: int, attention_dim: int) -> None: ...
