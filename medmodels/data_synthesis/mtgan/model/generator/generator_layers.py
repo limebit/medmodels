@@ -14,6 +14,7 @@ from typing import Optional, Tuple
 import torch
 from torch import nn
 
+
 class GRU(nn.Module):
     """GRU layer for generator."""
 
@@ -36,6 +37,7 @@ class GRU(nn.Module):
     ) -> Tuple[torch.Tensor, torch.Tensor]: ...
     def forward(self, noise: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]: ...
 
+
 class AttentionScore(nn.Module):
     """Module computing the attention scores for computing smooth conditional matrix."""
 
@@ -46,6 +48,7 @@ class AttentionScore(nn.Module):
     def forward(
         self, data: torch.Tensor, number_admissions: torch.Tensor
     ) -> torch.Tensor: ...
+
 
 class SmoothAttention(nn.Module):
     """Smooth Attention - compute attention scores as smooth conditional matrix with AttentionScore()."""

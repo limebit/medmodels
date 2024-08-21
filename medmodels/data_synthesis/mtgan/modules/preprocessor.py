@@ -12,17 +12,20 @@ from medmodels.medrecord.types import (
     NodeIndex,
 )
 
+
 class PreprocessingHyperparameters(TypedDict, total=False):
     minimum_occurrences_concept: int
     time_interval_days: int
     minimum_codes_per_window: int
     number_sampled_patients: int
 
+
 class PreprocessingHyperparametersTotal(TypedDict, total=True):
     minimum_occurrences_concept: int
     time_interval_days: int
     minimum_codes_per_window: int
     number_sampled_patients: int
+
 
 class MTGANPreprocessor(nn.Module):
     """Preprocessing class for the MTGAN model."""
