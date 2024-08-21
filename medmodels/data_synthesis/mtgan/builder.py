@@ -1,3 +1,4 @@
+"""Builder for MTGAN model."""
 from __future__ import annotations
 
 from pathlib import Path
@@ -12,7 +13,7 @@ from medmodels.data_synthesis.mtgan.modules.postprocessor import (
 from medmodels.data_synthesis.mtgan.modules.preprocessor import (
     PreprocessingHyperparameters,
 )
-from medmodels.data_synthesis.mtgan.mtgan import MTGAN
+import medmodels.data_synthesis.mtgan.mtgan as mtgan
 from medmodels.data_synthesis.mtgan.train.gan_trainer import TrainingHyperparameters
 from medmodels.medrecord.types import MedRecordAttribute
 
@@ -42,4 +43,4 @@ class MTGANBuilder:
         self, attributes_types: Dict[MedRecordAttribute, AttributeType]
     ) -> MTGANBuilder: ...
     def load_hyperparameters_from(self, path: Path) -> MTGANBuilder: ...
-    def build(self) -> MTGAN: ...
+    def build(self) -> mtgan.MTGAN: ...

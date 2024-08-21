@@ -1,5 +1,4 @@
 """Abstract class for synthesizers."""
-
 from __future__ import annotations
 
 from pathlib import Path
@@ -8,11 +7,11 @@ from typing import TYPE_CHECKING, Dict, Optional
 import torch
 from torch import nn
 
-from medmodels.data_synthesis.builder import SynthesizerBuilder
 from medmodels.medrecord.medrecord import MedRecord
+from medmodels.data_synthesis.synthesizer_model import SynthesizerModel
 
 if TYPE_CHECKING:
-    from medmodels.data_synthesis.synthesizer_model import SynthesizerModel
+    from medmodels.data_synthesis.builder import SynthesizerBuilder
 
 
 class Synthesizer(nn.Module):
@@ -20,6 +19,7 @@ class Synthesizer(nn.Module):
 
     It ensures the correct instantiation, training, and persistence of models.
     """
+
     preprocessor: nn.Module
     postprocessor: nn.Module
     device: torch.device
@@ -34,10 +34,24 @@ class Synthesizer(nn.Module):
         Args:
             preprocessor (nn.Module): Preprocessor module.
             postprocessor (nn.Module): Postprocessor module.
+
+        Raises:
+            NotImplementedError: If the preprocessor or postprocessor does not have the
+                required methods (preprocess and postprocess, respectively).
         """
         super(Synthesizer, self).__init__()
         self.preprocessor = preprocessor
         self.postprocessor = postprocessor
+
+        if not callable(self.preprocessor) or not hasattr(
+            self.preprocessor, "preprocess"
+        ):
+            raise NotImplementedError("Preprocessor must have a preprocess method.")
+
+        if not callable(self.postprocessor) or not hasattr(
+            self.postprocessor, "postprocess"
+        ):
+            raise NotImplementedError("Postprocessor must have a postprocess method.")
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.to(self.device)
@@ -49,6 +63,7 @@ class Synthesizer(nn.Module):
         Returns:
             SynthesizerBuilder: An instance of SynthesizerBuilder.
         """
+        from medmodels.data_synthesis.builder import SynthesizerBuilder
         return SynthesizerBuilder()
 
     def preprocess(self, medrecord: MedRecord) -> MedRecord:
@@ -59,16 +74,7 @@ class Synthesizer(nn.Module):
 
         Returns:
             MedRecord: A preprocessed MedRecord instance.
-
-        Raises:
-            NotImplementedError: If the preprocess method is not implemented in the
-                preprocessor.
         """
-        if not callable(self.preprocessor) or not hasattr(
-            self.preprocessor, "preprocess"
-        ):
-            raise NotImplementedError("Preprocessor must have a preprocess method.")
-
         return self.preprocessor.preprocess(medrecord)
 
     def fit(
@@ -125,30 +131,14 @@ class Synthesizer(nn.Module):
             "Fit from method must be implemented in the child class."
         )
 
-    def save_model(self, path: Path) -> None:
-        """Saves the model to a specified path.
-
-        This method is meant to save the model to the given path. It is an abstract
-        method that should be implemented in the child class.
-
-        Args:
-            path (Path): Path to save the model parameters to.
-
-        Raises:
-            NotImplementedError: If the save model method is not implemented in the
-                child class.
-        """
-        raise NotImplementedError(
-            "Save model method must be implemented in the child class."
-        )
-
-    def load_model(self, path: Path) -> SynthesizerModel:
+    def load_model(self, medrecord: MedRecord, path: Path) -> SynthesizerModel:
         """Loads the model from a specified path.
 
         This method is meant to load the model from the given path. It is an abstract
         method that should be implemented in the child class.
 
         Args:
+            medrecord (MedRecord): MedRecord object.
             path (Path): Path to load the model parameters from.
 
         Returns:

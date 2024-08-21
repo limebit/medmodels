@@ -16,11 +16,11 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING, Dict, Optional
 
-from medmodels.data_synthesis.mtgan.builder import MTGANBuilder
 from medmodels.data_synthesis.mtgan.mtgan_model import MTGANModel
 from medmodels.medrecord.types import MedRecordAttribute
 
 if TYPE_CHECKING:
+    from medmodels.data_synthesis.mtgan.builder import MTGANBuilder
     from medmodels.data_synthesis.mtgan.mtgan import MTGAN
 
 from medmodels.data_synthesis.mtgan.model.generator.generator import Generator

@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Any, Dict, List, Literal, Optional, Tuple, Union
+from typing import Any, Dict, List, Literal, Optional, Tuple, Union
 
 import numpy as np
 import torch
@@ -8,9 +8,6 @@ from torch.utils.data import DataLoader, Dataset
 from medmodels.data_synthesis.mtgan.modules.preprocessor import MTGANPreprocessor
 from medmodels.medrecord.medrecord import MedRecord
 from medmodels.medrecord.types import Group, MedRecordAttribute, MedRecordValue
-
-if TYPE_CHECKING:
-    from medmodels.data_synthesis.mtgan.model.loaders import MTGANDataLoader
 
 
 class MTGANDataset(Dataset[torch.Tensor]):
@@ -93,4 +90,3 @@ class MTGANDataLoader(DataLoader[MTGANDataset]):
     def _get_item(self, index: int) -> torch.Tensor: ...
     def __next__(self) -> torch.Tensor: ...
     def __len__(self) -> int: ...
-    def __iter__(self) -> MTGANDataLoader: ...
