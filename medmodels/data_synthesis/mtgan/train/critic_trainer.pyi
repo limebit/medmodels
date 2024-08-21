@@ -19,7 +19,6 @@ if TYPE_CHECKING:
         TrainingHyperparametersTotal,
     )
 
-
 class CriticTrainer(nn.Module):
     """Class for training the critic."""
 

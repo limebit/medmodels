@@ -13,7 +13,6 @@ from medmodels.data_synthesis.synthesizer_model import SynthesizerModel
 if TYPE_CHECKING:
     from medmodels.data_synthesis.mtgan.mtgan import MTGAN
 
-
 class MTGANModel(SynthesizerModel):
     """MTGANModel is a PyTorch module that is used to generate synthetic data using
     a Multi-Task Generative Adversarial Network (MTGAN) model, after the MTGAN model

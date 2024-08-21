@@ -15,7 +15,6 @@ from medmodels.data_synthesis.mtgan.model.samplers import MTGANDataSampler
 from medmodels.data_synthesis.mtgan.train.critic_trainer import CriticTrainer
 from medmodels.data_synthesis.mtgan.train.generator_trainer import GeneratorTrainer
 
-
 class TrainingHyperparameters(TypedDict, total=False):
     batch_size: int
     real_gru_training_epochs: int
@@ -36,7 +35,6 @@ class TrainingHyperparameters(TypedDict, total=False):
     lambda_sparseness: float
     test_freq: int
 
-
 class TrainingHyperparametersTotal(TypedDict, total=True):
     batch_size: int
     real_gru_training_epochs: int
@@ -56,7 +54,6 @@ class TrainingHyperparametersTotal(TypedDict, total=True):
     lambda_gradient: float
     lambda_sparseness: float
     test_freq: int
-
 
 class GANTrainer(nn.Module):
     """GAN Trainer. Trains the generator and the critic at the same time."""

@@ -16,7 +16,6 @@ from medmodels.data_synthesis.mtgan.mtgan import MTGAN
 from medmodels.data_synthesis.mtgan.train.gan_trainer import TrainingHyperparameters
 from medmodels.medrecord.types import MedRecordAttribute
 
-
 class MTGANBuilder:
     seed: int
 

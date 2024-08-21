@@ -3,7 +3,6 @@
 import torch
 from torch import nn
 
-
 class Critic(nn.Module):
     """Critic for the MTGAN model.
 

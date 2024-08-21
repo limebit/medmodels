@@ -43,7 +43,6 @@ from medmodels.data_synthesis.mtgan.train.gan_trainer import (
 from medmodels.data_synthesis.synthesizer import Synthesizer
 from medmodels.medrecord.medrecord import MedRecord
 
-
 class MTGAN(Synthesizer):
     """MTGAN is a generative adversarial network (GAN) that generates synthetic
     electronic health records (EHRs) with the same statistical properties as the
