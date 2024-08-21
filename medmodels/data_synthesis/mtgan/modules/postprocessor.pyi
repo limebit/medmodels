@@ -36,8 +36,6 @@ class PostprocessingHyperparametersTotal(TypedDict, total=True):
 
 
 class MTGANPostprocessor(nn.Module):
-    """Postprocessing class for the MTGAN model."""
-
     device: torch.device
     preprocessor: MTGANPreprocessor
     real_medrecord: MedRecord

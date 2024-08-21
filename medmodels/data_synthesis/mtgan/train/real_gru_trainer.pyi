@@ -1,5 +1,3 @@
-"""Trainer for Real-GRU."""
-
 import torch
 from torch import nn
 
@@ -13,8 +11,6 @@ from medmodels.data_synthesis.mtgan.train.gan_trainer import (
 
 
 class RealGRUTrainer:
-    """Trainer for Real-GRU."""
-
     real_gru: RealGRU
     train_loader: MTGANDataLoader
 

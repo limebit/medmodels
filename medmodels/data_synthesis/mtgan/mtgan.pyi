@@ -1,28 +1,7 @@
-"""Class for the MTGAN model
-
-MTGAN is a generative adversarial network (GAN) that generates synthetic
-electronic health records (EHRs) with the same statistical properties as the
-real data. The model is trained on real EHRs and generates synthetic EHRs.
-
-It has 4 main methods:
-- fit: trains the MTGAN model.
-- fit_from: fits the MTGAN model from a saved RealGRU model (and optionally a saved model).
-- load_model: loads a MTGAN model from a pre-saved one.
-- generate_synthetic_data: generates synthetic data with the MTGAN model.
-"""
-
-from __future__ import annotations
-
 from pathlib import Path
-from typing import TYPE_CHECKING, Dict, Optional
+from typing import Dict, Optional
 
-from medmodels.data_synthesis.mtgan.mtgan_model import MTGANModel
-from medmodels.medrecord.types import MedRecordAttribute
-
-if TYPE_CHECKING:
-    from medmodels.data_synthesis.mtgan.builder import MTGANBuilder
-    from medmodels.data_synthesis.mtgan.mtgan import MTGAN
-
+from medmodels.data_synthesis.mtgan.builder import MTGANBuilder
 from medmodels.data_synthesis.mtgan.model.generator.generator import Generator
 from medmodels.data_synthesis.mtgan.model.real_gru.real_gru import RealGRU
 from medmodels.data_synthesis.mtgan.modules.postprocessor import (
@@ -36,19 +15,16 @@ from medmodels.data_synthesis.mtgan.modules.preprocessor import (
     PreprocessingHyperparameters,
     PreprocessingHyperparametersTotal,
 )
+from medmodels.data_synthesis.mtgan.mtgan_model import MTGANModel
 from medmodels.data_synthesis.mtgan.train.gan_trainer import (
     TrainingHyperparameters,
     TrainingHyperparametersTotal,
 )
 from medmodels.data_synthesis.synthesizer import Synthesizer
 from medmodels.medrecord.medrecord import MedRecord
-
+from medmodels.medrecord.types import MedRecordAttribute
 
 class MTGAN(Synthesizer):
-    """MTGAN is a generative adversarial network (GAN) that generates synthetic
-    electronic health records (EHRs) with the same statistical properties as the
-    real data. The model is trained on real EHRs and generates synthetic EHRs."""
-
     generator: Optional[Generator]
 
     _preprocessing_hyperparameters: PreprocessingHyperparametersTotal
@@ -68,8 +44,8 @@ class MTGAN(Synthesizer):
     def _set_configuration(
         mtgan: MTGAN,
         *,
-        preprocessor: MTGANPreprocessor = MTGANPreprocessor(),
-        postprocessor: MTGANPostprocessor = MTGANPostprocessor(),
+        preprocessor: MTGANPreprocessor,
+        postprocessor: MTGANPostprocessor,
         preprocessing_hyperparameters: PreprocessingHyperparameters = {},
         training_hyperparameters: TrainingHyperparameters = {},
         postprocessing_hyperparameters: PostprocessingHyperparameters = {},

@@ -1,5 +1,3 @@
-"""GAN Trainer. Trains the generator and the critic at the same time."""
-
 from typing import Tuple, TypedDict
 
 import torch
@@ -59,8 +57,6 @@ class TrainingHyperparametersTotal(TypedDict, total=True):
 
 
 class GANTrainer(nn.Module):
-    """GAN Trainer. Trains the generator and the critic at the same time."""
-
     generator: Generator
     critic: Critic
     real_gru: RealGRU
@@ -82,7 +78,7 @@ class GANTrainer(nn.Module):
         real_gru: RealGRU,
         dataset: MTGANDataset,
         hyperparameters: TrainingHyperparametersTotal,
-        device: torch.device = torch.device("cpu"),
+        device: torch.device,
     ) -> None: ...
     def _find_admissions_distribution(self, dataset: MTGANDataset) -> torch.Tensor: ...
     def train(self) -> Tuple[Generator, Critic]: ...

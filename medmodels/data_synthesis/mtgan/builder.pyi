@@ -1,6 +1,3 @@
-"""Builder for MTGAN model."""
-from __future__ import annotations
-
 from pathlib import Path
 from typing import Dict
 

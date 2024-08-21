@@ -1,5 +1,3 @@
-"""Preprocessing class for the MTGAN Model."""
-
 from typing import Dict, List, Tuple, TypedDict
 
 from torch import nn
@@ -28,8 +26,6 @@ class PreprocessingHyperparametersTotal(TypedDict, total=True):
 
 
 class MTGANPreprocessor(nn.Module):
-    """Preprocessing class for the MTGAN model."""
-
     patients_group: Group
     concepts_group: Group
 
