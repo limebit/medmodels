@@ -4,6 +4,7 @@ import torch
 
 from medmodels.data_synthesis.mtgan.model.loaders import MTGANDataset
 
+
 class CodeSampleIter:
     """Class for iterating over the patients who have a specific code."""
 
@@ -17,6 +18,7 @@ class CodeSampleIter:
         self, code: int, patients_indices: List[int], shuffle: bool = True
     ) -> None: ...
     def __next__(self) -> int: ...
+
 
 class MTGANDataSampler:
     """Class for sampling batches of data from the EHR data."""

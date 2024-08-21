@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Literal, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Literal, Optional, Tuple, Union
 
 import numpy as np
 import torch
@@ -8,6 +8,10 @@ from torch.utils.data import DataLoader, Dataset
 from medmodels.data_synthesis.mtgan.modules.preprocessor import MTGANPreprocessor
 from medmodels.medrecord.medrecord import MedRecord
 from medmodels.medrecord.types import Group, MedRecordAttribute, MedRecordValue
+
+if TYPE_CHECKING:
+    from medmodels.data_synthesis.mtgan.model.loaders import MTGANDataLoader
+
 
 class MTGANDataset(Dataset[torch.Tensor]):
     """Dataset for the MTGAN model to load data from the MedRecord in sparse format."""
@@ -50,8 +54,10 @@ class MTGANDataset(Dataset[torch.Tensor]):
         attribute: MedRecordAttribute,
     ) -> Tuple[NDArray[np.bool], NDArray[Any]]: ...
 
+
 class MTGANDatasetPrediction(MTGANDataset):
     """Generates the dataset for the prediction task in the GRU."""
+
     def __init__(
         self,
         medrecord: MedRecord,
@@ -64,6 +70,7 @@ class MTGANDatasetPrediction(MTGANDataset):
     def _transform_into_coords(
         self, patient_idx: int, array_idx: int, remove_window: Literal["first", "last"]
     ) -> NDArray[np.int16]: ...
+
 
 class MTGANDataLoader(DataLoader[MTGANDataset]):
     """MTGAN DataLoader for the MTGAN model."""

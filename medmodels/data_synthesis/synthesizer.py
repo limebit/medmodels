@@ -14,6 +14,7 @@ from medmodels.medrecord.medrecord import MedRecord
 if TYPE_CHECKING:
     from medmodels.data_synthesis.synthesizer_model import SynthesizerModel
 
+
 class Synthesizer(nn.Module):
     """Synthesizer is an abstract class that serves as a blueprint for synthesizers.
 
