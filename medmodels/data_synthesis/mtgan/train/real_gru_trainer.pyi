@@ -11,7 +11,6 @@ from medmodels.data_synthesis.mtgan.train.gan_trainer import (
     TrainingHyperparametersTotal,
 )
 
-
 class RealGRUTrainer:
     """Trainer for Real-GRU."""
 

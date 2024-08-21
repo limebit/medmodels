@@ -6,7 +6,6 @@ in the dataset. The hidden state is calculated using a GRU network."""
 import torch
 from torch import nn
 
-
 class RealGRU(nn.Module):
     """RealGRU for calculating the hidden state for real samples."""
 
