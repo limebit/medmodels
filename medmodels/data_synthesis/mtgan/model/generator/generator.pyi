@@ -14,8 +14,8 @@ from medmodels.data_synthesis.mtgan.model.generator.generator_layers import (
 )
 
 class Generator(nn.Module):
-    number_codes: int
-    max_number_admissions: int
+    total_number_of_concepts: int
+    max_number_windows: int
     device: torch.device
 
     hidden_dimension: int
@@ -30,15 +30,15 @@ class Generator(nn.Module):
 
     def __init__(
         self,
-        number_codes: int,
-        max_number_admissions: int,
+        total_number_of_concepts: int,
+        max_number_windows: int,
         hyperparameters: TrainingHyperparametersTotal,
         device: torch.device,
     ) -> None: ...
     def forward(
         self,
-        target_codes: torch.Tensor,
-        number_admissions: torch.Tensor,
+        target_concepts: torch.Tensor,
+        number_windows: torch.Tensor,
         noise: torch.Tensor,
     ) -> Tuple[torch.Tensor, torch.Tensor]: ...
     def generate_data_matrix(
@@ -51,6 +51,6 @@ class Generator(nn.Module):
     def train(
         self,
         critic: Critic,
-        target_codes: torch.Tensor,
-        number_admissions: torch.Tensor,
+        target_concepts: torch.Tensor,
+        number_windows: torch.Tensor,
     ) -> float: ...

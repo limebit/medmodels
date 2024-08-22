@@ -5,9 +5,9 @@ import torch
 from torch import nn
 from typing_extensions import TypeAlias
 
-from medmodels.data_synthesis.mtgan.modules.preprocessor import MTGANPreprocessor
+from medmodels.data_synthesis.mtgan.modules.preprocessor import PreprocessingAttributes
 from medmodels.medrecord.medrecord import MedRecord
-from medmodels.medrecord.types import MedRecordAttribute
+from medmodels.medrecord.types import MedRecordAttribute, NodeIndex
 
 AttributeType: TypeAlias = Literal["categorical", "continuous", "temporal"]
 
@@ -18,8 +18,8 @@ class PostprocessingHyperparameters(TypedDict, total=False):
     learning_rate: float
     number_layers: int
     batch_size: int
-    number_previous_admissions: int
-    top_k_codes: int
+    number_previous_windows: int
+    top_k_concepts: int
 
 class PostprocessingHyperparametersTotal(TypedDict, total=True):
     number_patients_generated: int
@@ -28,20 +28,27 @@ class PostprocessingHyperparametersTotal(TypedDict, total=True):
     learning_rate: float
     number_layers: int
     batch_size: int
-    number_previous_admissions: int
-    top_k_codes: int
+    number_previous_windows: int
+    top_k_concepts: int
 
 class MTGANPostprocessor(nn.Module):
-    device: torch.device
-    preprocessor: MTGANPreprocessor
     real_medrecord: MedRecord
+    preprocessing_attributes: PreprocessingAttributes
+    device: torch.device
 
-    attributes_types: Dict[MedRecordAttribute, AttributeType]
+    attributes_patients_types: Dict[MedRecordAttribute, AttributeType]
     attributes_concepts_types: Dict[MedRecordAttribute, AttributeType]
     hyperparameters: PostprocessingHyperparametersTotal
 
     def __init__(
         self,
+        real_medrecord: MedRecord,
+        preprocessing_attributes: PreprocessingAttributes,
+        index_to_concept_dict: Dict[int, NodeIndex],
+        attributes_patients_types: Dict[MedRecordAttribute, AttributeType],
+        attributes_concepts_types: Dict[MedRecordAttribute, AttributeType],
+        hyperparameters: PostprocessingHyperparametersTotal,
+        device: torch.device,
     ) -> None: ...
     def postprocess(self, synthetic_data: sparse.COO) -> MedRecord: ...
     def convert_to_medrecord(
