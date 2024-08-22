@@ -7,17 +7,19 @@ from medmodels.data_synthesis.mtgan.model.gan import (
 from medmodels.data_synthesis.mtgan.model.loaders import MTGANDataLoader
 
 class RealGRU(nn.Module):
-    number_codes: int
+    total_number_of_concepts: int
     gru: nn.GRU
     linear_layer: nn.Sequential
 
     epochs: int
 
     def __init__(
-        self, number_codes: int, hyperparamaters: TrainingHyperparametersTotal
+        self,
+        total_number_of_concepts: int,
+        hyperparamaters: TrainingHyperparametersTotal,
     ) -> None: ...
     def forward(self, data: torch.Tensor) -> torch.Tensor: ...
     def calculate_hidden(
-        self, data: torch.Tensor, number_admissions: torch.Tensor
+        self, data: torch.Tensor, number_windows: torch.Tensor
     ) -> torch.Tensor: ...
     def train(self, train_loader: MTGANDataLoader) -> None: ...

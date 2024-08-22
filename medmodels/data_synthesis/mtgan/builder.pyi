@@ -13,10 +13,14 @@ from medmodels.data_synthesis.mtgan.modules.preprocessor import (
 )
 from medmodels.data_synthesis.mtgan.mtgan import MTGAN
 from medmodels.data_synthesis.mtgan.mtgan_model import MTGANModel
-from medmodels.medrecord.types import MedRecordAttribute
+from medmodels.medrecord.types import Group, MedRecordAttribute
 
 class MTGANBuilder:
     seed: int
+
+    patients_group: Group
+    concepts_group: Group
+    time_attribute: MedRecordAttribute
 
     training_hyperparameters: TrainingHyperparameters
     preprocessing_hyperparameters: PreprocessingHyperparameters
@@ -27,6 +31,11 @@ class MTGANBuilder:
     postprocessing_hyperparameters_json: PostprocessingHyperparameters
 
     def with_seed(self, seed: int) -> MTGANBuilder: ...
+    def with_patients_group(self, patients_group: Group) -> MTGANBuilder: ...
+    def with_concepts_group(self, concepts_group: Group) -> MTGANBuilder: ...
+    def with_time_attribute(
+        self, time_attribute: MedRecordAttribute
+    ) -> MTGANBuilder: ...
     def with_preprocessor_hyperparameters(
         self, **kwargs: Unpack[PreprocessingHyperparameters]
     ) -> MTGANBuilder: ...

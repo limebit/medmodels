@@ -10,7 +10,7 @@ class Critic(nn.Module):
     real_gru: RealGRU
     device: torch.device
 
-    number_codes: int
+    total_number_of_concepts: int
     critic_hidden_dimension: int
     generator_hidden_dimension: int
     critic_iterations: int
@@ -24,18 +24,18 @@ class Critic(nn.Module):
     def __init__(
         self,
         real_gru: RealGRU,
-        number_codes: int,
+        total_number_of_concepts: int,
         hyperparameters: TrainingHyperparametersTotal,
         device: torch.device,
     ) -> None: ...
     def forward(
-        self, data: torch.Tensor, hiddens: torch.Tensor, number_admissions: torch.Tensor
+        self, data: torch.Tensor, hiddens: torch.Tensor, number_windows: torch.Tensor
     ) -> torch.Tensor: ...
     def train(
         self,
         real_data: torch.Tensor,
-        real_number_admissions: torch.Tensor,
+        real_number_windows: torch.Tensor,
         generator: Generator,
-        target_codes: torch.Tensor,
+        target_concepts: torch.Tensor,
     ) -> float: ...
     def evaluate(self, data_loader: MTGANDataLoader) -> float: ...

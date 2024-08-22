@@ -1,6 +1,6 @@
 from abc import ABCMeta, abstractmethod
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Dict, Optional, Type
 
 import torch
 from torch import nn
@@ -10,18 +10,17 @@ from medmodels.data_synthesis.synthesizer_model import SynthesizerModel
 from medmodels.medrecord.medrecord import MedRecord
 
 class Synthesizer(nn.Module, metaclass=ABCMeta):
-    _preprocessor: nn.Module
-    _postprocessor: nn.Module
+    _preprocessor: Type[nn.Module]
+    _postprocessor: Type[nn.Module]
     device: torch.device
 
     def __init__(
         self,
-        preprocessor: nn.Module,
-        postprocessor: nn.Module,
+        preprocessor: Type[nn.Module],
+        postprocessor: Type[nn.Module],
     ) -> None: ...
     @classmethod
     def builder(cls) -> SynthesizerBuilder: ...
-    def preprocess(self, medrecord: MedRecord) -> MedRecord: ...
     @abstractmethod
     def fit(
         self, medrecord: MedRecord, checkpoint_directory: Optional[Path]

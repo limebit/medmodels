@@ -5,9 +5,9 @@ import torch
 from numpy.typing import NDArray
 from torch.utils.data import DataLoader, Dataset
 
-from medmodels.data_synthesis.mtgan.modules.preprocessor import MTGANPreprocessor
+from medmodels.data_synthesis.mtgan.modules.preprocessor import PreprocessingAttributes
 from medmodels.medrecord.medrecord import MedRecord
-from medmodels.medrecord.types import Group, MedRecordAttribute, MedRecordValue
+from medmodels.medrecord.types import Group, MedRecordValue
 
 class MTGANDataset(Dataset[torch.Tensor]):
     medrecord: MedRecord
@@ -16,28 +16,30 @@ class MTGANDataset(Dataset[torch.Tensor]):
     patients_group: Group
     concepts_group: Group
 
-    time_window_attribute: MedRecordAttribute
-    absolute_time_window_attribute: MedRecordAttribute
-    concept_index_attribute: MedRecordAttribute
-    concept_edge_attribute: MedRecordAttribute
-    number_admissions_attribute: MedRecordAttribute
+    preprocessing_attributes: PreprocessingAttributes
 
-    number_codes: int
-    max_number_admissions: int
+    total_number_of_concepts: int
+    max_number_windows: int
     concept_to_index_dict: Dict[MedRecordValue, int]
 
     def __init__(
         self,
         medrecord: MedRecord,
-        preprocesor: MTGANPreprocessor,
+        patients_group: Group,
+        concepts_group: Group,
+        preprocessing_attributes: PreprocessingAttributes,
+        index_to_concept_dict: Dict[int, MedRecordValue],
         device: torch.device,
     ) -> None: ...
 
 class MTGANDatasetPrediction(MTGANDataset):
     def __init__(
         self,
-        medrecord: MedRecord,
-        preprocessor: MTGANPreprocessor,
+        mmedrecord: MedRecord,
+        patients_group: Group,
+        concepts_group: Group,
+        preprocessing_attributes: PreprocessingAttributes,
+        index_to_concept_dict: Dict[int, MedRecordValue],
         device: torch.device,
     ) -> None: ...
 
