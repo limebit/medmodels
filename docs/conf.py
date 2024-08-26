@@ -29,6 +29,7 @@ extensions = [
     "sphinx_togglebutton",
     "sphinx_multiversion",
     "sphinx.ext.extlinks",
+    "sphinx.ext.coverage",
 ]
 
 exclude_patterns = ["_build"]
@@ -69,6 +70,7 @@ autodoc_default_options = {
     "private-members": False,
     "inherited-members": True,
     "show-inheritance": True,
+    "ignore-module-all": False,
 }
 
 autosummary_generate = True

@@ -87,6 +87,20 @@ exclude = [
 ]
 line-length = 88
 
+[tool.ruff.lint]
+select = ["PLR"]
+preview = true
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.pycodestyle]
+max-doc-length = 88
+
+[tool.ruff.format]
+docstring-code-format = true
+docstring-code-line-length = 88
+
 [tool.pyright]
 typeCheckingMode = "strict"
 reportPrivateUsage = false
