@@ -172,7 +172,7 @@ latex_engine = "xelatex"
 
 
 # Local Sphinx extensions
-def setup(app: Sphinx):
+def setup(app: Sphinx) -> None:
     """Add custom directives and transformations to Sphinx."""
     from myst_parser._docs import (
         DirectiveDoc,

@@ -1,5 +1,7 @@
 import unittest
 
+import pytest
+
 from medmodels import MedRecord
 from medmodels.medrecord import edge, node
 
@@ -22,354 +24,207 @@ def create_medrecord():
 
 
 class TestMedRecord(unittest.TestCase):
-    def test_node_getitem(self):
+    def test_node_getitem(self) -> None:
         medrecord = create_medrecord()
 
-        self.assertEqual(
-            {"foo": "bar", "bar": "foo", "lorem": "ipsum"}, medrecord.node[0]
-        )
+        assert medrecord.node[0] == {"foo": "bar", "bar": "foo", "lorem": "ipsum"}
 
         # Accessing a non-existing node should fail
-        with self.assertRaises(IndexError):
+        with pytest.raises(IndexError):
             medrecord.node[50]
 
-        self.assertEqual("bar", medrecord.node[0, "foo"])
+        assert medrecord.node[0, "foo"] == "bar"
 
         # Accessing a non-existing key should fail
-        with self.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             medrecord.node[0, "test"]
 
-        self.assertEqual(
-            {"foo": "bar", "bar": "foo"}, medrecord.node[0, ["foo", "bar"]]
-        )
+        assert medrecord.node[0, ["foo", "bar"]] == {"foo": "bar", "bar": "foo"}
 
         # Accessing a non-existing key should fail
-        with self.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             medrecord.node[0, ["foo", "test"]]
 
-        self.assertEqual(
-            {"foo": "bar", "bar": "foo", "lorem": "ipsum"}, medrecord.node[0, :]
-        )
+        assert medrecord.node[0, :] == {"foo": "bar", "bar": "foo", "lorem": "ipsum"}
 
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             medrecord.node[0, 1:]
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             medrecord.node[0, :1]
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             medrecord.node[0, ::1]
 
-        self.assertEqual(
-            {
-                0: {"foo": "bar", "bar": "foo", "lorem": "ipsum"},
-                1: {"foo": "bar", "bar": "foo"},
-            },
-            medrecord.node[[0, 1]],
-        )
+        assert medrecord.node[[0, 1]] == {0: {"foo": "bar", "bar": "foo", "lorem": "ipsum"}, 1: {"foo": "bar", "bar": "foo"}}
 
-        with self.assertRaises(IndexError):
+        with pytest.raises(IndexError):
             medrecord.node[[0, 50]]
 
-        self.assertEqual(
-            {
-                0: "bar",
-                1: "bar",
-            },
-            medrecord.node[[0, 1], "foo"],
-        )
+        assert medrecord.node[[0, 1], "foo"] == {0: "bar", 1: "bar"}
 
         # Accessing a non-existing key should fail
-        with self.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             medrecord.node[[0, 1], "test"]
 
         # Accessing a key that doesn't exist in all nodes should fail
-        with self.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             medrecord.node[[0, 1], "lorem"]
 
-        self.assertEqual(
-            {
-                0: {"foo": "bar", "bar": "foo"},
-                1: {"foo": "bar", "bar": "foo"},
-            },
-            medrecord.node[[0, 1], ["foo", "bar"]],
-        )
+        assert medrecord.node[[0, 1], ["foo", "bar"]] == {0: {"foo": "bar", "bar": "foo"}, 1: {"foo": "bar", "bar": "foo"}}
 
         # Accessing a non-existing key should fail
-        with self.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             medrecord.node[[0, 1], ["foo", "test"]]
 
         # Accessing a key that doesn't exist in all nodes should fail
-        with self.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             medrecord.node[[0, 1], ["foo", "lorem"]]
 
-        self.assertEqual(
-            {
-                0: {"foo": "bar", "bar": "foo", "lorem": "ipsum"},
-                1: {"foo": "bar", "bar": "foo"},
-            },
-            medrecord.node[[0, 1], :],
-        )
+        assert medrecord.node[[0, 1], :] == {0: {"foo": "bar", "bar": "foo", "lorem": "ipsum"}, 1: {"foo": "bar", "bar": "foo"}}
 
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             medrecord.node[[0, 1], 1:]
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             medrecord.node[[0, 1], :1]
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             medrecord.node[[0, 1], ::1]
 
-        self.assertEqual(
-            {2: {"foo": "bar", "bar": "foo"}, 3: {"foo": "bar", "bar": "test"}},
-            medrecord.node[node().index() >= 2],
-        )
+        assert medrecord.node[node().index() >= 2] == {2: {"foo": "bar", "bar": "foo"}, 3: {"foo": "bar", "bar": "test"}}
 
         # Empty query should not fail
-        self.assertEqual(
-            {},
-            medrecord.node[node().index() > 3],
-        )
+        assert medrecord.node[node().index() > 3] == {}
 
-        self.assertEqual(
-            {2: "bar", 3: "bar"},
-            medrecord.node[node().index() >= 2, "foo"],
-        )
+        assert medrecord.node[node().index() >= 2, "foo"] == {2: "bar", 3: "bar"}
 
         # Accessing a non-existing key should fail
-        with self.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             medrecord.node[node().index() >= 2, "test"]
 
-        self.assertEqual(
-            {
-                2: {"foo": "bar", "bar": "foo"},
-                3: {"foo": "bar", "bar": "test"},
-            },
-            medrecord.node[node().index() >= 2, ["foo", "bar"]],
-        )
+        assert medrecord.node[node().index() >= 2, ["foo", "bar"]] == {2: {"foo": "bar", "bar": "foo"}, 3: {"foo": "bar", "bar": "test"}}
 
         # Accessing a non-existing key should fail
-        with self.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             medrecord.node[node().index() >= 2, ["foo", "test"]]
 
         # Accessing a key that doesn't exist in all nodes should fail
-        with self.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             medrecord.node[node().index() < 2, ["foo", "lorem"]]
 
-        self.assertEqual(
-            {
-                2: {"foo": "bar", "bar": "foo"},
-                3: {"foo": "bar", "bar": "test"},
-            },
-            medrecord.node[node().index() >= 2, :],
-        )
+        assert medrecord.node[node().index() >= 2, :] == {2: {"foo": "bar", "bar": "foo"}, 3: {"foo": "bar", "bar": "test"}}
 
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             medrecord.node[node().index() >= 2, 1:]
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             medrecord.node[node().index() >= 2, :1]
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             medrecord.node[node().index() >= 2, ::1]
 
-        self.assertEqual(
-            {
-                0: {"foo": "bar", "bar": "foo", "lorem": "ipsum"},
-                1: {"foo": "bar", "bar": "foo"},
-                2: {"foo": "bar", "bar": "foo"},
-                3: {"foo": "bar", "bar": "test"},
-            },
-            medrecord.node[:],
-        )
+        assert medrecord.node[:] == {0: {"foo": "bar", "bar": "foo", "lorem": "ipsum"}, 1: {"foo": "bar", "bar": "foo"}, 2: {"foo": "bar", "bar": "foo"}, 3: {"foo": "bar", "bar": "test"}}
 
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             medrecord.node[1:]
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             medrecord.node[:1]
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             medrecord.node[::1]
 
-        self.assertEqual(
-            {
-                0: "bar",
-                1: "bar",
-                2: "bar",
-                3: "bar",
-            },
-            medrecord.node[:, "foo"],
-        )
+        assert medrecord.node[:, "foo"] == {0: "bar", 1: "bar", 2: "bar", 3: "bar"}
 
         # Accessing a non-existing key should fail
-        with self.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             medrecord.node[:, "test"]
 
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             medrecord.node[1:, "foo"]
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             medrecord.node[:1, "foo"]
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             medrecord.node[::1, "foo"]
 
-        self.assertEqual(
-            {
-                0: {"foo": "bar", "bar": "foo"},
-                1: {"foo": "bar", "bar": "foo"},
-                2: {"foo": "bar", "bar": "foo"},
-                3: {"foo": "bar", "bar": "test"},
-            },
-            medrecord.node[:, ["foo", "bar"]],
-        )
+        assert medrecord.node[:, ["foo", "bar"]] == {0: {"foo": "bar", "bar": "foo"}, 1: {"foo": "bar", "bar": "foo"}, 2: {"foo": "bar", "bar": "foo"}, 3: {"foo": "bar", "bar": "test"}}
 
         # Accessing a non-existing key should fail
-        with self.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             medrecord.node[:, ["foo", "test"]]
 
         # Accessing a key that doesn't exist in all nodes should fail
-        with self.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             medrecord.node[:, ["foo", "lorem"]]
 
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             medrecord.node[1:, ["foo", "bar"]]
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             medrecord.node[:1, ["foo", "bar"]]
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             medrecord.node[::1, ["foo", "bar"]]
 
-        self.assertEqual(
-            {
-                0: {"foo": "bar", "bar": "foo", "lorem": "ipsum"},
-                1: {"foo": "bar", "bar": "foo"},
-                2: {"foo": "bar", "bar": "foo"},
-                3: {"foo": "bar", "bar": "test"},
-            },
-            medrecord.node[:, :],
-        )
+        assert medrecord.node[:, :] == {0: {"foo": "bar", "bar": "foo", "lorem": "ipsum"}, 1: {"foo": "bar", "bar": "foo"}, 2: {"foo": "bar", "bar": "foo"}, 3: {"foo": "bar", "bar": "test"}}
 
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             medrecord.node[1:, :]
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             medrecord.node[:1, :]
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             medrecord.node[::1, :]
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             medrecord.node[:, 1:]
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             medrecord.node[:, :1]
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             medrecord.node[:, ::1]
 
-    def test_node_setitem(self):
+    def test_node_setitem(self) -> None:
         # Updating existing attributes
 
         medrecord = create_medrecord()
         medrecord.node[0] = {"foo": "bar", "bar": "test"}
-        self.assertEqual(
-            {
-                0: {"foo": "bar", "bar": "test"},
-                1: {"foo": "bar", "bar": "foo"},
-                2: {"foo": "bar", "bar": "foo"},
-                3: {"foo": "bar", "bar": "test"},
-            },
-            medrecord.node[:],
-        )
+        assert medrecord.node[:] == {0: {"foo": "bar", "bar": "test"}, 1: {"foo": "bar", "bar": "foo"}, 2: {"foo": "bar", "bar": "foo"}, 3: {"foo": "bar", "bar": "test"}}
 
         medrecord = create_medrecord()
         # Updating a non-existing node should fail
-        with self.assertRaises(IndexError):
+        with pytest.raises(IndexError):
             medrecord.node[50] = {"foo": "bar", "test": "test"}
 
         medrecord = create_medrecord()
         medrecord.node[0, "foo"] = "test"
-        self.assertEqual(
-            {
-                0: {"foo": "test", "bar": "foo", "lorem": "ipsum"},
-                1: {"foo": "bar", "bar": "foo"},
-                2: {"foo": "bar", "bar": "foo"},
-                3: {"foo": "bar", "bar": "test"},
-            },
-            medrecord.node[:],
-        )
+        assert medrecord.node[:] == {0: {"foo": "test", "bar": "foo", "lorem": "ipsum"}, 1: {"foo": "bar", "bar": "foo"}, 2: {"foo": "bar", "bar": "foo"}, 3: {"foo": "bar", "bar": "test"}}
 
         medrecord = create_medrecord()
         medrecord.node[0, ["foo", "bar"]] = "test"
-        self.assertEqual(
-            {
-                0: {"foo": "test", "bar": "test", "lorem": "ipsum"},
-                1: {"foo": "bar", "bar": "foo"},
-                2: {"foo": "bar", "bar": "foo"},
-                3: {"foo": "bar", "bar": "test"},
-            },
-            medrecord.node[:],
-        )
+        assert medrecord.node[:] == {0: {"foo": "test", "bar": "test", "lorem": "ipsum"}, 1: {"foo": "bar", "bar": "foo"}, 2: {"foo": "bar", "bar": "foo"}, 3: {"foo": "bar", "bar": "test"}}
 
         medrecord = create_medrecord()
         medrecord.node[0, :] = "test"
-        self.assertEqual(
-            {
-                0: {"foo": "test", "bar": "test", "lorem": "test"},
-                1: {"foo": "bar", "bar": "foo"},
-                2: {"foo": "bar", "bar": "foo"},
-                3: {"foo": "bar", "bar": "test"},
-            },
-            medrecord.node[:],
-        )
+        assert medrecord.node[:] == {0: {"foo": "test", "bar": "test", "lorem": "test"}, 1: {"foo": "bar", "bar": "foo"}, 2: {"foo": "bar", "bar": "foo"}, 3: {"foo": "bar", "bar": "test"}}
 
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             medrecord.node[0, 1:] = "test"
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             medrecord.node[0, :1] = "test"
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             medrecord.node[0, ::1] = "test"
 
         medrecord = create_medrecord()
         medrecord.node[[0, 1], "foo"] = "test"
-        self.assertEqual(
-            {
-                0: {"foo": "test", "bar": "foo", "lorem": "ipsum"},
-                1: {"foo": "test", "bar": "foo"},
-                2: {"foo": "bar", "bar": "foo"},
-                3: {"foo": "bar", "bar": "test"},
-            },
-            medrecord.node[:],
-        )
+        assert medrecord.node[:] == {0: {"foo": "test", "bar": "foo", "lorem": "ipsum"}, 1: {"foo": "test", "bar": "foo"}, 2: {"foo": "bar", "bar": "foo"}, 3: {"foo": "bar", "bar": "test"}}
 
         medrecord = create_medrecord()
         medrecord.node[[0, 1], ["foo", "bar"]] = "test"
-        self.assertEqual(
-            {
-                0: {"foo": "test", "bar": "test", "lorem": "ipsum"},
-                1: {"foo": "test", "bar": "test"},
-                2: {"foo": "bar", "bar": "foo"},
-                3: {"foo": "bar", "bar": "test"},
-            },
-            medrecord.node[:],
-        )
+        assert medrecord.node[:] == {0: {"foo": "test", "bar": "test", "lorem": "ipsum"}, 1: {"foo": "test", "bar": "test"}, 2: {"foo": "bar", "bar": "foo"}, 3: {"foo": "bar", "bar": "test"}}
 
         medrecord = create_medrecord()
         medrecord.node[[0, 1], :] = "test"
-        self.assertEqual(
-            {
-                0: {"foo": "test", "bar": "test", "lorem": "test"},
-                1: {"foo": "test", "bar": "test"},
-                2: {"foo": "bar", "bar": "foo"},
-                3: {"foo": "bar", "bar": "test"},
-            },
-            medrecord.node[:],
-        )
+        assert medrecord.node[:] == {0: {"foo": "test", "bar": "test", "lorem": "test"}, 1: {"foo": "test", "bar": "test"}, 2: {"foo": "bar", "bar": "foo"}, 3: {"foo": "bar", "bar": "test"}}
 
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             medrecord.node[[0, 1], 1:] = "test"
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             medrecord.node[[0, 1], :1] = "test"
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             medrecord.node[[0, 1], ::1] = "test"
 
         medrecord = create_medrecord()
         medrecord.node[node().index() >= 2] = {"foo": "bar", "bar": "test"}
-        self.assertEqual(
-            {
-                0: {"foo": "bar", "bar": "foo", "lorem": "ipsum"},
-                1: {"foo": "bar", "bar": "foo"},
-                2: {"foo": "bar", "bar": "test"},
-                3: {"foo": "bar", "bar": "test"},
-            },
-            medrecord.node[:],
-        )
+        assert medrecord.node[:] == {0: {"foo": "bar", "bar": "foo", "lorem": "ipsum"}, 1: {"foo": "bar", "bar": "foo"}, 2: {"foo": "bar", "bar": "test"}, 3: {"foo": "bar", "bar": "test"}}
 
         medrecord = create_medrecord()
         # Empty query should not fail
@@ -377,929 +232,490 @@ class TestMedRecord(unittest.TestCase):
 
         medrecord = create_medrecord()
         medrecord.node[node().index() >= 2, "foo"] = "test"
-        self.assertEqual(
-            {
-                0: {"foo": "bar", "bar": "foo", "lorem": "ipsum"},
-                1: {"foo": "bar", "bar": "foo"},
-                2: {"foo": "test", "bar": "foo"},
-                3: {"foo": "test", "bar": "test"},
-            },
-            medrecord.node[:],
-        )
+        assert medrecord.node[:] == {0: {"foo": "bar", "bar": "foo", "lorem": "ipsum"}, 1: {"foo": "bar", "bar": "foo"}, 2: {"foo": "test", "bar": "foo"}, 3: {"foo": "test", "bar": "test"}}
 
         medrecord = create_medrecord()
         medrecord.node[node().index() >= 2, ["foo", "bar"]] = "test"
-        self.assertEqual(
-            {
-                0: {"foo": "bar", "bar": "foo", "lorem": "ipsum"},
-                1: {"foo": "bar", "bar": "foo"},
-                2: {"foo": "test", "bar": "test"},
-                3: {"foo": "test", "bar": "test"},
-            },
-            medrecord.node[:],
-        )
+        assert medrecord.node[:] == {0: {"foo": "bar", "bar": "foo", "lorem": "ipsum"}, 1: {"foo": "bar", "bar": "foo"}, 2: {"foo": "test", "bar": "test"}, 3: {"foo": "test", "bar": "test"}}
 
         medrecord = create_medrecord()
         medrecord.node[node().index() >= 2, :] = "test"
-        self.assertEqual(
-            {
-                0: {"foo": "bar", "bar": "foo", "lorem": "ipsum"},
-                1: {"foo": "bar", "bar": "foo"},
-                2: {"foo": "test", "bar": "test"},
-                3: {"foo": "test", "bar": "test"},
-            },
-            medrecord.node[:],
-        )
+        assert medrecord.node[:] == {0: {"foo": "bar", "bar": "foo", "lorem": "ipsum"}, 1: {"foo": "bar", "bar": "foo"}, 2: {"foo": "test", "bar": "test"}, 3: {"foo": "test", "bar": "test"}}
 
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             medrecord.node[node().index() >= 2, 1:] = "test"
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             medrecord.node[node().index() >= 2, :1] = "test"
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             medrecord.node[node().index() >= 2, ::1] = "test"
 
         medrecord = create_medrecord()
         medrecord.node[:, "foo"] = "test"
-        self.assertEqual(
-            {
-                0: {"foo": "test", "bar": "foo", "lorem": "ipsum"},
-                1: {"foo": "test", "bar": "foo"},
-                2: {"foo": "test", "bar": "foo"},
-                3: {"foo": "test", "bar": "test"},
-            },
-            medrecord.node[:],
-        )
+        assert medrecord.node[:] == {0: {"foo": "test", "bar": "foo", "lorem": "ipsum"}, 1: {"foo": "test", "bar": "foo"}, 2: {"foo": "test", "bar": "foo"}, 3: {"foo": "test", "bar": "test"}}
 
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             medrecord.node[1:, "foo"] = "test"
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             medrecord.node[:1, "foo"] = "test"
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             medrecord.node[::1, "foo"] = "test"
 
         medrecord = create_medrecord()
         medrecord.node[:, ["foo", "bar"]] = "test"
-        self.assertEqual(
-            {
-                0: {"foo": "test", "bar": "test", "lorem": "ipsum"},
-                1: {"foo": "test", "bar": "test"},
-                2: {"foo": "test", "bar": "test"},
-                3: {"foo": "test", "bar": "test"},
-            },
-            medrecord.node[:],
-        )
+        assert medrecord.node[:] == {0: {"foo": "test", "bar": "test", "lorem": "ipsum"}, 1: {"foo": "test", "bar": "test"}, 2: {"foo": "test", "bar": "test"}, 3: {"foo": "test", "bar": "test"}}
 
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             medrecord.node[1:, ["foo", "bar"]] = "test"
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             medrecord.node[:1, ["foo", "bar"]] = "test"
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             medrecord.node[::1, ["foo", "bar"]] = "test"
 
         medrecord = create_medrecord()
         medrecord.node[:, :] = "test"
-        self.assertEqual(
-            {
-                0: {"foo": "test", "bar": "test", "lorem": "test"},
-                1: {"foo": "test", "bar": "test"},
-                2: {"foo": "test", "bar": "test"},
-                3: {"foo": "test", "bar": "test"},
-            },
-            medrecord.node[:],
-        )
+        assert medrecord.node[:] == {0: {"foo": "test", "bar": "test", "lorem": "test"}, 1: {"foo": "test", "bar": "test"}, 2: {"foo": "test", "bar": "test"}, 3: {"foo": "test", "bar": "test"}}
 
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             medrecord.node[1:, :] = "test"
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             medrecord.node[:1, :] = "test"
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             medrecord.node[::1, :] = "test"
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             medrecord.node[:, 1:] = "test"
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             medrecord.node[:, :1] = "test"
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             medrecord.node[:, ::1] = "test"
 
         # Adding new attributes
 
         medrecord = create_medrecord()
         medrecord.node[0, "test"] = "test"
-        self.assertEqual(
-            {
-                0: {"foo": "bar", "bar": "foo", "lorem": "ipsum", "test": "test"},
-                1: {"foo": "bar", "bar": "foo"},
-                2: {"foo": "bar", "bar": "foo"},
-                3: {"foo": "bar", "bar": "test"},
-            },
-            medrecord.node[:],
-        )
+        assert medrecord.node[:] == {0: {"foo": "bar", "bar": "foo", "lorem": "ipsum", "test": "test"}, 1: {"foo": "bar", "bar": "foo"}, 2: {"foo": "bar", "bar": "foo"}, 3: {"foo": "bar", "bar": "test"}}
 
         medrecord = create_medrecord()
         medrecord.node[0, ["test", "test2"]] = "test"
-        self.assertEqual(
-            {
-                0: {
-                    "foo": "bar",
-                    "bar": "foo",
-                    "lorem": "ipsum",
-                    "test": "test",
-                    "test2": "test",
-                },
-                1: {"foo": "bar", "bar": "foo"},
-                2: {"foo": "bar", "bar": "foo"},
-                3: {"foo": "bar", "bar": "test"},
-            },
-            medrecord.node[:],
-        )
+        assert medrecord.node[:] == {0: {"foo": "bar", "bar": "foo", "lorem": "ipsum", "test": "test", "test2": "test"}, 1: {"foo": "bar", "bar": "foo"}, 2: {"foo": "bar", "bar": "foo"}, 3: {"foo": "bar", "bar": "test"}}
 
         medrecord = create_medrecord()
         medrecord.node[[0, 1], "test"] = "test"
-        self.assertEqual(
-            {
-                0: {"foo": "bar", "bar": "foo", "lorem": "ipsum", "test": "test"},
-                1: {"foo": "bar", "bar": "foo", "test": "test"},
-                2: {"foo": "bar", "bar": "foo"},
-                3: {"foo": "bar", "bar": "test"},
-            },
-            medrecord.node[:],
-        )
+        assert medrecord.node[:] == {0: {"foo": "bar", "bar": "foo", "lorem": "ipsum", "test": "test"}, 1: {"foo": "bar", "bar": "foo", "test": "test"}, 2: {"foo": "bar", "bar": "foo"}, 3: {"foo": "bar", "bar": "test"}}
 
         medrecord = create_medrecord()
         medrecord.node[[0, 1], ["test", "test2"]] = "test"
-        self.assertEqual(
-            {
-                0: {
-                    "foo": "bar",
-                    "bar": "foo",
-                    "lorem": "ipsum",
-                    "test": "test",
-                    "test2": "test",
-                },
-                1: {"foo": "bar", "bar": "foo", "test": "test", "test2": "test"},
-                2: {"foo": "bar", "bar": "foo"},
-                3: {"foo": "bar", "bar": "test"},
-            },
-            medrecord.node[:],
-        )
+        assert medrecord.node[:] == {0: {"foo": "bar", "bar": "foo", "lorem": "ipsum", "test": "test", "test2": "test"}, 1: {"foo": "bar", "bar": "foo", "test": "test", "test2": "test"}, 2: {"foo": "bar", "bar": "foo"}, 3: {"foo": "bar", "bar": "test"}}
 
         medrecord = create_medrecord()
         medrecord.node[node().index() >= 2, "test"] = "test"
-        self.assertEqual(
-            {
-                0: {"foo": "bar", "bar": "foo", "lorem": "ipsum"},
-                1: {"foo": "bar", "bar": "foo"},
-                2: {"foo": "bar", "bar": "foo", "test": "test"},
-                3: {"foo": "bar", "bar": "test", "test": "test"},
-            },
-            medrecord.node[:],
-        )
+        assert medrecord.node[:] == {0: {"foo": "bar", "bar": "foo", "lorem": "ipsum"}, 1: {"foo": "bar", "bar": "foo"}, 2: {"foo": "bar", "bar": "foo", "test": "test"}, 3: {"foo": "bar", "bar": "test", "test": "test"}}
 
         medrecord = create_medrecord()
         medrecord.node[node().index() >= 2, ["test", "test2"]] = "test"
-        self.assertEqual(
-            {
-                0: {"foo": "bar", "bar": "foo", "lorem": "ipsum"},
-                1: {"foo": "bar", "bar": "foo"},
-                2: {
-                    "foo": "bar",
-                    "bar": "foo",
-                    "test": "test",
-                    "test2": "test",
-                },
-                3: {
-                    "foo": "bar",
-                    "bar": "test",
-                    "test": "test",
-                    "test2": "test",
-                },
-            },
-            medrecord.node[:],
-        )
+        assert medrecord.node[:] == {0: {"foo": "bar", "bar": "foo", "lorem": "ipsum"}, 1: {"foo": "bar", "bar": "foo"}, 2: {"foo": "bar", "bar": "foo", "test": "test", "test2": "test"}, 3: {"foo": "bar", "bar": "test", "test": "test", "test2": "test"}}
 
         medrecord = create_medrecord()
         medrecord.node[:, "test"] = "test"
-        self.assertEqual(
-            {
-                0: {"foo": "bar", "bar": "foo", "lorem": "ipsum", "test": "test"},
-                1: {"foo": "bar", "bar": "foo", "test": "test"},
-                2: {"foo": "bar", "bar": "foo", "test": "test"},
-                3: {"foo": "bar", "bar": "test", "test": "test"},
-            },
-            medrecord.node[:],
-        )
+        assert medrecord.node[:] == {0: {"foo": "bar", "bar": "foo", "lorem": "ipsum", "test": "test"}, 1: {"foo": "bar", "bar": "foo", "test": "test"}, 2: {"foo": "bar", "bar": "foo", "test": "test"}, 3: {"foo": "bar", "bar": "test", "test": "test"}}
 
         medrecord = create_medrecord()
         medrecord.node[:, ["test", "test2"]] = "test"
-        self.assertEqual(
-            {
-                0: {
-                    "foo": "bar",
-                    "bar": "foo",
-                    "lorem": "ipsum",
-                    "test": "test",
-                    "test2": "test",
-                },
-                1: {"foo": "bar", "bar": "foo", "test": "test", "test2": "test"},
-                2: {"foo": "bar", "bar": "foo", "test": "test", "test2": "test"},
-                3: {"foo": "bar", "bar": "test", "test": "test", "test2": "test"},
-            },
-            medrecord.node[:],
-        )
+        assert medrecord.node[:] == {0: {"foo": "bar", "bar": "foo", "lorem": "ipsum", "test": "test", "test2": "test"}, 1: {"foo": "bar", "bar": "foo", "test": "test", "test2": "test"}, 2: {"foo": "bar", "bar": "foo", "test": "test", "test2": "test"}, 3: {"foo": "bar", "bar": "test", "test": "test", "test2": "test"}}
 
         # Adding and updating attributes
 
         medrecord = create_medrecord()
         medrecord.node[[0, 1], "lorem"] = "test"
-        self.assertEqual(
-            {
-                0: {"foo": "bar", "bar": "foo", "lorem": "test"},
-                1: {"foo": "bar", "bar": "foo", "lorem": "test"},
-                2: {"foo": "bar", "bar": "foo"},
-                3: {"foo": "bar", "bar": "test"},
-            },
-            medrecord.node[:],
-        )
+        assert medrecord.node[:] == {0: {"foo": "bar", "bar": "foo", "lorem": "test"}, 1: {"foo": "bar", "bar": "foo", "lorem": "test"}, 2: {"foo": "bar", "bar": "foo"}, 3: {"foo": "bar", "bar": "test"}}
 
         medrecord = create_medrecord()
         medrecord.node[[0, 1], ["lorem", "test"]] = "test"
-        self.assertEqual(
-            {
-                0: {"foo": "bar", "bar": "foo", "lorem": "test", "test": "test"},
-                1: {"foo": "bar", "bar": "foo", "lorem": "test", "test": "test"},
-                2: {"foo": "bar", "bar": "foo"},
-                3: {"foo": "bar", "bar": "test"},
-            },
-            medrecord.node[:],
-        )
+        assert medrecord.node[:] == {0: {"foo": "bar", "bar": "foo", "lorem": "test", "test": "test"}, 1: {"foo": "bar", "bar": "foo", "lorem": "test", "test": "test"}, 2: {"foo": "bar", "bar": "foo"}, 3: {"foo": "bar", "bar": "test"}}
 
         medrecord = create_medrecord()
         medrecord.node[node().index() < 2, "lorem"] = "test"
-        self.assertEqual(
-            {
-                0: {"foo": "bar", "bar": "foo", "lorem": "test"},
-                1: {"foo": "bar", "bar": "foo", "lorem": "test"},
-                2: {"foo": "bar", "bar": "foo"},
-                3: {"foo": "bar", "bar": "test"},
-            },
-            medrecord.node[:],
-        )
+        assert medrecord.node[:] == {0: {"foo": "bar", "bar": "foo", "lorem": "test"}, 1: {"foo": "bar", "bar": "foo", "lorem": "test"}, 2: {"foo": "bar", "bar": "foo"}, 3: {"foo": "bar", "bar": "test"}}
 
         medrecord = create_medrecord()
         medrecord.node[node().index() < 2, ["lorem", "test"]] = "test"
-        self.assertEqual(
-            {
-                0: {"foo": "bar", "bar": "foo", "lorem": "test", "test": "test"},
-                1: {"foo": "bar", "bar": "foo", "lorem": "test", "test": "test"},
-                2: {"foo": "bar", "bar": "foo"},
-                3: {"foo": "bar", "bar": "test"},
-            },
-            medrecord.node[:],
-        )
+        assert medrecord.node[:] == {0: {"foo": "bar", "bar": "foo", "lorem": "test", "test": "test"}, 1: {"foo": "bar", "bar": "foo", "lorem": "test", "test": "test"}, 2: {"foo": "bar", "bar": "foo"}, 3: {"foo": "bar", "bar": "test"}}
 
         medrecord = create_medrecord()
         medrecord.node[:, "lorem"] = "test"
-        self.assertEqual(
-            {
-                0: {"foo": "bar", "bar": "foo", "lorem": "test"},
-                1: {"foo": "bar", "bar": "foo", "lorem": "test"},
-                2: {"foo": "bar", "bar": "foo", "lorem": "test"},
-                3: {"foo": "bar", "bar": "test", "lorem": "test"},
-            },
-            medrecord.node[:],
-        )
+        assert medrecord.node[:] == {0: {"foo": "bar", "bar": "foo", "lorem": "test"}, 1: {"foo": "bar", "bar": "foo", "lorem": "test"}, 2: {"foo": "bar", "bar": "foo", "lorem": "test"}, 3: {"foo": "bar", "bar": "test", "lorem": "test"}}
 
         medrecord = create_medrecord()
         medrecord.node[:, ["lorem", "test"]] = "test"
-        self.assertEqual(
-            {
-                0: {"foo": "bar", "bar": "foo", "lorem": "test", "test": "test"},
-                1: {"foo": "bar", "bar": "foo", "lorem": "test", "test": "test"},
-                2: {"foo": "bar", "bar": "foo", "lorem": "test", "test": "test"},
-                3: {"foo": "bar", "bar": "test", "lorem": "test", "test": "test"},
-            },
-            medrecord.node[:],
-        )
+        assert medrecord.node[:] == {0: {"foo": "bar", "bar": "foo", "lorem": "test", "test": "test"}, 1: {"foo": "bar", "bar": "foo", "lorem": "test", "test": "test"}, 2: {"foo": "bar", "bar": "foo", "lorem": "test", "test": "test"}, 3: {"foo": "bar", "bar": "test", "lorem": "test", "test": "test"}}
 
-    def test_node_delitem(self):
+    def test_node_delitem(self) -> None:
         medrecord = create_medrecord()
         del medrecord.node[0, "foo"]
-        self.assertEqual(
-            {
-                0: {"bar": "foo", "lorem": "ipsum"},
-                1: {"foo": "bar", "bar": "foo"},
-                2: {"foo": "bar", "bar": "foo"},
-                3: {"foo": "bar", "bar": "test"},
-            },
-            medrecord.node[:],
-        )
+        assert medrecord.node[:] == {0: {"bar": "foo", "lorem": "ipsum"}, 1: {"foo": "bar", "bar": "foo"}, 2: {"foo": "bar", "bar": "foo"}, 3: {"foo": "bar", "bar": "test"}}
 
         medrecord = create_medrecord()
         # Removing from a non-existing node should fail
-        with self.assertRaises(IndexError):
+        with pytest.raises(IndexError):
             del medrecord.node[50, "foo"]
 
         medrecord = create_medrecord()
         # Removing a non-existing key should fail
-        with self.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             del medrecord.node[0, "test"]
 
         medrecord = create_medrecord()
         del medrecord.node[0, ["foo", "bar"]]
-        self.assertEqual(
-            {
-                0: {"lorem": "ipsum"},
-                1: {"foo": "bar", "bar": "foo"},
-                2: {"foo": "bar", "bar": "foo"},
-                3: {"foo": "bar", "bar": "test"},
-            },
-            medrecord.node[:],
-        )
+        assert medrecord.node[:] == {0: {"lorem": "ipsum"}, 1: {"foo": "bar", "bar": "foo"}, 2: {"foo": "bar", "bar": "foo"}, 3: {"foo": "bar", "bar": "test"}}
 
         medrecord = create_medrecord()
         # Removing a non-existing key should fail
-        with self.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             del medrecord.node[0, ["foo", "test"]]
 
         medrecord = create_medrecord()
         del medrecord.node[0, :]
-        self.assertEqual(
-            {
-                0: {},
-                1: {"foo": "bar", "bar": "foo"},
-                2: {"foo": "bar", "bar": "foo"},
-                3: {"foo": "bar", "bar": "test"},
-            },
-            medrecord.node[:],
-        )
+        assert medrecord.node[:] == {0: {}, 1: {"foo": "bar", "bar": "foo"}, 2: {"foo": "bar", "bar": "foo"}, 3: {"foo": "bar", "bar": "test"}}
 
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             del medrecord.node[0, 1:]
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             del medrecord.node[0, :1]
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             del medrecord.node[0, ::1]
 
         medrecord = create_medrecord()
         del medrecord.node[[0, 1], "foo"]
-        self.assertEqual(
-            {
-                0: {"bar": "foo", "lorem": "ipsum"},
-                1: {"bar": "foo"},
-                2: {"foo": "bar", "bar": "foo"},
-                3: {"foo": "bar", "bar": "test"},
-            },
-            medrecord.node[:],
-        )
+        assert medrecord.node[:] == {0: {"bar": "foo", "lorem": "ipsum"}, 1: {"bar": "foo"}, 2: {"foo": "bar", "bar": "foo"}, 3: {"foo": "bar", "bar": "test"}}
 
         medrecord = create_medrecord()
         # Removing from a non-existing node should fail
-        with self.assertRaises(IndexError):
+        with pytest.raises(IndexError):
             del medrecord.node[[0, 50], "foo"]
 
         medrecord = create_medrecord()
         # Removing a non-existing key should fail
-        with self.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             del medrecord.node[[0, 1], "test"]
 
         medrecord = create_medrecord()
         del medrecord.node[[0, 1], ["foo", "bar"]]
-        self.assertEqual(
-            {
-                0: {"lorem": "ipsum"},
-                1: {},
-                2: {"foo": "bar", "bar": "foo"},
-                3: {"foo": "bar", "bar": "test"},
-            },
-            medrecord.node[:],
-        )
+        assert medrecord.node[:] == {0: {"lorem": "ipsum"}, 1: {}, 2: {"foo": "bar", "bar": "foo"}, 3: {"foo": "bar", "bar": "test"}}
 
         medrecord = create_medrecord()
         # Removing a non-existing key should fail
-        with self.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             del medrecord.node[[0, 1], ["foo", "test"]]
 
         medrecord = create_medrecord()
         # Removing a key that doesn't exist in all nodes should fail
-        with self.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             del medrecord.node[[0, 1], ["foo", "lorem"]]
 
         medrecord = create_medrecord()
         del medrecord.node[[0, 1], :]
-        self.assertEqual(
-            {
-                0: {},
-                1: {},
-                2: {"foo": "bar", "bar": "foo"},
-                3: {"foo": "bar", "bar": "test"},
-            },
-            medrecord.node[:],
-        )
+        assert medrecord.node[:] == {0: {}, 1: {}, 2: {"foo": "bar", "bar": "foo"}, 3: {"foo": "bar", "bar": "test"}}
 
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             del medrecord.node[[0, 1], 1:]
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             del medrecord.node[[0, 1], :1]
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             del medrecord.node[[0, 1], ::1]
 
         medrecord = create_medrecord()
         del medrecord.node[node().index() >= 2, "foo"]
-        self.assertEqual(
-            {
-                0: {"foo": "bar", "bar": "foo", "lorem": "ipsum"},
-                1: {"foo": "bar", "bar": "foo"},
-                2: {"bar": "foo"},
-                3: {"bar": "test"},
-            },
-            medrecord.node[:],
-        )
+        assert medrecord.node[:] == {0: {"foo": "bar", "bar": "foo", "lorem": "ipsum"}, 1: {"foo": "bar", "bar": "foo"}, 2: {"bar": "foo"}, 3: {"bar": "test"}}
 
         medrecord = create_medrecord()
         # Empty query should not fail
         del medrecord.node[node().index() > 3, "foo"]
-        self.assertEqual(
-            {
-                0: {"foo": "bar", "bar": "foo", "lorem": "ipsum"},
-                1: {"foo": "bar", "bar": "foo"},
-                2: {"foo": "bar", "bar": "foo"},
-                3: {"foo": "bar", "bar": "test"},
-            },
-            medrecord.node[:],
-        )
+        assert medrecord.node[:] == {0: {"foo": "bar", "bar": "foo", "lorem": "ipsum"}, 1: {"foo": "bar", "bar": "foo"}, 2: {"foo": "bar", "bar": "foo"}, 3: {"foo": "bar", "bar": "test"}}
 
         medrecord = create_medrecord()
         # Removing a non-existing key should fail
-        with self.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             del medrecord.node[node().index() >= 2, "test"]
 
         medrecord = create_medrecord()
         del medrecord.node[node().index() >= 2, ["foo", "bar"]]
-        self.assertEqual(
-            {
-                0: {"foo": "bar", "bar": "foo", "lorem": "ipsum"},
-                1: {"foo": "bar", "bar": "foo"},
-                2: {},
-                3: {},
-            },
-            medrecord.node[:],
-        )
+        assert medrecord.node[:] == {0: {"foo": "bar", "bar": "foo", "lorem": "ipsum"}, 1: {"foo": "bar", "bar": "foo"}, 2: {}, 3: {}}
 
         medrecord = create_medrecord()
         # Removing a non-existing key should fail
-        with self.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             del medrecord.node[node().index() >= 2, ["foo", "test"]]
 
         medrecord = create_medrecord()
         # Removing a key that doesn't exist in all nodes should fail
-        with self.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             del medrecord.node[node().index() < 2, ["foo", "lorem"]]
 
         medrecord = create_medrecord()
         del medrecord.node[node().index() >= 2, :]
-        self.assertEqual(
-            {
-                0: {"foo": "bar", "bar": "foo", "lorem": "ipsum"},
-                1: {"foo": "bar", "bar": "foo"},
-                2: {},
-                3: {},
-            },
-            medrecord.node[:],
-        )
+        assert medrecord.node[:] == {0: {"foo": "bar", "bar": "foo", "lorem": "ipsum"}, 1: {"foo": "bar", "bar": "foo"}, 2: {}, 3: {}}
 
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             del medrecord.node[node().index() >= 2, 1:]
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             del medrecord.node[node().index() >= 2, :1]
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             del medrecord.node[node().index() >= 2, ::1]
 
         medrecord = create_medrecord()
         del medrecord.node[:, "foo"]
-        self.assertEqual(
-            {
-                0: {"bar": "foo", "lorem": "ipsum"},
-                1: {"bar": "foo"},
-                2: {"bar": "foo"},
-                3: {"bar": "test"},
-            },
-            medrecord.node[:],
-        )
+        assert medrecord.node[:] == {0: {"bar": "foo", "lorem": "ipsum"}, 1: {"bar": "foo"}, 2: {"bar": "foo"}, 3: {"bar": "test"}}
 
         medrecord = create_medrecord()
         # Removing a non-existing key should fail
-        with self.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             del medrecord.node[:, "test"]
 
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             del medrecord.node[1:, "foo"]
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             del medrecord.node[:1, "foo"]
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             del medrecord.node[::1, "foo"]
 
         medrecord = create_medrecord()
         del medrecord.node[:, ["foo", "bar"]]
-        self.assertEqual(
-            {
-                0: {"lorem": "ipsum"},
-                1: {},
-                2: {},
-                3: {},
-            },
-            medrecord.node[:],
-        )
+        assert medrecord.node[:] == {0: {"lorem": "ipsum"}, 1: {}, 2: {}, 3: {}}
 
         medrecord = create_medrecord()
         # Removing a non-existing key should fail
-        with self.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             del medrecord.node[:, ["foo", "test"]]
 
         medrecord = create_medrecord()
         # Removing a key that doesn't exist in all nodes should fail
-        with self.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             del medrecord.node[:, ["foo", "lorem"]]
 
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             del medrecord.node[1:, ["foo", "bar"]]
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             del medrecord.node[:1, ["foo", "bar"]]
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             del medrecord.node[::1, ["foo", "bar"]]
 
         medrecord = create_medrecord()
         del medrecord.node[:, :]
-        self.assertEqual(
-            {
-                0: {},
-                1: {},
-                2: {},
-                3: {},
-            },
-            medrecord.node[:],
-        )
+        assert medrecord.node[:] == {0: {}, 1: {}, 2: {}, 3: {}}
 
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             del medrecord.node[1:, :]
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             del medrecord.node[:1, :]
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             del medrecord.node[::1, :]
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             del medrecord.node[:, 1:]
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             del medrecord.node[:, :1]
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             del medrecord.node[:, ::1]
 
-    def test_edge_getitem(self):
+    def test_edge_getitem(self) -> None:
         medrecord = create_medrecord()
 
-        self.assertEqual(
-            {"foo": "bar", "bar": "foo", "lorem": "ipsum"}, medrecord.edge[0]
-        )
+        assert medrecord.edge[0] == {"foo": "bar", "bar": "foo", "lorem": "ipsum"}
 
         # Accessing a non-existing edge should fail
-        with self.assertRaises(IndexError):
+        with pytest.raises(IndexError):
             medrecord.edge[50]
 
-        self.assertEqual("bar", medrecord.edge[0, "foo"])
+        assert medrecord.edge[0, "foo"] == "bar"
 
         # Accessing a non-existing key should fail
-        with self.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             medrecord.edge[0, "test"]
 
-        self.assertEqual(
-            {"foo": "bar", "bar": "foo"}, medrecord.edge[0, ["foo", "bar"]]
-        )
+        assert medrecord.edge[0, ["foo", "bar"]] == {"foo": "bar", "bar": "foo"}
 
         # Accessing a non-existing key should fail
-        with self.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             medrecord.edge[0, ["foo", "test"]]
 
-        self.assertEqual(
-            {"foo": "bar", "bar": "foo", "lorem": "ipsum"}, medrecord.edge[0, :]
-        )
+        assert medrecord.edge[0, :] == {"foo": "bar", "bar": "foo", "lorem": "ipsum"}
 
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             medrecord.edge[0, 1:]
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             medrecord.edge[0, :1]
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             medrecord.edge[0, ::1]
 
-        self.assertEqual(
-            {
-                0: {"foo": "bar", "bar": "foo", "lorem": "ipsum"},
-                1: {"foo": "bar", "bar": "foo"},
-            },
-            medrecord.edge[[0, 1]],
-        )
+        assert medrecord.edge[[0, 1]] == {0: {"foo": "bar", "bar": "foo", "lorem": "ipsum"}, 1: {"foo": "bar", "bar": "foo"}}
 
-        with self.assertRaises(IndexError):
+        with pytest.raises(IndexError):
             medrecord.edge[[0, 50]]
 
-        self.assertEqual(
-            {
-                0: "bar",
-                1: "bar",
-            },
-            medrecord.edge[[0, 1], "foo"],
-        )
+        assert medrecord.edge[[0, 1], "foo"] == {0: "bar", 1: "bar"}
 
         # Accessing a non-existing key should fail
-        with self.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             medrecord.edge[[0, 1], "test"]
 
         # Accessing a key that doesn't exist in all edges should fail
-        with self.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             medrecord.edge[[0, 1], "lorem"]
 
-        self.assertEqual(
-            {
-                0: {"foo": "bar", "bar": "foo"},
-                1: {"foo": "bar", "bar": "foo"},
-            },
-            medrecord.edge[[0, 1], ["foo", "bar"]],
-        )
+        assert medrecord.edge[[0, 1], ["foo", "bar"]] == {0: {"foo": "bar", "bar": "foo"}, 1: {"foo": "bar", "bar": "foo"}}
 
         # Accessing a non-existing key should fail
-        with self.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             medrecord.edge[[0, 1], ["foo", "test"]]
 
         # Accessing a key that doesn't exist in all edges should fail
-        with self.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             medrecord.edge[[0, 1], ["foo", "lorem"]]
 
-        self.assertEqual(
-            {
-                0: {"foo": "bar", "bar": "foo", "lorem": "ipsum"},
-                1: {"foo": "bar", "bar": "foo"},
-            },
-            medrecord.edge[[0, 1], :],
-        )
+        assert medrecord.edge[[0, 1], :] == {0: {"foo": "bar", "bar": "foo", "lorem": "ipsum"}, 1: {"foo": "bar", "bar": "foo"}}
 
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             medrecord.edge[[0, 1], 1:]
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             medrecord.edge[[0, 1], :1]
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             medrecord.edge[[0, 1], ::1]
 
-        self.assertEqual(
-            {2: {"foo": "bar", "bar": "foo"}, 3: {"foo": "bar", "bar": "test"}},
-            medrecord.edge[edge().index() >= 2],
-        )
+        assert medrecord.edge[edge().index() >= 2] == {2: {"foo": "bar", "bar": "foo"}, 3: {"foo": "bar", "bar": "test"}}
 
         # Empty query should not fail
-        self.assertEqual(
-            {},
-            medrecord.edge[edge().index() > 3],
-        )
+        assert medrecord.edge[edge().index() > 3] == {}
 
-        self.assertEqual(
-            {2: "bar", 3: "bar"},
-            medrecord.edge[edge().index() >= 2, "foo"],
-        )
+        assert medrecord.edge[edge().index() >= 2, "foo"] == {2: "bar", 3: "bar"}
 
         # Accessing a non-existing key should fail
-        with self.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             medrecord.edge[edge().index() >= 2, "test"]
 
-        self.assertEqual(
-            {
-                2: {"foo": "bar", "bar": "foo"},
-                3: {"foo": "bar", "bar": "test"},
-            },
-            medrecord.edge[edge().index() >= 2, ["foo", "bar"]],
-        )
+        assert medrecord.edge[edge().index() >= 2, ["foo", "bar"]] == {2: {"foo": "bar", "bar": "foo"}, 3: {"foo": "bar", "bar": "test"}}
 
         # Accessing a non-existing key should fail
-        with self.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             medrecord.edge[edge().index() >= 2, ["foo", "test"]]
 
         # Accessing a key that doesn't exist in all edges should fail
-        with self.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             medrecord.edge[edge().index() < 2, ["foo", "lorem"]]
 
-        self.assertEqual(
-            {
-                2: {"foo": "bar", "bar": "foo"},
-                3: {"foo": "bar", "bar": "test"},
-            },
-            medrecord.edge[edge().index() >= 2, :],
-        )
+        assert medrecord.edge[edge().index() >= 2, :] == {2: {"foo": "bar", "bar": "foo"}, 3: {"foo": "bar", "bar": "test"}}
 
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             medrecord.edge[edge().index() >= 2, 1:]
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             medrecord.edge[edge().index() >= 2, :1]
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             medrecord.edge[edge().index() >= 2, ::1]
 
-        self.assertEqual(
-            {
-                0: {"foo": "bar", "bar": "foo", "lorem": "ipsum"},
-                1: {"foo": "bar", "bar": "foo"},
-                2: {"foo": "bar", "bar": "foo"},
-                3: {"foo": "bar", "bar": "test"},
-            },
-            medrecord.edge[:],
-        )
+        assert medrecord.edge[:] == {0: {"foo": "bar", "bar": "foo", "lorem": "ipsum"}, 1: {"foo": "bar", "bar": "foo"}, 2: {"foo": "bar", "bar": "foo"}, 3: {"foo": "bar", "bar": "test"}}
 
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             medrecord.edge[1:]
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             medrecord.edge[:1]
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             medrecord.edge[::1]
 
-        self.assertEqual(
-            {
-                0: "bar",
-                1: "bar",
-                2: "bar",
-                3: "bar",
-            },
-            medrecord.edge[:, "foo"],
-        )
+        assert medrecord.edge[:, "foo"] == {0: "bar", 1: "bar", 2: "bar", 3: "bar"}
 
         # Accessing a non-existing key should fail
-        with self.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             medrecord.edge[:, "test"]
 
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             medrecord.edge[1:, "foo"]
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             medrecord.edge[:1, "foo"]
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             medrecord.edge[::1, "foo"]
 
-        self.assertEqual(
-            {
-                0: {"foo": "bar", "bar": "foo"},
-                1: {"foo": "bar", "bar": "foo"},
-                2: {"foo": "bar", "bar": "foo"},
-                3: {"foo": "bar", "bar": "test"},
-            },
-            medrecord.edge[:, ["foo", "bar"]],
-        )
+        assert medrecord.edge[:, ["foo", "bar"]] == {0: {"foo": "bar", "bar": "foo"}, 1: {"foo": "bar", "bar": "foo"}, 2: {"foo": "bar", "bar": "foo"}, 3: {"foo": "bar", "bar": "test"}}
 
         # Accessing a non-existing key should fail
-        with self.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             medrecord.edge[:, ["foo", "test"]]
 
         # Accessing a key that doesn't exist in all edges should fail
-        with self.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             medrecord.edge[:, ["foo", "lorem"]]
 
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             medrecord.edge[1:, ["foo", "bar"]]
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             medrecord.edge[:1, ["foo", "bar"]]
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             medrecord.edge[::1, ["foo", "bar"]]
 
-        self.assertEqual(
-            {
-                0: {"foo": "bar", "bar": "foo", "lorem": "ipsum"},
-                1: {"foo": "bar", "bar": "foo"},
-                2: {"foo": "bar", "bar": "foo"},
-                3: {"foo": "bar", "bar": "test"},
-            },
-            medrecord.edge[:, :],
-        )
+        assert medrecord.edge[:, :] == {0: {"foo": "bar", "bar": "foo", "lorem": "ipsum"}, 1: {"foo": "bar", "bar": "foo"}, 2: {"foo": "bar", "bar": "foo"}, 3: {"foo": "bar", "bar": "test"}}
 
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             medrecord.edge[1:, :]
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             medrecord.edge[:1, :]
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             medrecord.edge[::1, :]
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             medrecord.edge[:, 1:]
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             medrecord.edge[:, :1]
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             medrecord.edge[:, ::1]
 
-    def test_edge_setitem(self):
+    def test_edge_setitem(self) -> None:
         # Updating existing attributes
 
         medrecord = create_medrecord()
         medrecord.edge[0] = {"foo": "bar", "bar": "test"}
-        self.assertEqual(
-            {
-                0: {"foo": "bar", "bar": "test"},
-                1: {"foo": "bar", "bar": "foo"},
-                2: {"foo": "bar", "bar": "foo"},
-                3: {"foo": "bar", "bar": "test"},
-            },
-            medrecord.edge[:],
-        )
+        assert medrecord.edge[:] == {0: {"foo": "bar", "bar": "test"}, 1: {"foo": "bar", "bar": "foo"}, 2: {"foo": "bar", "bar": "foo"}, 3: {"foo": "bar", "bar": "test"}}
 
         medrecord = create_medrecord()
         # Updating a non-existing edge should fail
-        with self.assertRaises(IndexError):
+        with pytest.raises(IndexError):
             medrecord.edge[50] = {"foo": "bar", "test": "test"}
 
         medrecord = create_medrecord()
         medrecord.edge[0, "foo"] = "test"
-        self.assertEqual(
-            {
-                0: {"foo": "test", "bar": "foo", "lorem": "ipsum"},
-                1: {"foo": "bar", "bar": "foo"},
-                2: {"foo": "bar", "bar": "foo"},
-                3: {"foo": "bar", "bar": "test"},
-            },
-            medrecord.edge[:],
-        )
+        assert medrecord.edge[:] == {0: {"foo": "test", "bar": "foo", "lorem": "ipsum"}, 1: {"foo": "bar", "bar": "foo"}, 2: {"foo": "bar", "bar": "foo"}, 3: {"foo": "bar", "bar": "test"}}
 
         medrecord = create_medrecord()
         medrecord.edge[0, ["foo", "bar"]] = "test"
-        self.assertEqual(
-            {
-                0: {"foo": "test", "bar": "test", "lorem": "ipsum"},
-                1: {"foo": "bar", "bar": "foo"},
-                2: {"foo": "bar", "bar": "foo"},
-                3: {"foo": "bar", "bar": "test"},
-            },
-            medrecord.edge[:],
-        )
+        assert medrecord.edge[:] == {0: {"foo": "test", "bar": "test", "lorem": "ipsum"}, 1: {"foo": "bar", "bar": "foo"}, 2: {"foo": "bar", "bar": "foo"}, 3: {"foo": "bar", "bar": "test"}}
 
         medrecord = create_medrecord()
         medrecord.edge[0, :] = "test"
-        self.assertEqual(
-            {
-                0: {"foo": "test", "bar": "test", "lorem": "test"},
-                1: {"foo": "bar", "bar": "foo"},
-                2: {"foo": "bar", "bar": "foo"},
-                3: {"foo": "bar", "bar": "test"},
-            },
-            medrecord.edge[:],
-        )
+        assert medrecord.edge[:] == {0: {"foo": "test", "bar": "test", "lorem": "test"}, 1: {"foo": "bar", "bar": "foo"}, 2: {"foo": "bar", "bar": "foo"}, 3: {"foo": "bar", "bar": "test"}}
 
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             medrecord.edge[0, 1:] = "test"
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             medrecord.edge[0, :1] = "test"
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             medrecord.edge[0, ::1] = "test"
 
         medrecord = create_medrecord()
         medrecord.edge[[0, 1], "foo"] = "test"
-        self.assertEqual(
-            {
-                0: {"foo": "test", "bar": "foo", "lorem": "ipsum"},
-                1: {"foo": "test", "bar": "foo"},
-                2: {"foo": "bar", "bar": "foo"},
-                3: {"foo": "bar", "bar": "test"},
-            },
-            medrecord.edge[:],
-        )
+        assert medrecord.edge[:] == {0: {"foo": "test", "bar": "foo", "lorem": "ipsum"}, 1: {"foo": "test", "bar": "foo"}, 2: {"foo": "bar", "bar": "foo"}, 3: {"foo": "bar", "bar": "test"}}
 
         medrecord = create_medrecord()
         medrecord.edge[[0, 1], ["foo", "bar"]] = "test"
-        self.assertEqual(
-            {
-                0: {"foo": "test", "bar": "test", "lorem": "ipsum"},
-                1: {"foo": "test", "bar": "test"},
-                2: {"foo": "bar", "bar": "foo"},
-                3: {"foo": "bar", "bar": "test"},
-            },
-            medrecord.edge[:],
-        )
+        assert medrecord.edge[:] == {0: {"foo": "test", "bar": "test", "lorem": "ipsum"}, 1: {"foo": "test", "bar": "test"}, 2: {"foo": "bar", "bar": "foo"}, 3: {"foo": "bar", "bar": "test"}}
 
         medrecord = create_medrecord()
         medrecord.edge[[0, 1], :] = "test"
-        self.assertEqual(
-            {
-                0: {"foo": "test", "bar": "test", "lorem": "test"},
-                1: {"foo": "test", "bar": "test"},
-                2: {"foo": "bar", "bar": "foo"},
-                3: {"foo": "bar", "bar": "test"},
-            },
-            medrecord.edge[:],
-        )
+        assert medrecord.edge[:] == {0: {"foo": "test", "bar": "test", "lorem": "test"}, 1: {"foo": "test", "bar": "test"}, 2: {"foo": "bar", "bar": "foo"}, 3: {"foo": "bar", "bar": "test"}}
 
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             medrecord.edge[[0, 1], 1:] = "test"
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             medrecord.edge[[0, 1], :1] = "test"
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             medrecord.edge[[0, 1], ::1] = "test"
 
         medrecord = create_medrecord()
         medrecord.edge[edge().index() >= 2] = {"foo": "bar", "bar": "test"}
-        self.assertEqual(
-            {
-                0: {"foo": "bar", "bar": "foo", "lorem": "ipsum"},
-                1: {"foo": "bar", "bar": "foo"},
-                2: {"foo": "bar", "bar": "test"},
-                3: {"foo": "bar", "bar": "test"},
-            },
-            medrecord.edge[:],
-        )
+        assert medrecord.edge[:] == {0: {"foo": "bar", "bar": "foo", "lorem": "ipsum"}, 1: {"foo": "bar", "bar": "foo"}, 2: {"foo": "bar", "bar": "test"}, 3: {"foo": "bar", "bar": "test"}}
 
         medrecord = create_medrecord()
         # Empty query should not fail
@@ -1307,577 +723,285 @@ class TestMedRecord(unittest.TestCase):
 
         medrecord = create_medrecord()
         medrecord.edge[edge().index() >= 2, "foo"] = "test"
-        self.assertEqual(
-            {
-                0: {"foo": "bar", "bar": "foo", "lorem": "ipsum"},
-                1: {"foo": "bar", "bar": "foo"},
-                2: {"foo": "test", "bar": "foo"},
-                3: {"foo": "test", "bar": "test"},
-            },
-            medrecord.edge[:],
-        )
+        assert medrecord.edge[:] == {0: {"foo": "bar", "bar": "foo", "lorem": "ipsum"}, 1: {"foo": "bar", "bar": "foo"}, 2: {"foo": "test", "bar": "foo"}, 3: {"foo": "test", "bar": "test"}}
 
         medrecord = create_medrecord()
         medrecord.edge[edge().index() >= 2, ["foo", "bar"]] = "test"
-        self.assertEqual(
-            {
-                0: {"foo": "bar", "bar": "foo", "lorem": "ipsum"},
-                1: {"foo": "bar", "bar": "foo"},
-                2: {"foo": "test", "bar": "test"},
-                3: {"foo": "test", "bar": "test"},
-            },
-            medrecord.edge[:],
-        )
+        assert medrecord.edge[:] == {0: {"foo": "bar", "bar": "foo", "lorem": "ipsum"}, 1: {"foo": "bar", "bar": "foo"}, 2: {"foo": "test", "bar": "test"}, 3: {"foo": "test", "bar": "test"}}
 
         medrecord = create_medrecord()
         medrecord.edge[edge().index() >= 2, :] = "test"
-        self.assertEqual(
-            {
-                0: {"foo": "bar", "bar": "foo", "lorem": "ipsum"},
-                1: {"foo": "bar", "bar": "foo"},
-                2: {"foo": "test", "bar": "test"},
-                3: {"foo": "test", "bar": "test"},
-            },
-            medrecord.edge[:],
-        )
+        assert medrecord.edge[:] == {0: {"foo": "bar", "bar": "foo", "lorem": "ipsum"}, 1: {"foo": "bar", "bar": "foo"}, 2: {"foo": "test", "bar": "test"}, 3: {"foo": "test", "bar": "test"}}
 
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             medrecord.edge[edge().index() >= 2, 1:] = "test"
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             medrecord.edge[edge().index() >= 2, :1] = "test"
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             medrecord.edge[edge().index() >= 2, ::1] = "test"
 
         medrecord = create_medrecord()
         medrecord.edge[:, "foo"] = "test"
-        self.assertEqual(
-            {
-                0: {"foo": "test", "bar": "foo", "lorem": "ipsum"},
-                1: {"foo": "test", "bar": "foo"},
-                2: {"foo": "test", "bar": "foo"},
-                3: {"foo": "test", "bar": "test"},
-            },
-            medrecord.edge[:],
-        )
+        assert medrecord.edge[:] == {0: {"foo": "test", "bar": "foo", "lorem": "ipsum"}, 1: {"foo": "test", "bar": "foo"}, 2: {"foo": "test", "bar": "foo"}, 3: {"foo": "test", "bar": "test"}}
 
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             medrecord.edge[1:, "foo"] = "test"
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             medrecord.edge[:1, "foo"] = "test"
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             medrecord.edge[::1, "foo"] = "test"
 
         medrecord = create_medrecord()
         medrecord.edge[:, ["foo", "bar"]] = "test"
-        self.assertEqual(
-            {
-                0: {"foo": "test", "bar": "test", "lorem": "ipsum"},
-                1: {"foo": "test", "bar": "test"},
-                2: {"foo": "test", "bar": "test"},
-                3: {"foo": "test", "bar": "test"},
-            },
-            medrecord.edge[:],
-        )
+        assert medrecord.edge[:] == {0: {"foo": "test", "bar": "test", "lorem": "ipsum"}, 1: {"foo": "test", "bar": "test"}, 2: {"foo": "test", "bar": "test"}, 3: {"foo": "test", "bar": "test"}}
 
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             medrecord.edge[1:, ["foo", "bar"]] = "test"
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             medrecord.edge[:1, ["foo", "bar"]] = "test"
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             medrecord.edge[::1, ["foo", "bar"]] = "test"
 
         medrecord = create_medrecord()
         medrecord.edge[:, :] = "test"
-        self.assertEqual(
-            {
-                0: {"foo": "test", "bar": "test", "lorem": "test"},
-                1: {"foo": "test", "bar": "test"},
-                2: {"foo": "test", "bar": "test"},
-                3: {"foo": "test", "bar": "test"},
-            },
-            medrecord.edge[:],
-        )
+        assert medrecord.edge[:] == {0: {"foo": "test", "bar": "test", "lorem": "test"}, 1: {"foo": "test", "bar": "test"}, 2: {"foo": "test", "bar": "test"}, 3: {"foo": "test", "bar": "test"}}
 
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             medrecord.edge[1:, :] = "test"
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             medrecord.edge[:1, :] = "test"
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             medrecord.edge[::1, :] = "test"
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             medrecord.edge[:, 1:] = "test"
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             medrecord.edge[:, :1] = "test"
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             medrecord.edge[:, ::1] = "test"
 
         # Adding new attributes
 
         medrecord = create_medrecord()
         medrecord.edge[0, "test"] = "test"
-        self.assertEqual(
-            {
-                0: {"foo": "bar", "bar": "foo", "lorem": "ipsum", "test": "test"},
-                1: {"foo": "bar", "bar": "foo"},
-                2: {"foo": "bar", "bar": "foo"},
-                3: {"foo": "bar", "bar": "test"},
-            },
-            medrecord.edge[:],
-        )
+        assert medrecord.edge[:] == {0: {"foo": "bar", "bar": "foo", "lorem": "ipsum", "test": "test"}, 1: {"foo": "bar", "bar": "foo"}, 2: {"foo": "bar", "bar": "foo"}, 3: {"foo": "bar", "bar": "test"}}
 
         medrecord = create_medrecord()
         medrecord.edge[0, ["test", "test2"]] = "test"
-        self.assertEqual(
-            {
-                0: {
-                    "foo": "bar",
-                    "bar": "foo",
-                    "lorem": "ipsum",
-                    "test": "test",
-                    "test2": "test",
-                },
-                1: {"foo": "bar", "bar": "foo"},
-                2: {"foo": "bar", "bar": "foo"},
-                3: {"foo": "bar", "bar": "test"},
-            },
-            medrecord.edge[:],
-        )
+        assert medrecord.edge[:] == {0: {"foo": "bar", "bar": "foo", "lorem": "ipsum", "test": "test", "test2": "test"}, 1: {"foo": "bar", "bar": "foo"}, 2: {"foo": "bar", "bar": "foo"}, 3: {"foo": "bar", "bar": "test"}}
 
         medrecord = create_medrecord()
         medrecord.edge[[0, 1], "test"] = "test"
-        self.assertEqual(
-            {
-                0: {"foo": "bar", "bar": "foo", "lorem": "ipsum", "test": "test"},
-                1: {"foo": "bar", "bar": "foo", "test": "test"},
-                2: {"foo": "bar", "bar": "foo"},
-                3: {"foo": "bar", "bar": "test"},
-            },
-            medrecord.edge[:],
-        )
+        assert medrecord.edge[:] == {0: {"foo": "bar", "bar": "foo", "lorem": "ipsum", "test": "test"}, 1: {"foo": "bar", "bar": "foo", "test": "test"}, 2: {"foo": "bar", "bar": "foo"}, 3: {"foo": "bar", "bar": "test"}}
 
         medrecord = create_medrecord()
         medrecord.edge[[0, 1], ["test", "test2"]] = "test"
-        self.assertEqual(
-            {
-                0: {
-                    "foo": "bar",
-                    "bar": "foo",
-                    "lorem": "ipsum",
-                    "test": "test",
-                    "test2": "test",
-                },
-                1: {"foo": "bar", "bar": "foo", "test": "test", "test2": "test"},
-                2: {"foo": "bar", "bar": "foo"},
-                3: {"foo": "bar", "bar": "test"},
-            },
-            medrecord.edge[:],
-        )
+        assert medrecord.edge[:] == {0: {"foo": "bar", "bar": "foo", "lorem": "ipsum", "test": "test", "test2": "test"}, 1: {"foo": "bar", "bar": "foo", "test": "test", "test2": "test"}, 2: {"foo": "bar", "bar": "foo"}, 3: {"foo": "bar", "bar": "test"}}
 
         medrecord = create_medrecord()
         medrecord.edge[edge().index() >= 2, "test"] = "test"
-        self.assertEqual(
-            {
-                0: {"foo": "bar", "bar": "foo", "lorem": "ipsum"},
-                1: {"foo": "bar", "bar": "foo"},
-                2: {"foo": "bar", "bar": "foo", "test": "test"},
-                3: {"foo": "bar", "bar": "test", "test": "test"},
-            },
-            medrecord.edge[:],
-        )
+        assert medrecord.edge[:] == {0: {"foo": "bar", "bar": "foo", "lorem": "ipsum"}, 1: {"foo": "bar", "bar": "foo"}, 2: {"foo": "bar", "bar": "foo", "test": "test"}, 3: {"foo": "bar", "bar": "test", "test": "test"}}
 
         medrecord = create_medrecord()
         medrecord.edge[edge().index() >= 2, ["test", "test2"]] = "test"
-        self.assertEqual(
-            {
-                0: {"foo": "bar", "bar": "foo", "lorem": "ipsum"},
-                1: {"foo": "bar", "bar": "foo"},
-                2: {
-                    "foo": "bar",
-                    "bar": "foo",
-                    "test": "test",
-                    "test2": "test",
-                },
-                3: {
-                    "foo": "bar",
-                    "bar": "test",
-                    "test": "test",
-                    "test2": "test",
-                },
-            },
-            medrecord.edge[:],
-        )
+        assert medrecord.edge[:] == {0: {"foo": "bar", "bar": "foo", "lorem": "ipsum"}, 1: {"foo": "bar", "bar": "foo"}, 2: {"foo": "bar", "bar": "foo", "test": "test", "test2": "test"}, 3: {"foo": "bar", "bar": "test", "test": "test", "test2": "test"}}
 
         medrecord = create_medrecord()
         medrecord.edge[:, "test"] = "test"
-        self.assertEqual(
-            {
-                0: {"foo": "bar", "bar": "foo", "lorem": "ipsum", "test": "test"},
-                1: {"foo": "bar", "bar": "foo", "test": "test"},
-                2: {"foo": "bar", "bar": "foo", "test": "test"},
-                3: {"foo": "bar", "bar": "test", "test": "test"},
-            },
-            medrecord.edge[:],
-        )
+        assert medrecord.edge[:] == {0: {"foo": "bar", "bar": "foo", "lorem": "ipsum", "test": "test"}, 1: {"foo": "bar", "bar": "foo", "test": "test"}, 2: {"foo": "bar", "bar": "foo", "test": "test"}, 3: {"foo": "bar", "bar": "test", "test": "test"}}
 
         medrecord = create_medrecord()
         medrecord.edge[:, ["test", "test2"]] = "test"
-        self.assertEqual(
-            {
-                0: {
-                    "foo": "bar",
-                    "bar": "foo",
-                    "lorem": "ipsum",
-                    "test": "test",
-                    "test2": "test",
-                },
-                1: {"foo": "bar", "bar": "foo", "test": "test", "test2": "test"},
-                2: {"foo": "bar", "bar": "foo", "test": "test", "test2": "test"},
-                3: {"foo": "bar", "bar": "test", "test": "test", "test2": "test"},
-            },
-            medrecord.edge[:],
-        )
+        assert medrecord.edge[:] == {0: {"foo": "bar", "bar": "foo", "lorem": "ipsum", "test": "test", "test2": "test"}, 1: {"foo": "bar", "bar": "foo", "test": "test", "test2": "test"}, 2: {"foo": "bar", "bar": "foo", "test": "test", "test2": "test"}, 3: {"foo": "bar", "bar": "test", "test": "test", "test2": "test"}}
 
         # Adding and updating attributes
 
         medrecord = create_medrecord()
         medrecord.edge[[0, 1], "lorem"] = "test"
-        self.assertEqual(
-            {
-                0: {"foo": "bar", "bar": "foo", "lorem": "test"},
-                1: {"foo": "bar", "bar": "foo", "lorem": "test"},
-                2: {"foo": "bar", "bar": "foo"},
-                3: {"foo": "bar", "bar": "test"},
-            },
-            medrecord.edge[:],
-        )
+        assert medrecord.edge[:] == {0: {"foo": "bar", "bar": "foo", "lorem": "test"}, 1: {"foo": "bar", "bar": "foo", "lorem": "test"}, 2: {"foo": "bar", "bar": "foo"}, 3: {"foo": "bar", "bar": "test"}}
 
         medrecord = create_medrecord()
         medrecord.edge[[0, 1], ["lorem", "test"]] = "test"
-        self.assertEqual(
-            {
-                0: {"foo": "bar", "bar": "foo", "lorem": "test", "test": "test"},
-                1: {"foo": "bar", "bar": "foo", "lorem": "test", "test": "test"},
-                2: {"foo": "bar", "bar": "foo"},
-                3: {"foo": "bar", "bar": "test"},
-            },
-            medrecord.edge[:],
-        )
+        assert medrecord.edge[:] == {0: {"foo": "bar", "bar": "foo", "lorem": "test", "test": "test"}, 1: {"foo": "bar", "bar": "foo", "lorem": "test", "test": "test"}, 2: {"foo": "bar", "bar": "foo"}, 3: {"foo": "bar", "bar": "test"}}
 
         medrecord = create_medrecord()
         medrecord.edge[edge().index() < 2, "lorem"] = "test"
-        self.assertEqual(
-            {
-                0: {"foo": "bar", "bar": "foo", "lorem": "test"},
-                1: {"foo": "bar", "bar": "foo", "lorem": "test"},
-                2: {"foo": "bar", "bar": "foo"},
-                3: {"foo": "bar", "bar": "test"},
-            },
-            medrecord.edge[:],
-        )
+        assert medrecord.edge[:] == {0: {"foo": "bar", "bar": "foo", "lorem": "test"}, 1: {"foo": "bar", "bar": "foo", "lorem": "test"}, 2: {"foo": "bar", "bar": "foo"}, 3: {"foo": "bar", "bar": "test"}}
 
         medrecord = create_medrecord()
         medrecord.edge[edge().index() < 2, ["lorem", "test"]] = "test"
-        self.assertEqual(
-            {
-                0: {"foo": "bar", "bar": "foo", "lorem": "test", "test": "test"},
-                1: {"foo": "bar", "bar": "foo", "lorem": "test", "test": "test"},
-                2: {"foo": "bar", "bar": "foo"},
-                3: {"foo": "bar", "bar": "test"},
-            },
-            medrecord.edge[:],
-        )
+        assert medrecord.edge[:] == {0: {"foo": "bar", "bar": "foo", "lorem": "test", "test": "test"}, 1: {"foo": "bar", "bar": "foo", "lorem": "test", "test": "test"}, 2: {"foo": "bar", "bar": "foo"}, 3: {"foo": "bar", "bar": "test"}}
 
         medrecord = create_medrecord()
         medrecord.edge[:, "lorem"] = "test"
-        self.assertEqual(
-            {
-                0: {"foo": "bar", "bar": "foo", "lorem": "test"},
-                1: {"foo": "bar", "bar": "foo", "lorem": "test"},
-                2: {"foo": "bar", "bar": "foo", "lorem": "test"},
-                3: {"foo": "bar", "bar": "test", "lorem": "test"},
-            },
-            medrecord.edge[:],
-        )
+        assert medrecord.edge[:] == {0: {"foo": "bar", "bar": "foo", "lorem": "test"}, 1: {"foo": "bar", "bar": "foo", "lorem": "test"}, 2: {"foo": "bar", "bar": "foo", "lorem": "test"}, 3: {"foo": "bar", "bar": "test", "lorem": "test"}}
 
         medrecord = create_medrecord()
         medrecord.edge[:, ["lorem", "test"]] = "test"
-        self.assertEqual(
-            {
-                0: {"foo": "bar", "bar": "foo", "lorem": "test", "test": "test"},
-                1: {"foo": "bar", "bar": "foo", "lorem": "test", "test": "test"},
-                2: {"foo": "bar", "bar": "foo", "lorem": "test", "test": "test"},
-                3: {"foo": "bar", "bar": "test", "lorem": "test", "test": "test"},
-            },
-            medrecord.edge[:],
-        )
+        assert medrecord.edge[:] == {0: {"foo": "bar", "bar": "foo", "lorem": "test", "test": "test"}, 1: {"foo": "bar", "bar": "foo", "lorem": "test", "test": "test"}, 2: {"foo": "bar", "bar": "foo", "lorem": "test", "test": "test"}, 3: {"foo": "bar", "bar": "test", "lorem": "test", "test": "test"}}
 
-    def test_edge_delitem(self):
+    def test_edge_delitem(self) -> None:
         medrecord = create_medrecord()
         del medrecord.edge[0, "foo"]
-        self.assertEqual(
-            {
-                0: {"bar": "foo", "lorem": "ipsum"},
-                1: {"foo": "bar", "bar": "foo"},
-                2: {"foo": "bar", "bar": "foo"},
-                3: {"foo": "bar", "bar": "test"},
-            },
-            medrecord.edge[:],
-        )
+        assert medrecord.edge[:] == {0: {"bar": "foo", "lorem": "ipsum"}, 1: {"foo": "bar", "bar": "foo"}, 2: {"foo": "bar", "bar": "foo"}, 3: {"foo": "bar", "bar": "test"}}
 
         medrecord = create_medrecord()
         # Removing from a non-existing edge should fail
-        with self.assertRaises(IndexError):
+        with pytest.raises(IndexError):
             del medrecord.edge[50, "foo"]
 
         medrecord = create_medrecord()
         # Removing a non-existing key should fail
-        with self.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             del medrecord.edge[0, "test"]
 
         medrecord = create_medrecord()
         del medrecord.edge[0, ["foo", "bar"]]
-        self.assertEqual(
-            {
-                0: {"lorem": "ipsum"},
-                1: {"foo": "bar", "bar": "foo"},
-                2: {"foo": "bar", "bar": "foo"},
-                3: {"foo": "bar", "bar": "test"},
-            },
-            medrecord.edge[:],
-        )
+        assert medrecord.edge[:] == {0: {"lorem": "ipsum"}, 1: {"foo": "bar", "bar": "foo"}, 2: {"foo": "bar", "bar": "foo"}, 3: {"foo": "bar", "bar": "test"}}
 
         medrecord = create_medrecord()
         # Removing a non-existing key should fail
-        with self.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             del medrecord.edge[0, ["foo", "test"]]
 
         medrecord = create_medrecord()
         del medrecord.edge[0, :]
-        self.assertEqual(
-            {
-                0: {},
-                1: {"foo": "bar", "bar": "foo"},
-                2: {"foo": "bar", "bar": "foo"},
-                3: {"foo": "bar", "bar": "test"},
-            },
-            medrecord.edge[:],
-        )
+        assert medrecord.edge[:] == {0: {}, 1: {"foo": "bar", "bar": "foo"}, 2: {"foo": "bar", "bar": "foo"}, 3: {"foo": "bar", "bar": "test"}}
 
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             del medrecord.edge[0, 1:]
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             del medrecord.edge[0, :1]
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             del medrecord.edge[0, ::1]
 
         medrecord = create_medrecord()
         del medrecord.edge[[0, 1], "foo"]
-        self.assertEqual(
-            {
-                0: {"bar": "foo", "lorem": "ipsum"},
-                1: {"bar": "foo"},
-                2: {"foo": "bar", "bar": "foo"},
-                3: {"foo": "bar", "bar": "test"},
-            },
-            medrecord.edge[:],
-        )
+        assert medrecord.edge[:] == {0: {"bar": "foo", "lorem": "ipsum"}, 1: {"bar": "foo"}, 2: {"foo": "bar", "bar": "foo"}, 3: {"foo": "bar", "bar": "test"}}
 
         medrecord = create_medrecord()
         # Removing from a non-existing edge should fail
-        with self.assertRaises(IndexError):
+        with pytest.raises(IndexError):
             del medrecord.edge[[0, 50], "foo"]
 
         medrecord = create_medrecord()
         # Removing a non-existing key should fail
-        with self.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             del medrecord.edge[[0, 1], "test"]
 
         medrecord = create_medrecord()
         del medrecord.edge[[0, 1], ["foo", "bar"]]
-        self.assertEqual(
-            {
-                0: {"lorem": "ipsum"},
-                1: {},
-                2: {"foo": "bar", "bar": "foo"},
-                3: {"foo": "bar", "bar": "test"},
-            },
-            medrecord.edge[:],
-        )
+        assert medrecord.edge[:] == {0: {"lorem": "ipsum"}, 1: {}, 2: {"foo": "bar", "bar": "foo"}, 3: {"foo": "bar", "bar": "test"}}
 
         medrecord = create_medrecord()
         # Removing a non-existing key should fail
-        with self.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             del medrecord.edge[[0, 1], ["foo", "test"]]
 
         medrecord = create_medrecord()
         # Removing a key that doesn't exist in all edges should fail
-        with self.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             del medrecord.edge[[0, 1], ["foo", "lorem"]]
 
         medrecord = create_medrecord()
         del medrecord.edge[[0, 1], :]
-        self.assertEqual(
-            {
-                0: {},
-                1: {},
-                2: {"foo": "bar", "bar": "foo"},
-                3: {"foo": "bar", "bar": "test"},
-            },
-            medrecord.edge[:],
-        )
+        assert medrecord.edge[:] == {0: {}, 1: {}, 2: {"foo": "bar", "bar": "foo"}, 3: {"foo": "bar", "bar": "test"}}
 
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             del medrecord.edge[[0, 1], 1:]
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             del medrecord.edge[[0, 1], :1]
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             del medrecord.edge[[0, 1], ::1]
 
         medrecord = create_medrecord()
         del medrecord.edge[edge().index() >= 2, "foo"]
-        self.assertEqual(
-            {
-                0: {"foo": "bar", "bar": "foo", "lorem": "ipsum"},
-                1: {"foo": "bar", "bar": "foo"},
-                2: {"bar": "foo"},
-                3: {"bar": "test"},
-            },
-            medrecord.edge[:],
-        )
+        assert medrecord.edge[:] == {0: {"foo": "bar", "bar": "foo", "lorem": "ipsum"}, 1: {"foo": "bar", "bar": "foo"}, 2: {"bar": "foo"}, 3: {"bar": "test"}}
 
         medrecord = create_medrecord()
         # Empty query should not fail
         del medrecord.edge[edge().index() > 3, "foo"]
-        self.assertEqual(
-            {
-                0: {"foo": "bar", "bar": "foo", "lorem": "ipsum"},
-                1: {"foo": "bar", "bar": "foo"},
-                2: {"foo": "bar", "bar": "foo"},
-                3: {"foo": "bar", "bar": "test"},
-            },
-            medrecord.edge[:],
-        )
+        assert medrecord.edge[:] == {0: {"foo": "bar", "bar": "foo", "lorem": "ipsum"}, 1: {"foo": "bar", "bar": "foo"}, 2: {"foo": "bar", "bar": "foo"}, 3: {"foo": "bar", "bar": "test"}}
 
         medrecord = create_medrecord()
         # Removing a non-existing key should fail
-        with self.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             del medrecord.edge[edge().index() >= 2, "test"]
 
         medrecord = create_medrecord()
         del medrecord.edge[edge().index() >= 2, ["foo", "bar"]]
-        self.assertEqual(
-            {
-                0: {"foo": "bar", "bar": "foo", "lorem": "ipsum"},
-                1: {"foo": "bar", "bar": "foo"},
-                2: {},
-                3: {},
-            },
-            medrecord.edge[:],
-        )
+        assert medrecord.edge[:] == {0: {"foo": "bar", "bar": "foo", "lorem": "ipsum"}, 1: {"foo": "bar", "bar": "foo"}, 2: {}, 3: {}}
 
         medrecord = create_medrecord()
         # Removing a non-existing key should fail
-        with self.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             del medrecord.edge[edge().index() >= 2, ["foo", "test"]]
 
         medrecord = create_medrecord()
         # Removing a key that doesn't exist in all edges should fail
-        with self.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             del medrecord.edge[edge().index() < 2, ["foo", "lorem"]]
 
         medrecord = create_medrecord()
         del medrecord.edge[edge().index() >= 2, :]
-        self.assertEqual(
-            {
-                0: {"foo": "bar", "bar": "foo", "lorem": "ipsum"},
-                1: {"foo": "bar", "bar": "foo"},
-                2: {},
-                3: {},
-            },
-            medrecord.edge[:],
-        )
+        assert medrecord.edge[:] == {0: {"foo": "bar", "bar": "foo", "lorem": "ipsum"}, 1: {"foo": "bar", "bar": "foo"}, 2: {}, 3: {}}
 
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             del medrecord.edge[edge().index() >= 2, 1:]
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             del medrecord.edge[edge().index() >= 2, :1]
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             del medrecord.edge[edge().index() >= 2, ::1]
 
         medrecord = create_medrecord()
         del medrecord.edge[:, "foo"]
-        self.assertEqual(
-            {
-                0: {"bar": "foo", "lorem": "ipsum"},
-                1: {"bar": "foo"},
-                2: {"bar": "foo"},
-                3: {"bar": "test"},
-            },
-            medrecord.edge[:],
-        )
+        assert medrecord.edge[:] == {0: {"bar": "foo", "lorem": "ipsum"}, 1: {"bar": "foo"}, 2: {"bar": "foo"}, 3: {"bar": "test"}}
 
         medrecord = create_medrecord()
         # Removing a non-existing key should fail
-        with self.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             del medrecord.edge[:, "test"]
 
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             del medrecord.edge[1:, "foo"]
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             del medrecord.edge[:1, "foo"]
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             del medrecord.edge[::1, "foo"]
 
         medrecord = create_medrecord()
         del medrecord.edge[:, ["foo", "bar"]]
-        self.assertEqual(
-            {
-                0: {"lorem": "ipsum"},
-                1: {},
-                2: {},
-                3: {},
-            },
-            medrecord.edge[:],
-        )
+        assert medrecord.edge[:] == {0: {"lorem": "ipsum"}, 1: {}, 2: {}, 3: {}}
 
         medrecord = create_medrecord()
         # Removing a non-existing key should fail
-        with self.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             del medrecord.edge[:, ["foo", "test"]]
 
         medrecord = create_medrecord()
         # Removing a key that doesn't exist in all edges should fail
-        with self.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             del medrecord.edge[:, ["foo", "lorem"]]
 
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             del medrecord.edge[1:, ["foo", "bar"]]
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             del medrecord.edge[:1, ["foo", "bar"]]
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             del medrecord.edge[::1, ["foo", "bar"]]
 
         medrecord = create_medrecord()
         del medrecord.edge[:, :]
-        self.assertEqual(
-            {
-                0: {},
-                1: {},
-                2: {},
-                3: {},
-            },
-            medrecord.edge[:],
-        )
+        assert medrecord.edge[:] == {0: {}, 1: {}, 2: {}, 3: {}}
 
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             del medrecord.edge[1:, :]
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             del medrecord.edge[:1, :]
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             del medrecord.edge[::1, :]
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             del medrecord.edge[:, 1:]
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             del medrecord.edge[:, :1]
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             del medrecord.edge[:, ::1]

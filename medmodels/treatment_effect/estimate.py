@@ -2,17 +2,17 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Dict, Literal, Set, Tuple
 
-from medmodels.medrecord.medrecord import MedRecord
-from medmodels.medrecord.types import MedRecordAttribute, NodeIndex
 from medmodels.treatment_effect.continuous_estimators import (
     average_treatment_effect,
     cohens_d,
 )
-from medmodels.treatment_effect.matching.matching import Matching
 from medmodels.treatment_effect.matching.neighbors import NeighborsMatching
 from medmodels.treatment_effect.matching.propensity import PropensityMatching
 
 if TYPE_CHECKING:
+    from medmodels.medrecord.medrecord import MedRecord
+    from medmodels.medrecord.types import MedRecordAttribute, NodeIndex
+    from medmodels.treatment_effect.matching.matching import Matching
     from medmodels.treatment_effect.treatment_effect import TreatmentEffect
 
 
@@ -33,19 +33,28 @@ class Estimate:
                 MedRecord (patients, treatments, outcomes).
         """
         if self._treatment_effect._patients_group not in medrecord.groups:
-            raise ValueError(
+            msg = (
                 f"Patient group {self._treatment_effect._patients_group} not found in "
                 f"the MedRecord. Available groups: {medrecord.groups}"
             )
-        if self._treatment_effect._treatments_group not in medrecord.groups:
             raise ValueError(
+                msg
+            )
+        if self._treatment_effect._treatments_group not in medrecord.groups:
+            msg = (
                 "Treatment group not found in the MedRecord. "
                 f"Available groups: {medrecord.groups}"
             )
-        if self._treatment_effect._outcomes_group not in medrecord.groups:
             raise ValueError(
+                msg
+            )
+        if self._treatment_effect._outcomes_group not in medrecord.groups:
+            msg = (
                 "Outcome group not found in the MedRecord."
                 f"Available groups: {medrecord.groups}"
+            )
+            raise ValueError(
+                msg
             )
 
     def _sort_subjects_in_contingency_table(
@@ -127,11 +136,14 @@ class Estimate:
         )
 
         if len(treatment_false) == 0:
-            raise ValueError("No subjects found in the treatment false group")
+            msg = "No subjects found in the treatment false group"
+            raise ValueError(msg)
         if len(control_true) == 0:
-            raise ValueError("No subjects found in the control true group")
+            msg = "No subjects found in the control true group"
+            raise ValueError(msg)
         if len(control_false) == 0:
-            raise ValueError("No subjects found in the control false group")
+            msg = "No subjects found in the control false group"
+            raise ValueError(msg)
 
         return (
             len(treatment_true),
@@ -160,14 +172,12 @@ class Estimate:
             self._sort_subjects_in_contingency_table(medrecord=medrecord)
         )
 
-        subjects = {
+        return {
             "treatment_true": treatment_true,
             "treatment_false": treatment_false,
             "control_true": control_true,
             "control_false": control_false,
         }
-
-        return subjects
 
     def subject_counts(self, medrecord: MedRecord) -> Dict[str, int]:
         """Returns the subject counts for the treatment and control groups in a Dictionary.
@@ -193,14 +203,12 @@ class Estimate:
             num_control_false,
         ) = self._compute_subject_counts(medrecord=medrecord)
 
-        subject_counts = {
+        return {
             "treatment_true": num_treat_true,
             "treatment_false": num_treat_false,
             "control_true": num_control_true,
             "control_false": num_control_false,
         }
-
-        return subject_counts
 
     def relative_risk(self, medrecord: MedRecord) -> float:
         """Calculates the relative risk (RR) of an event occurring in the treatment group compared to the control group.
@@ -371,7 +379,8 @@ class Estimate:
         """
         ar = self.absolute_risk(medrecord)
         if ar == 0:
-            raise ValueError("Absolute risk is zero, cannot calculate NNT.")
+            msg = "Absolute risk is zero, cannot calculate NNT."
+            raise ValueError(msg)
         return 1 / ar
 
     def hazard_ratio(self, medrecord: MedRecord) -> float:
@@ -404,8 +413,9 @@ class Estimate:
         hazard_control = num_control_true / (num_control_true + num_control_false)
 
         if hazard_control == 0:
+            msg = "Control hazard rate is zero, cannot calculate hazard ratio."
             raise ValueError(
-                "Control hazard rate is zero, cannot calculate hazard ratio."
+                msg
             )
 
         return hazard_treat / hazard_control

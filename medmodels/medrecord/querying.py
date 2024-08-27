@@ -33,7 +33,7 @@ ValueOperand = Union[
 class NodeOperation:
     _node_operation: PyNodeOperation
 
-    def __init__(self, node_operation: PyNodeOperation):
+    def __init__(self, node_operation: PyNodeOperation) -> None:
         self._node_operation = node_operation
 
     def logical_and(self, operation: NodeOperation) -> NodeOperation:

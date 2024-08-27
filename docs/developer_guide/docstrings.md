@@ -29,21 +29,14 @@ The summary line provides a brief description of what the function or class does
 
 Example:
 
-```python
-def example_function(param1, param2):
-    """This function performs an example operation.
-
-    Args:
-        param1 (int): The first parameter.
-        param2 (str): The second parameter.
-
-    Returns:
-        bool: True if successful, False otherwise.
-    """
+```{literalinclude} example_docstrings.py
+:lines: 1-5, 6-38
+:emphasize-lines: 13
 ```
 
-:::{note}
-The summary line cannot contain line breaks. When writing docstrings, the max line length setting can be exceeded without triggering linting errors.
+:::{admonition} No Linebreaks In Summary Line
+:type: note
+The summary line cannot contain line breaks and must not exceed the maximum line length. Ensure that the summary line provides a brief description of the function's purpose. Further explanation and details can be given in the [Description](#description) text block underneath.
 :::
 
 ### Description
@@ -221,25 +214,27 @@ Document parameters under the `Args` section. Each parameter should include its 
 
 Example:
 
-```python
-def example_function(param1, param2, param3):
-    """This function performs an example operation.
-
-    Args:
-        param1 (int): The first parameter.
-        param2 (Union[str, List[str], Dict[str, Any]]): The second parameter, which can be
-            a string, a list of strings, or a dictionary with string keys and any type of
-            values. This parameter is used to demonstrate a long type definition.
-        param3 (str): The third parameter, which has a long description that needs to be
-            broken into multiple lines for better readability. This parameter is used
-            to show how to write long descriptions and how to indent them properly in
-            the docstring.
-    """
+```{literalinclude} example_docstrings.py
+:lines: 1-5, 6-38
+:emphasize-lines: 18-26
 ```
 
-:::{note}
-Type definitions of parameters cannot have a line break. You can not put a line break inside `(Union[str, List[str], Dict[str, Any]])`. When writing docstrings, the max line length setting can be exceeded without triggering linting errors.
+:::{admonition} No Linebreak in Type Definitions
+:type: note
+
+When writing type definitions in argument docstrings, avoid placing line breaks inside the type annotations. For instance, complex types like `(Union[str, List[str], Dict[str, Any]])` should appear on a single line without splitting across lines. This ensures the type definition remains clear and avoids parsing issues.
+
+If a type definition exceeds the maximum line length limit, deactivate the line length rule for that doctstring using [`# noqa: E501`](https://docs.astral.sh/ruff/rules/line-too-long/#error-suppression) after the closing `"""`. This keeps the type annotation intact while preventing the linter from flagging the long line as an error.
 :::
+
+
+:::{admonition} No Boolean Argument Types
+:type: note
+Avoid using booleans as function arguments due to the "boolean trap." Booleans reduce code clarity, as `True` or `False` doesn't explain meaning. They also limit future flexibility — if more than two options are needed, changing the argument type can cause breaking changes. Instead, use an enum or a more descriptive type for better clarity and flexibility.
+
+For more information, you can refer to [Adam Johnson's article](https://adamj.eu/tech/2021/07/10/python-type-hints-how-to-avoid-the-boolean-trap/) which discusses this in detail and provides examples of how to avoid the boolean trap.
+:::
+
 
 ### Return Types
 
@@ -255,6 +250,12 @@ def example_function(param1, param2):
         bool: True if successful, False otherwise.
     """
 ```
+
+:::{admonition} Don't Document `None` Return Value
+:type: note
+Don't add a `Returns` section when the function has no return value (`def fun() -> None`)
+:::
+
 
 ### Examples
 

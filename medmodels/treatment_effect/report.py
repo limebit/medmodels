@@ -2,10 +2,9 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Literal, TypedDict
 
-from medmodels.medrecord.medrecord import MedRecord
-from medmodels.medrecord.types import MedRecordAttribute
-
 if TYPE_CHECKING:
+    from medmodels.medrecord.medrecord import MedRecord
+    from medmodels.medrecord.types import MedRecordAttribute
     from medmodels.treatment_effect.treatment_effect import TreatmentEffect
 
 

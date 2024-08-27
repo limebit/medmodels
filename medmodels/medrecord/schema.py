@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from enum import Enum, auto
-from typing import Dict, List, Optional, Tuple, Union, overload
+from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, Union, overload
 
 from medmodels._medmodels import (
     PyAttributeDataType,
@@ -10,7 +10,9 @@ from medmodels._medmodels import (
     PySchema,
 )
 from medmodels.medrecord.datatype import DataType
-from medmodels.medrecord.types import Group, MedRecordAttribute
+
+if TYPE_CHECKING:
+    from medmodels.medrecord.types import Group, MedRecordAttribute
 
 
 class AttributeType(Enum):
@@ -30,10 +32,11 @@ class AttributeType(Enum):
         """
         if py_attribute_type == PyAttributeType.Categorical:
             return AttributeType.Categorical
-        elif py_attribute_type == PyAttributeType.Continuous:
+        if py_attribute_type == PyAttributeType.Continuous:
             return AttributeType.Continuous
         if py_attribute_type == PyAttributeType.Temporal:
             return AttributeType.Temporal
+        return None
 
     def _into_pyattributetype(self) -> PyAttributeType:
         """Converts an AttributeType to a PyAttributeType.
@@ -47,7 +50,8 @@ class AttributeType(Enum):
             return PyAttributeType.Continuous
         if self == AttributeType.Temporal:
             return PyAttributeType.Temporal
-        raise NotImplementedError("Should never be reached")
+        msg = "Should never be reached"
+        raise NotImplementedError(msg)
 
     def __repr__(self) -> str:
         """Returns a string representation of the AttributeType instance.
@@ -164,7 +168,7 @@ class AttributesSchema:
         Returns:
             bool: True if the objects are equal, False otherwise.
         """
-        if not (isinstance(value, AttributesSchema) or isinstance(value, dict)):
+        if not (isinstance(value, (AttributesSchema, dict))):
             return False
 
         attribute_schema = (
@@ -174,7 +178,7 @@ class AttributesSchema:
         if not attribute_schema.keys() == self._attributes_schema.keys():
             return False
 
-        for key in self._attributes_schema.keys():
+        for key in self._attributes_schema:
             if (
                 not isinstance(attribute_schema[key], tuple)
                 or not isinstance(
@@ -248,12 +252,8 @@ class GroupSchema:
     def __init__(
         self,
         *,
-        nodes: Dict[
-            MedRecordAttribute, Union[DataType, Tuple[DataType, AttributeType]]
-        ] = {},
-        edges: Dict[
-            MedRecordAttribute, Union[DataType, Tuple[DataType, AttributeType]]
-        ] = {},
+        nodes: Optional[Dict[MedRecordAttribute, Union[DataType, Tuple[DataType, AttributeType]]]] = None,
+        edges: Optional[Dict[MedRecordAttribute, Union[DataType, Tuple[DataType, AttributeType]]]] = None,
         strict: bool = False,
     ) -> None:
         """Initializes a new instance of GroupSchema.
@@ -271,6 +271,10 @@ class GroupSchema:
         Returns:
             None
         """
+        if edges is None:
+            edges = {}
+        if nodes is None:
+            nodes = {}
 
         def _convert_input(
             input: Union[DataType, Tuple[DataType, AttributeType]],
@@ -369,7 +373,7 @@ class Schema:
     def __init__(
         self,
         *,
-        groups: Dict[Group, GroupSchema] = {},
+        groups: Optional[Dict[Group, GroupSchema]] = None,
         default: Optional[GroupSchema] = None,
         strict: bool = False,
     ) -> None:
@@ -386,6 +390,8 @@ class Schema:
         Returns:
             None
         """
+        if groups is None:
+            groups = {}
         if default is not None:
             self._schema = PySchema(
                 groups={x: groups[x]._group_schema for x in groups},

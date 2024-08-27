@@ -11,23 +11,25 @@ to treatment groups using a specified matching class.
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, Literal, Optional, Set, Tuple
+from typing import TYPE_CHECKING, Any, Dict, Literal, Optional, Set, Tuple
 
-from medmodels import MedRecord
 from medmodels.medrecord import node
-from medmodels.medrecord.querying import NodeOperation
-from medmodels.medrecord.types import (
-    Group,
-    MedRecordAttribute,
-    MedRecordAttributeInputList,
-    NodeIndex,
-)
 from medmodels.treatment_effect.builder import TreatmentEffectBuilder
 from medmodels.treatment_effect.estimate import Estimate
-from medmodels.treatment_effect.matching.algorithms.propensity_score import Model
-from medmodels.treatment_effect.matching.matching import MatchingMethod
 from medmodels.treatment_effect.report import Report
 from medmodels.treatment_effect.temporal_analysis import find_node_in_time_window
+
+if TYPE_CHECKING:
+    from medmodels import MedRecord
+    from medmodels.medrecord.querying import NodeOperation
+    from medmodels.medrecord.types import (
+        Group,
+        MedRecordAttribute,
+        MedRecordAttributeInputList,
+        NodeIndex,
+    )
+    from medmodels.treatment_effect.matching.algorithms.propensity_score import Model
+    from medmodels.treatment_effect.matching.matching import MatchingMethod
 
 
 class TreatmentEffect:
@@ -85,7 +87,7 @@ class TreatmentEffect:
         outcome: Group,
         patients_group: Group = "patients",
         time_attribute: MedRecordAttribute = "time",
-        washout_period_days: Dict[str, int] = dict(),
+        washout_period_days: Optional[Dict[str, int]] = None,
         washout_period_reference: Literal["first", "last"] = "first",
         grace_period_days: int = 0,
         grace_period_reference: Literal["first", "last"] = "last",
@@ -94,8 +96,8 @@ class TreatmentEffect:
         outcome_before_treatment_days: Optional[int] = None,
         filter_controls_operation: Optional[NodeOperation] = None,
         matching_method: Optional[MatchingMethod] = None,
-        matching_essential_covariates: MedRecordAttributeInputList = ["gender", "age"],
-        matching_one_hot_covariates: MedRecordAttributeInputList = ["gender"],
+        matching_essential_covariates: MedRecordAttributeInputList = None,
+        matching_one_hot_covariates: MedRecordAttributeInputList = None,
         matching_model: Model = "logit",
         matching_number_of_neighbors: int = 1,
         matching_hyperparam: Optional[Dict[str, Any]] = None,
@@ -145,6 +147,12 @@ class TreatmentEffect:
             matching_hyperparam (Optional[Dict[str, Any]], optional): The
                 hyperparameters for the matching model. Defaults to None.
         """
+        if matching_one_hot_covariates is None:
+            matching_one_hot_covariates = ["gender"]
+        if washout_period_days is None:
+            washout_period_days = {}
+        if matching_essential_covariates is None:
+            matching_essential_covariates = ["gender", "age"]
         treatment_effect._patients_group = patients_group
         treatment_effect._time_attribute = time_attribute
 
@@ -238,8 +246,9 @@ class TreatmentEffect:
                 )
             )
         if not treated_group:
+            msg = "No patients found for the treatment groups in this MedRecord."
             raise ValueError(
-                "No patients found for the treatment groups in this MedRecord."
+                msg
             )
 
         return treated_group
@@ -275,8 +284,9 @@ class TreatmentEffect:
         # Find nodes with the outcomes
         outcomes = medrecord.nodes_in_group(self._outcomes_group)
         if not outcomes:
+            msg = f"No outcomes found in the MedRecord for group {self._outcomes_group}"
             raise ValueError(
-                f"No outcomes found in the MedRecord for group {self._outcomes_group}"
+                msg
             )
 
         for outcome in outcomes:
@@ -389,7 +399,7 @@ class TreatmentEffect:
         medrecord: MedRecord,
         control_group: Set[NodeIndex],
         treated_group: Set[NodeIndex],
-        rejected_nodes: Set[NodeIndex] = set(),
+        rejected_nodes: Optional[Set[NodeIndex]] = None,
         filter_controls_operation: Optional[NodeOperation] = None,
     ) -> Tuple[Set[NodeIndex], Set[NodeIndex]]:
         """Identifies control groups among patients who did not undergo the specified treatments.
@@ -427,6 +437,8 @@ class TreatmentEffect:
                 outcome group.
         """
         # Apply the filter to the control group if specified
+        if rejected_nodes is None:
+            rejected_nodes = set()
         if filter_controls_operation:
             control_group = (
                 set(medrecord.select_nodes(filter_controls_operation)) & control_group
@@ -434,14 +446,16 @@ class TreatmentEffect:
 
         control_group = control_group - treated_group - rejected_nodes
         if len(control_group) == 0:
-            raise ValueError("No patients found for control groups in this MedRecord.")
+            msg = "No patients found for control groups in this MedRecord."
+            raise ValueError(msg)
 
         control_true = set()
         control_false = set()
         outcomes = medrecord.nodes_in_group(self._outcomes_group)
         if not outcomes:
+            msg = f"No outcomes found in the MedRecord for group {self._outcomes_group}"
             raise ValueError(
-                f"No outcomes found in the MedRecord for group {self._outcomes_group}"
+                msg
             )
 
         # Finding the patients that had the outcome in the control group
