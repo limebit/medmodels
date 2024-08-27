@@ -1360,12 +1360,9 @@ class NodeOperand:
             return NodeOperation(
                 self._node_operand.has_neighbor_with(operation._node_operation)
             )
-        else:
-            return NodeOperation(
-                self._node_operand.has_neighbor_undirected_with(
-                    operation._node_operation
-                )
-            )
+        return NodeOperation(
+            self._node_operand.has_neighbor_undirected_with(operation._node_operation)
+        )
 
     def attribute(self, attribute: MedRecordAttribute) -> NodeAttributeOperand:
         """Accesses an NodeAttributeOperand for the specified attribute, allowing for the creation of operations based on node attributes.

@@ -351,7 +351,7 @@ class NodeIndexer:
                     [index_selection], attribute, value
                 )
 
-            return
+            return None
 
         if isinstance(index_selection, list) and isinstance(attribute_selection, list):
             if not is_medrecord_value(value):
@@ -362,7 +362,7 @@ class NodeIndexer:
                     index_selection, attribute, value
                 )
 
-            return
+            return None
 
         if isinstance(index_selection, NodeOperation) and isinstance(
             attribute_selection, list
@@ -375,7 +375,7 @@ class NodeIndexer:
                     self._medrecord.select_nodes(index_selection), attribute, value
                 )
 
-            return
+            return None
 
         if isinstance(index_selection, slice) and isinstance(attribute_selection, list):
             if (
@@ -393,7 +393,7 @@ class NodeIndexer:
                     self._medrecord.nodes, attribute, value
                 )
 
-            return
+            return None
 
         if is_node_index(index_selection) and isinstance(attribute_selection, slice):
             if (
@@ -417,7 +417,7 @@ class NodeIndexer:
                     value,
                 )
 
-            return
+            return None
 
         if isinstance(index_selection, list) and isinstance(attribute_selection, slice):
             if (
@@ -438,7 +438,7 @@ class NodeIndexer:
                         [node], attribute, value
                     )
 
-            return
+            return None
 
         if isinstance(index_selection, NodeOperation) and isinstance(
             attribute_selection, slice
@@ -463,7 +463,7 @@ class NodeIndexer:
                         [node], attribute, value
                     )
 
-            return
+            return None
 
         if isinstance(index_selection, slice) and isinstance(
             attribute_selection, slice
@@ -489,7 +489,7 @@ class NodeIndexer:
                         [node], attribute, value
                     )
 
-            return
+            return None
 
     def __delitem__(
         self,
@@ -543,7 +543,7 @@ class NodeIndexer:
                     [index_selection], attribute
                 )
 
-            return
+            return None
 
         if isinstance(index_selection, list) and isinstance(attribute_selection, list):
             for attribute in attribute_selection:
@@ -551,7 +551,7 @@ class NodeIndexer:
                     index_selection, attribute
                 )
 
-            return
+            return None
 
         if isinstance(index_selection, NodeOperation) and isinstance(
             attribute_selection, list
@@ -561,7 +561,7 @@ class NodeIndexer:
                     self._medrecord.select_nodes(index_selection), attribute
                 )
 
-            return
+            return None
 
         if isinstance(index_selection, slice) and isinstance(attribute_selection, list):
             if (
@@ -576,7 +576,7 @@ class NodeIndexer:
                     self._medrecord.nodes, attribute
                 )
 
-            return
+            return None
 
         if is_node_index(index_selection) and isinstance(attribute_selection, slice):
             if (
@@ -961,7 +961,7 @@ class EdgeIndexer:
                     [index_selection], attribute, value
                 )
 
-            return
+            return None
 
         if isinstance(index_selection, list) and isinstance(attribute_selection, list):
             if not is_medrecord_value(value):
@@ -972,7 +972,7 @@ class EdgeIndexer:
                     index_selection, attribute, value
                 )
 
-            return
+            return None
 
         if isinstance(index_selection, EdgeOperation) and isinstance(
             attribute_selection, list
@@ -985,7 +985,7 @@ class EdgeIndexer:
                     self._medrecord.select_edges(index_selection), attribute, value
                 )
 
-            return
+            return None
 
         if isinstance(index_selection, slice) and isinstance(attribute_selection, list):
             if (
@@ -1003,7 +1003,7 @@ class EdgeIndexer:
                     self._medrecord.edges, attribute, value
                 )
 
-            return
+            return None
 
         if is_edge_index(index_selection) and isinstance(attribute_selection, slice):
             if (
@@ -1025,7 +1025,7 @@ class EdgeIndexer:
                     [index_selection], attribute, value
                 )
 
-            return
+            return None
 
         if isinstance(index_selection, list) and isinstance(attribute_selection, slice):
             if (
@@ -1046,7 +1046,7 @@ class EdgeIndexer:
                         [edge], attribute, value
                     )
 
-            return
+            return None
 
         if isinstance(index_selection, EdgeOperation) and isinstance(
             attribute_selection, slice
@@ -1071,7 +1071,7 @@ class EdgeIndexer:
                         [edge], attribute, value
                     )
 
-            return
+            return None
 
         if isinstance(index_selection, slice) and isinstance(
             attribute_selection, slice
@@ -1097,7 +1097,7 @@ class EdgeIndexer:
                         [edge], attribute, value
                     )
 
-            return
+            return None
 
     def __delitem__(
         self,
@@ -1151,7 +1151,7 @@ class EdgeIndexer:
                     [index_selection], attribute
                 )
 
-            return
+            return None
 
         if isinstance(index_selection, list) and isinstance(attribute_selection, list):
             for attribute in attribute_selection:
@@ -1159,7 +1159,7 @@ class EdgeIndexer:
                     index_selection, attribute
                 )
 
-            return
+            return None
 
         if isinstance(index_selection, EdgeOperation) and isinstance(
             attribute_selection, list
@@ -1169,7 +1169,7 @@ class EdgeIndexer:
                     self._medrecord.select_edges(index_selection), attribute
                 )
 
-            return
+            return None
 
         if isinstance(index_selection, slice) and isinstance(attribute_selection, list):
             if (
@@ -1184,7 +1184,7 @@ class EdgeIndexer:
                     self._medrecord.edges, attribute
                 )
 
-            return
+            return None
 
         if is_edge_index(index_selection) and isinstance(attribute_selection, slice):
             if (

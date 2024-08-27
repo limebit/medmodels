@@ -20,8 +20,7 @@ class AttributeType(Enum):
 
     @staticmethod
     def _from_pyattributetype(py_attribute_type: PyAttributeType) -> AttributeType:
-        """
-        Converts a PyAttributeType to an AttributeType.
+        """Converts a PyAttributeType to an AttributeType.
 
         Args:
             py_attribute_type (PyAttributeType): The PyAttributeType to convert.
@@ -33,28 +32,25 @@ class AttributeType(Enum):
             return AttributeType.Categorical
         elif py_attribute_type == PyAttributeType.Continuous:
             return AttributeType.Continuous
-        elif py_attribute_type == PyAttributeType.Temporal:
+        if py_attribute_type == PyAttributeType.Temporal:
             return AttributeType.Temporal
 
     def _into_pyattributetype(self) -> PyAttributeType:
-        """
-        Converts an AttributeType to a PyAttributeType.
+        """Converts an AttributeType to a PyAttributeType.
 
         Returns:
             PyAttributeType: The converted PyAttributeType.
         """
         if self == AttributeType.Categorical:
             return PyAttributeType.Categorical
-        elif self == AttributeType.Continuous:
+        if self == AttributeType.Continuous:
             return PyAttributeType.Continuous
-        elif self == AttributeType.Temporal:
+        if self == AttributeType.Temporal:
             return PyAttributeType.Temporal
-        else:
-            raise NotImplementedError("Should never be reached")
+        raise NotImplementedError("Should never be reached")
 
     def __repr__(self) -> str:
-        """
-        Returns a string representation of the AttributeType instance.
+        """Returns a string representation of the AttributeType instance.
 
         Returns:
             str: String representation of the attribute type.
@@ -62,8 +58,7 @@ class AttributeType(Enum):
         return f"AttributeType.{self.name}"
 
     def __str__(self) -> str:
-        """
-        Returns a string representation of the AttributeType instance.
+        """Returns a string representation of the AttributeType instance.
 
         Returns:
             str: String representation of the attribute type.
@@ -71,8 +66,7 @@ class AttributeType(Enum):
         return self.name
 
     def __eq__(self, value: object) -> bool:
-        """
-        Compares the AttributeType instance to another object for equality.
+        """Compares the AttributeType instance to another object for equality.
 
         Args:
             value (object): The object to compare against.
@@ -82,7 +76,7 @@ class AttributeType(Enum):
         """
         if isinstance(value, PyAttributeType):
             return self._into_pyattributetype() == value
-        elif isinstance(value, AttributeType):
+        if isinstance(value, AttributeType):
             return str(self) == str(value)
 
         return False
@@ -99,8 +93,7 @@ class AttributesSchema:
             MedRecordAttribute, Tuple[DataType, Optional[AttributeType]]
         ],
     ) -> None:
-        """
-        Initializes a new instance of AttributesSchema.
+        """Initializes a new instance of AttributesSchema.
 
         Args:
             attributes_schema (Dict[MedRecordAttribute, Tuple[DataType, Optional[AttributeType]]]):
@@ -113,8 +106,7 @@ class AttributesSchema:
         self._attributes_schema = attributes_schema
 
     def __repr__(self) -> str:
-        """
-        Returns a string representation of the AttributesSchema instance.
+        """Returns a string representation of the AttributesSchema instance.
 
         Returns:
             str: String representation of the attribute schema.
@@ -124,8 +116,7 @@ class AttributesSchema:
     def __getitem__(
         self, key: MedRecordAttribute
     ) -> Tuple[DataType, Optional[AttributeType]]:
-        """
-        Gets the data type and optional attribute type for a given MedRecordAttribute.
+        """Gets the data type and optional attribute type for a given MedRecordAttribute.
 
         Args:
             key (MedRecordAttribute): The attribute for which the data type is
@@ -138,8 +129,7 @@ class AttributesSchema:
         return self._attributes_schema[key]
 
     def __contains__(self, key: MedRecordAttribute) -> bool:
-        """
-        Checks if a given MedRecordAttribute is in the attributes schema.
+        """Checks if a given MedRecordAttribute is in the attributes schema.
 
         Args:
             key (MedRecordAttribute): The attribute to check.
@@ -150,8 +140,7 @@ class AttributesSchema:
         return key in self._attributes_schema
 
     def __iter__(self):
-        """
-        Returns an iterator over the attributes schema.
+        """Returns an iterator over the attributes schema.
 
         Returns:
             Iterator: An iterator over the attribute keys.
@@ -159,8 +148,7 @@ class AttributesSchema:
         return self._attributes_schema.__iter__()
 
     def __len__(self) -> int:
-        """
-        Returns the number of attributes in the schema.
+        """Returns the number of attributes in the schema.
 
         Returns:
             int: The number of attributes.
@@ -168,8 +156,7 @@ class AttributesSchema:
         return len(self._attributes_schema)
 
     def __eq__(self, value: object) -> bool:
-        """
-        Compares the AttributesSchema instance to another object for equality.
+        """Compares the AttributesSchema instance to another object for equality.
 
         Args:
             value (object): The object to compare against.
@@ -200,8 +187,7 @@ class AttributesSchema:
         return True
 
     def keys(self):
-        """
-        Returns the attribute keys in the schema.
+        """Returns the attribute keys in the schema.
 
         Returns:
             KeysView: A view object displaying a list of dictionary's keys.
@@ -209,8 +195,7 @@ class AttributesSchema:
         return self._attributes_schema.keys()
 
     def values(self):
-        """
-        Returns the attribute values in the schema.
+        """Returns the attribute values in the schema.
 
         Returns:
             ValuesView: A view object displaying a list of dictionary's values.
@@ -218,8 +203,7 @@ class AttributesSchema:
         return self._attributes_schema.values()
 
     def items(self):
-        """
-        Returns the attribute key-value pairs in the schema.
+        """Returns the attribute key-value pairs in the schema.
 
         Returns:
             ItemsView: A set-like object providing a view on D's items.
@@ -241,8 +225,7 @@ class AttributesSchema:
         key: MedRecordAttribute,
         default: Optional[Tuple[DataType, Optional[AttributeType]]] = None,
     ) -> Optional[Tuple[DataType, Optional[AttributeType]]]:
-        """
-        Gets the data type and optional attribute type for a given attribute, returning
+        """Gets the data type and optional attribute type for a given attribute, returning
         a default value if the attribute is not present.
 
         Args:
@@ -273,8 +256,7 @@ class GroupSchema:
         ] = {},
         strict: bool = False,
     ) -> None:
-        """
-        Initializes a new instance of GroupSchema.
+        """Initializes a new instance of GroupSchema.
 
         Args:
             nodes (Dict[MedRecordAttribute, Union[DataType, Tuple[DataType, AttributeType]]]):
@@ -307,8 +289,7 @@ class GroupSchema:
 
     @classmethod
     def _from_pygroupschema(cls, group_schema: PyGroupSchema) -> GroupSchema:
-        """
-        Creates a GroupSchema instance from an existing PyGroupSchema.
+        """Creates a GroupSchema instance from an existing PyGroupSchema.
 
         Args:
             group_schema (PyGroupSchema): The PyGroupSchema instance to convert.
@@ -322,8 +303,7 @@ class GroupSchema:
 
     @property
     def nodes(self) -> AttributesSchema:
-        """
-        Returns the node attributes in the GroupSchema instance.
+        """Returns the node attributes in the GroupSchema instance.
 
         Returns:
             AttributesSchema: An AttributesSchema object containing the node attributes
@@ -349,8 +329,7 @@ class GroupSchema:
 
     @property
     def edges(self) -> AttributesSchema:
-        """
-        Returns the edge attributes in the GroupSchema instance.
+        """Returns the edge attributes in the GroupSchema instance.
 
         Returns:
             AttributesSchema: An AttributesSchema object containing the edge attributes
@@ -376,8 +355,7 @@ class GroupSchema:
 
     @property
     def strict(self) -> Optional[bool]:
-        """
-        Indicates whether the GroupSchema instance is strict.
+        """Indicates whether the GroupSchema instance is strict.
 
         Returns:
             Optional[bool]: True if the schema is strict, False otherwise.
@@ -395,8 +373,7 @@ class Schema:
         default: Optional[GroupSchema] = None,
         strict: bool = False,
     ) -> None:
-        """
-        Initializes a new instance of Schema.
+        """Initializes a new instance of Schema.
 
         Args:
             groups (Dict[Group, GroupSchema], optional): A dictionary of group names
@@ -423,8 +400,7 @@ class Schema:
 
     @classmethod
     def _from_pyschema(cls, schema: PySchema) -> Schema:
-        """
-        Creates a Schema instance from an existing PySchema.
+        """Creates a Schema instance from an existing PySchema.
 
         Args:
             schema (PySchema): The PySchema instance to convert.
@@ -438,8 +414,7 @@ class Schema:
 
     @property
     def groups(self) -> List[Group]:
-        """
-        Lists all the groups in the Schema instance.
+        """Lists all the groups in the Schema instance.
 
         Returns:
             List[Group]: A list of groups.
@@ -447,8 +422,7 @@ class Schema:
         return self._schema.groups
 
     def group(self, group: Group) -> GroupSchema:
-        """
-        Retrieves the schema for a specific group.
+        """Retrieves the schema for a specific group.
 
         Args:
             group (Group): The name of the group.
@@ -463,8 +437,7 @@ class Schema:
 
     @property
     def default(self) -> Optional[GroupSchema]:
-        """
-        Retrieves the default group schema.
+        """Retrieves the default group schema.
 
         Returns:
             Optional[GroupSchema]: The default group schema if it exists, otherwise
@@ -477,8 +450,7 @@ class Schema:
 
     @property
     def strict(self) -> Optional[bool]:
-        """
-        Indicates whether the Schema instance is strict.
+        """Indicates whether the Schema instance is strict.
 
         Returns:
             Optional[bool]: True if the schema is strict, False otherwise.

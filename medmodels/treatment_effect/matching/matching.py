@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from abc import ABCMeta, abstractmethod
+from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Literal, Set, Tuple
 
 import polars as pl
@@ -19,7 +19,7 @@ if TYPE_CHECKING:
 MatchingMethod: TypeAlias = Literal["propensity", "nearest_neighbors"]
 
 
-class Matching(metaclass=ABCMeta):
+class Matching(ABC):
     """The Base Class for matching."""
 
     def _preprocess_data(

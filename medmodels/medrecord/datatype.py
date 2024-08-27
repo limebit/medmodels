@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import typing
-from abc import ABCMeta, abstractmethod
+from abc import ABC, abstractmethod
 
 from medmodels._medmodels import (
     PyAny,
@@ -36,7 +36,7 @@ PyDataType: TypeAlias = typing.Union[
 ]
 
 
-class DataType(metaclass=ABCMeta):
+class DataType(ABC):
     @abstractmethod
     def _inner(self) -> PyDataType: ...
 
@@ -53,25 +53,24 @@ class DataType(metaclass=ABCMeta):
     def _from_pydatatype(datatype: PyDataType) -> DataType:
         if isinstance(datatype, PyString):
             return String()
-        elif isinstance(datatype, PyInt):
+        if isinstance(datatype, PyInt):
             return Int()
-        elif isinstance(datatype, PyFloat):
+        if isinstance(datatype, PyFloat):
             return Float()
-        elif isinstance(datatype, PyBool):
+        if isinstance(datatype, PyBool):
             return Bool()
-        elif isinstance(datatype, PyDateTime):
+        if isinstance(datatype, PyDateTime):
             return DateTime()
-        elif isinstance(datatype, PyNull):
+        if isinstance(datatype, PyNull):
             return Null()
-        elif isinstance(datatype, PyAny):
+        if isinstance(datatype, PyAny):
             return Any()
-        elif isinstance(datatype, PyUnion):
+        if isinstance(datatype, PyUnion):
             return Union(
                 DataType._from_pydatatype(datatype.dtype1),
                 DataType._from_pydatatype(datatype.dtype2),
             )
-        else:
-            return Option(DataType._from_pydatatype(datatype.dtype))
+        return Option(DataType._from_pydatatype(datatype.dtype))
 
 
 class String(DataType):
@@ -213,7 +212,7 @@ class Union(DataType):
     def __init__(self, *dtypes: DataType) -> None:
         if len(dtypes) < 2:
             raise ValueError("Union must have at least two arguments")
-        elif len(dtypes) == 2:
+        if len(dtypes) == 2:
             self._union = PyUnion(dtypes[0]._inner(), dtypes[1]._inner())
         else:
             self._union = PyUnion(dtypes[0]._inner(), Union(*dtypes[1:])._inner())

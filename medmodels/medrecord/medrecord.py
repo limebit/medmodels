@@ -526,11 +526,10 @@ class MedRecord:
                 (source_node if isinstance(source_node, list) else [source_node]),
                 (target_node if isinstance(target_node, list) else [target_node]),
             )
-        else:
-            return self._medrecord.edges_connecting_undirected(
-                (source_node if isinstance(source_node, list) else [source_node]),
-                (target_node if isinstance(target_node, list) else [target_node]),
-            )
+        return self._medrecord.edges_connecting_undirected(
+            (source_node if isinstance(source_node, list) else [source_node]),
+            (target_node if isinstance(target_node, list) else [target_node]),
+        )
 
     def add_node(self, node: NodeIndex, attributes: AttributesInput) -> None:
         """Adds a node with specified attributes to the MedRecord instance.
@@ -609,12 +608,11 @@ class MedRecord:
             nodes
         ):
             return self.add_nodes_pandas(nodes)
-        elif is_polars_node_dataframe_input(
+        if is_polars_node_dataframe_input(nodes) or is_polars_node_dataframe_input_list(
             nodes
-        ) or is_polars_node_dataframe_input_list(nodes):
+        ):
             return self.add_nodes_polars(nodes)
-        else:
-            return self._medrecord.add_nodes(nodes)
+        return self._medrecord.add_nodes(nodes)
 
     def add_nodes_pandas(
         self, nodes: Union[PandasNodeDataFrameInput, List[PandasNodeDataFrameInput]]
@@ -740,12 +738,11 @@ class MedRecord:
             edges
         ):
             return self.add_edges_pandas(edges)
-        elif is_polars_edge_dataframe_input(
+        if is_polars_edge_dataframe_input(edges) or is_polars_edge_dataframe_input_list(
             edges
-        ) or is_polars_edge_dataframe_input_list(edges):
+        ):
             return self.add_edges_polars(edges)
-        else:
-            return self._medrecord.add_edges(edges)
+        return self._medrecord.add_edges(edges)
 
     def add_edges_pandas(
         self, edges: Union[PandasEdgeDataFrameInput, List[PandasEdgeDataFrameInput]]
@@ -827,16 +824,15 @@ class MedRecord:
                 nodes if isinstance(nodes, list) else [nodes],
                 edges if isinstance(edges, list) else [edges],
             )
-        elif nodes is not None:
+        if nodes is not None:
             return self._medrecord.add_group(
                 group, nodes if isinstance(nodes, list) else [nodes], None
             )
-        elif edges is not None:
+        if edges is not None:
             return self._medrecord.add_group(
                 group, None, edges if isinstance(edges, list) else [edges]
             )
-        else:
-            return self._medrecord.add_group(group, None, None)
+        return self._medrecord.add_group(group, None, None)
 
     def remove_group(self, group: Union[Group, GroupInputList]) -> None:
         """Removes one or more groups from the MedRecord instance.
