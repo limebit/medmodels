@@ -1,45 +1,58 @@
-"""Example Google style docstrings.
+"""This module provides functionality for analyzing something awesome.
 
-This module demonstrates documentation as specified by the `Google Python
-Style Guide`_. Docstrings may extend over multiple lines. Sections are created
-with a section header and a colon followed by a block of indented text.
-
-Example:
-    Examples can be given using either the ``Example`` or ``Examples``
-    sections. Sections support any reStructuredText formatting, including
-    literal blocks::
-
-        $ python example_google.py
-
-Section breaks are created by resuming unindented text. Section breaks
-are also implicitly created anytime a new section starts.
+This module contains functions and classes for performing awesome analysis
+of example effects. It includes tools for finding nodes
+within specific time windows, calculating time-dependent metrics, and
+visualizing patterns in outcomes.
 
 Attributes:
-    module_level_variable1 (int): Module level variables may be documented in
-        either the ``Attributes`` section of the module docstring, or in an
-        inline docstring immediately following the variable.
+    DEFAULT_TIME_FORMAT (str): The default time format string used across the module.
+        It follows the format 'YYYY-MM-DD HH:MM:SS'.
+    MAX_TIME_WINDOW (int): The maximum allowed time window in days for analysis.
+    EFFECT_THRESHOLD (float): The threshold value for considering an effect significant.
 
-        Either form is acceptable, but the two should not be mixed. Choose
-        one convention to document module level variables and be consistent
-        with it.
+Example:
+    Basic usage of the module:
 
-Todo:
-    * For module TODOs
-    * You have to also use ``sphinx.ext.todo`` extension
+    .. code-block:: python
+        :linenos:
+        :caption: example.py
 
-.. _Google Python Style Guide:
-   https://google.github.io/styleguide/pyguide.html
+        from medmodels.treatment_effect import temporal_analysis
 
+        # Find nodes within a specific time window
+        nodes = temporal_analysis.find_node_in_time_window(
+            graph, start_time="2023-01-01", end_time="2023-12-31"
+        )
+
+        # Calculate time-dependent treatment effect
+        effect = temporal_analysis.calculate_time_dependent_effect(
+            treatment_data, outcome_data, time_points
+        )
+
+        # Check if effect is significant
+        is_significant = effect > temporal_analysis.EFFECT_THRESHOLD
+
+    .. code-block:: console
+        :caption: console output
+
+        [Node1, Node2, Node3]
+        0.75
+        True
+
+.. note::
+    This module assumes that input data is properly formatted and validated.
+    Please refer to individual function docstrings for specific input requirements.
+
+See Also:
+    - :mod:`medmodels.example_module`: For data preparation utilities
+    - :mod:`medmodels.example_module2`: For additional visualization tools
 """
 
-module_level_variable1 = 12345
-
-module_level_variable2 = 98765
-"""int: Module level variable documented inline.
-
-The docstring may span multiple lines. The type may optionally be specified
-on the first line, separated by a colon.
-"""
+# Module-level variables
+DEFAULT_TIME_FORMAT = "%Y-%m-%d %H:%M:%S"
+MAX_TIME_WINDOW = 365
+EFFECT_THRESHOLD = 0.5
 
 
 def function(param1: int, param2: int) -> bool:
@@ -56,7 +69,7 @@ def function(param1: int, param2: int) -> bool:
     return param1 == param2
 
 
-def module_level_function(param1: int, param2: int, *args, **kwargs):
+def module_level_function(param1: int, param2: int, *args, **kwargs) -> bool:
     """This is an example of a module level function.
 
     Function parameters should be documented in the ``Args`` section. The name
@@ -103,7 +116,8 @@ def module_level_function(param1: int, param2: int, *args, **kwargs):
 
     """
     if param1 == param2:
-        raise ValueError("param1 may not be equal to param2")
+        msg = "param1 may not be equal to param2"
+        raise ValueError(msg)
     return True
 
 
@@ -149,7 +163,7 @@ class ExampleError(Exception):
 
     """
 
-    def __init__(self, msg, code):
+    def __init__(self, msg, code) -> None:
         self.msg = msg
         self.code = code
 
@@ -171,7 +185,7 @@ class ExampleClass:
 
     """
 
-    def __init__(self, param1, param2, param3):
+    def __init__(self, param1, param2, param3) -> None:
         """Example of docstring on the __init__ method.
 
         The __init__ method may be documented in either the class level
@@ -201,7 +215,7 @@ class ExampleClass:
         """str: Docstring *after* attribute, with type specified."""
 
     @property
-    def readonly_property(self):
+    def readonly_property(self) -> str:
         """str: Properties should be documented in their getter method."""
         return "readonly_property"
 
@@ -216,10 +230,10 @@ class ExampleClass:
         return ["readwrite_property"]
 
     @readwrite_property.setter
-    def readwrite_property(self, value):
+    def readwrite_property(self, value) -> None:
         value
 
-    def example_method(self, param1, param2):
+    def example_method(self, param1, param2) -> bool:
         """Class methods are similar to regular functions.
 
         Note:
@@ -254,7 +268,7 @@ class ExampleClass:
     def __special_without_docstring__(self):
         pass
 
-    def _private(self):
+    def _private(self) -> None:
         """By default private members are not included.
 
         Private members are any methods or attributes that start with an
@@ -269,7 +283,7 @@ class ExampleClass:
         """
         pass
 
-    def _private_without_docstring(self):
+    def _private_without_docstring(self) -> None:
         pass
 
 

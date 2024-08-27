@@ -74,7 +74,8 @@ def average_treatment_effect(
         ]
     )
     if not all(isinstance(i, (int, float)) for i in treated_outcomes):
-        raise ValueError("Outcome variable must be numeric")
+        msg = "Outcome variable must be numeric"
+        raise ValueError(msg)
 
     control_outcomes = np.array(
         [
@@ -91,7 +92,8 @@ def average_treatment_effect(
         ]
     )
     if not all(isinstance(i, (int, float)) for i in control_outcomes):
-        raise ValueError("Outcome variable must be numeric")
+        msg = "Outcome variable must be numeric"
+        raise ValueError(msg)
 
     return treated_outcomes.mean() - control_outcomes.mean()
 
@@ -168,7 +170,8 @@ def cohens_d(
         ]
     )
     if not all(isinstance(i, (int, float)) for i in treated_outcomes):
-        raise ValueError("Outcome variable must be numeric")
+        msg = "Outcome variable must be numeric"
+        raise ValueError(msg)
 
     control_outcomes = np.array(
         [
@@ -185,7 +188,8 @@ def cohens_d(
         ]
     )
     if not all(isinstance(i, (int, float)) for i in control_outcomes):
-        raise ValueError("Outcome variable must be numeric")
+        msg = "Outcome variable must be numeric"
+        raise ValueError(msg)
 
     min_len = min(len(treated_outcomes), len(control_outcomes))
     cf = 1  # correction factor

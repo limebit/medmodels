@@ -1,16 +1,18 @@
 from __future__ import annotations
 
-from typing import Any, Dict, Literal, Optional
+from typing import TYPE_CHECKING, Any, Dict, Literal, Optional
 
 import medmodels.treatment_effect.treatment_effect as tee
-from medmodels.medrecord.querying import NodeOperation
-from medmodels.medrecord.types import (
-    Group,
-    MedRecordAttribute,
-    MedRecordAttributeInputList,
-)
-from medmodels.treatment_effect.matching.algorithms.propensity_score import Model
-from medmodels.treatment_effect.matching.matching import MatchingMethod
+
+if TYPE_CHECKING:
+    from medmodels.medrecord.querying import NodeOperation
+    from medmodels.medrecord.types import (
+        Group,
+        MedRecordAttribute,
+        MedRecordAttributeInputList,
+    )
+    from medmodels.treatment_effect.matching.algorithms.propensity_score import Model
+    from medmodels.treatment_effect.matching.matching import MatchingMethod
 
 
 class TreatmentEffectBuilder:
@@ -218,8 +220,8 @@ class TreatmentEffectBuilder:
 
     def with_propensity_matching(
         self,
-        essential_covariates: MedRecordAttributeInputList = ["gender", "age"],
-        one_hot_covariates: MedRecordAttributeInputList = ["gender"],
+        essential_covariates: MedRecordAttributeInputList = None,
+        one_hot_covariates: MedRecordAttributeInputList = None,
         model: Model = "logit",
         number_of_neighbors: int = 1,
         hyperparam: Optional[Dict[str, Any]] = None,
@@ -244,6 +246,10 @@ class TreatmentEffectBuilder:
             TreatmentEffectBuilder: The current instance of the TreatmentEffectBuilder
                 with updated matching configurations.
         """
+        if one_hot_covariates is None:
+            one_hot_covariates = ["gender"]
+        if essential_covariates is None:
+            essential_covariates = ["gender", "age"]
         self.matching_method = "propensity"
         self.matching_essential_covariates = essential_covariates
         self.matching_one_hot_covariates = one_hot_covariates
@@ -255,8 +261,8 @@ class TreatmentEffectBuilder:
 
     def with_nearest_neighbors_matching(
         self,
-        essential_covariates: MedRecordAttributeInputList = ["gender", "age"],
-        one_hot_covariates: MedRecordAttributeInputList = ["gender"],
+        essential_covariates: MedRecordAttributeInputList = None,
+        one_hot_covariates: MedRecordAttributeInputList = None,
         number_of_neighbors: int = 1,
     ) -> TreatmentEffectBuilder:
         """Adjust the treatment effect estimate using nearest neighbors matching.
@@ -275,6 +281,10 @@ class TreatmentEffectBuilder:
             TreatmentEffectBuilder: The current instance of the TreatmentEffectBuilder
                 with updated matching configurations.
         """
+        if one_hot_covariates is None:
+            one_hot_covariates = ["gender"]
+        if essential_covariates is None:
+            essential_covariates = ["gender", "age"]
         self.matching_method = "nearest_neighbors"
         self.matching_essential_covariates = essential_covariates
         self.matching_one_hot_covariates = one_hot_covariates

@@ -4,18 +4,20 @@ from typing import TYPE_CHECKING, Any, Dict, Literal, Optional, Tuple, Union
 
 import numpy as np
 import polars as pl
-from numpy.typing import NDArray
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.tree import DecisionTreeClassifier
 
-from medmodels.medrecord.types import MedRecordAttributeInputList
 from medmodels.treatment_effect.matching.algorithms.classic_distance_models import (
     nearest_neighbor,
 )
 
 if TYPE_CHECKING:
     import sys
+
+    from numpy.typing import NDArray
+
+    from medmodels.medrecord.types import MedRecordAttributeInputList
 
     if sys.version_info >= (3, 10):
         from typing import TypeAlias

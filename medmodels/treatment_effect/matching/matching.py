@@ -5,11 +5,11 @@ from typing import TYPE_CHECKING, Literal, Set, Tuple
 
 import polars as pl
 
-from medmodels.medrecord.medrecord import MedRecord
-from medmodels.medrecord.types import MedRecordAttributeInputList, NodeIndex
-
 if TYPE_CHECKING:
     import sys
+
+    from medmodels.medrecord.medrecord import MedRecord
+    from medmodels.medrecord.types import MedRecordAttributeInputList, NodeIndex
 
     if sys.version_info >= (3, 10):
         from typing import TypeAlias

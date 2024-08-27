@@ -211,7 +211,8 @@ class Union(DataType):
 
     def __init__(self, *dtypes: DataType) -> None:
         if len(dtypes) < 2:
-            raise ValueError("Union must have at least two arguments")
+            msg = "Union must have at least two arguments"
+            raise ValueError(msg)
         if len(dtypes) == 2:
             self._union = PyUnion(dtypes[0]._inner(), dtypes[1]._inner())
         else:

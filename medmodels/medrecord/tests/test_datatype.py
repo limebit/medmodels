@@ -1,5 +1,7 @@
 import unittest
 
+import pytest
+
 import medmodels.medrecord as mr
 from medmodels._medmodels import (
     PyAny,
@@ -15,121 +17,112 @@ from medmodels._medmodels import (
 
 
 class TestDataType(unittest.TestCase):
-    def test_string(self):
+    def test_string(self) -> None:
         string = mr.String()
-        self.assertTrue(isinstance(string._inner(), PyString))
+        assert isinstance(string._inner(), PyString)
 
-        self.assertEqual("String", str(string))
+        assert str(string) == "String"
 
-        self.assertEqual("DataType.String", string.__repr__())
+        assert string.__repr__() == "DataType.String"
 
-        self.assertEqual(mr.String(), mr.String())
-        self.assertNotEqual(mr.String(), mr.Int())
+        assert mr.String() == mr.String()
+        assert mr.String() != mr.Int()
 
-    def test_int(self):
+    def test_int(self) -> None:
         integer = mr.Int()
-        self.assertTrue(isinstance(integer._inner(), PyInt))
+        assert isinstance(integer._inner(), PyInt)
 
-        self.assertEqual("Int", str(integer))
+        assert str(integer) == "Int"
 
-        self.assertEqual("DataType.Int", integer.__repr__())
+        assert integer.__repr__() == "DataType.Int"
 
-        self.assertEqual(mr.Int(), mr.Int())
-        self.assertNotEqual(mr.Int(), mr.String())
+        assert mr.Int() == mr.Int()
+        assert mr.Int() != mr.String()
 
-    def test_float(self):
+    def test_float(self) -> None:
         float = mr.Float()
-        self.assertTrue(isinstance(float._inner(), PyFloat))
+        assert isinstance(float._inner(), PyFloat)
 
-        self.assertEqual("Float", str(float))
+        assert str(float) == "Float"
 
-        self.assertEqual("DataType.Float", float.__repr__())
+        assert float.__repr__() == "DataType.Float"
 
-        self.assertEqual(mr.Float(), mr.Float())
-        self.assertNotEqual(mr.Float(), mr.String())
+        assert mr.Float() == mr.Float()
+        assert mr.Float() != mr.String()
 
-    def test_bool(self):
+    def test_bool(self) -> None:
         bool = mr.Bool()
-        self.assertTrue(isinstance(bool._inner(), PyBool))
+        assert isinstance(bool._inner(), PyBool)
 
-        self.assertEqual("Bool", str(bool))
+        assert str(bool) == "Bool"
 
-        self.assertEqual("DataType.Bool", bool.__repr__())
+        assert bool.__repr__() == "DataType.Bool"
 
-        self.assertEqual(mr.Bool(), mr.Bool())
-        self.assertNotEqual(mr.Bool(), mr.String())
+        assert mr.Bool() == mr.Bool()
+        assert mr.Bool() != mr.String()
 
-    def test_datetime(self):
+    def test_datetime(self) -> None:
         datetime = mr.DateTime()
-        self.assertTrue(isinstance(datetime._inner(), PyDateTime))
+        assert isinstance(datetime._inner(), PyDateTime)
 
-        self.assertEqual("DateTime", str(datetime))
+        assert str(datetime) == "DateTime"
 
-        self.assertEqual("DataType.DateTime", datetime.__repr__())
+        assert datetime.__repr__() == "DataType.DateTime"
 
-        self.assertEqual(mr.DateTime(), mr.DateTime())
-        self.assertNotEqual(mr.DateTime(), mr.String())
+        assert mr.DateTime() == mr.DateTime()
+        assert mr.DateTime() != mr.String()
 
-    def test_null(self):
+    def test_null(self) -> None:
         null = mr.Null()
-        self.assertTrue(isinstance(null._inner(), PyNull))
+        assert isinstance(null._inner(), PyNull)
 
-        self.assertEqual("Null", str(null))
+        assert str(null) == "Null"
 
-        self.assertEqual("DataType.Null", null.__repr__())
+        assert null.__repr__() == "DataType.Null"
 
-        self.assertEqual(mr.Null(), mr.Null())
-        self.assertNotEqual(mr.Null(), mr.String())
+        assert mr.Null() == mr.Null()
+        assert mr.Null() != mr.String()
 
-    def test_any(self):
+    def test_any(self) -> None:
         any = mr.Any()
-        self.assertTrue(isinstance(any._inner(), PyAny))
+        assert isinstance(any._inner(), PyAny)
 
-        self.assertEqual("Any", str(any))
+        assert str(any) == "Any"
 
-        self.assertEqual("DataType.Any", any.__repr__())
+        assert any.__repr__() == "DataType.Any"
 
-        self.assertEqual(mr.Any(), mr.Any())
-        self.assertNotEqual(mr.Any(), mr.String())
+        assert mr.Any() == mr.Any()
+        assert mr.Any() != mr.String()
 
-    def test_union(self):
+    def test_union(self) -> None:
         union = mr.Union(mr.String(), mr.Int())
-        self.assertTrue(isinstance(union._inner(), PyUnion))
+        assert isinstance(union._inner(), PyUnion)
 
-        self.assertEqual("Union(String, Int)", str(union))
+        assert str(union) == "Union(String, Int)"
 
-        self.assertEqual(
-            "DataType.Union(DataType.String, DataType.Int)", union.__repr__()
-        )
+        assert union.__repr__() == "DataType.Union(DataType.String, DataType.Int)"
 
         union = mr.Union(mr.String(), mr.Int(), mr.Bool())
-        self.assertTrue(isinstance(union._inner(), PyUnion))
+        assert isinstance(union._inner(), PyUnion)
 
-        self.assertEqual("Union(String, Union(Int, Bool))", str(union))
+        assert str(union) == "Union(String, Union(Int, Bool))"
 
-        self.assertEqual(
-            "DataType.Union(DataType.String, DataType.Union(DataType.Int, DataType.Bool))",
-            union.__repr__(),
-        )
+        assert union.__repr__() == "DataType.Union(DataType.String, DataType.Union(DataType.Int, DataType.Bool))"
 
-        self.assertEqual(
-            mr.Union(mr.String(), mr.Int()), mr.Union(mr.String(), mr.Int())
-        )
-        self.assertNotEqual(
-            mr.Union(mr.String(), mr.Int()), mr.Union(mr.Int(), mr.String())
-        )
+        assert mr.Union(mr.String(), mr.Int()) == mr.Union(mr.String(), mr.Int())
+        assert mr.Union(mr.String(), mr.Int()) != mr.Union(mr.Int(), mr.String())
 
-    def test_invalid_union(self):
-        with self.assertRaises(ValueError):
+    def test_invalid_union(self) -> None:
+        with pytest.raises(ValueError):
             mr.Union(mr.String())
 
-    def test_option(self):
+    def test_option(self) -> None:
         option = mr.Option(mr.String())
-        self.assertTrue(isinstance(option._inner(), PyOption))
+        assert isinstance(option._inner(), PyOption)
 
-        self.assertEqual("Option(String)", str(option))
+        assert str(option) == "Option(String)"
 
-        self.assertEqual("DataType.Option(DataType.String)", option.__repr__())
+        assert option.__repr__() == "DataType.Option(DataType.String)"
 
-        self.assertEqual(mr.Option(mr.String()), mr.Option(mr.String()))
-        self.assertNotEqual(mr.Option(mr.String()), mr.Option(mr.Int()))
+        assert mr.Option(mr.String()) == mr.Option(mr.String())
+        assert mr.Option(mr.String()) != mr.Option(mr.Int())

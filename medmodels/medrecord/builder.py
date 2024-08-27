@@ -5,8 +5,9 @@ from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, Union
 if TYPE_CHECKING:
     from typing_extensions import TypeIs
 
+    from medmodels.medrecord.schema import Schema
+
 import medmodels as mm
-from medmodels.medrecord.schema import Schema
 from medmodels.medrecord.types import (
     EdgeTuple,
     Group,
@@ -128,7 +129,7 @@ class MedRecordBuilder:
         return self
 
     def add_group(
-        self, group: Group, *, nodes: List[NodeIndex] = []
+        self, group: Group, *, nodes: Optional[List[NodeIndex]] = None
     ) -> MedRecordBuilder:
         """Adds a group to the builder with an optional list of nodes.
 
@@ -139,6 +140,8 @@ class MedRecordBuilder:
         Returns:
             MedRecordBuilder: The current instance of the builder.
         """
+        if nodes is None:
+            nodes = []
         self._groups[group] = {"nodes": nodes, "edges": []}
         return self
 
