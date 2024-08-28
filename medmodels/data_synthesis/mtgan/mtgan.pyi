@@ -6,16 +6,16 @@ from torch import nn
 from medmodels.data_synthesis.mtgan.builder import MTGANBuilder
 from medmodels.data_synthesis.mtgan.model.gan import (
     TrainingHyperparameters,
-    TrainingHyperparametersTotal,
+    TrainingHyperparametersOptional,
 )
 from medmodels.data_synthesis.mtgan.modules.postprocessor import (
     AttributeType,
     PostprocessingHyperparameters,
-    PostprocessingHyperparametersTotal,
+    PostprocessingHyperparametersOptional,
 )
 from medmodels.data_synthesis.mtgan.modules.preprocessor import (
     PreprocessingHyperparameters,
-    PreprocessingHyperparametersTotal,
+    PreprocessingHyperparametersOptional,
 )
 from medmodels.data_synthesis.mtgan.mtgan_model import MTGANModel
 from medmodels.data_synthesis.synthesizer import Synthesizer
@@ -28,9 +28,9 @@ class MTGAN(Synthesizer):
     _patients_group: Group
     _concepts_group: Group
     _time_attribute: MedRecordAttribute
-    _preprocessing_hyperparameters: PreprocessingHyperparametersTotal
-    _postprocessing_hyperparameters: PostprocessingHyperparametersTotal
-    _training_hyperparameters: TrainingHyperparametersTotal
+    _preprocessing_hyperparameters: PreprocessingHyperparameters
+    _postprocessing_hyperparameters: PostprocessingHyperparameters
+    _training_hyperparameters: TrainingHyperparameters
 
     def __init__(
         self,
@@ -48,12 +48,9 @@ class MTGAN(Synthesizer):
         patients_group: Group = "patients",
         concepts_group: Group = "concepts",
         time_attribute: MedRecordAttribute = "time",
-        preprocessing_hyperparameters: PreprocessingHyperparameters = {},
-        training_hyperparameters: TrainingHyperparameters = {},
-        postprocessing_hyperparameters: PostprocessingHyperparameters = {},
-        preprocessing_hyperparameters_json: PreprocessingHyperparameters = {},
-        training_hyperparameters_json: TrainingHyperparameters = {},
-        postprocessing_hyperparameters_json: PostprocessingHyperparameters = {},
+        preprocessing_hyperparameters: PreprocessingHyperparametersOptional = {},
+        training_hyperparameters: TrainingHyperparametersOptional = {},
+        postprocessing_hyperparameters: PostprocessingHyperparametersOptional = {},
         attributes_types: Dict[MedRecordAttribute, AttributeType] = {},
         seed: int = 0,
     ) -> None: ...

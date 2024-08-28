@@ -6,7 +6,7 @@ from torch import nn
 
 from medmodels.data_synthesis.mtgan.model.critic.critic import Critic
 from medmodels.data_synthesis.mtgan.model.gan import (
-    TrainingHyperparametersTotal,
+    TrainingHyperparameters,
 )
 from medmodels.data_synthesis.mtgan.model.generator.generator_layers import (
     GRU,
@@ -32,7 +32,7 @@ class Generator(nn.Module):
         self,
         total_number_of_concepts: int,
         max_number_windows: int,
-        hyperparameters: TrainingHyperparametersTotal,
+        hyperparameters: TrainingHyperparameters,
         device: torch.device,
     ) -> None: ...
     def forward(

@@ -9,13 +9,13 @@ from medmodels.medrecord.types import (
     NodeIndex,
 )
 
-class PreprocessingHyperparameters(TypedDict, total=False):
+class PreprocessingHyperparameters(TypedDict, total=True):
     minimum_occurrences_concept: int
     time_interval_days: int
     minimum_concepts_per_window: int
     number_sampled_patients: int
 
-class PreprocessingHyperparametersTotal(TypedDict, total=True):
+class PreprocessingHyperparametersOptional(TypedDict, total=False):
     minimum_occurrences_concept: int
     time_interval_days: int
     minimum_concepts_per_window: int
@@ -34,14 +34,14 @@ class MTGANPreprocessor(nn.Module):
     concepts_group: Group
     time_attribute: MedRecordAttribute
 
-    hyperparameters: PreprocessingHyperparametersTotal
+    hyperparameters: PreprocessingHyperparameters
 
     def __init__(
         self,
         patients_group: Group,
         concepts_group: Group,
         time_attribute: MedRecordAttribute,
-        hyperparameters: PreprocessingHyperparametersTotal,
+        hyperparameters: PreprocessingHyperparameters,
     ) -> None: ...
     def preprocess(
         self, medrecord: MedRecord

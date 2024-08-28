@@ -3,13 +3,13 @@ from typing import Dict
 
 from typing_extensions import Unpack
 
-from medmodels.data_synthesis.mtgan.model.gan import TrainingHyperparameters
+from medmodels.data_synthesis.mtgan.model.gan import TrainingHyperparametersOptional
 from medmodels.data_synthesis.mtgan.modules.postprocessor import (
     AttributeType,
-    PostprocessingHyperparameters,
+    PostprocessingHyperparametersOptional,
 )
 from medmodels.data_synthesis.mtgan.modules.preprocessor import (
-    PreprocessingHyperparameters,
+    PreprocessingHyperparametersOptional,
 )
 from medmodels.data_synthesis.mtgan.mtgan import MTGAN
 from medmodels.data_synthesis.mtgan.mtgan_model import MTGANModel
@@ -22,13 +22,9 @@ class MTGANBuilder:
     concepts_group: Group
     time_attribute: MedRecordAttribute
 
-    training_hyperparameters: TrainingHyperparameters
-    preprocessing_hyperparameters: PreprocessingHyperparameters
-    postprocessing_hyperparameters: PostprocessingHyperparameters
-
-    training_hyperparameters_json: TrainingHyperparameters
-    preprocessing_hyperparameters_json: PreprocessingHyperparameters
-    postprocessing_hyperparameters_json: PostprocessingHyperparameters
+    training_hyperparameters: TrainingHyperparametersOptional
+    preprocessing_hyperparameters: PreprocessingHyperparametersOptional
+    postprocessing_hyperparameters: PostprocessingHyperparametersOptional
 
     def with_seed(self, seed: int) -> MTGANBuilder: ...
     def with_patients_group(self, patients_group: Group) -> MTGANBuilder: ...
@@ -37,13 +33,13 @@ class MTGANBuilder:
         self, time_attribute: MedRecordAttribute
     ) -> MTGANBuilder: ...
     def with_preprocessor_hyperparameters(
-        self, **kwargs: Unpack[PreprocessingHyperparameters]
+        self, **kwargs: Unpack[PreprocessingHyperparametersOptional]
     ) -> MTGANBuilder: ...
     def with_training_hyperparameters(
-        self, **kwargs: Unpack[TrainingHyperparameters]
+        self, **kwargs: Unpack[TrainingHyperparametersOptional]
     ) -> MTGANBuilder: ...
     def with_postprocessor_hyperparameters(
-        self, **kwargs: Unpack[PostprocessingHyperparameters]
+        self, **kwargs: Unpack[PostprocessingHyperparametersOptional]
     ) -> MTGANBuilder: ...
     def with_postprocessor_attributes(
         self, attributes_types: Dict[MedRecordAttribute, AttributeType]

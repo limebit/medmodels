@@ -1,7 +1,7 @@
 import torch
 from torch import nn
 
-from medmodels.data_synthesis.mtgan.model.gan import TrainingHyperparametersTotal
+from medmodels.data_synthesis.mtgan.model.gan import TrainingHyperparameters
 from medmodels.data_synthesis.mtgan.model.generator.generator import Generator
 from medmodels.data_synthesis.mtgan.model.loaders import MTGANDataLoader
 from medmodels.data_synthesis.mtgan.model.real_gru.real_gru import RealGRU
@@ -25,7 +25,7 @@ class Critic(nn.Module):
         self,
         real_gru: RealGRU,
         total_number_of_concepts: int,
-        hyperparameters: TrainingHyperparametersTotal,
+        hyperparameters: TrainingHyperparameters,
         device: torch.device,
     ) -> None: ...
     def forward(
