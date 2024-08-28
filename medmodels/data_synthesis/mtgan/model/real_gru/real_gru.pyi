@@ -2,7 +2,7 @@ import torch
 from torch import nn
 
 from medmodels.data_synthesis.mtgan.model.gan import (
-    TrainingHyperparametersTotal,
+    TrainingHyperparameters,
 )
 from medmodels.data_synthesis.mtgan.model.loaders import MTGANDataLoader
 
@@ -16,7 +16,7 @@ class RealGRU(nn.Module):
     def __init__(
         self,
         total_number_of_concepts: int,
-        hyperparamaters: TrainingHyperparametersTotal,
+        hyperparamaters: TrainingHyperparameters,
     ) -> None: ...
     def forward(self, data: torch.Tensor) -> torch.Tensor: ...
     def calculate_hidden(

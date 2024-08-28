@@ -11,7 +11,7 @@ from medmodels.medrecord.types import MedRecordAttribute, NodeIndex
 
 AttributeType: TypeAlias = Literal["categorical", "continuous", "temporal"]
 
-class PostprocessingHyperparameters(TypedDict, total=False):
+class PostprocessingHyperparameters(TypedDict, total=True):
     number_patients_generated: int
     training_epochs: int
     hidden_dim: int
@@ -21,7 +21,7 @@ class PostprocessingHyperparameters(TypedDict, total=False):
     number_previous_windows: int
     top_k_concepts: int
 
-class PostprocessingHyperparametersTotal(TypedDict, total=True):
+class PostprocessingHyperparametersOptional(TypedDict, total=False):
     number_patients_generated: int
     training_epochs: int
     hidden_dim: int
@@ -38,7 +38,7 @@ class MTGANPostprocessor(nn.Module):
 
     attributes_patients_types: Dict[MedRecordAttribute, AttributeType]
     attributes_concepts_types: Dict[MedRecordAttribute, AttributeType]
-    hyperparameters: PostprocessingHyperparametersTotal
+    hyperparameters: PostprocessingHyperparameters
 
     def __init__(
         self,
@@ -47,7 +47,7 @@ class MTGANPostprocessor(nn.Module):
         index_to_concept_dict: Dict[int, NodeIndex],
         attributes_patients_types: Dict[MedRecordAttribute, AttributeType],
         attributes_concepts_types: Dict[MedRecordAttribute, AttributeType],
-        hyperparameters: PostprocessingHyperparametersTotal,
+        hyperparameters: PostprocessingHyperparameters,
         device: torch.device,
     ) -> None: ...
     def postprocess(self, synthetic_data: sparse.COO) -> MedRecord: ...

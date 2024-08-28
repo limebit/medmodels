@@ -11,7 +11,7 @@ from medmodels.data_synthesis.mtgan.model.loaders import (
 from medmodels.data_synthesis.mtgan.model.real_gru.real_gru import RealGRU
 from medmodels.data_synthesis.mtgan.model.samplers import MTGANDataSampler
 
-class TrainingHyperparameters(TypedDict, total=False):
+class TrainingHyperparameters(TypedDict, total=True):
     batch_size: int
     real_gru_training_epochs: int
     real_gru_lr: float
@@ -31,7 +31,7 @@ class TrainingHyperparameters(TypedDict, total=False):
     lambda_sparseness: float
     test_frequency: int
 
-class TrainingHyperparametersTotal(TypedDict, total=True):
+class TrainingHyperparametersOptional(TypedDict, total=False):
     batch_size: int
     real_gru_training_epochs: int
     real_gru_lr: float
@@ -69,7 +69,7 @@ class GAN(nn.Module):
         critic: Critic,
         real_gru: RealGRU,
         dataset: MTGANDataset,
-        hyperparameters: TrainingHyperparametersTotal,
+        hyperparameters: TrainingHyperparameters,
         device: torch.device,
     ) -> None: ...
     def train(self) -> Tuple[Generator, Critic]: ...
