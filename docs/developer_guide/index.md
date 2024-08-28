@@ -12,9 +12,10 @@ self
 :hidden:
 :caption: Contents:
 
-setup-and-ide.md
+setup.md
 docstrings.md
 pull-request.md
+internal-workflow.md
 ```
 
 ## Overview
@@ -23,6 +24,7 @@ This contribution guide provides details on how we are working on MedModels and 
 
 The guide covers the following topics:
 
-1. [Setting up your IDE and the local environment](./setup-and-ide.md)
+1. [Setup](./setup.md)
 1. [Writing Docstrings](./docstrings.md)
 1. [Pull Request](./pull-request.md)
+1. [Internal workflow](./internal-workflow.md)

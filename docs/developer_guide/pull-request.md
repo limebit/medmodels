@@ -19,7 +19,11 @@ Once you've made your changes to the MedModels codebase and are ready to share t
 
 - Push your local branch to your remote repository on GitHub.
 
-**2. Create a Pull Request:**
+**2. Check for Consistency:**
+
+- Before creating a pull request, ensure that if you've changed or refactored any functionality, all instances where this functionality is used (including in docstrings and other modules) are correctly adjusted to reflect the new style or implementation.
+
+**3. Create a Pull Request:**
 
 - Navigate to the [MedModels pull requests](https://github.com/limebit/medmodels/pulls) and create a new PR.
 - Choose the branch you want your changes merged into from the "base" branch dropdown (usually the `main` branch).
@@ -27,8 +31,7 @@ Once you've made your changes to the MedModels codebase and are ready to share t
   - The title should follow the Conventional Commits type (e.g., "feat: Add support for new image format").
 - In the body of the pull request, elaborate on your changes and provide any additional context or testing instructions if needed.
 
-**3. Address Feedback and Merge:**
+**4. Address Feedback and Merge:**
 
 - Once submitted, reviewers may provide feedback or request changes. Address these comments and make any necessary adjustments to your code.
 - After receiving approval from reviewers, admins can merge your pull request into the main branch.
-
