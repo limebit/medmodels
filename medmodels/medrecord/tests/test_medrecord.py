@@ -1348,6 +1348,69 @@ class TestMedRecord(unittest.TestCase):
         self.assertEqual(0, medrecord.edge_count())
         self.assertEqual(0, medrecord.group_count())
 
+    def test_describe_group_nodes(self):
+        medrecord = create_medrecord()
+
+        medrecord.add_group("Even", nodes=["2", "0"])
+        medrecord.add_group("Odd", nodes=["1", "3"])
+
+        expected = pl.DataFrame(
+            {
+                "Nodes": ["Even", "Even", "Even", "Odd"],
+                "Count": [2, 2, 2, 2],
+                "Attribute": ["adipiscing", "dolor", "lorem", "amet"],
+                "Info": [
+                    "Values: elit",
+                    "Values: sit",
+                    "Values: ipsum",
+                    "Values: consectetur",
+                ],
+            },
+            schema={
+                "Nodes": pl.String,
+                "Count": pl.Int32,
+                "Attribute": pl.String,
+                "Info": pl.String,
+            },
+        )
+
+        self.assertTrue(expected.equals(medrecord._describe_group_nodes()))
+
+    def test_describe_group_edges(self):
+        medrecord = create_medrecord()
+
+        medrecord.add_group("Even", nodes=["2", "0"])
+        medrecord.add_group("Odd", nodes=["1", "3"])
+
+        expected_edges = pl.DataFrame(
+            {
+                "Edges": [
+                    "Even -> Odd",
+                    "Even -> Odd",
+                    "Odd -> Even",
+                    "Odd -> Even",
+                    "Odd -> Even",
+                ],
+                "Count": [2, 2, 2, 2, 2],
+                "Attribute": ["eiusmod", "sed", "eiusmod", "incididunt", "sed"],
+                "Info": [
+                    "Values: tempor",
+                    "Values: do",
+                    "Values: tempor",
+                    "Values: ut",
+                    "Values: do",
+                ],
+            },
+            schema={
+                "Edges": pl.String,
+                "Count": pl.Int32,
+                "Attribute": pl.String,
+                "Info": pl.String,
+            },
+        )
+
+        self.assertTrue(expected_edges.equals(medrecord._describe_group_edges()))
+
 
 if __name__ == "__main__":
     run_test = unittest.TestLoader().loadTestsFromTestCase(TestMedRecord)

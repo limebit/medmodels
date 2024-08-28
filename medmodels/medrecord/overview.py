@@ -78,19 +78,12 @@ def extract_attribute_summary(
                     f"mean: {data[attribute].mean():.{decimal}f}",
                 ]
             else:
-                try:
-                    time_attribute = data[attribute].str.to_datetime()
-                    attribute_info = [
-                        f"min: {min(time_attribute).strftime('%Y-%m-%d %H:%M:%S')}",
-                        f"max: {max(time_attribute).strftime('%Y-%m-%d %H:%M:%S')}",
-                    ]
-                except pl.exceptions.ComputeError:
-                    categories = data[attribute].unique().sort()
-                    category_str = ", ".join(categories)
-                    if (len(categories) > 5) | (len(category_str) > 100):
-                        attribute_info = [f"{len(categories)} unique values"]
-                    else:
-                        attribute_info = [f"Values: {', '.join(list(categories))}"]
+                categories = data[attribute].drop_nulls().unique().sort()
+                category_str = ", ".join(list(categories))
+                if (len(categories) > 5) | (len(category_str) > 100):
+                    attribute_info = [f"{len(categories)} unique values"]
+                else:
+                    attribute_info = [f"Values: {', '.join(list(categories))}"]
 
         data_dict["Attribute"].extend([attribute] * len(attribute_info))
         data_dict["Info"].extend(attribute_info)
@@ -109,6 +102,7 @@ def prettify_table(table_info: pl.DataFrame) -> List[str]:
     """
 
     lengths = []
+    table_info = table_info.with_columns(pl.exclude(pl.Utf8).cast(str))
     for col in table_info.columns:
         lengths.append(max(len(max(table_info[col], key=len)), len(col)))
 

@@ -4,15 +4,15 @@ import pandas as pd
 import polars as pl
 
 import medmodels as mm
-from medmodels.medrecord.overview import extract_attribute_summary
+from medmodels.medrecord.overview import extract_attribute_summary, prettify_table
 from medmodels.medrecord.querying import edge, node
 
 
 def create_medrecord():
     patients = pd.DataFrame(
         {
-            "index": ["P1", "P2", "P3", "P4", "P5", "P6", "P7", "P8", "P9"],
-            "age": [20, 30, 70, 30, 40, 50, 60, 70, 80],
+            "index": ["P1", "P2", "P3"],
+            "age": [20, 30, 70],
         }
     )
     diagnosis = pd.DataFrame({"index": ["D1", "D2"]})
@@ -20,59 +20,14 @@ def create_medrecord():
     nodes = [patients, diagnosis, prescriptions]
     edges = pd.DataFrame(
         {
-            "source": [
-                "D1",
-                "M2",
-                "M1",
-                "M2",
-                "D1",
-                "D1",
-                "D1",
-                "M1",
-                "D1",
-                "M2",
-                "M1",
-                "D1",
-                "M2",
-            ],
-            "target": [
-                "P1",
-                "P1",
-                "P2",
-                "P2",
-                "P3",
-                "P2",
-                "P3",
-                "P3",
-                "P4",
-                "P5",
-                "P6",
-                "P7",
-                "P9",
-            ],
-            "time": [
-                "2000-01-01",
-                "1999-10-15",
-                "2000-01-01",
-                "1999-12-15",
-                "1999-12-15",
-                "2000-07-01",
-                "2000-01-05",
-                "2000-01-01",
-                "2000-01-01",
-                "2000-01-01",
-                "2000-01-01",
-                "2000-01-01",
-                "2000-01-01",
-            ],
+            "source": ["D1", "M1", "D1"],
+            "target": ["P1", "P2", "P3"],
+            "time": ["2000-01-01", "1999-10-15", "1999-12-150"],
         }
     )
     groups = [
         ("Patients", patients["index"].to_list()),
         ("Stroke", ["D1"]),
-        ("Headache", ["D2"]),
-        ("Rivaroxaban", ["M1"]),
-        ("Warfarin", ["M2"]),
         ("Medications", ["M1", "M2"]),
     ]
     medrecord = mm.MedRecord.from_pandas(
@@ -102,26 +57,10 @@ class TestOverview(unittest.TestCase):
             medrecord.node[node().in_group("Patients")]
         )
         numeric_expected = pl.DataFrame(
-            {"Attribute": ["age"] * 3, "Info": ["min: 20", "max: 80", "mean: 50.00"]}
+            {"Attribute": ["age"] * 3, "Info": ["min: 20", "max: 70", "mean: 40.00"]}
         )
         self.assertTrue(numeric_attribute.equals(numeric_expected))
 
-        # temporal
-        edges = medrecord.select_edges(
-            edge().connected_source_with(node().in_group("Rivaroxaban"))
-            & edge().connected_target_with(node().in_group("Patients"))
-        )
-        temporal_attributes = extract_attribute_summary(medrecord.edge[edges])
-        temporal_expected = pl.DataFrame(
-            {
-                "Attribute": ["time"] * 2,
-                "Info": [
-                    "min: 2000-01-01 00:00:00",
-                    "max: 2000-01-01 00:00:00",
-                ],
-            }
-        )
-        self.assertTrue(temporal_attributes.equals(temporal_expected))
         # string attributes
         str_attributes = extract_attribute_summary(
             medrecord.node[node().in_group("Medications")]
@@ -145,6 +84,7 @@ class TestOverview(unittest.TestCase):
                 "Info": ["min: 19", "max: 96", "mean: 43.20", "Categories: F, M"],
             }
         )
+
         self.assertTrue(node_info.equals(expected_info))
 
         # compare schema and not schema
@@ -160,6 +100,44 @@ class TestOverview(unittest.TestCase):
             ]
         )
         self.assertTrue(schema_attributes.equals(no_schema_attributes))
+
+    def test_prettify_table(self):
+        df_empty = pl.DataFrame(
+            {
+                "Attribute": ["-"],
+                "Info": ["-"],
+            }
+        )
+
+        expected_list_empty = [
+            "----------------",
+            "Attribute Info",
+            "----------------",
+            "-         -    ",
+            "----------------",
+        ]
+
+        self.assertEqual(prettify_table(df_empty), expected_list_empty)
+
+        df = pl.DataFrame(
+            {
+                "Attribute": ["age", "age", "age", "gender"],
+                "Info": ["min: 19", "max: 96", "mean: 43.20", "Categories: F, M"],
+            }
+        )
+
+        expected_list = [
+            "----------------------------",
+            "Attribute Info            ",
+            "----------------------------",
+            "age       min: 19          ",
+            "          max: 96          ",
+            "          mean: 43.20      ",
+            "gender    Categories: F, M ",
+            "----------------------------",
+        ]
+
+        self.assertEqual(prettify_table(df), expected_list)
 
 
 if __name__ == "__main__":

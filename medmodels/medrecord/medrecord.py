@@ -1315,14 +1315,16 @@ class MedRecord:
             pl.DataFrame(
                 schema={
                     "Nodes": pl.String,
-                    "Count": pl.String,
+                    "Count": pl.Int32,
                     "Attribute": pl.String,
                     "Info": pl.String,
                 }
             )
         ]
 
-        for group in self.groups:
+        groups = set(self.groups)
+
+        for group in sorted(groups):
             nodes = self.group(group)["nodes"]
 
             if not nodes:
@@ -1337,7 +1339,7 @@ class MedRecord:
             node_info = node_info.select(
                 [
                     pl.lit(group).alias("Nodes"),
-                    pl.lit(str(len(nodes))).alias("Count"),
+                    pl.lit(len(nodes)).alias("Count"),
                     pl.all(),
                 ]
             )
@@ -1362,14 +1364,16 @@ class MedRecord:
             pl.DataFrame(
                 schema={
                     "Edges": pl.String,
-                    "Count": pl.String,
+                    "Count": pl.Int32,
                     "Attribute": pl.String,
                     "Info": pl.String,
                 }
             )
         ]
 
-        for source_group in self.groups:
+        groups = sorted(set(self.groups))
+
+        for source_group in groups:
             # edges in groups
             edges = self.group(source_group)["edges"]
 
@@ -1385,7 +1389,7 @@ class MedRecord:
                 edge_info = edge_info.select(
                     [
                         pl.lit(source_group).alias("Edges"),
-                        pl.lit(str(len(edges))).alias("Count"),
+                        pl.lit(len(edges)).alias("Count"),
                         pl.all(),
                     ]
                 )
@@ -1393,7 +1397,7 @@ class MedRecord:
                 edge_groups.append(edge_info)
 
             # edges connecting different groups
-            for target_group in self.groups:
+            for target_group in groups:
                 edges = self.select_edges(
                     edge().connected_source_with(node().in_group(source_group))
                     & edge().connected_target_with(node().in_group(target_group))
@@ -1407,7 +1411,7 @@ class MedRecord:
                 edge_info = edge_info.select(
                     [
                         pl.lit(f"{source_group} -> {target_group}").alias("Edges"),
-                        pl.lit(str(len(edges))).alias("Count"),
+                        pl.lit(len(edges)).alias("Count"),
                         pl.all(),
                     ]
                 )
