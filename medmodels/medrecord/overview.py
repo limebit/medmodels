@@ -24,7 +24,6 @@ def extract_attribute_summary(
     Returns:
         pl.DataFrame: Summary of node or edge attributes.
     """
-
     data = pl.DataFrame(data=[{"id": k, **v} for k, v in attribute_dict.items()])
 
     data_dict = {
@@ -100,7 +99,6 @@ def prettify_table(table_info: pl.DataFrame) -> List[str]:
     Returns:
         List[str]: List of lines for printing the table.
     """
-
     lengths = []
     table_info = table_info.with_columns(pl.exclude(pl.Utf8).cast(str))
     for col in table_info.columns:

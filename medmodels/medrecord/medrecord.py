@@ -1308,9 +1308,7 @@ class MedRecord:
 
         Returns:
             pl.DataFrame: Dataframe with all nodes in medrecord groups and their attributes.
-
         """
-
         node_groups = [
             pl.DataFrame(
                 schema={
@@ -1359,7 +1357,6 @@ class MedRecord:
         Returns:
             pl.DataFrame: DataFrame with an overview of edges connecting group nodes.
         """
-
         edge_groups = [
             pl.DataFrame(
                 schema={
@@ -1449,7 +1446,6 @@ class MedRecord:
         ----------------------------------------------
 
         """
-
         nodes_table = prettify_table(self._describe_group_nodes())
 
         print("\n".join(nodes_table))
@@ -1471,7 +1467,6 @@ class MedRecord:
         ----------------------------------------------------------------------
 
         """
-
         edges_table = prettify_table(self._describe_group_edges())
 
         print("\n".join(edges_table))
