@@ -10,13 +10,13 @@ from medmodels import MedRecord
 from medmodels.data_synthesis.synthesizer import Synthesizer
 
 class SynthesizerModel(nn.Module, metaclass=ABCMeta):
-    number_samples: int
+    number_of_samples: int
     device: torch.device
 
     def __init__(
         self,
         synthesizer: Synthesizer,
-        number_samples: int,
+        number_of_samples: int,
         device: torch.device,
         **kwargs: Dict[str, Any],
     ) -> None: ...

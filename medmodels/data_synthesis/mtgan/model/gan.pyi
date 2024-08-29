@@ -57,7 +57,7 @@ class GAN(nn.Module):
     real_gru: RealGRU
     device: torch.device
 
-    number_windows_distribution: torch.Tensor
+    number_of_windows_distribution: torch.Tensor
     epochs: int
     batch_size: int
     test_frequency: int

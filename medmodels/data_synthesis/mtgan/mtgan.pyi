@@ -28,9 +28,13 @@ class MTGAN(Synthesizer):
     _patients_group: Group
     _concepts_group: Group
     _time_attribute: MedRecordAttribute
+
     _preprocessing_hyperparameters: PreprocessingHyperparameters
     _postprocessing_hyperparameters: PostprocessingHyperparameters
     _training_hyperparameters: TrainingHyperparameters
+
+    _attribute_types_patients: Dict[MedRecordAttribute, AttributeType]
+    _attribute_types_concepts: Dict[MedRecordAttribute, AttributeType]
 
     def __init__(
         self,
@@ -51,7 +55,8 @@ class MTGAN(Synthesizer):
         preprocessing_hyperparameters: PreprocessingHyperparametersOptional = {},
         training_hyperparameters: TrainingHyperparametersOptional = {},
         postprocessing_hyperparameters: PostprocessingHyperparametersOptional = {},
-        attributes_types: Dict[MedRecordAttribute, AttributeType] = {},
+        attributes_types_patients: Dict[MedRecordAttribute, AttributeType] = {},
+        attributes_types_concepts: Dict[MedRecordAttribute, AttributeType] = {},
         seed: int = 0,
     ) -> None: ...
     def fit(

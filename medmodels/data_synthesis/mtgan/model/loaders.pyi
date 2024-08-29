@@ -19,7 +19,7 @@ class MTGANDataset(Dataset[torch.Tensor]):
     preprocessing_attributes: PreprocessingAttributes
 
     total_number_of_concepts: int
-    max_number_windows: int
+    maximum_number_of_windows: int
     concept_to_index_dict: Dict[MedRecordValue, int]
 
     def __init__(
@@ -35,7 +35,7 @@ class MTGANDataset(Dataset[torch.Tensor]):
 class MTGANDatasetPrediction(MTGANDataset):
     def __init__(
         self,
-        mmedrecord: MedRecord,
+        medrecord: MedRecord,
         patients_group: Group,
         concepts_group: Group,
         preprocessing_attributes: PreprocessingAttributes,
@@ -50,7 +50,7 @@ class MTGANDataLoader(DataLoader[MTGANDataset]):
 
     size: int
     patient_indices: NDArray[np.int16]
-    number_batches: int
+    number_of_batches: int
     counter: int
 
     def __init__(
