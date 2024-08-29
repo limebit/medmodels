@@ -14,15 +14,15 @@ from medmodels.data_synthesis.mtgan.model.samplers import MTGANDataSampler
 class TrainingHyperparameters(TypedDict, total=True):
     batch_size: int
     real_gru_training_epochs: int
-    real_gru_lr: float
+    real_gru_learning_rate: float
     gan_training_epochs: int
-    critic_hidden_dim: int
-    generator_hidden_dim: int
-    generator_attention_dim: int
+    critic_hidden_dimension: int
+    generator_hidden_dimension: int
+    generator_attention_dimension: int
     critic_iterations: int
     generator_iterations: int
-    critic_lr: float
-    generator_lr: float
+    critic_learning_rate: float
+    generator_learning_rate: float
     beta0: float
     beta1: float
     decay_step: int
@@ -34,15 +34,15 @@ class TrainingHyperparameters(TypedDict, total=True):
 class TrainingHyperparametersOptional(TypedDict, total=False):
     batch_size: int
     real_gru_training_epochs: int
-    real_gru_lr: float
+    real_gru_learning_rate: float
     gan_training_epochs: int
-    critic_hidden_dim: int
-    generator_hidden_dim: int
-    generator_attention_dim: int
+    critic_hidden_dimension: int
+    generator_hidden_dimension: int
+    generator_attention_dimension: int
     critic_iterations: int
     generator_iterations: int
-    critic_lr: float
-    generator_lr: float
+    critic_learning_rate: float
+    generator_learning_rate: float
     beta0: float
     beta1: float
     decay_step: int
@@ -57,7 +57,7 @@ class GAN(nn.Module):
     real_gru: RealGRU
     device: torch.device
 
-    number_windows_distribution: torch.Tensor
+    number_of_windows_distribution: torch.Tensor
     epochs: int
     batch_size: int
     test_frequency: int

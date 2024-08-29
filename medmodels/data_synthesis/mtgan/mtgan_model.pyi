@@ -14,7 +14,7 @@ class MTGANModel(SynthesizerModel):
     _postprocessor: MTGANPostprocessor
     _generator: Generator
 
-    number_samples: int
+    number_of_samples: int
     batch_size: int
 
     def __init__(
