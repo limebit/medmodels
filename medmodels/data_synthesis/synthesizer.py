@@ -1,4 +1,5 @@
 """Abstract class for synthesizers."""
+
 from __future__ import annotations
 
 from abc import ABCMeta, abstractmethod
@@ -8,8 +9,8 @@ from typing import TYPE_CHECKING, Dict, Optional, Type
 import torch
 from torch import nn
 
-from medmodels.medrecord.medrecord import MedRecord
 from medmodels.data_synthesis.synthesizer_model import SynthesizerModel
+from medmodels.medrecord.medrecord import MedRecord
 
 if TYPE_CHECKING:
     from medmodels.data_synthesis.builder import SynthesizerBuilder
@@ -61,11 +62,14 @@ class Synthesizer(nn.Module, metaclass=ABCMeta):
             SynthesizerBuilder: An instance of SynthesizerBuilder.
         """
         from medmodels.data_synthesis.builder import SynthesizerBuilder
+
         return SynthesizerBuilder()
 
     @abstractmethod
     def fit(
-        self, medrecord: MedRecord, checkpoint_directory: Optional[Path],
+        self,
+        medrecord: MedRecord,
+        checkpoint_directory: Optional[Path],
     ) -> SynthesizerModel:
         """Trains the synthesizer on the given data and saves the model if a directory is provided.
 

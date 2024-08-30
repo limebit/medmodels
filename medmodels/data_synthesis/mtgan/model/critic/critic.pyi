@@ -29,12 +29,15 @@ class Critic(nn.Module):
         device: torch.device,
     ) -> None: ...
     def forward(
-        self, data: torch.Tensor, hiddens: torch.Tensor, number_windows: torch.Tensor
+        self,
+        data: torch.Tensor,
+        hidden_states: torch.Tensor,
+        number_of_windows_per_patient: torch.Tensor,
     ) -> torch.Tensor: ...
     def train(
         self,
         real_data: torch.Tensor,
-        real_number_windows: torch.Tensor,
+        number_of_windows_per_patient: torch.Tensor,
         generator: Generator,
         target_concepts: torch.Tensor,
     ) -> float: ...

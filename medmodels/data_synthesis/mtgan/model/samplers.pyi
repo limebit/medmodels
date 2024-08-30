@@ -19,7 +19,7 @@ class MTGANDataSampler:
     dataset: MTGANDataset
     device: torch.device
     size: int
-    concept_samples: List[ConceptSampleIterator]
+    concept_sample_map: List[ConceptSampleIterator]
 
     def __init__(
         self,
