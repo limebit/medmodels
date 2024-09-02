@@ -59,14 +59,12 @@ def extract_attribute_summary(
                     f"max: {data[attribute].max()}",
                     f"mean: {data[attribute].mean():.{decimal}f}",
                 ]
-
             elif schema[attribute][1] == AttributeType.Temporal:
                 time_attribute = data[attribute].str.to_datetime()
                 attribute_info = [
                     f"min: {min(time_attribute).strftime('%Y-%m-%d %H:%M:%S')}",
                     f"max: {max(time_attribute).strftime('%Y-%m-%d %H:%M:%S')}",
                 ]
-
             elif schema[attribute][1] == AttributeType.Categorical:
                 attribute_info = [
                     _extract_string_attribute_info(
@@ -135,7 +133,8 @@ def _extract_string_attribute_info(
 
     values = values.unique().sort()
     values_string = f"{short_string_prefix}: {', '.join(list(values))}"
-    if (len(values) > 5) | (len(values_string) > 100):
+
+    if (len(values) > max_number_values) | (len(values_string) > max_line_length):
         return f"{len(values)} {long_string_suffix}"
     else:
         return values_string
@@ -150,29 +149,32 @@ def prettify_table(table_info: pl.DataFrame) -> List[str]:
     Returns:
         List[str]: List of lines for printing the table.
     """
-    lengths = []
     table_info = table_info.with_columns(pl.exclude(pl.Utf8).cast(str))
-    for col in table_info.columns:
-        lengths.append(max(len(max(table_info[col], key=len)), len(col)))
 
-    print_table = []
+    lengths = [
+        max(len(max(table_info[col], key=len)), len(col)) for col in table_info.columns
+    ]
 
-    print_table.append("-" * (sum(lengths) + len(lengths) + 1))
-
-    print_table.append(
-        " ".join([f"{head:<{lengths[i]}}" for i, head in enumerate(table_info.columns)])
-    )
-
-    print_table.append("-" * (sum(lengths) + len(lengths) + 1))
+    print_table = [
+        "-" * (sum(lengths) + len(lengths) + 1),
+        " ".join(
+            [f"{head:<{lengths[i]}}" for i, head in enumerate(table_info.columns)]
+        ),
+        "-" * (sum(lengths) + len(lengths) + 1),
+    ]
 
     old_row = [""] * len(table_info.columns)
+
     for row in table_info.rows():
         print_row = ""
+
         for i, elem in enumerate(row):
             if (elem == old_row[i]) & (row[:i] == old_row[:i]):
                 elem = ""
             print_row += f"{elem: <{lengths[i]}} "
+
         print_table.append(print_row)
+
         old_row = row
 
     print_table.append("-" * (sum(lengths) + len(lengths) + 1))

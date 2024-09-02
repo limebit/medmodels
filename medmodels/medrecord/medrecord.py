@@ -5,9 +5,9 @@ from typing import Dict, List, Optional, Sequence, Union, overload
 import polars as pl
 
 from medmodels._medmodels import PyMedRecord
+from medmodels.medrecord._overview import extract_attribute_summary, prettify_table
 from medmodels.medrecord.builder import MedRecordBuilder
 from medmodels.medrecord.indexers import EdgeIndexer, NodeIndexer
-from medmodels.medrecord.overview import extract_attribute_summary, prettify_table
 from medmodels.medrecord.querying import EdgeOperation, NodeOperation, edge, node
 from medmodels.medrecord.schema import Schema
 from medmodels.medrecord.types import (
@@ -1297,7 +1297,6 @@ class MedRecord:
         groups = sorted(set(self.groups))
 
         for source_group in groups:
-            # edges in groups
             edges = self.group(source_group)["edges"]
 
             if edges:

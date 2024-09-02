@@ -5,7 +5,7 @@ import pandas as pd
 import polars as pl
 
 import medmodels as mm
-from medmodels.medrecord.overview import extract_attribute_summary, prettify_table
+from medmodels.medrecord._overview import extract_attribute_summary, prettify_table
 from medmodels.medrecord.querying import edge, node
 
 
