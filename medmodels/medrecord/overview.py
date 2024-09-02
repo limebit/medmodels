@@ -114,7 +114,7 @@ def _extract_string_attribute_info(
     """Extracts info about attributes with string format.
 
     Args:
-        attribute_series (pl.Series): Series containing attribute values
+        attribute_series (pl.Series): Series containing attribute values.
         short_string_prefix (str, optional): Prefix for Info string in case of listing
             all the values. Defaults to "Values".
         long_string_suffix (str, optional): Suffix for attribute info in case of too
