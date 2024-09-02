@@ -1,0 +1,33 @@
+name: Link Epic Branch
+
+on:
+  issues:
+    types: [opened]
+
+jobs:
+  link-epic-branch:
+    runs-on: ubuntu-latest
+    if: contains(github.event.issue.labels.*.name, 'epic')
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Link branch to issue
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ISSUE_NUMBER=${{ github.event.issue.number }}
+          ISSUE_TITLE="${{ github.event.issue.title }}"
+
+          # Convert issue title to kebab case
+          KEBAB_TITLE=$(echo "$ISSUE_TITLE" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-zA-Z0-9]/-/g' | sed 's/--*/-/g' | sed 's/^-//' | sed 's/-$//')
+
+          # Construct branch name
+          BRANCH_NAME="epic/${ISSUE_NUMBER}-${KEBAB_TITLE}"
+
+          # Link the branch to the issue
+          gh issue develop $ISSUE_NUMBER --name "$BRANCH_NAME"
+
+          # Add comment to the issue with the branch information
+          gh issue comment $ISSUE_NUMBER --body "Linked development branch for this epic: \`$BRANCH_NAME\`"

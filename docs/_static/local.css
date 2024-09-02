@@ -1,0 +1,12 @@
+:root {
+  --sd-color-primary: #54a5b2 !important;
+  --sd-color-secondary: #4ABBB6 !important;
+
+}
+
+body {
+  .navbar-brand img {
+    height: auto;
+    width: 170px;
+  }
+}

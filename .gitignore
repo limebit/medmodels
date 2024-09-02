@@ -9,4 +9,6 @@ target
 *.so
 .vscode
 .devcontainer
+.python-version
+docs/api/_autosummary/*
 .coverage

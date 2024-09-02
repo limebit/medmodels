@@ -1,5 +1,4 @@
-"""
-This module provides a class for analyzing treatment effects in medical records.
+"""This module provides a class for analyzing treatment effects in medical records.
 
 The TreatmentEffect class facilitates the analysis of treatment effects over time or
 across different patient groups. It allows users to identify patients who underwent
@@ -32,10 +31,7 @@ from medmodels.treatment_effect.temporal_analysis import find_node_in_time_windo
 
 
 class TreatmentEffect:
-    """
-    This class facilitates the analysis of treatment effects over time and across
-    different patient groups.
-    """
+    """This class facilitates the analysis of treatment effects over time and across different patient groups."""
 
     _treatments_group: Group
     _outcomes_group: Group
@@ -68,10 +64,7 @@ class TreatmentEffect:
         treatment: Group,
         outcome: Group,
     ) -> None:
-        """
-        Initializes a Treatment Effect analysis setup with the group of the Medrecord
-        that contains the treatment node IDs and the group of the Medrecord that
-        contains the outcome node IDs.
+        """Initializes a Treatment Effect analysis setup with the group of the Medrecord that contains the treatment node IDs and the group of the Medrecord that contains the outcome node IDs.
 
         Args:
             treatment (Group): The group of treatments to analyze.
@@ -82,7 +75,6 @@ class TreatmentEffect:
     @classmethod
     def builder(cls) -> TreatmentEffectBuilder:
         """Creates a TreatmentEffectBuilder instance for the TreatmentEffect class."""
-
         return TreatmentEffectBuilder()
 
     @staticmethod
@@ -108,9 +100,8 @@ class TreatmentEffect:
         matching_number_of_neighbors: int = 1,
         matching_hyperparam: Optional[Dict[str, Any]] = None,
     ) -> None:
-        """
-        Initializes a Treatment Effect analysis setup with specified treatments and
-        outcomes within a medical record dataset.
+        """Initializes a Treatment Effect analysis setup with specified treatments and outcomes within a medical record dataset.
+
         Validates the presence of specified dimensions and attributes within the
         provided MedRecord object, ensuring the specified treatments and outcomes are
         valid and available for analysis.
@@ -179,10 +170,9 @@ class TreatmentEffect:
     def _find_groups(
         self, medrecord: MedRecord
     ) -> Tuple[Set[NodeIndex], Set[NodeIndex], Set[NodeIndex], Set[NodeIndex]]:
-        """
-        Identifies patients who underwent treatment and experienced outcomes, and finds
-        a control group with similar criteria but without undergoing the treatment. This
-        method supports customizable criteria filtering, time constraints between
+        """Identifies patients who underwent treatment and experienced outcomes, and finds a control group with similar criteria but without undergoing the treatment.
+
+        This method supports customizable criteria filtering, time constraints between
         treatment and outcome, and optional matching of control groups to treatment
         groups using a specified matching class.
 
@@ -257,9 +247,10 @@ class TreatmentEffect:
     def _find_outcomes(
         self, medrecord: MedRecord, treated_group: Set[NodeIndex]
     ) -> Tuple[Set[NodeIndex], Set[NodeIndex], Set[NodeIndex]]:
-        """Find the patients that had the outcome after the treatment. If set in the
-        configuration, remove the ones that already had the outcome before the
-        treatment.
+        """Find the patients that had the outcome after the treatment.
+
+        If set in the configuration, remove the ones that already had the outcome
+        before the treatment.
 
         Args:
             medrecord (MedRecord): An instance of the MedRecord class containing patient
@@ -401,9 +392,7 @@ class TreatmentEffect:
         rejected_nodes: Set[NodeIndex] = set(),
         filter_controls_operation: Optional[NodeOperation] = None,
     ) -> Tuple[Set[NodeIndex], Set[NodeIndex]]:
-        """
-        Identifies control groups among patients who did not undergo the specified
-        treatments.
+        """Identifies control groups among patients who did not undergo the specified treatments.
 
         It takes the control group and removes the rejected nodes, the treated nodes,
         and applies the filter_controls_operation if specified.
@@ -472,8 +461,7 @@ class TreatmentEffect:
 
     @property
     def estimate(self) -> Estimate:
-        """
-        Creates an Estimate object for the TreatmentEffect instance.
+        """Creates an Estimate object for the TreatmentEffect instance.
 
         Returns:
             Estimate: An Estimate object for the current TreatmentEffect instance.
@@ -482,8 +470,7 @@ class TreatmentEffect:
 
     @property
     def report(self) -> Report:
-        """
-        Creates a Report object for the TreatmentEffect instance.
+        """Creates a Report object for the TreatmentEffect instance.
 
         Returns:
             Report: A Report object for the current TreatmentEffect instance.

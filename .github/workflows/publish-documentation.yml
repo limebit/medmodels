@@ -1,0 +1,16 @@
+name: Publish Documentation
+on:
+  release:
+    types: [published]
+
+jobs:
+  publish-documentation:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger limebit/medmodels-website to publish documentation
+        uses: peter-evans/repository-dispatch@v2
+        with:
+          token: ${{ secrets.MEDMODELS_WEBSITE_TOKEN }}
+          repository: limebit/medmodels-website
+          event-type: publish-documentation
+          client-payload: '{"version": "${{ github.event.release.tag_name }}"}'

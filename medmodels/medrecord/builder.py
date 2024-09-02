@@ -65,8 +65,7 @@ EdgeInputWithGroup = Tuple[EdgeInput, Group]
 
 
 class MedRecordBuilder:
-    """
-    A builder class for constructing MedRecord instances.
+    """A builder class for constructing MedRecord instances.
 
     Allows for adding nodes, edges, and groups incrementally, and optionally
     specifying a schema.
@@ -78,9 +77,7 @@ class MedRecordBuilder:
     _schema: Optional[Schema]
 
     def __init__(self) -> None:
-        """
-        Initializes a new MedRecordBuilder instance.
-        """
+        """Initializes a new MedRecordBuilder instance."""
         self._nodes = []
         self._edges = []
         self._groups = {}
@@ -92,8 +89,7 @@ class MedRecordBuilder:
         *,
         group: Optional[Group] = None,
     ) -> MedRecordBuilder:
-        """
-        Adds nodes to the builder.
+        """Adds nodes to the builder.
 
         Args:
             nodes (NodeInput): Nodes to add.
@@ -115,8 +111,7 @@ class MedRecordBuilder:
         *,
         group: Optional[Group] = None,
     ) -> MedRecordBuilder:
-        """
-        Adds edges to the builder.
+        """Adds edges to the builder.
 
         Args:
             edges (EdgeInput): Edges to add.
@@ -135,8 +130,7 @@ class MedRecordBuilder:
     def add_group(
         self, group: Group, *, nodes: List[NodeIndex] = []
     ) -> MedRecordBuilder:
-        """
-        Adds a group to the builder with an optional list of nodes.
+        """Adds a group to the builder with an optional list of nodes.
 
         Args:
             group (Group): The name of the group to add.
@@ -149,8 +143,7 @@ class MedRecordBuilder:
         return self
 
     def with_schema(self, schema: Schema) -> MedRecordBuilder:
-        """
-        Specifies a schema for the MedRecord.
+        """Specifies a schema for the MedRecord.
 
         Args:
             schema (Schema): The schema to apply.
@@ -162,8 +155,7 @@ class MedRecordBuilder:
         return self
 
     def build(self) -> mm.MedRecord:
-        """
-        Constructs a MedRecord instance from the builder's configuration.
+        """Constructs a MedRecord instance from the builder's configuration.
 
         Returns:
             MedRecord: The constructed MedRecord instance.
