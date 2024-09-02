@@ -31,6 +31,8 @@ dependencies = [
     "pandas>=2.2.2",
     "polars[pandas]>=1.6.0",
     "scikit-learn>=1.5.0",
+    "sparse>=0.15.4",
+    "torch>=2.4.0",
 ]
 
 [project.optional-dependencies]
