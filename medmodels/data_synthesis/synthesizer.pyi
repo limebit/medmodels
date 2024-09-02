@@ -23,7 +23,10 @@ class Synthesizer(nn.Module, metaclass=ABCMeta):
     def builder(cls) -> SynthesizerBuilder: ...
     @abstractmethod
     def fit(
-        self, medrecord: MedRecord, checkpoint_directory: Optional[Path]
+        self,
+        medrecord: MedRecord,
+        checkpoint_directory: Optional[Path],
+        **kwargs: Dict[str, Path],
     ) -> SynthesizerModel: ...
     @abstractmethod
     def fit_from(
@@ -33,4 +36,6 @@ class Synthesizer(nn.Module, metaclass=ABCMeta):
         **kwargs: Dict[str, Path],
     ) -> SynthesizerModel: ...
     @abstractmethod
-    def load_model(self, medrecord: MedRecord, path: Path) -> SynthesizerModel: ...
+    def load_model(
+        self, medrecord: MedRecord, path: Path, **kwargs: Dict[str, Path]
+    ) -> SynthesizerModel: ...
