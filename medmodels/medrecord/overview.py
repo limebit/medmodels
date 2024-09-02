@@ -13,9 +13,24 @@ def extract_attribute_summary(
 ) -> pl.DataFrame:
     """Extracts a summary from a node or edge attribute dictionary.
 
+
+    Example:
+    ┌────────────────┬──────────────────────────┐
+    │ Attribute      ┆ Info                     │
+    │ ---            ┆ ---                      │
+    │ str            ┆ str                      │
+    ╞════════════════╪══════════════════════════╡
+    │ diagnosis_time ┆ min: 1962-10-21 00:00:00 │
+    │ diagnosis_time ┆ max: 2024-04-12 00:00:00 │
+    │ duration_days  ┆ min: 0.0                 │
+    │ duration_days  ┆ max: 3416.0              │
+    │ duration_days  ┆ mean: 405.02             │
+    └────────────────┴──────────────────────────┘
+
+
     Args:
         attribute_dict (Union[Dict[EdgeIndex, Attributes], Dict[NodeIndex, Attributes]]):
-             Edges or Nodes and their attributes and values.
+            Edges or Nodes and their attributes and values.
         schema (Optional[AttributesSchema], optional): Attribute Schema for the group
             nodes or edges. Defaults to None.
         decimal (Optional[int], optional): Decimal points to round the numeric values.
@@ -54,16 +69,20 @@ def extract_attribute_summary(
                 ]
 
             elif schema[attribute][1] == AttributeType.Categorical:
-                categories = data[attribute].unique().sort()
+                categories = data[attribute].drop_nulls().unique().sort()
                 category_str = ", ".join(categories)
-                if (len(categories) > 5) | (len(category_str) > 100):
+                if len(categories) == 0:
+                    attribute_info = "-"
+                elif (len(categories) > 5) | (len(category_str) > 100):
                     attribute_info = [f"{len(categories)} categories"]
                 else:
                     attribute_info = [f"Categories: {', '.join(list(categories))}"]
             else:
-                categories = data[attribute].unique().sort()
-                category_str = ", ".join(categories)
-                if (len(categories) > 5) | (len(category_str) > 100):
+                categories = data[attribute].drop_nulls().unique().sort()
+                category_str = ", ".join(list(categories))
+                if len(categories) == 0:
+                    attribute_info = "-"
+                elif (len(categories) > 5) | (len(category_str) > 100):
                     attribute_info = [f"{len(categories)} unique values"]
                 else:
                     attribute_info = [f"Values: {', '.join(list(categories))}"]
@@ -76,10 +95,17 @@ def extract_attribute_summary(
                     f"max: {data[attribute].max()}",
                     f"mean: {data[attribute].mean():.{decimal}f}",
                 ]
+            elif data[attribute].dtype.is_temporal():
+                attribute_info = [
+                    f"min: {min(data[attribute]).strftime('%Y-%m-%d %H:%M:%S')}",
+                    f"max: {max(data[attribute]).strftime('%Y-%m-%d %H:%M:%S')}",
+                ]
             else:
                 categories = data[attribute].drop_nulls().unique().sort()
                 category_str = ", ".join(list(categories))
-                if (len(categories) > 5) | (len(category_str) > 100):
+                if len(categories) == 0:
+                    attribute_info = "-"
+                elif (len(categories) > 5) | (len(category_str) > 100):
                     attribute_info = [f"{len(categories)} unique values"]
                 else:
                     attribute_info = [f"Values: {', '.join(list(categories))}"]

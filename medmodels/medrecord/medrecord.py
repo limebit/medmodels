@@ -1309,16 +1309,14 @@ class MedRecord:
         Returns:
             pl.DataFrame: Dataframe with all nodes in medrecord groups and their attributes.
         """
-        node_groups = [
-            pl.DataFrame(
-                schema={
-                    "Nodes": pl.String,
-                    "Count": pl.Int32,
-                    "Attribute": pl.String,
-                    "Info": pl.String,
-                }
-            )
-        ]
+        df_schema = {
+            "Nodes Group": pl.String,
+            "Count": pl.Int32,
+            "Attribute": pl.String,
+            "Info": pl.String,
+        }
+
+        node_groups = [pl.DataFrame(schema=df_schema)]
 
         groups = set(self.groups)
 
@@ -1326,21 +1324,35 @@ class MedRecord:
             nodes = self.group(group)["nodes"]
 
             if not nodes:
-                continue
+                if not self.group(group)["edges"]:
+                    node_info = pl.DataFrame(
+                        {
+                            "Nodes Group": group,
+                            "Count": 0,
+                            "Attribute": "-",
+                            "Info": "-",
+                        },
+                        schema=df_schema,
+                    )
+                else:
+                    continue
 
-            schema = (
-                self.schema.group(group).nodes if group in self.schema.groups else None
-            )
+            else:
+                schema = (
+                    self.schema.group(group).nodes
+                    if group in self.schema.groups
+                    else None
+                )
 
-            node_info = extract_attribute_summary(self.node[nodes], schema=schema)
+                node_info = extract_attribute_summary(self.node[nodes], schema=schema)
 
-            node_info = node_info.select(
-                [
-                    pl.lit(group).alias("Nodes"),
-                    pl.lit(len(nodes)).alias("Count"),
-                    pl.all(),
-                ]
-            )
+                node_info = node_info.select(
+                    [
+                        pl.lit(group).alias("Nodes Group"),
+                        pl.lit(len(nodes)).alias("Count"),
+                        pl.all(),
+                    ]
+                )
 
             node_groups.append(node_info)
 
@@ -1360,7 +1372,7 @@ class MedRecord:
         edge_groups = [
             pl.DataFrame(
                 schema={
-                    "Edges": pl.String,
+                    "Edges Groups": pl.String,
                     "Count": pl.Int32,
                     "Attribute": pl.String,
                     "Info": pl.String,
@@ -1385,7 +1397,7 @@ class MedRecord:
 
                 edge_info = edge_info.select(
                     [
-                        pl.lit(source_group).alias("Edges"),
+                        pl.lit(source_group).alias("Edges Groups"),
                         pl.lit(len(edges)).alias("Count"),
                         pl.all(),
                     ]
@@ -1407,7 +1419,9 @@ class MedRecord:
 
                 edge_info = edge_info.select(
                     [
-                        pl.lit(f"{source_group} -> {target_group}").alias("Edges"),
+                        pl.lit(f"{source_group} -> {target_group}").alias(
+                            "Edges Groups"
+                        ),
                         pl.lit(len(edges)).alias("Count"),
                         pl.all(),
                     ]
@@ -1435,15 +1449,15 @@ class MedRecord:
 
         Example:
 
-        ----------------------------------------------
-        Nodes     Count Attribute   Info
-        ----------------------------------------------
-        diagnosis 25    description 25 unique values
-        patient   5     age         min: 19
-                                    max: 96
-                                    mean: 43.20
-                        gender      Categories: F, M
-        ----------------------------------------------
+        ----------------------------------------------------
+        Nodes Group     Count Attribute   Info
+        ----------------------------------------------------
+        diagnosis       25    description 25 unique values
+        patient         5     age         min: 19
+                                          max: 96
+                                          mean: 43.20
+                              gender      Categories: F, M
+        ----------------------------------------------------
 
         """
         nodes_table = prettify_table(self._describe_group_nodes())
@@ -1456,15 +1470,15 @@ class MedRecord:
 
         Example:
 
-        ----------------------------------------------------------------------
-        Edges                Count Attribute        Info
-        ----------------------------------------------------------------------
-        patient -> diagnosis 60    diagnosis_time   min: 1962-10-21 00:00:00
-                                                    max: 2024-04-12 00:00:00
-                                   duration_days    min: 0.0
-                                                    max: 3416.0
-                                                    mean: 405.02
-        ----------------------------------------------------------------------
+        ----------------------------------------------------------------------------
+        Edges Groups                Count Attribute        Info
+        ----------------------------------------------------------------------------
+        patient -> diagnosis        60    diagnosis_time   min: 1962-10-21 00:00:00
+                                                           max: 2024-04-12 00:00:00
+                                          duration_days    min: 0.0
+                                                           max: 3416.0
+                                                           mean: 405.02
+        ----------------------------------------------------------------------------
 
         """
         edges_table = prettify_table(self._describe_group_edges())

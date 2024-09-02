@@ -1,5 +1,6 @@
 import unittest
 
+import numpy as np
 import pandas as pd
 import polars as pl
 
@@ -16,19 +17,23 @@ def create_medrecord():
         }
     )
     diagnosis = pd.DataFrame({"index": ["D1", "D2"]})
-    prescriptions = pd.DataFrame({"index": ["M1", "M2"], "ATC": ["B01AF01", "B01AA03"]})
+    prescriptions = pd.DataFrame(
+        {"index": ["M1", "M2", "M3"], "ATC": ["B01AF01", "B01AA03", np.nan]}
+    )
     nodes = [patients, diagnosis, prescriptions]
     edges = pd.DataFrame(
         {
             "source": ["D1", "M1", "D1"],
             "target": ["P1", "P2", "P3"],
-            "time": ["2000-01-01", "1999-10-15", "1999-12-150"],
+            "time": ["2000-01-01", "1999-10-15", "1999-12-15"],
         }
     )
+    edges.time = pd.to_datetime(edges.time)
     groups = [
         ("Patients", patients["index"].to_list()),
         ("Stroke", ["D1"]),
-        ("Medications", ["M1", "M2"]),
+        ("Medications", ["M1", "M2", "M3"]),
+        ("Aspirin", ["M3"]),
     ]
     medrecord = mm.MedRecord.from_pandas(
         nodes=[(node, "index") for node in nodes],
@@ -71,6 +76,38 @@ class TestOverview(unittest.TestCase):
             )
         )
 
+        # nan attribute
+        nan_attributes = extract_attribute_summary(
+            medrecord.node[node().in_group("Aspirin")]
+        )
+        self.assertTrue(
+            nan_attributes.equals(pl.DataFrame({"Attribute": "ATC", "Info": "-"}))
+        )
+
+        # temporal attributes
+        temp_attributes = extract_attribute_summary(
+            medrecord.edge[
+                medrecord.select_edges(
+                    edge().connected_source_with(node().in_group("Medications"))
+                    & edge().connected_target_with(node().in_group("Patients"))
+                )
+            ]
+        )
+
+        self.assertTrue(
+            temp_attributes.equals(
+                pl.DataFrame(
+                    {
+                        "Attribute": ["time"] * 2,
+                        "Info": [
+                            "min: 1999-10-15 00:00:00",
+                            "max: 1999-10-15 00:00:00",
+                        ],
+                    }
+                )
+            )
+        )
+
         # with schema
         mr_schema = mm.MedRecord.from_example_dataset()
         nodes_schema = mr_schema.group("patient")["nodes"]
@@ -88,18 +125,29 @@ class TestOverview(unittest.TestCase):
         self.assertTrue(node_info.equals(expected_info))
 
         # compare schema and not schema
-        schema_attributes = extract_attribute_summary(
-            mr_schema.edge[edge().in_group("patient_diagnosis")]
+        patient_diagnosis = extract_attribute_summary(
+            mr_schema.edge[edge().in_group("patient_diagnosis")],
+            schema=mr_schema.schema.group("patient_diagnosis").edges,
         )
-        no_schema_attributes = extract_attribute_summary(
-            mr_schema.edge[
-                mr_schema.select_edges(
-                    edge().connected_source_with(node().in_group("patient"))
-                    & edge().connected_target_with(node().in_group("diagnosis"))
-                )
-            ]
+        patient_diagnoses_expected = pl.DataFrame(
+            {
+                "Attribute": [
+                    "diagnosis_time",
+                    "diagnosis_time",
+                    "duration_days",
+                    "duration_days",
+                    "duration_days",
+                ],
+                "Info": [
+                    "min: 1962-10-21 00:00:00",
+                    "max: 2024-04-12 00:00:00",
+                    "min: 0.0",
+                    "max: 3416.0",
+                    "mean: 405.02",
+                ],
+            }
         )
-        self.assertTrue(schema_attributes.equals(no_schema_attributes))
+        self.assertTrue(patient_diagnosis.equals(patient_diagnoses_expected))
 
     def test_prettify_table(self):
         df_empty = pl.DataFrame(

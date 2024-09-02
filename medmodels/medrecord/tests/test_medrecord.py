@@ -1351,23 +1351,25 @@ class TestMedRecord(unittest.TestCase):
     def test_describe_group_nodes(self):
         medrecord = create_medrecord()
 
+        medrecord.add_group("Float")
         medrecord.add_group("Even", nodes=["2", "0"])
         medrecord.add_group("Odd", nodes=["1", "3"])
 
         expected = pl.DataFrame(
             {
-                "Nodes": ["Even", "Even", "Even", "Odd"],
-                "Count": [2, 2, 2, 2],
-                "Attribute": ["adipiscing", "dolor", "lorem", "amet"],
+                "Nodes Group": ["Even", "Even", "Even", "Float", "Odd"],
+                "Count": [2, 2, 2, 0, 2],
+                "Attribute": ["adipiscing", "dolor", "lorem", "-", "amet"],
                 "Info": [
                     "Values: elit",
                     "Values: sit",
                     "Values: ipsum",
+                    "-",
                     "Values: consectetur",
                 ],
             },
             schema={
-                "Nodes": pl.String,
+                "Nodes Group": pl.String,
                 "Count": pl.Int32,
                 "Attribute": pl.String,
                 "Info": pl.String,
@@ -1384,7 +1386,7 @@ class TestMedRecord(unittest.TestCase):
 
         expected_edges = pl.DataFrame(
             {
-                "Edges": [
+                "Edges Groups": [
                     "Even -> Odd",
                     "Even -> Odd",
                     "Odd -> Even",
@@ -1402,7 +1404,7 @@ class TestMedRecord(unittest.TestCase):
                 ],
             },
             schema={
-                "Edges": pl.String,
+                "Edges Groups": pl.String,
                 "Count": pl.Int32,
                 "Attribute": pl.String,
                 "Info": pl.String,
