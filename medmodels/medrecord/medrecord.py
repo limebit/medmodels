@@ -1323,36 +1323,19 @@ class MedRecord:
         for group in sorted(groups):
             nodes = self.group(group)["nodes"]
 
-            if not nodes:
-                if not self.group(group)["edges"]:
-                    node_info = pl.DataFrame(
-                        {
-                            "Nodes Group": group,
-                            "Count": 0,
-                            "Attribute": "-",
-                            "Info": "-",
-                        },
-                        schema=df_schema,
-                    )
-                else:
-                    continue
+            schema = (
+                self.schema.group(group).nodes if group in self.schema.groups else None
+            )
 
-            else:
-                schema = (
-                    self.schema.group(group).nodes
-                    if group in self.schema.groups
-                    else None
-                )
+            node_info = extract_attribute_summary(self.node[nodes], schema=schema)
 
-                node_info = extract_attribute_summary(self.node[nodes], schema=schema)
-
-                node_info = node_info.select(
-                    [
-                        pl.lit(group).alias("Nodes Group"),
-                        pl.lit(len(nodes)).alias("Count"),
-                        pl.all(),
-                    ]
-                )
+            node_info = node_info.select(
+                [
+                    pl.lit(group).alias("Nodes Group"),
+                    pl.lit(len(nodes)).alias("Count"),
+                    pl.all(),
+                ]
+            )
 
             node_groups.append(node_info)
 

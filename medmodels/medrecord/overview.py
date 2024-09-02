@@ -9,7 +9,7 @@ from medmodels.medrecord.types import Attributes, EdgeIndex, NodeIndex
 def extract_attribute_summary(
     attribute_dict: Union[Dict[EdgeIndex, Attributes], Dict[NodeIndex, Attributes]],
     schema: Optional[AttributesSchema] = None,
-    decimal: Optional[int] = 2,
+    decimal: int = 2,
 ) -> pl.DataFrame:
     """Extracts a summary from a node or edge attribute dictionary.
 
@@ -33,8 +33,7 @@ def extract_attribute_summary(
             Edges or Nodes and their attributes and values.
         schema (Optional[AttributesSchema], optional): Attribute Schema for the group
             nodes or edges. Defaults to None.
-        decimal (Optional[int], optional): Decimal points to round the numeric values.
-            Defaults to 2.
+        decimal (int): Decimal points to round the numeric values. Defaults to 2.
 
     Returns:
         pl.DataFrame: Summary of node or edge attributes.
@@ -69,23 +68,17 @@ def extract_attribute_summary(
                 ]
 
             elif schema[attribute][1] == AttributeType.Categorical:
-                categories = data[attribute].drop_nulls().unique().sort()
-                category_str = ", ".join(categories)
-                if len(categories) == 0:
-                    attribute_info = "-"
-                elif (len(categories) > 5) | (len(category_str) > 100):
-                    attribute_info = [f"{len(categories)} categories"]
-                else:
-                    attribute_info = [f"Categories: {', '.join(list(categories))}"]
+                attribute_info = [
+                    _extract_string_attribute_info(
+                        attribute_series=data[attribute],
+                        long_string_suffix="categories",
+                        short_string_prefix="Categories",
+                    )
+                ]
             else:
-                categories = data[attribute].drop_nulls().unique().sort()
-                category_str = ", ".join(list(categories))
-                if len(categories) == 0:
-                    attribute_info = "-"
-                elif (len(categories) > 5) | (len(category_str) > 100):
-                    attribute_info = [f"{len(categories)} unique values"]
-                else:
-                    attribute_info = [f"Values: {', '.join(list(categories))}"]
+                attribute_info = [
+                    _extract_string_attribute_info(attribute_series=data[attribute])
+                ]
 
         ## Without Schema
         else:
@@ -101,19 +94,51 @@ def extract_attribute_summary(
                     f"max: {max(data[attribute]).strftime('%Y-%m-%d %H:%M:%S')}",
                 ]
             else:
-                categories = data[attribute].drop_nulls().unique().sort()
-                category_str = ", ".join(list(categories))
-                if len(categories) == 0:
-                    attribute_info = "-"
-                elif (len(categories) > 5) | (len(category_str) > 100):
-                    attribute_info = [f"{len(categories)} unique values"]
-                else:
-                    attribute_info = [f"Values: {', '.join(list(categories))}"]
+                attribute_info = [
+                    _extract_string_attribute_info(attribute_series=data[attribute])
+                ]
 
         data_dict["Attribute"].extend([attribute] * len(attribute_info))
         data_dict["Info"].extend(attribute_info)
 
     return pl.DataFrame(data_dict)
+
+
+def _extract_string_attribute_info(
+    attribute_series: pl.Series,
+    short_string_prefix: str = "Values",
+    long_string_suffix: str = "unique values",
+    max_number_values: int = 5,
+    max_line_length: int = 100,
+) -> str:
+    """Extracts info about attributes with string format.
+
+    Args:
+        attribute_series (pl.Series): Series containing attribute values
+        short_string_prefix (str, optional): Prefix for Info string in case of listing
+            all the values. Defaults to "Values".
+        long_string_suffix (str, optional): Suffix for attribute info in case of too
+            many values to list. Here only the count will be displayed.
+            Defaults to "unique values".
+        max_number_values (int, optional): Maximum values that should be listed in the
+            info string. Defaults to 5.
+        max_line_length (int, optional): Maximum line length for the info string.
+            Defaults to 100.
+
+    Returns:
+        str: Attribute info string.
+    """
+    values = attribute_series.drop_nulls()
+
+    if len(values) == 0:
+        return "-"
+
+    values = values.unique().sort()
+    values_string = f"{short_string_prefix}: {', '.join(list(values))}"
+    if (len(values) > 5) | (len(values_string) > 100):
+        return f"{len(values)} {long_string_suffix}"
+    else:
+        return values_string
 
 
 def prettify_table(table_info: pl.DataFrame) -> List[str]:
