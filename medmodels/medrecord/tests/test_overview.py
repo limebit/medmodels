@@ -16,11 +16,15 @@ def create_medrecord():
             "age": [20, 30, 70],
         }
     )
+
     diagnosis = pd.DataFrame({"index": ["D1", "D2"]})
+
     prescriptions = pd.DataFrame(
         {"index": ["M1", "M2", "M3"], "ATC": ["B01AF01", "B01AA03", np.nan]}
     )
+
     nodes = [patients, diagnosis, prescriptions]
+
     edges = pd.DataFrame(
         {
             "source": ["D1", "M1", "D1"],
@@ -28,7 +32,9 @@ def create_medrecord():
             "time": ["2000-01-01", "1999-10-15", "1999-12-15"],
         }
     )
+
     edges.time = pd.to_datetime(edges.time)
+
     edges_disease = pl.DataFrame(
         {
             "source": ["D1", "D1", "D1"],
@@ -37,17 +43,21 @@ def create_medrecord():
         },
         strict=False,
     )
+
     groups = [
         ("Patients", patients["index"].to_list()),
         ("Stroke", ["D1"]),
         ("Medications", ["M1", "M2", "M3"]),
         ("Aspirin", ["M3"]),
     ]
+
     medrecord = mm.MedRecord.from_pandas(
         nodes=[(node, "index") for node in nodes],
         edges=(edges, "source", "target"),
     )
+
     medrecord.add_edges_polars(edges=(edges_disease, "source", "target"))
+
     for group, group_list in groups:
         medrecord.add_group(group, group_list)
 
@@ -58,10 +68,12 @@ class TestOverview(unittest.TestCase):
     def test_extract_attribute_summary(self):
         # medrecord without schema
         medrecord = create_medrecord()
+
         # No attributes
         no_attributes = extract_attribute_summary(
             medrecord.node[node().in_group("Stroke")]
         )
+
         self.assertTrue(
             no_attributes.equals(pl.DataFrame({"Attribute": "-", "Info": "-"}))
         )
@@ -70,15 +82,18 @@ class TestOverview(unittest.TestCase):
         numeric_attribute = extract_attribute_summary(
             medrecord.node[node().in_group("Patients")]
         )
+
         numeric_expected = pl.DataFrame(
             {"Attribute": ["age"] * 3, "Info": ["min: 20", "max: 70", "mean: 40.00"]}
         )
+
         self.assertTrue(numeric_attribute.equals(numeric_expected))
 
         # string attributes
         str_attributes = extract_attribute_summary(
             medrecord.node[node().in_group("Medications")]
         )
+
         self.assertTrue(
             str_attributes.equals(
                 pl.DataFrame({"Attribute": "ATC", "Info": "Values: B01AA03, B01AF01"})
@@ -89,7 +104,7 @@ class TestOverview(unittest.TestCase):
         nan_attributes = extract_attribute_summary(
             medrecord.node[node().in_group("Aspirin")]
         )
-        print(nan_attributes)
+
         self.assertTrue(
             nan_attributes.equals(pl.DataFrame({"Attribute": "ATC", "Info": "-"}))
         )
@@ -103,6 +118,7 @@ class TestOverview(unittest.TestCase):
                 )
             ]
         )
+
         self.assertTrue(
             temp_attributes.equals(
                 pl.DataFrame(
@@ -126,6 +142,7 @@ class TestOverview(unittest.TestCase):
                 )
             ]
         )
+
         expected_mixed = pl.DataFrame(
             {
                 "Attribute": ["intensity", "time", "time"],
@@ -142,10 +159,12 @@ class TestOverview(unittest.TestCase):
         # with schema
         mr_schema = mm.MedRecord.from_example_dataset()
         nodes_schema = mr_schema.group("patient")["nodes"]
+
         node_info = extract_attribute_summary(
             mr_schema.node[nodes_schema],
             schema=mr_schema.schema.group("patient").nodes,
         )
+
         expected_info = pl.DataFrame(
             {
                 "Attribute": ["age", "age", "age", "gender"],
@@ -160,6 +179,7 @@ class TestOverview(unittest.TestCase):
             mr_schema.edge[edge().in_group("patient_diagnosis")],
             schema=mr_schema.schema.group("patient_diagnosis").edges,
         )
+
         patient_diagnoses_expected = pl.DataFrame(
             {
                 "Attribute": [
@@ -178,6 +198,7 @@ class TestOverview(unittest.TestCase):
                 ],
             }
         )
+
         self.assertTrue(patient_diagnosis.equals(patient_diagnoses_expected))
 
     def test_prettify_table(self):

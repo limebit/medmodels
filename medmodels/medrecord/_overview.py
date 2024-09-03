@@ -53,6 +53,7 @@ def extract_attribute_summary(
 
     for attribute in attributes:
         attribute_values = data[attribute].drop_nulls()
+
         if len(attribute_values) == 0:
             attribute_info = ["-"]
         elif schema and attribute in schema:
