@@ -52,15 +52,18 @@ def extract_attribute_summary(
         return pl.DataFrame({"Attribute": ["-"], "Info": ["-"]})
 
     for attribute in attributes:
-        if schema and attribute in schema:
+        attribute_values = data[attribute].drop_nulls()
+        if len(attribute_values) == 0:
+            attribute_info = ["-"]
+        elif schema and attribute in schema:
             if schema[attribute][1] == AttributeType.Continuous:
                 attribute_info = [
-                    f"min: {data[attribute].min()}",
-                    f"max: {data[attribute].max()}",
-                    f"mean: {data[attribute].mean():.{decimal}f}",
+                    f"min: {attribute_values.min()}",
+                    f"max: {attribute_values.max()}",
+                    f"mean: {attribute_values.mean():.{decimal}f}",
                 ]
             elif schema[attribute][1] == AttributeType.Temporal:
-                time_attribute = data[attribute].str.to_datetime()
+                time_attribute = attribute_values.str.to_datetime()
                 attribute_info = [
                     f"min: {min(time_attribute).strftime('%Y-%m-%d %H:%M:%S')}",
                     f"max: {max(time_attribute).strftime('%Y-%m-%d %H:%M:%S')}",
@@ -68,32 +71,32 @@ def extract_attribute_summary(
             elif schema[attribute][1] == AttributeType.Categorical:
                 attribute_info = [
                     _extract_string_attribute_info(
-                        attribute_series=data[attribute],
+                        attribute_series=attribute_values,
                         long_string_suffix="categories",
                         short_string_prefix="Categories",
                     )
                 ]
             else:
                 attribute_info = [
-                    _extract_string_attribute_info(attribute_series=data[attribute])
+                    _extract_string_attribute_info(attribute_series=attribute_values)
                 ]
 
         ## Without Schema
         else:
-            if data[attribute].dtype.is_numeric():
+            if attribute_values.dtype.is_numeric():
                 attribute_info = [
-                    f"min: {data[attribute].min()}",
-                    f"max: {data[attribute].max()}",
-                    f"mean: {data[attribute].mean():.{decimal}f}",
+                    f"min: {attribute_values.min()}",
+                    f"max: {attribute_values.max()}",
+                    f"mean: {attribute_values.mean():.{decimal}f}",
                 ]
-            elif data[attribute].dtype.is_temporal():
+            elif attribute_values.dtype.is_temporal():
                 attribute_info = [
-                    f"min: {min(data[attribute]).strftime('%Y-%m-%d %H:%M:%S')}",
-                    f"max: {max(data[attribute]).strftime('%Y-%m-%d %H:%M:%S')}",
+                    f"min: {min(attribute_values).strftime('%Y-%m-%d %H:%M:%S')}",
+                    f"max: {max(attribute_values).strftime('%Y-%m-%d %H:%M:%S')}",
                 ]
             else:
                 attribute_info = [
-                    _extract_string_attribute_info(attribute_series=data[attribute])
+                    _extract_string_attribute_info(attribute_series=attribute_values)
                 ]
 
         data_dict["Attribute"].extend([attribute] * len(attribute_info))
@@ -126,12 +129,7 @@ def _extract_string_attribute_info(
     Returns:
         str: Attribute info string.
     """
-    values = attribute_series.drop_nulls()
-
-    if len(values) == 0:
-        return "-"
-
-    values = values.unique().sort()
+    values = attribute_series.unique().sort()
     values_string = f"{short_string_prefix}: {', '.join(list(values))}"
 
     if (len(values) > max_number_values) | (len(values_string) > max_line_length):

@@ -29,6 +29,14 @@ def create_medrecord():
         }
     )
     edges.time = pd.to_datetime(edges.time)
+    edges_disease = pl.DataFrame(
+        {
+            "source": ["D1", "D1", "D1"],
+            "target": ["P1", "P2", "P3"],
+            "intensity": [1, "low", None],
+        },
+        strict=False,
+    )
     groups = [
         ("Patients", patients["index"].to_list()),
         ("Stroke", ["D1"]),
@@ -39,6 +47,7 @@ def create_medrecord():
         nodes=[(node, "index") for node in nodes],
         edges=(edges, "source", "target"),
     )
+    medrecord.add_edges_polars(edges=(edges_disease, "source", "target"))
     for group, group_list in groups:
         medrecord.add_group(group, group_list)
 
@@ -80,6 +89,7 @@ class TestOverview(unittest.TestCase):
         nan_attributes = extract_attribute_summary(
             medrecord.node[node().in_group("Aspirin")]
         )
+        print(nan_attributes)
         self.assertTrue(
             nan_attributes.equals(pl.DataFrame({"Attribute": "ATC", "Info": "-"}))
         )
@@ -93,7 +103,6 @@ class TestOverview(unittest.TestCase):
                 )
             ]
         )
-
         self.assertTrue(
             temp_attributes.equals(
                 pl.DataFrame(
@@ -107,6 +116,28 @@ class TestOverview(unittest.TestCase):
                 )
             )
         )
+
+        # mixed attributes
+        mixed_attributes = extract_attribute_summary(
+            medrecord.edge[
+                medrecord.select_edges(
+                    edge().connected_source_with(node().in_group("Stroke"))
+                    & edge().connected_target_with(node().in_group("Patients"))
+                )
+            ]
+        )
+        expected_mixed = pl.DataFrame(
+            {
+                "Attribute": ["intensity", "time", "time"],
+                "Info": [
+                    "Values: 1, low",
+                    "min: 1999-12-15 00:00:00",
+                    "max: 2000-01-01 00:00:00",
+                ],
+            }
+        )
+
+        self.assertTrue(mixed_attributes.equals(expected_mixed))
 
         # with schema
         mr_schema = mm.MedRecord.from_example_dataset()
