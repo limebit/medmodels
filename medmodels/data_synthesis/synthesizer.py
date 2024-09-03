@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from abc import ABCMeta, abstractmethod
 from pathlib import Path
-from typing import TYPE_CHECKING, Dict, Optional, Type
+from typing import TYPE_CHECKING, Any, Dict, Optional, Type
 
 import torch
 from torch import nn
@@ -36,21 +36,10 @@ class Synthesizer(nn.Module, metaclass=ABCMeta):
         Args:
             preprocessor (Type[nn.Module]): Type of preprocessor module.
             postprocessor (Type[nn.Module]): Type of postprocessor module.
-
-        Raises:
-            NotImplementedError: If the preprocessor or postprocessor does not have the
-                required methods (preprocess and postprocess, respectively).
         """
         super(Synthesizer, self).__init__()
         self._preprocessor = preprocessor
         self._postprocessor = postprocessor
-
-        if not callable(getattr(self._preprocessor, "preprocess", None)):
-            raise NotImplementedError("Preprocessor must have a preprocess method.")
-
-        if not callable(getattr(self._postprocessor, "postprocess", None)):
-            raise NotImplementedError("Postprocessor must have a postprocess method.")
-
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.to(self.device)
 
@@ -70,6 +59,7 @@ class Synthesizer(nn.Module, metaclass=ABCMeta):
         self,
         medrecord: MedRecord,
         checkpoint_directory: Optional[Path],
+        **kwargs: Dict[str, Any],
     ) -> SynthesizerModel:
         """Trains the synthesizer on the given data and saves the model if a directory is provided.
 
@@ -81,6 +71,7 @@ class Synthesizer(nn.Module, metaclass=ABCMeta):
         Args:
             medrecord (MedRecord): MedRecord object.
             checkpoint_directory (Optional[Path]): Directory to save the model to.
+            **kwargs (Dict[str, Any]): Additional keyword arguments.
 
         Returns:
             SynthesizerModel: Trained synthesizer.
@@ -106,8 +97,7 @@ class Synthesizer(nn.Module, metaclass=ABCMeta):
         Args:
             medrecord (MedRecord): MedRecord object.
             save_directory (Optional[Path]): Directory to save the model to.
-            **kwargs (Dict[str, Path]): Dictionary containing the paths to the
-                saved model/checkpoints of the model.
+            **kwargs (Dict[str, Path]): Additional keyword arguments.
 
         Returns:
             Synthesizer: Trained synthesizer.
@@ -115,7 +105,9 @@ class Synthesizer(nn.Module, metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def load_model(self, medrecord: MedRecord, path: Path) -> SynthesizerModel:
+    def load_model(
+        self, medrecord: MedRecord, path: Path, **kwargs: Dict[str, Any]
+    ) -> SynthesizerModel:
         """Loads the model from a specified path.
 
         This method is meant to load the model from the given path. It is an abstract
@@ -124,6 +116,7 @@ class Synthesizer(nn.Module, metaclass=ABCMeta):
         Args:
             medrecord (MedRecord): MedRecord object.
             path (Path): Path to load the model parameters from.
+            **kwargs (Dict[str, Any]): Additional keyword arguments.
 
         Returns:
             SynthesizerModel: Loaded synthesizer model.

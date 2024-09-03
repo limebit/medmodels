@@ -5,7 +5,6 @@ from typing_extensions import Unpack
 
 from medmodels.data_synthesis.mtgan.model.gan import TrainingHyperparametersOptional
 from medmodels.data_synthesis.mtgan.modules.postprocessor import (
-    AttributeType,
     PostprocessingHyperparametersOptional,
 )
 from medmodels.data_synthesis.mtgan.modules.preprocessor import (
@@ -14,14 +13,11 @@ from medmodels.data_synthesis.mtgan.modules.preprocessor import (
 from medmodels.data_synthesis.mtgan.mtgan import MTGAN
 from medmodels.data_synthesis.mtgan.mtgan_model import MTGANModel
 from medmodels.medrecord.medrecord import MedRecord
+from medmodels.medrecord.schema import AttributeType
 from medmodels.medrecord.types import Group, MedRecordAttribute
 
 class MTGANBuilder:
     seed: int
-
-    patients_group: Group
-    concepts_group: Group
-    time_attribute: MedRecordAttribute
 
     training_hyperparameters: TrainingHyperparametersOptional
     preprocessing_hyperparameters: PreprocessingHyperparametersOptional
@@ -31,11 +27,6 @@ class MTGANBuilder:
     attribute_types_concepts: Dict[MedRecordAttribute, AttributeType]
 
     def with_seed(self, seed: int) -> MTGANBuilder: ...
-    def with_patients_group(self, patients_group: Group) -> MTGANBuilder: ...
-    def with_concepts_group(self, concepts_group: Group) -> MTGANBuilder: ...
-    def with_time_attribute(
-        self, time_attribute: MedRecordAttribute
-    ) -> MTGANBuilder: ...
     def with_preprocessor_hyperparameters(
         self, **kwargs: Unpack[PreprocessingHyperparametersOptional]
     ) -> MTGANBuilder: ...
@@ -45,12 +36,15 @@ class MTGANBuilder:
     def with_postprocessor_hyperparameters(
         self, **kwargs: Unpack[PostprocessingHyperparametersOptional]
     ) -> MTGANBuilder: ...
-    def with_postprocessor_attributes_for_patients(
-        self, attributes_types_patients: Dict[MedRecordAttribute, AttributeType]
-    ) -> MTGANBuilder: ...
-    def with_postprocessor_attributes_for_concepts(
-        self, attributes_types_patients: Dict[MedRecordAttribute, AttributeType]
-    ) -> MTGANBuilder: ...
     def load_hyperparameters_from(self, path: Path) -> MTGANBuilder: ...
-    def load_model(self, medrecord: MedRecord, path: Path) -> MTGANModel: ...
+    def load_model(
+        self,
+        medrecord: MedRecord,
+        checkpoint_model_path: Path,
+        attribute_types_patients: Dict[MedRecordAttribute, AttributeType] = {},
+        attribute_types_concepts: Dict[MedRecordAttribute, AttributeType] = {},
+        patients_group: Group = "patients",
+        concepts_group: Group = "concepts",
+        time_attribute: MedRecordAttribute = "time",
+    ) -> MTGANModel: ...
     def build(self) -> MTGAN: ...

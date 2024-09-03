@@ -1,20 +1,18 @@
-from typing import Any, Dict, List, Literal, TypedDict
+from typing import Any, Dict, List, TypedDict
 
 import sparse
 import torch
 from torch import nn
-from typing_extensions import TypeAlias
 
 from medmodels.data_synthesis.mtgan.modules.preprocessor import PreprocessingAttributes
 from medmodels.medrecord.medrecord import MedRecord
+from medmodels.medrecord.schema import AttributeType
 from medmodels.medrecord.types import MedRecordAttribute, NodeIndex
-
-AttributeType: TypeAlias = Literal["categorical", "continuous", "temporal"]
 
 class PostprocessingHyperparameters(TypedDict, total=True):
     number_of_patients_generated: int
     training_epochs: int
-    hidden_dim: int
+    hidden_dimension: int
     learning_rate: float
     number_of_layers: int
     batch_size: int
@@ -24,7 +22,7 @@ class PostprocessingHyperparameters(TypedDict, total=True):
 class PostprocessingHyperparametersOptional(TypedDict, total=False):
     number_of_patients_generated: int
     training_epochs: int
-    hidden_dim: int
+    hidden_dimension: int
     learning_rate: float
     number_of_layers: int
     batch_size: int
@@ -36,8 +34,8 @@ class MTGANPostprocessor(nn.Module):
     preprocessing_attributes: PreprocessingAttributes
     device: torch.device
 
-    attributes_types_patients: Dict[MedRecordAttribute, AttributeType]
-    attributes_types_concepts: Dict[MedRecordAttribute, AttributeType]
+    attribute_types_patients: Dict[MedRecordAttribute, AttributeType]
+    attribute_types_concepts: Dict[MedRecordAttribute, AttributeType]
     hyperparameters: PostprocessingHyperparameters
 
     def __init__(
@@ -45,8 +43,8 @@ class MTGANPostprocessor(nn.Module):
         medrecord: MedRecord,
         preprocessing_attributes: PreprocessingAttributes,
         index_to_concept_dict: Dict[int, NodeIndex],
-        attributes_types_patients: Dict[MedRecordAttribute, AttributeType],
-        attributes_types_concepts: Dict[MedRecordAttribute, AttributeType],
+        attribute_types_patients: Dict[MedRecordAttribute, AttributeType],
+        attribute_types_concepts: Dict[MedRecordAttribute, AttributeType],
         hyperparameters: PostprocessingHyperparameters,
         device: torch.device,
     ) -> None: ...
