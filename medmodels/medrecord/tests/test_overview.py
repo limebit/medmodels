@@ -6,7 +6,7 @@ import polars as pl
 
 import medmodels as mm
 from medmodels.medrecord._overview import extract_attribute_summary, prettify_table
-from medmodels.medrecord.querying import edge, node
+from medmodels.medrecord.querying import EdgeOperand, NodeOperand
 
 
 def create_medrecord():
@@ -69,19 +69,21 @@ class TestOverview(unittest.TestCase):
         # medrecord without schema
         medrecord = create_medrecord()
 
+        def query1(node: NodeOperand):
+            node.in_group("Stroke")
+
         # No attributes
-        no_attributes = extract_attribute_summary(
-            medrecord.node[node().in_group("Stroke")]
-        )
+        no_attributes = extract_attribute_summary(medrecord.node[query1])
 
         self.assertTrue(
             no_attributes.equals(pl.DataFrame({"Attribute": "-", "Info": "-"}))
         )
 
+        def query2(node: NodeOperand):
+            node.in_group("Patients")
+
         # numeric type
-        numeric_attribute = extract_attribute_summary(
-            medrecord.node[node().in_group("Patients")]
-        )
+        numeric_attribute = extract_attribute_summary(medrecord.node[query2])
 
         numeric_expected = pl.DataFrame(
             {"Attribute": ["age"] * 3, "Info": ["min: 20", "max: 70", "mean: 40.00"]}
@@ -89,10 +91,11 @@ class TestOverview(unittest.TestCase):
 
         self.assertTrue(numeric_attribute.equals(numeric_expected))
 
+        def query3(node: NodeOperand):
+            node.in_group("Medications")
+
         # string attributes
-        str_attributes = extract_attribute_summary(
-            medrecord.node[node().in_group("Medications")]
-        )
+        str_attributes = extract_attribute_summary(medrecord.node[query3])
 
         self.assertTrue(
             str_attributes.equals(
@@ -100,24 +103,22 @@ class TestOverview(unittest.TestCase):
             )
         )
 
+        def query4(node: NodeOperand):
+            node.in_group("Aspirin")
+
         # nan attribute
-        nan_attributes = extract_attribute_summary(
-            medrecord.node[node().in_group("Aspirin")]
-        )
+        nan_attributes = extract_attribute_summary(medrecord.node[query4])
 
         self.assertTrue(
             nan_attributes.equals(pl.DataFrame({"Attribute": "ATC", "Info": "-"}))
         )
 
+        def query5(edge: EdgeOperand):
+            edge.source_node().in_group("Medications")
+            edge.target_node().in_group("Patients")
+
         # temporal attributes
-        temp_attributes = extract_attribute_summary(
-            medrecord.edge[
-                medrecord.select_edges(
-                    edge().connected_source_with(node().in_group("Medications"))
-                    & edge().connected_target_with(node().in_group("Patients"))
-                )
-            ]
-        )
+        temp_attributes = extract_attribute_summary(medrecord.edge[query5])
 
         self.assertTrue(
             temp_attributes.equals(
@@ -133,14 +134,13 @@ class TestOverview(unittest.TestCase):
             )
         )
 
+        def query6(edge: EdgeOperand):
+            edge.source_node().in_group("Stroke")
+            edge.target_node().in_group("Patients")
+
         # mixed attributes
         mixed_attributes = extract_attribute_summary(
-            medrecord.edge[
-                medrecord.select_edges(
-                    edge().connected_source_with(node().in_group("Stroke"))
-                    & edge().connected_target_with(node().in_group("Patients"))
-                )
-            ]
+            medrecord.edge[medrecord.select_edges(query6)]
         )
 
         expected_mixed = pl.DataFrame(
@@ -174,9 +174,12 @@ class TestOverview(unittest.TestCase):
 
         self.assertTrue(node_info.equals(expected_info))
 
+        def query7(edge: EdgeOperand):
+            edge.in_group("patient_diagnosis")
+
         # compare schema and not schema
         patient_diagnosis = extract_attribute_summary(
-            mr_schema.edge[edge().in_group("patient_diagnosis")],
+            mr_schema.edge[query7],
             schema=mr_schema.schema.group("patient_diagnosis").edges,
         )
 

@@ -11,12 +11,12 @@ from medmodels.medrecord.datatype import (
 )
 from medmodels.medrecord.medrecord import (
     EdgeIndex,
-    EdgeOperation,
+    EdgeQuery,
     MedRecord,
     NodeIndex,
-    NodeOperation,
+    NodeQuery,
 )
-from medmodels.medrecord.querying import edge, node
+from medmodels.medrecord.querying import EdgeOperand, NodeOperand
 from medmodels.medrecord.schema import AttributeType, GroupSchema, Schema
 
 __all__ = [
@@ -33,10 +33,10 @@ __all__ = [
     "AttributeType",
     "Schema",
     "GroupSchema",
-    "node",
-    "edge",
     "NodeIndex",
     "EdgeIndex",
-    "NodeOperation",
-    "EdgeOperation",
+    "EdgeQuery",
+    "NodeQuery",
+    "NodeOperand",
+    "EdgeOperand",
 ]

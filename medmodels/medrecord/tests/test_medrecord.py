@@ -7,8 +7,7 @@ import polars as pl
 
 import medmodels.medrecord as mr
 from medmodels import MedRecord
-from medmodels.medrecord import edge as edge_select
-from medmodels.medrecord import node as node_select
+from medmodels.medrecord.querying import EdgeOperand, NodeOperand
 from medmodels.medrecord.types import Attributes, NodeIndex
 
 
@@ -359,7 +358,10 @@ class TestMedRecord(unittest.TestCase):
             {key: sorted(value) for (key, value) in edges.items()},
         )
 
-        edges = medrecord.outgoing_edges(node_select().index().is_in(["0", "1"]))
+        def query(node: NodeOperand):
+            node.index().is_in(["0", "1"])
+
+        edges = medrecord.outgoing_edges(query)
 
         self.assertEqual(
             {"0": sorted([0, 3]), "1": [1, 2]},
@@ -388,7 +390,10 @@ class TestMedRecord(unittest.TestCase):
 
         self.assertEqual({"1": [0], "2": [2]}, edges)
 
-        edges = medrecord.incoming_edges(node_select().index().is_in(["1", "2"]))
+        def query(node: NodeOperand):
+            node.index().is_in(["1", "2"])
+
+        edges = medrecord.incoming_edges(query)
 
         self.assertEqual({"1": [0], "2": [2]}, edges)
 
@@ -414,7 +419,10 @@ class TestMedRecord(unittest.TestCase):
 
         self.assertEqual({0: ("0", "1"), 1: ("1", "0")}, endpoints)
 
-        endpoints = medrecord.edge_endpoints(edge_select().index().is_in([0, 1]))
+        def query(edge: EdgeOperand):
+            edge.index().is_in([0, 1])
+
+        endpoints = medrecord.edge_endpoints(query)
 
         self.assertEqual({0: ("0", "1"), 1: ("1", "0")}, endpoints)
 
@@ -440,7 +448,10 @@ class TestMedRecord(unittest.TestCase):
 
         self.assertEqual([0], edges)
 
-        edges = medrecord.edges_connecting(node_select().index().is_in(["0", "1"]), "1")
+        def query1(node: NodeOperand):
+            node.index().is_in(["0", "1"])
+
+        edges = medrecord.edges_connecting(query1, "1")
 
         self.assertEqual([0], edges)
 
@@ -448,7 +459,10 @@ class TestMedRecord(unittest.TestCase):
 
         self.assertEqual(sorted([0, 3]), sorted(edges))
 
-        edges = medrecord.edges_connecting("0", node_select().index().is_in(["1", "3"]))
+        def query2(node: NodeOperand):
+            node.index().is_in(["1", "3"])
+
+        edges = medrecord.edges_connecting("0", query2)
 
         self.assertEqual(sorted([0, 3]), sorted(edges))
 
@@ -456,10 +470,13 @@ class TestMedRecord(unittest.TestCase):
 
         self.assertEqual(sorted([0, 2, 3]), sorted(edges))
 
-        edges = medrecord.edges_connecting(
-            node_select().index().is_in(["0", "1"]),
-            node_select().index().is_in(["1", "2", "3"]),
-        )
+        def query3(node: NodeOperand):
+            node.index().is_in(["0", "1"])
+
+        def query4(node: NodeOperand):
+            node.index().is_in(["1", "2", "3"])
+
+        edges = medrecord.edges_connecting(query3, query4)
 
         self.assertEqual(sorted([0, 2, 3]), sorted(edges))
 
@@ -503,7 +520,10 @@ class TestMedRecord(unittest.TestCase):
 
         self.assertEqual(4, medrecord.node_count())
 
-        attributes = medrecord.remove_node(node_select().index().is_in(["0", "1"]))
+        def query(node: NodeOperand):
+            node.index().is_in(["0", "1"])
+
+        attributes = medrecord.remove_node(query)
 
         self.assertEqual(2, medrecord.node_count())
         self.assertEqual(
@@ -685,7 +705,10 @@ class TestMedRecord(unittest.TestCase):
 
         self.assertEqual(4, medrecord.edge_count())
 
-        attributes = medrecord.remove_edge(edge_select().index().is_in([0, 1]))
+        def query(edge: EdgeOperand):
+            edge.index().is_in([0, 1])
+
+        attributes = medrecord.remove_edge(query)
 
         self.assertEqual(2, medrecord.edge_count())
         self.assertEqual({0: create_edges()[0][2], 1: create_edges()[1][2]}, attributes)
@@ -836,10 +859,16 @@ class TestMedRecord(unittest.TestCase):
         self.assertEqual(sorted(["0", "1"]), sorted(nodes_and_edges["nodes"]))
         self.assertEqual(sorted([0, 1]), sorted(nodes_and_edges["edges"]))
 
+        def query1(node: NodeOperand):
+            node.index().is_in(["0", "1"])
+
+        def query2(edge: EdgeOperand):
+            edge.index().is_in([0, 1])
+
         medrecord.add_group(
             "3",
-            node_select().index().is_in(["0", "1"]),
-            edge_select().index().is_in([0, 1]),
+            query1,
+            query2,
         )
 
         self.assertEqual(4, medrecord.group_count())
@@ -872,9 +901,12 @@ class TestMedRecord(unittest.TestCase):
         with self.assertRaises(AssertionError):
             medrecord.add_group("0", ["1", "0"])
 
+        def query(node: NodeOperand):
+            node.index().equals("0")
+
         # Adding a node to a group that already is in the group should fail
         with self.assertRaises(AssertionError):
-            medrecord.add_group("0", node_select().index() == "0")
+            medrecord.add_group("0", query)
 
     def test_remove_group(self):
         medrecord = create_medrecord()
@@ -912,7 +944,10 @@ class TestMedRecord(unittest.TestCase):
             sorted(medrecord.nodes_in_group("0")),
         )
 
-        medrecord.add_node_to_group("0", node_select().index() == "3")
+        def query(node: NodeOperand):
+            node.index().equals("3")
+
+        medrecord.add_node_to_group("0", query)
 
         self.assertEqual(
             sorted(["0", "1", "2", "3"]),
@@ -948,9 +983,12 @@ class TestMedRecord(unittest.TestCase):
         with self.assertRaises(AssertionError):
             medrecord.add_node_to_group("0", ["1", "0"])
 
+        def query(node: NodeOperand):
+            node.index().equals("0")
+
         # Adding a node to a group that already is in the group should fail
         with self.assertRaises(AssertionError):
-            medrecord.add_node_to_group("0", node_select().index() == "0")
+            medrecord.add_node_to_group("0", query)
 
     def test_add_edge_to_group(self):
         medrecord = create_medrecord()
@@ -970,7 +1008,10 @@ class TestMedRecord(unittest.TestCase):
             sorted(medrecord.edges_in_group("0")),
         )
 
-        medrecord.add_edge_to_group("0", edge_select().index() == 3)
+        def query(edge: EdgeOperand):
+            edge.index().equals(3)
+
+        medrecord.add_edge_to_group("0", query)
 
         self.assertEqual(
             sorted([0, 1, 2, 3]),
@@ -1006,9 +1047,12 @@ class TestMedRecord(unittest.TestCase):
         with self.assertRaises(AssertionError):
             medrecord.add_edge_to_group("0", [1, 0])
 
+        def query(edge: EdgeOperand):
+            edge.index().equals(0)
+
         # Adding an edge to a group that already is in the group should fail
         with self.assertRaises(AssertionError):
-            medrecord.add_edge_to_group("0", edge_select().index() == 0)
+            medrecord.add_edge_to_group("0", query)
 
     def test_remove_node_from_group(self):
         medrecord = create_medrecord()
@@ -1042,7 +1086,10 @@ class TestMedRecord(unittest.TestCase):
             sorted(medrecord.nodes_in_group("0")),
         )
 
-        medrecord.remove_node_from_group("0", node_select().index().is_in(["0", "1"]))
+        def query(node: NodeOperand):
+            node.index().is_in(["0", "1"])
+
+        medrecord.remove_node_from_group("0", query)
 
         self.assertEqual([], medrecord.nodes_in_group("0"))
 
@@ -1059,9 +1106,12 @@ class TestMedRecord(unittest.TestCase):
         with self.assertRaises(IndexError):
             medrecord.remove_node_from_group("50", ["0", "1"])
 
+        def query(node: NodeOperand):
+            node.index().equals("0")
+
         # Removing a node from a non-existing group should fail
         with self.assertRaises(IndexError):
-            medrecord.remove_node_from_group("50", node_select().index() == "0")
+            medrecord.remove_node_from_group("50", query)
 
         # Removing a non-existing node from a group should fail
         with self.assertRaises(IndexError):
@@ -1103,7 +1153,10 @@ class TestMedRecord(unittest.TestCase):
             sorted(medrecord.edges_in_group("0")),
         )
 
-        medrecord.remove_edge_from_group("0", edge_select().index().is_in([0, 1]))
+        def query(edge: EdgeOperand):
+            edge.index().is_in([0, 1])
+
+        medrecord.remove_edge_from_group("0", query)
 
         self.assertEqual([], medrecord.edges_in_group("0"))
 
@@ -1120,9 +1173,12 @@ class TestMedRecord(unittest.TestCase):
         with self.assertRaises(IndexError):
             medrecord.remove_edge_from_group("50", [0, 1])
 
+        def query(edge: EdgeOperand):
+            edge.index().equals(0)
+
         # Removing an edge from a non-existing group should fail
         with self.assertRaises(IndexError):
-            medrecord.remove_edge_from_group("50", edge_select().index() == 0)
+            medrecord.remove_edge_from_group("50", query)
 
         # Removing a non-existing edge from a group should fail
         with self.assertRaises(IndexError):
@@ -1175,9 +1231,12 @@ class TestMedRecord(unittest.TestCase):
 
         self.assertEqual({"0": ["0"], "1": ["0"]}, medrecord.groups_of_node(["0", "1"]))
 
+        def query(node: NodeOperand):
+            node.index().is_in(["0", "1"])
+
         self.assertEqual(
             {"0": ["0"], "1": ["0"]},
-            medrecord.groups_of_node(node_select().index().is_in(["0", "1"])),
+            medrecord.groups_of_node(query),
         )
 
     def test_invalid_groups_of_node(self):
@@ -1200,9 +1259,12 @@ class TestMedRecord(unittest.TestCase):
 
         self.assertEqual({0: ["0"], 1: ["0"]}, medrecord.groups_of_edge([0, 1]))
 
+        def query(edge: EdgeOperand):
+            edge.index().is_in([0, 1])
+
         self.assertEqual(
             {0: ["0"], 1: ["0"]},
-            medrecord.groups_of_edge(edge_select().index().is_in([0, 1])),
+            medrecord.groups_of_edge(query),
         )
 
     def test_invalid_groups_of_edge(self):
@@ -1286,7 +1348,10 @@ class TestMedRecord(unittest.TestCase):
             {key: sorted(value) for (key, value) in neighbors.items()},
         )
 
-        neighbors = medrecord.neighbors(node_select().index().is_in(["0", "1"]))
+        def query1(node: NodeOperand):
+            node.index().is_in(["0", "1"])
+
+        neighbors = medrecord.neighbors(query1)
 
         self.assertEqual(
             {"0": sorted(["1", "3"]), "1": ["0", "2"]},
@@ -1307,9 +1372,10 @@ class TestMedRecord(unittest.TestCase):
             {key: sorted(value) for (key, value) in neighbors.items()},
         )
 
-        neighbors = medrecord.neighbors(
-            node_select().index().is_in(["0", "1"]), directed=False
-        )
+        def query2(node: NodeOperand):
+            node.index().is_in(["0", "1"])
+
+        neighbors = medrecord.neighbors(query2, directed=False)
 
         self.assertEqual(
             {"0": sorted(["1", "3"]), "1": ["0", "2"]},

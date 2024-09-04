@@ -1,7 +1,7 @@
 import unittest
 
 from medmodels import MedRecord
-from medmodels.medrecord import edge, node
+from medmodels.medrecord.querying import EdgeOperand, NodeOperand
 
 
 def create_medrecord():
@@ -19,6 +19,30 @@ def create_medrecord():
             (3, 0, {"foo": "bar", "bar": "test"}),
         ],
     )
+
+
+def node_greater_than_or_equal_two(node: NodeOperand):
+    node.index().greater_than_or_equal(2)
+
+
+def node_greater_than_three(node: NodeOperand):
+    node.index().greater_than(3)
+
+
+def node_less_than_two(node: NodeOperand):
+    node.index().less_than(2)
+
+
+def edge_greater_than_or_equal_two(edge: EdgeOperand):
+    edge.index().greater_than_or_equal(2)
+
+
+def edge_greater_than_three(edge: EdgeOperand):
+    edge.index().greater_than(3)
+
+
+def edge_less_than_two(edge: EdgeOperand):
+    edge.index().less_than(2)
 
 
 class TestMedRecord(unittest.TestCase):
@@ -118,54 +142,54 @@ class TestMedRecord(unittest.TestCase):
 
         self.assertEqual(
             {2: {"foo": "bar", "bar": "foo"}, 3: {"foo": "bar", "bar": "test"}},
-            medrecord.node[node().index() >= 2],
+            medrecord.node[node_greater_than_or_equal_two],
         )
 
         # Empty query should not fail
         self.assertEqual(
             {},
-            medrecord.node[node().index() > 3],
+            medrecord.node[node_greater_than_three],
         )
 
         self.assertEqual(
             {2: "bar", 3: "bar"},
-            medrecord.node[node().index() >= 2, "foo"],
+            medrecord.node[node_greater_than_or_equal_two, "foo"],
         )
 
         # Accessing a non-existing key should fail
         with self.assertRaises(KeyError):
-            medrecord.node[node().index() >= 2, "test"]
+            medrecord.node[node_greater_than_or_equal_two, "test"]
 
         self.assertEqual(
             {
                 2: {"foo": "bar", "bar": "foo"},
                 3: {"foo": "bar", "bar": "test"},
             },
-            medrecord.node[node().index() >= 2, ["foo", "bar"]],
+            medrecord.node[node_greater_than_or_equal_two, ["foo", "bar"]],
         )
 
         # Accessing a non-existing key should fail
         with self.assertRaises(KeyError):
-            medrecord.node[node().index() >= 2, ["foo", "test"]]
+            medrecord.node[node_greater_than_or_equal_two, ["foo", "test"]]
 
         # Accessing a key that doesn't exist in all nodes should fail
         with self.assertRaises(KeyError):
-            medrecord.node[node().index() < 2, ["foo", "lorem"]]
+            medrecord.node[node_less_than_two, ["foo", "lorem"]]
 
         self.assertEqual(
             {
                 2: {"foo": "bar", "bar": "foo"},
                 3: {"foo": "bar", "bar": "test"},
             },
-            medrecord.node[node().index() >= 2, :],
+            medrecord.node[node_greater_than_or_equal_two, :],
         )
 
         with self.assertRaises(ValueError):
-            medrecord.node[node().index() >= 2, 1:]
+            medrecord.node[node_greater_than_or_equal_two, 1:]
         with self.assertRaises(ValueError):
-            medrecord.node[node().index() >= 2, :1]
+            medrecord.node[node_greater_than_or_equal_two, :1]
         with self.assertRaises(ValueError):
-            medrecord.node[node().index() >= 2, ::1]
+            medrecord.node[node_greater_than_or_equal_two, ::1]
 
         self.assertEqual(
             {
@@ -360,7 +384,7 @@ class TestMedRecord(unittest.TestCase):
             medrecord.node[[0, 1], ::1] = "test"
 
         medrecord = create_medrecord()
-        medrecord.node[node().index() >= 2] = {"foo": "bar", "bar": "test"}
+        medrecord.node[node_greater_than_or_equal_two] = {"foo": "bar", "bar": "test"}
         self.assertEqual(
             {
                 0: {"foo": "bar", "bar": "foo", "lorem": "ipsum"},
@@ -373,10 +397,10 @@ class TestMedRecord(unittest.TestCase):
 
         medrecord = create_medrecord()
         # Empty query should not fail
-        medrecord.node[node().index() > 3] = {"foo": "bar", "bar": "test"}
+        medrecord.node[node_greater_than_three] = {"foo": "bar", "bar": "test"}
 
         medrecord = create_medrecord()
-        medrecord.node[node().index() >= 2, "foo"] = "test"
+        medrecord.node[node_greater_than_or_equal_two, "foo"] = "test"
         self.assertEqual(
             {
                 0: {"foo": "bar", "bar": "foo", "lorem": "ipsum"},
@@ -388,7 +412,7 @@ class TestMedRecord(unittest.TestCase):
         )
 
         medrecord = create_medrecord()
-        medrecord.node[node().index() >= 2, ["foo", "bar"]] = "test"
+        medrecord.node[node_greater_than_or_equal_two, ["foo", "bar"]] = "test"
         self.assertEqual(
             {
                 0: {"foo": "bar", "bar": "foo", "lorem": "ipsum"},
@@ -400,7 +424,7 @@ class TestMedRecord(unittest.TestCase):
         )
 
         medrecord = create_medrecord()
-        medrecord.node[node().index() >= 2, :] = "test"
+        medrecord.node[node_greater_than_or_equal_two, :] = "test"
         self.assertEqual(
             {
                 0: {"foo": "bar", "bar": "foo", "lorem": "ipsum"},
@@ -412,11 +436,11 @@ class TestMedRecord(unittest.TestCase):
         )
 
         with self.assertRaises(ValueError):
-            medrecord.node[node().index() >= 2, 1:] = "test"
+            medrecord.node[node_greater_than_or_equal_two, 1:] = "test"
         with self.assertRaises(ValueError):
-            medrecord.node[node().index() >= 2, :1] = "test"
+            medrecord.node[node_greater_than_or_equal_two, :1] = "test"
         with self.assertRaises(ValueError):
-            medrecord.node[node().index() >= 2, ::1] = "test"
+            medrecord.node[node_greater_than_or_equal_two, ::1] = "test"
 
         medrecord = create_medrecord()
         medrecord.node[:, "foo"] = "test"
@@ -544,7 +568,7 @@ class TestMedRecord(unittest.TestCase):
         )
 
         medrecord = create_medrecord()
-        medrecord.node[node().index() >= 2, "test"] = "test"
+        medrecord.node[node_greater_than_or_equal_two, "test"] = "test"
         self.assertEqual(
             {
                 0: {"foo": "bar", "bar": "foo", "lorem": "ipsum"},
@@ -556,7 +580,7 @@ class TestMedRecord(unittest.TestCase):
         )
 
         medrecord = create_medrecord()
-        medrecord.node[node().index() >= 2, ["test", "test2"]] = "test"
+        medrecord.node[node_greater_than_or_equal_two, ["test", "test2"]] = "test"
         self.assertEqual(
             {
                 0: {"foo": "bar", "bar": "foo", "lorem": "ipsum"},
@@ -634,7 +658,7 @@ class TestMedRecord(unittest.TestCase):
         )
 
         medrecord = create_medrecord()
-        medrecord.node[node().index() < 2, "lorem"] = "test"
+        medrecord.node[node_less_than_two, "lorem"] = "test"
         self.assertEqual(
             {
                 0: {"foo": "bar", "bar": "foo", "lorem": "test"},
@@ -646,7 +670,7 @@ class TestMedRecord(unittest.TestCase):
         )
 
         medrecord = create_medrecord()
-        medrecord.node[node().index() < 2, ["lorem", "test"]] = "test"
+        medrecord.node[node_less_than_two, ["lorem", "test"]] = "test"
         self.assertEqual(
             {
                 0: {"foo": "bar", "bar": "foo", "lorem": "test", "test": "test"},
@@ -804,7 +828,7 @@ class TestMedRecord(unittest.TestCase):
             del medrecord.node[[0, 1], ::1]
 
         medrecord = create_medrecord()
-        del medrecord.node[node().index() >= 2, "foo"]
+        del medrecord.node[node_greater_than_or_equal_two, "foo"]
         self.assertEqual(
             {
                 0: {"foo": "bar", "bar": "foo", "lorem": "ipsum"},
@@ -817,7 +841,7 @@ class TestMedRecord(unittest.TestCase):
 
         medrecord = create_medrecord()
         # Empty query should not fail
-        del medrecord.node[node().index() > 3, "foo"]
+        del medrecord.node[node_greater_than_three, "foo"]
         self.assertEqual(
             {
                 0: {"foo": "bar", "bar": "foo", "lorem": "ipsum"},
@@ -831,10 +855,10 @@ class TestMedRecord(unittest.TestCase):
         medrecord = create_medrecord()
         # Removing a non-existing key should fail
         with self.assertRaises(KeyError):
-            del medrecord.node[node().index() >= 2, "test"]
+            del medrecord.node[node_greater_than_or_equal_two, "test"]
 
         medrecord = create_medrecord()
-        del medrecord.node[node().index() >= 2, ["foo", "bar"]]
+        del medrecord.node[node_greater_than_or_equal_two, ["foo", "bar"]]
         self.assertEqual(
             {
                 0: {"foo": "bar", "bar": "foo", "lorem": "ipsum"},
@@ -848,15 +872,15 @@ class TestMedRecord(unittest.TestCase):
         medrecord = create_medrecord()
         # Removing a non-existing key should fail
         with self.assertRaises(KeyError):
-            del medrecord.node[node().index() >= 2, ["foo", "test"]]
+            del medrecord.node[node_greater_than_or_equal_two, ["foo", "test"]]
 
         medrecord = create_medrecord()
         # Removing a key that doesn't exist in all nodes should fail
         with self.assertRaises(KeyError):
-            del medrecord.node[node().index() < 2, ["foo", "lorem"]]
+            del medrecord.node[node_less_than_two, ["foo", "lorem"]]
 
         medrecord = create_medrecord()
-        del medrecord.node[node().index() >= 2, :]
+        del medrecord.node[node_greater_than_or_equal_two, :]
         self.assertEqual(
             {
                 0: {"foo": "bar", "bar": "foo", "lorem": "ipsum"},
@@ -868,11 +892,11 @@ class TestMedRecord(unittest.TestCase):
         )
 
         with self.assertRaises(ValueError):
-            del medrecord.node[node().index() >= 2, 1:]
+            del medrecord.node[node_greater_than_or_equal_two, 1:]
         with self.assertRaises(ValueError):
-            del medrecord.node[node().index() >= 2, :1]
+            del medrecord.node[node_greater_than_or_equal_two, :1]
         with self.assertRaises(ValueError):
-            del medrecord.node[node().index() >= 2, ::1]
+            del medrecord.node[node_greater_than_or_equal_two, ::1]
 
         medrecord = create_medrecord()
         del medrecord.node[:, "foo"]
@@ -1048,54 +1072,54 @@ class TestMedRecord(unittest.TestCase):
 
         self.assertEqual(
             {2: {"foo": "bar", "bar": "foo"}, 3: {"foo": "bar", "bar": "test"}},
-            medrecord.edge[edge().index() >= 2],
+            medrecord.edge[edge_greater_than_or_equal_two],
         )
 
         # Empty query should not fail
         self.assertEqual(
             {},
-            medrecord.edge[edge().index() > 3],
+            medrecord.edge[edge_greater_than_three],
         )
 
         self.assertEqual(
             {2: "bar", 3: "bar"},
-            medrecord.edge[edge().index() >= 2, "foo"],
+            medrecord.edge[edge_greater_than_or_equal_two, "foo"],
         )
 
         # Accessing a non-existing key should fail
         with self.assertRaises(KeyError):
-            medrecord.edge[edge().index() >= 2, "test"]
+            medrecord.edge[edge_greater_than_or_equal_two, "test"]
 
         self.assertEqual(
             {
                 2: {"foo": "bar", "bar": "foo"},
                 3: {"foo": "bar", "bar": "test"},
             },
-            medrecord.edge[edge().index() >= 2, ["foo", "bar"]],
+            medrecord.edge[edge_greater_than_or_equal_two, ["foo", "bar"]],
         )
 
         # Accessing a non-existing key should fail
         with self.assertRaises(KeyError):
-            medrecord.edge[edge().index() >= 2, ["foo", "test"]]
+            medrecord.edge[edge_greater_than_or_equal_two, ["foo", "test"]]
 
         # Accessing a key that doesn't exist in all edges should fail
         with self.assertRaises(KeyError):
-            medrecord.edge[edge().index() < 2, ["foo", "lorem"]]
+            medrecord.edge[edge_less_than_two, ["foo", "lorem"]]
 
         self.assertEqual(
             {
                 2: {"foo": "bar", "bar": "foo"},
                 3: {"foo": "bar", "bar": "test"},
             },
-            medrecord.edge[edge().index() >= 2, :],
+            medrecord.edge[edge_greater_than_or_equal_two, :],
         )
 
         with self.assertRaises(ValueError):
-            medrecord.edge[edge().index() >= 2, 1:]
+            medrecord.edge[edge_greater_than_or_equal_two, 1:]
         with self.assertRaises(ValueError):
-            medrecord.edge[edge().index() >= 2, :1]
+            medrecord.edge[edge_greater_than_or_equal_two, :1]
         with self.assertRaises(ValueError):
-            medrecord.edge[edge().index() >= 2, ::1]
+            medrecord.edge[edge_greater_than_or_equal_two, ::1]
 
         self.assertEqual(
             {
@@ -1290,7 +1314,7 @@ class TestMedRecord(unittest.TestCase):
             medrecord.edge[[0, 1], ::1] = "test"
 
         medrecord = create_medrecord()
-        medrecord.edge[edge().index() >= 2] = {"foo": "bar", "bar": "test"}
+        medrecord.edge[edge_greater_than_or_equal_two] = {"foo": "bar", "bar": "test"}
         self.assertEqual(
             {
                 0: {"foo": "bar", "bar": "foo", "lorem": "ipsum"},
@@ -1303,10 +1327,10 @@ class TestMedRecord(unittest.TestCase):
 
         medrecord = create_medrecord()
         # Empty query should not fail
-        medrecord.edge[edge().index() > 3] = {"foo": "bar", "bar": "test"}
+        medrecord.edge[edge_greater_than_three] = {"foo": "bar", "bar": "test"}
 
         medrecord = create_medrecord()
-        medrecord.edge[edge().index() >= 2, "foo"] = "test"
+        medrecord.edge[edge_greater_than_or_equal_two, "foo"] = "test"
         self.assertEqual(
             {
                 0: {"foo": "bar", "bar": "foo", "lorem": "ipsum"},
@@ -1318,7 +1342,7 @@ class TestMedRecord(unittest.TestCase):
         )
 
         medrecord = create_medrecord()
-        medrecord.edge[edge().index() >= 2, ["foo", "bar"]] = "test"
+        medrecord.edge[edge_greater_than_or_equal_two, ["foo", "bar"]] = "test"
         self.assertEqual(
             {
                 0: {"foo": "bar", "bar": "foo", "lorem": "ipsum"},
@@ -1330,7 +1354,7 @@ class TestMedRecord(unittest.TestCase):
         )
 
         medrecord = create_medrecord()
-        medrecord.edge[edge().index() >= 2, :] = "test"
+        medrecord.edge[edge_greater_than_or_equal_two, :] = "test"
         self.assertEqual(
             {
                 0: {"foo": "bar", "bar": "foo", "lorem": "ipsum"},
@@ -1342,11 +1366,11 @@ class TestMedRecord(unittest.TestCase):
         )
 
         with self.assertRaises(ValueError):
-            medrecord.edge[edge().index() >= 2, 1:] = "test"
+            medrecord.edge[edge_greater_than_or_equal_two, 1:] = "test"
         with self.assertRaises(ValueError):
-            medrecord.edge[edge().index() >= 2, :1] = "test"
+            medrecord.edge[edge_greater_than_or_equal_two, :1] = "test"
         with self.assertRaises(ValueError):
-            medrecord.edge[edge().index() >= 2, ::1] = "test"
+            medrecord.edge[edge_greater_than_or_equal_two, ::1] = "test"
 
         medrecord = create_medrecord()
         medrecord.edge[:, "foo"] = "test"
@@ -1474,7 +1498,7 @@ class TestMedRecord(unittest.TestCase):
         )
 
         medrecord = create_medrecord()
-        medrecord.edge[edge().index() >= 2, "test"] = "test"
+        medrecord.edge[edge_greater_than_or_equal_two, "test"] = "test"
         self.assertEqual(
             {
                 0: {"foo": "bar", "bar": "foo", "lorem": "ipsum"},
@@ -1486,7 +1510,7 @@ class TestMedRecord(unittest.TestCase):
         )
 
         medrecord = create_medrecord()
-        medrecord.edge[edge().index() >= 2, ["test", "test2"]] = "test"
+        medrecord.edge[edge_greater_than_or_equal_two, ["test", "test2"]] = "test"
         self.assertEqual(
             {
                 0: {"foo": "bar", "bar": "foo", "lorem": "ipsum"},
@@ -1564,7 +1588,7 @@ class TestMedRecord(unittest.TestCase):
         )
 
         medrecord = create_medrecord()
-        medrecord.edge[edge().index() < 2, "lorem"] = "test"
+        medrecord.edge[edge_less_than_two, "lorem"] = "test"
         self.assertEqual(
             {
                 0: {"foo": "bar", "bar": "foo", "lorem": "test"},
@@ -1576,7 +1600,7 @@ class TestMedRecord(unittest.TestCase):
         )
 
         medrecord = create_medrecord()
-        medrecord.edge[edge().index() < 2, ["lorem", "test"]] = "test"
+        medrecord.edge[edge_less_than_two, ["lorem", "test"]] = "test"
         self.assertEqual(
             {
                 0: {"foo": "bar", "bar": "foo", "lorem": "test", "test": "test"},
@@ -1734,7 +1758,7 @@ class TestMedRecord(unittest.TestCase):
             del medrecord.edge[[0, 1], ::1]
 
         medrecord = create_medrecord()
-        del medrecord.edge[edge().index() >= 2, "foo"]
+        del medrecord.edge[edge_greater_than_or_equal_two, "foo"]
         self.assertEqual(
             {
                 0: {"foo": "bar", "bar": "foo", "lorem": "ipsum"},
@@ -1747,7 +1771,7 @@ class TestMedRecord(unittest.TestCase):
 
         medrecord = create_medrecord()
         # Empty query should not fail
-        del medrecord.edge[edge().index() > 3, "foo"]
+        del medrecord.edge[edge_greater_than_three, "foo"]
         self.assertEqual(
             {
                 0: {"foo": "bar", "bar": "foo", "lorem": "ipsum"},
@@ -1761,10 +1785,10 @@ class TestMedRecord(unittest.TestCase):
         medrecord = create_medrecord()
         # Removing a non-existing key should fail
         with self.assertRaises(KeyError):
-            del medrecord.edge[edge().index() >= 2, "test"]
+            del medrecord.edge[edge_greater_than_or_equal_two, "test"]
 
         medrecord = create_medrecord()
-        del medrecord.edge[edge().index() >= 2, ["foo", "bar"]]
+        del medrecord.edge[edge_greater_than_or_equal_two, ["foo", "bar"]]
         self.assertEqual(
             {
                 0: {"foo": "bar", "bar": "foo", "lorem": "ipsum"},
@@ -1778,15 +1802,15 @@ class TestMedRecord(unittest.TestCase):
         medrecord = create_medrecord()
         # Removing a non-existing key should fail
         with self.assertRaises(KeyError):
-            del medrecord.edge[edge().index() >= 2, ["foo", "test"]]
+            del medrecord.edge[edge_greater_than_or_equal_two, ["foo", "test"]]
 
         medrecord = create_medrecord()
         # Removing a key that doesn't exist in all edges should fail
         with self.assertRaises(KeyError):
-            del medrecord.edge[edge().index() < 2, ["foo", "lorem"]]
+            del medrecord.edge[edge_less_than_two, ["foo", "lorem"]]
 
         medrecord = create_medrecord()
-        del medrecord.edge[edge().index() >= 2, :]
+        del medrecord.edge[edge_greater_than_or_equal_two, :]
         self.assertEqual(
             {
                 0: {"foo": "bar", "bar": "foo", "lorem": "ipsum"},
@@ -1798,11 +1822,11 @@ class TestMedRecord(unittest.TestCase):
         )
 
         with self.assertRaises(ValueError):
-            del medrecord.edge[edge().index() >= 2, 1:]
+            del medrecord.edge[edge_greater_than_or_equal_two, 1:]
         with self.assertRaises(ValueError):
-            del medrecord.edge[edge().index() >= 2, :1]
+            del medrecord.edge[edge_greater_than_or_equal_two, :1]
         with self.assertRaises(ValueError):
-            del medrecord.edge[edge().index() >= 2, ::1]
+            del medrecord.edge[edge_greater_than_or_equal_two, ::1]
 
         medrecord = create_medrecord()
         del medrecord.edge[:, "foo"]
