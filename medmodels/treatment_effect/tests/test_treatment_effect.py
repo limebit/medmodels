@@ -6,7 +6,7 @@ from typing import List
 import pandas as pd
 
 from medmodels import MedRecord
-from medmodels.medrecord import edge, node
+from medmodels.medrecord.querying import NodeOperand
 from medmodels.medrecord.types import NodeIndex
 from medmodels.treatment_effect.estimate import ContingencyTable, SubjectIndices
 from medmodels.treatment_effect.treatment_effect import TreatmentEffect
@@ -245,8 +245,8 @@ def assert_treatment_effects_equal(
         treatment_effect2._outcome_before_treatment_days,
     )
     test_case.assertEqual(
-        treatment_effect1._filter_controls_operation,
-        treatment_effect2._filter_controls_operation,
+        treatment_effect1._filter_controls_query,
+        treatment_effect2._filter_controls_query,
     )
     test_case.assertEqual(
         treatment_effect1._matching_method, treatment_effect2._matching_method
@@ -620,14 +620,14 @@ class TestTreatmentEffect(unittest.TestCase):
             tee3._find_outcomes(medrecord=self.medrecord, treated_group=treated_group)
 
     def test_filter_controls(self):
+        def query1(node: NodeOperand):
+            node.neighbors().index().equals("M2")
+
         tee = (
             TreatmentEffect.builder()
             .with_treatment("Rivaroxaban")
             .with_outcome("Stroke")
-            .filter_controls(
-                node().has_outgoing_edge_with(edge().connected_target("M2"))
-                | node().has_incoming_edge_with(edge().connected_source("M2"))
-            )
+            .filter_controls(query1)
             .build()
         )
         counts_tee = tee.estimate._compute_subject_counts(self.medrecord)
@@ -635,11 +635,15 @@ class TestTreatmentEffect(unittest.TestCase):
         self.assertEqual(counts_tee, (2, 1, 1, 2))
 
         # filter females only
+
+        def query2(node: NodeOperand):
+            node.attribute("gender").equals("female")
+
         tee2 = (
             TreatmentEffect.builder()
             .with_treatment("Rivaroxaban")
             .with_outcome("Stroke")
-            .filter_controls(node().attribute("gender").equal("female"))
+            .filter_controls(query2)
             .build()
         )
 
