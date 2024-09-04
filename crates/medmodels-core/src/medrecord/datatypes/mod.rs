@@ -1,3 +1,6 @@
+#![allow(dead_code)]
+// TODO: Remove the above line after query engine is implemented
+
 mod attribute;
 mod value;
 
