@@ -37,7 +37,7 @@ class MTGANBuilder:
     def load_model(
         self,
         medrecord: MedRecord,
-        checkpoint_model_path: Path,
+        model_path: Path,
         attribute_types_patients: Dict[MedRecordAttribute, AttributeType] = {},
         attribute_types_concepts: Dict[MedRecordAttribute, AttributeType] = {},
         patients_group: Group = "patients",

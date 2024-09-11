@@ -1,3 +1,6 @@
+from pathlib import Path
+from typing import Union
+
 import sparse
 import torch
 
@@ -27,3 +30,14 @@ class MTGANModel(SynthesizerModel):
         self,
         noise: torch.Tensor,
     ) -> sparse.COO: ...
+    def save_model(
+        self,
+        path: Path,
+    ) -> None: ...
+    def generate_synthetic_data(
+        self,
+    ) -> MedRecord: ...
+    def postprocess(
+        self,
+        synthetic_data: Union[MedRecord, sparse.COO],
+    ) -> MedRecord: ...
