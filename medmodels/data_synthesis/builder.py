@@ -7,7 +7,7 @@ from medmodels.data_synthesis.mtgan.builder import MTGANBuilder
 
 class SynthesizerBuilder:
     def from_mtgan(self) -> MTGANBuilder:
-        """Creates a MTGANBuilder instance from a SynthesizerBuilder instance.
+        """Creates an MTGANBuilder instance from a SynthesizerBuilder instance.
 
         Returns:
             MTGANBuilder: An instance of MTGANBuilder.
