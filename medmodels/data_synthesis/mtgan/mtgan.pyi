@@ -60,8 +60,8 @@ class MTGAN(Synthesizer):
     def fit_from(
         self,
         medrecord: MedRecord,
-        checkpoint_gru_path: Path,
-        checkpoint_model_path: Optional[Path] = None,
+        gru_path: Path,
+        model_path: Optional[Path] = None,
         attribute_types_patients: Dict[MedRecordAttribute, AttributeType] = {},
         attribute_types_concepts: Dict[MedRecordAttribute, AttributeType] = {},
         patients_group: Group = "patients",
@@ -72,7 +72,7 @@ class MTGAN(Synthesizer):
     def load_model(
         self,
         medrecord: MedRecord,
-        checkpoint_model_path: Path,
+        model_path: Path,
         attribute_types_patients: Dict[MedRecordAttribute, AttributeType] = {},
         attribute_types_concepts: Dict[MedRecordAttribute, AttributeType] = {},
         patients_group: Group = "patients",
