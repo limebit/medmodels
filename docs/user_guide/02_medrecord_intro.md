@@ -149,7 +149,7 @@ lines: 80-81
 
 ## Printing Overview Tables
 
-The MedModels MedRecord class is designed to efficiently handle large datasets while maintaining a standardized data structure that supports complex analysis methods. As a result, the structure within the MedRecord can become intricate and difficult to manage. To address this, MedModels offers tools to help keep track of the graph-based data. One such tool is the `.print_node_overview()` method:
+The MedModels MedRecord class is designed to efficiently handle large datasets while maintaining a standardized data structure that supports complex analysis methods. As a result, the structure within the MedRecord can become intricate and difficult to manage. To address this, MedModels offers tools to help keep track of the graph-based data. One such tool is the `print_node_overview` method:
 
 ```{literalinclude} scripts/02_medrecord_intro.py
 ---
@@ -183,7 +183,7 @@ US-Patients 2     Age       min: 72
 ```
 As shown, we have two groups of nodes—Patients and Medications—created when adding the nodes. Additionally, there’s a group called 'US-Patients' that we created. For each group of nodes, we can view their attributes along with a brief statistical summary, such as the minimum, maximum, and mean for numeric variables.
 
-We can do the same to get an overview over edges in our MedRecord by using the `.print_edge_overview()`:
+We can do the same to get an overview over edges in our MedRecord by using the `print_edge_overview`:
 
 ```{literalinclude} scripts/02_medrecord_intro.py
 ---
