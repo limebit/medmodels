@@ -59,7 +59,7 @@ lines: 43
 ---
 ```
 
-The MedModels MedRecord object, `record`, now contains three patients. Each patient is identified by an unique index and has specific attributes, such as age, sex, and location. These patients serve as the initial nodes in the graph structure of our MedRecord, and are represented as follows:
+The MedModels MedRecord object, `record`, now contains three patients. Each patient is identified by a unique index and has specific attributes, such as age, sex, and location. These patients serve as the initial nodes in the graph structure of our MedRecord, and are represented as follows:
 
 ```{image} https://raw.githubusercontent.com/limebit/medmodels-static/main/imgs/user_guide/02/02_medrecord_intro_01.png
 :class: transparent-image
