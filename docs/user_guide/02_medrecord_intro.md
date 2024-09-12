@@ -40,7 +40,7 @@ Let's begin by introducing some sample medical data:
     - GER
 :::
 
-This data, stored e.g. in Pandas looks like this:
+This data, stored for example in a Pandas DataFrame, looks like this:
 
 ```{literalinclude} scripts/02_medrecord_intro.py
 ---
