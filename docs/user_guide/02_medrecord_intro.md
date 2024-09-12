@@ -138,7 +138,7 @@ This group will include all the defined nodes, allowing for easier access during
 
 ## Saving and Loading MedRecords
 
-When build up a MedRecord you might want to save it in order to create a persistent version. This can be done by storing it as a RON (Rusty Object Notation) file. From there, it can also be loaded and a new MedRecord instance can be created from an existing RON file.
+When building a MedRecord, you may want to save it to create a persistent version. This can be done by storing it as a RON (Rusty Object Notation) file. The MedRecord can then be reloaded, allowing you to create a new instance from the saved RON file.
 
 ```{literalinclude} scripts/02_medrecord_intro.py
 ---
