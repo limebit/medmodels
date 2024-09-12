@@ -18,7 +18,7 @@ medications = pd.DataFrame(
 )
 
 # Patients-Medication Relation (Edges)
-pat_med = pd.DataFrame(
+patient_medication = pd.DataFrame(
     [
         ["Patient 02", "Med 01", pd.Timestamp("20200607")],
         ["Patient 02", "Med 02", pd.Timestamp("20180202")],
@@ -31,7 +31,7 @@ pat_med = pd.DataFrame(
 diagnoses = pd.DataFrame([["Diag 01", "I.21", 10]], columns=["ID", "ICD", "ICDv"])
 
 # Patients-Diagnoses Relation (edges)
-pat_diag = pd.DataFrame(
+patient_diagnoses = pd.DataFrame(
     [
         ["Patient 01", "Diag 01", pd.Timestamp("20210901")],
         ["Patient 01", "Diag 01", pd.Timestamp("20220806")],
@@ -51,8 +51,8 @@ record.add_group("Medications", list(medications["ID"].unique()))
 record.add_group("Diagnoses", list(diagnoses["ID"].unique()))
 
 # TODO_ Add groups to Edges in order to visualize
-record.add_edges((pat_med, "Pat_ID", "Med_ID"))
-record.add_edges((pat_diag, "Diag_ID", "Diag_ID"))
+record.add_edges((patient_medication, "Pat_ID", "Med_ID"))
+record.add_edges((patient_diagnoses, "Diag_ID", "Diag_ID"))
 
 
 record.add_group("US-Patients", ["Patient 01", "Patient 02"])

@@ -49,7 +49,7 @@ lines: 5-13
 ---
 ```
 
-To work with this data in MedModels, we'll have to create a MedRecord. The MedRecord employes a builder pattern to easily construct complex datastructures. 
+In the example below, we create a new MedRecord using the builder pattern. We instantiate a `MedRecordBuilder` and instruct it to add the Pandas DataFrame as nodes, using the 'ID' column for indexing. Additionally, we assign these nodes to the group 'Patients'.
 The Builder Pattern simplifies creating complex objects by constructing them step by step. It improves flexibility, readability, and consistency, making it easier to manage and configure objects in a controlled way.
 
 ```{literalinclude} scripts/02_medrecord_intro.py
@@ -71,7 +71,7 @@ language: python
 lines: 15-18
 ---
 ```
-Using the builder pattern to construct the MedRecord allows us to pass as many nodes and edges as needed. If nodes are not added during the initial graph construction, they can easily be added later to an existing MedRecord by calling `.add_nodes()`, where you provide the DataFrame and specify the column containing the node indices.
+Using the builder pattern to construct the MedRecord allows us to pass as many nodes and edges as needed. If nodes are not added during the initial graph construction, they can easily be added later to an existing MedRecord by calling `add_nodes`, where you provide the DataFrame and specify the column containing the node indices.
 
 ```{literalinclude} scripts/02_medrecord_intro.py
 ---
@@ -181,9 +181,9 @@ US-Patients 2     Age       min: 72
                   Sex       Values: M                
 ------------------------------------------------------
 ```
-As shown, we have two groups of nodes—Patients and Medications—created when adding the nodes. Additionally, there’s a group called 'US-Patients' that we created. For each group of nodes, we can view their attributes along with a brief statistical summary, such as the minimum, maximum, and mean for numeric variables.
+As shown, we have two groups of nodes - Patients and Medications — created when adding the nodes. Additionally, there’s a group called 'US-Patients' that we created. For each group of nodes, we can view their attributes along with a brief statistical summary, such as the minimum, maximum, and mean for numeric variables.
 
-We can do the same to get an overview over edges in our MedRecord by using the `print_edge_overview`:
+We can do the same to get an overview over edges in our MedRecord by using the `print_edge_overview` method:
 
 ```{literalinclude} scripts/02_medrecord_intro.py
 ---
@@ -216,7 +216,7 @@ US-Patients 2     Age       min: 72
 
 ## Accessing Elements in a MedRecord
 
-Now that we have stored some structured data in our MedRecord, we might want to access certain elements of it. The main way to do this is by either selecting the data with their indicies or via groups that they are in.
+Now that we have stored some structured data in our MedRecord, we might want to access certain elements of it. The main way to do this is by either selecting the data with their indices or via groups that they are in.
 
 ```{literalinclude} scripts/02_medrecord_intro.py
 ---
@@ -231,7 +231,7 @@ The MedRecord can be queried in very advanced ways in order to finde very specif
 
 ## Full example Code
 
-The full code examples for this chapter can be foud here: 
+The full code examples for this chapter can be found here: 
 ```{literalinclude} scripts/02_medrecord_intro.py
 ---
 language: python

@@ -79,7 +79,7 @@ The API reference provides detailed information on all MedModels functionalities
 [Learn more »](./api/index.md)
 :::
 
-:::{grid-item-card} {material-outlined}`school;1.5em;sd-mr-1` Development Guide
+:::{grid-item-card} {material-outlined}`school;1.5em;sd-mr-1` Developer Guide
 :link-type: doc
 
 The Developer Guide provides comprehensive guidelines on how to contribute to MedModels.
