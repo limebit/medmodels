@@ -181,7 +181,7 @@ US-Patients 2     Age       min: 72
                   Sex       Values: M                
 ------------------------------------------------------
 ```
-As shown, we have two groups of nodes - Patients and Medications — created when adding the nodes. Additionally, there’s a group called 'US-Patients' that we created. For each group of nodes, we can view their attributes along with a brief statistical summary, such as the minimum, maximum, and mean for numeric variables.
+As shown, we have two groups of nodes - Patients and Medications - created when adding the nodes. Additionally, there’s a group called 'US-Patients' that we created. For each group of nodes, we can view their attributes along with a brief statistical summary, such as the minimum, maximum, and mean for numeric variables.
 
 We can do the same to get an overview over edges in our MedRecord by using the `print_edge_overview` method:
 
