@@ -14,7 +14,7 @@ patients = pd.DataFrame(
 
 # Medications DataFrame (Nodes)
 medications = pd.DataFrame(
-    [["Med 01", "Insulin"], ["Med 02", "Wararin"]], columns=["ID", "Name"]
+    [["Med 01", "Insulin"], ["Med 02", "Warfarin"]], columns=["ID", "Name"]
 )
 
 # Patients-Medication Relation (Edges)
