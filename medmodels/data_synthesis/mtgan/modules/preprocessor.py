@@ -187,14 +187,14 @@ class MTGANPreprocessor(nn.Module):
         if not return_dictionary:
             return medrecord, {}
 
-        index_to_concept_dict = {}
+        index_to_concept_dictionary = {}
         for concept_index, concept in enumerate(
             sorted(medrecord.nodes_in_group(self.concepts_group))
         ):
-            index_to_concept_dict[concept_index] = concept
+            index_to_concept_dictionary[concept_index] = concept
             medrecord.node[concept, concept_index_attribute] = concept_index
 
-        return medrecord, index_to_concept_dict
+        return medrecord, index_to_concept_dictionary
 
     def _sample_patients(
         self, medrecord: MedRecord, number_of_sampled_patients: int
@@ -549,6 +549,8 @@ class MTGANPreprocessor(nn.Module):
                 edges have the given time attribute, also a ValueError is raised.
 
         Note:
+            It requires the time attribute to be present in the edges of the MedRecord
+                and its values to be datetime objects.
             This method will remove patient nodes with less than two unique time
                 windows.
         """
@@ -577,7 +579,7 @@ class MTGANPreprocessor(nn.Module):
         )
 
         # Pruning the concepts after removing some edges and patient nodes
-        medrecord, index_to_concept_dict = self._remove_uncommon_concepts(
+        medrecord, index_to_concept_dictionary = self._remove_uncommon_concepts(
             medrecord,
             minimum_number_ocurrences=1,
             concept_index_attribute=concept_index_attribute,
@@ -590,4 +592,4 @@ class MTGANPreprocessor(nn.Module):
         if not medrecord.nodes_in_group(self.concepts_group):
             raise ValueError("No concepts left after preprocessing")
 
-        return medrecord, index_to_concept_dict, preprocessing_attributes
+        return medrecord, index_to_concept_dictionary, preprocessing_attributes
