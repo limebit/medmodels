@@ -10,3 +10,6 @@ body {
     width: 170px;
   }
 }
+.transparent-image {
+  background-color: transparent !important;
+}
