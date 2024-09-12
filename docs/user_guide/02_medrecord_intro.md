@@ -10,7 +10,7 @@ MedModels delivers advanced data analytics methods out-of-the-box by utilizing a
 ```{literalinclude} scripts/02_medrecord_intro.py
 ---
 language: python
-lines: 1-2
+lines: 3
 ---
 ```
 
@@ -45,7 +45,7 @@ This data, stored e.g. in Pandas looks like this:
 ```{literalinclude} scripts/02_medrecord_intro.py
 ---
 language: python
-lines: 4-8
+lines: 5-13
 ---
 ```
 
@@ -55,7 +55,7 @@ The Builder Pattern simplifies creating complex objects by constructing them ste
 ```{literalinclude} scripts/02_medrecord_intro.py
 ---
 language: python
-lines: 31-33
+lines: 43
 ---
 ```
 
@@ -68,7 +68,7 @@ We can now proceed by adding additional data, such as the following medications.
 ```{literalinclude} scripts/02_medrecord_intro.py
 ---
 language: python
-lines: 11-13
+lines: 15-18
 ---
 ```
 Using the builder pattern to construct the MedRecord allows us to pass as many nodes and edges as needed. If nodes are not added during the initial graph construction, they can easily be added later to an existing MedRecord by calling `.add_nodes()`, where you provide the DataFrame and specify the column containing the node indices.
@@ -76,7 +76,7 @@ Using the builder pattern to construct the MedRecord allows us to pass as many n
 ```{literalinclude} scripts/02_medrecord_intro.py
 ---
 language: python
-lines: 36
+lines: 46
 ---
 ```
 
@@ -112,7 +112,7 @@ We can add these edges then to our MedRecord Graph:
 ```{literalinclude} scripts/02_medrecord_intro.py
 ---
 language: python
-lines: 44
+lines: 54
 ---
 ```
 This results in an enlarged Graph with more information.
@@ -127,7 +127,7 @@ For certain analyses, we may want to define specific subcohorts within our MedRe
 ```{literalinclude} scripts/02_medrecord_intro.py
 ---
 language: python
-lines: 47
+lines: 58
 ---
 ```
 This group will include all the defined nodes, allowing for easier access during complex analyses. Both nodes and edges can be added to a group, with no limitations on group size. Additionally, nodes and edges can belong to multiple groups without restriction.
@@ -143,7 +143,7 @@ When build up a MedRecord you might want to save it in order to create a persist
 ```{literalinclude} scripts/02_medrecord_intro.py
 ---
 language: python
-lines: 70-71
+lines: 80-81
 ---
 ```
 
@@ -154,7 +154,7 @@ The MedModels MedRecord class is designed to efficiently handle large datasets w
 ```{literalinclude} scripts/02_medrecord_intro.py
 ---
 language: python
-lines: 50
+lines: 60
 ---
 ```
 
@@ -188,7 +188,7 @@ We can do the same to get an overview over edges in our MedRecord by using the `
 ```{literalinclude} scripts/02_medrecord_intro.py
 ---
 language: python
-lines: 52
+lines: 62
 ---
 ```
 
@@ -221,7 +221,7 @@ Now that we have stored some structured data in our MedRecord, we might want to 
 ```{literalinclude} scripts/02_medrecord_intro.py
 ---
 language: python
-lines: 54-68
+lines: 64-78
 ---
 ```
 ## Advanced Querying on a MedRecord
