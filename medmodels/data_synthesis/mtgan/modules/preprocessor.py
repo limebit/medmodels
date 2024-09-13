@@ -1,8 +1,6 @@
 """Module for preprocessing the data for the MTGAN model.
 
-This module preprocesses the data to be used in the MTGAN model, removing uncommon
-concepts, finding the first admission, sampling patients, and finding relative times
-for each of the concepts.
+This module preprocesses the data to be used in the MTGAN model, following these steps:
 
 Steps:
     1. Remove uncommon concepts.
@@ -13,7 +11,7 @@ Steps:
 
 It adds the following attributes to the MedRecord:
     - first_admission_attribute: The first admission of the patient (first time they
-        have a connecting edge to a concept pertainin to the concepts_group).
+        have a connecting edge to a concept pertaining to the concepts_group).
     - concept_index_attribute: The index of the concept. This is used to map the
         concept to a numerical index that will be used in the model (connecting them
         to the column on the boolean Data Matrix).
@@ -68,12 +66,7 @@ class PreprocessingAttributes(TypedDict):
 
 
 class MTGANPreprocessor(nn.Module):
-    """Preprocessor for the MTGAN model.
-
-    It preprocesses the data to be used in the MTGAN model, removing uncommon concepts,
-    finding the first admission, sampling patients, and finding relative time windows
-    for each of the concepts.
-    """
+    """Preprocessor for the MTGAN model."""
 
     patients_group: Group
     concepts_group: Group
@@ -87,7 +80,7 @@ class MTGANPreprocessor(nn.Module):
         patients_group: Group = "patients",
         concepts_group: Group = "concepts",
         time_attribute: MedRecordAttribute = "time",
-        seed: int = 0,
+        seed: int = 42,
     ) -> None:
         """Initialize the MTGANPreprocessor.
 
@@ -98,7 +91,7 @@ class MTGANPreprocessor(nn.Module):
             concepts_group (Group): The group of concepts in the MedRecord.
             time_attribute (MedRecordAttribute): The attribute name for the time in the
                 edges of the MedRecord.
-            seed (int): The seed for the random number generator.
+            seed (int): The seed for the random number generator. Default is 42.
         """
         super().__init__()
         self.patients_group = patients_group
@@ -125,6 +118,7 @@ class MTGANPreprocessor(nn.Module):
         """
         created_name, counter = attribute_name, 1
 
+        # TODO: improve with query engine
         while medrecord.select_edges(
             edge().has_attribute(created_name)
         ) or medrecord.select_nodes(node().has_attribute(created_name)):
@@ -133,42 +127,44 @@ class MTGANPreprocessor(nn.Module):
 
         return created_name
 
+    def _remove_unconnected_patients(self, medrecord: MedRecord) -> None:
+        """Remove patients with no connections to nodes in the concepts group.
+
+        Args:
+            medrecord (MedRecord): The MedRecord.
+        """
+        # TODO: Need to perfect this method with new query engine.
+        for patient_index in sorted(medrecord.nodes_in_group(self.patients_group)):
+            if (
+                len(
+                    medrecord.edges_connecting(
+                        patient_index,
+                        sorted(medrecord.nodes_in_group(self.concepts_group)),
+                        directed=False,
+                    )
+                )
+                == 0
+            ):
+                medrecord.remove_node(patient_index)
+
     def _remove_uncommon_concepts(
         self,
         medrecord: MedRecord,
         minimum_number_ocurrences: int,
-        concept_index_attribute: MedRecordAttribute,
-        return_dictionary: bool = False,
-    ) -> Tuple[MedRecord, Dict[int, NodeIndex]]:
-        """Remove uncommon "concepts" from the MedRecord and give the remaining ones a "concept index" attribute.
+    ) -> None:
+        """Remove uncommon "concepts" from the MedRecord.
 
-        It removes the concepts that have less than the minimum number of occurrences
-        and assigns an index attribute to the remaining concepts. This index to concept
-        dictionary can be returned if needed for further processing.
+        It removes the concepts that have less than the minimum number of occurrences.
 
         For example, consider a MedRecord with 5 'concepts'
         ['c1', 'c2', 'c3', 'c4', 'c5'].
         Each of these concepts occurs 4, 4, 1, 1, and 1 times respectively. If our
         'min_number_occurrences' is 2, the method will remove 'c3', 'c4', and 'c5'.
 
-        If 'return_dict' is True, we would get an index to concept dictionary as well:
-        {
-            0: 'c1',
-            1: 'c2'
-        }
-
         Args:
             medrecord (MedRecord): The MedRecord.
             minimum_number_ocurrences (int): The minimum number of occurrences for a
                 concept.
-            concept_index_attribute (MedRecordAttribute): The attribute name for the
-                concept index.
-            return_dictionary (bool): Whether to return the index to concept
-                dictionary.
-
-        Return
-            Tuple[MedRecord, Dict[int, NodeIndex]]: The  MedRecord with the concepts
-                removed and the index to concept dictionary if 'return_dict' is True.
         """
         # TODO: Need to perfect this method with the new query engine
         for concept_index in sorted(medrecord.nodes_in_group(self.concepts_group)):
@@ -184,21 +180,11 @@ class MTGANPreprocessor(nn.Module):
             ):
                 medrecord.remove_node(concept_index)
 
-        if not return_dictionary:
-            return medrecord, {}
-
-        index_to_concept_dictionary = {}
-        for concept_index, concept in enumerate(
-            sorted(medrecord.nodes_in_group(self.concepts_group))
-        ):
-            index_to_concept_dictionary[concept_index] = concept
-            medrecord.node[concept, concept_index_attribute] = concept_index
-
-        return medrecord, index_to_concept_dictionary
+        self._remove_unconnected_patients(medrecord)
 
     def _sample_patients(
         self, medrecord: MedRecord, number_of_sampled_patients: int
-    ) -> MedRecord:
+    ) -> None:
         """Samples patients from the MedRecord.
 
         If the 'number_of_sampled_patients' is 0, it will sample all patients. If the
@@ -209,26 +195,10 @@ class MTGANPreprocessor(nn.Module):
             medrecord (MedRecord): The MedRecord.
             number_of_sampled_patients (int): The number of sampled patients.
 
-        Returns:
-            MedRecord: The MedRecord with the sampled patients.
-
         Raises:
             ValueError: If the number of sampled patients is greater than the number of
                 patients.
         """
-        # TODO: Need to perfect this method with new query engine.
-        for patient_index in sorted(medrecord.nodes_in_group(self.patients_group)):
-            if (
-                len(
-                    medrecord.edges_connecting(
-                        patient_index,
-                        sorted(medrecord.nodes_in_group(self.concepts_group)),
-                        directed=False,
-                    )
-                )
-                == 0
-            ):
-                medrecord.remove_node(patient_index)
         number_patients = len(medrecord.nodes_in_group(self.patients_group))
 
         if number_of_sampled_patients > number_patients:
@@ -238,9 +208,9 @@ class MTGANPreprocessor(nn.Module):
 
         if (
             number_of_sampled_patients == 0
-            or number_of_sampled_patients >= number_patients
+            or number_of_sampled_patients == number_patients
         ):
-            return medrecord
+            return
 
         patient_indices = sorted(medrecord.nodes_in_group(self.patients_group))
         removed_number_of_patients = len(patient_indices) - number_of_sampled_patients
@@ -251,11 +221,8 @@ class MTGANPreprocessor(nn.Module):
         )
 
         medrecord.remove_node(removed_patient_indices)
-        return medrecord
 
-    def _find_first_admission(
-        self, medrecord: MedRecord
-    ) -> Tuple[MedRecord, MedRecordAttribute]:
+    def _find_first_admission(self, medrecord: MedRecord) -> MedRecordAttribute:
         """Finds the first admission for each patient and assigns it as a patient node attribute.
 
         For instance, consider a MedRecord with patients 'p1', 'p2', 'p3' each had
@@ -265,7 +232,7 @@ class MTGANPreprocessor(nn.Module):
         'p3': ['2021-01-15', '2021-06-20', '2021-07-30']
 
         Running the _find_first_admission will add a new attribute 'first_admission'
-        (or 'first_admission_1' if 'first admission' is already an available atribute)
+        (or 'first_admission_1' if 'first admission' is already an available attribute)
         to each patient noting the date of their first admission:
         'p1': '2021-01-01'
         'p2': '2021-02-01'
@@ -277,9 +244,8 @@ class MTGANPreprocessor(nn.Module):
             medrecord (MedRecord): The MedRecord.
 
         Returns:
-            Tuple[MedRecord, MedRecordAttribute]: The MedRecord with the first
-                admission attribute assigned to each patient node. Also, the name of
-                the attribute where the first admission is stored in the MedRecord.
+            MedRecordAttribute: The name of the attribute where the first admission is
+                stored in the MedRecord.
         """
         first_admission_attribute = self._get_attribute_name(
             medrecord, "first_admission"
@@ -296,7 +262,7 @@ class MTGANPreprocessor(nn.Module):
                 )
             ][self.time_attribute]
 
-        return medrecord, first_admission_attribute
+        return first_admission_attribute
 
     def _remove_low_number_time_windows(
         self,
@@ -326,7 +292,7 @@ class MTGANPreprocessor(nn.Module):
         time_windows = [
             medrecord.edge[e, absolute_time_attribute] for e in patient_edges
         ]
-        if not min_codes_per_window:
+        if min_codes_per_window == 0:
             return time_windows
 
         # Find which time windows appear less than min_codes_per_window times
@@ -392,10 +358,6 @@ class MTGANPreprocessor(nn.Module):
             number_windows_attribute (MedRecordAttribute): The attribute name for
                 the number of unique time windows.
 
-        Returns:
-            None: This method modifies the MedRecord in place and doesn't return
-                anything.
-
         Note:
             This method will remove the patient node if there are less than two unique
                 time windows.
@@ -428,7 +390,7 @@ class MTGANPreprocessor(nn.Module):
         concept_index_attribute: MedRecordAttribute,
         time_interval_days: int,
         min_codes_per_window: int,
-    ) -> Tuple[MedRecord, PreprocessingAttributes]:
+    ) -> PreprocessingAttributes:
         """Finds the relative time windows for each patient and removes the time windows with less than min_codes_per_window codes.
 
         For instance, consider a single patient, 'p1', with admission dates as follows:
@@ -437,7 +399,11 @@ class MTGANPreprocessor(nn.Module):
         If the `time_interval_days` is 7 days, the method will compute time window as
         the floor division of the difference in days from the first admission and the
         `time_interval_days`. So, the resulting ABSOLUTE time windows will be:
-        'p1': [0, 2, 2]
+        'p1': [0, 2, 3]
+
+        The relative time windows will be assigned as the ranking of the unique time
+        windows. For instance, if a patient has absolute time windows [0, 2, 3], the
+        method will assign relative time windows [0, 1, 2] to the corresponding edges.
 
         Args:
             medrecord (MedRecord): The MedRecord.
@@ -447,9 +413,8 @@ class MTGANPreprocessor(nn.Module):
             min_codes_per_window (int): The minimum number of codes per window.
 
         Returns:
-            Tuple[MedRecord, PreprocessingAttributes]: The MedRecord with the relative
-                time windows assigned to edge. Also, the preprocessing attributes'
-                names in the MedRecord.
+            PreprocessingAttributes: The preprocessing attributes' names in the
+                MedRecord.
 
         Raises:
             ValueError: If the first admission attribute or the time attribute are not
@@ -519,7 +484,38 @@ class MTGANPreprocessor(nn.Module):
             absolute_time_window_attribute=absolute_time_window_attribute,
         )
 
-        return medrecord, preprocessing_attributes
+        return preprocessing_attributes
+
+    def _assign_concept_indices(
+        self, medrecord: MedRecord, concept_index_attribute: MedRecordAttribute
+    ) -> Dict[int, NodeIndex]:
+        """Assigns an index to each concept in the MedRecord and returns the index to concept dictionary.
+
+        For instance, consider a MedRecord with concepts 'c1', 'c2', 'c3', 'c4', 'c5'.
+        The method will assign an index to each concept, sorted alphabetically:
+            0: 'c1'
+            1: 'c2'
+            2: 'c3'
+            3: 'c4'
+            4: 'c5'
+
+        Args:
+            medrecord (MedRecord): The MedRecord.
+            concept_index_atribute (MedRecordAttribute): The attribute name for the
+                concept index.
+
+        Returns:
+            Dict[int, NodeIndex]: The index to concept dictionary.
+        """
+
+        index_to_concept_dictionary = {}
+        for concept_index, concept in enumerate(
+            sorted(medrecord.nodes_in_group(self.concepts_group))
+        ):
+            index_to_concept_dictionary[concept_index] = concept
+            medrecord.node[concept, concept_index_attribute] = concept_index
+
+        return index_to_concept_dictionary
 
     def preprocess(
         self, medrecord: MedRecord
@@ -558,32 +554,31 @@ class MTGANPreprocessor(nn.Module):
             raise ValueError("No edges in the MedRecord with that time attribute")
 
         # TODO: copy of a MedRecord instead of modifying the original one once it is implemented
-        concept_index_attribute = self._get_attribute_name(medrecord, "concept_index")
-        medrecord, _ = self._remove_uncommon_concepts(
+        self._remove_uncommon_concepts(
             medrecord,
             minimum_number_ocurrences=self.hyperparameters[
                 "minimum_occurrences_concept"
             ],
-            concept_index_attribute=concept_index_attribute,
         )
-        medrecord = self._sample_patients(
-            medrecord, self.hyperparameters["number_of_sampled_patients"]
-        )
-        medrecord, first_admission_attribute = self._find_first_admission(medrecord)
-        medrecord, preprocessing_attributes = self._find_relative_times(
+        concept_index_attribute = self._get_attribute_name(medrecord, "concept_index")
+        first_admission_attribute = self._find_first_admission(medrecord)
+        preprocessing_attributes = self._find_relative_times(
             medrecord,
             first_admission_attribute,
             concept_index_attribute,
             self.hyperparameters["time_interval_days"],
             self.hyperparameters["minimum_concepts_per_window"],
         )
-
         # Pruning the concepts after removing some edges and patient nodes
-        medrecord, index_to_concept_dictionary = self._remove_uncommon_concepts(
+        self._remove_uncommon_concepts(
             medrecord,
             minimum_number_ocurrences=1,
-            concept_index_attribute=concept_index_attribute,
-            return_dictionary=True,
+        )
+        self._sample_patients(
+            medrecord, self.hyperparameters["number_of_sampled_patients"]
+        )
+        index_to_concept_dictionary = self._assign_concept_indices(
+            medrecord, concept_index_attribute
         )
 
         if not medrecord.nodes_in_group(self.patients_group):

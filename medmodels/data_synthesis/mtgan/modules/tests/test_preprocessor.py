@@ -1,4 +1,4 @@
-"""Tests for the MTGAN Preprocessor class in the data_synthesis module."""
+"""Tests for the MTGAN Preprocessor class in the data synthesis module."""
 
 import datetime
 import unittest
@@ -260,82 +260,99 @@ class TestMTGANPreprocessor(unittest.TestCase):
             self.preprocessor._get_attribute_name(medrecord, attribute_name), "age_2"
         )
 
-    def test_remove_uncommon_concepts(self):
-        """Tests the test_remove_uncommon_concepts method of the MTGANPreprocessor class."""
+    def test_remove_unconnected_patients(self):
+        """Tests the remove_unconnected_patients method of the MTGANPreprocessor class."""
         medrecord = create_medrecord()
         medrecord_to_compare = create_medrecord()
-        concept_index_attribute = self.preprocessor._get_attribute_name(
-            medrecord, "concept_index"
+
+        self.preprocessor._remove_unconnected_patients(medrecord)
+        self.assertLess(
+            len(medrecord.nodes_in_group("patients")),
+            len(medrecord_to_compare.nodes_in_group("patients")),
         )
+        self.assertNotIn("P8", medrecord.nodes_in_group("patients"))
+
+    def test_remove_uncommon_concepts(self):
+        """Tests the remove_uncommon_concepts method of the MTGANPreprocessor class."""
+        medrecord = create_medrecord()
+        medrecord_to_compare = create_medrecord()
 
         # Test with minimum_number_ocurrences=2, none removed
-        medrecord, index_to_concept_dictionary = (
-            self.preprocessor._remove_uncommon_concepts(
-                medrecord,
-                minimum_number_ocurrences=2,
-                concept_index_attribute=concept_index_attribute,
-                return_dictionary=True,
-            )
+        self.preprocessor._remove_uncommon_concepts(
+            medrecord,
+            minimum_number_ocurrences=2,
         )
         self.assertEqual(
             len(medrecord.nodes_in_group("concepts")),
             len(medrecord_to_compare.nodes_in_group("concepts")),
         )
+
+        # Test with minimum_number_ocurrences=5, 2 removed, 1 kept
+        self.preprocessor._remove_uncommon_concepts(
+            medrecord,
+            minimum_number_ocurrences=5,
+        )
+        self.assertEqual(len(medrecord.nodes_in_group("concepts")), 2)
+        self.assertIn("D1", medrecord.nodes_in_group("concepts"))
+        self.assertIn("M2", medrecord.nodes_in_group("concepts"))
+
+        # Test with minimum_number_ocurrences=10, all removed
+        self.preprocessor._remove_uncommon_concepts(
+            medrecord,
+            minimum_number_ocurrences=10,
+        )
+        self.assertEqual(len(medrecord.nodes_in_group("concepts")), 0)
+
+    def test_assign_concept_indices(self):
+        """Test the assign_concept_indices method of the MTGANPreprocessor class."""
+        medrecord = create_medrecord()
+        concept_index_attribute = self.preprocessor._get_attribute_name(
+            medrecord, "concept_index"
+        )
+        index_to_concept_dictionary = self.preprocessor._assign_concept_indices(
+            medrecord, concept_index_attribute
+        )
         self.assertEqual(index_to_concept_dictionary[0], "D1")
         self.assertIn(index_to_concept_dictionary[1], "M1")
         self.assertIn(index_to_concept_dictionary[2], "M2")
+        self.assertEqual(medrecord.node["D1", concept_index_attribute], 0)
+        self.assertEqual(medrecord.node["M1", concept_index_attribute], 1)
+        self.assertEqual(medrecord.node["M2", concept_index_attribute], 2)
 
-        # Test with minimum_number_ocurrences=5, 2 removed, 1 kept
-        medrecord, index_to_concept_dictionary = (
-            self.preprocessor._remove_uncommon_concepts(
-                medrecord,
-                minimum_number_ocurrences=5,
-                concept_index_attribute=concept_index_attribute,
-                return_dictionary=True,
-            )
+        # To show what happens when removing concepts:
+        self.preprocessor._remove_uncommon_concepts(
+            medrecord,
+            minimum_number_ocurrences=5,
+        )
+        index_to_concept_dictionary = self.preprocessor._assign_concept_indices(
+            medrecord, concept_index_attribute
         )
         self.assertEqual(len(medrecord.nodes_in_group("concepts")), 2)
         self.assertEqual(index_to_concept_dictionary[0], "D1")
         self.assertEqual(index_to_concept_dictionary[1], "M2")
 
-        # Test with minimum_number_ocurrences=10, all removed
-        medrecord, index_to_concept_dictionary = (
-            self.preprocessor._remove_uncommon_concepts(
-                medrecord,
-                minimum_number_ocurrences=10,
-                concept_index_attribute=concept_index_attribute,
-                return_dictionary=True,
-            )
+        # To show what is returned with no concepts left:
+        self.preprocessor._remove_uncommon_concepts(
+            medrecord,
+            minimum_number_ocurrences=10,
+        )
+        index_to_concept_dictionary = self.preprocessor._assign_concept_indices(
+            medrecord, concept_index_attribute
         )
         self.assertEqual(len(medrecord.nodes_in_group("concepts")), 0)
         self.assertEqual(index_to_concept_dictionary, {})
-
-        # If the return_dictionary is False, it should not return the dictionary
-        medrecord_to_compare, empty_dictionary = (
-            self.preprocessor._remove_uncommon_concepts(
-                medrecord_to_compare,
-                minimum_number_ocurrences=1,
-                concept_index_attribute=concept_index_attribute,
-                return_dictionary=False,
-            )
-        )
-        self.assertEqual(empty_dictionary, {})
 
     def test_sample_patients(self):
         """Tests the sample_patients method of the MTGANPreprocessor class."""
         medrecord = create_medrecord()
 
         # Test with number_of_sampled_patients=0, all patients kept
-        medrecord = self.preprocessor._sample_patients(
-            medrecord, number_of_sampled_patients=0
-        )
-        # There are initially 9 patients, but one of them has no edges: it is removed
-        self.assertEqual(len(medrecord.nodes_in_group("patients")), 8)
+        self.preprocessor._sample_patients(medrecord, number_of_sampled_patients=0)
+        # There are initially 9 patients, none are removed
+        self.assertEqual(len(medrecord.nodes_in_group("patients")), 9)
 
         # Test with number_of_sampled_patients=5, 5 patients sampled
-        medrecord = self.preprocessor._sample_patients(
-            medrecord, number_of_sampled_patients=5
-        )
+        self.preprocessor._sample_patients(medrecord, number_of_sampled_patients=5)
         self.assertEqual(len(medrecord.nodes_in_group("patients")), 5)
 
     def test_invalid_sample_patients(self):
@@ -344,19 +361,15 @@ class TestMTGANPreprocessor(unittest.TestCase):
         with self.assertRaises(ValueError) as context:
             self.preprocessor._sample_patients(medrecord, number_of_sampled_patients=10)
 
-        expected_message = "Number of sampled patients (10) is greater than the number of patients in the MedRecord (8)"
+        expected_message = "Number of sampled patients (10) is greater than the number of patients in the MedRecord (9)"
         self.assertEqual(str(context.exception).strip(), expected_message.strip())
 
     def test_find_first_admission(self):
         """Tests the find_first_admission method of the MTGANPreprocessor class."""
         # We need to prune the medrecord to remove the patient without edges (with sample patients).
         medrecord = create_medrecord()
-        medrecord = self.preprocessor._sample_patients(
-            medrecord, number_of_sampled_patients=0
-        )
-        medrecord, first_admission_attribute = self.preprocessor._find_first_admission(
-            medrecord
-        )
+        self.preprocessor._remove_unconnected_patients(medrecord)
+        first_admission_attribute = self.preprocessor._find_first_admission(medrecord)
         self.assertEqual(first_admission_attribute, "first_admission")
         self.assertEqual(
             medrecord.node["P1", first_admission_attribute],
@@ -374,19 +387,26 @@ class TestMTGANPreprocessor(unittest.TestCase):
                 edge().attribute("time").equal(datetime.datetime(1999, 10, 15))
             )
         )
-        medrecord = self.preprocessor._sample_patients(
-            medrecord, number_of_sampled_patients=0
-        )
-        medrecord, first_admission_attribute = self.preprocessor._find_first_admission(
-            medrecord
-        )
+        self.preprocessor._remove_unconnected_patients(medrecord)
+        first_admission_attribute = self.preprocessor._find_first_admission(medrecord)
         self.assertEqual(
             medrecord.node["P1", first_admission_attribute],
             datetime.datetime(2000, 1, 1),
         )
 
+    def test_invalid_find_first_admission(self):
+        """Tests the find_first_admission method of the MTGANPreprocessor class with invalid inputs."""
+        medrecord = create_medrecord()
+        with self.assertRaises(ValueError) as context:
+            self.preprocessor._find_first_admission(medrecord)
+
+        self.assertEqual(
+            str(context.exception).strip(),
+            "No edge found for node P8 in this MedRecord",
+        )
+
     def test_preprocess(self):
-        """Tests the find_relative_times method of the MTGANPreprocessor class."""
+        """Tests the preprocess method of the MTGANPreprocessor class."""
         medrecord = create_medrecord()
         medrecord, index_to_concept_dictionary, preprocessing_attributes = (
             self.preprocessor.preprocess(medrecord)
@@ -415,7 +435,6 @@ class TestMTGANPreprocessor(unittest.TestCase):
             medrecord.node["P1", "first_admission"], datetime.datetime(1999, 10, 15)
         )
         self.assertEqual(medrecord.node["P1", "number_of_windows"], 2)
-        self.assertEqual(medrecord.node["D1", "concept_index"], 0)
         edges = medrecord.edges_connecting("P1", "M2", directed=False)
         self.assertEqual(set(edges), set([0, 8]))
         self.assertEqual(medrecord.edge[edges, "absolute_time_window"], {0: 0, 8: 78})
@@ -460,12 +479,19 @@ class TestMTGANPreprocessor(unittest.TestCase):
         ## By changing the number of sampled patients and the sampling seed, we get different results
         medrecord = create_medrecord()
         hyperparameters = self.hyperparameters.copy()
-        hyperparameters["number_of_sampled_patients"] = 3
+        hyperparameters["number_of_sampled_patients"] = 2
         preprocessor = MTGANPreprocessor(hyperparameters)
         medrecord, _, _ = preprocessor.preprocess(medrecord)
 
-        # Only one out of P1, P2, P3 was sampled and thus kept
-        self.assertEqual(len(medrecord.nodes_in_group("patients")), 1)
+        medrecord_to_compare = create_medrecord()
+        preprocessor_to_compare = MTGANPreprocessor(self.hyperparameters, seed=0)
+        medrecord_to_compare, _, _ = preprocessor_to_compare.preprocess(
+            medrecord_to_compare
+        )
+        self.assertNotEqual(
+            medrecord.nodes_in_group("patients"),
+            medrecord_to_compare.nodes_in_group("patients"),
+        )
 
     def test_invalid_preprocess(self):
         """Tests the preprocess method of the MTGANPreprocessor class with invalid inputs."""
@@ -529,15 +555,6 @@ class TestMTGANPreprocessor(unittest.TestCase):
         hyperparameters = self.hyperparameters.copy()
         hyperparameters["minimum_concepts_per_window"] = 3
         preprocessor = MTGANPreprocessor(hyperparameters)
-        with self.assertRaises(ValueError) as context:
-            preprocessor.preprocess(medrecord)
-        self.assertEqual(str(context.exception), "No patients left after preprocessing")
-
-        # Using another seed, no patients are left after preprocessing (P1, P2, P3 are not sampled)
-        medrecord = create_medrecord()
-        hyperparameters = self.hyperparameters.copy()
-        hyperparameters["number_of_sampled_patients"] = 3
-        preprocessor = MTGANPreprocessor(hyperparameters, seed=42)
         with self.assertRaises(ValueError) as context:
             preprocessor.preprocess(medrecord)
         self.assertEqual(str(context.exception), "No patients left after preprocessing")
