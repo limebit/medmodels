@@ -27,10 +27,11 @@ It adds the following attributes to the MedRecord:
 import datetime
 import random
 from math import floor
-from typing import Dict, List, Tuple, TypedDict
+from typing import List, Optional, Tuple, TypedDict
 
 import pandas as pd
 from torch import nn
+from typing_extensions import TypeAlias
 
 from medmodels.medrecord.medrecord import MedRecord
 from medmodels.medrecord.querying import edge, node
@@ -65,6 +66,9 @@ class PreprocessingAttributes(TypedDict):
     absolute_time_window_attribute: MedRecordAttribute
 
 
+ConceptsList: TypeAlias = List[NodeIndex]
+
+
 class MTGANPreprocessor(nn.Module):
     """Preprocessor for the MTGAN model."""
 
@@ -72,7 +76,7 @@ class MTGANPreprocessor(nn.Module):
     concepts_group: Group
     time_attribute: MedRecordAttribute
     hyperparameters: PreprocessingHyperparameters
-    seed: int
+    seed: Optional[int]
 
     def __init__(
         self,
@@ -80,7 +84,7 @@ class MTGANPreprocessor(nn.Module):
         patients_group: Group = "patients",
         concepts_group: Group = "concepts",
         time_attribute: MedRecordAttribute = "time",
-        seed: int = 42,
+        seed: Optional[int] = None,
     ) -> None:
         """Initialize the MTGANPreprocessor.
 
@@ -91,7 +95,8 @@ class MTGANPreprocessor(nn.Module):
             concepts_group (Group): The group of concepts in the MedRecord.
             time_attribute (MedRecordAttribute): The attribute name for the time in the
                 edges of the MedRecord.
-            seed (int): The seed for the random number generator. Default is 42.
+            seed (Optional[int]): The seed for the random number generator. Default is
+                None.
         """
         super().__init__()
         self.patients_group = patients_group
@@ -105,8 +110,8 @@ class MTGANPreprocessor(nn.Module):
     ) -> MedRecordAttribute:
         """Generates a unique attribute name.
 
-        If the attribute name is "time", it will return "time_1" if "time" already
-        exists in the MedRecord. If "time_1" exists, it will return "time_2", and so
+        If the attribute name is 'time', it will return 'time_1' if 'time' already
+        exists in the MedRecord. If 'time_1' exists, it will return 'time_2', and so
         on.
 
         Args:
@@ -116,7 +121,8 @@ class MTGANPreprocessor(nn.Module):
         Returns:
             MedRecordAttribute: Unique attribute name for the MedRecord.
         """
-        created_name, counter = attribute_name, 1
+        created_name = attribute_name
+        counter = 1
 
         # TODO: improve with query engine
         while medrecord.select_edges(
@@ -152,7 +158,7 @@ class MTGANPreprocessor(nn.Module):
         medrecord: MedRecord,
         minimum_number_ocurrences: int,
     ) -> None:
-        """Remove uncommon "concepts" from the MedRecord.
+        """Remove uncommon 'concepts' from the MedRecord.
 
         It removes the concepts that have less than the minimum number of occurrences.
 
@@ -225,8 +231,8 @@ class MTGANPreprocessor(nn.Module):
     def _find_first_admission(self, medrecord: MedRecord) -> MedRecordAttribute:
         """Finds the first admission for each patient and assigns it as a patient node attribute.
 
-        For instance, consider a MedRecord with patients 'p1', 'p2', 'p3' each had
-        admissions on several dates.
+        For instance, consider a MedRecord with patients 'p1', 'p2', 'p3' where each
+        had admissions on several dates.
         'p1': ['2021-01-01', '2021-02-14', '2021-04-08']
         'p2': ['2021-02-01', '2021-05-10', '2021-08-22']
         'p3': ['2021-01-15', '2021-06-20', '2021-07-30']
@@ -439,6 +445,7 @@ class MTGANPreprocessor(nn.Module):
                 raise ValueError(
                     f"First admission attribute needs to be a datetime object, but got {type(first_admission)}"
                 )
+
             for single_edge in medrecord.edges_connecting(
                 patient_index,
                 sorted(medrecord.nodes_in_group(self.concepts_group)),
@@ -449,6 +456,8 @@ class MTGANPreprocessor(nn.Module):
                     raise ValueError(
                         f"Time attribute needs to be a datetime object, but got {type(time)}"
                     )
+
+                # Assign the absolute time window and the concept index to the edge for easier querying later
                 medrecord.edge[single_edge, absolute_time_window_attribute] = floor(
                     (time - first_admission).days // time_interval_days
                 )
@@ -488,16 +497,14 @@ class MTGANPreprocessor(nn.Module):
 
     def _assign_concept_indices(
         self, medrecord: MedRecord, concept_index_attribute: MedRecordAttribute
-    ) -> Dict[int, NodeIndex]:
-        """Assigns an index to each concept in the MedRecord and returns the index to concept dictionary.
+    ) -> ConceptsList:
+        """Assigns an index to each concept in the MedRecord and returns a list of concepts in order of their index.
 
-        For instance, consider a MedRecord with concepts 'c1', 'c2', 'c3', 'c4', 'c5'.
+        For instance, consider a MedRecord with concepts 'c5', 'c2', 'c3', 'c4', 'c1'.
         The method will assign an index to each concept, sorted alphabetically:
-            0: 'c1'
-            1: 'c2'
-            2: 'c3'
-            3: 'c4'
-            4: 'c5'
+        'c5': 4, 'c2': 1, 'c3': 2, 'c4': 3, 'c1': 0. And the list of concepts will be
+        ['c1', 'c2', 'c3', 'c4', 'c5'].
+
 
         Args:
             medrecord (MedRecord): The MedRecord.
@@ -505,21 +512,21 @@ class MTGANPreprocessor(nn.Module):
                 concept index.
 
         Returns:
-            Dict[int, NodeIndex]: The index to concept dictionary.
+            ConceptsList: The list of concepts in order of their index.
         """
 
-        index_to_concept_dictionary = {}
+        concepts_list = []
         for concept_index, concept in enumerate(
             sorted(medrecord.nodes_in_group(self.concepts_group))
         ):
-            index_to_concept_dictionary[concept_index] = concept
+            concepts_list.append(concept)
             medrecord.node[concept, concept_index_attribute] = concept_index
 
-        return index_to_concept_dictionary
+        return concepts_list
 
     def preprocess(
         self, medrecord: MedRecord
-    ) -> Tuple[MedRecord, Dict[int, NodeIndex], PreprocessingAttributes]:
+    ) -> Tuple[MedRecord, ConceptsList, PreprocessingAttributes]:
         """Preprocess the MedRecord.
 
         - Remove uncommon concepts.
@@ -532,11 +539,9 @@ class MTGANPreprocessor(nn.Module):
             medrecord (MedRecord): The MedRecord.
 
         Returns:
-            Tuple[MedRecord, Dict[int, NodeIndex], PreprocessingAttributes]:
-                The preprocessed MedRecord, the index to concept dictionary (a
-                dictionary that connects the index of the concept with name of the
-                concept), and the preprocessing attributes' names in the preprocessed
-                MedRecord.
+            Tuple[MedRecord, ConceptsList, PreprocessingAttributes]:
+                The preprocessed MedRecord, the concepts list, and the preprocessing
+                attributes' names in the preprocessed MedRecord.
 
         Raises:
             ValueError: If no patients or no concepts are in the MedRecord groups with
@@ -577,9 +582,7 @@ class MTGANPreprocessor(nn.Module):
         self._sample_patients(
             medrecord, self.hyperparameters["number_of_sampled_patients"]
         )
-        index_to_concept_dictionary = self._assign_concept_indices(
-            medrecord, concept_index_attribute
-        )
+        concepts_list = self._assign_concept_indices(medrecord, concept_index_attribute)
 
         if not medrecord.nodes_in_group(self.patients_group):
             raise ValueError("No patients left after preprocessing")
@@ -587,4 +590,4 @@ class MTGANPreprocessor(nn.Module):
         if not medrecord.nodes_in_group(self.concepts_group):
             raise ValueError("No concepts left after preprocessing")
 
-        return medrecord, index_to_concept_dictionary, preprocessing_attributes
+        return medrecord, concepts_list, preprocessing_attributes

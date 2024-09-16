@@ -309,12 +309,12 @@ class TestMTGANPreprocessor(unittest.TestCase):
         concept_index_attribute = self.preprocessor._get_attribute_name(
             medrecord, "concept_index"
         )
-        index_to_concept_dictionary = self.preprocessor._assign_concept_indices(
+        concepts_list = self.preprocessor._assign_concept_indices(
             medrecord, concept_index_attribute
         )
-        self.assertEqual(index_to_concept_dictionary[0], "D1")
-        self.assertIn(index_to_concept_dictionary[1], "M1")
-        self.assertIn(index_to_concept_dictionary[2], "M2")
+        self.assertEqual(concepts_list[0], "D1")
+        self.assertIn(concepts_list[1], "M1")
+        self.assertIn(concepts_list[2], "M2")
         self.assertEqual(medrecord.node["D1", concept_index_attribute], 0)
         self.assertEqual(medrecord.node["M1", concept_index_attribute], 1)
         self.assertEqual(medrecord.node["M2", concept_index_attribute], 2)
@@ -324,23 +324,23 @@ class TestMTGANPreprocessor(unittest.TestCase):
             medrecord,
             minimum_number_ocurrences=5,
         )
-        index_to_concept_dictionary = self.preprocessor._assign_concept_indices(
+        concepts_list = self.preprocessor._assign_concept_indices(
             medrecord, concept_index_attribute
         )
         self.assertEqual(len(medrecord.nodes_in_group("concepts")), 2)
-        self.assertEqual(index_to_concept_dictionary[0], "D1")
-        self.assertEqual(index_to_concept_dictionary[1], "M2")
+        self.assertEqual(concepts_list[0], "D1")
+        self.assertEqual(concepts_list[1], "M2")
 
         # To show what is returned with no concepts left:
         self.preprocessor._remove_uncommon_concepts(
             medrecord,
             minimum_number_ocurrences=10,
         )
-        index_to_concept_dictionary = self.preprocessor._assign_concept_indices(
+        concepts_list = self.preprocessor._assign_concept_indices(
             medrecord, concept_index_attribute
         )
         self.assertEqual(len(medrecord.nodes_in_group("concepts")), 0)
-        self.assertEqual(index_to_concept_dictionary, {})
+        self.assertEqual(concepts_list, [])
 
     def test_sample_patients(self):
         """Tests the sample_patients method of the MTGANPreprocessor class."""
@@ -408,7 +408,7 @@ class TestMTGANPreprocessor(unittest.TestCase):
     def test_preprocess(self):
         """Tests the preprocess method of the MTGANPreprocessor class."""
         medrecord = create_medrecord()
-        medrecord, index_to_concept_dictionary, preprocessing_attributes = (
+        medrecord, concepts_list, preprocessing_attributes = (
             self.preprocessor.preprocess(medrecord)
         )
 
@@ -416,9 +416,9 @@ class TestMTGANPreprocessor(unittest.TestCase):
         self.assertIn("P1", medrecord.nodes_in_group("patients"))
         self.assertIn("P2", medrecord.nodes_in_group("patients"))
         self.assertIn("P3", medrecord.nodes_in_group("patients"))
-        self.assertEqual(index_to_concept_dictionary[0], "D1")
-        self.assertIn(index_to_concept_dictionary[1], "M1")
-        self.assertIn(index_to_concept_dictionary[2], "M2")
+        self.assertEqual(concepts_list[0], "D1")
+        self.assertIn(concepts_list[1], "M1")
+        self.assertIn(concepts_list[2], "M2")
         self.assertEqual(
             preprocessing_attributes,
             PreprocessingAttributes(
@@ -445,13 +445,13 @@ class TestMTGANPreprocessor(unittest.TestCase):
         hyperparameters = self.hyperparameters.copy()
         hyperparameters["minimum_occurrences_concept"] = 6
         preprocessor = MTGANPreprocessor(hyperparameters)
-        medrecord, index_to_concept_dictionary, _ = preprocessor.preprocess(medrecord)
+        medrecord, concepts_list, _ = preprocessor.preprocess(medrecord)
 
         # Patient 3 is the only one that has a concept with at least 6 occurrences in two different time windows
         self.assertEqual(len(medrecord.nodes_in_group("patients")), 1)
         self.assertIn("P3", medrecord.nodes_in_group("patients"))
         self.assertEqual(len(medrecord.nodes_in_group("concepts")), 1)
-        self.assertEqual(index_to_concept_dictionary[0], "D1")
+        self.assertEqual(concepts_list[0], "D1")
 
         ## Extending the time intervals used to encapsulate the time windows, results differ
         medrecord = create_medrecord()
