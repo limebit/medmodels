@@ -2,7 +2,7 @@
 
 ## Preface
 
-Just like every major library has its core class — [PyTorch](https://pytorch.org/) has `torch.Tensor`, [Numpy](https://numpy.org/) has `np.array` — MedModels revolves around `mm.MedRecord` as its central object.
+Every major library has a central object that consitutes its core. For [PyTorch](https://pytorch.org/), it is the `torch.Tensor`, whereas for [Numpy](https://numpy.org/), it is the `np.array`. In our case, MedModels centres around the `mm.MedRecord` as its foundational structure.
 
 MedModels delivers advanced data analytics methods out-of-the-box by utilizing a structured approach to data storage. This is enabled by the MedRecord class, which organizes data of any complexity within a graph structure. With its Rust backend implementation, MedRecord guarantees high performance, even when working with extremely large datasets.
 
@@ -55,7 +55,7 @@ The Builder Pattern simplifies creating complex objects by constructing them ste
 ```{literalinclude} scripts/02_medrecord_intro.py
 ---
 language: python
-lines: 43
+lines: 30
 ---
 ```
 
@@ -76,7 +76,7 @@ Using the builder pattern to construct the MedRecord allows us to pass as many n
 ```{literalinclude} scripts/02_medrecord_intro.py
 ---
 language: python
-lines: 46
+lines: 33
 ---
 ```
 
@@ -112,7 +112,7 @@ We can add these edges then to our MedRecord Graph:
 ```{literalinclude} scripts/02_medrecord_intro.py
 ---
 language: python
-lines: 54
+lines: 39
 ---
 ```
 This results in an enlarged Graph with more information.
@@ -127,7 +127,7 @@ For certain analyses, we may want to define specific subcohorts within our MedRe
 ```{literalinclude} scripts/02_medrecord_intro.py
 ---
 language: python
-lines: 58
+lines: 41
 ---
 ```
 This group will include all the defined nodes, allowing for easier access during complex analyses. Both nodes and edges can be added to a group, with no limitations on group size. Additionally, nodes and edges can belong to multiple groups without restriction.
@@ -143,7 +143,7 @@ When building a MedRecord, you may want to save it to create a persistent versio
 ```{literalinclude} scripts/02_medrecord_intro.py
 ---
 language: python
-lines: 80-81
+lines: 63-64
 ---
 ```
 
@@ -154,32 +154,28 @@ The MedModels MedRecord class is designed to efficiently handle large datasets w
 ```{literalinclude} scripts/02_medrecord_intro.py
 ---
 language: python
-lines: 60
+lines: 43
 ---
 ```
 
 It will print an overview over all grouped nodes in the MedRecord.
 
 ```
-------------------------------------------------------
-Nodes Group Count Attribute Info                    
-------------------------------------------------------
-Diagnoses   1     ICD       Values: I.21             
-                  ICDv      min: 10                  
-                            max: 10                  
-                            mean: 10.00              
-Medications 2     Name      Values: Insulin, Wararin 
-Patients    3     Age       min: 64                  
-                            max: 74                  
-                            mean: 70.00              
-                  Loc       Values: GER, USA         
-                  Sex       Values: F, M             
-US-Patients 2     Age       min: 72                  
-                            max: 74                  
-                            mean: 73.00              
-                  Loc       Values: USA              
-                  Sex       Values: M                
-------------------------------------------------------
+-------------------------------------------------------
+Nodes Group Count Attribute Info                     
+-------------------------------------------------------
+Medications 2     Name      Values: Insulin, Warfarin 
+Patients    3     Age       min: 64                   
+                            max: 74                   
+                            mean: 70.00               
+                  Loc       Values: GER, USA          
+                  Sex       Values: F, M              
+US-Patients 2     Age       min: 72                   
+                            max: 74                   
+                            mean: 73.00               
+                  Loc       Values: USA               
+                  Sex       Values: M                 
+-------------------------------------------------------
 ```
 As shown, we have two groups of nodes - Patients and Medications - created when adding the nodes. Additionally, there’s a group called 'US-Patients' that we created. For each group of nodes, we can view their attributes along with a brief statistical summary, such as the minimum, maximum, and mean for numeric variables.
 
@@ -188,30 +184,19 @@ We can do the same to get an overview over edges in our MedRecord by using the `
 ```{literalinclude} scripts/02_medrecord_intro.py
 ---
 language: python
-lines: 62
+lines: 45
 ---
 ```
 
 ```
-------------------------------------------------------
-Nodes Group Count Attribute Info                    
-------------------------------------------------------
-Diagnoses   1     ICD       Values: I.21             
-                  ICDv      min: 10                  
-                            max: 10                  
-                            mean: 10.00              
-Medications 2     Name      Values: Insulin, Wararin 
-Patients    3     Age       min: 64                  
-                            max: 74                  
-                            mean: 70.00              
-                  Loc       Values: GER, USA         
-                  Sex       Values: F, M             
-US-Patients 2     Age       min: 72                  
-                            max: 74                  
-                            mean: 73.00              
-                  Loc       Values: USA              
-                  Sex       Values: M                
-------------------------------------------------------
+---------------------------------------------------------------------
+Edges Groups               Count Attribute Info                    
+---------------------------------------------------------------------
+Patients -> Medications    3     Date      min: 2018-02-02 00:00:00 
+                                           max: 2020-06-07 00:00:00 
+US-Patients -> Medications 2     Date      min: 2018-02-02 00:00:00 
+                                           max: 2020-06-07 00:00:00 
+---------------------------------------------------------------------
 ```
 
 ## Accessing Elements in a MedRecord
@@ -221,12 +206,12 @@ Now that we have stored some structured data in our MedRecord, we might want to 
 ```{literalinclude} scripts/02_medrecord_intro.py
 ---
 language: python
-lines: 64-78
+lines: 47-61
 ---
 ```
 ## Advanced Querying on a MedRecord
 
-The MedRecord can be queried in very advanced ways in order to finde very specific nodes based on time, relations, neighbors or other. These advanced querying methods are covered in the next session of the user guide.
+The MedRecord can be queried in very advanced ways in order to find very specific nodes based on time, relations, neighbors or other. These advanced querying methods are covered in the next session of the user guide.
 
 
 ## Full example Code
