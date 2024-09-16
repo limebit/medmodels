@@ -1,0 +1,19 @@
+from typing import Dict, List, Union
+
+from numpy.typing import ArrayLike
+
+class TestHypothesis:
+    alpha: float
+    samples: List[ArrayLike]
+    sample_number: int
+    normal_distribution: bool
+    test: str
+    hypothesis: str
+    p_value: float
+
+    def test_for_normal_distribution(self) -> bool: ...
+    def decide_hypothesis_test(self) -> Dict[str, Union[str, bool, float]]: ...
+    def two_tailed_t_test(self) -> float: ...
+    def mann_whitney_u_test(self) -> float: ...
+    def ANOVA(self) -> float: ...
+    def chi_sqare_independece_test(self) -> float: ...
