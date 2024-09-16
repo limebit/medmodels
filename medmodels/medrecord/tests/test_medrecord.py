@@ -475,6 +475,14 @@ class TestMedRecord(unittest.TestCase):
         medrecord.add_node("0", {})
 
         self.assertEqual(1, medrecord.node_count())
+        self.assertEqual(0, len(medrecord.groups))
+
+        medrecord = MedRecord()
+
+        medrecord.add_node("0", {}, "0")
+
+        self.assertIn("0", medrecord.nodes_in_group("0"))
+        self.assertEqual(1, len(medrecord.groups))
 
     def test_invalid_add_node(self):
         medrecord = create_medrecord()
@@ -530,6 +538,25 @@ class TestMedRecord(unittest.TestCase):
 
         self.assertEqual(4, medrecord.node_count())
 
+        # Adding tuple to a group
+        medrecord = MedRecord()
+
+        medrecord.add_nodes(create_nodes(), "0")
+
+        self.assertIn("0", medrecord.nodes_in_group("0"))
+        self.assertIn("1", medrecord.nodes_in_group("0"))
+        self.assertIn("2", medrecord.nodes_in_group("0"))
+        self.assertIn("3", medrecord.nodes_in_group("0"))
+        self.assertIn("0", medrecord.groups)
+
+        # Adding group without nodes
+        medrecord = MedRecord()
+
+        medrecord.add_nodes([], "0")
+
+        self.assertEqual(0, medrecord.node_count())
+        self.assertIn("0", medrecord.groups)
+
         # Adding pandas dataframe
         medrecord = MedRecord()
 
@@ -538,6 +565,14 @@ class TestMedRecord(unittest.TestCase):
         medrecord.add_nodes((create_pandas_nodes_dataframe(), "index"))
 
         self.assertEqual(2, medrecord.node_count())
+
+        # Adding pandas dataframe to a group
+        medrecord = MedRecord()
+
+        medrecord.add_nodes((create_pandas_nodes_dataframe(), "index"), "0")
+
+        self.assertIn("0", medrecord.nodes_in_group("0"))
+        self.assertIn("1", medrecord.nodes_in_group("0"))
 
         # Adding polars dataframe
         medrecord = MedRecord()
@@ -549,6 +584,14 @@ class TestMedRecord(unittest.TestCase):
         medrecord.add_nodes((nodes, "index"))
 
         self.assertEqual(2, medrecord.node_count())
+
+        # Adding polars dataframe to a group
+        medrecord = MedRecord()
+
+        medrecord.add_nodes((nodes, "index"), "0")
+
+        self.assertIn("0", medrecord.nodes_in_group("0"))
+        self.assertIn("1", medrecord.nodes_in_group("0"))
 
         # Adding multiple pandas dataframes
         medrecord = MedRecord()
@@ -563,6 +606,39 @@ class TestMedRecord(unittest.TestCase):
         )
 
         self.assertEqual(4, medrecord.node_count())
+
+        # Adding multiple pandas dataframes to a group
+        medrecord = MedRecord()
+
+        medrecord.add_nodes(
+            [
+                (create_pandas_nodes_dataframe(), "index"),
+                (create_second_pandas_nodes_dataframe(), "index"),
+            ],
+            group="0",
+        )
+
+        self.assertIn("0", medrecord.nodes_in_group("0"))
+        self.assertIn("1", medrecord.nodes_in_group("0"))
+        self.assertIn("2", medrecord.nodes_in_group("0"))
+        self.assertIn("3", medrecord.nodes_in_group("0"))
+
+        # Checking if nodes can be added to a group that already exists
+        medrecord = MedRecord()
+
+        medrecord.add_nodes((create_pandas_nodes_dataframe(), "index"), group="0")
+
+        self.assertIn("0", medrecord.nodes_in_group("0"))
+        self.assertIn("1", medrecord.nodes_in_group("0"))
+        self.assertNotIn("2", medrecord.nodes_in_group("0"))
+        self.assertNotIn("3", medrecord.nodes_in_group("0"))
+
+        medrecord.add_nodes(
+            (create_second_pandas_nodes_dataframe(), "index"), group="0"
+        )
+
+        self.assertIn("2", medrecord.nodes_in_group("0"))
+        self.assertIn("3", medrecord.nodes_in_group("0"))
 
         # Adding multiple polars dataframes
         medrecord = MedRecord()
@@ -580,6 +656,22 @@ class TestMedRecord(unittest.TestCase):
 
         self.assertEqual(4, medrecord.node_count())
 
+        # Adding multiple polars dataframes to a group
+        medrecord = MedRecord()
+
+        medrecord.add_nodes(
+            [
+                (nodes, "index"),
+                (second_nodes, "index"),
+            ],
+            group="0",
+        )
+
+        self.assertIn("0", medrecord.nodes_in_group("0"))
+        self.assertIn("1", medrecord.nodes_in_group("0"))
+        self.assertIn("2", medrecord.nodes_in_group("0"))
+        self.assertIn("3", medrecord.nodes_in_group("0"))
+
     def test_invalid_add_nodes(self):
         medrecord = create_medrecord()
 
@@ -593,7 +685,7 @@ class TestMedRecord(unittest.TestCase):
 
         self.assertEqual(0, medrecord.node_count())
 
-        medrecord.add_nodes(nodes)
+        medrecord.add_nodes_pandas(nodes)
 
         self.assertEqual(2, medrecord.node_count())
 
@@ -603,9 +695,33 @@ class TestMedRecord(unittest.TestCase):
 
         self.assertEqual(0, medrecord.node_count())
 
-        medrecord.add_nodes([nodes, second_nodes])
+        medrecord.add_nodes_pandas([nodes, second_nodes])
 
         self.assertEqual(4, medrecord.node_count())
+
+        # Trying with the group argument
+        medrecord = MedRecord()
+
+        medrecord.add_nodes_pandas(nodes, group="0")
+
+        self.assertIn("0", medrecord.nodes_in_group("0"))
+        self.assertIn("1", medrecord.nodes_in_group("0"))
+
+        medrecord = MedRecord()
+
+        medrecord.add_nodes_pandas([], group="0")
+
+        self.assertEqual(0, medrecord.node_count())
+        self.assertIn("0", medrecord.groups)
+
+        medrecord = MedRecord()
+
+        medrecord.add_nodes_pandas([nodes, second_nodes], group="0")
+
+        self.assertIn("0", medrecord.nodes_in_group("0"))
+        self.assertIn("1", medrecord.nodes_in_group("0"))
+        self.assertIn("2", medrecord.nodes_in_group("0"))
+        self.assertIn("3", medrecord.nodes_in_group("0"))
 
     def test_add_nodes_polars(self):
         medrecord = MedRecord()
@@ -627,6 +743,32 @@ class TestMedRecord(unittest.TestCase):
         medrecord.add_nodes_polars([(nodes, "index"), (second_nodes, "index")])
 
         self.assertEqual(4, medrecord.node_count())
+
+        # Trying with the group argument
+        medrecord = MedRecord()
+
+        medrecord.add_nodes_polars((nodes, "index"), group="0")
+
+        self.assertIn("0", medrecord.nodes_in_group("0"))
+        self.assertIn("1", medrecord.nodes_in_group("0"))
+
+        medrecord = MedRecord()
+
+        medrecord.add_nodes_polars([], group="0")
+
+        self.assertEqual(0, medrecord.node_count())
+        self.assertIn("0", medrecord.groups)
+
+        medrecord = MedRecord()
+
+        medrecord.add_nodes_polars(
+            [(nodes, "index"), (second_nodes, "index")], group="0"
+        )
+
+        self.assertIn("0", medrecord.nodes_in_group("0"))
+        self.assertIn("1", medrecord.nodes_in_group("0"))
+        self.assertIn("2", medrecord.nodes_in_group("0"))
+        self.assertIn("3", medrecord.nodes_in_group("0"))
 
     def test_invalid_add_nodes_polars(self):
         medrecord = MedRecord()
@@ -650,6 +792,11 @@ class TestMedRecord(unittest.TestCase):
         medrecord.add_edge("0", "3", {})
 
         self.assertEqual(5, medrecord.edge_count())
+
+        medrecord.add_edge("3", "0", {}, group="0")
+
+        self.assertEqual(6, medrecord.edge_count())
+        self.assertIn(5, medrecord.edges_in_group("0"))
 
     def test_invalid_add_edge(self):
         medrecord = MedRecord()
@@ -710,6 +857,19 @@ class TestMedRecord(unittest.TestCase):
 
         self.assertEqual(4, medrecord.edge_count())
 
+        # Adding tuple to a group
+
+        medrecord = MedRecord()
+
+        medrecord.add_nodes(nodes)
+
+        medrecord.add_edges(create_edges(), "0")
+
+        self.assertIn(0, medrecord.edges_in_group("0"))
+        self.assertIn(1, medrecord.edges_in_group("0"))
+        self.assertIn(2, medrecord.edges_in_group("0"))
+        self.assertIn(3, medrecord.edges_in_group("0"))
+
         # Adding pandas dataframe
         medrecord = MedRecord()
 
@@ -720,6 +880,16 @@ class TestMedRecord(unittest.TestCase):
         medrecord.add_edges((create_pandas_edges_dataframe(), "source", "target"))
 
         self.assertEqual(2, medrecord.edge_count())
+
+        # Adding pandas dataframe to a group
+        medrecord = MedRecord()
+
+        medrecord.add_nodes(nodes)
+
+        medrecord.add_edges((create_pandas_edges_dataframe(), "source", "target"), "0")
+
+        self.assertIn(0, medrecord.edges_in_group("0"))
+        self.assertIn(1, medrecord.edges_in_group("0"))
 
         # Adding polars dataframe
         medrecord = MedRecord()
@@ -733,6 +903,16 @@ class TestMedRecord(unittest.TestCase):
         medrecord.add_edges((edges, "source", "target"))
 
         self.assertEqual(2, medrecord.edge_count())
+
+        # Adding polars dataframe to a group
+        medrecord = MedRecord()
+
+        medrecord.add_nodes(nodes)
+
+        medrecord.add_edges((edges, "source", "target"), "0")
+
+        self.assertIn(0, medrecord.edges_in_group("0"))
+        self.assertIn(1, medrecord.edges_in_group("0"))
 
         # Adding multiple pandas dataframe
         medrecord = MedRecord()
@@ -750,7 +930,25 @@ class TestMedRecord(unittest.TestCase):
 
         self.assertEqual(4, medrecord.edge_count())
 
-        # Adding multiple polats dataframe
+        # Adding multiple pandas dataframe to a group
+        medrecord = MedRecord()
+
+        medrecord.add_nodes(nodes)
+
+        medrecord.add_edges(
+            [
+                (create_pandas_edges_dataframe(), "source", "target"),
+                (create_second_pandas_edges_dataframe(), "source", "target"),
+            ],
+            "0",
+        )
+
+        self.assertIn(0, medrecord.edges_in_group("0"))
+        self.assertIn(1, medrecord.edges_in_group("0"))
+        self.assertIn(2, medrecord.edges_in_group("0"))
+        self.assertIn(3, medrecord.edges_in_group("0"))
+
+        # Adding multiple polars dataframe
         medrecord = MedRecord()
 
         medrecord.add_nodes(nodes)
@@ -768,6 +966,24 @@ class TestMedRecord(unittest.TestCase):
 
         self.assertEqual(4, medrecord.edge_count())
 
+        # Adding multiple polars dataframe to a group
+        medrecord = MedRecord()
+
+        medrecord.add_nodes(nodes)
+
+        medrecord.add_edges(
+            [
+                (edges, "source", "target"),
+                (second_edges, "source", "target"),
+            ],
+            "0",
+        )
+
+        self.assertIn(0, medrecord.edges_in_group("0"))
+        self.assertIn(1, medrecord.edges_in_group("0"))
+        self.assertIn(2, medrecord.edges_in_group("0"))
+        self.assertIn(3, medrecord.edges_in_group("0"))
+
     def test_add_edges_pandas(self):
         medrecord = MedRecord()
 
@@ -783,6 +999,29 @@ class TestMedRecord(unittest.TestCase):
 
         self.assertEqual(2, medrecord.edge_count())
 
+        # Adding to a group
+        medrecord = MedRecord()
+
+        medrecord.add_nodes(nodes)
+
+        medrecord.add_edges(edges, "0")
+
+        self.assertIn(0, medrecord.edges_in_group("0"))
+        self.assertIn(1, medrecord.edges_in_group("0"))
+
+        medrecord = MedRecord()
+
+        medrecord.add_nodes(nodes)
+
+        second_edges = (create_second_pandas_edges_dataframe(), "source", "target")
+
+        medrecord.add_edges([edges, second_edges], "0")
+
+        self.assertIn(0, medrecord.edges_in_group("0"))
+        self.assertIn(1, medrecord.edges_in_group("0"))
+        self.assertIn(2, medrecord.edges_in_group("0"))
+        self.assertIn(3, medrecord.edges_in_group("0"))
+
     def test_add_edges_polars(self):
         medrecord = MedRecord()
 
@@ -797,6 +1036,31 @@ class TestMedRecord(unittest.TestCase):
         medrecord.add_edges_polars((edges, "source", "target"))
 
         self.assertEqual(2, medrecord.edge_count())
+
+        # Adding to a group
+        medrecord = MedRecord()
+
+        medrecord.add_nodes(nodes)
+
+        medrecord.add_edges_polars((edges, "source", "target"), "0")
+
+        self.assertIn(0, medrecord.edges_in_group("0"))
+        self.assertIn(1, medrecord.edges_in_group("0"))
+
+        medrecord = MedRecord()
+
+        medrecord.add_nodes(nodes)
+
+        second_edges = pl.from_pandas(create_second_pandas_edges_dataframe())
+
+        medrecord.add_edges_polars(
+            [(edges, "source", "target"), (second_edges, "source", "target")], "0"
+        )
+
+        self.assertIn(0, medrecord.edges_in_group("0"))
+        self.assertIn(1, medrecord.edges_in_group("0"))
+        self.assertIn(2, medrecord.edges_in_group("0"))
+        self.assertIn(3, medrecord.edges_in_group("0"))
 
     def test_invalid_add_edges_polars(self):
         medrecord = MedRecord()
