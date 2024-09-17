@@ -1,7 +1,7 @@
 mod edge;
 mod node;
 
-use super::{MedRecordAttribute, MedRecordValue};
+use super::{group_mapping::GroupMapping, MedRecordAttribute, MedRecordValue};
 use crate::errors::GraphError;
 use edge::Edge;
 use medmodels_utils::aliases::MrHashMap;
@@ -94,7 +94,11 @@ impl Graph {
         Ok(())
     }
 
-    pub fn remove_node(&mut self, node_index: &NodeIndex) -> Result<Attributes, GraphError> {
+    pub fn remove_node(
+        &mut self,
+        node_index: &NodeIndex,
+        group_mapping: &mut GroupMapping,
+    ) -> Result<Attributes, GraphError> {
         let node = self
             .nodes
             .remove(node_index)
@@ -104,6 +108,8 @@ impl Graph {
             )))?;
 
         for edge_index in node.outgoing_edge_indices {
+            group_mapping.remove_edge(&edge_index);
+
             let edge = self.edges.remove(&edge_index).expect("Edge must exist");
 
             self.nodes
@@ -114,6 +120,8 @@ impl Graph {
         }
 
         for edge_index in node.incoming_edge_indices {
+            group_mapping.remove_edge(&edge_index);
+
             let edge = self.edges.remove(&edge_index).expect("Edge must exist");
 
             self.nodes
@@ -410,7 +418,7 @@ impl Graph {
 #[cfg(test)]
 mod test {
     use super::{Attributes, Graph, NodeIndex};
-    use crate::errors::GraphError;
+    use crate::{errors::GraphError, medrecord::group_mapping::GroupMapping};
     use std::collections::HashMap;
 
     fn create_nodes() -> Vec<(NodeIndex, Attributes)> {
@@ -553,7 +561,9 @@ mod test {
 
         assert_eq!(4, graph.node_count());
 
-        let attributes = graph.remove_node(&"0".into()).unwrap();
+        let attributes = graph
+            .remove_node(&"0".into(), &mut GroupMapping::new())
+            .unwrap();
 
         assert_eq!(3, graph.node_count());
 
@@ -565,7 +575,7 @@ mod test {
         let mut graph = create_graph();
 
         assert!(graph
-            .remove_node(&"50".into())
+            .remove_node(&"50".into(), &mut GroupMapping::new())
             .is_err_and(|e| matches!(e, GraphError::IndexError(_))));
     }
 
