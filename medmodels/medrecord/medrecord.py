@@ -550,10 +550,14 @@ class MedRecord:
             None
         """
         self._medrecord.add_node(node, attributes)
-        if group is not None:
-            if not self.contains_group(group):
-                self.add_group(group)
-            self.add_node_to_group(group, node)
+
+        if group is None:
+            return
+
+        if not self.contains_group(group):
+            self.add_group(group)
+
+        self.add_node_to_group(group, node)
 
     @overload
     def remove_node(self, node: NodeIndex) -> Attributes: ...
@@ -630,10 +634,14 @@ class MedRecord:
             self.add_nodes_polars(nodes, group)
         else:
             self._medrecord.add_nodes(nodes)
-            if group is not None:
-                if not self.contains_group(group):
-                    self.add_group(group)
-                self.add_node_to_group(group, [node[0] for node in nodes])
+
+            if group is None:
+                return
+
+            if not self.contains_group(group):
+                self.add_group(group)
+
+            self.add_node_to_group(group, [node[0] for node in nodes])
 
     def add_nodes_pandas(
         self,
@@ -686,18 +694,20 @@ class MedRecord:
             nodes if isinstance(nodes, list) else [nodes]
         )
 
-        if group is not None:
-            if not self.contains_group(group):
-                self.add_group(group)
+        if group is None:
+            return
 
-            if isinstance(nodes, list):
-                nodes_indices = [
-                    nodes for node in nodes for nodes in node[0][node[1]].to_list()
-                ]
-            else:
-                nodes_indices = nodes[0][nodes[1]].to_list()
+        if not self.contains_group(group):
+            self.add_group(group)
 
-            self.add_node_to_group(group, nodes_indices)
+        if isinstance(nodes, list):
+            node_indices = [
+                nodes for node in nodes for nodes in node[0][node[1]].to_list()
+            ]
+        else:
+            node_indices = nodes[0][nodes[1]].to_list()
+
+        self.add_node_to_group(group, node_indices)
 
     def add_edge(
         self,
@@ -719,10 +729,14 @@ class MedRecord:
             EdgeIndex: The index of the added edge.
         """
         edge_index = self._medrecord.add_edge(source_node, target_node, attributes)
-        if group is not None:
-            if not self.contains_group(group):
-                self.add_group(group)
-            self.add_edge_to_group(group, edge_index)
+
+        if group is None:
+            return edge_index
+
+        if not self.contains_group(group):
+            self.add_group(group)
+
+        self.add_edge_to_group(group, edge_index)
 
         return edge_index
 
@@ -804,10 +818,13 @@ class MedRecord:
         else:
             edge_indices = self._medrecord.add_edges(edges)
 
-            if group is not None:
-                if not self.contains_group(group):
-                    self.add_group(group)
-                self.add_edge_to_group(group, edge_indices)
+            if group is None:
+                return edge_indices
+
+            if not self.contains_group(group):
+                self.add_group(group)
+
+            self.add_edge_to_group(group, edge_indices)
 
             return edge_indices
 
@@ -863,10 +880,14 @@ class MedRecord:
         edge_indices = self._medrecord.add_edges_dataframes(
             edges if isinstance(edges, list) else [edges]
         )
-        if group is not None:
-            if not self.contains_group(group):
-                self.add_group(group)
-            self.add_edge_to_group(group, edge_indices)
+
+        if group is None:
+            return edge_indices
+
+        if not self.contains_group(group):
+            self.add_group(group)
+
+        self.add_edge_to_group(group, edge_indices)
 
         return edge_indices
 

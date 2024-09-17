@@ -205,7 +205,7 @@ class MedRecordBuilder:
             edge = edge[0]
 
             if is_edge_tuple(edge):
-                _ = medrecord.add_edge(*edge, group)
+                medrecord.add_edge(*edge, group)
                 continue
 
             if (
@@ -215,7 +215,7 @@ class MedRecordBuilder:
                 or is_polars_edge_dataframe_input(edge)
                 or is_polars_edge_dataframe_input_list(edge)
             ):
-                _ = medrecord.add_edges(edge, group)
+                medrecord.add_edges(edge, group)
 
         for group in self._groups:
             if medrecord.contains_group(group):
