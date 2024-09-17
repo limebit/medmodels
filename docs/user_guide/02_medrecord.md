@@ -10,9 +10,9 @@
 
 ## Preface
 
-Every major library has a central object that consitutes its core. For [PyTorch](https://pytorch.org/), it is the `torch.Tensor`, whereas for [Numpy](https://numpy.org/), it is the `np.array`. In our case, MedModels centres around the [`MedRecord`](medmodels.medrecord.medrecord.MedRecord){target="_blank"} as its foundational structure.
+Every major library has a central object that consitutes its core. For [PyTorch](https://pytorch.org/), it is the `torch.Tensor`, whereas for [Numpy](https://numpy.org/), it is the `np.array`. In our case, MedModels centres around the [`MedRecord`](medmodels.medrecord.medrecord.MedRecord){target="\_blank"} as its foundational structure.
 
-MedModels delivers advanced data analytics methods out-of-the-box by utilizing a structured approach to data storage. This is enabled by the [`MedRecord`](medmodels.medrecord.medrecord.MedRecord){target="_blank"} class, which organizes data of any complexity within a graph structure. With its Rust backend implementation, MedRecord guarantees high performance, even when working with extremely large datasets.
+MedModels delivers advanced data analytics methods out-of-the-box by utilizing a structured approach to data storage. This is enabled by the [`MedRecord`](medmodels.medrecord.medrecord.MedRecord){target="\_blank"} class, which organizes data of any complexity within a graph structure. With its Rust backend implementation, MedRecord guarantees high performance, even when working with extremely large datasets.
 
 ```{literalinclude} scripts/02_medrecord_intro.py
 ---
@@ -42,10 +42,10 @@ Let's begin by introducing some sample medical data:
   - M
   - USA
 - - Patient 03
-  - 64
-  - F
-  - GER
-:::
+    - 64
+    - F
+    - GER
+      :::
 
 This data, stored for example in a Pandas DataFrame, looks like this:
 
@@ -56,7 +56,7 @@ lines: 7-14
 ---
 ```
 
-In the example below, we create a new MedRecord using the builder pattern. We instantiate a [`MedRecordBuilder`](medmodels.medrecord.builder.MedRecordBuilder){target="_blank"} and instruct it to add the Pandas DataFrame as nodes, using the _'ID'_ column for indexing. Additionally, we assign these nodes to the group 'Patients'.
+In the example below, we create a new MedRecord using the builder pattern. We instantiate a [`MedRecordBuilder`](medmodels.medrecord.builder.MedRecordBuilder){target="_blank"} and instruct it to add the Pandas DataFrame as nodes, using the _'ID'\_ column for indexing. Additionally, we assign these nodes to the group 'Patients'.
 The Builder Pattern simplifies creating complex objects by constructing them step by step. It improves flexibility, readability, and consistency, making it easier to manage and configure objects in a controlled way.
 
 ```{literalinclude} scripts/02_medrecord_intro.py
@@ -68,10 +68,10 @@ lines: 31
 
 :::{dropdown} Methods used in the snippet
 
-- [`builder()`](medmodels.medrecord.medrecord.MedRecord.builder){target="_blank"} : Creates a new [`MedRecordBuilder`](medmodels.medrecord.builder.MedRecordBuilder){target="_blank"} instance to build a [`MedRecord`](medmodels.medrecord.medrecord.MedRecord){target="_blank"}.
-- [`add_nodes()`](medmodels.medrecord.builder.MedRecordBuilder.add_nodes){target="_blank"} : Adds nodes to the MedRecord from different data formats and optionally assigns them to a group.
-- [`build()`](medmodels.medrecord.builder.MedRecordBuilder.build){target="_blank"} : Constructs a MedRecord instance from the builder’s configuration.
-:::
+- [`builder()`](medmodels.medrecord.medrecord.MedRecord.builder){target="\_blank"} : Creates a new [`MedRecordBuilder`](medmodels.medrecord.builder.MedRecordBuilder){target="\_blank"} instance to build a [`MedRecord`](medmodels.medrecord.medrecord.MedRecord){target="\_blank"}.
+- [`add_nodes()`](medmodels.medrecord.builder.MedRecordBuilder.add_nodes){target="\_blank"} : Adds nodes to the MedRecord from different data formats and optionally assigns them to a group.
+- [`build()`](medmodels.medrecord.builder.MedRecordBuilder.build){target="\_blank"} : Constructs a MedRecord instance from the builder’s configuration.
+  :::
 
 The MedModels MedRecord object, `record`, now contains three patients. Each patient is identified by a unique index and has specific attributes, such as age, sex, and location. These patients serve as the initial nodes in the graph structure of our MedRecord, and are represented as follows:
 
@@ -88,7 +88,7 @@ lines: 17-19
 ---
 ```
 
-Using the builder pattern to construct the MedRecord allows us to pass as many nodes and edges as needed. If nodes are not added during the initial graph construction, they can easily be added later to an existing MedRecord by calling [`add_nodes()`](medmodels.medrecord.medrecord.MedRecordBuilder.add_nodes){target="_blank"}, where you provide the DataFrame and specify the column containing the node indices.
+Using the builder pattern to construct the MedRecord allows us to pass as many nodes and edges as needed. If nodes are not added during the initial graph construction, they can easily be added later to an existing MedRecord by calling [`add_nodes()`](medmodels.medrecord.medrecord.MedRecordBuilder.add_nodes){target="\_blank"}, where you provide the DataFrame and specify the column containing the node indices.
 
 ```{literalinclude} scripts/02_medrecord_intro.py
 ---
@@ -99,8 +99,8 @@ lines: 33
 
 :::{dropdown} Methods used in the snippet
 
-- [`add_nodes()`](medmodels.medrecord.medrecord.MedRecord.add_nodes){target="_blank"} : Adds nodes to the MedRecord from different data formats and optionally assigns them to a group.
-:::
+- [`add_nodes()`](medmodels.medrecord.medrecord.MedRecord.add_nodes){target="\_blank"} : Adds nodes to the MedRecord from different data formats and optionally assigns them to a group.
+  :::
 
 This will expand the MedRecord, adding several new nodes to the graph. However, these nodes are not yet connected, so let's establish relationships between them!
 
@@ -126,9 +126,9 @@ To capture meaningful relationships between nodes, such as linking patients to p
   - Med 02
   - 2018/02/02
 - - Patient 03
-  - Med 02
-  - 2019/03/02
-:::
+    - Med 02
+    - 2019/03/02
+      :::
 
 We can add these edges then to our MedRecord Graph:
 
@@ -141,7 +141,7 @@ lines: 34
 
 :::{dropdown} Methods used in the snippet
 
-- [`add_edges()`](medmodels.medrecord.medrecord.MedRecord.add_edges){target="_blank"} : Adds edges to the MedRecord from different data formats and optionally assigns them to a group.
+- [`add_edges()`](medmodels.medrecord.medrecord.MedRecord.add_edges){target="\_blank"} : Adds edges to the MedRecord from different data formats and optionally assigns them to a group.
 
 :::
 
@@ -164,7 +164,7 @@ lines: 37
 
 :::{dropdown} Methods used in the snippet
 
-- [`add_group()`](medmodels.medrecord.medrecord.MedRecord.add_group){target="_blank"} : Adds a group to the MedRecord instance with an optional list of node indices.
+- [`add_group()`](medmodels.medrecord.medrecord.MedRecord.add_group){target="\_blank"} : Adds a group to the MedRecord instance with an optional list of node indices.
 
 :::
 
@@ -187,13 +187,13 @@ lines: 69-70
 
 :::{dropdown} Methods used in the snippet
 
-- [`to_ron()`](medmodels.medrecord.medrecord.MedRecord.to_ron){target="_blank"} : Writes the MedRecord instance to a RON file.
-- [`from_ron()`](medmodels.medrecord.medrecord.MedRecord.from_ron){target="_blank"} : Creates a MedRecord instance from a RON file.
-:::
+- [`to_ron()`](medmodels.medrecord.medrecord.MedRecord.to_ron){target="\_blank"} : Writes the MedRecord instance to a RON file.
+- [`from_ron()`](medmodels.medrecord.medrecord.MedRecord.from_ron){target="\_blank"} : Creates a MedRecord instance from a RON file.
+  :::
 
 ## Overview Tables
 
-The MedRecord class is designed to efficiently handle large datasets while maintaining a standardized data structure that supports complex analysis methods. As a result, the structure within the MedRecord can become intricate and difficult to manage. To address this, MedModels offers tools to help keep track of the graph-based data. One such tool is the [`overview_nodes()`](medmodels.medrecord.medrecord.MedRecord.overview_nodes){target="_blank"} method, which prints an overview over all nodes in the MedRecord.
+The MedRecord class is designed to efficiently handle large datasets while maintaining a standardized data structure that supports complex analysis methods. As a result, the structure within the MedRecord can become intricate and difficult to manage. To address this, MedModels offers tools to help keep track of the graph-based data. One such tool is the [`overview_nodes()`](medmodels.medrecord.medrecord.MedRecord.overview_nodes){target="\_blank"} method, which prints an overview over all nodes in the MedRecord.
 
 ```{exec-literalinclude} scripts/02_medrecord_intro.py
 ---
@@ -205,12 +205,12 @@ lines: 48
 
 :::{dropdown} Methods used in the snippet
 
-- [`overview_nodes()`](medmodels.medrecord.medrecord.MedRecord.overview_nodes){target="_blank"} : Gets a summary for all nodes in groups and their attributes.
-:::
+- [`overview_nodes()`](medmodels.medrecord.medrecord.MedRecord.overview_nodes){target="\_blank"} : Gets a summary for all nodes in groups and their attributes.
+  :::
 
 As shown, we have two groups of nodes - Patients and Medications - created when adding the nodes. Additionally, there’s a group called _'US-Patients'_ that we created. For each group of nodes, we can view their attributes along with a brief statistical summary, such as the minimum, maximum, and mean for numeric variables.
 
-We can do the same to get an overview over edges in our MedRecord by using the [`overview_edges()`](medmodels.medrecord.medrecord.MedRecord.overview_nodes){target="_blank"} method:
+We can do the same to get an overview over edges in our MedRecord by using the [`overview_edges()`](medmodels.medrecord.medrecord.MedRecord.overview_nodes){target="\_blank"} method:
 
 ```{exec-literalinclude} scripts/02_medrecord_intro.py
 ---
@@ -232,8 +232,8 @@ lines: 52, 55
 
 :::{dropdown} Methods used in the snippet
 
-- [`overview_edges()`](medmodels.medrecord.medrecord.MedRecord.overview_edges){target="_blank"} : Gets a summary for all edges in groups and their attributes.
-:::
+- [`overview_edges()`](medmodels.medrecord.medrecord.MedRecord.overview_edges){target="\_blank"} : Gets a summary for all edges in groups and their attributes.
+  :::
 
 ## Accessing Elements in a MedRecord
 
@@ -281,11 +281,11 @@ lines: 67
 
 :::{dropdown} Methods used in the snippet
 
-- [`nodes()`](medmodels.medrecord.medrecord.MedRecord.nodes){target="_blank"} : Lists the node indices in the MedRecord instance.
-- [`node[]`](medmodels.medrecord.medrecord.MedRecord.node){target="_blank"} : Provides access to node information within the MedRecord instance via an indexer, returning a dictionary with node indices as keys and node attributes as values.
-- [`groups()`](medmodels.medrecord.medrecord.MedRecord.groups){target="_blank"} : Lists the groups in the MedRecord instance.
-- [`nodes_in_group()`](medmodels.medrecord.medrecord.MedRecord.nodes_in_group){target="_blank"} : Retrieves the node indices associated with the specified group(s) in the MedRecord.
-:::
+- [`nodes()`](medmodels.medrecord.medrecord.MedRecord.nodes){target="\_blank"} : Lists the node indices in the MedRecord instance.
+- [`node[]`](medmodels.medrecord.medrecord.MedRecord.node){target="\_blank"} : Provides access to node information within the MedRecord instance via an indexer, returning a dictionary with node indices as keys and node attributes as values.
+- [`groups()`](medmodels.medrecord.medrecord.MedRecord.groups){target="\_blank"} : Lists the groups in the MedRecord instance.
+- [`nodes_in_group()`](medmodels.medrecord.medrecord.MedRecord.nodes_in_group){target="\_blank"} : Retrieves the node indices associated with the specified group(s) in the MedRecord.
+  :::
 
 The MedRecord can be queried in very advanced ways in order to find very specific nodes based on time, relations, neighbors or other. These advanced querying methods are covered in one of the next sections of the user guide, [Query Engine](02b_query_engine.md).
 
