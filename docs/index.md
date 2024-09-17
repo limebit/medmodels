@@ -9,8 +9,8 @@ sd_hide_title: true
 :caption: Contents:
 :hidden:
 
-api/index
 user_guide/index
+api/index
 developer_guide/index
 ```
 
@@ -44,24 +44,6 @@ developer_guide/index
 
 The MedModels documentation is your go-to resource for exploring the package. It offers complete API descriptions and a detailed user guide, giving you everything you need to effectively utilize its features.
 
-````{div} sd-d-flex-row
-
-```{button-ref} user_guide/index
-:ref-type: doc
-:color: primary
-:class: sd-rounded-pill sd-mr-3
-
-User Guide
-```
-```{button-ref} api/index
-:ref-type: doc
-:color: secondary
-:class: sd-rounded-pill
-
-API Reference
-```
-
-````
 
 ```{only} html
 [![black](https://img.shields.io/badge/code_style-black-black.svg)](https://black.readthedocs.io/en/stable/)
@@ -79,31 +61,31 @@ API Reference
 ::::{grid} 1 2 2 3
 :gutter: 1 1 1 2
 
-:::{grid-item-card} {material-outlined}`hub;1.5em;sd-mr-1` MedRecord
+:::{grid-item-card} {material-outlined}`hub;1.5em;sd-mr-1` User Guide
 :link-type: doc
 
-The {py:class}`MedRecord() <medmodels.medrecord.medrecord.MedRecord>` class is providing a straight forward and easy to use dataclass that enables you to keep your medical data in a flexible graph format implemented in Rust to make data handling as fast and efficient as possible.
+The User Guide is your go-to resource for mastering MedModels and quickly learning the essentials for analyzing complex medical data with ease.
 
 +++
-[Learn more »](./api/medrecord.md)
+[Learn more »](./user_guide/index.md)
 :::
 
-:::{grid-item-card} {material-outlined}`troubleshoot;1.5em;sd-mr-1` Treatment Effect
+:::{grid-item-card} {material-outlined}`troubleshoot;1.5em;sd-mr-1` API Reference
 :link-type: doc
 
-Use MedModels to caluclate {py:class}`TreatmentEffect() <medmodels.treatment_effect.treatment_effect.TreatmentEffect>` with various options of patient matching and controlling for confounding
+The API reference provides detailed information on all MedModels functionalities and technical interfaces, serving as a quick lookup resource.
 
 +++
-[Learn more »](./api/treatment_effect.md)
+[Learn more »](./api/index.md)
 :::
 
-:::{grid-item-card} {material-outlined}`school;1.5em;sd-mr-1` User Guide
+:::{grid-item-card} {material-outlined}`school;1.5em;sd-mr-1` Developer Guide
 :link-type: doc
 
-Checkout our user guide to get strated!
+The Developer Guide provides comprehensive guidelines on how to contribute to MedModels.
 
 +++
-[Learn more »](user_guide/index.md)
+[Learn more »](developer_guide/index.md)
 :::
 
 ::::
