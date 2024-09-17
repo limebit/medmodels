@@ -29,13 +29,8 @@ patient_medication = pd.DataFrame(
 
 record = mm.MedRecord.builder().add_nodes((patients, "ID"), group="Patients").build()
 
-# TODO: Adding new nodes to group must be added as issue in next MedModels weekly
-record.add_nodes((medications, "ID"))
+record.add_nodes((medications, "ID"),group="Medications")
 
-# TODO: Delete these groupings once ther grouping is added to add_nodes
-record.add_group("Medications", list(medications["ID"].unique()))
-
-# TODO_ Add groups to Edges in order to visualize
 record.add_edges((patient_medication, "Pat_ID", "Med_ID"))
 
 record.add_group("US-Patients", ["Patient 01", "Patient 02"])

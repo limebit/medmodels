@@ -86,7 +86,7 @@ Using the builder pattern to construct the MedRecord allows us to pass as many n
 ```{literalinclude} scripts/02_medrecord_intro.py
 ---
 language: python
-lines: 33
+lines: 32
 ---
 ```
 
@@ -122,7 +122,7 @@ We can add these edges then to our MedRecord Graph:
 ```{literalinclude} scripts/02_medrecord_intro.py
 ---
 language: python
-lines: 39
+lines: 34
 ---
 ```
 This results in an enlarged Graph with more information.
@@ -137,7 +137,7 @@ For certain analyses, we may want to define specific subcohorts within our MedRe
 ```{literalinclude} scripts/02_medrecord_intro.py
 ---
 language: python
-lines: 41
+lines: 36
 ---
 ```
 This group will include all the defined nodes, allowing for easier access during complex analyses. Both nodes and edges can be added to a group, with no limitations on group size. Additionally, nodes and edges can belong to multiple groups without restriction.
@@ -153,7 +153,7 @@ When building a MedRecord, you may want to save it to create a persistent versio
 ```{literalinclude} scripts/02_medrecord_intro.py
 ---
 language: python
-lines: 63-64
+lines: 58-59
 ---
 ```
 
@@ -164,7 +164,7 @@ The MedModels MedRecord class is designed to efficiently handle large datasets w
 ```{literalinclude} scripts/02_medrecord_intro.py
 ---
 language: python
-lines: 43
+lines: 38
 ---
 ```
 
@@ -194,7 +194,7 @@ We can do the same to get an overview over edges in our MedRecord by using the `
 ```{literalinclude} scripts/02_medrecord_intro.py
 ---
 language: python
-lines: 45
+lines: 40
 ---
 ```
 
@@ -216,12 +216,11 @@ Now that we have stored some structured data in our MedRecord, we might want to 
 ```{literalinclude} scripts/02_medrecord_intro.py
 ---
 language: python
-lines: 47-61
+lines: 42-56
 ---
 ```
-## Advanced Querying on a MedRecord
 
-The MedRecord can be queried in very advanced ways in order to find very specific nodes based on time, relations, neighbors or other. These advanced querying methods are covered in the next session of the user guide.
+The MedRecord can be queried in very advanced ways in order to find very specific nodes based on time, relations, neighbors or other. These advanced querying methods are covered in one of the next sections of the user guide.
 
 
 ## Full example Code
