@@ -13,7 +13,7 @@ class FullReport(TypedDict):
     relative_risk: float
     odds_ratio: float
     confounding_bias: float
-    absolute_risk: float
+    risk_difference: float
     number_needed_to_treat: float
     hazard_ratio: float
 
@@ -38,7 +38,7 @@ class Report:
 
         Returns:
             FullReport: A dictionary containing the results of all estimation
-                methods: relative risk, odds ratio, confounding bias, absolute risk,
+                methods: relative risk, odds ratio, confounding bias, risk_difference,
                 number needed to treat, and hazard ratio.
         """
         return {
@@ -47,7 +47,9 @@ class Report:
             "confounding_bias": self._treatment_effect.estimate.confounding_bias(
                 medrecord
             ),
-            "absolute_risk": self._treatment_effect.estimate.absolute_risk(medrecord),
+            "risk_difference": self._treatment_effect.estimate.risk_difference(
+                medrecord
+            ),
             "number_needed_to_treat": self._treatment_effect.estimate.number_needed_to_treat(
                 medrecord
             ),

@@ -724,7 +724,7 @@ class TestTreatmentEffect(unittest.TestCase):
         )
 
         # Calculate metrics
-        self.assertAlmostEqual(tee.estimate.absolute_risk(self.medrecord), 1 / 6)
+        self.assertAlmostEqual(tee.estimate.risk_difference(self.medrecord), 1 / 6)
         self.assertAlmostEqual(tee.estimate.relative_risk(self.medrecord), 4 / 3)
         self.assertAlmostEqual(tee.estimate.odds_ratio(self.medrecord), 2)
         self.assertAlmostEqual(tee.estimate.confounding_bias(self.medrecord), 22 / 21)
@@ -744,7 +744,7 @@ class TestTreatmentEffect(unittest.TestCase):
         full_report = tee.report.full_report(self.medrecord)
 
         report_test = {
-            "absolute_risk": tee.estimate.absolute_risk(self.medrecord),
+            "risk_difference": tee.estimate.risk_difference(self.medrecord),
             "relative_risk": tee.estimate.relative_risk(self.medrecord),
             "odds_ratio": tee.estimate.odds_ratio(self.medrecord),
             "confounding_bias": tee.estimate.confounding_bias(self.medrecord),
