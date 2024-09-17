@@ -29,7 +29,7 @@ patient_medication = pd.DataFrame(
 
 record = mm.MedRecord.builder().add_nodes((patients, "ID"), group="Patients").build()
 
-record.add_nodes((medications, "ID"),group="Medications")
+record.add_nodes((medications, "ID"), group="Medications")
 
 record.add_edges((patient_medication, "Pat_ID", "Med_ID"))
 
