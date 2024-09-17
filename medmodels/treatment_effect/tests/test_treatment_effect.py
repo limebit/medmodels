@@ -724,12 +724,14 @@ class TestTreatmentEffect(unittest.TestCase):
         )
 
         # Calculate metrics
-        self.assertAlmostEqual(tee.estimate.absolute_risk(self.medrecord), 1 / 6)
+        self.assertAlmostEqual(
+            tee.estimate.absolute_risk_reduction(self.medrecord), -1 / 6
+        )
         self.assertAlmostEqual(tee.estimate.relative_risk(self.medrecord), 4 / 3)
         self.assertAlmostEqual(tee.estimate.odds_ratio(self.medrecord), 2)
         self.assertAlmostEqual(tee.estimate.confounding_bias(self.medrecord), 22 / 21)
         self.assertAlmostEqual(tee.estimate.hazard_ratio(self.medrecord), 4 / 3)
-        self.assertAlmostEqual(tee.estimate.number_needed_to_treat(self.medrecord), 6)
+        self.assertAlmostEqual(tee.estimate.number_needed_to_treat(self.medrecord), -6)
 
     def test_full_report(self):
         """Test the full reporting of the TreatmentEffect class."""
@@ -744,7 +746,9 @@ class TestTreatmentEffect(unittest.TestCase):
         full_report = tee.report.full_report(self.medrecord)
 
         report_test = {
-            "absolute_risk": tee.estimate.absolute_risk(self.medrecord),
+            "absolute_risk_reduction": tee.estimate.absolute_risk_reduction(
+                self.medrecord
+            ),
             "relative_risk": tee.estimate.relative_risk(self.medrecord),
             "odds_ratio": tee.estimate.odds_ratio(self.medrecord),
             "confounding_bias": tee.estimate.confounding_bias(self.medrecord),
