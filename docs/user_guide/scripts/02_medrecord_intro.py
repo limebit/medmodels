@@ -51,7 +51,7 @@ record.node["Patient 01"]
 record.groups
 # ['Medications', 'Patients', 'US-Patients']
 
-# Getting the nodes that are within a certain groups
+# Getting the nodes that are within a certain group
 record.nodes_in_group("Medications")
 # ['Med 02', 'Med 01']
 
