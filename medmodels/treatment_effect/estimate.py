@@ -318,19 +318,19 @@ class Estimate:
 
         return numerator / denominator
 
-    def risk_difference(self, medrecord: MedRecord) -> float:
-        """Calculates the risk difference (RD) - also called absolute risk reduction (ARR) - of an event occurring in the treatment group compared to the control group.
+    def absolute_risk_reduction(self, medrecord: MedRecord) -> float:
+        """Calculates the absolute risk reduction (ARR) of an event occurring in the treatment group compared to the control group.
 
-        AR is a measure of the incidence of an event in each group. RD quantifies in
-        turn the difference in risk between the treatment and control groups and is
-        positive if the treatment reduces the risk and negative if it increases the
+        AR is a measure of the incidence of an event in each group. ARR quantifies in
+        turn the difference in risk between the treatment and control groups. It is
+        positive if the treatment reduces the risk, and negative if it increases the
         risk.
 
         Args:
             medrecord (MedRecord): The MedRecord object containing the data.
 
         Returns:
-            float: The calculated risk difference between the treatment and
+            float: The calculated absolute risk reduction between the treatment and
                 control groups.
 
         Raises:
@@ -347,16 +347,16 @@ class Estimate:
             num_control_false,
         ) = self._compute_subject_counts(medrecord)
 
-        risk_treat = num_treat_true / (num_treat_true + num_treat_false)
-        risk_control = num_control_true / (num_control_true + num_control_false)
+        risk_treat_group = num_treat_true / (num_treat_true + num_treat_false)
+        risk_control_group = num_control_true / (num_control_true + num_control_false)
 
-        return risk_treat - risk_control
+        return risk_control_group - risk_treat_group
 
     def number_needed_to_treat(self, medrecord: MedRecord) -> float:
         """Calculates the number needed to treat (NNT) to prevent one additional bad outcome.
 
-        NNT is derived from the risk difference (RD) and provides an estimate of the
-        number of patients that need to be treated to prevent one additional bad
+        NNT is derived from the absolute risk reduction (ARR) and provides an estimate
+        of the number of patients that need to be treated to prevent one additional bad
         outcome.
 
         Args:
@@ -372,12 +372,12 @@ class Estimate:
             ValueError: If there are no subjects in the treatment false, control true
                 or control false groups in the contingency table. This would result in
                 division by zero errors.
-            ValueError: If the risk difference is zero, cannot calculate NNT.
+            ValueError: If the ARR is zero, cannot calculate NNT.
         """
-        risk_difference = self.risk_difference(medrecord)
-        if risk_difference == 0:
-            raise ValueError("Risk difference is zero, cannot calculate NNT.")
-        return 1 / risk_difference
+        absolute_risk_reduction = self.absolute_risk_reduction(medrecord)
+        if absolute_risk_reduction == 0:
+            raise ValueError("Absolute Risk Reduction is zero, cannot calculate NNT.")
+        return 1 / absolute_risk_reduction
 
     def hazard_ratio(self, medrecord: MedRecord) -> float:
         """Calculates the hazard ratio (HR) for the treatment group compared to the control group.
