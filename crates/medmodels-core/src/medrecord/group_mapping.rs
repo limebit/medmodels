@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 
 pub type Group = MedRecordAttribute;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub(super) struct GroupMapping {
     nodes_in_group: MrHashMap<Group, MrHashSet<NodeIndex>>,
     edges_in_group: MrHashMap<Group, MrHashSet<EdgeIndex>>,

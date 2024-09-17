@@ -558,7 +558,7 @@ class MTGANPreprocessor(nn.Module):
         if not medrecord.select_edges(edge().has_attribute(self.time_attribute)):
             raise ValueError("No edges in the MedRecord with that time attribute")
 
-        # TODO: copy of a MedRecord instead of modifying the original one once it is implemented
+        medrecord = medrecord.clone()
         self._remove_uncommon_concepts(
             medrecord,
             minimum_number_ocurrences=self.hyperparameters[

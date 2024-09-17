@@ -1348,6 +1348,88 @@ class TestMedRecord(unittest.TestCase):
         self.assertEqual(0, medrecord.edge_count())
         self.assertEqual(0, medrecord.group_count())
 
+    def test_clone(self):
+        medrecord = create_medrecord()
+
+        cloned_medrecord = medrecord.clone()
+
+        self.assertEqual(medrecord.node_count(), cloned_medrecord.node_count())
+        self.assertEqual(medrecord.edge_count(), cloned_medrecord.edge_count())
+        self.assertEqual(medrecord.group_count(), cloned_medrecord.group_count())
+
+        cloned_medrecord.add_node("new_node", {"attribute": "value"})
+        cloned_medrecord.add_edge("0", "new_node", {"attribute": "value"})
+        cloned_medrecord.add_group("new_group", ["new_node"])
+
+        self.assertNotEqual(medrecord.node_count(), cloned_medrecord.node_count())
+        self.assertNotEqual(medrecord.edge_count(), cloned_medrecord.edge_count())
+        self.assertNotEqual(medrecord.group_count(), cloned_medrecord.group_count())
+
+    def test_describe_group_nodes(self):
+        medrecord = create_medrecord()
+
+        medrecord.add_group("Float")
+        medrecord.add_group("Even", nodes=["2", "0"])
+        medrecord.add_group("Odd", nodes=["1", "3"])
+
+        expected = pl.DataFrame(
+            {
+                "Nodes Group": ["Even", "Even", "Even", "Float", "Odd"],
+                "Count": [2, 2, 2, 0, 2],
+                "Attribute": ["adipiscing", "dolor", "lorem", "-", "amet"],
+                "Info": [
+                    "Values: elit",
+                    "Values: sit",
+                    "Values: ipsum",
+                    "-",
+                    "Values: consectetur",
+                ],
+            },
+            schema={
+                "Nodes Group": pl.String,
+                "Count": pl.Int32,
+                "Attribute": pl.String,
+                "Info": pl.String,
+            },
+        )
+
+        self.assertTrue(expected.equals(medrecord._describe_group_nodes()))
+
+    def test_describe_group_edges(self):
+        medrecord = create_medrecord()
+
+        medrecord.add_group("Even", nodes=["2", "0"])
+        medrecord.add_group("Odd", nodes=["1", "3"])
+
+        expected_edges = pl.DataFrame(
+            {
+                "Edges Groups": [
+                    "Even -> Odd",
+                    "Even -> Odd",
+                    "Odd -> Even",
+                    "Odd -> Even",
+                    "Odd -> Even",
+                ],
+                "Count": [2, 2, 2, 2, 2],
+                "Attribute": ["eiusmod", "sed", "eiusmod", "incididunt", "sed"],
+                "Info": [
+                    "Values: tempor",
+                    "Values: do",
+                    "Values: tempor",
+                    "Values: ut",
+                    "Values: do",
+                ],
+            },
+            schema={
+                "Edges Groups": pl.String,
+                "Count": pl.Int32,
+                "Attribute": pl.String,
+                "Info": pl.String,
+            },
+        )
+
+        self.assertTrue(expected_edges.equals(medrecord._describe_group_edges()))
+
 
 if __name__ == "__main__":
     run_test = unittest.TestLoader().loadTestsFromTestCase(TestMedRecord)
