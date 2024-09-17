@@ -1,2 +1,0 @@
-# Treatment Effect Calculation
-

@@ -1,5 +1,15 @@
 # MedRecord
 
+```{toctree}
+:maxdepth: 1
+:caption: Contents:
+:hidden:
+
+02a_schema
+02b_query_engine
+```
+
+
 ## Preface
 
 Every major library has a central object that consitutes its core. For [PyTorch](https://pytorch.org/), it is the `torch.Tensor`, whereas for [Numpy](https://numpy.org/), it is the `np.array`. In our case, MedModels centres around the `mm.MedRecord` as its foundational structure.

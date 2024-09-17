@@ -1,2 +1,0 @@
-# MedRecord Schema
-

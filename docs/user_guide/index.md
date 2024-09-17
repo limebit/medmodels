@@ -8,14 +8,12 @@ self
 ```
 
 ```{toctree}
-:maxdepth: 1
+:maxdepth: 2
 :caption: Contents:
 :hidden:
 
 01_install_medmodels
-02_medrecord_intro
-03_medrecord_schema
-04_query_engine
-05_treatment_effect
-06_medrecord_comparer
+02_medrecord
+03_treatment_effect
+04_medrecord_comparer
 ```
