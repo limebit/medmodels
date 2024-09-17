@@ -23,6 +23,19 @@ pub(super) struct Graph {
     edge_index_counter: AtomicUsize,
 }
 
+impl Clone for Graph {
+    fn clone(&self) -> Self {
+        Self {
+            nodes: self.nodes.clone(),
+            edges: self.edges.clone(),
+            edge_index_counter: AtomicUsize::new(
+                self.edge_index_counter
+                    .load(std::sync::atomic::Ordering::Relaxed),
+            ),
+        }
+    }
+}
+
 #[allow(dead_code)]
 impl Graph {
     pub fn new() -> Self {

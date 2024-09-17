@@ -114,7 +114,7 @@ fn dataframes_to_tuples(
     Ok((nodes, edges))
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct MedRecord {
     graph: Graph,
     group_mapping: GroupMapping,
