@@ -1234,6 +1234,17 @@ class MedRecord:
 
         return self.select_edges(key)
 
+    def clone(self) -> MedRecord:
+        """Clones the MedRecord instance.
+
+        Returns:
+            MedRecord: A clone of the MedRecord instance.
+        """
+        medrecord = MedRecord.__new__(MedRecord)
+        medrecord._medrecord = self._medrecord.clone()
+
+        return medrecord
+
     def _describe_group_nodes(self) -> pl.DataFrame:
         """Creates a summary of group nodes and their attributes.
 

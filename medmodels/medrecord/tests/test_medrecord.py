@@ -1348,6 +1348,23 @@ class TestMedRecord(unittest.TestCase):
         self.assertEqual(0, medrecord.edge_count())
         self.assertEqual(0, medrecord.group_count())
 
+    def test_clone(self):
+        medrecord = create_medrecord()
+
+        cloned_medrecord = medrecord.clone()
+
+        self.assertEqual(medrecord.node_count(), cloned_medrecord.node_count())
+        self.assertEqual(medrecord.edge_count(), cloned_medrecord.edge_count())
+        self.assertEqual(medrecord.group_count(), cloned_medrecord.group_count())
+
+        cloned_medrecord.add_node("new_node", {"attribute": "value"})
+        cloned_medrecord.add_edge("0", "new_node", {"attribute": "value"})
+        cloned_medrecord.add_group("new_group", ["new_node"])
+
+        self.assertNotEqual(medrecord.node_count(), cloned_medrecord.node_count())
+        self.assertNotEqual(medrecord.edge_count(), cloned_medrecord.edge_count())
+        self.assertNotEqual(medrecord.group_count(), cloned_medrecord.group_count())
+
     def test_describe_group_nodes(self):
         medrecord = create_medrecord()
 
