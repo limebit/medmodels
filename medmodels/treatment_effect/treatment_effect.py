@@ -182,22 +182,26 @@ class TreatmentEffect:
 
         Returns:
             Tuple[Set[NodeIndex], Set[NodeIndex], Set[NodeIndex], Set[NodeIndex]]: A
-                tuple containing the IDs of patients in the treatment true, treatment
-                false, control true, and control false groups, respectively.
+                tuple containing the IDs of patients in the treated group who had the
+                outcome (treated_outcome_true), the IDs of patients in the treated group
+                who did not have the outcome (treatment_outcome_false), the IDs of
+                patients in the control group who had the outcome (control_outcome_true),
+                and the IDs of patients in the control group who did not have the outcome
+                (control_outcome_false).
         """
         # Find patients that underwent the treatment
         treated_group = self._find_treated_patients(medrecord)
         treated_group, washout_nodes = self._apply_washout_period(
             medrecord, treated_group
         )
-        treated_group, treatment_true, outcome_before_treatment_nodes = (
+        treated_group, treated_outcome_true, outcome_before_treatment_nodes = (
             self._find_outcomes(medrecord, treated_group)
         )
-        treatment_false = treated_group - treatment_true
+        treatment_outcome_false = treated_group - treated_outcome_true
 
         # Find the controls (patients that did not undergo the treatment)
         control_group = set(medrecord.nodes_in_group(self._patients_group))
-        control_true, control_false = self._find_controls(
+        control_outcome_true, control_outcome_false = self._find_controls(
             medrecord=medrecord,
             control_group=control_group,
             treated_group=treated_group,
@@ -205,7 +209,12 @@ class TreatmentEffect:
             filter_controls_operation=self._filter_controls_operation,
         )
 
-        return treatment_true, treatment_false, control_true, control_false
+        return (
+            treated_outcome_true,
+            treatment_outcome_false,
+            control_outcome_true,
+            control_outcome_false,
+        )
 
     def _find_treated_patients(self, medrecord: MedRecord) -> Set[NodeIndex]:
         """Find the patients that underwent the treatment.
@@ -269,7 +278,7 @@ class TreatmentEffect:
             ValueError: If no outcomes are found in the MedRecord for the specified
                 outcome group.
         """
-        treatment_true = set()
+        treatment_outcome_true = set()
         outcome_before_treatment_nodes = set()
 
         # Find nodes with the outcomes
@@ -308,7 +317,7 @@ class TreatmentEffect:
                 nodes_to_check -= outcome_before_treatment_nodes
 
             # Find patients that had the outcome after the treatment
-            treatment_true.update(
+            treatment_outcome_true.update(
                 {
                     node_index
                     for node_index in nodes_to_check
@@ -332,7 +341,7 @@ class TreatmentEffect:
                 f"dropped due to outcome before treatment."
             )
 
-        return treated_group, treatment_true, outcome_before_treatment_nodes
+        return treated_group, treatment_outcome_true, outcome_before_treatment_nodes
 
     def _apply_washout_period(
         self, medrecord: MedRecord, treated_group: Set[NodeIndex]
@@ -398,8 +407,8 @@ class TreatmentEffect:
         and applies the filter_controls_operation if specified.
 
         Control groups are divided into those who had the outcome
-        (control_true) and those who did not (control_false), based on the presence of
-        the specified outcome codes.
+        (control_outcome_true) and those who did not (control_outcome_false),
+        based on the presence of the specified outcome codes.
 
         Args:
             medrecord (MedRecord): An instance of the MedRecord class containing patient
@@ -417,8 +426,8 @@ class TreatmentEffect:
         Returns:
             Tuple[Set[NodeIndex], Set[NodeIndex]]: Two sets representing the IDs of
                 control patients. The first set includes patients who experienced the
-                specified outcomes (control_true), and the second set includes those who
-                did not (control_false).
+                specified outcomes (control_outcome_true), and the second set includes
+                patients who did not experience the outcomes (control_outcome_false).
 
         Raises:
             ValueError: If no patients are found for the control groups in the
@@ -436,8 +445,8 @@ class TreatmentEffect:
         if len(control_group) == 0:
             raise ValueError("No patients found for control groups in this MedRecord.")
 
-        control_true = set()
-        control_false = set()
+        control_outcome_true = set()
+        control_outcome_false = set()
         outcomes = medrecord.nodes_in_group(self._outcomes_group)
         if not outcomes:
             raise ValueError(
@@ -446,7 +455,7 @@ class TreatmentEffect:
 
         # Finding the patients that had the outcome in the control group
         for outcome in outcomes:
-            control_true.update(
+            control_outcome_true.update(
                 medrecord.select_nodes(
                     # This could probably be refactored to a proper query
                     node().index().is_in(list(control_group))
@@ -455,9 +464,9 @@ class TreatmentEffect:
                     )
                 )
             )
-        control_false = control_group - control_true
+        control_outcome_false = control_group - control_outcome_true
 
-        return control_true, control_false
+        return control_outcome_true, control_outcome_false
 
     @property
     def estimate(self) -> Estimate:
