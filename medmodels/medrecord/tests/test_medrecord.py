@@ -1381,26 +1381,23 @@ class TestMedRecord(unittest.TestCase):
     def test_describe_group_edges(self):
         medrecord = create_medrecord()
 
-        medrecord.add_group("Even", nodes=["2", "0"])
-        medrecord.add_group("Odd", nodes=["1", "3"])
+        medrecord.add_group("Even", edges=[0, 2])
 
         expected_edges = pl.DataFrame(
             {
                 "Edges Groups": [
-                    "Even -> Odd",
-                    "Even -> Odd",
-                    "Odd -> Even",
-                    "Odd -> Even",
-                    "Odd -> Even",
+                    "Even",
+                    "Even",
+                    "Even",
+                    "Ungrouped Edges",
                 ],
-                "Count": [2, 2, 2, 2, 2],
-                "Attribute": ["eiusmod", "sed", "eiusmod", "incididunt", "sed"],
+                "Count": [2, 2, 2, 2],
+                "Attribute": ["eiusmod", "incididunt", "sed", "-"],
                 "Info": [
-                    "Values: tempor",
-                    "Values: do",
                     "Values: tempor",
                     "Values: ut",
                     "Values: do",
+                    "-",
                 ],
             },
             schema={

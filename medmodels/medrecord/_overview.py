@@ -56,20 +56,14 @@ def extract_attribute_summary(
 
         if len(attribute_values) == 0:
             attribute_info = ["-"]
-        elif schema and attribute in schema:
+        elif schema and attribute in schema and schema[attribute][1]:
             if schema[attribute][1] == AttributeType.Continuous:
-                attribute_info = [
-                    f"min: {attribute_values.min()}",
-                    f"max: {attribute_values.max()}",
-                    f"mean: {attribute_values.mean():.{decimal}f}",
-                ]
+                attribute_info = _extract_numeric_attribute_info(
+                    attribute_values, decimal=decimal
+                )
             elif schema[attribute][1] == AttributeType.Temporal:
-                time_attribute = attribute_values.str.to_datetime()
-                attribute_info = [
-                    f"min: {min(time_attribute).strftime('%Y-%m-%d %H:%M:%S')}",
-                    f"max: {max(time_attribute).strftime('%Y-%m-%d %H:%M:%S')}",
-                ]
-            elif schema[attribute][1] == AttributeType.Categorical:
+                attribute_info = _extract_temporal_attribute_info(attribute_values)
+            else:
                 attribute_info = [
                     _extract_string_attribute_info(
                         attribute_series=attribute_values,
@@ -77,24 +71,14 @@ def extract_attribute_summary(
                         short_string_prefix="Categories",
                     )
                 ]
-            else:
-                attribute_info = [
-                    _extract_string_attribute_info(attribute_series=attribute_values)
-                ]
-
         ## Without Schema
         else:
             if attribute_values.dtype.is_numeric():
-                attribute_info = [
-                    f"min: {attribute_values.min()}",
-                    f"max: {attribute_values.max()}",
-                    f"mean: {attribute_values.mean():.{decimal}f}",
-                ]
+                attribute_info = _extract_numeric_attribute_info(
+                    attribute_values, decimal=decimal
+                )
             elif attribute_values.dtype.is_temporal():
-                attribute_info = [
-                    f"min: {min(attribute_values).strftime('%Y-%m-%d %H:%M:%S')}",
-                    f"max: {max(attribute_values).strftime('%Y-%m-%d %H:%M:%S')}",
-                ]
+                attribute_info = _extract_temporal_attribute_info(attribute_values)
             else:
                 attribute_info = [
                     _extract_string_attribute_info(attribute_series=attribute_values)
@@ -104,6 +88,50 @@ def extract_attribute_summary(
         data_dict["Info"].extend(attribute_info)
 
     return pl.DataFrame(data_dict)
+
+
+def _extract_numeric_attribute_info(
+    attribute_series: pl.Series,
+    decimal: int,
+) -> List[str]:
+    """Extracts info about attributes with numeric format.
+
+    Args:
+        attribute_series (pl.Series): Series containing attribute values.
+        decimal (int): Decimal point to round the values to.
+
+    Returns:
+        List[str]: attribute_info_list
+    """
+    attribute_info = [
+        f"min: {attribute_series.min()}",
+        f"max: {attribute_series.max()}",
+        f"mean: {attribute_series.mean():.{decimal}f}",
+    ]
+    return attribute_info
+
+
+def _extract_temporal_attribute_info(
+    attribute_series: pl.Series,
+) -> List[str]:
+    """Extracts info about attributes with temporal format.
+
+    Args:
+        attribute_series (pl.Series): Series containing attribute values.
+
+    Returns:
+        List[str]: attribute_info_list
+    """
+    if not attribute_series.dtype.is_temporal():
+        if attribute_series.dtype.is_numeric():
+            attribute_series = attribute_series.cast(pl.Datetime)
+        else:
+            attribute_series = attribute_series.str.to_datetime()
+    attribute_info = [
+        f"min: {min(attribute_series).strftime('%Y-%m-%d %H:%M:%S')}",
+        f"max: {max(attribute_series).strftime('%Y-%m-%d %H:%M:%S')}",
+    ]
+    return attribute_info
 
 
 def _extract_string_attribute_info(
