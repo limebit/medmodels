@@ -15,6 +15,8 @@ It adds the following attributes to the MedRecord:
     - concept_index_attribute: The index of the concept. This is used to map the
         concept to a numerical index that will be used in the model (connecting them
         to the column on the boolean Data Matrix).
+    - concept_edge_attribute: The name of the node in the MedRecord. It is also
+        assigned to the edge for easier querying later.
     - absolute_time_window_attribute: The absolute time window for each edge. This is,
         the number of days from the first admission divided by the time_interval_days.
     - number_windows_attribute: The number of unique time windows for each patient.
@@ -29,7 +31,7 @@ import random
 from math import floor
 from typing import List, Optional, Tuple, TypedDict
 
-import pandas as pd
+import numpy as np
 from torch import nn
 from typing_extensions import TypeAlias
 
@@ -62,6 +64,7 @@ class PreprocessingAttributes(TypedDict):
     first_admission_attribute: MedRecordAttribute
     time_window_attribute: MedRecordAttribute
     concept_index_attribute: MedRecordAttribute
+    concept_edge_attribute: MedRecordAttribute
     number_of_windows_attribute: MedRecordAttribute
     absolute_time_window_attribute: MedRecordAttribute
 
@@ -140,12 +143,17 @@ class MTGANPreprocessor(nn.Module):
             medrecord (MedRecord): The MedRecord.
         """
         # TODO: Need to perfect this method with new query engine.
-        for patient_index in sorted(medrecord.nodes_in_group(self.patients_group)):
+        for patient_index in sorted(
+            medrecord.nodes_in_group(self.patients_group), key=lambda x: str(x)
+        ):
             if (
                 len(
                     medrecord.edges_connecting(
                         patient_index,
-                        sorted(medrecord.nodes_in_group(self.concepts_group)),
+                        sorted(
+                            medrecord.nodes_in_group(self.concepts_group),
+                            key=lambda x: str(x),
+                        ),
                         directed=False,
                     )
                 )
@@ -173,12 +181,17 @@ class MTGANPreprocessor(nn.Module):
                 concept.
         """
         # TODO: Need to perfect this method with the new query engine
-        for concept_index in sorted(medrecord.nodes_in_group(self.concepts_group)):
+        for concept_index in sorted(
+            medrecord.nodes_in_group(self.concepts_group), key=lambda x: str(x)
+        ):
             if (
                 len(
                     medrecord.edges_connecting(
                         concept_index,
-                        sorted(medrecord.nodes_in_group(self.patients_group)),
+                        sorted(
+                            medrecord.nodes_in_group(self.patients_group),
+                            key=lambda x: str(x),
+                        ),
                         directed=False,
                     )
                 )
@@ -218,7 +231,9 @@ class MTGANPreprocessor(nn.Module):
         ):
             return
 
-        patient_indices = sorted(medrecord.nodes_in_group(self.patients_group))
+        patient_indices = sorted(
+            medrecord.nodes_in_group(self.patients_group), key=lambda x: str(x)
+        )
         removed_number_of_patients = len(patient_indices) - number_of_sampled_patients
 
         random.seed(self.seed)
@@ -257,7 +272,9 @@ class MTGANPreprocessor(nn.Module):
             medrecord, "first_admission"
         )
         # TODO: Need to perfect this method with new query engine.
-        for patient_index in sorted(medrecord.nodes_in_group(self.patients_group)):
+        for patient_index in sorted(
+            medrecord.nodes_in_group(self.patients_group), key=lambda x: str(x)
+        ):
             medrecord.node[patient_index, first_admission_attribute] = medrecord.edge[
                 find_reference_edge(
                     medrecord,
@@ -292,7 +309,7 @@ class MTGANPreprocessor(nn.Module):
         """
         patient_edges = medrecord.edges_connecting(
             patient_index,
-            sorted(medrecord.nodes_in_group(self.concepts_group)),
+            sorted(medrecord.nodes_in_group(self.concepts_group), key=lambda x: str(x)),
             directed=False,
         )
         time_windows = [
@@ -302,33 +319,22 @@ class MTGANPreprocessor(nn.Module):
             return time_windows
 
         # Find which time windows appear less than min_codes_per_window times
-        time_window_counts = pd.Series(time_windows).value_counts()
+        unique_time_windows, counts = np.unique(
+            np.array(time_windows), return_counts=True
+        )
+        mask = counts < min_codes_per_window
+        time_windows_low_number = unique_time_windows[mask]
 
-        # TODO: maybe we should use the new query engine here?
-        time_windows_low_number = [
-            time_window
-            for time_window in time_windows
-            if time_window_counts.get(
-                int(time_window)
-                if isinstance(time_window, (int, float))
-                else str(time_window),
-                0,
-            )
-            < min_codes_per_window
-        ]
+        # Remove these from time_windows
+        mask = np.isin(np.array(time_windows), time_windows_low_number, invert=True)
+        time_windows = np.array(time_windows)[mask].tolist()
 
-        # Remove edges and time windows that appear less than min_codes_per_window times
-        time_windows = [
-            time_window
-            for time_window in time_windows
-            if time_window not in time_windows_low_number
-        ]
         medrecord.remove_edge(
             medrecord.select_edges(
                 edge().index().is_in(patient_edges)
                 & edge()
                 .attribute(absolute_time_attribute)
-                .is_in(time_windows_low_number)
+                .is_in(time_windows_low_number.tolist())
             )
         )
 
@@ -338,7 +344,7 @@ class MTGANPreprocessor(nn.Module):
         self,
         medrecord: MedRecord,
         patient_index: NodeIndex,
-        time_windows: List[MedRecordValue],
+        absolute_time_windows: List[MedRecordValue],
         absolute_time_window_attribute: MedRecordAttribute,
         time_window_attribute: MedRecordAttribute,
         number_of_windows_attribute: MedRecordAttribute,
@@ -355,8 +361,8 @@ class MTGANPreprocessor(nn.Module):
         Args:
             medrecord (MedRecord): The MedRecord to be modified.
             patient_index (NodeIndex): The index of the patient being processed.
-            time_windows (List[MedRecordValue]): The list of absolute time windows for
-                the patient.
+            absolute_time_windows (List[MedRecordValue]): The list of absolute time
+                windows for the patient.
             absolute_time_window_attribute (MedRecordAttribute): The attribute name for
                 absolute time windows.
             time_window_attribute (MedRecordAttribute): The attribute name for relative
@@ -368,9 +374,7 @@ class MTGANPreprocessor(nn.Module):
             This method will remove the patient node if there are less than two unique
                 time windows.
         """
-        unique_sorted = sorted(
-            set(time_windows), key=lambda x: (isinstance(x, bool), x)
-        )
+        unique_sorted = sorted(set(absolute_time_windows), key=lambda x: str(x))
         value_to_rank = {value: rank for rank, value in enumerate(unique_sorted)}
 
         # Remove patients with only one time window
@@ -382,7 +386,7 @@ class MTGANPreprocessor(nn.Module):
 
         for single_edge in medrecord.edges_connecting(
             patient_index,
-            sorted(medrecord.nodes_in_group(self.concepts_group)),
+            sorted(medrecord.nodes_in_group(self.concepts_group), key=lambda x: str(x)),
             directed=False,
         ):
             medrecord.edge[single_edge, time_window_attribute] = value_to_rank[
@@ -393,7 +397,7 @@ class MTGANPreprocessor(nn.Module):
         self,
         medrecord: MedRecord,
         first_admission_attribute: MedRecordAttribute,
-        concept_index_attribute: MedRecordAttribute,
+        concept_edge_attribute: MedRecordAttribute,
         time_interval_days: int,
         min_codes_per_window: int,
     ) -> PreprocessingAttributes:
@@ -415,6 +419,10 @@ class MTGANPreprocessor(nn.Module):
             medrecord (MedRecord): The MedRecord.
             first_admission_attribute (MedRecordAttribute): The first admission
                 attribute.
+            concept_edge_attribute (MedRecordAttribute): The concept edge attribute.
+                It is the name of the concept node in the MedRecord. It is also
+                assigned to the edge connecting patient and concept for easier
+                querying later.
             time_interval_days (int): The time interval in days.
             min_codes_per_window (int): The minimum number of codes per window.
 
@@ -439,7 +447,9 @@ class MTGANPreprocessor(nn.Module):
         )
 
         # TODO: need to perfect this with new queries.
-        for patient_index in sorted(medrecord.nodes_in_group(self.patients_group)):
+        for patient_index in sorted(
+            medrecord.nodes_in_group(self.patients_group), key=lambda x: str(x)
+        ):
             first_admission = medrecord.node[patient_index, first_admission_attribute]
             if not isinstance(first_admission, datetime.datetime):
                 raise ValueError(
@@ -448,7 +458,9 @@ class MTGANPreprocessor(nn.Module):
 
             for single_edge in medrecord.edges_connecting(
                 patient_index,
-                sorted(medrecord.nodes_in_group(self.concepts_group)),
+                sorted(
+                    medrecord.nodes_in_group(self.concepts_group), key=lambda x: str(x)
+                ),
                 directed=False,
             ):
                 time = medrecord.edge[single_edge, self.time_attribute]
@@ -461,7 +473,7 @@ class MTGANPreprocessor(nn.Module):
                 medrecord.edge[single_edge, absolute_time_window_attribute] = floor(
                     (time - first_admission).days // time_interval_days
                 )
-                medrecord.edge[single_edge, concept_index_attribute] = (
+                medrecord.edge[single_edge, concept_edge_attribute] = (
                     medrecord.select_nodes(
                         node()
                         .index()
@@ -470,7 +482,7 @@ class MTGANPreprocessor(nn.Module):
                     )[0]
                 )
 
-            time_windows = self._remove_low_number_time_windows(
+            absolute_time_windows = self._remove_low_number_time_windows(
                 medrecord,
                 patient_index,
                 absolute_time_window_attribute,
@@ -479,7 +491,7 @@ class MTGANPreprocessor(nn.Module):
             self._assign_relative_time_windows(
                 medrecord=medrecord,
                 patient_index=patient_index,
-                time_windows=time_windows,
+                absolute_time_windows=absolute_time_windows,
                 absolute_time_window_attribute=absolute_time_window_attribute,
                 time_window_attribute=time_window_attribute,
                 number_of_windows_attribute=number_of_windows_attribute,
@@ -488,7 +500,8 @@ class MTGANPreprocessor(nn.Module):
         preprocessing_attributes = PreprocessingAttributes(
             first_admission_attribute=first_admission_attribute,
             time_window_attribute=time_window_attribute,
-            concept_index_attribute=concept_index_attribute,
+            concept_index_attribute="",
+            concept_edge_attribute=concept_edge_attribute,
             number_of_windows_attribute=number_of_windows_attribute,
             absolute_time_window_attribute=absolute_time_window_attribute,
         )
@@ -509,7 +522,9 @@ class MTGANPreprocessor(nn.Module):
         Args:
             medrecord (MedRecord): The MedRecord.
             concept_index_atribute (MedRecordAttribute): The attribute name for the
-                concept index.
+                concept index. It is the index of the concept. This is used to map the
+                concept to a numerical index that will be used in the model (connecting
+                them to the column on the boolean Data Matrix).
 
         Returns:
             ConceptsList: The list of concepts in order of their index.
@@ -517,7 +532,7 @@ class MTGANPreprocessor(nn.Module):
 
         concepts_list = []
         for concept_index, concept in enumerate(
-            sorted(medrecord.nodes_in_group(self.concepts_group))
+            sorted(medrecord.nodes_in_group(self.concepts_group), key=lambda x: str(x))
         ):
             concepts_list.append(concept)
             medrecord.node[concept, concept_index_attribute] = concept_index
@@ -565,12 +580,12 @@ class MTGANPreprocessor(nn.Module):
                 "minimum_occurrences_concept"
             ],
         )
-        concept_index_attribute = self._get_attribute_name(medrecord, "concept_index")
+        concept_edge_attribute = self._get_attribute_name(medrecord, "concept_edge")
         first_admission_attribute = self._find_first_admission(medrecord)
         preprocessing_attributes = self._find_relative_times(
             medrecord,
             first_admission_attribute,
-            concept_index_attribute,
+            concept_edge_attribute,
             self.hyperparameters["time_interval_days"],
             self.hyperparameters["minimum_concepts_per_window"],
         )
@@ -582,6 +597,8 @@ class MTGANPreprocessor(nn.Module):
         self._sample_patients(
             medrecord, self.hyperparameters["number_of_sampled_patients"]
         )
+        concept_index_attribute = self._get_attribute_name(medrecord, "concept_index")
+        preprocessing_attributes["concept_index_attribute"] = concept_index_attribute
         concepts_list = self._assign_concept_indices(medrecord, concept_index_attribute)
 
         if not medrecord.nodes_in_group(self.patients_group):

@@ -425,6 +425,7 @@ class TestMTGANPreprocessor(unittest.TestCase):
                 first_admission_attribute="first_admission",
                 time_window_attribute="time_window",
                 concept_index_attribute="concept_index",
+                concept_edge_attribute="concept_edge",
                 number_of_windows_attribute="number_of_windows",
                 absolute_time_window_attribute="absolute_time_window",
             ),
@@ -439,6 +440,7 @@ class TestMTGANPreprocessor(unittest.TestCase):
         self.assertEqual(set(edges), set([0, 8]))
         self.assertEqual(medrecord.edge[edges, "absolute_time_window"], {0: 0, 8: 78})
         self.assertEqual(medrecord.edge[edges, "time_window"], {0: 0, 8: 1})
+        self.assertEqual(medrecord.edge[edges, "concept_edge"], {0: "M2", 8: "M2"})
 
         ## Changing the minimum number of occurrences of a concept, results differ
         medrecord = create_medrecord()
