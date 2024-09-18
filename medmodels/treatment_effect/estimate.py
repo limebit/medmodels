@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Dict, Literal, Set, Tuple
+from typing import TYPE_CHECKING, Literal, Set, Tuple, TypedDict
 
 from medmodels.medrecord.medrecord import MedRecord
 from medmodels.medrecord.types import MedRecordAttribute, NodeIndex
@@ -14,6 +14,101 @@ from medmodels.treatment_effect.matching.propensity import PropensityMatching
 
 if TYPE_CHECKING:
     from medmodels.treatment_effect.treatment_effect import TreatmentEffect
+
+
+class ContingencyTable:
+    number_treated_outcome_true: int
+    number_treated_outcome_false: int
+    number_control_outcome_true: int
+    number_control_outcome_false: int
+
+    def __init__(
+        self,
+        number_treated_outcome_true: int,
+        number_treated_outcome_false: int,
+        number_control_outcome_true: int,
+        number_control_outcome_false: int,
+    ):
+        """Initializes the ContingencyTable object.
+
+        It stores the number of patients in the treatment and control groups with and
+        without the outcome.
+
+        Args:
+            number_treated_outcome_true (int): Number of patients in the treatment
+                group with the outcome.
+            number_treated_outcome_false (int): Number of patients in the treatment
+                group without the outcome.
+            number_control_outcome_true (int): Number of patients in the control group
+                with the outcome.
+            number_control_outcome_false (int): Number of patients in the control group
+                without the outcome.
+        """
+        self.number_treated_outcome_true = number_treated_outcome_true
+        self.number_treated_outcome_false = number_treated_outcome_false
+        self.number_control_outcome_true = number_control_outcome_true
+        self.number_control_outcome_false = number_control_outcome_false
+
+    def __str__(self):
+        """Returns a string representation of the ContingencyTable object.
+
+        The contingency table provides an overview of the number of subjects in the
+        treatment and control groups with the outcome (true) and without the outcome
+        (false).
+
+        Example:
+        -----------------------------------
+                           Outcome
+        Group           True     False
+        -----------------------------------
+        Treated         2        1
+        Control         3        3
+        -----------------------------------
+        """
+        line = "-" * 35
+        upper_header_line = "{:<18} {:<10}".format("", "Outcome")
+        lower_header_line = "{:<15} {:<8} {:<8}".format("Group", "True", "False")
+        treated = "{:<15} {:<8} {:<8}".format(
+            "Treated",
+            self.number_treated_outcome_true,
+            self.number_treated_outcome_false,
+        )
+        control = "{:<15} {:<8} {:<8}".format(
+            "Control",
+            self.number_control_outcome_true,
+            self.number_control_outcome_false,
+        )
+        return f"{line}\n{upper_header_line}\n{lower_header_line}\n{line}\n{treated}\n{control}\n{line}"
+
+    def __getitem__(
+        self,
+        key: Literal[
+            "treated_outcome_true",
+            "treated_outcome_false",
+            "control_outcome_true",
+            "control_outcome_false",
+        ],
+    ) -> int:
+        """Returns the number of subjects in the treatment and control groups with and without the outcome.
+
+        Args:
+            key (Literal["treated_outcome_true", "treated_outcome_false",
+                "control_outcome_true", "control_outcome_false"]): The key to access the
+                number of subjects in the treatment and control groups with and without
+                the outcome.
+
+        Returns:
+            int: Number of subject in the selected group.
+        """
+        completed_key = "number_" + key
+        return getattr(self, completed_key)
+
+
+class SubjectIndices(TypedDict):
+    treated_outcome_true: Set[NodeIndex]
+    treated_outcome_false: Set[NodeIndex]
+    control_outcome_true: Set[NodeIndex]
+    control_outcome_false: Set[NodeIndex]
 
 
 class Estimate:
@@ -48,12 +143,13 @@ class Estimate:
                 f"Available groups: {medrecord.groups}"
             )
 
-    def _sort_subjects_in_contingency_table(
+    def _sort_subjects_in_groups(
         self, medrecord: MedRecord
     ) -> Tuple[Set[NodeIndex], Set[NodeIndex], Set[NodeIndex], Set[NodeIndex]]:
         """Sorts subjects into the contingency table of treatment-outcome, treatment-no outcome, control-outcome and control-no outcome.
 
-        The treatment group and control matching is determined based on the treatment effect configuration.
+        The treatment group and control matching is determined based on the treatment
+        effect configuration.
 
         Args:
             medrecord (MedRecord): The MedRecord object containing the data.
@@ -101,7 +197,7 @@ class Estimate:
                 treated_group=treated_group,
             )
 
-        return treatment_true, treatment_false, control_false, control_true
+        return treatment_true, treatment_false, control_true, control_false
 
     def _compute_subject_counts(
         self, medrecord: MedRecord
@@ -116,91 +212,97 @@ class Estimate:
                 treatment and control groups, respectively.
 
         Raises:
-            ValueError: Raises Error if the required groups are not present in the
+            ValueError: Raises error if the required groups are not present in the
                 MedRecord (patients, treatments, outcomes).
-            ValueError: If there are no subjects in the treatment false, control true
-                or control false groups in the contingency table. This would result in
-                division by zero errors.
+            ValueError: If there are no subjects in the group of treated with no
+                outcome, in the one of controls with outcome or in the one of controls
+                with no outcome, an error is raised. This would result in division by
+                zero errors.
         """
-        treatment_true, treatment_false, control_false, control_true = (
-            self._sort_subjects_in_contingency_table(medrecord=medrecord)
-        )
+        (
+            treated_outcome_true,
+            treated_outcome_false,
+            control_outcome_true,
+            control_outcome_false,
+        ) = self._sort_subjects_in_groups(medrecord=medrecord)
 
-        if len(treatment_false) == 0:
-            raise ValueError("No subjects found in the treatment false group")
-        if len(control_true) == 0:
-            raise ValueError("No subjects found in the control true group")
-        if len(control_false) == 0:
-            raise ValueError("No subjects found in the control false group")
-
+        if len(treated_outcome_false) == 0:
+            raise ValueError(
+                "No subjects found in the group of treated with no outcome"
+            )
+        if len(control_outcome_true) == 0:
+            raise ValueError("No subjects found in the group of controls with outcome")
+        if len(control_outcome_false) == 0:
+            raise ValueError(
+                "No subjects found in the group of controls with no outcome"
+            )
         return (
-            len(treatment_true),
-            len(treatment_false),
-            len(control_true),
-            len(control_false),
+            len(treated_outcome_true),
+            len(treated_outcome_false),
+            len(control_outcome_true),
+            len(control_outcome_false),
         )
 
-    def subjects_contingency_table(
-        self, medrecord: MedRecord
-    ) -> Dict[str, Set[NodeIndex]]:
+    def subject_indices(self, medrecord: MedRecord) -> SubjectIndices:
         """Overview of which subjects are in the treatment and control groups and whether they have the outcome or not.
 
         Args:
             medrecord (MedRecord): The MedRecord object containing the data.
 
         Returns:
-            Dict[str, Set[NodeIndex]]: Dictionary with description of the subject group
-                and Lists of subject ids belonging to each group.
+            SubjectIndices: Dictionary with the patient ids of true and false subjects
+                in the treatment and control groups, respectively.
 
         Raises:
             ValueError: Raises Error if the required groups are not present in the
                 MedRecord (patients, treatments, outcomes).
         """
-        treatment_true, treatment_false, control_false, control_true = (
-            self._sort_subjects_in_contingency_table(medrecord=medrecord)
+        (
+            treated_outcome_true,
+            treated_outcome_false,
+            control_outcome_true,
+            control_outcome_false,
+        ) = self._sort_subjects_in_groups(medrecord=medrecord)
+
+        return SubjectIndices(
+            treated_outcome_true=treated_outcome_true,
+            treated_outcome_false=treated_outcome_false,
+            control_outcome_true=control_outcome_true,
+            control_outcome_false=control_outcome_false,
         )
 
-        subjects = {
-            "treatment_true": treatment_true,
-            "treatment_false": treatment_false,
-            "control_true": control_true,
-            "control_false": control_false,
-        }
-
-        return subjects
-
-    def subject_counts(self, medrecord: MedRecord) -> Dict[str, int]:
-        """Returns the subject counts for the treatment and control groups in a Dictionary.
+    def subject_counts(self, medrecord: MedRecord) -> ContingencyTable:
+        """Returns the subject counts for the treatment and control groups in a contingency table object.
 
         Args:
             medrecord (MedRecord): The MedRecord object containing the data.
 
         Returns:
-            Dict[str, int]: Dictionary with description of the subject group and their
-                respective counts.
+            ContingencyTable: The contingency table object containing the number of
+                subjects in the treatment and control groups with and without the
+                outcome.
 
         Raises:
-            ValueError: Raises Error if the required groups are not present in the
+            ValueError: Raises error if the required groups are not present in the
                 MedRecord (patients, treatments, outcomes).
-            ValueError: If there are no subjects in the treatment false, control true
-                or control false groups in the contingency table. This would result in
-                division by zero errors.
+            ValueError: If there are no subjects in the group of treated with no
+                outcome, in the one of controls with outcome or in the one of controls
+                with no outcome, an error is raised. This would result in division by
+                zero errors.
         """
         (
-            num_treat_true,
-            num_treat_false,
-            num_control_true,
-            num_control_false,
+            number_treated_outcome_true,
+            number_treated_outcome_false,
+            number_control_outcome_true,
+            number_control_outcome_false,
         ) = self._compute_subject_counts(medrecord=medrecord)
 
-        subject_counts = {
-            "treatment_true": num_treat_true,
-            "treatment_false": num_treat_false,
-            "control_true": num_control_true,
-            "control_false": num_control_false,
-        }
-
-        return subject_counts
+        return ContingencyTable(
+            number_treated_outcome_true=number_treated_outcome_true,
+            number_treated_outcome_false=number_treated_outcome_false,
+            number_control_outcome_true=number_control_outcome_true,
+            number_control_outcome_false=number_control_outcome_false,
+        )
 
     def relative_risk(self, medrecord: MedRecord) -> float:
         """Calculates the relative risk (RR) of an event occurring in the treatment group compared to the control group.
@@ -222,19 +324,24 @@ class Estimate:
         Raises:
             ValueError: Raises Error if the required groups are not present in the
                 MedRecord (patients, treatments, outcomes).
-            ValueError: If there are no subjects in the treatment false, control true
-                or control false groups in the contingency table. This would result in
-                division by zero errors.
+            ValueError: If there are no subjects in the group of treated with no
+                outcome, in the one of controls with outcome or in the one of controls
+                with no outcome, an error is raised. This would result in division by
+                zero errors.
         """
         (
-            num_treat_true,
-            num_treat_false,
-            num_control_true,
-            num_control_false,
+            number_treated_outcome_true,
+            number_treated_outcome_false,
+            number_control_outcome_true,
+            number_control_outcome_false,
         ) = self._compute_subject_counts(medrecord=medrecord)
 
-        return (num_treat_true / (num_treat_true + num_treat_false)) / (
-            num_control_true / (num_control_true + num_control_false)
+        return (
+            number_treated_outcome_true
+            / (number_treated_outcome_true + number_treated_outcome_false)
+        ) / (
+            number_control_outcome_true
+            / (number_control_outcome_true + number_control_outcome_false)
         )
 
     def odds_ratio(self, medrecord: MedRecord) -> float:
@@ -258,19 +365,20 @@ class Estimate:
         Raises:
             ValueError: Raises Error if the required groups are not present in the
                 MedRecord (patients, treatments, outcomes).
-            ValueError: If there are no subjects in the treatment false, control true
-                or control false groups in the contingency table. This would result in
-                division by zero errors.
+            ValueError: If there are no subjects in the group of treated with no
+                outcome, in the one of controls with outcome or in the one of controls
+                with no outcome, an error is raised. This would result in division by
+                zero errors.
         """
         (
-            num_treat_true,
-            num_treat_false,
-            num_control_true,
-            num_control_false,
+            number_treated_outcome_true,
+            number_treated_outcome_false,
+            number_control_outcome_true,
+            number_control_outcome_false,
         ) = self._compute_subject_counts(medrecord=medrecord)
 
-        return (num_treat_true / num_control_true) / (
-            num_treat_false / num_control_false
+        return (number_treated_outcome_true / number_control_outcome_true) / (
+            number_treated_outcome_false / number_control_outcome_false
         )
 
     def confounding_bias(self, medrecord: MedRecord) -> float:
@@ -293,16 +401,17 @@ class Estimate:
         Raises:
             ValueError: If the required groups are not present in the MedRecord
                 (patients, treatments, outcomes).
-            ValueError: If there are no subjects in the treatment false, control true
-                or control false groups in the contingency table. This would result in
-                division by zero errors.
+            ValueError: If there are no subjects in the group of treated with no
+                outcome, in the one of controls with outcome or in the one of controls
+                with no outcome, an error is raised. This would result in division by
+                zero errors.
         """
         (
-            num_treat_true,
-            num_treat_false,
-            num_control_true,
-            num_control_false,
-        ) = self._compute_subject_counts(medrecord)
+            number_treated_outcome_true,
+            number_treated_outcome_false,
+            number_control_outcome_true,
+            number_control_outcome_false,
+        ) = self._compute_subject_counts(medrecord=medrecord)
         relative_risk = self.relative_risk(medrecord)
 
         if relative_risk == 1:
@@ -310,10 +419,12 @@ class Estimate:
 
         multiplier = relative_risk - 1
         numerator = (
-            num_treat_true / (num_treat_true + num_treat_false)
+            number_treated_outcome_true
+            / (number_treated_outcome_true + number_treated_outcome_false)
         ) * multiplier + 1
         denominator = (
-            num_control_true / (num_control_true + num_control_false)
+            number_control_outcome_true
+            / (number_control_outcome_true + number_control_outcome_false)
         ) * multiplier + 1
 
         return numerator / denominator
@@ -336,21 +447,26 @@ class Estimate:
         Raises:
             ValueError: Raises Error if the required groups are not present in the
                 MedRecord (patients, treatments, outcomes).
-            ValueError: If there are no subjects in the treatment false, control true
-                or control false groups in the contingency table. This would result in
-                division by zero errors.
+            ValueError: If there are no subjects in the group of treated with no
+                outcome, in the one of controls with outcome or in the one of controls
+                with no outcome, an error is raised. This would result in division by
+                zero errors.
         """
         (
-            num_treat_true,
-            num_treat_false,
-            num_control_true,
-            num_control_false,
-        ) = self._compute_subject_counts(medrecord)
+            number_treated_outcome_true,
+            number_treated_outcome_false,
+            number_control_outcome_true,
+            number_control_outcome_false,
+        ) = self._compute_subject_counts(medrecord=medrecord)
 
-        risk_treat_group = num_treat_true / (num_treat_true + num_treat_false)
-        risk_control_group = num_control_true / (num_control_true + num_control_false)
+        ar_treated_group = number_treated_outcome_true / (
+            number_treated_outcome_true + number_treated_outcome_false
+        )
+        ar_control_group = number_control_outcome_true / (
+            number_control_outcome_true + number_control_outcome_false
+        )
 
-        return risk_control_group - risk_treat_group
+        return ar_control_group - ar_treated_group
 
     def number_needed_to_treat(self, medrecord: MedRecord) -> float:
         """Calculates the number needed to treat (NNT) to prevent one additional bad outcome.
@@ -369,9 +485,10 @@ class Estimate:
         Raises:
             ValueError: Raises Error if the required groups are not present in the
                 MedRecord (patients, treatments, outcomes).
-            ValueError: If there are no subjects in the treatment false, control true
-                or control false groups in the contingency table. This would result in
-                division by zero errors.
+            ValueError: If there are no subjects in the group of treated with no
+                outcome, in the one of controls with outcome or in the one of controls
+                with no outcome, an error is raised. This would result in division by
+                zero errors.
             ValueError: If the ARR is zero, cannot calculate NNT.
         """
         absolute_risk_reduction = self.absolute_risk_reduction(medrecord)
@@ -393,20 +510,25 @@ class Estimate:
         Raises:
             ValueError: Raises Error if the required groups are not present in the
                 MedRecord (patients, treatments, outcomes).
-            ValueError: If there are no subjects in the treatment false, control true
-                or control false groups in the contingency table. This would result in
-                division by zero errors.
+            ValueError: If there are no subjects in the group of treated with no
+                outcome, in the one of controls with outcome or in the one of controls
+                with no outcome, an error is raised. This would result in division by
+                zero errors.
             ValueError: If the control hazard rate is zero, cannot calculate HR.
         """
         (
-            num_treat_true,
-            num_treat_false,
-            num_control_true,
-            num_control_false,
-        ) = self._compute_subject_counts(medrecord)
+            number_treated_outcome_true,
+            number_treated_outcome_false,
+            number_control_outcome_true,
+            number_control_outcome_false,
+        ) = self._compute_subject_counts(medrecord=medrecord)
 
-        hazard_treat = num_treat_true / (num_treat_true + num_treat_false)
-        hazard_control = num_control_true / (num_control_true + num_control_false)
+        hazard_treat = number_treated_outcome_true / (
+            number_treated_outcome_true + number_treated_outcome_false
+        )
+        hazard_control = number_control_outcome_true / (
+            number_control_outcome_true + number_control_outcome_false
+        )
 
         if hazard_control == 0:
             raise ValueError(
@@ -438,12 +560,12 @@ class Estimate:
         Returns:
             float: The average treatment effect.
         """
-        subjects = self.subjects_contingency_table(medrecord=medrecord)
+        subjects = self.subject_indices(medrecord=medrecord)
 
         return average_treatment_effect(
             medrecord=medrecord,
-            treatment_true_set=subjects["treatment_true"],
-            control_true_set=subjects["control_true"],
+            treatment_outcome_true_set=subjects.get("treated_outcome_true"),
+            control_outcome_true_set=subjects.get("control_outcome_true"),
             outcome_group=self._treatment_effect._outcomes_group,
             outcome_variable=outcome_variable,
             reference=reference,
@@ -486,12 +608,12 @@ class Estimate:
         Returns:
             float: The Cohen's D coefficient, representing the effect size.
         """
-        subjects = self.subjects_contingency_table(medrecord=medrecord)
+        subjects = self.subject_indices(medrecord=medrecord)
 
         return cohens_d(
             medrecord=medrecord,
-            treatment_true_set=subjects["treatment_true"],
-            control_true_set=subjects["control_true"],
+            treatment_outcome_true_set=subjects.get("treated_outcome_true"),
+            control_outcome_true_set=subjects.get("control_outcome_true"),
             outcome_group=self._treatment_effect._outcomes_group,
             outcome_variable=outcome_variable,
             reference=reference,
