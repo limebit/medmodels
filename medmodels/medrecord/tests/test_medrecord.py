@@ -902,7 +902,7 @@ class TestMedRecord(unittest.TestCase):
             medrecord.add_group("0", ["1", "0"])
 
         def query(node: NodeOperand):
-            node.index().equals("0")
+            node.index().equal_to("0")
 
         # Adding a node to a group that already is in the group should fail
         with self.assertRaises(AssertionError):
@@ -945,7 +945,7 @@ class TestMedRecord(unittest.TestCase):
         )
 
         def query(node: NodeOperand):
-            node.index().equals("3")
+            node.index().equal_to("3")
 
         medrecord.add_node_to_group("0", query)
 
@@ -984,7 +984,7 @@ class TestMedRecord(unittest.TestCase):
             medrecord.add_node_to_group("0", ["1", "0"])
 
         def query(node: NodeOperand):
-            node.index().equals("0")
+            node.index().equal_to("0")
 
         # Adding a node to a group that already is in the group should fail
         with self.assertRaises(AssertionError):
@@ -1009,7 +1009,7 @@ class TestMedRecord(unittest.TestCase):
         )
 
         def query(edge: EdgeOperand):
-            edge.index().equals(3)
+            edge.index().equal_to(3)
 
         medrecord.add_edge_to_group("0", query)
 
@@ -1048,7 +1048,7 @@ class TestMedRecord(unittest.TestCase):
             medrecord.add_edge_to_group("0", [1, 0])
 
         def query(edge: EdgeOperand):
-            edge.index().equals(0)
+            edge.index().equal_to(0)
 
         # Adding an edge to a group that already is in the group should fail
         with self.assertRaises(AssertionError):
@@ -1107,7 +1107,7 @@ class TestMedRecord(unittest.TestCase):
             medrecord.remove_node_from_group("50", ["0", "1"])
 
         def query(node: NodeOperand):
-            node.index().equals("0")
+            node.index().equal_to("0")
 
         # Removing a node from a non-existing group should fail
         with self.assertRaises(IndexError):
@@ -1174,7 +1174,7 @@ class TestMedRecord(unittest.TestCase):
             medrecord.remove_edge_from_group("50", [0, 1])
 
         def query(edge: EdgeOperand):
-            edge.index().equals(0)
+            edge.index().equal_to(0)
 
         # Removing an edge from a non-existing group should fail
         with self.assertRaises(IndexError):

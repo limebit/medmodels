@@ -227,7 +227,9 @@ class TreatmentEffect:
         def query(node: NodeOperand):
             node.in_group(self._patients_group)
 
-            node.neighbors(edge_direction=EdgeDirection.BOTH).index().equals(treatment)
+            node.neighbors(edge_direction=EdgeDirection.BOTH).index().equal_to(
+                treatment
+            )
 
         # Create the group with all the patients that underwent the treatment
         for treatment in treatments:
@@ -278,7 +280,7 @@ class TreatmentEffect:
             node.index().is_in(list(treated_group))
 
             # This could probably be refactored to a proper query
-            node.neighbors(edge_direction=EdgeDirection.BOTH).index().equals(outcome)
+            node.neighbors(edge_direction=EdgeDirection.BOTH).index().equal_to(outcome)
 
         for outcome in outcomes:
             nodes_to_check = set(medrecord.select_nodes(query))
@@ -442,7 +444,7 @@ class TreatmentEffect:
         def query(node: NodeOperand):
             node.index().is_in(list(control_group))
 
-            node.neighbors(edge_direction=EdgeDirection.BOTH).index().equals(outcome)
+            node.neighbors(edge_direction=EdgeDirection.BOTH).index().equal_to(outcome)
 
         # Finding the patients that had the outcome in the control group
         for outcome in outcomes:
