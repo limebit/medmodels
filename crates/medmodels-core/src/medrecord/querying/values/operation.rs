@@ -1,9 +1,11 @@
+use std::cmp::Ordering;
+
 use super::operand::{MedRecordValueComparisonOperand, MedRecordValueOperand, ValueKind};
 use crate::{
     errors::{MedRecordError, MedRecordResult},
     medrecord::{
         querying::traits::{DeepClone, ReadWriteOrPanic},
-        MedRecordValue, Wrapper,
+        DataType, MedRecordValue, Wrapper,
     },
     MedRecord,
 };
@@ -54,13 +56,21 @@ impl MedRecordValuesOperation {
             "No values to compare".to_string(),
         ))?;
 
-        Ok(values.fold(max_value, |max_value, value| {
-            if value.1 > max_value.1 {
-                value
-            } else {
-                max_value
+        values.try_fold(max_value, |max_value, value| {
+            match value.1.partial_cmp(max_value.1) {
+                Some(Ordering::Greater) => Ok(value),
+                None => {
+                    let first_dtype = DataType::from(value.1);
+                    let second_dtype = DataType::from(max_value.1);
+
+                    Err(MedRecordError::QueryError(format!(
+                        "Cannot compare values of data types {} and {}. Consider narrowing down the values using .is_string(), .is_int(), .is_float(), .is_bool() or .is_datetime()",
+                        first_dtype, second_dtype
+                    )))
+                }
+                _ => Ok(max_value),
             }
-        }))
+        })
     }
 
     #[inline]
@@ -71,13 +81,21 @@ impl MedRecordValuesOperation {
             "No values to compare".to_string(),
         ))?;
 
-        Ok(values.fold(min_value, |min_value, value| {
-            if value.1 < min_value.1 {
-                value
-            } else {
-                min_value
+        values.try_fold(min_value, |min_value, value| {
+            match value.1.partial_cmp(min_value.1) {
+                Some(Ordering::Less) => Ok(value),
+                None => {
+                    let first_dtype = DataType::from(value.1);
+                    let second_dtype = DataType::from(min_value.1);
+
+                    Err(MedRecordError::QueryError(format!(
+                        "Cannot compare values of data types {} and {}. Consider narrowing down the values using .is_string(), .is_int(), .is_float(), .is_bool() or .is_datetime()",
+                        first_dtype, second_dtype
+                    )))
+                }
+                _ => Ok(min_value),
             }
-        }))
+        })
     }
 
     #[inline]
