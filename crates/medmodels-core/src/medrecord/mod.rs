@@ -683,12 +683,22 @@ impl MedRecord {
         self.group_mapping.contains_group(group)
     }
 
-    pub fn neighbors(
+    pub fn neighbors_outgoing(
         &self,
         node_index: &NodeIndex,
     ) -> Result<impl Iterator<Item = &NodeIndex>, MedRecordError> {
         self.graph
-            .neighbors(node_index)
+            .neighbors_outgoing(node_index)
+            .map_err(MedRecordError::from)
+    }
+
+    // TODO: Add tests
+    pub fn neighbors_incoming(
+        &self,
+        node_index: &NodeIndex,
+    ) -> Result<impl Iterator<Item = &NodeIndex>, MedRecordError> {
+        self.graph
+            .neighbors_incoming(node_index)
             .map_err(MedRecordError::from)
     }
 
@@ -1850,7 +1860,7 @@ mod test {
     fn test_neighbors() {
         let medrecord = create_medrecord();
 
-        let neighbors = medrecord.neighbors(&"0".into()).unwrap();
+        let neighbors = medrecord.neighbors_outgoing(&"0".into()).unwrap();
 
         assert_eq!(2, neighbors.count());
     }
@@ -1861,7 +1871,7 @@ mod test {
 
         // Querying neighbors of a non-existing node sohuld fail
         assert!(medrecord
-            .neighbors(&"0".into())
+            .neighbors_outgoing(&"0".into())
             .is_err_and(|e| matches!(e, MedRecordError::IndexError(_))));
     }
 
@@ -1869,7 +1879,7 @@ mod test {
     fn test_neighbors_undirected() {
         let medrecord = create_medrecord();
 
-        let neighbors = medrecord.neighbors(&"2".into()).unwrap();
+        let neighbors = medrecord.neighbors_outgoing(&"2".into()).unwrap();
         assert_eq!(0, neighbors.count());
 
         let neighbors = medrecord.neighbors_undirected(&"2".into()).unwrap();
@@ -1894,58 +1904,5 @@ mod test {
         assert_eq!(0, medrecord.node_count());
         assert_eq!(0, medrecord.edge_count());
         assert_eq!(0, medrecord.group_count());
-    }
-
-    #[test]
-    fn test_test() {
-        let nodes = vec![
-            ("0".into(), HashMap::from([("time".into(), 0.into())])),
-            ("1".into(), HashMap::from([("time".into(), 1.into())])),
-            ("2".into(), HashMap::from([("time".into(), 2.into())])),
-            ("3".into(), HashMap::from([("time".into(), 3.into())])),
-        ];
-
-        let edges = vec![
-            (
-                "0".into(),
-                "1".into(),
-                HashMap::from([("time".into(), 0.into())]),
-            ),
-            (
-                "0".into(),
-                "1".into(),
-                HashMap::from([("time".into(), 2.into())]),
-            ),
-            (
-                "0".into(),
-                "1".into(),
-                HashMap::from([("time".into(), 3.into())]),
-            ),
-            (
-                "0".into(),
-                "1".into(),
-                HashMap::from([("time".into(), 4.into())]),
-            ),
-            (
-                "0".into(),
-                "2".into(),
-                HashMap::from([("time".into(), 5.into())]),
-            ),
-        ];
-
-        let mut medrecord = MedRecord::from_tuples(nodes, Some(edges), None).unwrap();
-
-        medrecord
-            .add_group("treatment".into(), Some(vec!["1".into()]), None)
-            .unwrap();
-        medrecord
-            .add_group("outcome".into(), Some(vec!["2".into()]), None)
-            .unwrap();
-
-        let nodes = medrecord.select_edges(|edge| {
-            edge.attribute("time").less_than(2);
-        });
-
-        println!("\n{:?}", nodes.collect::<Vec<_>>());
     }
 }

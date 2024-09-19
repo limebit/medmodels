@@ -1,6 +1,6 @@
 use std::sync::{RwLock, RwLockReadGuard, RwLockWriteGuard};
 
-pub(crate) trait DeepClone {
+pub trait DeepClone {
     fn deep_clone(&self) -> Self;
 }
 
