@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Dict, List, Optional, Sequence, Union, overload
+from typing import Dict, List, Literal, Optional, Sequence, Union, overload
 
 import polars as pl
 
@@ -11,6 +11,7 @@ from medmodels.medrecord.indexers import EdgeIndexer, NodeIndexer
 from medmodels.medrecord.querying import EdgeOperation, NodeOperation, edge, node
 from medmodels.medrecord.schema import Schema
 from medmodels.medrecord.types import (
+    AttributeInfo,
     Attributes,
     AttributesInput,
     EdgeIndex,
@@ -1234,26 +1235,20 @@ class MedRecord:
 
         return self.select_edges(key)
 
-    def _describe_group_nodes(self) -> pl.DataFrame:
+    def _describe_group_nodes(
+        self,
+    ) -> Dict[Union[Group, Literal["Ungrouped"]], AttributeInfo]:
         """Creates a summary of group nodes and their attributes.
 
         Returns:
             pl.DataFrame: Dataframe with all nodes in medrecord groups and their attributes.
         """
-        df_schema = {
-            "Nodes Group": pl.String,
-            "Count": pl.Int32,
-            "Attribute": pl.String,
-            "Info": pl.String,
-        }
-
-        node_groups = [pl.DataFrame(schema=df_schema)]
-
+        nodes_info = {}
         grouped_nodes = []
 
-        groups = set(self.groups)
+        groups = sorted(set(self.groups), key=lambda x: (type(x).__name__, x))
 
-        for group in sorted(groups):
+        for group in groups:
             nodes = self.group(group)["nodes"]
             grouped_nodes.extend(nodes)
 
@@ -1264,107 +1259,59 @@ class MedRecord:
                 self.schema.group(group).nodes if group in self.schema.groups else None
             )
 
-            node_info = extract_attribute_summary(self.node[nodes], schema=schema)
-
-            node_info = node_info.select(
-                [
-                    pl.lit(group).alias("Nodes Group"),
-                    pl.lit(len(nodes)).alias("Count"),
-                    pl.all(),
-                ]
-            )
-
-            node_groups.append(node_info)
+            nodes_info[group] = {
+                "count": len(nodes),
+                "attribute": extract_attribute_summary(self.node[nodes], schema=schema),
+            }
 
         ungrouped_count = self.node_count() - len(set(grouped_nodes))
 
         if ungrouped_count > 0:
-            node_groups.append(
-                pl.DataFrame(
-                    [["Ungrouped Nodes", ungrouped_count, "-", "-"]],
-                    schema=df_schema,
-                    orient="row",
-                )
-            )
+            nodes_info["Ungrouped Nodes"] = {"count": ungrouped_count, "attribute": {}}
 
-        node_table = pl.concat(node_groups)
+        return nodes_info
 
-        if node_table.is_empty():
-            node_table = pl.DataFrame({col: "-" for col in node_table.columns})
-
-        return node_table
-
-    def _describe_group_edges(self) -> pl.DataFrame:
+    def _describe_group_edges(
+        self,
+    ) -> Dict[Union[Group, Literal["Ungrouped"]], AttributeInfo]:
         """Creates a summary of edges connecting group nodes and the edge attributes.
 
         Returns:
             pl.DataFrame: DataFrame with an overview of edges connecting group nodes.
         """
-        df_schema = {
-            "Edges Groups": pl.String,
-            "Count": pl.Int32,
-            "Attribute": pl.String,
-            "Info": pl.String,
-        }
-
-        edge_groups = [pl.DataFrame(schema=df_schema)]
-
+        edges_info = {}
         grouped_edges = []
 
-        groups = sorted(set(self.groups))
+        groups = sorted(set(self.groups), key=lambda x: (type(x).__name__, x))
 
-        for source_group in groups:
-            edges = self.group(source_group)["edges"]
+        for group in groups:
+            edges = self.group(group)["edges"]
             grouped_edges.extend(edges)
 
             if not edges:
                 continue
 
             schema = (
-                self.schema.group(source_group).edges
-                if source_group in self.schema.groups
-                else None
+                self.schema.group(group).edges if group in self.schema.groups else None
             )
 
-            edge_info = extract_attribute_summary(self.edge[edges], schema=schema)
-
-            edge_info = edge_info.select(
-                [
-                    pl.lit(source_group).alias("Edges Groups"),
-                    pl.lit(len(edges)).alias("Count"),
-                    pl.all(),
-                ]
-            )
-
-            edge_groups.append(edge_info)
+            edges_info[group] = {
+                "count": len(edges),
+                "attribute": extract_attribute_summary(self.edge[edges], schema=schema),
+            }
 
         ungrouped_count = self.edge_count() - len(set(grouped_edges))
 
         if ungrouped_count > 0:
-            edge_groups.append(
-                pl.DataFrame(
-                    [["Ungrouped Edges", ungrouped_count, "-", "-"]],
-                    schema=df_schema,
-                    orient="row",
-                )
-            )
+            edges_info["Ungrouped Nodes"] = {"count": ungrouped_count, "attribute": {}}
 
-        edge_table = pl.concat(edge_groups)
-
-        if edge_table.is_empty():
-            edge_table = pl.DataFrame({col: "-" for col in edge_table.columns})
-
-        return edge_table
+        return edges_info
 
     def __repr__(self) -> str:
-        representation = prettify_table(self._describe_group_nodes())
-        representation.append("")
-        representation.extend(prettify_table(self._describe_group_edges()))
+        return "\n".join([str(self.overview_nodes()), "", str(self.overview_edges())])
 
-        return "\n".join(representation)
-
-    def overview_nodes(self) -> None:
-        """Prints a summary for all nodes in groups and their attributes.
+    def overview_nodes(self) -> OverviewTable:
+        """Gets a summary for all nodes in groups and their attributes.
 
 
         Example:
@@ -1377,21 +1324,22 @@ class MedRecord:
                                           max: 96
                                           mean: 43.20
                               gender      Categories: F, M
+        Ungrouped       10    -           -
         ----------------------------------------------------
 
         """
-        nodes_table = prettify_table(self._describe_group_nodes())
+        nodes_data = self._describe_group_nodes()
 
-        print("\n".join(nodes_table))
+        return OverviewTable(data=nodes_data, group_header="Nodes Group")
 
-    def print_overview_edges(self) -> None:
+    def overview_edges(self) -> OverviewTable:
         """Prints a summary for all edges in groups or edges connecting group nodes and their attributes.
 
 
         Example:
 
         ----------------------------------------------------------------------------
-        Edges Groups                Count Attribute        Info
+        Edges Group                 Count Attribute        Info
         ----------------------------------------------------------------------------
         Patient-Diagnosis           60    diagnosis_time   min: 1962-10-21 00:00:00
                                                            max: 2024-04-12 00:00:00
@@ -1401,6 +1349,34 @@ class MedRecord:
         ----------------------------------------------------------------------------
 
         """
-        edges_table = prettify_table(self._describe_group_edges())
+        edges_data = self._describe_group_edges()
 
-        print("\n".join(edges_table))
+        return OverviewTable(data=edges_data, group_header="Edges Group")
+
+
+class OverviewTable:
+    """Class for the node/edge group overview table."""
+
+    data: Dict[Union[Group, Literal["Ungrouped"]], AttributeInfo]
+    group_header: str
+
+    def __init__(
+        self,
+        data: Dict[Union[Group, Literal["Ungrouped"]], AttributeInfo],
+        group_header: str,
+    ):
+        """Initializes the OverviewTable class.
+
+        Args:
+            data (Dict[Union[Group, Literal['Ungrouped']], AttributeInfo]): Dictionary containing attribute info for edges/nodes.
+            group_header (str): Header for group column, i.e. 'Group Nodes'.
+        """
+
+        self.data = data
+        self.group_header = group_header
+
+    def __repr__(self) -> str:
+        """Returns a string representation of the group nodes/ edges overview."""
+        header = [self.group_header, "count", "attribute", "info"]
+
+        return "\n".join(prettify_table(self.data, header=header))

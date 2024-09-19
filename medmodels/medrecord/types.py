@@ -95,6 +95,13 @@ class GroupInfo(TypedDict):
     edges: List[EdgeIndex]
 
 
+class AttributeInfo(TypedDict):
+    """A dictionary containing info about nodes/edges and their attributes."""
+
+    count: int
+    attribute: Dict[MedRecordAttribute, List[str]]
+
+
 def is_medrecord_attribute(value: object) -> TypeIs[MedRecordAttribute]:
     """Check if a value is a MedRecord attribute.
 

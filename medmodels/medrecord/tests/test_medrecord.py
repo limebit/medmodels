@@ -1352,63 +1352,44 @@ class TestMedRecord(unittest.TestCase):
         medrecord = create_medrecord()
 
         medrecord.add_group("Float")
-        medrecord.add_group("Even", nodes=["2", "0"])
+        medrecord.add_group(1, nodes=["2", "0"])
         medrecord.add_group("Odd", nodes=["1", "3"])
 
-        expected = pl.DataFrame(
+        self.assertDictEqual(
+            medrecord._describe_group_nodes(),
             {
-                "Nodes Group": ["Even", "Even", "Even", "Float", "Odd"],
-                "Count": [2, 2, 2, 0, 2],
-                "Attribute": ["adipiscing", "dolor", "lorem", "-", "amet"],
-                "Info": [
-                    "Values: elit",
-                    "Values: sit",
-                    "Values: ipsum",
-                    "-",
-                    "Values: consectetur",
-                ],
-            },
-            schema={
-                "Nodes Group": pl.String,
-                "Count": pl.Int32,
-                "Attribute": pl.String,
-                "Info": pl.String,
+                1: {
+                    "count": 2,
+                    "attribute": {
+                        "adipiscing": ["Values: elit"],
+                        "dolor": ["Values: sit"],
+                        "lorem": ["Values: ipsum"],
+                    },
+                },
+                "Float": {"count": 0, "attribute": {}},
+                "Odd": {"count": 2, "attribute": {"amet": ["Values: consectetur"]}},
             },
         )
-
-        self.assertTrue(expected.equals(medrecord._describe_group_nodes()))
 
     def test_describe_group_edges(self):
         medrecord = create_medrecord()
 
         medrecord.add_group("Even", edges=[0, 2])
 
-        expected_edges = pl.DataFrame(
+        self.assertDictEqual(
+            medrecord._describe_group_edges(),
             {
-                "Edges Groups": [
-                    "Even",
-                    "Even",
-                    "Even",
-                    "Ungrouped Edges",
-                ],
-                "Count": [2, 2, 2, 2],
-                "Attribute": ["eiusmod", "incididunt", "sed", "-"],
-                "Info": [
-                    "Values: tempor",
-                    "Values: ut",
-                    "Values: do",
-                    "-",
-                ],
-            },
-            schema={
-                "Edges Groups": pl.String,
-                "Count": pl.Int32,
-                "Attribute": pl.String,
-                "Info": pl.String,
+                "Even": {
+                    "count": 2,
+                    "attribute": {
+                        "eiusmod": ["Values: tempor"],
+                        "incididunt": ["Values: ut"],
+                        "sed": ["Values: do"],
+                    },
+                },
+                "Ungrouped Nodes": {"count": 2, "attribute": {}},
             },
         )
-
-        self.assertTrue(expected_edges.equals(medrecord._describe_group_edges()))
 
 
 if __name__ == "__main__":

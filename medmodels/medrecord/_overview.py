@@ -1,31 +1,30 @@
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Literal, Optional, Union
 
 import polars as pl
 
 from medmodels.medrecord.schema import AttributesSchema, AttributeType
-from medmodels.medrecord.types import Attributes, EdgeIndex, NodeIndex
+from medmodels.medrecord.types import (
+    AttributeInfo,
+    Attributes,
+    EdgeIndex,
+    Group,
+    MedRecordAttribute,
+    NodeIndex,
+)
 
 
 def extract_attribute_summary(
     attribute_dict: Union[Dict[EdgeIndex, Attributes], Dict[NodeIndex, Attributes]],
     schema: Optional[AttributesSchema] = None,
     decimal: int = 2,
-) -> pl.DataFrame:
+) -> Dict[MedRecordAttribute, List[str]]:
     """Extracts a summary from a node or edge attribute dictionary.
 
 
     Example:
-    ┌────────────────┬──────────────────────────┐
-    │ Attribute      ┆ Info                     │
-    │ ---            ┆ ---                      │
-    │ str            ┆ str                      │
-    ╞════════════════╪══════════════════════════╡
-    │ diagnosis_time ┆ min: 1962-10-21 00:00:00 │
-    │ diagnosis_time ┆ max: 2024-04-12 00:00:00 │
-    │ duration_days  ┆ min: 0.0                 │
-    │ duration_days  ┆ max: 3416.0              │
-    │ duration_days  ┆ mean: 405.02             │
-    └────────────────┴──────────────────────────┘
+
+     {"diagnosis_time": ["min: 1962-10-21 00:00:00", "min: 1962-10-21 00:00:00"],
+      "duration_days": ["min: 0.0", "max: 3416.0", "mean: 405.02"]}
 
 
     Args:
@@ -36,20 +35,17 @@ def extract_attribute_summary(
         decimal (int): Decimal points to round the numeric values. Defaults to 2.
 
     Returns:
-        pl.DataFrame: Summary of node or edge attributes.
+        Dict[MedRecordAttribute, List[str]]: Summary of node or edge attributes.
     """
     data = pl.DataFrame(data=[{"id": k, **v} for k, v in attribute_dict.items()])
 
-    data_dict = {
-        "Attribute": [],
-        "Info": [],
-    }
+    data_dict = {}
 
     attributes = [col for col in data.columns if col != "id"]
     attributes.sort()
 
     if not attributes:
-        return pl.DataFrame({"Attribute": ["-"], "Info": ["-"]})
+        return {}
 
     for attribute in attributes:
         attribute_values = data[attribute].drop_nulls()
@@ -84,10 +80,9 @@ def extract_attribute_summary(
                     _extract_string_attribute_info(attribute_series=attribute_values)
                 ]
 
-        data_dict["Attribute"].extend([attribute] * len(attribute_info))
-        data_dict["Info"].extend(attribute_info)
+        data_dict[str(attribute)] = attribute_info
 
-    return pl.DataFrame(data_dict)
+    return data_dict
 
 
 def _extract_numeric_attribute_info(
@@ -167,43 +162,58 @@ def _extract_string_attribute_info(
         return values_string
 
 
-def prettify_table(table_info: pl.DataFrame) -> List[str]:
+def prettify_table(
+    data: Dict[Union[Group, Literal["Ungrouped"]], AttributeInfo], header: List[str]
+) -> List[str]:
     """Takes a DataFrame and turns it into a list for printing a pretty table.
 
     Args:
-        table_info (pl.DataFrame): Table in DataFrame format.
+        data (Dict[Union[Group, Literal['Ungrouped']], AttributeInfo]): Table in
+            DataFrame format.
 
     Returns:
         List[str]: List of lines for printing the table.
     """
-    table_info = table_info.with_columns(pl.exclude(pl.Utf8).cast(str))
+    lengths = [len(title) for title in header]
+    for group in data.keys():
+        lengths[0] = max(len(str(group)), lengths[0])
+        lengths[1] = max(len(str(data[group][header[1]])), lengths[1])
+        if data[group][header[2]]:
+            lengths[2] = max(
+                len(max(data[group][header[2]].keys(), key=len)), lengths[2]
+            )
+            lengths[3] = max(
+                len(
+                    max(
+                        [j for i in data[group][header[2]].values() for j in i], key=len
+                    )
+                ),
+                lengths[3],
+            )
 
-    lengths = [
-        max(len(max(table_info[col], key=len)), len(col)) for col in table_info.columns
+    table = [
+        "-" * (sum(lengths) + len(lengths)),
+        "".join([f"{head.title():<{lengths[i]}} " for i, head in enumerate(header)]),
+        "-" * (sum(lengths) + len(lengths)),
     ]
 
-    print_table = [
-        "-" * (sum(lengths) + len(lengths) + 1),
-        " ".join(
-            [f"{head:<{lengths[i]}}" for i, head in enumerate(table_info.columns)]
-        ),
-        "-" * (sum(lengths) + len(lengths) + 1),
-    ]
+    for group in data.keys():
+        row = [str(group), str(data[group][header[1]]), "-", "-"]
+        if not data[group][header[2]]:
+            table.append(
+                "".join(f"{row[x]: <{lengths[x]}} " for x in range(len(lengths)))
+            )
+            continue
+        for attribute, infos in data[group][header[2]].items():
+            for j, info in enumerate(infos):
+                if j > 0:
+                    row[0], row[1] = "", ""
+                row[2] = attribute if j == 0 else ""
+                row[3] = info
+                table.append(
+                    "".join(f"{row[x]: <{lengths[x]}} " for x in range(len(lengths)))
+                )
 
-    old_row = [""] * len(table_info.columns)
+    table.append("-" * (sum(lengths) + len(lengths)))
 
-    for row in table_info.rows():
-        print_row = ""
-
-        for i, elem in enumerate(row):
-            if (elem == old_row[i]) & (row[:i] == old_row[:i]):
-                elem = ""
-            print_row += f"{elem: <{lengths[i]}} "
-
-        print_table.append(print_row)
-
-        old_row = row
-
-    print_table.append("-" * (sum(lengths) + len(lengths) + 1))
-
-    return print_table
+    return table

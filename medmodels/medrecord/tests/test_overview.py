@@ -74,40 +74,29 @@ class TestOverview(unittest.TestCase):
             medrecord.node[node().in_group("Stroke")]
         )
 
-        self.assertTrue(
-            no_attributes.equals(pl.DataFrame({"Attribute": "-", "Info": "-"}))
-        )
+        self.assertDictEqual(no_attributes, {})
 
         # numeric type
         numeric_attribute = extract_attribute_summary(
             medrecord.node[node().in_group("Patients")]
         )
 
-        numeric_expected = pl.DataFrame(
-            {"Attribute": ["age"] * 3, "Info": ["min: 20", "max: 70", "mean: 40.00"]}
-        )
+        numeric_expected = {"age": ["min: 20", "max: 70", "mean: 40.00"]}
 
-        self.assertTrue(numeric_attribute.equals(numeric_expected))
+        self.assertDictEqual(numeric_attribute, numeric_expected)
 
         # string attributes
         str_attributes = extract_attribute_summary(
             medrecord.node[node().in_group("Medications")]
         )
 
-        self.assertTrue(
-            str_attributes.equals(
-                pl.DataFrame({"Attribute": "ATC", "Info": "Values: B01AA03, B01AF01"})
-            )
-        )
+        self.assertDictEqual(str_attributes, {"ATC": ["Values: B01AA03, B01AF01"]})
 
         # nan attribute
         nan_attributes = extract_attribute_summary(
             medrecord.node[node().in_group("Aspirin")]
         )
-
-        self.assertTrue(
-            nan_attributes.equals(pl.DataFrame({"Attribute": "ATC", "Info": "-"}))
-        )
+        self.assertDictEqual(nan_attributes, {"ATC": ["-"]})
 
         # temporal attributes
         temp_attributes = extract_attribute_summary(
@@ -119,18 +108,9 @@ class TestOverview(unittest.TestCase):
             ]
         )
 
-        self.assertTrue(
-            temp_attributes.equals(
-                pl.DataFrame(
-                    {
-                        "Attribute": ["time"] * 2,
-                        "Info": [
-                            "min: 1999-10-15 00:00:00",
-                            "max: 1999-10-15 00:00:00",
-                        ],
-                    }
-                )
-            )
+        self.assertDictEqual(
+            temp_attributes,
+            {"time": ["min: 1999-10-15 00:00:00", "max: 1999-10-15 00:00:00"]},
         )
 
         # mixed attributes
@@ -142,19 +122,13 @@ class TestOverview(unittest.TestCase):
                 )
             ]
         )
-
-        expected_mixed = pl.DataFrame(
+        self.assertDictEqual(
+            mixed_attributes,
             {
-                "Attribute": ["intensity", "time", "time"],
-                "Info": [
-                    "Values: 1, low",
-                    "min: 1999-12-15 00:00:00",
-                    "max: 2000-01-01 00:00:00",
-                ],
-            }
+                "time": ["min: 1999-12-15 00:00:00", "max: 2000-01-01 00:00:00"],
+                "intensity": ["Values: 1, low"],
+            },
         )
-
-        self.assertTrue(mixed_attributes.equals(expected_mixed))
 
         # with schema
         mr_schema = mm.MedRecord.from_example_dataset()
@@ -165,14 +139,13 @@ class TestOverview(unittest.TestCase):
             schema=mr_schema.schema.group("patient").nodes,
         )
 
-        expected_info = pl.DataFrame(
+        self.assertDictEqual(
+            node_info,
             {
-                "Attribute": ["age", "age", "age", "gender"],
-                "Info": ["min: 19", "max: 96", "mean: 43.20", "Categories: F, M"],
-            }
+                "age": ["min: 19", "max: 96", "mean: 43.20"],
+                "gender": ["Categories: F, M"],
+            },
         )
-
-        self.assertTrue(node_info.equals(expected_info))
 
         # compare schema and not schema
         patient_diagnosis = extract_attribute_summary(
@@ -180,64 +153,43 @@ class TestOverview(unittest.TestCase):
             schema=mr_schema.schema.group("patient_diagnosis").edges,
         )
 
-        patient_diagnoses_expected = pl.DataFrame(
+        self.assertDictEqual(
+            patient_diagnosis,
             {
-                "Attribute": [
-                    "diagnosis_time",
-                    "diagnosis_time",
-                    "duration_days",
-                    "duration_days",
-                    "duration_days",
-                ],
-                "Info": [
+                "diagnosis_time": [
                     "min: 1962-10-21 00:00:00",
                     "max: 2024-04-12 00:00:00",
+                ],
+                "duration_days": [
                     "min: 0.0",
                     "max: 3416.0",
                     "mean: 405.02",
                 ],
-            }
+            },
         )
-
-        self.assertTrue(patient_diagnosis.equals(patient_diagnoses_expected))
 
     def test_prettify_table(self):
-        df_empty = pl.DataFrame(
-            {
-                "Attribute": ["-"],
-                "Info": ["-"],
-            }
-        )
+        medrecord = create_medrecord()
 
-        expected_list_empty = [
-            "----------------",
-            "Attribute Info",
-            "----------------",
-            "-         -    ",
-            "----------------",
+        header = ["group nodes", "count", "attribute", "info"]
+        print(prettify_table(medrecord._describe_group_nodes(), header))
+        expected_empty = [
+            "---------------------------------------------------------",
+            "Group Nodes     Count Attribute Info                     ",
+            "---------------------------------------------------------",
+            "Aspirin         1     ATC       -                        ",
+            "Medications     3     ATC       Values: B01AA03, B01AF01 ",
+            "Patients        3     age       min: 20                  ",
+            "                                max: 70                  ",
+            "                                mean: 40.00              ",
+            "Stroke          1     -         -                        ",
+            "Ungrouped Nodes 1     -         -                        ",
+            "---------------------------------------------------------",
         ]
 
-        self.assertEqual(prettify_table(df_empty), expected_list_empty)
-
-        df = pl.DataFrame(
-            {
-                "Attribute": ["age", "age", "age", "gender"],
-                "Info": ["min: 19", "max: 96", "mean: 43.20", "Categories: F, M"],
-            }
+        self.assertEqual(
+            prettify_table(medrecord._describe_group_nodes(), header), expected_empty
         )
-
-        expected_list = [
-            "----------------------------",
-            "Attribute Info            ",
-            "----------------------------",
-            "age       min: 19          ",
-            "          max: 96          ",
-            "          mean: 43.20      ",
-            "gender    Categories: F, M ",
-            "----------------------------",
-        ]
-
-        self.assertEqual(prettify_table(df), expected_list)
 
 
 if __name__ == "__main__":
