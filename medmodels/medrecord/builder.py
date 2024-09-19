@@ -178,46 +178,13 @@ class MedRecordBuilder:
                 continue
 
             group = node[1]
-
-            if not medrecord.contains_group(group):
-                medrecord.add_group(group)
-
             node = node[0]
 
             if is_node_tuple(node):
-                medrecord.add_node(*node)
-                medrecord.add_node_to_group(group, node[0])
+                medrecord.add_node(*node, group)
                 continue
 
-            if is_node_tuple_list(node):
-                medrecord.add_nodes(node)
-                medrecord.add_node_to_group(group, [node[0] for node in node])
-                continue
-
-            if is_pandas_node_dataframe_input(node):
-                medrecord.add_nodes(node)
-                medrecord.add_node_to_group(group, node[0][node[1]].tolist())
-                continue
-
-            if is_polars_node_dataframe_input(node):
-                medrecord.add_nodes(node)
-                medrecord.add_node_to_group(group, node[0][node[1]].to_list())
-                continue
-
-            if is_pandas_node_dataframe_input_list(node):
-                medrecord.add_nodes(node)
-                medrecord.add_node_to_group(
-                    group,
-                    [nodes for node in node for nodes in node[0][node[1]].tolist()],
-                )
-                continue
-
-            if is_polars_node_dataframe_input_list(node):
-                medrecord.add_nodes(node)
-                medrecord.add_node_to_group(
-                    group,
-                    [nodes for node in node for nodes in node[0][node[1]].to_list()],
-                )
+            medrecord.add_nodes(node, group)
 
         for edge in self._edges:
             if is_edge_tuple(edge):
@@ -235,15 +202,10 @@ class MedRecordBuilder:
                 continue
 
             group = edge[1]
-
-            if not medrecord.contains_group(group):
-                medrecord.add_group(group)
-
             edge = edge[0]
 
             if is_edge_tuple(edge):
-                edge_index = medrecord.add_edge(*edge)
-                medrecord.add_edge_to_group(group, edge_index)
+                medrecord.add_edge(*edge, group)
                 continue
 
             if (
@@ -253,8 +215,7 @@ class MedRecordBuilder:
                 or is_polars_edge_dataframe_input(edge)
                 or is_polars_edge_dataframe_input_list(edge)
             ):
-                edge_indices = medrecord.add_edges(edge)
-                medrecord.add_edge_to_group(group, edge_indices)
+                medrecord.add_edges(edge, group)
 
         for group in self._groups:
             if medrecord.contains_group(group):
