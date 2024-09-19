@@ -621,7 +621,7 @@ class TestTreatmentEffect(unittest.TestCase):
 
     def test_filter_controls(self):
         def query1(node: NodeOperand):
-            node.neighbors().index().equals("M2")
+            node.neighbors().index().equal_to("M2")
 
         tee = (
             TreatmentEffect.builder()
@@ -637,7 +637,7 @@ class TestTreatmentEffect(unittest.TestCase):
         # filter females only
 
         def query2(node: NodeOperand):
-            node.attribute("gender").equals("female")
+            node.attribute("gender").equal_to("female")
 
         tee2 = (
             TreatmentEffect.builder()
