@@ -1,5 +1,6 @@
 use super::operand::{MedRecordValueComparisonOperand, MedRecordValueOperand, ValueKind};
 use crate::{
+    errors::{MedRecordError, MedRecordResult},
     medrecord::{
         querying::traits::{DeepClone, ReadWriteOrPanic},
         MedRecordValue, Wrapper,
@@ -36,7 +37,7 @@ impl MedRecordValuesOperation {
         &self,
         medrecord: &'a MedRecord,
         values: impl Iterator<Item = (&'a T, &'a MedRecordValue)> + 'a,
-    ) -> Box<dyn Iterator<Item = (&'a T, &'a MedRecordValue)> + 'a> {
+    ) -> MedRecordResult<Box<dyn Iterator<Item = (&'a T, &'a MedRecordValue)> + 'a>> {
         match self {
             Self::ValueOperand { operand } => {
                 Self::evaluate_value_operand(medrecord, values, operand)
@@ -48,10 +49,12 @@ impl MedRecordValuesOperation {
     #[inline]
     pub(crate) fn get_max<'a, T: 'a>(
         mut values: impl Iterator<Item = (&'a T, &'a MedRecordValue)>,
-    ) -> Option<(&'a T, &'a MedRecordValue)> {
-        let max_value = values.next()?;
+    ) -> MedRecordResult<(&'a T, &'a MedRecordValue)> {
+        let max_value = values.next().ok_or(MedRecordError::QueryError(
+            "No values to compare".to_string(),
+        ))?;
 
-        Some(values.fold(max_value, |max_value, value| {
+        Ok(values.fold(max_value, |max_value, value| {
             if value.1 > max_value.1 {
                 value
             } else {
@@ -63,10 +66,12 @@ impl MedRecordValuesOperation {
     #[inline]
     pub(crate) fn get_min<'a, T: 'a>(
         mut values: impl Iterator<Item = (&'a T, &'a MedRecordValue)>,
-    ) -> Option<(&'a T, &'a MedRecordValue)> {
-        let min_value = values.next()?;
+    ) -> MedRecordResult<(&'a T, &'a MedRecordValue)> {
+        let min_value = values.next().ok_or(MedRecordError::QueryError(
+            "No values to compare".to_string(),
+        ))?;
 
-        Some(values.fold(min_value, |min_value, value| {
+        Ok(values.fold(min_value, |min_value, value| {
             if value.1 < min_value.1 {
                 value
             } else {
@@ -80,22 +85,18 @@ impl MedRecordValuesOperation {
         medrecord: &'a MedRecord,
         values: impl Iterator<Item = (&'a T, &'a MedRecordValue)>,
         operand: &Wrapper<MedRecordValueOperand>,
-    ) -> Box<dyn Iterator<Item = (&'a T, &'a MedRecordValue)> + 'a> {
+    ) -> MedRecordResult<Box<dyn Iterator<Item = (&'a T, &'a MedRecordValue)> + 'a>> {
         let kind = &operand.0.read_or_panic().kind;
 
         let value = match kind {
             ValueKind::Max => Self::get_max(values),
             ValueKind::Min => Self::get_min(values),
-        };
+        }?;
 
-        let Some(value) = value else {
-            return Box::new(std::iter::empty());
-        };
-
-        match operand.evaluate(medrecord, value.1) {
+        Ok(match operand.evaluate(medrecord, value.1)? {
             true => Box::new(std::iter::once(value)),
             false => Box::new(std::iter::empty()),
-        }
+        })
     }
 
     #[inline]
@@ -103,7 +104,7 @@ impl MedRecordValuesOperation {
         medrecord: &'a MedRecord,
         values: impl Iterator<Item = (&'a T, &'a MedRecordValue)> + 'a,
         comparison: MedRecordValueComparisonOperand,
-    ) -> Box<dyn Iterator<Item = (&'a T, &'a MedRecordValue)> + 'a> {
+    ) -> MedRecordResult<Box<dyn Iterator<Item = (&'a T, &'a MedRecordValue)> + 'a>> {
         match comparison {
             MedRecordValueComparisonOperand::SingleOperand(comparison_operand) => {
                 let context = &comparison_operand.context.context;
@@ -111,40 +112,37 @@ impl MedRecordValuesOperation {
                 let kind = &comparison_operand.kind;
 
                 let comparison_values = context
-                    .get_values(medrecord, attribute)
+                    .get_values(medrecord, attribute)?
                     .map(|value| (&0, value));
 
                 let comparison_value = match kind {
                     ValueKind::Max => Self::get_max(comparison_values),
                     ValueKind::Min => Self::get_min(comparison_values),
-                };
+                }?;
 
-                match comparison_value {
-                    Some(comparison_value) => {
-                        Box::new(values.filter(|value| value.1 < comparison_value.1))
-                    }
-                    None => Box::new(std::iter::empty()),
-                }
+                Ok(Box::new(
+                    values.filter(|value| value.1 < comparison_value.1),
+                ))
             }
-            MedRecordValueComparisonOperand::SingleValue(comparison_value) => {
-                Box::new(values.filter(move |value| value.1 < &comparison_value))
-            }
+            MedRecordValueComparisonOperand::SingleValue(comparison_value) => Ok(Box::new(
+                values.filter(move |value| value.1 < &comparison_value),
+            )),
             MedRecordValueComparisonOperand::MultipleOperand(comparison_operand) => {
                 let context = &comparison_operand.context;
                 let attribute = comparison_operand.attribute;
 
-                let mut comparison_values = context.get_values(medrecord, attribute);
+                let mut comparison_values = context.get_values(medrecord, attribute)?;
 
-                Box::new(values.filter(move |value| {
+                Ok(Box::new(values.filter(move |value| {
                     comparison_values.all(|comparison_value| value.1 < comparison_value)
-                }))
+                })))
             }
             MedRecordValueComparisonOperand::MultipleValues(comparison_values) => {
-                Box::new(values.filter(move |value| {
+                Ok(Box::new(values.filter(move |value| {
                     comparison_values
                         .iter()
                         .all(|comparison_value| value.1 < comparison_value)
-                }))
+                })))
             }
         }
     }
@@ -165,7 +163,11 @@ impl DeepClone for MedRecordValueOperation {
 }
 
 impl MedRecordValueOperation {
-    pub(crate) fn evaluate<'a>(&self, medrecord: &'a MedRecord, value: &'a MedRecordValue) -> bool {
+    pub(crate) fn evaluate<'a>(
+        &self,
+        medrecord: &'a MedRecord,
+        value: &'a MedRecordValue,
+    ) -> MedRecordResult<bool> {
         match self {
             Self::LessThan { value: operand } => {
                 Self::evaluate_less_than(medrecord, value, operand)
@@ -177,7 +179,7 @@ impl MedRecordValueOperation {
         medrecord: &MedRecord,
         value: &MedRecordValue,
         comparison_operand: &MedRecordValueComparisonOperand,
-    ) -> bool {
+    ) -> MedRecordResult<bool> {
         match comparison_operand {
             MedRecordValueComparisonOperand::SingleOperand(comparison_operand) => {
                 let context = &comparison_operand.context.context;
@@ -185,33 +187,32 @@ impl MedRecordValueOperation {
                 let kind = &comparison_operand.kind;
 
                 let values = context
-                    .get_values(medrecord, attribute)
+                    .get_values(medrecord, attribute)?
                     .map(|value| (&0, value));
 
                 let comparison_value = match kind {
                     ValueKind::Max => MedRecordValuesOperation::get_max(values),
                     ValueKind::Min => MedRecordValuesOperation::get_min(values),
-                };
+                }?;
 
-                match comparison_value {
-                    Some(comparison_value) => value < comparison_value.1,
-                    None => false,
-                }
+                Ok(value < comparison_value.1)
             }
             MedRecordValueComparisonOperand::SingleValue(comparison_value) => {
-                value < comparison_value
+                Ok(value < comparison_value)
             }
             MedRecordValueComparisonOperand::MultipleOperand(comparison_operand) => {
                 let context = &comparison_operand.context;
                 let attribute = comparison_operand.attribute.clone();
 
-                let mut values = context.get_values(medrecord, attribute);
+                let mut values = context.get_values(medrecord, attribute)?;
 
-                values.all(|comparison_value| value < comparison_value)
+                Ok(values.all(|comparison_value| value < comparison_value))
             }
-            MedRecordValueComparisonOperand::MultipleValues(comparison_values) => comparison_values
-                .iter()
-                .all(|comparison_value| value < comparison_value),
+            MedRecordValueComparisonOperand::MultipleValues(comparison_values) => {
+                Ok(comparison_values
+                    .iter()
+                    .all(|comparison_value| value < comparison_value))
+            }
         }
     }
 }

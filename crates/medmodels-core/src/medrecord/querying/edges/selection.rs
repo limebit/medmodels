@@ -1,5 +1,8 @@
 use super::EdgeOperand;
-use crate::medrecord::{querying::wrapper::Wrapper, EdgeIndex, MedRecord};
+use crate::{
+    errors::MedRecordResult,
+    medrecord::{querying::wrapper::Wrapper, EdgeIndex, MedRecord},
+};
 
 #[derive(Debug, Clone)]
 pub struct EdgeSelection<'a> {
@@ -19,11 +22,11 @@ impl<'a> EdgeSelection<'a> {
         Self { medrecord, operand }
     }
 
-    pub fn iter(&'a self) -> impl Iterator<Item = &'a EdgeIndex> {
+    pub fn iter(&'a self) -> MedRecordResult<impl Iterator<Item = &'a EdgeIndex>> {
         self.operand.evaluate(self.medrecord)
     }
 
-    pub fn collect<B: FromIterator<&'a EdgeIndex>>(&'a self) -> B {
-        FromIterator::from_iter(self.iter())
+    pub fn collect<B: FromIterator<&'a EdgeIndex>>(&'a self) -> MedRecordResult<B> {
+        Ok(FromIterator::from_iter(self.iter()?))
     }
 }

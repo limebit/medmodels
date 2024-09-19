@@ -1,5 +1,6 @@
 use super::operation::NodeOperation;
 use crate::{
+    errors::MedRecordResult,
     medrecord::{
         querying::{
             edges::EdgeOperand,
@@ -40,13 +41,13 @@ impl NodeOperand {
     pub(crate) fn evaluate<'a>(
         &self,
         medrecord: &'a MedRecord,
-    ) -> Box<dyn Iterator<Item = &'a NodeIndex> + 'a> {
+    ) -> MedRecordResult<Box<dyn Iterator<Item = &'a NodeIndex> + 'a>> {
         let node_indices =
             Box::new(medrecord.node_indices()) as Box<dyn Iterator<Item = &'a NodeIndex>>;
 
         self.operations
             .iter()
-            .fold(Box::new(node_indices), |node_indices, operation| {
+            .try_fold(node_indices, |node_indices, operation| {
                 operation.evaluate(medrecord, node_indices)
             })
     }
@@ -111,7 +112,7 @@ impl Wrapper<NodeOperand> {
     pub(crate) fn evaluate<'a>(
         &self,
         medrecord: &'a MedRecord,
-    ) -> Box<dyn Iterator<Item = &'a NodeIndex> + 'a> {
+    ) -> MedRecordResult<Box<dyn Iterator<Item = &'a NodeIndex> + 'a>> {
         self.0.read_or_panic().evaluate(medrecord)
     }
 

@@ -1,5 +1,6 @@
 use super::operation::{MedRecordValueOperation, MedRecordValuesOperation};
 use crate::{
+    errors::MedRecordResult,
     medrecord::{
         querying::{
             edges::EdgeOperation,
@@ -91,10 +92,10 @@ impl Context {
         &self,
         medrecord: &'a MedRecord,
         attribute: MedRecordAttribute,
-    ) -> Box<dyn Iterator<Item = &'a MedRecordValue> + 'a> {
-        match self {
+    ) -> MedRecordResult<Box<dyn Iterator<Item = &'a MedRecordValue> + 'a>> {
+        Ok(match self {
             Self::NodeOperand(node_operand) => {
-                let node_indices = node_operand.evaluate(medrecord);
+                let node_indices = node_operand.evaluate(medrecord)?;
 
                 Box::new(
                     NodeOperation::get_values(medrecord, node_indices, attribute)
@@ -102,14 +103,14 @@ impl Context {
                 )
             }
             Self::EdgeOperand(edge_operand) => {
-                let edge_indices = edge_operand.evaluate(medrecord);
+                let edge_indices = edge_operand.evaluate(medrecord)?;
 
                 Box::new(
                     EdgeOperation::get_values(medrecord, edge_indices, attribute)
                         .map(|(_, value)| value),
                 )
             }
-        }
+        })
     }
 }
 
@@ -147,12 +148,12 @@ impl MedRecordValuesOperand {
         &self,
         medrecord: &'a MedRecord,
         values: impl Iterator<Item = (&'a T, &'a MedRecordValue)> + 'a,
-    ) -> impl Iterator<Item = (&'a T, &'a MedRecordValue)> {
+    ) -> MedRecordResult<impl Iterator<Item = (&'a T, &'a MedRecordValue)>> {
         let values = Box::new(values) as Box<dyn Iterator<Item = (&'a T, &'a MedRecordValue)>>;
 
         self.operations
             .iter()
-            .fold(values, |edge_indices, operation| {
+            .try_fold(values, |edge_indices, operation| {
                 operation.evaluate(medrecord, edge_indices)
             })
     }
@@ -195,7 +196,7 @@ impl Wrapper<MedRecordValuesOperand> {
         &self,
         medrecord: &'a MedRecord,
         values: impl Iterator<Item = (&'a T, &'a MedRecordValue)> + 'a,
-    ) -> impl Iterator<Item = (&'a T, &'a MedRecordValue)> {
+    ) -> MedRecordResult<impl Iterator<Item = (&'a T, &'a MedRecordValue)>> {
         self.0.read_or_panic().evaluate(medrecord, values)
     }
 
@@ -242,10 +243,16 @@ impl MedRecordValueOperand {
         }
     }
 
-    pub(crate) fn evaluate<'a>(&self, medrecord: &'a MedRecord, value: &'a MedRecordValue) -> bool {
-        self.operations
-            .iter()
-            .all(|operation| operation.evaluate(medrecord, value))
+    pub(crate) fn evaluate<'a>(
+        &self,
+        medrecord: &'a MedRecord,
+        value: &'a MedRecordValue,
+    ) -> MedRecordResult<bool> {
+        for operation in &self.operations {
+            operation.evaluate(medrecord, value)?;
+        }
+
+        Ok(true)
     }
 
     pub fn less_than<V: Into<MedRecordValueComparisonOperand>>(&mut self, value: V) {
@@ -260,7 +267,11 @@ impl Wrapper<MedRecordValueOperand> {
         MedRecordValueOperand::new(context, kind).into()
     }
 
-    pub(crate) fn evaluate<'a>(&self, medrecord: &'a MedRecord, value: &'a MedRecordValue) -> bool {
+    pub(crate) fn evaluate<'a>(
+        &self,
+        medrecord: &'a MedRecord,
+        value: &'a MedRecordValue,
+    ) -> MedRecordResult<bool> {
         self.0.read_or_panic().evaluate(medrecord, value)
     }
 

@@ -1,4 +1,5 @@
 use crate::{
+    errors::MedRecordResult,
     medrecord::{
         querying::{
             nodes::NodeOperand,
@@ -60,13 +61,13 @@ impl EdgeOperation {
         &self,
         medrecord: &'a MedRecord,
         edge_indices: impl Iterator<Item = &'a EdgeIndex> + 'a,
-    ) -> Box<dyn Iterator<Item = &'a EdgeIndex> + 'a> {
-        match self {
+    ) -> MedRecordResult<Box<dyn Iterator<Item = &'a EdgeIndex> + 'a>> {
+        Ok(match self {
             Self::Attribute { operand } => Box::new(Self::evaluate_attribute(
                 medrecord,
                 edge_indices,
                 operand.clone(),
-            )),
+            )?),
             Self::InGroup { group } => Box::new(Self::evaluate_in_group(
                 medrecord,
                 edge_indices,
@@ -77,13 +78,17 @@ impl EdgeOperation {
                 edge_indices,
                 attribute.clone(),
             )),
-            Self::SourceNode { operand } => {
-                Box::new(Self::evaluate_source_node(medrecord, edge_indices, operand))
-            }
-            Self::TargetNode { operand } => {
-                Box::new(Self::evaluate_target_node(medrecord, edge_indices, operand))
-            }
-        }
+            Self::SourceNode { operand } => Box::new(Self::evaluate_source_node(
+                medrecord,
+                edge_indices,
+                operand,
+            )?),
+            Self::TargetNode { operand } => Box::new(Self::evaluate_target_node(
+                medrecord,
+                edge_indices,
+                operand,
+            )?),
+        })
     }
 
     #[inline]
@@ -108,14 +113,14 @@ impl EdgeOperation {
         medrecord: &'a MedRecord,
         edge_indices: impl Iterator<Item = &'a EdgeIndex> + 'a,
         operand: Wrapper<MedRecordValuesOperand>,
-    ) -> impl Iterator<Item = &'a EdgeIndex> {
+    ) -> MedRecordResult<impl Iterator<Item = &'a EdgeIndex>> {
         let values = Self::get_values(
             medrecord,
             edge_indices,
             operand.0.read_or_panic().attribute.clone(),
         );
 
-        operand.evaluate(&medrecord, values).map(|value| value.0)
+        Ok(operand.evaluate(medrecord, values)?.map(|value| value.0))
     }
 
     #[inline]
@@ -168,16 +173,16 @@ impl EdgeOperation {
         medrecord: &'a MedRecord,
         edge_indices: impl Iterator<Item = &'a EdgeIndex>,
         operand: &Wrapper<NodeOperand>,
-    ) -> impl Iterator<Item = &'a EdgeIndex> {
-        let node_indices = operand.evaluate(medrecord).collect::<HashSet<_>>();
+    ) -> MedRecordResult<impl Iterator<Item = &'a EdgeIndex>> {
+        let node_indices = operand.evaluate(medrecord)?.collect::<HashSet<_>>();
 
-        edge_indices.filter(move |edge_index| {
+        Ok(edge_indices.filter(move |edge_index| {
             let edge_endpoints = medrecord
                 .edge_endpoints(edge_index)
                 .expect("Edge must exist");
 
             node_indices.contains(edge_endpoints.1)
-        })
+        }))
     }
 
     #[inline]
@@ -185,15 +190,15 @@ impl EdgeOperation {
         medrecord: &'a MedRecord,
         edge_indices: impl Iterator<Item = &'a EdgeIndex>,
         operand: &Wrapper<NodeOperand>,
-    ) -> impl Iterator<Item = &'a EdgeIndex> {
-        let node_indices = operand.evaluate(medrecord).collect::<HashSet<_>>();
+    ) -> MedRecordResult<impl Iterator<Item = &'a EdgeIndex>> {
+        let node_indices = operand.evaluate(medrecord)?.collect::<HashSet<_>>();
 
-        edge_indices.filter(move |edge_index| {
+        Ok(edge_indices.filter(move |edge_index| {
             let edge_endpoints = medrecord
                 .edge_endpoints(edge_index)
                 .expect("Edge must exist");
 
             node_indices.contains(edge_endpoints.1)
-        })
+        }))
     }
 }

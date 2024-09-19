@@ -1,5 +1,8 @@
 use super::NodeOperand;
-use crate::medrecord::{querying::wrapper::Wrapper, MedRecord, NodeIndex};
+use crate::{
+    errors::MedRecordResult,
+    medrecord::{querying::wrapper::Wrapper, MedRecord, NodeIndex},
+};
 
 #[derive(Debug, Clone)]
 pub struct NodeSelection<'a> {
@@ -19,14 +22,14 @@ impl<'a> NodeSelection<'a> {
         Self { medrecord, operand }
     }
 
-    pub fn iter(self) -> impl Iterator<Item = &'a NodeIndex> {
+    pub fn iter(self) -> MedRecordResult<impl Iterator<Item = &'a NodeIndex>> {
         self.operand.evaluate(self.medrecord)
     }
 
-    pub fn collect<B>(self) -> B
+    pub fn collect<B>(self) -> MedRecordResult<B>
     where
         B: FromIterator<&'a NodeIndex>,
     {
-        FromIterator::from_iter(self.iter())
+        Ok(FromIterator::from_iter(self.iter()?))
     }
 }

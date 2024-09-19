@@ -14,6 +14,8 @@ impl From<GraphError> for MedRecordError {
     }
 }
 
+pub type MedRecordResult<T> = Result<T, MedRecordError>;
+
 #[cfg(test)]
 mod test {
     use super::{GraphError, MedRecordError};
