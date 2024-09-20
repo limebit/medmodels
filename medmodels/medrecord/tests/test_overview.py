@@ -172,7 +172,7 @@ class TestOverview(unittest.TestCase):
         medrecord = create_medrecord()
 
         header = ["group nodes", "count", "attribute", "info"]
-        print(prettify_table(medrecord._describe_group_nodes(), header))
+
         expected_empty = [
             "---------------------------------------------------------",
             "Group Nodes     Count Attribute Info                     ",

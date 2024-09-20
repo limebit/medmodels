@@ -1442,7 +1442,7 @@ class MedRecord:
         return OverviewTable(data=nodes_data, group_header="Nodes Group")
 
     def overview_edges(self) -> OverviewTable:
-        """Prints a summary for all edges in groups or edges connecting group nodes and their attributes.
+        """Gets a summary for all edges in groups and their attributes.
 
 
         Example:

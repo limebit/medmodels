@@ -14,7 +14,9 @@ from medmodels.medrecord.types import (
 
 
 def extract_attribute_summary(
-    attribute_dict: Union[Dict[EdgeIndex, Attributes], Dict[NodeIndex, Attributes]],
+    attribute_dictionary: Union[
+        Dict[EdgeIndex, Attributes], Dict[NodeIndex, Attributes]
+    ],
     schema: Optional[AttributesSchema] = None,
     decimal: int = 2,
 ) -> Dict[MedRecordAttribute, List[str]]:
@@ -23,7 +25,7 @@ def extract_attribute_summary(
 
     Example:
 
-     {"diagnosis_time": ["min: 1962-10-21 00:00:00", "min: 1962-10-21 00:00:00"],
+     {"diagnosis_time": ["min: 1962-10-21 00:00:00", "min: max: 2024-04-12 00:00:00"],
       "duration_days": ["min: 0.0", "max: 3416.0", "mean: 405.02"]}
 
 
@@ -32,12 +34,12 @@ def extract_attribute_summary(
             Edges or Nodes and their attributes and values.
         schema (Optional[AttributesSchema], optional): Attribute Schema for the group
             nodes or edges. Defaults to None.
-        decimal (int): Decimal points to round the numeric values. Defaults to 2.
+        decimal (int): Decimal points to round the numeric values to. Defaults to 2.
 
     Returns:
         Dict[MedRecordAttribute, List[str]]: Summary of node or edge attributes.
     """
-    data = pl.DataFrame(data=[{"id": k, **v} for k, v in attribute_dict.items()])
+    data = pl.DataFrame(data=[{"id": k, **v} for k, v in attribute_dictionary.items()])
 
     data_dict = {}
 
@@ -165,7 +167,7 @@ def _extract_string_attribute_info(
 def prettify_table(
     data: Dict[Union[Group, Literal["Ungrouped"]], AttributeInfo], header: List[str]
 ) -> List[str]:
-    """Takes a DataFrame and turns it into a list for printing a pretty table.
+    """Takes a DataFrame and turns it into a list for displaying a pretty table.
 
     Args:
         data (Dict[Union[Group, Literal['Ungrouped']], AttributeInfo]): Table in
