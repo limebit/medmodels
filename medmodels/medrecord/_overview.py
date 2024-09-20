@@ -25,7 +25,7 @@ def extract_attribute_summary(
 
     Example:
 
-     {"diagnosis_time": ["min: 1962-10-21 00:00:00", "min: max: 2024-04-12 00:00:00"],
+     {"diagnosis_time": ["min: 1962-10-21 00:00:00", "max: 2024-04-12 00:00:00"],
       "duration_days": ["min: 0.0", "max: 3416.0", "mean: 405.02"]}
 
 
@@ -170,8 +170,9 @@ def prettify_table(
     """Takes a DataFrame and turns it into a list for displaying a pretty table.
 
     Args:
-        data (Dict[Union[Group, Literal['Ungrouped']], AttributeInfo]): Table in
-            DataFrame format.
+        data (Dict[Union[Group, Literal['Ungrouped']], AttributeInfo]): Table info
+            stored in a dictionary.
+        header (List[str]): Header line consisting of column names for the table.
 
     Returns:
         List[str]: List of lines for printing the table.
