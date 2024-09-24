@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from collections import OrderedDict
 from datetime import datetime
-from typing import TYPE_CHECKING, Dict, List, Mapping, Tuple, TypedDict, Union
+from typing import TYPE_CHECKING, Dict, List, Literal, Mapping, Tuple, TypedDict, Union
 
 import pandas as pd
 import polars as pl
@@ -99,7 +100,10 @@ class AttributeInfo(TypedDict):
     """A dictionary containing info about nodes/edges and their attributes."""
 
     count: int
-    attribute: Dict[MedRecordAttribute, List[str]]
+    attribute: Dict[
+        MedRecordAttribute,
+        OrderedDict[Literal["min", "max", "mean", "values"], MedRecordValue],
+    ]
 
 
 def is_medrecord_attribute(value: object) -> TypeIs[MedRecordAttribute]:

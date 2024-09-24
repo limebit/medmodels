@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Dict, List, Literal, Optional, Sequence, Union, overload
+from typing import Dict, List, Optional, Sequence, Union, overload
 
 import polars as pl
 
@@ -1346,7 +1346,7 @@ class MedRecord:
 
     def _describe_group_nodes(
         self,
-    ) -> Dict[Union[Group, Literal["Ungrouped"]], AttributeInfo]:
+    ) -> Dict[Group, AttributeInfo]:
         """Creates a summary of group nodes and their attributes.
 
         Returns:
@@ -1355,7 +1355,7 @@ class MedRecord:
         nodes_info = {}
         grouped_nodes = []
 
-        groups = sorted(set(self.groups), key=lambda x: (type(x).__name__, x))
+        groups = sorted(self.groups, key=lambda x: str(x))
 
         for group in groups:
             nodes = self.group(group)["nodes"]
@@ -1382,7 +1382,7 @@ class MedRecord:
 
     def _describe_group_edges(
         self,
-    ) -> Dict[Union[Group, Literal["Ungrouped"]], AttributeInfo]:
+    ) -> Dict[Group, AttributeInfo]:
         """Creates a summary of edges connecting group nodes and the edge attributes.
 
         Returns:
@@ -1391,7 +1391,7 @@ class MedRecord:
         edges_info = {}
         grouped_edges = []
 
-        groups = sorted(set(self.groups), key=lambda x: (type(x).__name__, x))
+        groups = sorted(self.groups, key=lambda x: str(x))
 
         for group in groups:
             edges = self.group(group)["edges"]
@@ -1412,16 +1412,22 @@ class MedRecord:
         ungrouped_count = self.edge_count() - len(set(grouped_edges))
 
         if ungrouped_count > 0:
-            edges_info["Ungrouped Nodes"] = {"count": ungrouped_count, "attribute": {}}
+            edges_info["Ungrouped Edges"] = {"count": ungrouped_count, "attribute": {}}
 
         return edges_info
 
     def __repr__(self) -> str:
         return "\n".join([str(self.overview_nodes()), "", str(self.overview_edges())])
 
-    def overview_nodes(self) -> OverviewTable:
+    def overview_nodes(self, decimal: int = 2) -> OverviewTable:
         """Gets a summary for all nodes in groups and their attributes.
 
+        Args:
+            decimal (int, optional): Decimal point to round the float values to.
+                Defaults to 2.
+
+        Returns:
+            OverviewTable: Display of edge groups and their attributes.
 
         Example:
 
@@ -1433,16 +1439,25 @@ class MedRecord:
                                           max: 96
                                           mean: 43.20
                               gender      Categories: F, M
-        Ungrouped       10    -           -
+        Ungrouped Nodes 10    -           -
         ----------------------------------------------------
 
         """
         nodes_data = self._describe_group_nodes()
 
-        return OverviewTable(data=nodes_data, group_header="Nodes Group")
+        return OverviewTable(
+            data=nodes_data, group_header="Nodes Group", decimal=decimal
+        )
 
-    def overview_edges(self) -> OverviewTable:
+    def overview_edges(self, decimal: int = 2) -> OverviewTable:
         """Gets a summary for all edges in groups and their attributes.
+
+        Args:
+            decimal (int, optional): Decimal point to round the float values to.
+                Defaults to 2.
+
+        Returns:
+            OverviewTable: Display of edge groups and their attributes.
 
 
         Example:
@@ -1452,40 +1467,45 @@ class MedRecord:
         ----------------------------------------------------------------------------
         Patient-Diagnosis           60    diagnosis_time   min: 1962-10-21 00:00:00
                                                            max: 2024-04-12 00:00:00
-                                          duration_days    min: 0.0
-                                                           max: 3416.0
+                                          duration_days    min: 0
+                                                           max: 3416
                                                            mean: 405.02
         ----------------------------------------------------------------------------
-
         """
         edges_data = self._describe_group_edges()
 
-        return OverviewTable(data=edges_data, group_header="Edges Group")
+        return OverviewTable(
+            data=edges_data, group_header="Edges Group", decimal=decimal
+        )
 
 
 class OverviewTable:
     """Class for the node/edge group overview table."""
 
-    data: Dict[Union[Group, Literal["Ungrouped"]], AttributeInfo]
+    data: Dict[Group, AttributeInfo]
     group_header: str
+    decimal: int
 
     def __init__(
         self,
-        data: Dict[Union[Group, Literal["Ungrouped"]], AttributeInfo],
+        data: Dict[Group, AttributeInfo],
         group_header: str,
+        decimal: int,
     ):
         """Initializes the OverviewTable class.
 
         Args:
-            data (Dict[Union[Group, Literal['Ungrouped']], AttributeInfo]): Dictionary containing attribute info for edges/nodes.
+            data (Dict[Group, AttributeInfo]): Dictionary containing attribute info for edges/nodes.
             group_header (str): Header for group column, i.e. 'Group Nodes'.
+            decimal (int): Decimal point to round the float values to.
         """
 
         self.data = data
         self.group_header = group_header
+        self.decimal = decimal
 
     def __repr__(self) -> str:
         """Returns a string representation of the group nodes/ edges overview."""
         header = [self.group_header, "count", "attribute", "info"]
 
-        return "\n".join(prettify_table(self.data, header=header))
+        return "\n".join(prettify_table(self.data, header=header, decimal=self.decimal))

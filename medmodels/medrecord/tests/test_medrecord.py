@@ -1642,13 +1642,16 @@ class TestMedRecord(unittest.TestCase):
                 1: {
                     "count": 2,
                     "attribute": {
-                        "adipiscing": ["Values: elit"],
-                        "dolor": ["Values: sit"],
-                        "lorem": ["Values: ipsum"],
+                        "adipiscing": {"values": "Values: elit"},
+                        "dolor": {"values": "Values: sit"},
+                        "lorem": {"values": "Values: ipsum"},
                     },
                 },
                 "Float": {"count": 0, "attribute": {}},
-                "Odd": {"count": 2, "attribute": {"amet": ["Values: consectetur"]}},
+                "Odd": {
+                    "count": 2,
+                    "attribute": {"amet": {"values": "Values: consectetur"}},
+                },
             },
         )
 
@@ -1663,12 +1666,12 @@ class TestMedRecord(unittest.TestCase):
                 "Even": {
                     "count": 2,
                     "attribute": {
-                        "eiusmod": ["Values: tempor"],
-                        "incididunt": ["Values: ut"],
-                        "sed": ["Values: do"],
+                        "eiusmod": {"values": "Values: tempor"},
+                        "incididunt": {"values": "Values: ut"},
+                        "sed": {"values": "Values: do"},
                     },
                 },
-                "Ungrouped Nodes": {"count": 2, "attribute": {}},
+                "Ungrouped Edges": {"count": 2, "attribute": {}},
             },
         )
 

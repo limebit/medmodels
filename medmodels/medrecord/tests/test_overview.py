@@ -1,4 +1,5 @@
 import unittest
+from collections import OrderedDict
 
 import numpy as np
 import pandas as pd
@@ -81,7 +82,9 @@ class TestOverview(unittest.TestCase):
             medrecord.node[node().in_group("Patients")]
         )
 
-        numeric_expected = {"age": ["min: 20", "max: 70", "mean: 40.00"]}
+        numeric_expected = {
+            "age": OrderedDict([("min", 20), ("max", 70), ("mean", 40.0)])
+        }
 
         self.assertDictEqual(numeric_attribute, numeric_expected)
 
@@ -90,13 +93,15 @@ class TestOverview(unittest.TestCase):
             medrecord.node[node().in_group("Medications")]
         )
 
-        self.assertDictEqual(str_attributes, {"ATC": ["Values: B01AA03, B01AF01"]})
+        self.assertDictEqual(
+            str_attributes, {"ATC": {"values": "Values: B01AA03, B01AF01"}}
+        )
 
         # nan attribute
         nan_attributes = extract_attribute_summary(
             medrecord.node[node().in_group("Aspirin")]
         )
-        self.assertDictEqual(nan_attributes, {"ATC": ["-"]})
+        self.assertDictEqual(nan_attributes, {"ATC": {"values": "-"}})
 
         # temporal attributes
         temp_attributes = extract_attribute_summary(
@@ -110,7 +115,7 @@ class TestOverview(unittest.TestCase):
 
         self.assertDictEqual(
             temp_attributes,
-            {"time": ["min: 1999-10-15 00:00:00", "max: 1999-10-15 00:00:00"]},
+            {"time": {"min": "1999-10-15 00:00:00", "max": "1999-10-15 00:00:00"}},
         )
 
         # mixed attributes
@@ -125,8 +130,8 @@ class TestOverview(unittest.TestCase):
         self.assertDictEqual(
             mixed_attributes,
             {
-                "time": ["min: 1999-12-15 00:00:00", "max: 2000-01-01 00:00:00"],
-                "intensity": ["Values: 1, low"],
+                "time": {"min": "1999-12-15 00:00:00", "max": "2000-01-01 00:00:00"},
+                "intensity": {"values": "Values: 1, low"},
             },
         )
 
@@ -142,8 +147,8 @@ class TestOverview(unittest.TestCase):
         self.assertDictEqual(
             node_info,
             {
-                "age": ["min: 19", "max: 96", "mean: 43.20"],
-                "gender": ["Categories: F, M"],
+                "age": {"min": 19, "max": 96, "mean": 43.20},
+                "gender": {"values": "Categories: F, M"},
             },
         )
 
@@ -156,15 +161,15 @@ class TestOverview(unittest.TestCase):
         self.assertDictEqual(
             patient_diagnosis,
             {
-                "diagnosis_time": [
-                    "min: 1962-10-21 00:00:00",
-                    "max: 2024-04-12 00:00:00",
-                ],
-                "duration_days": [
-                    "min: 0.0",
-                    "max: 3416.0",
-                    "mean: 405.02",
-                ],
+                "diagnosis_time": {
+                    "min": "1962-10-21 00:00:00",
+                    "max": "2024-04-12 00:00:00",
+                },
+                "duration_days": {
+                    "min": 0.0,
+                    "max": 3416.0,
+                    "mean": 405.0232558139535,
+                },
             },
         )
 
@@ -188,7 +193,8 @@ class TestOverview(unittest.TestCase):
         ]
 
         self.assertEqual(
-            prettify_table(medrecord._describe_group_nodes(), header), expected_empty
+            prettify_table(medrecord._describe_group_nodes(), header, decimal=2),
+            expected_empty,
         )
 
 

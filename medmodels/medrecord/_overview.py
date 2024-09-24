@@ -1,3 +1,5 @@
+import copy
+from collections import OrderedDict
 from typing import Dict, List, Literal, Optional, Union
 
 import polars as pl
@@ -9,7 +11,9 @@ from medmodels.medrecord.types import (
     EdgeIndex,
     Group,
     MedRecordAttribute,
+    MedRecordValue,
     NodeIndex,
+    is_medrecord_value,
 )
 
 
@@ -18,8 +22,13 @@ def extract_attribute_summary(
         Dict[EdgeIndex, Attributes], Dict[NodeIndex, Attributes]
     ],
     schema: Optional[AttributesSchema] = None,
-    decimal: int = 2,
-) -> Dict[MedRecordAttribute, List[str]]:
+) -> Dict[
+    MedRecordAttribute,
+    OrderedDict[
+        Literal["min", "max", "mean", "values"],
+        MedRecordValue,
+    ],
+]:
     """Extracts a summary from a node or edge attribute dictionary.
 
 
@@ -43,8 +52,7 @@ def extract_attribute_summary(
 
     data_dict = {}
 
-    attributes = [col for col in data.columns if col != "id"]
-    attributes.sort()
+    attributes = sorted([col for col in data.columns if col != "id"])
 
     if not attributes:
         return {}
@@ -53,34 +61,28 @@ def extract_attribute_summary(
         attribute_values = data[attribute].drop_nulls()
 
         if len(attribute_values) == 0:
-            attribute_info = ["-"]
+            attribute_info = {"values": "-"}
         elif schema and attribute in schema and schema[attribute][1]:
             if schema[attribute][1] == AttributeType.Continuous:
-                attribute_info = _extract_numeric_attribute_info(
-                    attribute_values, decimal=decimal
-                )
+                attribute_info = _extract_numeric_attribute_info(attribute_values)
             elif schema[attribute][1] == AttributeType.Temporal:
                 attribute_info = _extract_temporal_attribute_info(attribute_values)
             else:
-                attribute_info = [
-                    _extract_string_attribute_info(
-                        attribute_series=attribute_values,
-                        long_string_suffix="categories",
-                        short_string_prefix="Categories",
-                    )
-                ]
-        ## Without Schema
+                attribute_info = _extract_string_attribute_info(
+                    attribute_series=attribute_values,
+                    long_string_suffix="categories",
+                    short_string_prefix="Categories",
+                )
+        # Without Schema
         else:
             if attribute_values.dtype.is_numeric():
-                attribute_info = _extract_numeric_attribute_info(
-                    attribute_values, decimal=decimal
-                )
+                attribute_info = _extract_numeric_attribute_info(attribute_values)
             elif attribute_values.dtype.is_temporal():
                 attribute_info = _extract_temporal_attribute_info(attribute_values)
             else:
-                attribute_info = [
-                    _extract_string_attribute_info(attribute_series=attribute_values)
-                ]
+                attribute_info = _extract_string_attribute_info(
+                    attribute_series=attribute_values
+                )
 
         data_dict[str(attribute)] = attribute_info
 
@@ -89,28 +91,38 @@ def extract_attribute_summary(
 
 def _extract_numeric_attribute_info(
     attribute_series: pl.Series,
-    decimal: int,
-) -> List[str]:
+) -> OrderedDict[str, MedRecordValue]:
     """Extracts info about attributes with numeric format.
 
     Args:
         attribute_series (pl.Series): Series containing attribute values.
-        decimal (int): Decimal point to round the values to.
 
     Returns:
         List[str]: attribute_info_list
     """
-    attribute_info = [
-        f"min: {attribute_series.min()}",
-        f"max: {attribute_series.max()}",
-        f"mean: {attribute_series.mean():.{decimal}f}",
-    ]
+    min = attribute_series.min()
+    max = attribute_series.max()
+    mean = attribute_series.mean()
+
+    # assertion to ensure correct typing
+    assert is_medrecord_value(min)
+    assert is_medrecord_value(max)
+    assert is_medrecord_value(mean)
+
+    attribute_info = OrderedDict(
+        {
+            "min": min,
+            "max": max,
+            "mean": mean,
+        }
+    )
+
     return attribute_info
 
 
 def _extract_temporal_attribute_info(
     attribute_series: pl.Series,
-) -> List[str]:
+) -> OrderedDict[str, MedRecordValue]:
     """Extracts info about attributes with temporal format.
 
     Args:
@@ -124,10 +136,14 @@ def _extract_temporal_attribute_info(
             attribute_series = attribute_series.cast(pl.Datetime)
         else:
             attribute_series = attribute_series.str.to_datetime()
-    attribute_info = [
-        f"min: {min(attribute_series).strftime('%Y-%m-%d %H:%M:%S')}",
-        f"max: {max(attribute_series).strftime('%Y-%m-%d %H:%M:%S')}",
-    ]
+
+    attribute_info = OrderedDict(
+        {
+            "min": min(attribute_series).strftime("%Y-%m-%d %H:%M:%S"),
+            "max": max(attribute_series).strftime("%Y-%m-%d %H:%M:%S"),
+        }
+    )
+
     return attribute_info
 
 
@@ -137,7 +153,7 @@ def _extract_string_attribute_info(
     long_string_suffix: str = "unique values",
     max_number_values: int = 5,
     max_line_length: int = 100,
-) -> str:
+) -> OrderedDict[str, MedRecordValue]:
     """Extracts info about attributes with string format.
 
     Args:
@@ -156,43 +172,72 @@ def _extract_string_attribute_info(
         str: Attribute info string.
     """
     values = attribute_series.unique().sort()
+
     values_string = f"{short_string_prefix}: {', '.join(list(values))}"
 
     if (len(values) > max_number_values) | (len(values_string) > max_line_length):
-        return f"{len(values)} {long_string_suffix}"
-    else:
-        return values_string
+        values_string = f"{len(values)} {long_string_suffix}"
+
+    return OrderedDict({"values": values_string})
 
 
 def prettify_table(
-    data: Dict[Union[Group, Literal["Ungrouped"]], AttributeInfo], header: List[str]
+    data: Dict[Group, AttributeInfo], header: List[str], decimal: int
 ) -> List[str]:
     """Takes a DataFrame and turns it into a list for displaying a pretty table.
 
     Args:
-        data (Dict[Union[Group, Literal['Ungrouped']], AttributeInfo]): Table info
+        data (Dict[Group, AttributeInfo]): Table info
             stored in a dictionary.
         header (List[str]): Header line consisting of column names for the table.
+        decimal (int): Decimal point to round the float values to.
 
     Returns:
         List[str]: List of lines for printing the table.
     """
     lengths = [len(title) for title in header]
+
+    rows = []
+
     for group in data.keys():
+        # determine longest group name and count
         lengths[0] = max(len(str(group)), lengths[0])
-        lengths[1] = max(len(str(data[group][header[1]])), lengths[1])
-        if data[group][header[2]]:
-            lengths[2] = max(
-                len(max(data[group][header[2]].keys(), key=len)), lengths[2]
-            )
-            lengths[3] = max(
-                len(
-                    max(
-                        [j for i in data[group][header[2]].values() for j in i], key=len
-                    )
-                ),
-                lengths[3],
-            )
+
+        lengths[1] = max(len(str(data[group]["count"])), lengths[1])
+
+        row = [str(group), str(data[group]["count"]), "-", "-"]
+
+        # in case of no attribute info, just keep Group name and count
+        if not data[group]["attribute"]:
+            rows.append(row)
+            continue
+
+        for attribute, info in data[group]["attribute"].items():
+            lengths[2] = max(len(str(attribute)), lengths[2])
+
+            # display attribute name only once
+            first_line = True
+
+            for key in info.keys():
+                if not first_line:
+                    row[0], row[1] = "", ""
+
+                row[2] = str(attribute) if first_line else ""
+
+                # displaying info based on the type
+                if key == "values":
+                    row[3] = str(info[key])
+                else:
+                    if isinstance(info[key], float):
+                        row[3] = f"{key}: {info[key]:.{decimal}f}"
+                    else:
+                        row[3] = f"{key}: {info[key]}"
+
+                lengths[3] = max(len(row[3]), lengths[3])
+
+                rows.append(copy.deepcopy(row))
+
+                first_line = False
 
     table = [
         "-" * (sum(lengths) + len(lengths)),
@@ -200,22 +245,12 @@ def prettify_table(
         "-" * (sum(lengths) + len(lengths)),
     ]
 
-    for group in data.keys():
-        row = [str(group), str(data[group][header[1]]), "-", "-"]
-        if not data[group][header[2]]:
-            table.append(
-                "".join(f"{row[x]: <{lengths[x]}} " for x in range(len(lengths)))
-            )
-            continue
-        for attribute, infos in data[group][header[2]].items():
-            for j, info in enumerate(infos):
-                if j > 0:
-                    row[0], row[1] = "", ""
-                row[2] = attribute if j == 0 else ""
-                row[3] = info
-                table.append(
-                    "".join(f"{row[x]: <{lengths[x]}} " for x in range(len(lengths)))
-                )
+    table.extend(
+        [
+            "".join(f"{row[x]: <{lengths[x]}} " for x in range(len(lengths)))
+            for row in rows
+        ]
+    )
 
     table.append("-" * (sum(lengths) + len(lengths)))
 
