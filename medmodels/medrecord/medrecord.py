@@ -71,6 +71,38 @@ def process_edges_dataframe(
     return edges_polars, edges[1], edges[2]
 
 
+class OverviewTable:
+    """Class for the node/edge group overview table."""
+
+    data: Dict[Group, AttributeInfo]
+    group_header: str
+    decimal: int
+
+    def __init__(
+        self,
+        data: Dict[Group, AttributeInfo],
+        group_header: str,
+        decimal: int,
+    ):
+        """Initializes the OverviewTable class.
+
+        Args:
+            data (Dict[Group, AttributeInfo]): Dictionary containing attribute info for edges/nodes.
+            group_header (str): Header for group column, i.e. 'Group Nodes'.
+            decimal (int): Decimal point to round the float values to.
+        """
+
+        self.data = data
+        self.group_header = group_header
+        self.decimal = decimal
+
+    def __repr__(self) -> str:
+        """Returns a string representation of the group nodes/ edges overview."""
+        header = [self.group_header, "count", "attribute", "info"]
+
+        return "\n".join(prettify_table(self.data, header=header, decimal=self.decimal))
+
+
 class MedRecord:
     """A class to manage medical records with node and edge data structures.
 
@@ -1477,35 +1509,3 @@ class MedRecord:
         return OverviewTable(
             data=edges_data, group_header="Edges Group", decimal=decimal
         )
-
-
-class OverviewTable:
-    """Class for the node/edge group overview table."""
-
-    data: Dict[Group, AttributeInfo]
-    group_header: str
-    decimal: int
-
-    def __init__(
-        self,
-        data: Dict[Group, AttributeInfo],
-        group_header: str,
-        decimal: int,
-    ):
-        """Initializes the OverviewTable class.
-
-        Args:
-            data (Dict[Group, AttributeInfo]): Dictionary containing attribute info for edges/nodes.
-            group_header (str): Header for group column, i.e. 'Group Nodes'.
-            decimal (int): Decimal point to round the float values to.
-        """
-
-        self.data = data
-        self.group_header = group_header
-        self.decimal = decimal
-
-    def __repr__(self) -> str:
-        """Returns a string representation of the group nodes/ edges overview."""
-        header = [self.group_header, "count", "attribute", "info"]
-
-        return "\n".join(prettify_table(self.data, header=header, decimal=self.decimal))

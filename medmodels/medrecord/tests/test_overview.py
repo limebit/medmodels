@@ -1,5 +1,5 @@
 import unittest
-from collections import OrderedDict
+from datetime import datetime
 
 import numpy as np
 import pandas as pd
@@ -82,9 +82,7 @@ class TestOverview(unittest.TestCase):
             medrecord.node[node().in_group("Patients")]
         )
 
-        numeric_expected = {
-            "age": OrderedDict([("min", 20), ("max", 70), ("mean", 40.0)])
-        }
+        numeric_expected = {"age": {"min": 20, "max": 70, "mean": 40.0}}
 
         self.assertDictEqual(numeric_attribute, numeric_expected)
 
@@ -115,7 +113,12 @@ class TestOverview(unittest.TestCase):
 
         self.assertDictEqual(
             temp_attributes,
-            {"time": {"min": "1999-10-15 00:00:00", "max": "1999-10-15 00:00:00"}},
+            {
+                "time": {
+                    "max": datetime(1999, 10, 15, 0, 0),
+                    "min": datetime(1999, 10, 15, 0, 0),
+                }
+            },
         )
 
         # mixed attributes
@@ -130,7 +133,10 @@ class TestOverview(unittest.TestCase):
         self.assertDictEqual(
             mixed_attributes,
             {
-                "time": {"min": "1999-12-15 00:00:00", "max": "2000-01-01 00:00:00"},
+                "time": {
+                    "min": datetime(1999, 12, 15, 0, 0),
+                    "max": datetime(2000, 1, 1, 0, 0),
+                },
                 "intensity": {"values": "Values: 1, low"},
             },
         )
@@ -162,8 +168,8 @@ class TestOverview(unittest.TestCase):
             patient_diagnosis,
             {
                 "diagnosis_time": {
-                    "min": "1962-10-21 00:00:00",
-                    "max": "2024-04-12 00:00:00",
+                    "min": datetime(1962, 10, 21, 0, 0),
+                    "max": datetime(2024, 4, 12, 0, 0),
                 },
                 "duration_days": {
                     "min": 0.0,

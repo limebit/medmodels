@@ -1,8 +1,7 @@
 from __future__ import annotations
 
-from collections import OrderedDict
 from datetime import datetime
-from typing import TYPE_CHECKING, Dict, List, Literal, Mapping, Tuple, TypedDict, Union
+from typing import TYPE_CHECKING, Dict, List, Mapping, Tuple, TypedDict, Union
 
 import pandas as pd
 import polars as pl
@@ -102,8 +101,29 @@ class AttributeInfo(TypedDict):
     count: int
     attribute: Dict[
         MedRecordAttribute,
-        OrderedDict[Literal["min", "max", "mean", "values"], MedRecordValue],
+        Union[TemporalAttributeInfo, NumericAttributeInfo, StringAttributeInfo],
     ]
+
+
+class TemporalAttributeInfo(TypedDict):
+    """Dictionary for a temporal attribute and its metrics."""
+
+    min: datetime
+    max: datetime
+
+
+class NumericAttributeInfo(TypedDict):
+    """Dictionary for a numeric attribute and its metrics."""
+
+    min: Union[int, float]
+    max: Union[int, float]
+    mean: Union[int, float]
+
+
+class StringAttributeInfo(TypedDict):
+    """Dictionary for a string attribute and its values."""
+
+    values: str
 
 
 def is_medrecord_attribute(value: object) -> TypeIs[MedRecordAttribute]:
