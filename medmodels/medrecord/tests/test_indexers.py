@@ -22,7 +22,7 @@ def create_medrecord():
 
 
 def node_greater_than_or_equal_two(node: NodeOperand):
-    node.index().greater_than_or_equal(2)
+    node.index().greater_than_or_equal_to(2)
 
 
 def node_greater_than_three(node: NodeOperand):
@@ -34,7 +34,7 @@ def node_less_than_two(node: NodeOperand):
 
 
 def edge_greater_than_or_equal_two(edge: EdgeOperand):
-    edge.index().greater_than_or_equal(2)
+    edge.index().greater_than_or_equal_to(2)
 
 
 def edge_greater_than_three(edge: EdgeOperand):
