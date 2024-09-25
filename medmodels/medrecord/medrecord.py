@@ -8,9 +8,10 @@ from medmodels._medmodels import PyMedRecord
 from medmodels.medrecord._overview import extract_attribute_summary, prettify_table
 from medmodels.medrecord.builder import MedRecordBuilder
 from medmodels.medrecord.indexers import EdgeIndexer, NodeIndexer
-from medmodels.medrecord.querying import EdgeOperation, NodeOperation, edge, node
+from medmodels.medrecord.querying import EdgeOperation, NodeOperation
 from medmodels.medrecord.schema import Schema
 from medmodels.medrecord.types import (
+    AttributeInfo,
     Attributes,
     AttributesInput,
     EdgeIndex,
@@ -68,6 +69,38 @@ def process_edges_dataframe(
     """
     edges_polars = pl.from_pandas(edges[0])
     return edges_polars, edges[1], edges[2]
+
+
+class OverviewTable:
+    """Class for the node/edge group overview table."""
+
+    data: Dict[Group, AttributeInfo]
+    group_header: str
+    decimal: int
+
+    def __init__(
+        self,
+        data: Dict[Group, AttributeInfo],
+        group_header: str,
+        decimal: int,
+    ):
+        """Initializes the OverviewTable class.
+
+        Args:
+            data (Dict[Group, AttributeInfo]): Dictionary containing attribute info for edges/nodes.
+            group_header (str): Header for group column, i.e. 'Group Nodes'.
+            decimal (int): Decimal point to round the float values to.
+        """
+
+        self.data = data
+        self.group_header = group_header
+        self.decimal = decimal
+
+    def __repr__(self) -> str:
+        """Returns a string representation of the group nodes/ edges overview."""
+        header = [self.group_header, "count", "attribute", "info"]
+
+        return "\n".join(prettify_table(self.data, header=header, decimal=self.decimal))
 
 
 class MedRecord:
@@ -1343,131 +1376,90 @@ class MedRecord:
 
         return medrecord
 
-    def _describe_group_nodes(self) -> pl.DataFrame:
+    def _describe_group_nodes(
+        self,
+    ) -> Dict[Group, AttributeInfo]:
         """Creates a summary of group nodes and their attributes.
 
         Returns:
             pl.DataFrame: Dataframe with all nodes in medrecord groups and their attributes.
         """
-        df_schema = {
-            "Nodes Group": pl.String,
-            "Count": pl.Int32,
-            "Attribute": pl.String,
-            "Info": pl.String,
-        }
+        nodes_info = {}
+        grouped_nodes = []
 
-        node_groups = [pl.DataFrame(schema=df_schema)]
+        groups = sorted(self.groups, key=lambda x: str(x))
 
-        groups = set(self.groups)
-
-        for group in sorted(groups):
+        for group in groups:
             nodes = self.group(group)["nodes"]
+            grouped_nodes.extend(nodes)
+
+            if (len(nodes) == 0) and (self.group(group)["edges"]):
+                continue
 
             schema = (
                 self.schema.group(group).nodes if group in self.schema.groups else None
             )
 
-            node_info = extract_attribute_summary(self.node[nodes], schema=schema)
+            nodes_info[group] = {
+                "count": len(nodes),
+                "attribute": extract_attribute_summary(self.node[nodes], schema=schema),
+            }
 
-            node_info = node_info.select(
-                [
-                    pl.lit(group).alias("Nodes Group"),
-                    pl.lit(len(nodes)).alias("Count"),
-                    pl.all(),
-                ]
-            )
+        ungrouped_count = self.node_count() - len(set(grouped_nodes))
 
-            node_groups.append(node_info)
+        if ungrouped_count > 0:
+            nodes_info["Ungrouped Nodes"] = {"count": ungrouped_count, "attribute": {}}
 
-        node_table = pl.concat(node_groups)
+        return nodes_info
 
-        if node_table.is_empty():
-            node_table = pl.DataFrame({col: "-" for col in node_table.columns})
-
-        return node_table
-
-    def _describe_group_edges(self) -> pl.DataFrame:
+    def _describe_group_edges(
+        self,
+    ) -> Dict[Group, AttributeInfo]:
         """Creates a summary of edges connecting group nodes and the edge attributes.
 
         Returns:
             pl.DataFrame: DataFrame with an overview of edges connecting group nodes.
         """
-        edge_groups = [
-            pl.DataFrame(
-                schema={
-                    "Edges Groups": pl.String,
-                    "Count": pl.Int32,
-                    "Attribute": pl.String,
-                    "Info": pl.String,
-                }
+        edges_info = {}
+        grouped_edges = []
+
+        groups = sorted(self.groups, key=lambda x: str(x))
+
+        for group in groups:
+            edges = self.group(group)["edges"]
+            grouped_edges.extend(edges)
+
+            if not edges:
+                continue
+
+            schema = (
+                self.schema.group(group).edges if group in self.schema.groups else None
             )
-        ]
 
-        groups = sorted(set(self.groups))
+            edges_info[group] = {
+                "count": len(edges),
+                "attribute": extract_attribute_summary(self.edge[edges], schema=schema),
+            }
 
-        for source_group in groups:
-            edges = self.group(source_group)["edges"]
+        ungrouped_count = self.edge_count() - len(set(grouped_edges))
 
-            if edges:
-                schema = (
-                    self.schema.group(source_group).edges
-                    if source_group in self.schema.groups
-                    else None
-                )
+        if ungrouped_count > 0:
+            edges_info["Ungrouped Edges"] = {"count": ungrouped_count, "attribute": {}}
 
-                edge_info = extract_attribute_summary(self.edge[edges], schema=schema)
-
-                edge_info = edge_info.select(
-                    [
-                        pl.lit(source_group).alias("Edges Groups"),
-                        pl.lit(len(edges)).alias("Count"),
-                        pl.all(),
-                    ]
-                )
-
-                edge_groups.append(edge_info)
-
-            # edges connecting different groups
-            for target_group in groups:
-                edges = self.select_edges(
-                    edge().connected_source_with(node().in_group(source_group))
-                    & edge().connected_target_with(node().in_group(target_group))
-                )
-
-                if not edges:
-                    continue
-
-                edge_info = extract_attribute_summary(self.edge[edges])
-
-                edge_info = edge_info.select(
-                    [
-                        pl.lit(f"{source_group} -> {target_group}").alias(
-                            "Edges Groups"
-                        ),
-                        pl.lit(len(edges)).alias("Count"),
-                        pl.all(),
-                    ]
-                )
-
-                edge_groups.append(edge_info)
-
-        edge_table = pl.concat(edge_groups)
-
-        if edge_table.is_empty():
-            edge_table = pl.DataFrame({col: "-" for col in edge_table.columns})
-
-        return edge_table
+        return edges_info
 
     def __repr__(self) -> str:
-        representation = prettify_table(self._describe_group_nodes())
-        representation.append("")
-        representation.extend(prettify_table(self._describe_group_edges()))
+        return "\n".join([str(self.overview_nodes()), "", str(self.overview_edges())])
 
-        return "\n".join(representation)
+    def overview_nodes(self, decimal: int = 2) -> OverviewTable:
+        """Gets a summary for all nodes in groups and their attributes.
 
-    def print_attribute_table_nodes(self) -> None:
-        """Prints a summary for all nodes in groups and their attributes.
+        Args:
+            decimal (int, optional): Decimal point to round the float values to.
+                Defaults to 2.
 
+        Returns:
+            OverviewTable: Display of edge groups and their attributes.
 
         Example:
 
@@ -1479,30 +1471,41 @@ class MedRecord:
                                           max: 96
                                           mean: 43.20
                               gender      Categories: F, M
+        Ungrouped Nodes 10    -           -
         ----------------------------------------------------
 
         """
-        nodes_table = prettify_table(self._describe_group_nodes())
+        nodes_data = self._describe_group_nodes()
 
-        print("\n".join(nodes_table))
+        return OverviewTable(
+            data=nodes_data, group_header="Nodes Group", decimal=decimal
+        )
 
-    def print_attribute_table_edges(self) -> None:
-        """Prints a summary for all edges in groups or edges connecting group nodes and their attributes.
+    def overview_edges(self, decimal: int = 2) -> OverviewTable:
+        """Gets a summary for all edges in groups and their attributes.
+
+        Args:
+            decimal (int, optional): Decimal point to round the float values to.
+                Defaults to 2.
+
+        Returns:
+            OverviewTable: Display of edge groups and their attributes.
 
 
         Example:
 
         ----------------------------------------------------------------------------
-        Edges Groups                Count Attribute        Info
+        Edges Group                 Count Attribute        Info
         ----------------------------------------------------------------------------
-        patient -> diagnosis        60    diagnosis_time   min: 1962-10-21 00:00:00
+        Patient-Diagnosis           60    diagnosis_time   min: 1962-10-21 00:00:00
                                                            max: 2024-04-12 00:00:00
-                                          duration_days    min: 0.0
-                                                           max: 3416.0
+                                          duration_days    min: 0
+                                                           max: 3416
                                                            mean: 405.02
         ----------------------------------------------------------------------------
-
         """
-        edges_table = prettify_table(self._describe_group_edges())
+        edges_data = self._describe_group_edges()
 
-        print("\n".join(edges_table))
+        return OverviewTable(
+            data=edges_data, group_header="Edges Group", decimal=decimal
+        )
