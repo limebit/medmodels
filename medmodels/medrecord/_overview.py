@@ -50,8 +50,8 @@ def extract_attribute_summary(
         attribute_values = data[attribute].drop_nulls()
 
         if len(attribute_values) == 0:
-            # to comply with the schema for the attribute info
             attribute_info = {"values": "-"}
+        # check if the attribute has as an attribute type defined in the schema
         elif schema and attribute in schema and schema[attribute][1]:
             if schema[attribute][1] == AttributeType.Continuous:
                 attribute_info = _extract_numeric_attribute_info(attribute_values)
