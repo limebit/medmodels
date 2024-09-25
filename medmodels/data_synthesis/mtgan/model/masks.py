@@ -34,3 +34,28 @@ def find_sequence_mask(
         .to(number_of_windows_per_patient.device)
     )
     return result < number_of_windows_per_patient.view((-1, 1))
+
+
+def apply_masked_softmax(data: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
+    """Apply softmax to a tensor, with masked elements set to negative infinite.
+
+    This function applies softmax function to the 'data' tensor, with a consideration
+    of a mask. Positions in the data where mask is True will be set to -inf before
+    computing softmax, this means these positions will appear as zero in the result
+    tensor after applying softmax because softmax of -inf is 0.
+
+    This is useful in cases where we want to ignore or mask out certain values in the
+    input tensor when computing softmax, such as in attention mechanisms where some
+    positions should not be attended to.
+
+    Args:
+        x (torch.Tensor): Input tensor.
+        mask (torch.Tensor): Mask tensor.
+
+    Returns:
+        torch.Tensor: Softmax output.
+    """
+    mask = (~mask).to(data.dtype)
+    mask[mask == 1] = float("-inf")
+    data = data + mask
+    return torch.softmax(data, dim=-1)
