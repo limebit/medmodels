@@ -54,3 +54,8 @@ class Generator(nn.Module):
         target_concepts: torch.Tensor,
         number_of_windows_per_patient: torch.Tensor,
     ) -> float: ...
+    def _generate_samples_with_hidden_states(
+        self,
+        number_of_windows_per_patient: torch.Tensor,
+        target_concepts: torch.Tensor,
+    ) -> Tuple[torch.Tensor, torch.Tensor]: ...
