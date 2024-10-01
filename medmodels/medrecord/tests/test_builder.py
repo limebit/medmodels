@@ -62,3 +62,8 @@ class TestMedRecordBuilder(unittest.TestCase):
 
         with self.assertRaises(ValueError):
             medrecord.add_node("node", {"attribute": "1"})
+
+
+if __name__ == "__main__":
+    run_test = unittest.TestLoader().loadTestsFromTestCase(TestMedRecordBuilder)
+    unittest.TextTestRunner(verbosity=2).run(run_test)

@@ -114,7 +114,7 @@ fn dataframes_to_tuples(
     Ok((nodes, edges))
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct MedRecord {
     graph: Graph,
     group_mapping: GroupMapping,
@@ -389,7 +389,7 @@ impl MedRecord {
         self.group_mapping.remove_node(node_index);
 
         self.graph
-            .remove_node(node_index)
+            .remove_node(node_index, &mut self.group_mapping)
             .map_err(MedRecordError::from)
     }
 
@@ -1312,9 +1312,35 @@ mod test {
     fn test_remove_node() {
         let mut medrecord = create_medrecord();
 
+        medrecord
+            .add_group("group".into(), Some(vec!["0".into()]), Some(vec![0]))
+            .unwrap();
+
         let nodes = create_nodes();
 
+        assert_eq!(4, medrecord.node_count());
+        assert_eq!(4, medrecord.edge_count());
+        assert_eq!(
+            1,
+            medrecord.nodes_in_group(&("group".into())).unwrap().count()
+        );
+        assert_eq!(
+            1,
+            medrecord.edges_in_group(&("group".into())).unwrap().count()
+        );
+
         assert_eq!(nodes[0].1, medrecord.remove_node(&"0".into()).unwrap());
+
+        assert_eq!(3, medrecord.node_count());
+        assert_eq!(1, medrecord.edge_count());
+        assert_eq!(
+            0,
+            medrecord.nodes_in_group(&("group".into())).unwrap().count()
+        );
+        assert_eq!(
+            0,
+            medrecord.edges_in_group(&("group".into())).unwrap().count()
+        );
     }
 
     #[test]

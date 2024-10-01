@@ -95,6 +95,37 @@ class GroupInfo(TypedDict):
     edges: List[EdgeIndex]
 
 
+class AttributeInfo(TypedDict):
+    """A dictionary containing info about nodes/edges and their attributes."""
+
+    count: int
+    attribute: Dict[
+        MedRecordAttribute,
+        Union[TemporalAttributeInfo, NumericAttributeInfo, StringAttributeInfo],
+    ]
+
+
+class TemporalAttributeInfo(TypedDict):
+    """Dictionary for a temporal attribute and its metrics."""
+
+    min: datetime
+    max: datetime
+
+
+class NumericAttributeInfo(TypedDict):
+    """Dictionary for a numeric attribute and its metrics."""
+
+    min: Union[int, float]
+    max: Union[int, float]
+    mean: Union[int, float]
+
+
+class StringAttributeInfo(TypedDict):
+    """Dictionary for a string attribute and its values."""
+
+    values: str
+
+
 def is_medrecord_attribute(value: object) -> TypeIs[MedRecordAttribute]:
     """Check if a value is a MedRecord attribute.
 

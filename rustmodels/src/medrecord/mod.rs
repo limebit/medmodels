@@ -685,4 +685,8 @@ impl PyMedRecord {
             .copied()
             .collect()
     }
+
+    fn clone(&self) -> Self {
+        Self(self.0.clone())
+    }
 }
