@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, TypedDict, Union
 
 import polars as pl
 
@@ -11,60 +11,63 @@ from medmodels.medrecord.types import (
     GroupInputList,
     MedRecordAttribute,
     MedRecordAttributeInputList,
+    NodeIndex,
 )
-from medmodels.statistic_evaluations.comparer.builder import ComparerBuilder
 
 class DataComparer:
-    patients_group: Group
-    time_attribute: MedRecordAttribute
-    concept_groups: GroupInputList
-    top_k_concepts: int
-    alpha: float
-    subcohorts_groups: Optional[GroupInputList]
-    subcohorts_queries: Optional[List[NodeOperation]]
-    control_cohort: Optional[Union[Group, NodeOperation]]
-
-    @classmethod
-    def builder(cls) -> ComparerBuilder: ...
     @staticmethod
-    def _set_configuration(
-        data_comparer: DataComparer,
-        *,
-        patient_group: Group = "patients",
-        time_attribute: MedRecordAttribute = "time",
-        concept_groups: GroupInputList = ["concepts"],
-        top_k_concepts: int = 10,
-        alpha: float = 0.05,
-        subcohorts_groups: Optional[GroupInputList],
-        subcohorts_queries: Optional[List[NodeOperation]],
-        control_cohorts: Optional[Union[Group, NodeOperation]],
-    ) -> None: ...
-    def compare_attributes(
-        self,
-        medrecords: List[MedRecord],
+    def compare_cohorts(
+        cohorts: List[Tuple[MedRecord, DataComparerConfig]],
+    ) -> CohortSummary: ...
+    @staticmethod
+    def compare_cohort_attributes(
+        medrecords: List[Tuple[MedRecord, DataComparerConfig]],
         attributes: MedRecordAttributeInputList,
     ) -> Dict[MedRecordAttribute, pl.DataFrame]: ...
+    @staticmethod
     def calculate_absolute_relative_difference(
-        self,
-        medrecords: Union[MedRecord, List[MedRecord]],
+        control_cohort: Tuple[MedRecord, DataComparerConfig],
+        cohorts: List[Tuple[MedRecord, DataComparerConfig]],
         attributes: MedRecordAttributeInputList,
-        control_data: Optional[MedRecord],
     ) -> Tuple[float, pl.DataFrame]: ...
+    @staticmethod
     def test_difference_attributes(
-        self,
-        medrecords: Union[MedRecord, List[MedRecord]],
+        cohorts: List[Tuple[MedRecord, DataComparerConfig]],
         attributes: MedRecordAttributeInputList,
+        significance_level: float,
     ) -> Dict[MedRecordAttribute, Dict[str, Union[str, bool, float]]]: ...
+    @staticmethod
     def get_top_k_concepts(
-        self,
-        medrecord: MedRecord,
+        cohort: Tuple[MedRecord, DataComparerConfig],
+        top_k: int,
     ) -> Dict[Union[Group, str], List[Any]]: ...
+    @staticmethod
+    def get_concept_counts(
+        cohort: Tuple[MedRecord, DataComparerConfig],
+    ) -> List[Tuple[NodeIndex, int]]: ...
+    @staticmethod
     def test_difference_top_k_concepts(
-        self, medrecords: Union[List[MedRecord], MedRecord]
+        cohorts: List[Tuple[MedRecord, DataComparerConfig]],
+        top_k: int,
+        significance_level: float,
     ) -> Dict[Group, Dict[str, Union[str, bool, float]]]: ...
+    @staticmethod
     def calculate_distance_concepts(
-        self, medrecord: Union[List[MedRecord], MedRecord]
+        cohorts: List[Tuple[MedRecord, DataComparerConfig]],
     ) -> Dict[str, float]: ...
-    def full_report(
-        self, medrecord: Union[MedRecord, List[MedRecord]]
+    @staticmethod
+    def full_comparison(
+        cohorts: List[Tuple[MedRecord, DataComparerConfig]],
+        top_k: int,
+        significance_level: float,
     ) -> Dict[Union[MedRecordAttribute, Group], Dict[str, Any]]: ...
+
+class DataComparerConfig(TypedDict):
+    patients_group: Union[Group, NodeOperation]
+    time_attribute: MedRecordAttribute
+    concepts_groups: GroupInputList
+
+class CohortSummary(TypedDict):
+    nodes: int
+    edges: Dict[Group, int]
+    attributes: MedRecordAttribute
