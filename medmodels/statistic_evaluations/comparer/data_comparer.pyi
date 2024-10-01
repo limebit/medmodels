@@ -1,12 +1,14 @@
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional, Tuple, TypedDict, Union
+from typing import Dict, List, Tuple, TypedDict, Union
 
 import polars as pl
 
 from medmodels.medrecord.medrecord import MedRecord
 from medmodels.medrecord.querying import NodeOperation
 from medmodels.medrecord.types import (
+    AttributeInfo,
+    AttributeSummary,
     Group,
     GroupInputList,
     MedRecordAttribute,
@@ -14,60 +16,90 @@ from medmodels.medrecord.types import (
     NodeIndex,
 )
 
+class Cohort:
+    """Configuration for a cohort for evaluation and comparison."""
+
+    medrecord: MedRecord
+    name: str
+    patients_group: Group
+    time_attribute: MedRecordAttribute
+    concepts_groups: GroupInputList
+
+    def __init__(
+        self,
+        medrecord: MedRecord,
+        name: str,
+        concepts_groups: GroupInputList,
+        patients_group: Union[Group, NodeOperation] = "patients",
+        time_attribute: MedRecordAttribute = "time",
+    ) -> None: ...
+
 class DataComparer:
     @staticmethod
     def compare_cohorts(
-        cohorts: List[Tuple[MedRecord, DataComparerConfig]],
-    ) -> CohortSummary: ...
+        cohorts: List[Cohort],
+    ) -> Dict[Group, CohortSummary]: ...
     @staticmethod
     def compare_cohort_attributes(
-        medrecords: List[Tuple[MedRecord, DataComparerConfig]],
+        medrecords: List[Cohort],
         attributes: MedRecordAttributeInputList,
-    ) -> Dict[MedRecordAttribute, pl.DataFrame]: ...
+    ) -> Dict[
+        Group,
+        Dict[MedRecordAttribute, AttributeInfo],
+    ]: ...
     @staticmethod
     def calculate_absolute_relative_difference(
-        control_cohort: Tuple[MedRecord, DataComparerConfig],
-        cohorts: List[Tuple[MedRecord, DataComparerConfig]],
+        control_cohort: Cohort,
+        cohorts: List[Cohort],
         attributes: MedRecordAttributeInputList,
     ) -> Tuple[float, pl.DataFrame]: ...
     @staticmethod
     def test_difference_attributes(
-        cohorts: List[Tuple[MedRecord, DataComparerConfig]],
+        cohorts: List[Cohort],
         attributes: MedRecordAttributeInputList,
         significance_level: float,
     ) -> Dict[MedRecordAttribute, Dict[str, Union[str, bool, float]]]: ...
     @staticmethod
     def get_top_k_concepts(
-        cohort: Tuple[MedRecord, DataComparerConfig],
+        cohort: Cohort,
         top_k: int,
-    ) -> Dict[Union[Group, str], List[Any]]: ...
+    ) -> List[NodeIndex]: ...
     @staticmethod
     def get_concept_counts(
-        cohort: Tuple[MedRecord, DataComparerConfig],
+        cohort: Cohort,
     ) -> List[Tuple[NodeIndex, int]]: ...
     @staticmethod
     def test_difference_top_k_concepts(
-        cohorts: List[Tuple[MedRecord, DataComparerConfig]],
+        cohorts: List[Cohort],
         top_k: int,
         significance_level: float,
-    ) -> Dict[Group, Dict[str, Union[str, bool, float]]]: ...
+    ) -> Dict[Group, Union[str, bool, float]]: ...
     @staticmethod
     def calculate_distance_concepts(
-        cohorts: List[Tuple[MedRecord, DataComparerConfig]],
-    ) -> Dict[str, float]: ...
+        cohorts: List[Cohort],
+    ) -> Dict[Group, DistanceSummary]: ...
     @staticmethod
     def full_comparison(
-        cohorts: List[Tuple[MedRecord, DataComparerConfig]],
+        cohorts: List[Cohort],
         top_k: int,
         significance_level: float,
-    ) -> Dict[Union[MedRecordAttribute, Group], Dict[str, Any]]: ...
-
-class DataComparerConfig(TypedDict):
-    patients_group: Union[Group, NodeOperation]
-    time_attribute: MedRecordAttribute
-    concepts_groups: GroupInputList
+    ) -> Tuple[Dict[str, CohortSummary], ComparerSummary]: ...
 
 class CohortSummary(TypedDict):
-    nodes: int
-    edges: Dict[Group, int]
-    attributes: MedRecordAttribute
+    """Dictionary for the cohort summary."""
+
+    attribute_info: Dict[Group, AttributeSummary]
+    top_concepts: Dict[Group, List[NodeIndex]]
+
+class DistanceSummary(TypedDict):
+    """Dictonary for the Jensen-Shannon-Divergence and normalized distance between distributions."""
+
+    js_divergence: float
+    distance: float
+
+class ComparerSummary(TypedDict):
+    """Dictionary for the comparing results."""
+
+    attribute_tests: Dict[MedRecordAttribute, Dict[str, Union[str, bool, float]]]
+    concepts_tests: Dict[Group, Dict[str, Union[str, bool, float]]]
+    concepts_distance: Dict[Group, DistanceSummary]

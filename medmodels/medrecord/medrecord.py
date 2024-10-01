@@ -11,9 +11,9 @@ from medmodels.medrecord.indexers import EdgeIndexer, NodeIndexer
 from medmodels.medrecord.querying import EdgeOperation, NodeOperation
 from medmodels.medrecord.schema import Schema
 from medmodels.medrecord.types import (
-    AttributeInfo,
     Attributes,
     AttributesInput,
+    AttributeSummary,
     EdgeIndex,
     EdgeIndexInputList,
     EdgeTuple,
@@ -74,13 +74,13 @@ def process_edges_dataframe(
 class OverviewTable:
     """Class for the node/edge group overview table."""
 
-    data: Dict[Group, AttributeInfo]
+    data: Dict[Group, AttributeSummary]
     group_header: str
     decimal: int
 
     def __init__(
         self,
-        data: Dict[Group, AttributeInfo],
+        data: Dict[Group, AttributeSummary],
         group_header: str,
         decimal: int,
     ):
@@ -1378,7 +1378,7 @@ class MedRecord:
 
     def _describe_group_nodes(
         self,
-    ) -> Dict[Group, AttributeInfo]:
+    ) -> Dict[Group, AttributeSummary]:
         """Creates a summary of group nodes and their attributes.
 
         Returns:
@@ -1414,7 +1414,7 @@ class MedRecord:
 
     def _describe_group_edges(
         self,
-    ) -> Dict[Group, AttributeInfo]:
+    ) -> Dict[Group, AttributeSummary]:
         """Creates a summary of edges connecting group nodes and the edge attributes.
 
         Returns:

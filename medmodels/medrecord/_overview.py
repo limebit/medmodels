@@ -8,6 +8,7 @@ from medmodels.medrecord.schema import AttributesSchema, AttributeType
 from medmodels.medrecord.types import (
     AttributeInfo,
     Attributes,
+    AttributeSummary,
     EdgeIndex,
     Group,
     MedRecordAttribute,
@@ -25,7 +26,7 @@ def extract_attribute_summary(
     schema: Optional[AttributesSchema] = None,
 ) -> Dict[
     MedRecordAttribute,
-    Union[TemporalAttributeInfo, NumericAttributeInfo, StringAttributeInfo],
+    AttributeInfo,
 ]:
     """Extracts a summary from a node or edge attribute dictionary.
 
@@ -37,8 +38,7 @@ def extract_attribute_summary(
         decimal (int): Decimal points to round the numeric values to. Defaults to 2.
 
     Returns:
-        Dict[MedRecordAttribute, Union[TemporalAttributeInfo, NumericAttributeInfo,
-            StringAttributeInfo]: Summary of node or edge attributes.
+        Dict[MedRecordAttribute, AttributeInfo]: Summary of node or edge attributes.
     """
     data = pl.DataFrame(data=[{"id": k, **v} for k, v in attribute_dictionary.items()])
 
@@ -165,7 +165,7 @@ def _extract_string_attribute_info(
 
 
 def prettify_table(
-    data: Dict[Group, AttributeInfo], header: List[str], decimal: int
+    data: Dict[Group, AttributeSummary], header: List[str], decimal: int
 ) -> List[str]:
     """Takes a DataFrame and turns it into a list for displaying a pretty table.
 
