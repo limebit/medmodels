@@ -156,8 +156,7 @@ class PyMedRecord:
         source_node_indices: NodeIndexInputList,
         target_node_indices: NodeIndexInputList,
     ) -> List[EdgeIndex]: ...
-    def add_node(self, node_index: NodeIndex, attributes: AttributesInput) -> None: ...
-    def remove_node(
+    def remove_nodes(
         self, node_index: NodeIndexInputList
     ) -> Dict[NodeIndex, Attributes]: ...
     def replace_node_attributes(
@@ -176,13 +175,7 @@ class PyMedRecord:
     def add_nodes_dataframes(
         self, nodes_dataframe: List[PolarsNodeDataFrameInput]
     ) -> None: ...
-    def add_edge(
-        self,
-        source_node_index: NodeIndex,
-        target_node_index: NodeIndex,
-        attributes: AttributesInput,
-    ) -> EdgeIndex: ...
-    def remove_edge(
+    def remove_edges(
         self, edge_index: EdgeIndexInputList
     ) -> Dict[EdgeIndex, Attributes]: ...
     def replace_edge_attributes(
@@ -207,17 +200,17 @@ class PyMedRecord:
         node_indices_to_add: Optional[NodeIndexInputList],
         edge_indices_to_add: Optional[EdgeIndexInputList],
     ) -> None: ...
-    def remove_group(self, group: GroupInputList) -> None: ...
-    def add_node_to_group(
+    def remove_groups(self, group: GroupInputList) -> None: ...
+    def add_nodes_to_group(
         self, group: Group, node_index: NodeIndexInputList
     ) -> None: ...
-    def add_edge_to_group(
+    def add_edges_to_group(
         self, group: Group, edge_index: EdgeIndexInputList
     ) -> None: ...
-    def remove_node_from_group(
+    def remove_nodes_from_group(
         self, group: Group, node_index: NodeIndexInputList
     ) -> None: ...
-    def remove_edge_from_group(
+    def remove_edges_from_group(
         self, group: Group, edge_index: EdgeIndexInputList
     ) -> None: ...
     def nodes_in_group(self, group: GroupInputList) -> Dict[Group, List[NodeIndex]]: ...
