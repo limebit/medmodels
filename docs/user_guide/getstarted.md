@@ -303,7 +303,7 @@ patient_drug_edges = medrecord.add_edges_polars(
 
 ### Removing entries
 
-Nodes and edges can be easily removed by their identifier. To check if a node or edge exists, the `contain_node()` or `contain_edge()` functions can be used. If a node is deleted from the MedRecord, its corresponding edges will also be removed.
+Nodes and edges can be easily removed by their identifier. To check if a node or edge exists, the `contains_node()` or `contains_edge()` functions can be used. If a node is deleted from the MedRecord, its corresponding edges will also be removed.
 
 ```python
 # returns attributes for the node that will be removed
@@ -422,7 +422,7 @@ additional_young_id = medrecord.select_nodes(
     node().attribute("age").greater_or_equal(young_age)
     & node().attribute("age").less(higher_age)
 )
-medrecord.add_nodes_to_group(group="Young", node=additional_young_id)
+medrecord.add_nodes_to_group(group="Young", nodes=additional_young_id)
 
 print(
     f"Patients in Group 'Young' if threshold age is {higher_age}: {medrecord.group('Young')}"
@@ -434,7 +434,7 @@ print(
 It is possible to remove nodes from groups and to remove groups entirely from the MedRecord.
 
 ```python
-medrecord.remove_nodes_from_group(group="Young", node=additional_young_id)
+medrecord.remove_nodes_from_group(group="Young", nodes=additional_young_id)
 print(f"Patients in group 'Young': {medrecord.select_nodes(node().in_group('Young'))}")
 
 

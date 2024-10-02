@@ -8,11 +8,15 @@ if TYPE_CHECKING:
 import medmodels as mm
 from medmodels.medrecord.schema import Schema
 from medmodels.medrecord.types import (
-    EdgeInput,
+    EdgeTuple,
     Group,
     GroupInfo,
     NodeIndex,
-    NodeInput,
+    NodeTuple,
+    PandasEdgeDataFrameInput,
+    PandasNodeDataFrameInput,
+    PolarsEdgeDataFrameInput,
+    PolarsNodeDataFrameInput,
     is_edge_tuple,
     is_edge_tuple_list,
     is_node_tuple,
@@ -27,10 +31,25 @@ from medmodels.medrecord.types import (
     is_polars_node_dataframe_input_list,
 )
 
-NodeInputWithGroup = Tuple[NodeInput, Group]
+NodeInputBuilder = Union[
+    NodeTuple,
+    List[NodeTuple],
+    PandasNodeDataFrameInput,
+    List[PandasNodeDataFrameInput],
+    PolarsNodeDataFrameInput,
+    List[PolarsNodeDataFrameInput],
+]
 
 
-def is_node_input(value: object) -> TypeIs[NodeInput]:
+def is_node_input_builder(value: object) -> TypeIs[NodeInputBuilder]:
+    """Check if a value is a valid node input.
+
+    Args:
+        value (object): The value to check.
+
+    Returns:
+        TypeIs[NodeInput]: True if the value is a valid node input, otherwise False.
+    """
     return (
         is_node_tuple(value)
         or is_node_tuple_list(value)
@@ -41,10 +60,25 @@ def is_node_input(value: object) -> TypeIs[NodeInput]:
     )
 
 
-EdgeInputWithGroup = Tuple[EdgeInput, Group]
+EdgeInputBuilder = Union[
+    EdgeTuple,
+    List[EdgeTuple],
+    PandasEdgeDataFrameInput,
+    List[PandasEdgeDataFrameInput],
+    PolarsEdgeDataFrameInput,
+    List[PolarsEdgeDataFrameInput],
+]
 
 
-def is_edge_input(value: object) -> TypeIs[EdgeInput]:
+def is_edge_input_builder(value: object) -> TypeIs[EdgeInputBuilder]:
+    """Check if a value is a valid edge input.
+
+    Args:
+        value (object): The value to check.
+
+    Returns:
+        TypeIs[EdgeInput]: True if the value is a valid edge input, otherwise False.
+    """
     return (
         is_edge_tuple(value)
         or is_edge_tuple_list(value)
@@ -55,6 +89,10 @@ def is_edge_input(value: object) -> TypeIs[EdgeInput]:
     )
 
 
+NodeInputWithGroup = Tuple[NodeInputBuilder, Group]
+EdgeInputWithGroup = Tuple[EdgeInputBuilder, Group]
+
+
 class MedRecordBuilder:
     """A builder class for constructing MedRecord instances.
 
@@ -62,8 +100,8 @@ class MedRecordBuilder:
     specifying a schema.
     """
 
-    _nodes: List[Union[NodeInput, NodeInputWithGroup]]
-    _edges: List[Union[EdgeInput, EdgeInputWithGroup]]
+    _nodes: List[Union[NodeInputBuilder, NodeInputWithGroup]]
+    _edges: List[Union[EdgeInputBuilder, EdgeInputWithGroup]]
     _groups: Dict[Group, GroupInfo]
     _schema: Optional[Schema]
 
@@ -76,7 +114,7 @@ class MedRecordBuilder:
 
     def add_nodes(
         self,
-        nodes: NodeInput,
+        nodes: NodeInputBuilder,
         *,
         group: Optional[Group] = None,
     ) -> MedRecordBuilder:
@@ -98,7 +136,7 @@ class MedRecordBuilder:
 
     def add_edges(
         self,
-        edges: EdgeInput,
+        edges: EdgeInputBuilder,
         *,
         group: Optional[Group] = None,
     ) -> MedRecordBuilder:
@@ -154,7 +192,7 @@ class MedRecordBuilder:
         medrecord = mm.MedRecord()
 
         for node in self._nodes:
-            if is_node_input(node):
+            if is_node_input_builder(node):
                 medrecord.add_nodes(node)
                 continue
 
@@ -164,7 +202,7 @@ class MedRecordBuilder:
             medrecord.add_nodes(node, group)
 
         for edge in self._edges:
-            if is_edge_input(edge):
+            if is_edge_input_builder(edge):
                 medrecord.add_edges(edge)
                 continue
 

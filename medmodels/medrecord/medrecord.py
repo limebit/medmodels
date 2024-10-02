@@ -570,15 +570,15 @@ class MedRecord:
             )
 
     @overload
-    def remove_nodes(self, node: NodeIndex) -> Attributes: ...
+    def remove_nodes(self, nodes: NodeIndex) -> Attributes: ...
 
     @overload
     def remove_nodes(
-        self, node: Union[NodeIndexInputList, NodeOperation]
+        self, nodes: Union[NodeIndexInputList, NodeOperation]
     ) -> Dict[NodeIndex, Attributes]: ...
 
     def remove_nodes(
-        self, node: Union[NodeIndex, NodeIndexInputList, NodeOperation]
+        self, nodes: Union[NodeIndex, NodeIndexInputList, NodeOperation]
     ) -> Union[Attributes, Dict[NodeIndex, Attributes]]:
         """Removes a node or multiple nodes from the MedRecord and returns their attributes.
 
@@ -587,24 +587,24 @@ class MedRecord:
         index to its attributes.
 
         Args:
-            node (Union[NodeIndex, NodeIndexInputList, NodeOperation]): One or more
+            nodes (Union[NodeIndex, NodeIndexInputList, NodeOperation]): One or more
                 node indices or a node operation.
 
         Returns:
             Union[Attributes, Dict[NodeIndex, Attributes]]: Attributes of the
                 removed node(s).
         """
-        if isinstance(node, NodeOperation):
-            return self._medrecord.remove_nodes(self.select_nodes(node))
+        if isinstance(nodes, NodeOperation):
+            return self._medrecord.remove_nodes(self.select_nodes(nodes))
 
         attributes = self._medrecord.remove_nodes(
-            node if isinstance(node, list) else [node]
+            nodes if isinstance(nodes, list) else [nodes]
         )
 
-        if isinstance(node, list):
+        if isinstance(nodes, list):
             return attributes
 
-        return attributes[node]
+        return attributes[nodes]
 
     def add_nodes(
         self,
@@ -785,6 +785,7 @@ class MedRecord:
         else:
             if is_edge_tuple(edges):
                 edges = [edges]
+
             edge_indices = self._medrecord.add_edges(edges)
 
             if group is None:
@@ -906,101 +907,101 @@ class MedRecord:
         else:
             return self._medrecord.add_group(group, None, None)
 
-    def remove_groups(self, group: Union[Group, GroupInputList]) -> None:
+    def remove_groups(self, groups: Union[Group, GroupInputList]) -> None:
         """Removes one or more groups from the MedRecord instance.
 
         Args:
-            group (Union[Group, GroupInputList]): One or more group names to remove.
+            groups (Union[Group, GroupInputList]): One or more group names to remove.
 
         Returns:
             None
         """
         return self._medrecord.remove_groups(
-            group if isinstance(group, list) else [group]
+            groups if isinstance(groups, list) else [groups]
         )
 
     def add_nodes_to_group(
-        self, group: Group, node: Union[NodeIndex, NodeIndexInputList, NodeOperation]
+        self, group: Group, nodes: Union[NodeIndex, NodeIndexInputList, NodeOperation]
     ) -> None:
         """Adds one or more nodes to a specified group in the MedRecord.
 
         Args:
             group (Group): The name of the group to add nodes to.
-            node (Union[NodeIndex, NodeIndexInputList, NodeOperation]): One or more
+            nodes (Union[NodeIndex, NodeIndexInputList, NodeOperation]): One or more
                 node indices or a node operation to add to the group.
 
         Returns:
             None
         """
-        if isinstance(node, NodeOperation):
-            return self._medrecord.add_nodes_to_group(group, self.select_nodes(node))
+        if isinstance(nodes, NodeOperation):
+            return self._medrecord.add_nodes_to_group(group, self.select_nodes(nodes))
 
         return self._medrecord.add_nodes_to_group(
-            group, node if isinstance(node, list) else [node]
+            group, nodes if isinstance(nodes, list) else [nodes]
         )
 
     def add_edges_to_group(
-        self, group: Group, edge: Union[EdgeIndex, EdgeIndexInputList, EdgeOperation]
+        self, group: Group, edges: Union[EdgeIndex, EdgeIndexInputList, EdgeOperation]
     ) -> None:
         """Adds one or more edges to a specified group in the MedRecord.
 
         Args:
             group (Group): The name of the group to add edges to.
-            edge (Union[EdgeIndex, EdgeIndexInputList, EdgeOperation]): One or more
+            edges (Union[EdgeIndex, EdgeIndexInputList, EdgeOperation]): One or more
                 edge indices or an edge operation to add to the group.
 
         Returns:
             None
         """
-        if isinstance(edge, EdgeOperation):
-            return self._medrecord.add_edges_to_group(group, self.select_edges(edge))
+        if isinstance(edges, EdgeOperation):
+            return self._medrecord.add_edges_to_group(group, self.select_edges(edges))
 
         return self._medrecord.add_edges_to_group(
-            group, edge if isinstance(edge, list) else [edge]
+            group, edges if isinstance(edges, list) else [edges]
         )
 
     def remove_nodes_from_group(
-        self, group: Group, node: Union[NodeIndex, NodeIndexInputList, NodeOperation]
+        self, group: Group, nodes: Union[NodeIndex, NodeIndexInputList, NodeOperation]
     ) -> None:
         """Removes one or more nodes from a specified group in the MedRecord.
 
         Args:
             group (Group): The name of the group from which to remove nodes.
-            node (Union[NodeIndex, NodeIndexInputList, NodeOperation]): One or more
+            nodes (Union[NodeIndex, NodeIndexInputList, NodeOperation]): One or more
                 node indices or a node operation to remove from the group.
 
         Returns:
             None
         """
-        if isinstance(node, NodeOperation):
+        if isinstance(nodes, NodeOperation):
             return self._medrecord.remove_nodes_from_group(
-                group, self.select_nodes(node)
+                group, self.select_nodes(nodes)
             )
 
         return self._medrecord.remove_nodes_from_group(
-            group, node if isinstance(node, list) else [node]
+            group, nodes if isinstance(nodes, list) else [nodes]
         )
 
     def remove_edges_from_group(
-        self, group: Group, edge: Union[EdgeIndex, EdgeIndexInputList, EdgeOperation]
+        self, group: Group, edges: Union[EdgeIndex, EdgeIndexInputList, EdgeOperation]
     ) -> None:
         """Removes one or more edges from a specified group in the MedRecord.
 
         Args:
             group (Group): The name of the group from which to remove edges.
-            edge (Union[EdgeIndex, EdgeIndexInputList, EdgeOperation]): One or more
+            edges (Union[EdgeIndex, EdgeIndexInputList, EdgeOperation]): One or more
                 edge indices or an edge operation to remove from the group.
 
         Returns:
             None
         """
-        if isinstance(edge, EdgeOperation):
+        if isinstance(edges, EdgeOperation):
             return self._medrecord.remove_edges_from_group(
-                group, self.select_edges(edge)
+                group, self.select_edges(edges)
             )
 
         return self._medrecord.remove_edges_from_group(
-            group, edge if isinstance(edge, list) else [edge]
+            group, edges if isinstance(edges, list) else [edges]
         )
 
     @overload
