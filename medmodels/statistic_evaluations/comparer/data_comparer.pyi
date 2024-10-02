@@ -2,8 +2,6 @@ from __future__ import annotations
 
 from typing import Dict, List, Tuple, TypedDict, Union
 
-import polars as pl
-
 from medmodels.medrecord.medrecord import MedRecord
 from medmodels.medrecord.querying import NodeOperation
 from medmodels.medrecord.types import (
@@ -17,11 +15,15 @@ from medmodels.medrecord.types import (
 )
 
 class Cohort:
-    """Configuration for a cohort for evaluation and comparison."""
+    """Configuration for a cohort for evaluation and comparison.
+
+    Needs a medrecord and the corresponding patient group that should form the cohort. The cohort group can be a predefined group in the MedRecord or a node query.
+
+    """
 
     medrecord: MedRecord
     name: str
-    patients_group: Group
+    cohort_group: Group
     time_attribute: MedRecordAttribute
     concepts_groups: GroupInputList
 
@@ -30,7 +32,7 @@ class Cohort:
         medrecord: MedRecord,
         name: str,
         concepts_groups: GroupInputList,
-        patients_group: Union[Group, NodeOperation] = "patients",
+        cohort_group: Union[Group, NodeOperation] = "patients",
         time_attribute: MedRecordAttribute = "time",
     ) -> None: ...
 
@@ -52,13 +54,13 @@ class DataComparer:
         control_cohort: Cohort,
         cohorts: List[Cohort],
         attributes: MedRecordAttributeInputList,
-    ) -> Tuple[float, pl.DataFrame]: ...
+    ) -> Tuple[float, Dict[MedRecordAttribute, float]]: ...
     @staticmethod
     def test_difference_attributes(
         cohorts: List[Cohort],
         attributes: MedRecordAttributeInputList,
         significance_level: float,
-    ) -> Dict[MedRecordAttribute, Dict[str, Union[str, bool, float]]]: ...
+    ) -> Dict[MedRecordAttribute, TestSummary]: ...
     @staticmethod
     def get_top_k_concepts(
         cohort: Cohort,
@@ -73,7 +75,7 @@ class DataComparer:
         cohorts: List[Cohort],
         top_k: int,
         significance_level: float,
-    ) -> Dict[Group, Union[str, bool, float]]: ...
+    ) -> Dict[Group, TestSummary]: ...
     @staticmethod
     def calculate_distance_concepts(
         cohorts: List[Cohort],
@@ -100,6 +102,12 @@ class DistanceSummary(TypedDict):
 class ComparerSummary(TypedDict):
     """Dictionary for the comparing results."""
 
-    attribute_tests: Dict[MedRecordAttribute, Dict[str, Union[str, bool, float]]]
-    concepts_tests: Dict[Group, Dict[str, Union[str, bool, float]]]
+    attribute_tests: Dict[MedRecordAttribute, TestSummary]
+    concepts_tests: Dict[Group, TestSummary]
     concepts_distance: Dict[Group, DistanceSummary]
+
+class TestSummary(TypedDict):
+    test: str
+    Hypothesis: str
+    not_reject: bool
+    p_value: float
