@@ -31,12 +31,14 @@ class RealGRU(nn.Module):
         hyperparamaters: TrainingHyperparameters,
         device: torch.device,
     ) -> None:
-        """Constructor fot the RealGRU.
+        """Constructor for the RealGRU.
 
         Args:
-            total_number_of_concepts: The total number of concepts in the dataset.
-            hyperparameters: The hyperparameters for the training.
-            device: The device to use for the model.
+            total_number_of_concepts (int): The total number of concepts in the
+                dataset.
+            hyperparameters (TrainingHyperparameters): The hyperparameters for the
+                training.
+            device (torch.device): The device to use for the model.
         """
         super().__init__()
         self.total_number_of_concepts = total_number_of_concepts
@@ -62,14 +64,18 @@ class RealGRU(nn.Module):
         self.loss_function = PredictionLoss(device=self.device)
 
     def forward(self, data: torch.Tensor) -> torch.Tensor:
-        """Forward pass of RealGRU. Linear layer for first hidden state, then GRU.
+        """Forward pass of RealGRU computing the predictions for the next window.
+
+        Linear layer for first hidden state, then GRU.
 
         Args:
-            x (torch.Tensor): input data, of shape (batch size, maximum number of
-                windows, total number of concepts)
+            data (torch.Tensor): input data, of shape (batch size, maximum number of
+                windows -1, total number of concepts). We take out the last window
+                because we are predicting the next window.
+
         Returns:
-            torch.Tensor: output of the RealGRU, of shape (batch size, maximum number
-                of windows , total number of concepts)
+            torch.Tensor: Predictions of the RealGRU, of shape (batch size, maximum
+                number of windows -1, total number of concepts)
         """
         outputs, _ = self.gru(data)
         return self.linear_layer(outputs)
@@ -81,20 +87,23 @@ class RealGRU(nn.Module):
 
         Args:
             data (torch.Tensor): input data, of shape (batch size, maximum number of
-                windows, total number of concepts)
+                windows -1, total number of concepts). We take out the last window
+                because we are predicting the next window.
             number_of_windows_per_patient (torch.Tensor): number of windows per
                 patient
 
         Returns:
-            torch.Tensor: hidden state of the RealGRU with respect to the data, masked
+            torch.Tensor: hidden states of the RealGRU with respect to the data, masked
+                of shape (batch size, maximum number of windows -1, total number of
+                concepts)
         """
         with torch.no_grad():
             maximum_number_of_windows = data.shape[1]
             mask = find_sequence_mask(
                 number_of_windows_per_patient, maximum_number_of_windows
             ).unsqueeze(dim=-1)
-            outputs, _ = self.gru(data)
-            return outputs * mask
+            hidden_states, _ = self.gru(data)
+            return hidden_states * mask
 
     def train_real_gru(self, train_loader: MTGANDataLoader) -> float:
         """Training the RealGRU model.
@@ -108,12 +117,14 @@ class RealGRU(nn.Module):
         torch.manual_seed(0)
         loss = torch.Tensor([np.inf])
 
-        for _ in range(1, self.epochs + 1):
-            for _, data in enumerate(train_loader, start=1):
-                real_data, prediction_data, number_of_windows_per_patient = data
-                output = self(real_data)
+        for _ in range(self.epochs):
+            for data in train_loader:
+                real_data, real_prediction_data, number_of_windows_per_patient = data
+                synthetic_prediction_data = self(real_data)
                 loss: torch.Tensor = self.loss_function(
-                    output, prediction_data, number_of_windows_per_patient
+                    real_prediction_data,
+                    synthetic_prediction_data,
+                    number_of_windows_per_patient,
                 )
 
                 self.optimizer.zero_grad()
