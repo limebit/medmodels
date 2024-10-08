@@ -170,7 +170,7 @@ def prettify_table(
     """Takes a DataFrame and turns it into a list for displaying a pretty table.
 
     Args:
-        data (Dict[Group, AttributeInfo]): Table info
+        data (Dict[Group, AttributeSummary]): Table info
             stored in a dictionary.
         header (List[str]): Header line consisting of column names for the table.
         decimal (int): Decimal point to round the float values to.

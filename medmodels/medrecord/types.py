@@ -88,6 +88,10 @@ PandasNodeDataFrameInput: TypeAlias = Tuple[pd.DataFrame, str]
 #: A type alias for input to a Pandas DataFrame for edges.
 PandasEdgeDataFrameInput: TypeAlias = Tuple[pd.DataFrame, str, str]
 
+AttributeInfo: TypeAlias = Union[
+    TemporalAttributeInfo, NumericAttributeInfo, StringAttributeInfo
+]
+
 
 class GroupInfo(TypedDict):
     """A dictionary containing lists of node and edge indices for a group."""
@@ -115,11 +119,6 @@ class StringAttributeInfo(TypedDict):
     """Dictionary for a string attribute and its values."""
 
     values: str
-
-
-AttributeInfo: TypeAlias = Union[
-    TemporalAttributeInfo, NumericAttributeInfo, StringAttributeInfo
-]
 
 
 class AttributeSummary(TypedDict):

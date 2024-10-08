@@ -10,7 +10,7 @@ from medmodels.medrecord.types import (
 )
 
 def determine_attribute_type(attribute_values: pl.Series) -> AttributeType: ...
-def get_continuos_attribute_statistics(
+def get_continuous_attribute_statistics(
     medrecord: MedRecord, attribute_query: NodeOperation
 ) -> NumericAttributeInfo: ...
 def get_temporal_attribute_statistics(

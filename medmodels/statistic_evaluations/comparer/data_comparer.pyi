@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Dict, List, Tuple, TypedDict, Union
+from typing import Dict, List, Optional, Tuple, TypedDict, Union
 
 from medmodels.medrecord.medrecord import MedRecord
 from medmodels.medrecord.querying import NodeOperation
@@ -17,7 +17,8 @@ from medmodels.medrecord.types import (
 class Cohort:
     """Configuration for a cohort for evaluation and comparison.
 
-    Needs a medrecord and the corresponding patient group that should form the cohort. The cohort group can be a predefined group in the MedRecord or a node query.
+    Needs a medrecord and the corresponding patient group that should form the cohort.
+    The cohort group can be a predefined group in the MedRecord or a node query.
 
     """
 
@@ -31,10 +32,36 @@ class Cohort:
         self,
         medrecord: MedRecord,
         name: str,
-        concepts_groups: GroupInputList,
         cohort_group: Union[Group, NodeOperation] = "patients",
         time_attribute: MedRecordAttribute = "time",
+        concepts_groups: Optional[GroupInputList] = None,
     ) -> None: ...
+
+class CohortSummary(TypedDict):
+    """Dictionary for the cohort summary."""
+
+    attribute_info: Dict[Group, AttributeSummary]
+    top_concepts: Dict[Group, List[NodeIndex]]
+
+class DistanceSummary(TypedDict):
+    """Dictonary for the Jensen-Shannon-Divergence and normalized distance between
+    distributions."""
+
+    js_divergence: float
+    distance: float
+
+class ComparerSummary(TypedDict):
+    """Dictionary for the comparing results."""
+
+    attribute_tests: Dict[MedRecordAttribute, TestSummary]
+    concepts_tests: Dict[Group, TestSummary]
+    concepts_distance: Dict[Group, DistanceSummary]
+
+class TestSummary(TypedDict):
+    test: str
+    Hypothesis: str
+    not_reject: bool
+    p_value: float
 
 class DataComparer:
     @staticmethod
@@ -86,28 +113,3 @@ class DataComparer:
         top_k: int,
         significance_level: float,
     ) -> Tuple[Dict[str, CohortSummary], ComparerSummary]: ...
-
-class CohortSummary(TypedDict):
-    """Dictionary for the cohort summary."""
-
-    attribute_info: Dict[Group, AttributeSummary]
-    top_concepts: Dict[Group, List[NodeIndex]]
-
-class DistanceSummary(TypedDict):
-    """Dictonary for the Jensen-Shannon-Divergence and normalized distance between distributions."""
-
-    js_divergence: float
-    distance: float
-
-class ComparerSummary(TypedDict):
-    """Dictionary for the comparing results."""
-
-    attribute_tests: Dict[MedRecordAttribute, TestSummary]
-    concepts_tests: Dict[Group, TestSummary]
-    concepts_distance: Dict[Group, DistanceSummary]
-
-class TestSummary(TypedDict):
-    test: str
-    Hypothesis: str
-    not_reject: bool
-    p_value: float
