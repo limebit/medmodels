@@ -14,16 +14,16 @@ from medmodels.data_synthesis.mtgan.model.critic.critic import Critic
 class CriticLoss(nn.Module):
     """Critic Loss: Wasserstein-Loss with gradient penalty for Critic."""
 
-    def __init__(self, critic: Critic, lambda_: float) -> None:
+    def __init__(self, critic: Critic, lambda_gradient: float) -> None:
         """Constructor for the Critic Wasserstein-Loss with gradient penalty.
 
         Args:
-            critic (Critic): Critic
-            lambda_ (int): Gradient penalty coefficient.
+            critic (Critic): Critic model.
+            lambda_gradient (int): Gradient penalty coefficient.
         """
         super().__init__()
         self.critic = critic
-        self.lambda_ = lambda_
+        self.lambda_gradient = lambda_gradient
 
     def forward(
         self,
@@ -31,37 +31,44 @@ class CriticLoss(nn.Module):
         real_hiddens: torch.Tensor,
         synthetic_data: torch.Tensor,
         synthetic_hiddens: torch.Tensor,
-        number_windows_per_patient: torch.Tensor,
+        number_of_windows_per_patient: torch.Tensor,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Compute Wasserstein-distance and return Loss with gradient penalty and Wasserstein-distance.
 
         Args:
             real_data (torch.Tensor): Real data of shape (batch size, maximum number
-                of windows, total number of concepts)
+                of windows, total number of concepts).
             real_hiddens (torch.Tensor): Real hidden states from RealGRU of shape
-                (batch size, maximum number of windows, generator hidden dimension)
+                (batch size, maximum number of windows, generator hidden dimension).
             synthetic_data (torch.Tensor): Synthetic data generated, same shape as
-                real data
+                real data.
             synthetic_hiddens (torch.Tensor): Synthetic hidden states from SyntheticGRU
-                with the same shape as real hiddens
-            number_windows_per_patient (torch.Tensor): number of windows per patient
+                with the same shape as real hiddens.
+            number_of_windows_per_patient (torch.Tensor): number of windows per patient.
 
         Returns:
-            Tuple[torch.Tensor, torch.Tensor]: Critic loss and Wasserstein distance
+            Tuple[torch.Tensor, torch.Tensor]: Critic loss and Wasserstein distance.
         """
-        critic_real = self.critic(real_data, real_hiddens, number_windows_per_patient)
-        critic_synthetic = self.critic(
-            synthetic_data, synthetic_hiddens, number_windows_per_patient
+        real_scores_critic = self.critic(
+            real_data, real_hiddens, number_of_windows_per_patient
         )
+        synthetic_scores_critic = self.critic(
+            synthetic_data, synthetic_hiddens, number_of_windows_per_patient
+        )
+
         gradient_penalty = self.compute_gradient_penalty(
             real_data,
             real_hiddens,
             synthetic_data,
             synthetic_hiddens,
-            number_windows_per_patient,
+            number_of_windows_per_patient,
         )
-        wasserstein_distance = critic_real.mean() - critic_synthetic.mean()
+
+        wasserstein_distance = (
+            real_scores_critic.mean() - synthetic_scores_critic.mean()
+        )
         critic_loss = -wasserstein_distance + gradient_penalty
+
         return critic_loss, wasserstein_distance
 
     def compute_gradient_penalty(
@@ -70,23 +77,23 @@ class CriticLoss(nn.Module):
         real_hiddens: torch.Tensor,
         synthetic_data: torch.Tensor,
         synthetic_hiddens: torch.Tensor,
-        number_windows_per_patient: torch.Tensor,
+        number_of_windows_per_patient: torch.Tensor,
     ) -> torch.Tensor:
         """Compute gradient penalty. This is used to improve Wasserstein-GAN.
 
         Args:
             real_data (torch.Tensor): Real data of shape (batch size, maximum number
-                of windows, total number of concepts)
+                of windows, total number of concepts).
             real_hiddens (torch.Tensor): Real hidden states from RealGRU of shape
-                (batch size, maximum number of windows, generator hidden dimension)
+                (batch size, maximum number of windows, generator hidden dimension).
             synthetic_data (torch.Tensor): Synthetic data generated, same shape as
-                real data
+                real data.
             synthetic_hiddens (torch.Tensor): Synthetic hidden states from SyntheticGRU
-                with the same shape as real hiddens
-            number_windows_per_patient (torch.Tensor): number of windows per patient
+                with the same shape as real hiddens.
+            number_of_windows_per_patient (torch.Tensor): number of windows per patient.
 
         Returns:
-            torch.Tensor: gradient penalty
+            torch.Tensor: gradient penalty.
         """
         batch_size = len(real_data)
 
@@ -106,7 +113,7 @@ class CriticLoss(nn.Module):
 
         # Compute gradients of the critic outputs with respect to data and hidden states
         critic_outputs = self.critic(
-            interpolated_data, interpolated_hiddens, number_windows_per_patient
+            interpolated_data, interpolated_hiddens, number_of_windows_per_patient
         )
         gradients = autograd.grad(
             outputs=critic_outputs,
@@ -120,4 +127,4 @@ class CriticLoss(nn.Module):
         gradient_penalty = (gradients.norm(2, dim=1) - 1) ** 2
 
         # Return the scaled gradient penalty
-        return gradient_penalty.mean() * self.lambda_
+        return gradient_penalty.mean() * self.lambda_gradient
