@@ -241,14 +241,7 @@ impl PyMedRecord {
             .collect()
     }
 
-    fn add_node(&mut self, node_index: PyNodeIndex, attributes: PyAttributes) -> PyResult<()> {
-        Ok(self
-            .0
-            .add_node(node_index.into(), attributes.deep_into())
-            .map_err(PyMedRecordError::from)?)
-    }
-
-    fn remove_node(
+    fn remove_nodes(
         &mut self,
         node_index: Vec<PyNodeIndex>,
     ) -> PyResult<HashMap<PyNodeIndex, PyAttributes>> {
@@ -349,23 +342,7 @@ impl PyMedRecord {
             .map_err(PyMedRecordError::from)?)
     }
 
-    fn add_edge(
-        &mut self,
-        source_node_index: PyNodeIndex,
-        target_node_index: PyNodeIndex,
-        attributes: PyAttributes,
-    ) -> PyResult<EdgeIndex> {
-        Ok(self
-            .0
-            .add_edge(
-                source_node_index.into(),
-                target_node_index.into(),
-                attributes.deep_into(),
-            )
-            .map_err(PyMedRecordError::from)?)
-    }
-
-    fn remove_edge(
+    fn remove_edges(
         &mut self,
         edge_index: Vec<EdgeIndex>,
     ) -> PyResult<HashMap<EdgeIndex, PyAttributes>> {
@@ -480,7 +457,7 @@ impl PyMedRecord {
             .map_err(PyMedRecordError::from)?)
     }
 
-    fn remove_group(&mut self, group: Vec<PyGroup>) -> PyResult<()> {
+    fn remove_groups(&mut self, group: Vec<PyGroup>) -> PyResult<()> {
         group.into_iter().try_for_each(|group| {
             self.0
                 .remove_group(&group)
@@ -490,7 +467,7 @@ impl PyMedRecord {
         })
     }
 
-    fn add_node_to_group(&mut self, group: PyGroup, node_index: Vec<PyNodeIndex>) -> PyResult<()> {
+    fn add_nodes_to_group(&mut self, group: PyGroup, node_index: Vec<PyNodeIndex>) -> PyResult<()> {
         node_index.into_iter().try_for_each(|node_index| {
             Ok(self
                 .0
@@ -499,7 +476,7 @@ impl PyMedRecord {
         })
     }
 
-    fn add_edge_to_group(&mut self, group: PyGroup, edge_index: Vec<EdgeIndex>) -> PyResult<()> {
+    fn add_edges_to_group(&mut self, group: PyGroup, edge_index: Vec<EdgeIndex>) -> PyResult<()> {
         edge_index.into_iter().try_for_each(|edge_index| {
             Ok(self
                 .0
@@ -508,7 +485,7 @@ impl PyMedRecord {
         })
     }
 
-    fn remove_node_from_group(
+    fn remove_nodes_from_group(
         &mut self,
         group: PyGroup,
         node_index: Vec<PyNodeIndex>,
@@ -521,7 +498,7 @@ impl PyMedRecord {
         })
     }
 
-    fn remove_edge_from_group(
+    fn remove_edges_from_group(
         &mut self,
         group: PyGroup,
         edge_index: Vec<EdgeIndex>,

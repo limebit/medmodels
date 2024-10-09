@@ -301,25 +301,13 @@ patient_drug_edges = medrecord.add_edges_polars(
 )
 ```
 
-### Adding single entries
+### Removing entries
 
-Single nodes can be added or removed to an existing MedRecord by their unique identifier. Attributes can also be added during that process.
-
-Single edges between a source node and target node can be added to the MedRecord instance by specifiying the source and the target node identifier. Attributes for the connection can also be included.
-
-```python
-medrecord.add_node(node="pat_6", attributes={"age": 67, "gender": "F"})
-# add connection between nodes, will return the edge identifier
-edge_pat6_pat2_id = medrecord.add_edge(
-    source_node="pat_6", target_node="pat_2", attributes={"relationship": "Mother"}
-)
-```
-
-Nodes and edges can be easily removed by their identifier. To check if a node or edge exists, the `contain_node()` or `contain_edge()` functions can be used. If a node is deleted from the MedRecord, its corresponding edges will also be removed.
+Nodes and edges can be easily removed by their identifier. To check if a node or edge exists, the `contains_node()` or `contains_edge()` functions can be used. If a node is deleted from the MedRecord, its corresponding edges will also be removed.
 
 ```python
 # returns attributes for the node that will be removed
-medrecord.remove_node("pat_6")
+medrecord.remove_nodes("pat_6")
 medrecord.contains_node("pat_6") or medrecord.contains_edge(edge_pat6_pat2_id)
 ```
 
@@ -434,7 +422,7 @@ additional_young_id = medrecord.select_nodes(
     node().attribute("age").greater_or_equal(young_age)
     & node().attribute("age").less(higher_age)
 )
-medrecord.add_node_to_group(group="Young", node=additional_young_id)
+medrecord.add_nodes_to_group(group="Young", nodes=additional_young_id)
 
 print(
     f"Patients in Group 'Young' if threshold age is {higher_age}: {medrecord.group('Young')}"
@@ -446,12 +434,12 @@ print(
 It is possible to remove nodes from groups and to remove groups entirely from the MedRecord.
 
 ```python
-medrecord.remove_node_from_group(group="Young", node=additional_young_id)
+medrecord.remove_nodes_from_group(group="Young", nodes=additional_young_id)
 print(f"Patients in group 'Young': {medrecord.select_nodes(node().in_group('Young'))}")
 
 
 print(f"The MedRecord contains {medrecord.group_count()} groups.")
-medrecord.remove_group("Woman")
+medrecord.remove_groups("Woman")
 print(
     f"After the removal operation, the MedRecord contains {medrecord.group_count()} groups."
 )
