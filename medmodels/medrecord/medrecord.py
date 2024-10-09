@@ -11,9 +11,9 @@ from medmodels.medrecord.indexers import EdgeIndexer, NodeIndexer
 from medmodels.medrecord.querying import EdgeOperation, NodeOperation
 from medmodels.medrecord.schema import Schema
 from medmodels.medrecord.types import (
-    AttributeInfo,
     Attributes,
     AttributesInput,
+    AttributeSummary,
     EdgeIndex,
     EdgeIndexInputList,
     EdgeTuple,
@@ -74,20 +74,20 @@ def process_edges_dataframe(
 class OverviewTable:
     """Class for the node/edge group overview table."""
 
-    data: Dict[Group, AttributeInfo]
+    data: Dict[Group, AttributeSummary]
     group_header: str
     decimal: int
 
     def __init__(
         self,
-        data: Dict[Group, AttributeInfo],
+        data: Dict[Group, AttributeSummary],
         group_header: str,
         decimal: int,
     ):
         """Initializes the OverviewTable class.
 
         Args:
-            data (Dict[Group, AttributeInfo]): Dictionary containing attribute info for edges/nodes.
+            data (Dict[Group, AttributeSummary]): Dictionary containing attribute info for edges/nodes.
             group_header (str): Header for group column, i.e. 'Group Nodes'.
             decimal (int): Decimal point to round the float values to.
         """
@@ -1378,11 +1378,12 @@ class MedRecord:
 
     def _describe_group_nodes(
         self,
-    ) -> Dict[Group, AttributeInfo]:
+    ) -> Dict[Group, AttributeSummary]:
         """Creates a summary of group nodes and their attributes.
 
         Returns:
-            pl.DataFrame: Dataframe with all nodes in medrecord groups and their attributes.
+            Dict[Group, AttributeSummary]: Dictionary with all nodes in medrecord groups
+                and their attributes.
         """
         nodes_info = {}
         grouped_nodes = []
@@ -1414,11 +1415,12 @@ class MedRecord:
 
     def _describe_group_edges(
         self,
-    ) -> Dict[Group, AttributeInfo]:
+    ) -> Dict[Group, AttributeSummary]:
         """Creates a summary of edges connecting group nodes and the edge attributes.
 
         Returns:
-            pl.DataFrame: DataFrame with an overview of edges connecting group nodes.
+            Dict[Group, AttributeSummary]: Dictionary with an overview of edges
+                connecting group nodes.
         """
         edges_info = {}
         grouped_edges = []
