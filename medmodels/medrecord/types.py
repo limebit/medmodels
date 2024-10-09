@@ -89,7 +89,7 @@ PandasNodeDataFrameInput: TypeAlias = Tuple[pd.DataFrame, str]
 PandasEdgeDataFrameInput: TypeAlias = Tuple[pd.DataFrame, str, str]
 
 AttributeInfo: TypeAlias = Union[
-    TemporalAttributeInfo, NumericAttributeInfo, StringAttributeInfo
+    "TemporalAttributeInfo", "NumericAttributeInfo", "StringAttributeInfo"
 ]
 
 
