@@ -19,7 +19,7 @@ It adds the following attributes to the MedRecord:
         assigned to the edge for easier querying later.
     - absolute_time_window_attribute: The absolute time window for each edge. This is,
         the number of days from the first admission divided by the time_interval_days.
-    - number_windows_attribute: The number of unique time windows for each patient.
+    - number_of_windows_attribute: The number of unique time windows for each patient.
     - time_window_attribute: The relative time window for each edge. This means
         collapsing the absolute time window to a ranking of unique time windows. For
         instance, if a patient has absolute time windows [0, 2, 2, 3], the method will
@@ -367,7 +367,7 @@ class MTGANPreprocessor(nn.Module):
                 absolute time windows.
             time_window_attribute (MedRecordAttribute): The attribute name for relative
                 time windows.
-            number_windows_attribute (MedRecordAttribute): The attribute name for
+            number_of_windows_attribute (MedRecordAttribute): The attribute name for
                 the number of unique time windows.
 
         Note:
