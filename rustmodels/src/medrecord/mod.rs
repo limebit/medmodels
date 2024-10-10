@@ -614,7 +614,7 @@ impl PyMedRecord {
             .map(|node_index| {
                 let neighbors = self
                     .0
-                    .neighbors(&node_index)
+                    .neighbors_outgoing(&node_index)
                     .map_err(PyMedRecordError::from)?
                     .map(|neighbor| neighbor.clone().into())
                     .collect();

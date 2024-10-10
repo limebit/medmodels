@@ -1,9 +1,8 @@
-mod operation;
-mod selection;
+pub mod attributes;
+pub mod edges;
+pub mod nodes;
+mod traits;
+pub mod values;
+pub mod wrapper;
 
-pub use self::operation::{
-    edge, node, ArithmeticOperation, EdgeAttributeOperand, EdgeIndexOperand, EdgeOperand,
-    EdgeOperation, NodeAttributeOperand, NodeIndexOperand, NodeOperand, NodeOperation,
-    TransformationOperation, ValueOperand,
-};
-pub(super) use self::selection::{EdgeSelection, NodeSelection};
+pub(crate) type BoxedIterator<'a, T> = Box<dyn Iterator<Item = T> + 'a>;

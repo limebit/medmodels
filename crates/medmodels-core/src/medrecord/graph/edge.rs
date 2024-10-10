@@ -3,9 +3,9 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Edge {
-    pub attributes: Attributes,
-    pub(super) source_node_index: NodeIndex,
-    pub(super) target_node_index: NodeIndex,
+    pub(crate) attributes: Attributes,
+    pub(crate) source_node_index: NodeIndex,
+    pub(crate) target_node_index: NodeIndex,
 }
 
 impl Edge {
