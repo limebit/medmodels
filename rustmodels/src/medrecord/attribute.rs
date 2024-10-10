@@ -6,7 +6,7 @@ use std::{hash::Hash, ops::Deref};
 
 #[repr(transparent)]
 #[derive(PartialEq, Eq, Hash, Clone, Debug)]
-pub(crate) struct PyMedRecordAttribute(MedRecordAttribute);
+pub struct PyMedRecordAttribute(MedRecordAttribute);
 
 impl From<MedRecordAttribute> for PyMedRecordAttribute {
     fn from(value: MedRecordAttribute) -> Self {

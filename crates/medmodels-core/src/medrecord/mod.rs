@@ -11,8 +11,10 @@ pub use self::{
     graph::{Attributes, EdgeIndex, NodeIndex},
     group_mapping::Group,
     querying::{
-        edges::EdgeOperand,
-        nodes::NodeOperand,
+        attributes::{AttributesTreeOperand, MultipleAttributesOperand, SingleAttributeOperand},
+        edges::{EdgeIndexOperand, EdgeIndicesOperand, EdgeOperand},
+        nodes::{EdgeDirection, NodeIndexOperand, NodeIndicesOperand, NodeOperand},
+        values::{MultipleValuesOperand, SingleValueOperand},
         wrapper::{CardinalityWrapper, Wrapper},
     },
     schema::{AttributeDataType, AttributeType, GroupSchema, Schema},

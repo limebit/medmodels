@@ -171,8 +171,11 @@ impl Wrapper<NodeOperand> {
         self.0.read_or_panic().evaluate(medrecord)
     }
 
-    pub fn attribute(&mut self, attribute: MedRecordAttribute) -> Wrapper<MultipleValuesOperand> {
-        self.0.write_or_panic().attribute(attribute)
+    pub fn attribute<A>(&mut self, attribute: A) -> Wrapper<MultipleValuesOperand>
+    where
+        A: Into<MedRecordAttribute>,
+    {
+        self.0.write_or_panic().attribute(attribute.into())
     }
 
     pub fn attributes(&mut self) -> Wrapper<AttributesTreeOperand> {

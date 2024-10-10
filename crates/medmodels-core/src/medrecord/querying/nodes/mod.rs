@@ -2,8 +2,8 @@ mod operand;
 mod operation;
 mod selection;
 
-pub use operand::NodeOperand;
-pub use operation::NodeOperation;
+pub use operand::{NodeIndexOperand, NodeIndicesOperand, NodeOperand};
+pub use operation::{EdgeDirection, NodeOperation};
 pub use selection::NodeSelection;
 use std::fmt::Display;
 
