@@ -9,18 +9,18 @@ use node::Node;
 use serde::{Deserialize, Serialize};
 use std::{
     collections::{HashMap, HashSet},
-    sync::atomic::AtomicUsize,
+    sync::atomic::AtomicU32,
 };
 
 pub type NodeIndex = MedRecordAttribute;
-pub type EdgeIndex = usize;
+pub type EdgeIndex = u32;
 pub type Attributes = HashMap<MedRecordAttribute, MedRecordValue>;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub(super) struct Graph {
     pub(crate) nodes: MrHashMap<NodeIndex, Node>,
     pub(crate) edges: MrHashMap<EdgeIndex, Edge>,
-    edge_index_counter: AtomicUsize,
+    edge_index_counter: AtomicU32,
 }
 
 #[allow(dead_code)]
@@ -29,7 +29,7 @@ impl Graph {
         Self {
             nodes: MrHashMap::new(),
             edges: MrHashMap::new(),
-            edge_index_counter: AtomicUsize::new(0),
+            edge_index_counter: AtomicU32::new(0),
         }
     }
 
@@ -37,7 +37,7 @@ impl Graph {
         Self {
             nodes: MrHashMap::with_capacity(node_capacity),
             edges: MrHashMap::with_capacity(edge_capacity),
-            edge_index_counter: AtomicUsize::new(0),
+            edge_index_counter: AtomicU32::new(0),
         }
     }
 
@@ -45,13 +45,13 @@ impl Graph {
         self.nodes.clear();
         self.edges.clear();
 
-        self.edge_index_counter = AtomicUsize::new(0);
+        self.edge_index_counter = AtomicU32::new(0);
     }
 
     pub fn clear_edges(&mut self) {
         self.edges.clear();
 
-        self.edge_index_counter = AtomicUsize::new(0);
+        self.edge_index_counter = AtomicU32::new(0);
     }
 
     pub fn node_count(&self) -> usize {
@@ -338,7 +338,7 @@ impl Graph {
         self.edges.contains_key(edge_index)
     }
 
-    pub fn neighbors(
+    pub fn neighbors_outgoing(
         &self,
         node_index: &NodeIndex,
     ) -> Result<impl Iterator<Item = &NodeIndex>, GraphError> {
@@ -357,6 +357,29 @@ impl Graph {
                     .get(edge_index)
                     .expect("Edge must exist")
                     .target_node_index
+            }))
+    }
+
+    // TODO: Add tests
+    pub fn neighbors_incoming(
+        &self,
+        node_index: &NodeIndex,
+    ) -> Result<impl Iterator<Item = &NodeIndex>, GraphError> {
+        Ok(self
+            .nodes
+            .get(node_index)
+            .ok_or(GraphError::IndexError(format!(
+                "Cannot find node with index {}",
+                node_index
+            )))?
+            .incoming_edge_indices
+            .iter()
+            .map(|edge_index| {
+                &self
+                    .edges
+                    .get(edge_index)
+                    .expect("Edge must exist")
+                    .source_node_index
             }))
     }
 
@@ -890,7 +913,7 @@ mod test {
     fn test_neighbors() {
         let graph = create_graph();
 
-        let neighbors = graph.neighbors(&"0".into()).unwrap();
+        let neighbors = graph.neighbors_outgoing(&"0".into()).unwrap();
 
         assert_eq!(2, neighbors.count());
     }
@@ -900,7 +923,7 @@ mod test {
         let graph = create_graph();
 
         assert!(graph
-            .neighbors(&"50".into())
+            .neighbors_outgoing(&"50".into())
             .is_err_and(|e| matches!(e, GraphError::IndexError(_))));
     }
 
@@ -908,7 +931,7 @@ mod test {
     fn test_neighbors_undirected() {
         let graph = create_graph();
 
-        let neighbors = graph.neighbors(&"2".into()).unwrap();
+        let neighbors = graph.neighbors_outgoing(&"2".into()).unwrap();
         assert_eq!(0, neighbors.count());
 
         let neighbors = graph.neighbors_undirected(&"2".into()).unwrap();

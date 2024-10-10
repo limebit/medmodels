@@ -2,6 +2,7 @@ mod attribute;
 mod value;
 
 pub use self::{attribute::MedRecordAttribute, value::MedRecordValue};
+use super::EdgeIndex;
 use crate::errors::MedRecordError;
 use serde::{Deserialize, Serialize};
 use std::{fmt::Display, ops::Range};
@@ -47,6 +48,24 @@ impl From<&MedRecordValue> for DataType {
             MedRecordValue::Bool(_) => DataType::Bool,
             MedRecordValue::DateTime(_) => DataType::DateTime,
             MedRecordValue::Null => DataType::Null,
+        }
+    }
+}
+
+impl From<MedRecordAttribute> for DataType {
+    fn from(value: MedRecordAttribute) -> Self {
+        match value {
+            MedRecordAttribute::String(_) => DataType::String,
+            MedRecordAttribute::Int(_) => DataType::Int,
+        }
+    }
+}
+
+impl From<&MedRecordAttribute> for DataType {
+    fn from(value: &MedRecordAttribute) -> Self {
+        match value {
+            MedRecordAttribute::String(_) => DataType::String,
+            MedRecordAttribute::Int(_) => DataType::Int,
         }
     }
 }
@@ -126,6 +145,39 @@ impl DataType {
     }
 }
 
+pub trait StartsWith {
+    fn starts_with(&self, other: &Self) -> bool;
+}
+
+// TODO: Add tests
+impl StartsWith for EdgeIndex {
+    fn starts_with(&self, other: &Self) -> bool {
+        self.to_string().starts_with(&other.to_string())
+    }
+}
+
+pub trait EndsWith {
+    fn ends_with(&self, other: &Self) -> bool;
+}
+
+// TODO: Add tests
+impl EndsWith for EdgeIndex {
+    fn ends_with(&self, other: &Self) -> bool {
+        self.to_string().ends_with(&other.to_string())
+    }
+}
+
+pub trait Contains {
+    fn contains(&self, other: &Self) -> bool;
+}
+
+// TODO: Add tests
+impl Contains for EdgeIndex {
+    fn contains(&self, other: &Self) -> bool {
+        self.to_string().contains(&other.to_string())
+    }
+}
+
 pub trait Pow: Sized {
     fn pow(self, exp: Self) -> Result<Self, MedRecordError>;
 }
@@ -134,20 +186,11 @@ pub trait Mod: Sized {
     fn r#mod(self, other: Self) -> Result<Self, MedRecordError>;
 }
 
-pub trait StartsWith {
-    fn starts_with(&self, other: &Self) -> bool;
-}
-
-pub trait EndsWith {
-    fn ends_with(&self, other: &Self) -> bool;
-}
-
-pub trait Contains {
-    fn contains(&self, other: &Self) -> bool;
-}
-
-pub trait PartialNeq: PartialEq {
-    fn neq(&self, other: &Self) -> bool;
+// TODO: Add tests
+impl Mod for EdgeIndex {
+    fn r#mod(self, other: Self) -> Result<Self, MedRecordError> {
+        Ok(self % other)
+    }
 }
 
 pub trait Round {
@@ -192,15 +235,6 @@ pub trait Uppercase {
 
 pub trait Slice {
     fn slice(self, range: Range<usize>) -> Self;
-}
-
-impl<T> PartialNeq for T
-where
-    T: PartialOrd,
-{
-    fn neq(&self, other: &Self) -> bool {
-        self != other
-    }
 }
 
 #[cfg(test)]
