@@ -14,7 +14,10 @@ use crate::{
     medrecord::{MedRecordAttribute, MedRecordValue},
     MedRecord,
 };
-pub use operand::MultipleValuesOperand;
+pub use operand::{
+    MultipleValuesComparisonOperand, MultipleValuesOperand, SingleValueComparisonOperand,
+    SingleValueOperand,
+};
 use std::fmt::Display;
 
 macro_rules! get_attributes {
