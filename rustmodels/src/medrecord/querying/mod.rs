@@ -14,14 +14,14 @@ use pyo3::{types::PyAnyMethods, Bound, FromPyObject, PyAny, PyResult};
 pub struct PyMedRecordAttributeCardinalityWrapper(CardinalityWrapper<MedRecordAttribute>);
 
 impl From<CardinalityWrapper<MedRecordAttribute>> for PyMedRecordAttributeCardinalityWrapper {
-    fn from(group: CardinalityWrapper<MedRecordAttribute>) -> Self {
-        Self(group)
+    fn from(attribute: CardinalityWrapper<MedRecordAttribute>) -> Self {
+        Self(attribute)
     }
 }
 
 impl From<PyMedRecordAttributeCardinalityWrapper> for CardinalityWrapper<MedRecordAttribute> {
-    fn from(py_group: PyMedRecordAttributeCardinalityWrapper) -> Self {
-        py_group.0
+    fn from(attribute: PyMedRecordAttributeCardinalityWrapper) -> Self {
+        attribute.0
     }
 }
 

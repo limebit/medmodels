@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Dict, Tuple, Union, overload
+from typing import TYPE_CHECKING, Callable, Dict, Tuple, Union, overload
 
 from medmodels.medrecord.querying import EdgeQuery, NodeQuery
 from medmodels.medrecord.types import (
@@ -87,7 +87,7 @@ class NodeIndexer:
         if isinstance(key, list):
             return self._medrecord._medrecord.node(key)
 
-        if isinstance(key, NodeQuery):
+        if isinstance(key, Callable):
             return self._medrecord._medrecord.node(self._medrecord.select_nodes(key))
 
         if isinstance(key, slice):
@@ -112,7 +112,7 @@ class NodeIndexer:
 
             return {x: attributes[x][attribute_selection] for x in attributes.keys()}
 
-        if isinstance(index_selection, NodeQuery) and is_medrecord_attribute(
+        if isinstance(index_selection, Callable) and is_medrecord_attribute(
             attribute_selection
         ):
             attributes = self._medrecord._medrecord.node(
@@ -151,7 +151,7 @@ class NodeIndexer:
                 for x in attributes.keys()
             }
 
-        if isinstance(index_selection, NodeQuery) and isinstance(
+        if isinstance(index_selection, Callable) and isinstance(
             attribute_selection, list
         ):
             attributes = self._medrecord._medrecord.node(
@@ -198,7 +198,7 @@ class NodeIndexer:
 
             return self._medrecord._medrecord.node(index_selection)
 
-        if isinstance(index_selection, NodeQuery) and isinstance(
+        if isinstance(index_selection, Callable) and isinstance(
             attribute_selection, slice
         ):
             if (
@@ -270,7 +270,7 @@ class NodeIndexer:
 
             return self._medrecord._medrecord.replace_node_attributes(key, value)
 
-        if isinstance(key, NodeQuery):
+        if isinstance(key, Callable):
             if not is_attributes(value):
                 raise ValueError("Invalid value type. Expected Attributes")
 
@@ -311,7 +311,7 @@ class NodeIndexer:
                 index_selection, attribute_selection, value
             )
 
-        if isinstance(index_selection, NodeQuery) and is_medrecord_attribute(
+        if isinstance(index_selection, Callable) and is_medrecord_attribute(
             attribute_selection
         ):
             if not is_medrecord_value(value):
@@ -364,7 +364,7 @@ class NodeIndexer:
 
             return
 
-        if isinstance(index_selection, NodeQuery) and isinstance(
+        if isinstance(index_selection, Callable) and isinstance(
             attribute_selection, list
         ):
             if not is_medrecord_value(value):
@@ -440,7 +440,7 @@ class NodeIndexer:
 
             return
 
-        if isinstance(index_selection, NodeQuery) and isinstance(
+        if isinstance(index_selection, Callable) and isinstance(
             attribute_selection, slice
         ):
             if (
@@ -514,7 +514,7 @@ class NodeIndexer:
                 index_selection, attribute_selection
             )
 
-        if isinstance(index_selection, NodeQuery) and is_medrecord_attribute(
+        if isinstance(index_selection, Callable) and is_medrecord_attribute(
             attribute_selection
         ):
             return self._medrecord._medrecord.remove_node_attribute(
@@ -553,7 +553,7 @@ class NodeIndexer:
 
             return
 
-        if isinstance(index_selection, NodeQuery) and isinstance(
+        if isinstance(index_selection, Callable) and isinstance(
             attribute_selection, list
         ):
             for attribute in attribute_selection:
@@ -602,7 +602,7 @@ class NodeIndexer:
                 index_selection, {}
             )
 
-        if isinstance(index_selection, NodeQuery) and isinstance(
+        if isinstance(index_selection, Callable) and isinstance(
             attribute_selection, slice
         ):
             if (
@@ -697,7 +697,7 @@ class EdgeIndexer:
         if isinstance(key, list):
             return self._medrecord._medrecord.edge(key)
 
-        if isinstance(key, EdgeQuery):
+        if isinstance(key, Callable):
             return self._medrecord._medrecord.edge(self._medrecord.select_edges(key))
 
         if isinstance(key, slice):
@@ -722,7 +722,7 @@ class EdgeIndexer:
 
             return {x: attributes[x][attribute_selection] for x in attributes.keys()}
 
-        if isinstance(index_selection, EdgeQuery) and is_medrecord_attribute(
+        if isinstance(index_selection, Callable) and is_medrecord_attribute(
             attribute_selection
         ):
             attributes = self._medrecord._medrecord.edge(
@@ -761,7 +761,7 @@ class EdgeIndexer:
                 for x in attributes.keys()
             }
 
-        if isinstance(index_selection, EdgeQuery) and isinstance(
+        if isinstance(index_selection, Callable) and isinstance(
             attribute_selection, list
         ):
             attributes = self._medrecord._medrecord.edge(
@@ -808,7 +808,7 @@ class EdgeIndexer:
 
             return self._medrecord._medrecord.edge(index_selection)
 
-        if isinstance(index_selection, EdgeQuery) and isinstance(
+        if isinstance(index_selection, Callable) and isinstance(
             attribute_selection, slice
         ):
             if (
@@ -880,7 +880,7 @@ class EdgeIndexer:
 
             return self._medrecord._medrecord.replace_edge_attributes(key, value)
 
-        if isinstance(key, EdgeQuery):
+        if isinstance(key, Callable):
             if not is_attributes(value):
                 raise ValueError("Invalid value type. Expected Attributes")
 
@@ -921,7 +921,7 @@ class EdgeIndexer:
                 index_selection, attribute_selection, value
             )
 
-        if isinstance(index_selection, EdgeQuery) and is_medrecord_attribute(
+        if isinstance(index_selection, Callable) and is_medrecord_attribute(
             attribute_selection
         ):
             if not is_medrecord_value(value):
@@ -974,7 +974,7 @@ class EdgeIndexer:
 
             return
 
-        if isinstance(index_selection, EdgeQuery) and isinstance(
+        if isinstance(index_selection, Callable) and isinstance(
             attribute_selection, list
         ):
             if not is_medrecord_value(value):
@@ -1048,7 +1048,7 @@ class EdgeIndexer:
 
             return
 
-        if isinstance(index_selection, EdgeQuery) and isinstance(
+        if isinstance(index_selection, Callable) and isinstance(
             attribute_selection, slice
         ):
             if (
@@ -1122,7 +1122,7 @@ class EdgeIndexer:
                 index_selection, attribute_selection
             )
 
-        if isinstance(index_selection, EdgeQuery) and is_medrecord_attribute(
+        if isinstance(index_selection, Callable) and is_medrecord_attribute(
             attribute_selection
         ):
             return self._medrecord._medrecord.remove_edge_attribute(
@@ -1161,7 +1161,7 @@ class EdgeIndexer:
 
             return
 
-        if isinstance(index_selection, EdgeQuery) and isinstance(
+        if isinstance(index_selection, Callable) and isinstance(
             attribute_selection, list
         ):
             for attribute in attribute_selection:
@@ -1210,7 +1210,7 @@ class EdgeIndexer:
                 index_selection, {}
             )
 
-        if isinstance(index_selection, EdgeQuery) and isinstance(
+        if isinstance(index_selection, Callable) and isinstance(
             attribute_selection, slice
         ):
             if (
