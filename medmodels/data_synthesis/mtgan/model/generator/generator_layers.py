@@ -120,9 +120,10 @@ class SyntheticGRU(nn.Module):
 
 
 class AttentionScore(nn.Module):
+    """Computes the smoothed attention scores matrix."""
+
     total_number_of_concepts: int
     attention_dimension: int
-    """Computes attention scores for computing smooth conditinal matrix."""
 
     def __init__(self, total_number_of_concepts: int, attention_dimension: int) -> None:
         """Constructor for AttentionScore layer.
@@ -223,9 +224,11 @@ class SmoothAttention(nn.Module):
             probability_matrix, number_of_windows_per_patient
         )
         smoothed_target_scores = torch.zeros_like(probability_matrix)
+
         smoothed_target_scores[
             torch.arange(len(probability_matrix)), :, target_concepts
         ] = smoothed_attention_score_matrix
+
         attention_probability_matrix = probability_matrix + smoothed_target_scores
 
         return torch.clip(attention_probability_matrix, max=1)

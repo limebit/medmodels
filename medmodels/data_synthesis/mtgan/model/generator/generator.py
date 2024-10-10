@@ -1,5 +1,6 @@
 """Generator for MTGAN."""
 
+import math
 from typing import Tuple
 
 import sparse
@@ -18,6 +19,11 @@ from medmodels.data_synthesis.mtgan.model.masks import find_sequence_mask
 
 
 class Generator(nn.Module):
+    """Generator for MTGAN.
+
+    The Generator generates synthetic data samples with respect to the target concepts.
+    """
+
     total_number_of_concepts: int
     maximum_number_of_windows: int
     device: torch.device
@@ -98,44 +104,6 @@ class Generator(nn.Module):
         )
 
     def _generate_samples(
-        self,
-        number_of_windows_per_patient: torch.Tensor,
-        target_concepts: torch.Tensor,
-    ) -> torch.Tensor:
-        """Generate synthetic data samples with respect to the target concepts.
-
-        Args:
-            number_of_windows_per_patient (torch.Tensor): number of windows each
-                patient has, of shape (batch size).
-            target_concepts (torch.Tensor): Array of concepts chosen for each training
-                batch, drawn uniformly from all concepts to ensure all concepts are
-                included in the training and synthesis process. Shape: batch size.
-
-        Returns:
-            torch.Tensor: Synthetic data samples of shape (batch size, maximum number
-                of windows, total number of concepts).
-        """
-        if isinstance(target_concepts, int):
-            number_patients = 1
-        else:
-            number_patients = len(target_concepts)
-
-        noise = torch.randn(number_patients, self.hidden_dimension, device=self.device)
-        with torch.no_grad():
-            sequence_mask = find_sequence_mask(
-                number_of_windows_per_patient, self.maximum_number_of_windows
-            )
-            attention_probability_matrix, _ = self.forward(
-                number_of_windows_per_patient, target_concepts, noise
-            )
-            synthetic_data = torch.bernoulli(attention_probability_matrix).to(
-                attention_probability_matrix.dtype
-            )
-            synthetic_data *= sequence_mask
-
-            return synthetic_data
-
-    def _generate_samples_with_hidden_states(
         self,
         number_of_windows_per_patient: torch.Tensor,
         target_concepts: torch.Tensor,
@@ -224,19 +192,19 @@ class Generator(nn.Module):
                 number of windows, total number of concepts).
         """
         synthetic_data = []
-        for i in range(number_of_patients // batch_size):
+        for i in range(math.ceil(number_of_patients / batch_size)):
             batch_number = min(batch_size, number_of_patients - i * batch_size)
 
             target_concepts = self._get_target_concepts(batch_number)
             number_of_windows_per_patient = torch.multinomial(
                 windows_distribution, num_samples=batch_number, replacement=True
             ).to(self.device)
-            synthetic_batch = (
-                (self._generate_samples(number_of_windows_per_patient, target_concepts))
-                .cpu()
-                .numpy()
-                .astype(bool)
+
+            synthetic_batch, _ = self._generate_samples(
+                number_of_windows_per_patient, target_concepts
             )
+            synthetic_batch = (synthetic_batch).cpu().numpy().astype(bool)
+
             synthetic_batch_sparse = sparse.COO.from_numpy(synthetic_batch)
             synthetic_data.append(synthetic_batch_sparse)
 
