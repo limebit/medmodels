@@ -145,9 +145,7 @@ class TestTreatmentEffect(unittest.TestCase):
         assert edge == 0
 
         # adding medication time
-        self.medrecord.add_edge(
-            source_node="M1", target_node="P1", attributes={"time": "2000-01-15"}
-        )
+        self.medrecord.add_edges(("M1", "P1", {"time": "2000-01-15"}))
 
         edge = find_reference_edge(
             self.medrecord,

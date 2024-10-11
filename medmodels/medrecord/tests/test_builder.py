@@ -1,7 +1,5 @@
 import unittest
 
-import pytest
-
 import medmodels.medrecord as mr
 
 
@@ -60,10 +58,10 @@ class TestMedRecordBuilder(unittest.TestCase):
 
         medrecord = mr.MedRecord.builder().with_schema(schema).build()
 
-        medrecord.add_node("node", {"attribute": 1})
+        medrecord.add_nodes(("node1", {"attribute": 1}))
 
-        with pytest.raises(ValueError):
-            medrecord.add_node("node", {"attribute": "1"})
+        with self.assertRaises(ValueError):
+            medrecord.add_nodes(("node2", {"attribute": "1"}))
 
 
 if __name__ == "__main__":
