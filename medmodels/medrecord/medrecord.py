@@ -799,7 +799,7 @@ class MedRecord:
         if not self.contains_group(group):
             self.add_group(group)
 
-        self.add_edge_to_group(group, edge_indices)
+        self.add_edges_to_group(group, edge_indices)
 
         return edge_indices
 
