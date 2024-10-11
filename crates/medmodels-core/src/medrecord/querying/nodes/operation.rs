@@ -591,11 +591,11 @@ impl NodeIndicesOperation {
     pub(crate) fn get_sum(
         mut indices: impl Iterator<Item = NodeIndex>,
     ) -> MedRecordResult<NodeIndex> {
-        let first_value = indices
+        let first_index = indices
             .next()
             .ok_or(MedRecordError::QueryError("No indices to sum".to_string()))?;
 
-        indices.try_fold(first_value, |sum, index| {
+        indices.try_fold(first_index, |sum, index| {
             let first_dtype = DataType::from(&sum);
             let second_dtype = DataType::from(&index);
 
