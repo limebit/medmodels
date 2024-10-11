@@ -10,7 +10,7 @@ use std::ops::Deref;
 
 #[repr(transparent)]
 #[derive(Clone, Debug)]
-pub(crate) struct PyMedRecordValue(MedRecordValue);
+pub struct PyMedRecordValue(MedRecordValue);
 
 impl From<MedRecordValue> for PyMedRecordValue {
     fn from(value: MedRecordValue) -> Self {

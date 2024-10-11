@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Dict, Tuple, Union, overload
+from typing import TYPE_CHECKING, Callable, Dict, Tuple, Union, overload
 
-from medmodels.medrecord.querying import EdgeOperation, NodeOperation
+from medmodels.medrecord.querying import EdgeQuery, NodeQuery
 from medmodels.medrecord.types import (
     Attributes,
     AttributesInput,
@@ -48,10 +48,10 @@ class NodeIndexer:
         self,
         key: Union[
             NodeIndexInputList,
-            NodeOperation,
+            NodeQuery,
             slice,
             Tuple[
-                Union[NodeIndexInputList, NodeOperation, slice],
+                Union[NodeIndexInputList, NodeQuery, slice],
                 Union[MedRecordAttributeInputList, slice],
             ],
         ],
@@ -60,7 +60,7 @@ class NodeIndexer:
     @overload
     def __getitem__(
         self,
-        key: Tuple[Union[NodeIndexInputList, NodeOperation, slice], MedRecordAttribute],
+        key: Tuple[Union[NodeIndexInputList, NodeQuery, slice], MedRecordAttribute],
     ) -> Dict[NodeIndex, MedRecordValue]: ...
 
     def __getitem__(
@@ -68,10 +68,10 @@ class NodeIndexer:
         key: Union[
             NodeIndex,
             NodeIndexInputList,
-            NodeOperation,
+            NodeQuery,
             slice,
             Tuple[
-                Union[NodeIndex, NodeIndexInputList, NodeOperation, slice],
+                Union[NodeIndex, NodeIndexInputList, NodeQuery, slice],
                 Union[MedRecordAttribute, MedRecordAttributeInputList, slice],
             ],
         ],
@@ -87,7 +87,7 @@ class NodeIndexer:
         if isinstance(key, list):
             return self._medrecord._medrecord.node(key)
 
-        if isinstance(key, NodeOperation):
+        if isinstance(key, Callable):
             return self._medrecord._medrecord.node(self._medrecord.select_nodes(key))
 
         if isinstance(key, slice):
@@ -112,7 +112,7 @@ class NodeIndexer:
 
             return {x: attributes[x][attribute_selection] for x in attributes.keys()}
 
-        if isinstance(index_selection, NodeOperation) and is_medrecord_attribute(
+        if isinstance(index_selection, Callable) and is_medrecord_attribute(
             attribute_selection
         ):
             attributes = self._medrecord._medrecord.node(
@@ -151,7 +151,7 @@ class NodeIndexer:
                 for x in attributes.keys()
             }
 
-        if isinstance(index_selection, NodeOperation) and isinstance(
+        if isinstance(index_selection, Callable) and isinstance(
             attribute_selection, list
         ):
             attributes = self._medrecord._medrecord.node(
@@ -198,7 +198,7 @@ class NodeIndexer:
 
             return self._medrecord._medrecord.node(index_selection)
 
-        if isinstance(index_selection, NodeOperation) and isinstance(
+        if isinstance(index_selection, Callable) and isinstance(
             attribute_selection, slice
         ):
             if (
@@ -230,7 +230,7 @@ class NodeIndexer:
     @overload
     def __setitem__(
         self,
-        key: Union[NodeIndex, NodeIndexInputList, NodeOperation, slice],
+        key: Union[NodeIndex, NodeIndexInputList, NodeQuery, slice],
         value: AttributesInput,
     ) -> None: ...
 
@@ -238,7 +238,7 @@ class NodeIndexer:
     def __setitem__(
         self,
         key: Tuple[
-            Union[NodeIndex, NodeIndexInputList, NodeOperation, slice],
+            Union[NodeIndex, NodeIndexInputList, NodeQuery, slice],
             Union[MedRecordAttribute, MedRecordAttributeInputList, slice],
         ],
         value: MedRecordValue,
@@ -249,10 +249,10 @@ class NodeIndexer:
         key: Union[
             NodeIndex,
             NodeIndexInputList,
-            NodeOperation,
+            NodeQuery,
             slice,
             Tuple[
-                Union[NodeIndex, NodeIndexInputList, NodeOperation, slice],
+                Union[NodeIndex, NodeIndexInputList, NodeQuery, slice],
                 Union[MedRecordAttribute, MedRecordAttributeInputList, slice],
             ],
         ],
@@ -270,7 +270,7 @@ class NodeIndexer:
 
             return self._medrecord._medrecord.replace_node_attributes(key, value)
 
-        if isinstance(key, NodeOperation):
+        if isinstance(key, Callable):
             if not is_attributes(value):
                 raise ValueError("Invalid value type. Expected Attributes")
 
@@ -311,7 +311,7 @@ class NodeIndexer:
                 index_selection, attribute_selection, value
             )
 
-        if isinstance(index_selection, NodeOperation) and is_medrecord_attribute(
+        if isinstance(index_selection, Callable) and is_medrecord_attribute(
             attribute_selection
         ):
             if not is_medrecord_value(value):
@@ -364,7 +364,7 @@ class NodeIndexer:
 
             return
 
-        if isinstance(index_selection, NodeOperation) and isinstance(
+        if isinstance(index_selection, Callable) and isinstance(
             attribute_selection, list
         ):
             if not is_medrecord_value(value):
@@ -440,7 +440,7 @@ class NodeIndexer:
 
             return
 
-        if isinstance(index_selection, NodeOperation) and isinstance(
+        if isinstance(index_selection, Callable) and isinstance(
             attribute_selection, slice
         ):
             if (
@@ -494,7 +494,7 @@ class NodeIndexer:
     def __delitem__(
         self,
         key: Tuple[
-            Union[NodeIndex, NodeIndexInputList, NodeOperation, slice],
+            Union[NodeIndex, NodeIndexInputList, NodeQuery, slice],
             Union[MedRecordAttribute, MedRecordAttributeInputList, slice],
         ],
     ) -> None:
@@ -514,7 +514,7 @@ class NodeIndexer:
                 index_selection, attribute_selection
             )
 
-        if isinstance(index_selection, NodeOperation) and is_medrecord_attribute(
+        if isinstance(index_selection, Callable) and is_medrecord_attribute(
             attribute_selection
         ):
             return self._medrecord._medrecord.remove_node_attribute(
@@ -553,7 +553,7 @@ class NodeIndexer:
 
             return
 
-        if isinstance(index_selection, NodeOperation) and isinstance(
+        if isinstance(index_selection, Callable) and isinstance(
             attribute_selection, list
         ):
             for attribute in attribute_selection:
@@ -602,7 +602,7 @@ class NodeIndexer:
                 index_selection, {}
             )
 
-        if isinstance(index_selection, NodeOperation) and isinstance(
+        if isinstance(index_selection, Callable) and isinstance(
             attribute_selection, slice
         ):
             if (
@@ -658,10 +658,10 @@ class EdgeIndexer:
         self,
         key: Union[
             EdgeIndexInputList,
-            EdgeOperation,
+            EdgeQuery,
             slice,
             Tuple[
-                Union[EdgeIndexInputList, EdgeOperation, slice],
+                Union[EdgeIndexInputList, EdgeQuery, slice],
                 Union[MedRecordAttributeInputList, slice],
             ],
         ],
@@ -670,7 +670,7 @@ class EdgeIndexer:
     @overload
     def __getitem__(
         self,
-        key: Tuple[Union[EdgeIndexInputList, EdgeOperation, slice], MedRecordAttribute],
+        key: Tuple[Union[EdgeIndexInputList, EdgeQuery, slice], MedRecordAttribute],
     ) -> Dict[EdgeIndex, MedRecordValue]: ...
 
     def __getitem__(
@@ -678,10 +678,10 @@ class EdgeIndexer:
         key: Union[
             EdgeIndex,
             EdgeIndexInputList,
-            EdgeOperation,
+            EdgeQuery,
             slice,
             Tuple[
-                Union[EdgeIndex, EdgeIndexInputList, EdgeOperation, slice],
+                Union[EdgeIndex, EdgeIndexInputList, EdgeQuery, slice],
                 Union[MedRecordAttribute, MedRecordAttributeInputList, slice],
             ],
         ],
@@ -697,7 +697,7 @@ class EdgeIndexer:
         if isinstance(key, list):
             return self._medrecord._medrecord.edge(key)
 
-        if isinstance(key, EdgeOperation):
+        if isinstance(key, Callable):
             return self._medrecord._medrecord.edge(self._medrecord.select_edges(key))
 
         if isinstance(key, slice):
@@ -722,7 +722,7 @@ class EdgeIndexer:
 
             return {x: attributes[x][attribute_selection] for x in attributes.keys()}
 
-        if isinstance(index_selection, EdgeOperation) and is_medrecord_attribute(
+        if isinstance(index_selection, Callable) and is_medrecord_attribute(
             attribute_selection
         ):
             attributes = self._medrecord._medrecord.edge(
@@ -761,7 +761,7 @@ class EdgeIndexer:
                 for x in attributes.keys()
             }
 
-        if isinstance(index_selection, EdgeOperation) and isinstance(
+        if isinstance(index_selection, Callable) and isinstance(
             attribute_selection, list
         ):
             attributes = self._medrecord._medrecord.edge(
@@ -808,7 +808,7 @@ class EdgeIndexer:
 
             return self._medrecord._medrecord.edge(index_selection)
 
-        if isinstance(index_selection, EdgeOperation) and isinstance(
+        if isinstance(index_selection, Callable) and isinstance(
             attribute_selection, slice
         ):
             if (
@@ -840,7 +840,7 @@ class EdgeIndexer:
     @overload
     def __setitem__(
         self,
-        key: Union[EdgeIndex, EdgeIndexInputList, EdgeOperation, slice],
+        key: Union[EdgeIndex, EdgeIndexInputList, EdgeQuery, slice],
         value: AttributesInput,
     ) -> None: ...
 
@@ -848,7 +848,7 @@ class EdgeIndexer:
     def __setitem__(
         self,
         key: Tuple[
-            Union[EdgeIndex, EdgeIndexInputList, EdgeOperation, slice],
+            Union[EdgeIndex, EdgeIndexInputList, EdgeQuery, slice],
             Union[MedRecordAttribute, MedRecordAttributeInputList, slice],
         ],
         value: MedRecordValue,
@@ -859,10 +859,10 @@ class EdgeIndexer:
         key: Union[
             EdgeIndex,
             EdgeIndexInputList,
-            EdgeOperation,
+            EdgeQuery,
             slice,
             Tuple[
-                Union[EdgeIndex, EdgeIndexInputList, EdgeOperation, slice],
+                Union[EdgeIndex, EdgeIndexInputList, EdgeQuery, slice],
                 Union[MedRecordAttribute, MedRecordAttributeInputList, slice],
             ],
         ],
@@ -880,7 +880,7 @@ class EdgeIndexer:
 
             return self._medrecord._medrecord.replace_edge_attributes(key, value)
 
-        if isinstance(key, EdgeOperation):
+        if isinstance(key, Callable):
             if not is_attributes(value):
                 raise ValueError("Invalid value type. Expected Attributes")
 
@@ -921,7 +921,7 @@ class EdgeIndexer:
                 index_selection, attribute_selection, value
             )
 
-        if isinstance(index_selection, EdgeOperation) and is_medrecord_attribute(
+        if isinstance(index_selection, Callable) and is_medrecord_attribute(
             attribute_selection
         ):
             if not is_medrecord_value(value):
@@ -974,7 +974,7 @@ class EdgeIndexer:
 
             return
 
-        if isinstance(index_selection, EdgeOperation) and isinstance(
+        if isinstance(index_selection, Callable) and isinstance(
             attribute_selection, list
         ):
             if not is_medrecord_value(value):
@@ -1048,7 +1048,7 @@ class EdgeIndexer:
 
             return
 
-        if isinstance(index_selection, EdgeOperation) and isinstance(
+        if isinstance(index_selection, Callable) and isinstance(
             attribute_selection, slice
         ):
             if (
@@ -1102,7 +1102,7 @@ class EdgeIndexer:
     def __delitem__(
         self,
         key: Tuple[
-            Union[EdgeIndex, EdgeIndexInputList, EdgeOperation, slice],
+            Union[EdgeIndex, EdgeIndexInputList, EdgeQuery, slice],
             Union[MedRecordAttribute, MedRecordAttributeInputList, slice],
         ],
     ) -> None:
@@ -1122,7 +1122,7 @@ class EdgeIndexer:
                 index_selection, attribute_selection
             )
 
-        if isinstance(index_selection, EdgeOperation) and is_medrecord_attribute(
+        if isinstance(index_selection, Callable) and is_medrecord_attribute(
             attribute_selection
         ):
             return self._medrecord._medrecord.remove_edge_attribute(
@@ -1161,7 +1161,7 @@ class EdgeIndexer:
 
             return
 
-        if isinstance(index_selection, EdgeOperation) and isinstance(
+        if isinstance(index_selection, Callable) and isinstance(
             attribute_selection, list
         ):
             for attribute in attribute_selection:
@@ -1210,7 +1210,7 @@ class EdgeIndexer:
                 index_selection, {}
             )
 
-        if isinstance(index_selection, EdgeOperation) and isinstance(
+        if isinstance(index_selection, Callable) and isinstance(
             attribute_selection, slice
         ):
             if (

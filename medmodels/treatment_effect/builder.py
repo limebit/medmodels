@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any, Dict, Literal, Optional
 
 import medmodels.treatment_effect.treatment_effect as tee
-from medmodels.medrecord.querying import NodeOperation
+from medmodels.medrecord.querying import NodeQuery
 from medmodels.medrecord.types import (
     Group,
     MedRecordAttribute,
@@ -31,7 +31,7 @@ class TreatmentEffectBuilder:
 
     outcome_before_treatment_days: Optional[int]
 
-    filter_controls_operation: Optional[NodeOperation]
+    filter_controls_query: Optional[NodeQuery]
 
     matching_method: Optional[MatchingMethod]
     matching_essential_covariates: Optional[MedRecordAttributeInputList]
@@ -202,17 +202,17 @@ class TreatmentEffectBuilder:
 
         return self
 
-    def filter_controls(self, operation: NodeOperation) -> TreatmentEffectBuilder:
-        """Filter the control group based on the provided operation.
+    def filter_controls(self, query: NodeQuery) -> TreatmentEffectBuilder:
+        """Filter the control group based on the provided query.
 
         Args:
-            operation (NodeOperation): The operation to be applied to the control group.
+            query (NodeQuery): The query to be applied to the control group.
 
         Returns:
             TreatmentEffectBuilder: The current instance of the TreatmentEffectBuilder
                 with updated time attribute.
         """
-        self.filter_controls_operation = operation
+        self.filter_controls_query = query
 
         return self
 

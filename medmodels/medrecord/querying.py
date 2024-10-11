@@ -1,18 +1,22 @@
 from __future__ import annotations
 
-from typing import List, Union
+import sys
+from enum import Enum
+from typing import TYPE_CHECKING, Callable, List, Union
 
 from medmodels._medmodels import (
-    PyEdgeAttributeOperand,
+    PyAttributesTreeOperand,
+    PyEdgeDirection,
     PyEdgeIndexOperand,
+    PyEdgeIndicesOperand,
     PyEdgeOperand,
-    PyEdgeOperation,
-    PyNodeAttributeOperand,
+    PyMultipleAttributesOperand,
+    PyMultipleValuesOperand,
     PyNodeIndexOperand,
+    PyNodeIndicesOperand,
     PyNodeOperand,
-    PyNodeOperation,
-    PyValueArithmeticOperation,
-    PyValueTransformationOperation,
+    PySingleAttributeOperand,
+    PySingleValueOperand,
 )
 from medmodels.medrecord.types import (
     EdgeIndex,
@@ -22,1562 +26,1844 @@ from medmodels.medrecord.types import (
     NodeIndex,
 )
 
-ValueOperand = Union[
-    MedRecordValue,
-    MedRecordAttribute,
-    PyValueArithmeticOperation,
-    PyValueTransformationOperation,
+if TYPE_CHECKING:
+    if sys.version_info >= (3, 10):
+        from typing import TypeAlias
+    else:
+        from typing_extensions import TypeAlias
+
+NodeQuery: TypeAlias = Callable[["NodeOperand"], None]
+EdgeQuery: TypeAlias = Callable[["EdgeOperand"], None]
+
+SingleValueComparisonOperand: TypeAlias = Union["SingleValueOperand", MedRecordValue]
+SingleValueArithmeticOperand: TypeAlias = SingleValueComparisonOperand
+MultipleValuesComparisonOperand: TypeAlias = Union[
+    "MultipleValuesOperand", List[MedRecordValue]
 ]
 
 
-class NodeOperation:
-    _node_operation: PyNodeOperation
+def _py_single_value_comparison_operand_from_single_value_comparison_operand(
+    single_value_comparison_operand: SingleValueComparisonOperand,
+) -> Union[MedRecordValue, PySingleValueOperand]:
+    if isinstance(single_value_comparison_operand, SingleValueOperand):
+        return single_value_comparison_operand._single_value_operand
+    return single_value_comparison_operand
 
-    def __init__(self, node_operation: PyNodeOperation):
-        self._node_operation = node_operation
 
-    def logical_and(self, operation: NodeOperation) -> NodeOperation:
-        """Combines this NodeOperation with another using a logical AND, resulting in a new NodeOperation that is true only if both original operations are true.
+def _py_multiple_values_comparison_operand_from_multiple_values_comparison_operand(
+    multiple_values_comparison_operand: MultipleValuesComparisonOperand,
+) -> Union[List[MedRecordValue], PyMultipleValuesOperand]:
+    if isinstance(multiple_values_comparison_operand, MultipleValuesOperand):
+        return multiple_values_comparison_operand._multiple_values_operand
+    return multiple_values_comparison_operand
 
-        This method allows for the chaining of conditions to refine queries on nodes.
 
-        Args:
-            operation (NodeOperation): Another NodeOperation to be combined with the
-                current one.
+SingleAttributeComparisonOperand: TypeAlias = Union[
+    "SingleAttributeOperand",
+    MedRecordAttribute,
+]
+SingleAttributeArithmeticOperand: TypeAlias = SingleAttributeComparisonOperand
+MultipleAttributesComparisonOperand: TypeAlias = Union[
+    "MultipleAttributesOperand", List[MedRecordAttribute]
+]
 
-        Returns:
-            NodeOperation: A new NodeOperation representing the logical AND of this
-                operation with another.
-        """
-        return NodeOperation(
-            self._node_operation.logical_and(operation._node_operation)
+
+def _py_single_attribute_comparison_operand_from_single_attribute_comparison_operand(
+    single_attribute_comparison_operand: SingleAttributeComparisonOperand,
+) -> Union[MedRecordAttribute, PySingleAttributeOperand]:
+    if isinstance(single_attribute_comparison_operand, SingleAttributeOperand):
+        return single_attribute_comparison_operand._single_attribute_operand
+    return single_attribute_comparison_operand
+
+
+def _py_multiple_attributes_comparison_operand_from_multiple_attributes_comparison_operand(
+    multiple_attributes_comparison_operand: MultipleAttributesComparisonOperand,
+) -> Union[List[MedRecordAttribute], PyMultipleAttributesOperand]:
+    if isinstance(multiple_attributes_comparison_operand, MultipleAttributesOperand):
+        return multiple_attributes_comparison_operand._multiple_attributes_operand
+    return multiple_attributes_comparison_operand
+
+
+NodeIndexComparisonOperand: TypeAlias = Union["NodeIndexOperand", NodeIndex]
+NodeIndexArithmeticOperand: TypeAlias = NodeIndexComparisonOperand
+NodeIndicesComparisonOperand: TypeAlias = Union["NodeIndicesOperand", List[NodeIndex]]
+
+
+def _py_node_index_comparison_operand_from_node_index_comparison_operand(
+    node_index_comparison_operand: NodeIndexComparisonOperand,
+) -> Union[NodeIndex, PyNodeIndexOperand]:
+    if isinstance(node_index_comparison_operand, NodeIndexOperand):
+        return node_index_comparison_operand._node_index_operand
+    return node_index_comparison_operand
+
+
+def _py_node_indices_comparison_operand_from_node_indices_comparison_operand(
+    node_indices_comparison_operand: NodeIndicesComparisonOperand,
+) -> Union[List[NodeIndex], PyNodeIndicesOperand]:
+    if isinstance(node_indices_comparison_operand, NodeIndicesOperand):
+        return node_indices_comparison_operand._node_indices_operand
+    return node_indices_comparison_operand
+
+
+EdgeIndexComparisonOperand: TypeAlias = Union[
+    "EdgeIndexOperand",
+    EdgeIndex,
+]
+EdgeIndexArithmeticOperand: TypeAlias = EdgeIndexComparisonOperand
+EdgeIndicesComparisonOperand: TypeAlias = Union[
+    "EdgeIndicesOperand",
+    List[EdgeIndex],
+]
+
+
+def _py_edge_index_comparison_operand_from_edge_index_comparison_operand(
+    edge_index_comparison_operand: EdgeIndexComparisonOperand,
+) -> Union[EdgeIndex, PyEdgeIndexOperand]:
+    if isinstance(edge_index_comparison_operand, EdgeIndexOperand):
+        return edge_index_comparison_operand._edge_index_operand
+    return edge_index_comparison_operand
+
+
+def _py_edge_indices_comparison_operand_from_edge_indices_comparison_operand(
+    edge_indices_comparison_operand: EdgeIndicesComparisonOperand,
+) -> Union[List[EdgeIndex], PyEdgeIndicesOperand]:
+    if isinstance(edge_indices_comparison_operand, EdgeIndicesOperand):
+        return edge_indices_comparison_operand._edge_indices_operand
+    return edge_indices_comparison_operand
+
+
+class EdgeDirection(Enum):
+    INCOMING = 0
+    OUTGOING = 1
+    BOTH = 2
+
+    def _into_py_edge_direction(self) -> PyEdgeDirection:
+        return (
+            PyEdgeDirection.Incoming
+            if self == EdgeDirection.INCOMING
+            else PyEdgeDirection.Outgoing
+            if self == EdgeDirection.OUTGOING
+            else PyEdgeDirection.Both
         )
-
-    def __and__(self, operation: NodeOperation) -> NodeOperation:
-        return self.logical_and(operation)
-
-    def logical_or(self, operation: NodeOperation) -> NodeOperation:
-        """Combines this NodeOperation with another using a logical OR, resulting in a new NodeOperation that is true if either of the original operations is true.
-
-        This method enables the combination of conditions to expand queries on nodes.
-
-        Args:
-            operation (NodeOperation): Another NodeOperation to be combined with the
-                current one.
-
-        Returns:
-            NodeOperation: A new NodeOperation representing the logical OR of this
-                operation with another.
-        """
-        return NodeOperation(self._node_operation.logical_or(operation._node_operation))
-
-    def __or__(self, operation: NodeOperation) -> NodeOperation:
-        return self.logical_or(operation)
-
-    def logical_xor(self, operation: NodeOperation) -> NodeOperation:
-        """Combines this NodeOperation with another using a logical XOR, resulting in a new NodeOperation that is true only if exactly one of the original operations is true.
-
-        This method is useful for creating conditions that must be
-        exclusively true.
-
-        Args:
-            operation (NodeOperation): Another NodeOperation to be combined with the
-                current one.
-
-        Returns:
-            NodeOperation: A new NodeOperation representing the logical XOR of this
-                operation with another.
-        """
-        return NodeOperation(
-            self._node_operation.logical_xor(operation._node_operation)
-        )
-
-    def __xor__(self, operation: NodeOperation) -> NodeOperation:
-        return self.logical_xor(operation)
-
-    def logical_not(self) -> NodeOperation:
-        """Creates a new NodeOperation that is the logical NOT of this operation, inversing the current condition.
-
-        This method is useful for negating a condition
-        to create queries on nodes.
-
-        Returns:
-            NodeOperation: A new NodeOperation representing the logical NOT of
-                this operation.
-        """
-        return NodeOperation(self._node_operation.logical_not())
-
-    def __invert__(self) -> NodeOperation:
-        return self.logical_not()
-
-
-class EdgeOperation:
-    _edge_operation: PyEdgeOperation
-
-    def __init__(self, edge_operation: PyEdgeOperation) -> None:
-        self._edge_operation = edge_operation
-
-    def logical_and(self, operation: EdgeOperation) -> EdgeOperation:
-        """Combines this EdgeOperation with another using a logical AND, resulting in a new EdgeOperation that is true only if both original operations are true.
-
-        This method allows for the chaining of conditions to refine queries on nodes.
-
-        Args:
-            operation (EdgeOperation): Another EdgeOperation to be combined with the
-                current one.
-
-        Returns:
-            EdgeOperation: A new EdgeOperation representing the logical AND of this
-                operation with another.
-        """
-        return EdgeOperation(
-            self._edge_operation.logical_and(operation._edge_operation)
-        )
-
-    def __and__(self, operation: EdgeOperation) -> EdgeOperation:
-        return self.logical_and(operation)
-
-    def logical_or(self, operation: EdgeOperation) -> EdgeOperation:
-        """Combines this EdgeOperation with another using a logical OR, resulting in a new EdgeOperation that is true if either of the original operations is true.
-
-        This method enables the combination of conditions to expand queries on nodes.
-
-        Args:
-            operation (EdgeOperation): Another EdgeOperation to be combined with the
-                current one.
-
-        Returns:
-            EdgeOperation: A new EdgeOperation representing the logical OR of this
-                operation with another.
-        """
-        return EdgeOperation(self._edge_operation.logical_or(operation._edge_operation))
-
-    def __or__(self, operation: EdgeOperation) -> EdgeOperation:
-        return self.logical_or(operation)
-
-    def logical_xor(self, operation: EdgeOperation) -> EdgeOperation:
-        """Combines this EdgeOperation with another using a logical XOR, resulting in a new EdgeOperation that is true only if exactly one of the original operations is true.
-
-        This method is useful for creating conditions that must be
-        exclusively true.
-
-        Args:
-            operation (EdgeOperation): Another EdgeOperation to be combined with the
-                current one.
-
-        Returns:
-            EdgeOperation: A new EdgeOperation representing the logical XOR of this
-                operation with another.
-        """
-        return EdgeOperation(
-            self._edge_operation.logical_xor(operation._edge_operation)
-        )
-
-    def __xor__(self, operation: EdgeOperation) -> EdgeOperation:
-        return self.logical_xor(operation)
-
-    def logical_not(self) -> EdgeOperation:
-        """Creates a new EdgeOperation that is the logical NOT of this operation, inversing the current condition.
-
-        This method is useful for negating a condition
-        to create queries on nodes.
-
-        Returns:
-            EdgeOperation: A new EdgeOperation representing the logical NOT of
-                this operation.
-        """
-        return EdgeOperation(self._edge_operation.logical_not())
-
-    def __invert__(self) -> EdgeOperation:
-        return self.logical_not()
-
-
-class NodeAttributeOperand:
-    _node_attribute_operand: PyNodeAttributeOperand
-
-    def __init__(self, node_attribute_operand: PyNodeAttributeOperand) -> None:
-        self._node_attribute_operand = node_attribute_operand
-
-    def greater(
-        self, operand: Union[ValueOperand, NodeAttributeOperand]
-    ) -> NodeOperation:
-        """Creates a NodeOperation that evaluates to true if the attribute represented by this operand is greater than the specified value or operand.
-
-        Args:
-            operand (ValueOperand): The value or operand to compare against.
-
-        Returns:
-            NodeOperation: A NodeOperation representing the greater-than comparison.
-        """
-        if isinstance(operand, NodeAttributeOperand):
-            return NodeOperation(
-                self._node_attribute_operand.greater(operand._node_attribute_operand)
-            )
-
-        return NodeOperation(self._node_attribute_operand.greater(operand))
-
-    def __gt__(
-        self, operand: Union[ValueOperand, NodeAttributeOperand]
-    ) -> NodeOperation:
-        return self.greater(operand)
-
-    def less(self, operand: Union[ValueOperand, NodeAttributeOperand]) -> NodeOperation:
-        """Creates a NodeOperation that evaluates to true if the attribute represented by this operand is less than the specified value or operand.
-
-        Args:
-            operand (ValueOperand): The value or operand to compare against.
-
-        Returns:
-            NodeOperation: A NodeOperation representing the less-than comparison.
-        """
-        if isinstance(operand, NodeAttributeOperand):
-            return NodeOperation(
-                self._node_attribute_operand.less(operand._node_attribute_operand)
-            )
-
-        return NodeOperation(self._node_attribute_operand.less(operand))
-
-    def __lt__(
-        self, operand: Union[ValueOperand, NodeAttributeOperand]
-    ) -> NodeOperation:
-        return self.less(operand)
-
-    def greater_or_equal(
-        self, operand: Union[ValueOperand, NodeAttributeOperand]
-    ) -> NodeOperation:
-        """Creates a NodeOperation that evaluates to true if the attribute represented by this operand is greater than or equal to the specified value or operand.
-
-        Args:
-            operand (ValueOperand): The value or operand to compare against.
-
-        Returns:
-            NodeOperation: A NodeOperation representing the
-                greater-than-or-equal-to comparison.
-        """
-        if isinstance(operand, NodeAttributeOperand):
-            return NodeOperation(
-                self._node_attribute_operand.greater_or_equal(
-                    operand._node_attribute_operand
-                )
-            )
-
-        return NodeOperation(self._node_attribute_operand.greater_or_equal(operand))
-
-    def __ge__(
-        self, operand: Union[ValueOperand, NodeAttributeOperand]
-    ) -> NodeOperation:
-        return self.greater_or_equal(operand)
-
-    def less_or_equal(
-        self, operand: Union[ValueOperand, NodeAttributeOperand]
-    ) -> NodeOperation:
-        """Creates a NodeOperation that evaluates to true if the attribute represented by this operand is less than or equal to the specified value or operand.
-
-        Args:
-            operand (ValueOperand): The value or operand to compare against.
-
-        Returns:
-            NodeOperation: A NodeOperation representing the
-                less-than-or-equal-to comparison.
-        """
-        if isinstance(operand, NodeAttributeOperand):
-            return NodeOperation(
-                self._node_attribute_operand.less_or_equal(
-                    operand._node_attribute_operand
-                )
-            )
-
-        return NodeOperation(self._node_attribute_operand.less_or_equal(operand))
-
-    def __le__(
-        self, operand: Union[ValueOperand, NodeAttributeOperand]
-    ) -> NodeOperation:
-        return self.less_or_equal(operand)
-
-    def equal(
-        self, operand: Union[ValueOperand, NodeAttributeOperand]
-    ) -> NodeOperation:
-        """Creates a NodeOperation that evaluates to true if the attribute represented by this operand is equal to the specified value or operand.
-
-        Args:
-            operand (ValueOperand): The value or operand to compare against.y
-
-        Returns:
-            NodeOperation: A NodeOperation representing the equality comparison.
-        """
-        if isinstance(operand, NodeAttributeOperand):
-            return NodeOperation(
-                self._node_attribute_operand.equal(operand._node_attribute_operand)
-            )
-
-        return NodeOperation(self._node_attribute_operand.equal(operand))
-
-    def __eq__(
-        self, operand: Union[ValueOperand, NodeAttributeOperand]
-    ) -> NodeOperation:
-        return self.equal(operand)
-
-    def not_equal(
-        self, operand: Union[ValueOperand, NodeAttributeOperand]
-    ) -> NodeOperation:
-        """Creates a NodeOperation that evaluates to true if the attribute represented by this operand is not equal to the specified value or operand.
-
-        Args:
-            operand (ValueOperand): The value or operand to compare against.
-
-        Returns:
-            NodeOperation: A NodeOperation representing the not-equal comparison.
-        """
-        if isinstance(operand, NodeAttributeOperand):
-            return NodeOperation(
-                self._node_attribute_operand.not_equal(operand._node_attribute_operand)
-            )
-
-        return NodeOperation(self._node_attribute_operand.not_equal(operand))
-
-    def __ne__(
-        self, operand: Union[ValueOperand, NodeAttributeOperand]
-    ) -> NodeOperation:
-        return self.not_equal(operand)
-
-    def is_in(self, values: List[MedRecordValue]) -> NodeOperation:
-        """Creates a NodeOperation that evaluates to true if the attribute represented by this operand is found within the specified list of values.
-
-        Args:
-            values (List[MedRecordValue]): The list of values to check the
-                attribute against.
-
-        Returns:
-            NodeOperation: A NodeOperation representing the is-in comparison.
-        """
-        return NodeOperation(self._node_attribute_operand.is_in(values))
-
-    def not_in(self, values: List[MedRecordValue]) -> NodeOperation:
-        """Creates a NodeOperation that evaluates to true if the attribute represented by this operand is not found within the specified list of values.
-
-        Args:
-            values (List[MedRecordValue]): The list of values to check the
-                attribute against.
-
-        Returns:
-            NodeOperation: A NodeOperation representing the not-in comparison.
-        """
-        return NodeOperation(self._node_attribute_operand.not_in(values))
-
-    def starts_with(self, operand: ValueOperand) -> NodeOperation:
-        """Creates a NodeOperation that evaluates to true if the attribute represented by this operand starts with the specified value or operand.
-
-        Args:
-            operand (ValueOperand): The value or operand to compare
-                the starting sequence against.
-
-        Returns:
-            NodeOperation: A NodeOperation representing the starts-with condition.
-        """
-        if isinstance(operand, NodeAttributeOperand):
-            return NodeOperation(
-                self._node_attribute_operand.starts_with(
-                    operand._node_attribute_operand
-                )
-            )
-
-        return NodeOperation(self._node_attribute_operand.starts_with(operand))
-
-    def ends_with(
-        self, operand: Union[ValueOperand, NodeAttributeOperand]
-    ) -> NodeOperation:
-        """Creates a NodeOperation that evaluates to true if the attribute represented by this operand ends with the specified value or operand.
-
-        Args:
-            operand (ValueOperand): The value or operand to compare
-                the ending sequence against.
-
-        Returns:
-            NodeOperation: A NodeOperation representing the ends-with condition.
-        """
-        if isinstance(operand, NodeAttributeOperand):
-            return NodeOperation(
-                self._node_attribute_operand.ends_with(operand._node_attribute_operand)
-            )
-
-        return NodeOperation(self._node_attribute_operand.ends_with(operand))
-
-    def contains(
-        self, operand: Union[ValueOperand, NodeAttributeOperand]
-    ) -> NodeOperation:
-        """Creates a NodeOperation that evaluates to true if the attribute represented by this operand contains the specified value or operand within it.
-
-        Args:
-            operand (ValueOperand): The value or operand to check for containment.
-
-        Returns:
-            NodeOperation: A NodeOperation representing the contains condition.
-        """
-        if isinstance(operand, NodeAttributeOperand):
-            return NodeOperation(
-                self._node_attribute_operand.contains(operand._node_attribute_operand)
-            )
-
-        return NodeOperation(self._node_attribute_operand.contains(operand))
-
-    def add(self, value: MedRecordValue) -> ValueOperand:
-        """Creates a new ValueOperand representing the sum of the attribute's value and the specified value.
-
-        Args:
-            value (MedRecordValue): The value to add to the attribute's value.
-
-        Returns:
-            ValueOperand: The result of the addition operation.
-        """
-        return self._node_attribute_operand.add(value)
-
-    def __add__(self, value: MedRecordValue) -> ValueOperand:
-        return self.add(value)
-
-    def sub(self, value: MedRecordValue) -> ValueOperand:
-        """Creates a new ValueOperand representing the difference between the attribute's value and the specified value.
-
-        Args:
-            value (MedRecordValue): The value to subtract from the attribute's value.
-
-        Returns:
-            ValueOperand: The result of the subtraction operation.
-        """
-        return self._node_attribute_operand.sub(value)
-
-    def __sub__(self, value: MedRecordValue) -> ValueOperand:
-        return self.sub(value)
-
-    def mul(self, value: MedRecordValue) -> ValueOperand:
-        """Creates a new ValueOperand representing the product of the attribute's value and the specified value.
-
-        Args:
-            value (MedRecordValue): The value to multiply the attribute's value by.
-
-        Returns:
-            ValueOperand: The result of the multiplication operation.
-        """
-        return self._node_attribute_operand.mul(value)
-
-    def __mul__(self, value: MedRecordValue) -> ValueOperand:
-        return self.mul(value)
-
-    def div(self, value: MedRecordValue) -> ValueOperand:
-        """Creates a new ValueOperand representing the division of the attribute's value by the specified value.
-
-        Args:
-            value (MedRecordValue): The value to divide the attribute's value by.
-
-        Returns:
-            ValueOperand: The result of the division operation.
-        """
-        return self._node_attribute_operand.div(value)
-
-    def __truediv__(self, value: MedRecordValue) -> ValueOperand:
-        return self.div(value)
-
-    def pow(self, value: MedRecordValue) -> ValueOperand:
-        """Creates a new ValueOperand representing the result of raising the attribute's value to the power of the specified value.
-
-        Args:
-            value (MedRecordValue): The value to raise the attribute's value to.
-
-        Returns:
-            ValueOperand: The result of the exponentiation operation.
-        """
-        return self._node_attribute_operand.pow(value)
-
-    def __pow__(self, value: MedRecordValue) -> ValueOperand:
-        return self.pow(value)
-
-    def mod(self, value: MedRecordValue) -> ValueOperand:
-        """Creates a new ValueOperand representing the remainder of dividing the attribute's value by the specified value.
-
-        Args:
-        value (MedRecordValue): The value to divide the attribute's value by.
-
-        Returns:
-        ValueOperand: The result of the modulo operation.
-        """
-        return self._node_attribute_operand.mod(value)
-
-    def __mod__(self, value: MedRecordValue) -> ValueOperand:
-        return self.mod(value)
-
-    def round(self) -> ValueOperand:
-        """Creates a new ValueOperand representing the result of rounding the attribute's value.
-
-        Returns:
-            ValueOperand: The result of the rounding operation.
-        """
-        return self._node_attribute_operand.round()
-
-    def ceil(self) -> ValueOperand:
-        """Creates a new ValueOperand representing the result of applying the ceiling function to the attribute's value, effectively rounding it up to the nearest whole number.
-
-        Returns:
-            ValueOperand: The result of the ceiling operation.
-        """
-        return self._node_attribute_operand.ceil()
-
-    def floor(self) -> ValueOperand:
-        """Creates a new ValueOperand representing the result of applying the floor function to the attribute's value, effectively rounding it down to the nearest whole number.
-
-        Returns:
-            ValueOperand: The result of the floor operation.
-        """
-        return self._node_attribute_operand.floor()
-
-    def abs(self) -> ValueOperand:
-        """Creates a new ValueOperand representing the absolute value of the attribute's value.
-
-        Returns:
-            ValueOperand: The absolute value of the attribute's value.
-        """
-        return self._node_attribute_operand.abs()
-
-    def sqrt(self) -> ValueOperand:
-        """Creates a new ValueOperand representing the square root of the attribute's value.
-
-        Returns:
-            ValueOperand: The square root of the attribute's value.
-        """
-        return self._node_attribute_operand.sqrt()
-
-    def trim(self) -> ValueOperand:
-        """Creates a new ValueOperand representing the result of trimming whitespace from both ends of the attribute's value.
-
-        Returns:
-            ValueOperand: The attribute's value with leading and trailing
-                whitespace removed.
-        """
-        return self._node_attribute_operand.trim()
-
-    def trim_start(self) -> ValueOperand:
-        """Creates a new ValueOperand representing the result of trimming whitespace from the start (left side) of the attribute's value.
-
-        Returns:
-            ValueOperand: The attribute's value with leading whitespace removed.
-        """
-        return self._node_attribute_operand.trim_start()
-
-    def trim_end(self) -> ValueOperand:
-        """Creates a new ValueOperand representing the result of trimming whitespace from the end (right side) of the attribute's value.
-
-        Returns:
-            ValueOperand: The attribute's value with trailing whitespace removed.
-        """
-        return self._node_attribute_operand.trim_end()
-
-    def lowercase(self) -> ValueOperand:
-        """Creates a new ValueOperand representing the result of converting all characters in the attribute's value to lowercase.
-
-        Returns:
-            ValueOperand: The attribute's value in lowercase letters.
-        """
-        return self._node_attribute_operand.lowercase()
-
-    def uppercase(self) -> ValueOperand:
-        """Creates a new ValueOperand representing the result of converting all characters in the attribute's value to uppercase.
-
-        Returns:
-            ValueOperand: The attribute's value in uppercase letters.
-        """
-        return self._node_attribute_operand.uppercase()
-
-    def slice(self, start: int, end: int) -> ValueOperand:
-        """Creates a new ValueOperand representing the result of slicing the attribute's value using the specified start and end indices.
-
-        Args:
-            start (int): The index at which to start the slice.
-            end (int): The index at which to end the slice.
-
-        Returns:
-            ValueOperand: The attribute's value with the specified slice applied.
-        """
-        return self._node_attribute_operand.slice(start, end)
-
-
-class EdgeAttributeOperand:
-    _edge_attribute_operand: PyEdgeAttributeOperand
-
-    def __init__(self, edge_attribute_operand: PyEdgeAttributeOperand) -> None:
-        self._edge_attribute_operand = edge_attribute_operand
-
-    def greater(
-        self, operand: Union[ValueOperand, EdgeAttributeOperand]
-    ) -> EdgeOperation:
-        """Creates a EdgeOperation that evaluates to true if the attribute represented by this operand is greater than the specified value or operand.
-
-        Args:
-            operand (ValueOperand): The value or operand to compare against.
-
-        Returns:
-            EdgeOperation: A EdgeOperation representing the greater-than comparison.
-        """
-        if isinstance(operand, EdgeAttributeOperand):
-            return EdgeOperation(
-                self._edge_attribute_operand.greater(operand._edge_attribute_operand)
-            )
-
-        return EdgeOperation(self._edge_attribute_operand.greater(operand))
-
-    def __gt__(
-        self, operand: Union[ValueOperand, EdgeAttributeOperand]
-    ) -> EdgeOperation:
-        return self.greater(operand)
-
-    def less(self, operand: Union[ValueOperand, EdgeAttributeOperand]) -> EdgeOperation:
-        """Creates a EdgeOperation that evaluates to true if the attribute represented by this operand is less than the specified value or operand.
-
-        Args:
-            operand (ValueOperand): The value or operand to compare against.
-
-        Returns:
-            EdgeOperation: A EdgeOperation representing the less-than comparison.
-        """
-        if isinstance(operand, EdgeAttributeOperand):
-            return EdgeOperation(
-                self._edge_attribute_operand.less(operand._edge_attribute_operand)
-            )
-
-        return EdgeOperation(self._edge_attribute_operand.less(operand))
-
-    def __lt__(self, operand: ValueOperand) -> EdgeOperation:
-        return self.less(operand)
-
-    def greater_or_equal(
-        self, operand: Union[ValueOperand, EdgeAttributeOperand]
-    ) -> EdgeOperation:
-        """Creates a EdgeOperation that evaluates to true if the attribute represented by this operand is greater than or equal to the specified value or operand.
-
-        Args:
-            operand (ValueOperand): The value or operand to compare against.
-
-        Returns:
-            EdgeOperation: A EdgeOperation representing the
-                greater-than-or-equal-to comparison.
-        """
-        if isinstance(operand, EdgeAttributeOperand):
-            return EdgeOperation(
-                self._edge_attribute_operand.greater_or_equal(
-                    operand._edge_attribute_operand
-                )
-            )
-
-        return EdgeOperation(self._edge_attribute_operand.greater_or_equal(operand))
-
-    def __ge__(self, operand: ValueOperand) -> EdgeOperation:
-        return self.greater_or_equal(operand)
-
-    def less_or_equal(
-        self, operand: Union[ValueOperand, EdgeAttributeOperand]
-    ) -> EdgeOperation:
-        """Creates a EdgeOperation that evaluates to true if the attribute represented by this operand is less than or equal to the specified value or operand.
-
-        Args:
-            operand (ValueOperand): The value or operand to compare against.
-
-        Returns:
-            EdgeOperation: A EdgeOperation representing the
-                less-than-or-equal-to comparison.
-        """
-        if isinstance(operand, EdgeAttributeOperand):
-            return EdgeOperation(
-                self._edge_attribute_operand.less_or_equal(
-                    operand._edge_attribute_operand
-                )
-            )
-
-        return EdgeOperation(self._edge_attribute_operand.less_or_equal(operand))
-
-    def __le__(self, operand: ValueOperand) -> EdgeOperation:
-        return self.less_or_equal(operand)
-
-    def equal(
-        self, operand: Union[ValueOperand, EdgeAttributeOperand]
-    ) -> EdgeOperation:
-        """Creates a EdgeOperation that evaluates to true if the attribute represented by this operand is equal to the specified value or operand.
-
-        Args:
-            operand (ValueOperand): The value or operand to compare against.
-
-        Returns:
-            EdgeOperation: A EdgeOperation representing the equality comparison.
-        """
-        if isinstance(operand, EdgeAttributeOperand):
-            return EdgeOperation(
-                self._edge_attribute_operand.equal(operand._edge_attribute_operand)
-            )
-
-        return EdgeOperation(self._edge_attribute_operand.equal(operand))
-
-    def __eq__(
-        self, operand: Union[ValueOperand, EdgeAttributeOperand]
-    ) -> EdgeOperation:
-        return self.equal(operand)
-
-    def not_equal(
-        self, operand: Union[ValueOperand, EdgeAttributeOperand]
-    ) -> EdgeOperation:
-        """Creates a EdgeOperation that evaluates to true if the attribute represented by this operand is not equal to the specified value or operand.
-
-        Args:
-            operand (ValueOperand): The value or operand to compare against.
-
-        Returns:
-            EdgeOperation: A EdgeOperation representing the not-equal comparison.
-        """
-        if isinstance(operand, EdgeAttributeOperand):
-            return EdgeOperation(
-                self._edge_attribute_operand.not_equal(operand._edge_attribute_operand)
-            )
-
-        return EdgeOperation(self._edge_attribute_operand.not_equal(operand))
-
-    def __ne__(
-        self, operand: Union[ValueOperand, EdgeAttributeOperand]
-    ) -> EdgeOperation:
-        return self.not_equal(operand)
-
-    def is_in(self, values: List[MedRecordValue]) -> EdgeOperation:
-        """Creates a EdgeOperation that evaluates to true if the attribute represented by this operand is found within the specified list of values.
-
-        Args:
-            values (List[MedRecordValue]): The list of values to check the
-                attribute against.
-
-        Returns:
-            EdgeOperation: A EdgeOperation representing the is-in comparison.
-        """
-        return EdgeOperation(self._edge_attribute_operand.is_in(values))
-
-    def not_in(self, values: List[MedRecordValue]) -> EdgeOperation:
-        """Creates a EdgeOperation that evaluates to true if the attribute represented by this operand is not found within the specified list of values.
-
-        Args:
-            values (List[MedRecordValue]): The list of values to check the
-                attribute against.
-
-        Returns:
-            EdgeOperation: A EdgeOperation representing the not-in comparison.
-        """
-        return EdgeOperation(self._edge_attribute_operand.not_in(values))
-
-    def starts_with(
-        self, operand: Union[ValueOperand, EdgeAttributeOperand]
-    ) -> EdgeOperation:
-        """Creates a EdgeOperation that evaluates to true if the attribute represented by this operand starts with the specified value or operand.
-
-        Args:
-            operand (ValueOperand): The value or operand to compare
-                the starting sequence against.
-
-        Returns:
-            EdgeOperation: A EdgeOperation representing the starts-with condition.
-        """
-        if isinstance(operand, EdgeAttributeOperand):
-            return EdgeOperation(
-                self._edge_attribute_operand.starts_with(
-                    operand._edge_attribute_operand
-                )
-            )
-
-        return EdgeOperation(self._edge_attribute_operand.starts_with(operand))
-
-    def ends_with(
-        self, operand: Union[ValueOperand, EdgeAttributeOperand]
-    ) -> EdgeOperation:
-        """Creates a EdgeOperation that evaluates to true if the attribute represented by this operand ends with the specified value or operand.
-
-        Args:
-            operand (ValueOperand): The value or operand to compare
-                the ending sequence against.
-
-        Returns:
-            EdgeOperation: A EdgeOperation representing the ends-with condition.
-        """
-        if isinstance(operand, EdgeAttributeOperand):
-            return EdgeOperation(
-                self._edge_attribute_operand.ends_with(operand._edge_attribute_operand)
-            )
-
-        return EdgeOperation(self._edge_attribute_operand.ends_with(operand))
-
-    def contains(
-        self, operand: Union[ValueOperand, EdgeAttributeOperand]
-    ) -> EdgeOperation:
-        """Creates a EdgeOperation that evaluates to true if the attribute represented by this operand contains the specified value or operand within it.
-
-        Args:
-            operand (ValueOperand): The value or operand to check for containment.
-
-        Returns:
-            EdgeOperation: A EdgeOperation representing the contains condition.
-        """
-        if isinstance(operand, EdgeAttributeOperand):
-            return EdgeOperation(
-                self._edge_attribute_operand.contains(operand._edge_attribute_operand)
-            )
-
-        return EdgeOperation(self._edge_attribute_operand.contains(operand))
-
-    def add(self, value: MedRecordValue) -> ValueOperand:
-        """Creates a new ValueOperand representing the sum of the attribute's value and the specified value.
-
-        Args:
-            value (MedRecordValue): The value to add to the attribute's value.
-
-        Returns:
-            ValueOperand: The result of the addition operation.
-        """
-        return self._edge_attribute_operand.add(value)
-
-    def __add__(self, value: MedRecordValue) -> ValueOperand:
-        return self.add(value)
-
-    def sub(self, value: MedRecordValue) -> ValueOperand:
-        """Creates a new ValueOperand representing the difference between the attribute's value and the specified value.
-
-        Args:
-            value (MedRecordValue): The value to subtract from the attribute's value.
-
-        Returns:
-            ValueOperand: The result of the subtraction operation.
-        """
-        return self._edge_attribute_operand.sub(value)
-
-    def __sub__(self, value: MedRecordValue) -> ValueOperand:
-        return self.sub(value)
-
-    def mul(self, value: MedRecordValue) -> ValueOperand:
-        """Creates a new ValueOperand representing the product of the attribute's value and the specified value.
-
-        Args:
-            value (MedRecordValue): The value to multiply the attribute's value by.
-
-        Returns:
-            ValueOperand: The result of the multiplication operation.
-        """
-        return self._edge_attribute_operand.mul(value)
-
-    def __mul__(self, value: MedRecordValue) -> ValueOperand:
-        return self.mul(value)
-
-    def div(self, value: MedRecordValue) -> ValueOperand:
-        """Creates a new ValueOperand representing the division of the attribute's value by the specified value.
-
-        Args:
-            value (MedRecordValue): The value to divide the attribute's value by.
-
-        Returns:
-            ValueOperand: The result of the division operation.
-        """
-        return self._edge_attribute_operand.div(value)
-
-    def __truediv__(self, value: MedRecordValue) -> ValueOperand:
-        return self.div(value)
-
-    def pow(self, value: MedRecordValue) -> ValueOperand:
-        """Creates a new ValueOperand representing the result of raising the attribute's value to the power of the specified value.
-
-        Args:
-            value (MedRecordValue): The value to raise the attribute's value to.
-
-        Returns:
-            ValueOperand: The result of the exponentiation operation.
-        """
-        return self._edge_attribute_operand.pow(value)
-
-    def __pow__(self, value: MedRecordValue) -> ValueOperand:
-        return self.pow(value)
-
-    def mod(self, value: MedRecordValue) -> ValueOperand:
-        """Creates a new ValueOperand representing the remainder of dividing the attribute's value by the specified value.
-
-        Args:
-            value (MedRecordValue): The value to divide the attribute's value by.
-
-        Returns:
-            ValueOperand: The result of the modulo operation.
-        """
-        return self._edge_attribute_operand.mod(value)
-
-    def __mod__(self, value: MedRecordValue) -> ValueOperand:
-        return self.mod(value)
-
-    def round(self) -> ValueOperand:
-        """Creates a new ValueOperand representing the result of rounding the attribute's value.
-
-        Returns:
-            ValueOperand: The result of the rounding operation.
-        """
-        return self._edge_attribute_operand.round()
-
-    def ceil(self) -> ValueOperand:
-        """Creates a new ValueOperand representing the result of applying the ceiling function to the attribute's value, effectively rounding it up to the nearest whole number.
-
-        Returns:
-            ValueOperand: The result of the ceiling operation.
-        """
-        return self._edge_attribute_operand.ceil()
-
-    def floor(self) -> ValueOperand:
-        """Creates a new ValueOperand representing the result of applying the floor function to the attribute's value, effectively rounding it down to the nearest whole number.
-
-        Returns:
-            ValueOperand: The result of the floor operation.
-        """
-        return self._edge_attribute_operand.floor()
-
-    def abs(self) -> ValueOperand:
-        """Creates a new ValueOperand representing the absolute value of the attribute's value.
-
-        Returns:
-            ValueOperand: The absolute value of the attribute's value.
-        """
-        return self._edge_attribute_operand.abs()
-
-    def sqrt(self) -> ValueOperand:
-        """Creates a new ValueOperand representing the square root of the attribute's value.
-
-        Returns:
-            ValueOperand: The square root of the attribute's value.
-        """
-        return self._edge_attribute_operand.sqrt()
-
-    def trim(self) -> ValueOperand:
-        """Creates a new ValueOperand representing the result of trimming whitespace from both ends of the attribute's value.
-
-        Returns:
-            ValueOperand: The attribute's value with leading and trailing
-                whitespace removed.
-        """
-        return self._edge_attribute_operand.trim()
-
-    def trim_start(self) -> ValueOperand:
-        """Creates a new ValueOperand representing the result of trimming whitespace from the start (left side) of the attribute's value.
-
-        Returns:
-            ValueOperand: The attribute's value with leading whitespace removed.
-        """
-        return self._edge_attribute_operand.trim_start()
-
-    def trim_end(self) -> ValueOperand:
-        """Creates a new ValueOperand representing the result of trimming whitespace from the end (right side) of the attribute's value.
-
-        Returns:
-            ValueOperand: The attribute's value with trailing whitespace removed.
-        """
-        return self._edge_attribute_operand.trim_end()
-
-    def lowercase(self) -> ValueOperand:
-        """Creates a new ValueOperand representing the result of converting all characters in the attribute's value to lowercase.
-
-        Returns:
-            ValueOperand: The attribute's value in lowercase letters.
-        """
-        return self._edge_attribute_operand.lowercase()
-
-    def uppercase(self) -> ValueOperand:
-        """Creates a new ValueOperand representing the result of converting all characters in the attribute's value to uppercase.
-
-        Returns:
-            ValueOperand: The attribute's value in uppercase letters.
-        """
-        return self._edge_attribute_operand.uppercase()
-
-    def slice(self, start: int, end: int) -> ValueOperand:
-        """Creates a new ValueOperand representing the result of slicing the attribute's value using the specified start and end indices.
-
-        Args:
-            start (int): The index at which to start the slice.
-            end (int): The index at which to end the slice.
-
-        Returns:
-            ValueOperand: The attribute's value with the specified slice applied.
-        """
-        return self._edge_attribute_operand.slice(start, end)
-
-
-class NodeIndexOperand:
-    _node_index_operand: PyNodeIndexOperand
-
-    def __init__(self, node_index_operand: PyNodeIndexOperand) -> None:
-        self._node_index_operand = node_index_operand
-
-    def greater(self, operand: NodeIndex) -> NodeOperation:
-        """Creates a NodeOperation that evaluates to true if the node index is greater than the specified index.
-
-        Args:
-            operand (NodeIndex): The index to compare against.
-
-        Returns:
-            NodeOperation: A NodeOperation representing the greater-than comparison.
-        """
-        return NodeOperation(self._node_index_operand.greater(operand))
-
-    def __gt__(self, operand: NodeIndex) -> NodeOperation:
-        return self.greater(operand)
-
-    def less(self, operand: NodeIndex) -> NodeOperation:
-        """Creates a NodeOperation that evaluates to true if the node index is less than the specified index.
-
-        Args:
-            operand (NodeIndex): The index to compare against.
-
-        Returns:
-            NodeOperation: A NodeOperation representing the less-than comparison.
-        """
-        return NodeOperation(self._node_index_operand.less(operand))
-
-    def __lt__(self, operand: NodeIndex) -> NodeOperation:
-        return self.less(operand)
-
-    def greater_or_equal(self, operand: NodeIndex) -> NodeOperation:
-        """Creates a NodeOperation that evaluates to true if the node index is greater than or equal to the specified index.
-
-        Args:
-            operand (NodeIndex): The index to compare against.
-
-        Returns:
-            NodeOperation: A NodeOperation representing the
-                greater-than-or-equal-to comparison.
-        """
-        return NodeOperation(self._node_index_operand.greater_or_equal(operand))
-
-    def __ge__(self, operand: NodeIndex) -> NodeOperation:
-        return self.greater_or_equal(operand)
-
-    def less_or_equal(self, operand: NodeIndex) -> NodeOperation:
-        """Creates a NodeOperation that evaluates to true if the node index is less than or equal to the specified index.
-
-        Args:
-            operand (NodeIndex): The index to compare against.
-
-        Returns:
-            NodeOperation: A NodeOperation representing the
-                less-than-or-equal-to comparison.
-        """
-        return NodeOperation(self._node_index_operand.less_or_equal(operand))
-
-    def __le__(self, operand: NodeIndex) -> NodeOperation:
-        return self.less_or_equal(operand)
-
-    def equal(self, operand: NodeIndex) -> NodeOperation:
-        """Creates a NodeOperation that evaluates to true if the node index is equal to the specified index.
-
-        Args:
-            operand (NodeIndex): The index to compare against.
-
-        Returns:
-            NodeOperation: A NodeOperation representing the equality comparison.
-        """
-        return NodeOperation(self._node_index_operand.equal(operand))
-
-    def __eq__(self, operand: NodeIndex) -> NodeOperation:
-        return self.equal(operand)
-
-    def not_equal(self, operand: NodeIndex) -> NodeOperation:
-        """Creates a NodeOperation that evaluates to true if the node index is not equal to the specified index.
-
-        Args:
-            operand (NodeIndex): The index to compare against.
-
-        Returns:
-            NodeOperation: A NodeOperation representing the not-equal comparison.
-        """
-        return NodeOperation(self._node_index_operand.not_equal(operand))
-
-    def __ne__(self, operand: NodeIndex) -> NodeOperation:
-        return self.not_equal(operand)
-
-    def is_in(self, values: List[NodeIndex]) -> NodeOperation:
-        """Creates a NodeOperation that evaluates to true if the node index is found within the list of indices.
-
-        Args:
-            values (List[NodeIndex]): The list of indices to check the node index
-                against.
-
-        Returns:
-            NodeOperation: A NodeOperation representing the is-in comparison.
-        """
-        return NodeOperation(self._node_index_operand.is_in(values))
-
-    def not_in(self, values: List[NodeIndex]) -> NodeOperation:
-        """Creates a NodeOperation that evaluates to true if the node index is not found within the list of indices.
-
-        Args:
-            values (List[NodeIndex]): The list of indices to check the node index
-                against.
-
-        Returns:
-            NodeOperation: A NodeOperation representing the not-in comparison.
-        """
-        return NodeOperation(self._node_index_operand.not_in(values))
-
-    def starts_with(self, operand: NodeIndex) -> NodeOperation:
-        """Creates a NodeOperation that evaluates to true if the node index starts with the specified index.
-
-        Args:
-            operand (NodeIndex): The index to compare against.
-
-        Returns:
-            NodeOperation: A NodeOperation representing the starts-with condition.
-        """
-        return NodeOperation(self._node_index_operand.starts_with(operand))
-
-    def ends_with(self, operand: NodeIndex) -> NodeOperation:
-        """Creates a NodeOperation that evaluates to true if the node index ends with the specified index.
-
-        Args:
-            operand (NodeIndex): The index to compare against.
-
-        Returns:
-            NodeOperation: A NodeOperation representing the ends-with condition.
-        """
-        return NodeOperation(self._node_index_operand.ends_with(operand))
-
-    def contains(self, operand: NodeIndex) -> NodeOperation:
-        """Creates a NodeOperation that evaluates to true if the node index contains the specified index.
-
-        Args:
-            operand (NodeIndex): The index to compare against.
-
-        Returns:
-            NodeOperation: A NodeOperation representing the contains condition.
-        """
-        return NodeOperation(self._node_index_operand.contains(operand))
-
-
-class EdgeIndexOperand:
-    _edge_index_operand: PyEdgeIndexOperand
-
-    def __init__(self, edge_index_operand: PyEdgeIndexOperand) -> None:
-        self._edge_index_operand = edge_index_operand
-
-    def greater(self, operand: EdgeIndex) -> EdgeOperation:
-        """Creates a EdgeOperation that evaluates to true if the edge index is greater than the specified index.
-
-        Args:
-            operand (EdgeIndex): The index to compare against.
-
-        Returns:
-            EdgeOperation: A EdgeOperation representing the greater-than comparison.
-        """
-        return EdgeOperation(self._edge_index_operand.greater(operand))
-
-    def __gt__(self, operand: EdgeIndex) -> EdgeOperation:
-        return self.greater(operand)
-
-    def less(self, operand: EdgeIndex) -> EdgeOperation:
-        """Creates a EdgeOperation that evaluates to true if the edge index is less than the specified index.
-
-        Args:
-            operand (EdgeIndex): The index to compare against.
-
-        Returns:
-            EdgeOperation: A EdgeOperation representing the less-than comparison.
-        """
-        return EdgeOperation(self._edge_index_operand.less(operand))
-
-    def __lt__(self, operand: EdgeIndex) -> EdgeOperation:
-        return self.less(operand)
-
-    def greater_or_equal(self, operand: EdgeIndex) -> EdgeOperation:
-        """Creates a EdgeOperation that evaluates to true if the edge index is greater than or equal to the specified index.
-
-        Args:
-            operand (EdgeIndex): The index to compare against.
-
-        Returns:
-            EdgeOperation: A EdgeOperation representing the
-                greater-than-or-equal-to comparison.
-        """
-        return EdgeOperation(self._edge_index_operand.greater_or_equal(operand))
-
-    def __ge__(self, operand: EdgeIndex) -> EdgeOperation:
-        return self.greater_or_equal(operand)
-
-    def less_or_equal(self, operand: EdgeIndex) -> EdgeOperation:
-        """Creates a EdgeOperation that evaluates to true if the edge index is less than or equal to the specified index.
-
-        Args:
-            operand (EdgeIndex): The index to compare against.
-
-        Returns:
-            EdgeOperation: A EdgeOperation representing the
-                less-than-or-equal-to comparison.
-        """
-        return EdgeOperation(self._edge_index_operand.less_or_equal(operand))
-
-    def __le__(self, operand: EdgeIndex) -> EdgeOperation:
-        return self.less_or_equal(operand)
-
-    def equal(self, operand: EdgeIndex) -> EdgeOperation:
-        """Creates a EdgeOperation that evaluates to true if the edge index is equal to the specified index.
-
-        Args:
-            operand (EdgeIndex): The index to compare against.
-
-        Returns:
-            EdgeOperation: A EdgeOperation representing the equality comparison.
-        """
-        return EdgeOperation(self._edge_index_operand.equal(operand))
-
-    def __eq__(self, operand: EdgeIndex) -> EdgeOperation:
-        return self.equal(operand)
-
-    def not_equal(self, operand: EdgeIndex) -> EdgeOperation:
-        """Creates a EdgeOperation that evaluates to true if the edge index is not equal to the specified index.
-
-        Args:
-            operand (EdgeIndex): The index to compare against.
-
-        Returns:
-            EdgeOperation: A EdgeOperation representing the not-equal comparison.
-        """
-        return EdgeOperation(self._edge_index_operand.not_equal(operand))
-
-    def __ne__(self, operand: EdgeIndex) -> EdgeOperation:
-        return self.not_equal(operand)
-
-    def is_in(self, values: List[EdgeIndex]) -> EdgeOperation:
-        """Creates a EdgeOperation that evaluates to true if the edge index is found within the list of indices.
-
-        Args:
-            values (List[EdgeIndex]): The list of indices to check the edge index
-                against.
-
-        Returns:
-            EdgeOperation: A EdgeOperation representing the is-in comparison.
-        """
-        return EdgeOperation(self._edge_index_operand.is_in(values))
-
-    def not_in(self, values: List[EdgeIndex]) -> EdgeOperation:
-        """Creates a EdgeOperation that evaluates to true if the edge index is not found within the list of indices.
-
-        Args:
-            values (List[EdgeIndex]): The list of indices to check the edge index
-                against.
-
-        Returns:
-            EdgeOperation: A EdgeOperation representing the not-in comparison.
-        """
-        return EdgeOperation(self._edge_index_operand.not_in(values))
 
 
 class NodeOperand:
     _node_operand: PyNodeOperand
 
-    def __init__(self) -> None:
-        self._node_operand = PyNodeOperand()
-
-    def in_group(self, operand: Group) -> NodeOperation:
-        """Creates a NodeOperation that evaluates to true if the node is part of the specified group.
-
-        Args:
-            operand (Group): The group to check the node against.
-
-        Returns:
-            NodeOperation: A NodeOperation indicating if the node is part of the
-                specified group.
-        """
-        return NodeOperation(self._node_operand.in_group(operand))
-
-    def has_attribute(self, operand: MedRecordAttribute) -> NodeOperation:
-        """Creates a NodeOperation that evaluates to true if the node has the specified attribute.
-
-        Args:
-            operand (MedRecordAttribute): The attribute to check on the node.
-
-        Returns:
-            NodeOperation: A NodeOperation indicating if the node has the
-                specified attribute.
-        """
-        return NodeOperation(self._node_operand.has_attribute(operand))
-
-    def has_outgoing_edge_with(self, operation: EdgeOperation) -> NodeOperation:
-        """Creates a NodeOperation that evaluates to true if the node has an outgoing edge that satisfies the specified EdgeOperation.
-
-        Args:
-            operation (EdgeOperation): An EdgeOperation to evaluate against
-                outgoing edges.
-
-        Returns:
-            NodeOperation: A NodeOperation indicating if the node has an
-                outgoing edge satisfying the specified operation.
-        """
-        return NodeOperation(
-            self._node_operand.has_outgoing_edge_with(operation._edge_operation)
+    def attribute(self, attribute: MedRecordAttribute) -> MultipleValuesOperand:
+        return MultipleValuesOperand._from_py_multiple_values_operand(
+            self._node_operand.attribute(attribute)
         )
 
-    def has_incoming_edge_with(self, operation: EdgeOperation) -> NodeOperation:
-        """Creates a NodeOperation that evaluates to true if the node has an incoming edge that satisfies the specified EdgeOperation.
-
-        Args:
-            operation (EdgeOperation): An EdgeOperation to evaluate against
-                incoming edges.
-
-        Returns:
-            NodeOperation: A NodeOperation indicating if the node has an
-                incoming edge satisfying the specified operation.
-        """
-        return NodeOperation(
-            self._node_operand.has_incoming_edge_with(operation._edge_operation)
+    def attributes(self) -> AttributesTreeOperand:
+        return AttributesTreeOperand._from_py_attributes_tree_operand(
+            self._node_operand.attributes()
         )
 
-    def has_edge_with(self, operation: EdgeOperation) -> NodeOperation:
-        """Creates a NodeOperation that evaluates to true if the node has any edge (incoming or outgoing) that satisfies the specified EdgeOperation.
-
-        Args:
-            operation (EdgeOperation): An EdgeOperation to evaluate against
-                edges connected to the node.
-
-        Returns:
-            NodeOperation: A NodeOperation indicating if the node has any edge
-                satisfying the specified operation.
-        """
-        return NodeOperation(
-            self._node_operand.has_edge_with(operation._edge_operation)
+    def index(self) -> NodeIndicesOperand:
+        return NodeIndicesOperand._from_py_node_indices_operand(
+            self._node_operand.index()
         )
 
-    def has_neighbor_with(
-        self, operation: NodeOperation, *, directed: bool = True
-    ) -> NodeOperation:
-        """Creates a NodeOperation that evaluates to true if the node has a neighboring node that satisfies the specified NodeOperation.
+    def in_group(self, group: Union[Group, List[Group]]) -> None:
+        self._node_operand.in_group(group)
 
-        Args:
-            operation (NodeOperation): A NodeOperation to evaluate against
-                neighboring nodes.
-            directed (bool): Whether to consider edges as directed
+    def has_attribute(
+        self, attribute: Union[MedRecordAttribute, List[MedRecordAttribute]]
+    ) -> None:
+        self._node_operand.has_attribute(attribute)
 
-        Returns:
-            NodeOperation: A NodeOperation indicating if the node has a neighboring node
-                satisfying the specified operation.
-        """
-        if directed:
-            return NodeOperation(
-                self._node_operand.has_neighbor_with(operation._node_operation)
-            )
-        else:
-            return NodeOperation(
-                self._node_operand.has_neighbor_undirected_with(
-                    operation._node_operation
-                )
-            )
+    def outgoing_edges(self) -> EdgeOperand:
+        return EdgeOperand._from_py_edge_operand(self._node_operand.outgoing_edges())
 
-    def attribute(self, attribute: MedRecordAttribute) -> NodeAttributeOperand:
-        """Accesses an NodeAttributeOperand for the specified attribute, allowing for the creation of operations based on node attributes.
+    def incoming_edges(self) -> EdgeOperand:
+        return EdgeOperand._from_py_edge_operand(self._node_operand.incoming_edges())
 
-        Args:
-            attribute (MedRecordAttribute): The attribute of the node to perform
-                operations on.
+    def neighbors(
+        self, edge_direction: EdgeDirection = EdgeDirection.OUTGOING
+    ) -> NodeOperand:
+        return NodeOperand._from_py_node_operand(
+            self._node_operand.neighbors(edge_direction._into_py_edge_direction())
+        )
 
-        Returns:
-            NodeAttributeOperand: An operand that represents the specified node
-                attribute, enabling further operations such as comparisons and
-                arithmetic operations.
-        """
-        return NodeAttributeOperand(self._node_operand.attribute(attribute))
+    def either_or(self, either: NodeQuery, or_: NodeQuery) -> None:
+        self._node_operand.either_or(
+            lambda node: either(NodeOperand._from_py_node_operand(node)),
+            lambda node: or_(NodeOperand._from_py_node_operand(node)),
+        )
 
-    def index(self) -> NodeIndexOperand:
-        """Accesses an NodeIndexOperand, allowing for the creation of operations based on the node index.
+    def clone(self) -> NodeOperand:
+        return NodeOperand._from_py_node_operand(self._node_operand.deep_clone())
 
-        Returns:
-            NodeIndexOperand: An operand that represents the specified node
-                index, enabling further operations such as comparisons and
-                arithmetic operations.
-        """
-        return NodeIndexOperand(self._node_operand.index())
-
-
-def node() -> NodeOperand:
-    """Factory function to create and return a new NodeOperand instance.
-
-    Returns:
-        NodeOperand: An instance of NodeOperand for constructing node-based operations.
-    """
-    return NodeOperand()
+    @classmethod
+    def _from_py_node_operand(cls, py_node_operand: PyNodeOperand) -> NodeOperand:
+        node_operand = cls()
+        node_operand._node_operand = py_node_operand
+        return node_operand
 
 
 class EdgeOperand:
     _edge_operand: PyEdgeOperand
 
-    def __init__(self) -> None:
-        self._edge_operand = PyEdgeOperand()
-
-    def connected_target(self, operand: NodeIndex) -> EdgeOperation:
-        """Creates an EdgeOperation that evaluates to true if the edge is connected to a target node with the specified index.
-
-        Args:
-            operand (NodeIndex): The index of the target node to check for a connection.
-
-        Returns:
-            EdgeOperation: An EdgeOperation indicating if the edge is connected to the
-                specified target node.
-        """
-        return EdgeOperation(self._edge_operand.connected_target(operand))
-
-    def connected_source(self, operand: NodeIndex) -> EdgeOperation:
-        """Generates an EdgeOperation that evaluates to true if the edge originates from a source node with the given index.
-
-        Args:
-            operand (NodeIndex): The index of the source node to check for a connection.
-
-        Returns:
-            EdgeOperation: An EdgeOperation indicating if the edge is connected from the
-                specified source node.
-        """
-        return EdgeOperation(self._edge_operand.connected_source(operand))
-
-    def connected(self, operand: NodeIndex) -> EdgeOperation:
-        """Creates an EdgeOperation that evaluates to true if the edge is connected to or from a node with the specified index.
-
-        Args:
-            operand (NodeIndex): The index of the node to check for a connection.
-
-        Returns:
-            EdgeOperation: An EdgeOperation indicating if the edge is connected to the
-                specified node.
-        """
-        return EdgeOperation(self._edge_operand.connected(operand))
-
-    def in_group(self, operand: Group) -> EdgeOperation:
-        """Creates an EdgeOperation that evaluates to true if the edge is part of the specified group.
-
-        Args:
-            operand (Group): The group to check the edge against.
-
-        Returns:
-            EdgeOperation: An EdgeOperation indicating if the edge is part of the
-                specified group.
-        """
-        return EdgeOperation(self._edge_operand.in_group(operand))
-
-    def has_attribute(self, operand: MedRecordAttribute) -> EdgeOperation:
-        """Creates an EdgeOperation that evaluates to true if the edge has the specified attribute.
-
-        Args:
-            operand (MedRecordAttribute): The attribute to check on the edge.
-
-        Returns:
-            EdgeOperation: An EdgeOperation indicating if the edge has the
-                specified attribute.
-        """
-        return EdgeOperation(self._edge_operand.has_attribute(operand))
-
-    def connected_source_with(self, operation: NodeOperation) -> EdgeOperation:
-        """Creates an EdgeOperation that evaluates to true if the edge originates from a source node that satisfies the specified NodeOperation.
-
-        Args:
-            operation (NodeOperation): A NodeOperation to evaluate against the
-                source node.
-
-        Returns:
-            EdgeOperation: An EdgeOperation indicating if the source node of the
-                edge satisfies the specified operation.
-        """
-        return EdgeOperation(
-            self._edge_operand.connected_source_with(operation._node_operation)
+    def attribute(self, attribute: MedRecordAttribute) -> MultipleValuesOperand:
+        return MultipleValuesOperand._from_py_multiple_values_operand(
+            self._edge_operand.attribute(attribute)
         )
 
-    def connected_target_with(self, operation: NodeOperation) -> EdgeOperation:
-        """Creates an EdgeOperation that evaluates to true if the edge is connected to a target node that satisfies the specified NodeOperation.
-
-        Args:
-            operation (NodeOperation): A NodeOperation to evaluate against the
-            target node.
-
-        Returns:
-            EdgeOperation: An EdgeOperation indicating if the target node of the
-                edge satisfies the specified operation.
-        """
-        return EdgeOperation(
-            self._edge_operand.connected_target_with(operation._node_operation)
+    def attributes(self) -> AttributesTreeOperand:
+        return AttributesTreeOperand._from_py_attributes_tree_operand(
+            self._edge_operand.attributes()
         )
 
-    def connected_with(self, operation: NodeOperation) -> EdgeOperation:
-        """Creates an EdgeOperation that evaluates to true if the edge is connected to or from a node that satisfies the specified NodeOperation.
+    def index(self) -> EdgeIndicesOperand:
+        return EdgeIndicesOperand._from_edge_indices_operand(self._edge_operand.index())
 
-        Args:
-            operation (NodeOperation): A NodeOperation to evaluate against the
-                connected node.
+    def in_group(self, group: Union[Group, List[Group]]) -> None:
+        self._edge_operand.in_group(group)
 
-        Returns:
-            EdgeOperation: An EdgeOperation indicating if either the source or
-                target node of the edge satisfies the specified operation.
-        """
-        return EdgeOperation(
-            self._edge_operand.connected_with(operation._node_operation)
+    def has_attribute(
+        self, attribute: Union[MedRecordAttribute, List[MedRecordAttribute]]
+    ) -> None:
+        self._edge_operand.has_attribute(attribute)
+
+    def source_node(self) -> NodeOperand:
+        return NodeOperand._from_py_node_operand(self._edge_operand.source_node())
+
+    def target_node(self) -> NodeOperand:
+        return NodeOperand._from_py_node_operand(self._edge_operand.target_node())
+
+    def either_or(self, either: EdgeQuery, or_: EdgeQuery) -> None:
+        self._edge_operand.either_or(
+            lambda edge: either(EdgeOperand._from_py_edge_operand(edge)),
+            lambda edge: or_(EdgeOperand._from_py_edge_operand(edge)),
         )
 
-    def has_parallel_edges_with(self, operation: EdgeOperation) -> EdgeOperation:
-        """Creates an EdgeOperation that evaluates to true if there are parallel edges that satisfy the specified EdgeOperation.
+    def clone(self) -> EdgeOperand:
+        return EdgeOperand._from_py_edge_operand(self._edge_operand.deep_clone())
 
-        Args:
-            operation (EdgeOperation): An EdgeOperation to evaluate against
-                parallel edges.
+    @classmethod
+    def _from_py_edge_operand(cls, py_edge_operand: PyEdgeOperand) -> EdgeOperand:
+        edge_operand = cls()
+        edge_operand._edge_operand = py_edge_operand
+        return edge_operand
 
-        Returns:
-            EdgeOperation: An EdgeOperation indicating if there are parallel edges
-                satisfying the specified operation.
-        """
-        return EdgeOperation(
-            self._edge_operand.has_parallel_edges_with(operation._edge_operation)
+
+class MultipleValuesOperand:
+    _multiple_values_operand: PyMultipleValuesOperand
+
+    def max(self) -> SingleValueOperand:
+        return SingleValueOperand._from_py_single_value_operand(
+            self._multiple_values_operand.max()
         )
 
-    def has_parallel_edges_with_self_comparison(
-        self, operation: EdgeOperation
-    ) -> EdgeOperation:
-        """Creates an EdgeOperation that evaluates to true if there are parallel edges that satisfy the specified EdgeOperation.
+    def min(self) -> SingleValueOperand:
+        return SingleValueOperand._from_py_single_value_operand(
+            self._multiple_values_operand.min()
+        )
 
-        Using `edge().attribute(...)` in the operation will compare to the attribute of
-        this edge, not the parallel edge.
+    def mean(self) -> SingleValueOperand:
+        return SingleValueOperand._from_py_single_value_operand(
+            self._multiple_values_operand.mean()
+        )
 
-        Args:
-            operation (EdgeOperation): An EdgeOperation to evaluate against
-                parallel edges.
+    def median(self) -> SingleValueOperand:
+        return SingleValueOperand._from_py_single_value_operand(
+            self._multiple_values_operand.median()
+        )
 
-        Returns:
-            EdgeOperation: An EdgeOperation indicating if there are parallel edges
-                satisfying the specified operation.
-        """
-        return EdgeOperation(
-            self._edge_operand.has_parallel_edges_with_self_comparison(
-                operation._edge_operation
+    def mode(self) -> SingleValueOperand:
+        return SingleValueOperand._from_py_single_value_operand(
+            self._multiple_values_operand.mode()
+        )
+
+    def std(self) -> SingleValueOperand:
+        return SingleValueOperand._from_py_single_value_operand(
+            self._multiple_values_operand.std()
+        )
+
+    def var(self) -> SingleValueOperand:
+        return SingleValueOperand._from_py_single_value_operand(
+            self._multiple_values_operand.var()
+        )
+
+    def count(self) -> SingleValueOperand:
+        return SingleValueOperand._from_py_single_value_operand(
+            self._multiple_values_operand.count()
+        )
+
+    def sum(self) -> SingleValueOperand:
+        return SingleValueOperand._from_py_single_value_operand(
+            self._multiple_values_operand.sum()
+        )
+
+    def first(self) -> SingleValueOperand:
+        return SingleValueOperand._from_py_single_value_operand(
+            self._multiple_values_operand.first()
+        )
+
+    def last(self) -> SingleValueOperand:
+        return SingleValueOperand._from_py_single_value_operand(
+            self._multiple_values_operand.last()
+        )
+
+    def is_string(self) -> None:
+        self._multiple_values_operand.is_string()
+
+    def is_int(self) -> None:
+        self._multiple_values_operand.is_int()
+
+    def is_float(self) -> None:
+        self._multiple_values_operand.is_float()
+
+    def is_bool(self) -> None:
+        self._multiple_values_operand.is_bool()
+
+    def is_datetime(self) -> None:
+        self._multiple_values_operand.is_datetime()
+
+    def is_null(self) -> None:
+        self._multiple_values_operand.is_null()
+
+    def is_max(self) -> None:
+        self._multiple_values_operand.is_max()
+
+    def is_min(self) -> None:
+        self._multiple_values_operand.is_min()
+
+    def greater_than(self, value: SingleValueComparisonOperand) -> None:
+        self._multiple_values_operand.greater_than(
+            _py_single_value_comparison_operand_from_single_value_comparison_operand(
+                value
             )
         )
 
-    def attribute(self, attribute: MedRecordAttribute) -> EdgeAttributeOperand:
-        """Accesses an EdgeAttributeOperand for the specified attribute, allowing for the creation of operations based on edge attributes.
+    def greater_than_or_equal_to(self, value: SingleValueComparisonOperand) -> None:
+        self._multiple_values_operand.greater_than_or_equal_to(
+            _py_single_value_comparison_operand_from_single_value_comparison_operand(
+                value
+            )
+        )
 
-        Args:
-            attribute (MedRecordAttribute): The attribute of the edge to perform
-                operations on.
+    def less_than(self, value: SingleValueComparisonOperand) -> None:
+        self._multiple_values_operand.less_than(
+            _py_single_value_comparison_operand_from_single_value_comparison_operand(
+                value
+            )
+        )
 
-        Returns:
-            EdgeAttributeOperand: An operand that represents the specified edge
-                attribute, enabling further operations such as comparisons and
-                arithmetic operations.
-        """
-        return EdgeAttributeOperand(self._edge_operand.attribute(attribute))
+    def less_than_or_equal_to(self, value: SingleValueComparisonOperand) -> None:
+        self._multiple_values_operand.less_than_or_equal_to(
+            _py_single_value_comparison_operand_from_single_value_comparison_operand(
+                value
+            )
+        )
 
-    def index(self) -> EdgeIndexOperand:
-        """Accesses an EdgeIndexOperand, allowing for the creation of operations based on the edge index.
+    def equal_to(self, value: SingleValueComparisonOperand) -> None:
+        self._multiple_values_operand.equal_to(
+            _py_single_value_comparison_operand_from_single_value_comparison_operand(
+                value
+            )
+        )
 
-        Returns:
-            EdgeIndexOperand: An operand that represents the specified edge
-                index, enabling further operations such as comparisons and
-                arithmetic operations.
-        """
-        return EdgeIndexOperand(self._edge_operand.index())
+    def not_equal_to(self, value: SingleValueComparisonOperand) -> None:
+        self._multiple_values_operand.not_equal_to(
+            _py_single_value_comparison_operand_from_single_value_comparison_operand(
+                value
+            )
+        )
+
+    def is_in(self, values: MultipleValuesComparisonOperand) -> None:
+        self._multiple_values_operand.is_in(
+            _py_multiple_values_comparison_operand_from_multiple_values_comparison_operand(
+                values
+            )
+        )
+
+    def is_not_in(self, values: MultipleValuesComparisonOperand) -> None:
+        self._multiple_values_operand.is_not_in(
+            _py_multiple_values_comparison_operand_from_multiple_values_comparison_operand(
+                values
+            )
+        )
+
+    def starts_with(self, value: SingleValueComparisonOperand) -> None:
+        self._multiple_values_operand.starts_with(
+            _py_single_value_comparison_operand_from_single_value_comparison_operand(
+                value
+            )
+        )
+
+    def ends_with(self, value: SingleValueComparisonOperand) -> None:
+        self._multiple_values_operand.ends_with(
+            _py_single_value_comparison_operand_from_single_value_comparison_operand(
+                value
+            )
+        )
+
+    def contains(self, value: SingleValueComparisonOperand) -> None:
+        self._multiple_values_operand.contains(
+            _py_single_value_comparison_operand_from_single_value_comparison_operand(
+                value
+            )
+        )
+
+    def add(self, value: SingleValueArithmeticOperand) -> None:
+        self._multiple_values_operand.add(
+            _py_single_value_comparison_operand_from_single_value_comparison_operand(
+                value
+            )
+        )
+
+    def subtract(self, value: SingleValueArithmeticOperand) -> None:
+        self._multiple_values_operand.sub(
+            _py_single_value_comparison_operand_from_single_value_comparison_operand(
+                value
+            )
+        )
+
+    def multiply(self, value: SingleValueArithmeticOperand) -> None:
+        self._multiple_values_operand.mul(
+            _py_single_value_comparison_operand_from_single_value_comparison_operand(
+                value
+            )
+        )
+
+    def divide(self, value: SingleValueArithmeticOperand) -> None:
+        self._multiple_values_operand.div(
+            _py_single_value_comparison_operand_from_single_value_comparison_operand(
+                value
+            )
+        )
+
+    def modulo(self, value: SingleValueArithmeticOperand) -> None:
+        self._multiple_values_operand.mod(
+            _py_single_value_comparison_operand_from_single_value_comparison_operand(
+                value
+            )
+        )
+
+    def power(self, value: SingleValueArithmeticOperand) -> None:
+        self._multiple_values_operand.pow(
+            _py_single_value_comparison_operand_from_single_value_comparison_operand(
+                value
+            )
+        )
+
+    def round(self) -> None:
+        self._multiple_values_operand.round()
+
+    def ceil(self) -> None:
+        self._multiple_values_operand.ceil()
+
+    def floor(self) -> None:
+        self._multiple_values_operand.floor()
+
+    def absolute(self) -> None:
+        self._multiple_values_operand.abs()
+
+    def sqrt(self) -> None:
+        self._multiple_values_operand.sqrt()
+
+    def trim(self) -> None:
+        self._multiple_values_operand.trim()
+
+    def trim_start(self) -> None:
+        self._multiple_values_operand.trim_start()
+
+    def trim_end(self) -> None:
+        self._multiple_values_operand.trim_end()
+
+    def lowercase(self) -> None:
+        self._multiple_values_operand.lowercase()
+
+    def uppercase(self) -> None:
+        self._multiple_values_operand.uppercase()
+
+    def slice(self, start: int, end: int) -> None:
+        self._multiple_values_operand.slice(start, end)
+
+    def either_or(
+        self,
+        either: Callable[[MultipleValuesOperand], None],
+        or_: Callable[[MultipleValuesOperand], None],
+    ) -> None:
+        self._multiple_values_operand.either_or(
+            lambda values: either(
+                MultipleValuesOperand._from_py_multiple_values_operand(values)
+            ),
+            lambda values: or_(
+                MultipleValuesOperand._from_py_multiple_values_operand(values)
+            ),
+        )
+
+    def clone(self) -> MultipleValuesOperand:
+        return MultipleValuesOperand._from_py_multiple_values_operand(
+            self._multiple_values_operand.deep_clone()
+        )
+
+    @classmethod
+    def _from_py_multiple_values_operand(
+        cls, py_multiple_values_operand: PyMultipleValuesOperand
+    ) -> MultipleValuesOperand:
+        multiple_values_operand = cls()
+        multiple_values_operand._multiple_values_operand = py_multiple_values_operand
+        return multiple_values_operand
 
 
-def edge() -> EdgeOperand:
-    """Factory function to create and return a new EdgeOperand instance.
+class SingleValueOperand:
+    _single_value_operand: PySingleValueOperand
 
-    Returns:
-        EdgeOperand: An instance of EdgeOperand for constructing edge-based operations.
-    """
-    return EdgeOperand()
+    def is_string(self) -> None:
+        self._single_value_operand.is_string()
+
+    def is_int(self) -> None:
+        self._single_value_operand.is_int()
+
+    def is_float(self) -> None:
+        self._single_value_operand.is_float()
+
+    def is_bool(self) -> None:
+        self._single_value_operand.is_bool()
+
+    def is_datetime(self) -> None:
+        self._single_value_operand.is_datetime()
+
+    def is_null(self) -> None:
+        self._single_value_operand.is_null()
+
+    def greater_than(self, value: SingleValueComparisonOperand) -> None:
+        self._single_value_operand.greater_than(
+            _py_single_value_comparison_operand_from_single_value_comparison_operand(
+                value
+            )
+        )
+
+    def greater_than_or_equal_to(self, value: SingleValueComparisonOperand) -> None:
+        self._single_value_operand.greater_than_or_equal_to(
+            _py_single_value_comparison_operand_from_single_value_comparison_operand(
+                value
+            )
+        )
+
+    def less_than(self, value: SingleValueComparisonOperand) -> None:
+        self._single_value_operand.less_than(
+            _py_single_value_comparison_operand_from_single_value_comparison_operand(
+                value
+            )
+        )
+
+    def less_than_or_equal_to(self, value: SingleValueComparisonOperand) -> None:
+        self._single_value_operand.less_than_or_equal_to(
+            _py_single_value_comparison_operand_from_single_value_comparison_operand(
+                value
+            )
+        )
+
+    def equal_to(self, value: SingleValueComparisonOperand) -> None:
+        self._single_value_operand.equal_to(
+            _py_single_value_comparison_operand_from_single_value_comparison_operand(
+                value
+            )
+        )
+
+    def not_equal_to(self, value: SingleValueComparisonOperand) -> None:
+        self._single_value_operand.not_equal_to(
+            _py_single_value_comparison_operand_from_single_value_comparison_operand(
+                value
+            )
+        )
+
+    def is_in(self, values: MultipleValuesComparisonOperand) -> None:
+        self._single_value_operand.is_in(
+            _py_multiple_values_comparison_operand_from_multiple_values_comparison_operand(
+                values
+            )
+        )
+
+    def is_not_in(self, values: MultipleValuesComparisonOperand) -> None:
+        self._single_value_operand.is_not_in(
+            _py_multiple_values_comparison_operand_from_multiple_values_comparison_operand(
+                values
+            )
+        )
+
+    def starts_with(self, value: SingleValueComparisonOperand) -> None:
+        self._single_value_operand.starts_with(
+            _py_single_value_comparison_operand_from_single_value_comparison_operand(
+                value
+            )
+        )
+
+    def ends_with(self, value: SingleValueComparisonOperand) -> None:
+        self._single_value_operand.ends_with(
+            _py_single_value_comparison_operand_from_single_value_comparison_operand(
+                value
+            )
+        )
+
+    def contains(self, value: SingleValueComparisonOperand) -> None:
+        self._single_value_operand.contains(
+            _py_single_value_comparison_operand_from_single_value_comparison_operand(
+                value
+            )
+        )
+
+    def add(self, value: SingleValueArithmeticOperand) -> None:
+        self._single_value_operand.add(
+            _py_single_value_comparison_operand_from_single_value_comparison_operand(
+                value
+            )
+        )
+
+    def subtract(self, value: SingleValueArithmeticOperand) -> None:
+        self._single_value_operand.sub(
+            _py_single_value_comparison_operand_from_single_value_comparison_operand(
+                value
+            )
+        )
+
+    def multiply(self, value: SingleValueArithmeticOperand) -> None:
+        self._single_value_operand.mul(
+            _py_single_value_comparison_operand_from_single_value_comparison_operand(
+                value
+            )
+        )
+
+    def modulo(self, value: SingleValueArithmeticOperand) -> None:
+        self._single_value_operand.mod(
+            _py_single_value_comparison_operand_from_single_value_comparison_operand(
+                value
+            )
+        )
+
+    def power(self, value: SingleValueArithmeticOperand) -> None:
+        self._single_value_operand.pow(
+            _py_single_value_comparison_operand_from_single_value_comparison_operand(
+                value
+            )
+        )
+
+    def round(self) -> None:
+        self._single_value_operand.round()
+
+    def ceil(self) -> None:
+        self._single_value_operand.ceil()
+
+    def floor(self) -> None:
+        self._single_value_operand.floor()
+
+    def absolute(self) -> None:
+        self._single_value_operand.abs()
+
+    def sqrt(self) -> None:
+        self._single_value_operand.sqrt()
+
+    def trim(self) -> None:
+        self._single_value_operand.trim()
+
+    def trim_start(self) -> None:
+        self._single_value_operand.trim_start()
+
+    def trim_end(self) -> None:
+        self._single_value_operand.trim_end()
+
+    def lowercase(self) -> None:
+        self._single_value_operand.lowercase()
+
+    def uppercase(self) -> None:
+        self._single_value_operand.uppercase()
+
+    def slice(self, start: int, end: int) -> None:
+        self._single_value_operand.slice(start, end)
+
+    def either_or(
+        self,
+        either: Callable[[SingleValueOperand], None],
+        or_: Callable[[SingleValueOperand], None],
+    ) -> None:
+        self._single_value_operand.either_or(
+            lambda value: either(
+                SingleValueOperand._from_py_single_value_operand(value)
+            ),
+            lambda value: or_(SingleValueOperand._from_py_single_value_operand(value)),
+        )
+
+    def clone(self) -> SingleValueOperand:
+        return SingleValueOperand._from_py_single_value_operand(
+            self._single_value_operand.deep_clone()
+        )
+
+    @classmethod
+    def _from_py_single_value_operand(
+        cls, py_single_value_operand: PySingleValueOperand
+    ) -> SingleValueOperand:
+        single_value_operand = cls()
+        single_value_operand._single_value_operand = py_single_value_operand
+        return single_value_operand
+
+
+class AttributesTreeOperand:
+    _attributes_tree_operand: PyAttributesTreeOperand
+
+    def max(self) -> MultipleAttributesOperand:
+        return MultipleAttributesOperand._from_py_multiple_attributes_operand(
+            self._attributes_tree_operand.max()
+        )
+
+    def min(self) -> MultipleAttributesOperand:
+        return MultipleAttributesOperand._from_py_multiple_attributes_operand(
+            self._attributes_tree_operand.min()
+        )
+
+    def count(self) -> MultipleAttributesOperand:
+        return MultipleAttributesOperand._from_py_multiple_attributes_operand(
+            self._attributes_tree_operand.count()
+        )
+
+    def sum(self) -> MultipleAttributesOperand:
+        return MultipleAttributesOperand._from_py_multiple_attributes_operand(
+            self._attributes_tree_operand.sum()
+        )
+
+    def first(self) -> MultipleAttributesOperand:
+        return MultipleAttributesOperand._from_py_multiple_attributes_operand(
+            self._attributes_tree_operand.first()
+        )
+
+    def last(self) -> MultipleAttributesOperand:
+        return MultipleAttributesOperand._from_py_multiple_attributes_operand(
+            self._attributes_tree_operand.last()
+        )
+
+    def is_string(self) -> None:
+        self._attributes_tree_operand.is_string()
+
+    def is_int(self) -> None:
+        self._attributes_tree_operand.is_int()
+
+    def is_max(self) -> None:
+        self._attributes_tree_operand.is_max()
+
+    def is_min(self) -> None:
+        self._attributes_tree_operand.is_min()
+
+    def greater_than(self, attribute: SingleAttributeComparisonOperand) -> None:
+        self._attributes_tree_operand.greater_than(
+            _py_single_attribute_comparison_operand_from_single_attribute_comparison_operand(
+                attribute
+            )
+        )
+
+    def greater_than_or_equal_to(
+        self, attribute: SingleAttributeComparisonOperand
+    ) -> None:
+        self._attributes_tree_operand.greater_than_or_equal_to(
+            _py_single_attribute_comparison_operand_from_single_attribute_comparison_operand(
+                attribute
+            )
+        )
+
+    def less_than(self, attribute: SingleAttributeComparisonOperand) -> None:
+        self._attributes_tree_operand.less_than(
+            _py_single_attribute_comparison_operand_from_single_attribute_comparison_operand(
+                attribute
+            )
+        )
+
+    def less_than_or_equal_to(
+        self, attribute: SingleAttributeComparisonOperand
+    ) -> None:
+        self._attributes_tree_operand.less_than_or_equal_to(
+            _py_single_attribute_comparison_operand_from_single_attribute_comparison_operand(
+                attribute
+            )
+        )
+
+    def equal_to(self, attribute: SingleAttributeComparisonOperand) -> None:
+        self._attributes_tree_operand.equal_to(
+            _py_single_attribute_comparison_operand_from_single_attribute_comparison_operand(
+                attribute
+            )
+        )
+
+    def not_equal_to(self, attribute: SingleAttributeComparisonOperand) -> None:
+        self._attributes_tree_operand.not_equal_to(
+            _py_single_attribute_comparison_operand_from_single_attribute_comparison_operand(
+                attribute
+            )
+        )
+
+    def is_in(self, attributes: MultipleAttributesComparisonOperand) -> None:
+        self._attributes_tree_operand.is_in(
+            _py_multiple_attributes_comparison_operand_from_multiple_attributes_comparison_operand(
+                attributes
+            )
+        )
+
+    def is_not_in(self, attributes: MultipleAttributesComparisonOperand) -> None:
+        self._attributes_tree_operand.is_not_in(
+            _py_multiple_attributes_comparison_operand_from_multiple_attributes_comparison_operand(
+                attributes
+            )
+        )
+
+    def starts_with(self, attribute: SingleAttributeComparisonOperand) -> None:
+        self._attributes_tree_operand.starts_with(
+            _py_single_attribute_comparison_operand_from_single_attribute_comparison_operand(
+                attribute
+            )
+        )
+
+    def ends_with(self, attribute: SingleAttributeComparisonOperand) -> None:
+        self._attributes_tree_operand.ends_with(
+            _py_single_attribute_comparison_operand_from_single_attribute_comparison_operand(
+                attribute
+            )
+        )
+
+    def contains(self, attribute: SingleAttributeComparisonOperand) -> None:
+        self._attributes_tree_operand.contains(
+            _py_single_attribute_comparison_operand_from_single_attribute_comparison_operand(
+                attribute
+            )
+        )
+
+    def add(self, attribute: SingleAttributeArithmeticOperand) -> None:
+        self._attributes_tree_operand.add(
+            _py_single_attribute_comparison_operand_from_single_attribute_comparison_operand(
+                attribute
+            )
+        )
+
+    def subtract(self, attribute: SingleAttributeArithmeticOperand) -> None:
+        self._attributes_tree_operand.sub(
+            _py_single_attribute_comparison_operand_from_single_attribute_comparison_operand(
+                attribute
+            )
+        )
+
+    def multiply(self, attribute: SingleAttributeArithmeticOperand) -> None:
+        self._attributes_tree_operand.mul(
+            _py_single_attribute_comparison_operand_from_single_attribute_comparison_operand(
+                attribute
+            )
+        )
+
+    def modulo(self, attribute: SingleAttributeArithmeticOperand) -> None:
+        self._attributes_tree_operand.mod(
+            _py_single_attribute_comparison_operand_from_single_attribute_comparison_operand(
+                attribute
+            )
+        )
+
+    def power(self, attribute: SingleAttributeArithmeticOperand) -> None:
+        self._attributes_tree_operand.pow(
+            _py_single_attribute_comparison_operand_from_single_attribute_comparison_operand(
+                attribute
+            )
+        )
+
+    def absolute(self) -> None:
+        self._attributes_tree_operand.abs()
+
+    def trim(self) -> None:
+        self._attributes_tree_operand.trim()
+
+    def trim_start(self) -> None:
+        self._attributes_tree_operand.trim_start()
+
+    def trim_end(self) -> None:
+        self._attributes_tree_operand.trim_end()
+
+    def lowercase(self) -> None:
+        self._attributes_tree_operand.lowercase()
+
+    def uppercase(self) -> None:
+        self._attributes_tree_operand.uppercase()
+
+    def slice(self, start: int, end: int) -> None:
+        self._attributes_tree_operand.slice(start, end)
+
+    def either_or(
+        self,
+        either: Callable[[AttributesTreeOperand], None],
+        or_: Callable[[AttributesTreeOperand], None],
+    ) -> None:
+        self._attributes_tree_operand.either_or(
+            lambda attributes: either(
+                AttributesTreeOperand._from_py_attributes_tree_operand(attributes)
+            ),
+            lambda attributes: or_(
+                AttributesTreeOperand._from_py_attributes_tree_operand(attributes)
+            ),
+        )
+
+    def clone(self) -> AttributesTreeOperand:
+        return AttributesTreeOperand._from_py_attributes_tree_operand(
+            self._attributes_tree_operand.deep_clone()
+        )
+
+    @classmethod
+    def _from_py_attributes_tree_operand(
+        cls, py_attributes_tree_operand: PyAttributesTreeOperand
+    ) -> AttributesTreeOperand:
+        attributes_tree_operand = cls()
+        attributes_tree_operand._attributes_tree_operand = py_attributes_tree_operand
+        return attributes_tree_operand
+
+
+class MultipleAttributesOperand:
+    _multiple_attributes_operand: PyMultipleAttributesOperand
+
+    def max(self) -> SingleAttributeOperand:
+        return SingleAttributeOperand._from_py_single_attribute_operand(
+            self._multiple_attributes_operand.max()
+        )
+
+    def min(self) -> SingleAttributeOperand:
+        return SingleAttributeOperand._from_py_single_attribute_operand(
+            self._multiple_attributes_operand.min()
+        )
+
+    def count(self) -> SingleAttributeOperand:
+        return SingleAttributeOperand._from_py_single_attribute_operand(
+            self._multiple_attributes_operand.count()
+        )
+
+    def sum(self) -> SingleAttributeOperand:
+        return SingleAttributeOperand._from_py_single_attribute_operand(
+            self._multiple_attributes_operand.sum()
+        )
+
+    def first(self) -> SingleAttributeOperand:
+        return SingleAttributeOperand._from_py_single_attribute_operand(
+            self._multiple_attributes_operand.first()
+        )
+
+    def last(self) -> SingleAttributeOperand:
+        return SingleAttributeOperand._from_py_single_attribute_operand(
+            self._multiple_attributes_operand.last()
+        )
+
+    def is_string(self) -> None:
+        self._multiple_attributes_operand.is_string()
+
+    def is_int(self) -> None:
+        self._multiple_attributes_operand.is_int()
+
+    def is_max(self) -> None:
+        self._multiple_attributes_operand.is_max()
+
+    def is_min(self) -> None:
+        self._multiple_attributes_operand.is_min()
+
+    def greater_than(self, attribute: SingleAttributeComparisonOperand) -> None:
+        self._multiple_attributes_operand.greater_than(
+            _py_single_attribute_comparison_operand_from_single_attribute_comparison_operand(
+                attribute
+            )
+        )
+
+    def greater_than_or_equal_to(
+        self, attribute: SingleAttributeComparisonOperand
+    ) -> None:
+        self._multiple_attributes_operand.greater_than_or_equal_to(
+            _py_single_attribute_comparison_operand_from_single_attribute_comparison_operand(
+                attribute
+            )
+        )
+
+    def less_than(self, attribute: SingleAttributeComparisonOperand) -> None:
+        self._multiple_attributes_operand.less_than(
+            _py_single_attribute_comparison_operand_from_single_attribute_comparison_operand(
+                attribute
+            )
+        )
+
+    def less_than_or_equal_to(
+        self, attribute: SingleAttributeComparisonOperand
+    ) -> None:
+        self._multiple_attributes_operand.less_than_or_equal_to(
+            _py_single_attribute_comparison_operand_from_single_attribute_comparison_operand(
+                attribute
+            )
+        )
+
+    def equal_to(self, attribute: SingleAttributeComparisonOperand) -> None:
+        self._multiple_attributes_operand.equal_to(
+            _py_single_attribute_comparison_operand_from_single_attribute_comparison_operand(
+                attribute
+            )
+        )
+
+    def not_equal_to(self, attribute: SingleAttributeComparisonOperand) -> None:
+        self._multiple_attributes_operand.not_equal_to(
+            _py_single_attribute_comparison_operand_from_single_attribute_comparison_operand(
+                attribute
+            )
+        )
+
+    def is_in(self, attributes: MultipleAttributesComparisonOperand) -> None:
+        self._multiple_attributes_operand.is_in(
+            _py_multiple_attributes_comparison_operand_from_multiple_attributes_comparison_operand(
+                attributes
+            )
+        )
+
+    def is_not_in(self, attributes: MultipleAttributesComparisonOperand) -> None:
+        self._multiple_attributes_operand.is_not_in(
+            _py_multiple_attributes_comparison_operand_from_multiple_attributes_comparison_operand(
+                attributes
+            )
+        )
+
+    def starts_with(self, attribute: SingleAttributeComparisonOperand) -> None:
+        self._multiple_attributes_operand.starts_with(
+            _py_single_attribute_comparison_operand_from_single_attribute_comparison_operand(
+                attribute
+            )
+        )
+
+    def ends_with(self, attribute: SingleAttributeComparisonOperand) -> None:
+        self._multiple_attributes_operand.ends_with(
+            _py_single_attribute_comparison_operand_from_single_attribute_comparison_operand(
+                attribute
+            )
+        )
+
+    def contains(self, attribute: SingleAttributeComparisonOperand) -> None:
+        self._multiple_attributes_operand.contains(
+            _py_single_attribute_comparison_operand_from_single_attribute_comparison_operand(
+                attribute
+            )
+        )
+
+    def add(self, attribute: SingleAttributeArithmeticOperand) -> None:
+        self._multiple_attributes_operand.add(
+            _py_single_attribute_comparison_operand_from_single_attribute_comparison_operand(
+                attribute
+            )
+        )
+
+    def subtract(self, attribute: SingleAttributeArithmeticOperand) -> None:
+        self._multiple_attributes_operand.sub(
+            _py_single_attribute_comparison_operand_from_single_attribute_comparison_operand(
+                attribute
+            )
+        )
+
+    def multiply(self, attribute: SingleAttributeArithmeticOperand) -> None:
+        self._multiple_attributes_operand.mul(
+            _py_single_attribute_comparison_operand_from_single_attribute_comparison_operand(
+                attribute
+            )
+        )
+
+    def modulo(self, attribute: SingleAttributeArithmeticOperand) -> None:
+        self._multiple_attributes_operand.mod(
+            _py_single_attribute_comparison_operand_from_single_attribute_comparison_operand(
+                attribute
+            )
+        )
+
+    def power(self, attribute: SingleAttributeArithmeticOperand) -> None:
+        self._multiple_attributes_operand.pow(
+            _py_single_attribute_comparison_operand_from_single_attribute_comparison_operand(
+                attribute
+            )
+        )
+
+    def absolute(self) -> None:
+        self._multiple_attributes_operand.abs()
+
+    def trim(self) -> None:
+        self._multiple_attributes_operand.trim()
+
+    def trim_start(self) -> None:
+        self._multiple_attributes_operand.trim_start()
+
+    def trim_end(self) -> None:
+        self._multiple_attributes_operand.trim_end()
+
+    def lowercase(self) -> None:
+        self._multiple_attributes_operand.lowercase()
+
+    def uppercase(self) -> None:
+        self._multiple_attributes_operand.uppercase()
+
+    def to_values(self) -> MultipleValuesOperand:
+        return MultipleValuesOperand._from_py_multiple_values_operand(
+            self._multiple_attributes_operand.to_values()
+        )
+
+    def slice(self, start: int, end: int) -> None:
+        self._multiple_attributes_operand.slice(start, end)
+
+    def either_or(
+        self,
+        either: Callable[[MultipleAttributesOperand], None],
+        or_: Callable[[MultipleAttributesOperand], None],
+    ) -> None:
+        self._multiple_attributes_operand.either_or(
+            lambda attributes: either(
+                MultipleAttributesOperand._from_py_multiple_attributes_operand(
+                    attributes
+                )
+            ),
+            lambda attributes: or_(
+                MultipleAttributesOperand._from_py_multiple_attributes_operand(
+                    attributes
+                )
+            ),
+        )
+
+    def clone(self) -> MultipleAttributesOperand:
+        return MultipleAttributesOperand._from_py_multiple_attributes_operand(
+            self._multiple_attributes_operand.deep_clone()
+        )
+
+    @classmethod
+    def _from_py_multiple_attributes_operand(
+        cls, py_multiple_attributes_operand: PyMultipleAttributesOperand
+    ) -> MultipleAttributesOperand:
+        multiple_attributes_operand = cls()
+        multiple_attributes_operand._multiple_attributes_operand = (
+            py_multiple_attributes_operand
+        )
+        return multiple_attributes_operand
+
+
+class SingleAttributeOperand:
+    _single_attribute_operand: PySingleAttributeOperand
+
+    def is_string(self) -> None:
+        self._single_attribute_operand.is_string()
+
+    def is_int(self) -> None:
+        self._single_attribute_operand.is_int()
+
+    def greater_than(self, attribute: SingleAttributeComparisonOperand) -> None:
+        self._single_attribute_operand.greater_than(
+            _py_single_attribute_comparison_operand_from_single_attribute_comparison_operand(
+                attribute
+            )
+        )
+
+    def greater_than_or_equal_to(
+        self, attribute: SingleAttributeComparisonOperand
+    ) -> None:
+        self._single_attribute_operand.greater_than_or_equal_to(
+            _py_single_attribute_comparison_operand_from_single_attribute_comparison_operand(
+                attribute
+            )
+        )
+
+    def less_than(self, attribute: SingleAttributeComparisonOperand) -> None:
+        self._single_attribute_operand.less_than(
+            _py_single_attribute_comparison_operand_from_single_attribute_comparison_operand(
+                attribute
+            )
+        )
+
+    def less_than_or_equal_to(
+        self, attribute: SingleAttributeComparisonOperand
+    ) -> None:
+        self._single_attribute_operand.less_than_or_equal_to(
+            _py_single_attribute_comparison_operand_from_single_attribute_comparison_operand(
+                attribute
+            )
+        )
+
+    def equal_to(self, attribute: SingleAttributeComparisonOperand) -> None:
+        self._single_attribute_operand.equal_to(
+            _py_single_attribute_comparison_operand_from_single_attribute_comparison_operand(
+                attribute
+            )
+        )
+
+    def not_equal_to(self, attribute: SingleAttributeComparisonOperand) -> None:
+        self._single_attribute_operand.not_equal_to(
+            _py_single_attribute_comparison_operand_from_single_attribute_comparison_operand(
+                attribute
+            )
+        )
+
+    def is_in(self, attributes: MultipleAttributesComparisonOperand) -> None:
+        self._single_attribute_operand.is_in(
+            _py_multiple_attributes_comparison_operand_from_multiple_attributes_comparison_operand(
+                attributes
+            )
+        )
+
+    def is_not_in(self, attributes: MultipleAttributesComparisonOperand) -> None:
+        self._single_attribute_operand.is_not_in(
+            _py_multiple_attributes_comparison_operand_from_multiple_attributes_comparison_operand(
+                attributes
+            )
+        )
+
+    def starts_with(self, attribute: SingleAttributeComparisonOperand) -> None:
+        self._single_attribute_operand.starts_with(
+            _py_single_attribute_comparison_operand_from_single_attribute_comparison_operand(
+                attribute
+            )
+        )
+
+    def ends_with(self, attribute: SingleAttributeComparisonOperand) -> None:
+        self._single_attribute_operand.ends_with(
+            _py_single_attribute_comparison_operand_from_single_attribute_comparison_operand(
+                attribute
+            )
+        )
+
+    def contains(self, attribute: SingleAttributeComparisonOperand) -> None:
+        self._single_attribute_operand.contains(
+            _py_single_attribute_comparison_operand_from_single_attribute_comparison_operand(
+                attribute
+            )
+        )
+
+    def add(self, attribute: SingleAttributeArithmeticOperand) -> None:
+        self._single_attribute_operand.add(
+            _py_single_attribute_comparison_operand_from_single_attribute_comparison_operand(
+                attribute
+            )
+        )
+
+    def subtract(self, attribute: SingleAttributeArithmeticOperand) -> None:
+        self._single_attribute_operand.sub(
+            _py_single_attribute_comparison_operand_from_single_attribute_comparison_operand(
+                attribute
+            )
+        )
+
+    def multiply(self, attribute: SingleAttributeArithmeticOperand) -> None:
+        self._single_attribute_operand.mul(
+            _py_single_attribute_comparison_operand_from_single_attribute_comparison_operand(
+                attribute
+            )
+        )
+
+    def modulo(self, attribute: SingleAttributeArithmeticOperand) -> None:
+        self._single_attribute_operand.mod(
+            _py_single_attribute_comparison_operand_from_single_attribute_comparison_operand(
+                attribute
+            )
+        )
+
+    def power(self, attribute: SingleAttributeArithmeticOperand) -> None:
+        self._single_attribute_operand.pow(
+            _py_single_attribute_comparison_operand_from_single_attribute_comparison_operand(
+                attribute
+            )
+        )
+
+    def absolute(self) -> None:
+        self._single_attribute_operand.abs()
+
+    def trim(self) -> None:
+        self._single_attribute_operand.trim()
+
+    def trim_start(self) -> None:
+        self._single_attribute_operand.trim_start()
+
+    def trim_end(self) -> None:
+        self._single_attribute_operand.trim_end()
+
+    def lowercase(self) -> None:
+        self._single_attribute_operand.lowercase()
+
+    def uppercase(self) -> None:
+        self._single_attribute_operand.uppercase()
+
+    def slice(self, start: int, end: int) -> None:
+        self._single_attribute_operand.slice(start, end)
+
+    def either_or(
+        self,
+        either: Callable[[SingleAttributeOperand], None],
+        or_: Callable[[SingleAttributeOperand], None],
+    ) -> None:
+        self._single_attribute_operand.either_or(
+            lambda attribute: either(
+                SingleAttributeOperand._from_py_single_attribute_operand(attribute)
+            ),
+            lambda attribute: or_(
+                SingleAttributeOperand._from_py_single_attribute_operand(attribute)
+            ),
+        )
+
+    def clone(self) -> SingleAttributeOperand:
+        return SingleAttributeOperand._from_py_single_attribute_operand(
+            self._single_attribute_operand.deep_clone()
+        )
+
+    @classmethod
+    def _from_py_single_attribute_operand(
+        cls, py_single_attribute_operand: PySingleAttributeOperand
+    ) -> SingleAttributeOperand:
+        single_attribute_operand = cls()
+        single_attribute_operand._single_attribute_operand = py_single_attribute_operand
+        return single_attribute_operand
+
+
+class NodeIndicesOperand:
+    _node_indices_operand: PyNodeIndicesOperand
+
+    def max(self) -> NodeIndexOperand:
+        return NodeIndexOperand._from_py_node_index_operand(
+            self._node_indices_operand.max()
+        )
+
+    def min(self) -> NodeIndexOperand:
+        return NodeIndexOperand._from_py_node_index_operand(
+            self._node_indices_operand.min()
+        )
+
+    def count(self) -> NodeIndexOperand:
+        return NodeIndexOperand._from_py_node_index_operand(
+            self._node_indices_operand.count()
+        )
+
+    def sum(self) -> NodeIndexOperand:
+        return NodeIndexOperand._from_py_node_index_operand(
+            self._node_indices_operand.sum()
+        )
+
+    def first(self) -> NodeIndexOperand:
+        return NodeIndexOperand._from_py_node_index_operand(
+            self._node_indices_operand.first()
+        )
+
+    def last(self) -> NodeIndexOperand:
+        return NodeIndexOperand._from_py_node_index_operand(
+            self._node_indices_operand.last()
+        )
+
+    def greater_than(self, index: NodeIndexComparisonOperand) -> None:
+        self._node_indices_operand.greater_than(
+            _py_node_index_comparison_operand_from_node_index_comparison_operand(index)
+        )
+
+    def greater_than_or_equal_to(self, index: NodeIndexComparisonOperand) -> None:
+        self._node_indices_operand.greater_than_or_equal_to(
+            _py_node_index_comparison_operand_from_node_index_comparison_operand(index)
+        )
+
+    def less_than(self, index: NodeIndexComparisonOperand) -> None:
+        self._node_indices_operand.less_than(
+            _py_node_index_comparison_operand_from_node_index_comparison_operand(index)
+        )
+
+    def less_than_or_equal_to(self, index: NodeIndexComparisonOperand) -> None:
+        self._node_indices_operand.less_than_or_equal_to(
+            _py_node_index_comparison_operand_from_node_index_comparison_operand(index)
+        )
+
+    def equal_to(self, index: NodeIndexComparisonOperand) -> None:
+        self._node_indices_operand.equal_to(
+            _py_node_index_comparison_operand_from_node_index_comparison_operand(index)
+        )
+
+    def not_equal_to(self, index: NodeIndexComparisonOperand) -> None:
+        self._node_indices_operand.not_equal_to(
+            _py_node_index_comparison_operand_from_node_index_comparison_operand(index)
+        )
+
+    def is_in(self, indices: NodeIndicesComparisonOperand) -> None:
+        self._node_indices_operand.is_in(
+            _py_node_indices_comparison_operand_from_node_indices_comparison_operand(
+                indices
+            )
+        )
+
+    def is_not_in(self, indices: NodeIndicesComparisonOperand) -> None:
+        self._node_indices_operand.is_not_in(
+            _py_node_indices_comparison_operand_from_node_indices_comparison_operand(
+                indices
+            )
+        )
+
+    def starts_with(self, index: NodeIndexComparisonOperand) -> None:
+        self._node_indices_operand.starts_with(
+            _py_node_index_comparison_operand_from_node_index_comparison_operand(index)
+        )
+
+    def ends_with(self, index: NodeIndexComparisonOperand) -> None:
+        self._node_indices_operand.ends_with(
+            _py_node_index_comparison_operand_from_node_index_comparison_operand(index)
+        )
+
+    def contains(self, index: NodeIndexComparisonOperand) -> None:
+        self._node_indices_operand.contains(
+            _py_node_index_comparison_operand_from_node_index_comparison_operand(index)
+        )
+
+    def add(self, index: NodeIndexArithmeticOperand) -> None:
+        self._node_indices_operand.add(
+            _py_node_index_comparison_operand_from_node_index_comparison_operand(index)
+        )
+
+    def subtract(self, index: NodeIndexArithmeticOperand) -> None:
+        self._node_indices_operand.sub(
+            _py_node_index_comparison_operand_from_node_index_comparison_operand(index)
+        )
+
+    def multiply(self, index: NodeIndexArithmeticOperand) -> None:
+        self._node_indices_operand.mul(
+            _py_node_index_comparison_operand_from_node_index_comparison_operand(index)
+        )
+
+    def modulo(self, index: NodeIndexArithmeticOperand) -> None:
+        self._node_indices_operand.mod(
+            _py_node_index_comparison_operand_from_node_index_comparison_operand(index)
+        )
+
+    def power(self, index: NodeIndexArithmeticOperand) -> None:
+        self._node_indices_operand.pow(
+            _py_node_index_comparison_operand_from_node_index_comparison_operand(index)
+        )
+
+    def absolute(self) -> None:
+        self._node_indices_operand.abs()
+
+    def trim(self) -> None:
+        self._node_indices_operand.trim()
+
+    def trim_start(self) -> None:
+        self._node_indices_operand.trim_start()
+
+    def trim_end(self) -> None:
+        self._node_indices_operand.trim_end()
+
+    def lowercase(self) -> None:
+        self._node_indices_operand.lowercase()
+
+    def uppercase(self) -> None:
+        self._node_indices_operand.uppercase()
+
+    def slice(self, start: int, end: int) -> None:
+        self._node_indices_operand.slice(start, end)
+
+    def either_or(
+        self,
+        either: Callable[[NodeIndicesOperand], None],
+        or_: Callable[[NodeIndicesOperand], None],
+    ) -> None:
+        self._node_indices_operand.either_or(
+            lambda node_indices: either(
+                NodeIndicesOperand._from_py_node_indices_operand(node_indices)
+            ),
+            lambda node_indices: or_(
+                NodeIndicesOperand._from_py_node_indices_operand(node_indices)
+            ),
+        )
+
+    def clone(self) -> NodeIndicesOperand:
+        return NodeIndicesOperand._from_py_node_indices_operand(
+            self._node_indices_operand.deep_clone()
+        )
+
+    @classmethod
+    def _from_py_node_indices_operand(
+        cls, py_node_indices_operand: PyNodeIndicesOperand
+    ) -> NodeIndicesOperand:
+        node_indices_operand = cls()
+        node_indices_operand._node_indices_operand = py_node_indices_operand
+        return node_indices_operand
+
+
+class NodeIndexOperand:
+    _node_index_operand: PyNodeIndexOperand
+
+    def greater_than(self, index: NodeIndexComparisonOperand) -> None:
+        self._node_index_operand.greater_than(
+            _py_node_index_comparison_operand_from_node_index_comparison_operand(index)
+        )
+
+    def greater_than_or_equal_to(self, index: NodeIndexComparisonOperand) -> None:
+        self._node_index_operand.greater_than_or_equal_to(
+            _py_node_index_comparison_operand_from_node_index_comparison_operand(index)
+        )
+
+    def less_than(self, index: NodeIndexComparisonOperand) -> None:
+        self._node_index_operand.less_than(
+            _py_node_index_comparison_operand_from_node_index_comparison_operand(index)
+        )
+
+    def less_than_or_equal_to(self, index: NodeIndexComparisonOperand) -> None:
+        self._node_index_operand.less_than_or_equal_to(
+            _py_node_index_comparison_operand_from_node_index_comparison_operand(index)
+        )
+
+    def equal_to(self, index: NodeIndexComparisonOperand) -> None:
+        self._node_index_operand.equal_to(
+            _py_node_index_comparison_operand_from_node_index_comparison_operand(index)
+        )
+
+    def not_equal_to(self, index: NodeIndexComparisonOperand) -> None:
+        self._node_index_operand.not_equal_to(
+            _py_node_index_comparison_operand_from_node_index_comparison_operand(index)
+        )
+
+    def is_in(self, indices: NodeIndicesComparisonOperand) -> None:
+        self._node_index_operand.is_in(
+            _py_node_indices_comparison_operand_from_node_indices_comparison_operand(
+                indices
+            )
+        )
+
+    def is_not_in(self, indices: NodeIndicesComparisonOperand) -> None:
+        self._node_index_operand.is_not_in(
+            _py_node_indices_comparison_operand_from_node_indices_comparison_operand(
+                indices
+            )
+        )
+
+    def starts_with(self, index: NodeIndexComparisonOperand) -> None:
+        self._node_index_operand.starts_with(
+            _py_node_index_comparison_operand_from_node_index_comparison_operand(index)
+        )
+
+    def ends_with(self, index: NodeIndexComparisonOperand) -> None:
+        self._node_index_operand.ends_with(
+            _py_node_index_comparison_operand_from_node_index_comparison_operand(index)
+        )
+
+    def contains(self, index: NodeIndexComparisonOperand) -> None:
+        self._node_index_operand.contains(
+            _py_node_index_comparison_operand_from_node_index_comparison_operand(index)
+        )
+
+    def add(self, index: NodeIndexArithmeticOperand) -> None:
+        self._node_index_operand.add(
+            _py_node_index_comparison_operand_from_node_index_comparison_operand(index)
+        )
+
+    def subtract(self, index: NodeIndexArithmeticOperand) -> None:
+        self._node_index_operand.sub(
+            _py_node_index_comparison_operand_from_node_index_comparison_operand(index)
+        )
+
+    def multiply(self, index: NodeIndexArithmeticOperand) -> None:
+        self._node_index_operand.mul(
+            _py_node_index_comparison_operand_from_node_index_comparison_operand(index)
+        )
+
+    def modulo(self, index: NodeIndexArithmeticOperand) -> None:
+        self._node_index_operand.mod(
+            _py_node_index_comparison_operand_from_node_index_comparison_operand(index)
+        )
+
+    def power(self, index: NodeIndexArithmeticOperand) -> None:
+        self._node_index_operand.pow(
+            _py_node_index_comparison_operand_from_node_index_comparison_operand(index)
+        )
+
+    def absolute(self) -> None:
+        self._node_index_operand.abs()
+
+    def trim(self) -> None:
+        self._node_index_operand.trim()
+
+    def trim_start(self) -> None:
+        self._node_index_operand.trim_start()
+
+    def trim_end(self) -> None:
+        self._node_index_operand.trim_end()
+
+    def lowercase(self) -> None:
+        self._node_index_operand.lowercase()
+
+    def uppercase(self) -> None:
+        self._node_index_operand.uppercase()
+
+    def slice(self, start: int, end: int) -> None:
+        self._node_index_operand.slice(start, end)
+
+    def either_or(
+        self,
+        either: Callable[[NodeIndexOperand], None],
+        or_: Callable[[NodeIndexOperand], None],
+    ) -> None:
+        self._node_index_operand.either_or(
+            lambda node_index: either(
+                NodeIndexOperand._from_py_node_index_operand(node_index)
+            ),
+            lambda node_index: or_(
+                NodeIndexOperand._from_py_node_index_operand(node_index)
+            ),
+        )
+
+    def clone(self) -> NodeIndexOperand:
+        return NodeIndexOperand._from_py_node_index_operand(
+            self._node_index_operand.deep_clone()
+        )
+
+    @classmethod
+    def _from_py_node_index_operand(
+        cls, py_node_index_operand: PyNodeIndexOperand
+    ) -> NodeIndexOperand:
+        node_index_operand = cls()
+        node_index_operand._node_index_operand = py_node_index_operand
+        return node_index_operand
+
+
+class EdgeIndicesOperand:
+    _edge_indices_operand: PyEdgeIndicesOperand
+
+    def max(self) -> EdgeIndexOperand:
+        return EdgeIndexOperand._from_py_edge_index_operand(
+            self._edge_indices_operand.max()
+        )
+
+    def min(self) -> EdgeIndexOperand:
+        return EdgeIndexOperand._from_py_edge_index_operand(
+            self._edge_indices_operand.min()
+        )
+
+    def count(self) -> EdgeIndexOperand:
+        return EdgeIndexOperand._from_py_edge_index_operand(
+            self._edge_indices_operand.count()
+        )
+
+    def sum(self) -> EdgeIndexOperand:
+        return EdgeIndexOperand._from_py_edge_index_operand(
+            self._edge_indices_operand.sum()
+        )
+
+    def first(self) -> EdgeIndexOperand:
+        return EdgeIndexOperand._from_py_edge_index_operand(
+            self._edge_indices_operand.first()
+        )
+
+    def last(self) -> EdgeIndexOperand:
+        return EdgeIndexOperand._from_py_edge_index_operand(
+            self._edge_indices_operand.last()
+        )
+
+    def greater_than(self, index: EdgeIndexComparisonOperand) -> None:
+        self._edge_indices_operand.greater_than(
+            _py_edge_index_comparison_operand_from_edge_index_comparison_operand(index)
+        )
+
+    def greater_than_or_equal_to(self, index: EdgeIndexComparisonOperand) -> None:
+        self._edge_indices_operand.greater_than_or_equal_to(
+            _py_edge_index_comparison_operand_from_edge_index_comparison_operand(index)
+        )
+
+    def less_than(self, index: EdgeIndexComparisonOperand) -> None:
+        self._edge_indices_operand.less_than(
+            _py_edge_index_comparison_operand_from_edge_index_comparison_operand(index)
+        )
+
+    def less_than_or_equal_to(self, index: EdgeIndexComparisonOperand) -> None:
+        self._edge_indices_operand.less_than_or_equal_to(
+            _py_edge_index_comparison_operand_from_edge_index_comparison_operand(index)
+        )
+
+    def equal_to(self, index: EdgeIndexComparisonOperand) -> None:
+        self._edge_indices_operand.equal_to(
+            _py_edge_index_comparison_operand_from_edge_index_comparison_operand(index)
+        )
+
+    def not_equal_to(self, index: EdgeIndexComparisonOperand) -> None:
+        self._edge_indices_operand.not_equal_to(
+            _py_edge_index_comparison_operand_from_edge_index_comparison_operand(index)
+        )
+
+    def is_in(self, indices: EdgeIndicesComparisonOperand) -> None:
+        self._edge_indices_operand.is_in(
+            _py_edge_indices_comparison_operand_from_edge_indices_comparison_operand(
+                indices
+            )
+        )
+
+    def is_not_in(self, indices: EdgeIndicesComparisonOperand) -> None:
+        self._edge_indices_operand.is_not_in(
+            _py_edge_indices_comparison_operand_from_edge_indices_comparison_operand(
+                indices
+            )
+        )
+
+    def starts_with(self, index: EdgeIndexComparisonOperand) -> None:
+        self._edge_indices_operand.starts_with(
+            _py_edge_index_comparison_operand_from_edge_index_comparison_operand(index)
+        )
+
+    def ends_with(self, index: EdgeIndexComparisonOperand) -> None:
+        self._edge_indices_operand.ends_with(
+            _py_edge_index_comparison_operand_from_edge_index_comparison_operand(index)
+        )
+
+    def contains(self, index: EdgeIndexComparisonOperand) -> None:
+        self._edge_indices_operand.contains(
+            _py_edge_index_comparison_operand_from_edge_index_comparison_operand(index)
+        )
+
+    def add(self, index: EdgeIndexArithmeticOperand) -> None:
+        self._edge_indices_operand.add(
+            _py_edge_index_comparison_operand_from_edge_index_comparison_operand(index)
+        )
+
+    def subtract(self, index: EdgeIndexArithmeticOperand) -> None:
+        self._edge_indices_operand.sub(
+            _py_edge_index_comparison_operand_from_edge_index_comparison_operand(index)
+        )
+
+    def multiply(self, index: EdgeIndexArithmeticOperand) -> None:
+        self._edge_indices_operand.mul(
+            _py_edge_index_comparison_operand_from_edge_index_comparison_operand(index)
+        )
+
+    def modulo(self, index: EdgeIndexArithmeticOperand) -> None:
+        self._edge_indices_operand.mod(
+            _py_edge_index_comparison_operand_from_edge_index_comparison_operand(index)
+        )
+
+    def power(self, index: EdgeIndexArithmeticOperand) -> None:
+        self._edge_indices_operand.pow(
+            _py_edge_index_comparison_operand_from_edge_index_comparison_operand(index)
+        )
+
+    def either_or(
+        self,
+        either: Callable[[EdgeIndicesOperand], None],
+        or_: Callable[[EdgeIndicesOperand], None],
+    ) -> None:
+        self._edge_indices_operand.either_or(
+            lambda edge_indices: either(
+                EdgeIndicesOperand._from_edge_indices_operand(edge_indices)
+            ),
+            lambda edge_indices: or_(
+                EdgeIndicesOperand._from_edge_indices_operand(edge_indices)
+            ),
+        )
+
+    def clone(self) -> EdgeIndicesOperand:
+        return EdgeIndicesOperand._from_edge_indices_operand(
+            self._edge_indices_operand.deep_clone()
+        )
+
+    @classmethod
+    def _from_edge_indices_operand(
+        cls, py_edge_indices_operand: PyEdgeIndicesOperand
+    ) -> EdgeIndicesOperand:
+        edge_indices_operand = cls()
+        edge_indices_operand._edge_indices_operand = py_edge_indices_operand
+        return edge_indices_operand
+
+
+class EdgeIndexOperand:
+    _edge_index_operand: PyEdgeIndexOperand
+
+    def greater_than(self, index: EdgeIndexComparisonOperand) -> None:
+        self._edge_index_operand.greater_than(
+            _py_edge_index_comparison_operand_from_edge_index_comparison_operand(index)
+        )
+
+    def greater_than_or_equal_to(self, index: EdgeIndexComparisonOperand) -> None:
+        self._edge_index_operand.greater_than_or_equal_to(
+            _py_edge_index_comparison_operand_from_edge_index_comparison_operand(index)
+        )
+
+    def less_than(self, index: EdgeIndexComparisonOperand) -> None:
+        self._edge_index_operand.less_than(
+            _py_edge_index_comparison_operand_from_edge_index_comparison_operand(index)
+        )
+
+    def less_than_or_equal_to(self, index: EdgeIndexComparisonOperand) -> None:
+        self._edge_index_operand.less_than_or_equal_to(
+            _py_edge_index_comparison_operand_from_edge_index_comparison_operand(index)
+        )
+
+    def equal_to(self, index: EdgeIndexComparisonOperand) -> None:
+        self._edge_index_operand.equal_to(
+            _py_edge_index_comparison_operand_from_edge_index_comparison_operand(index)
+        )
+
+    def not_equal_to(self, index: EdgeIndexComparisonOperand) -> None:
+        self._edge_index_operand.not_equal_to(
+            _py_edge_index_comparison_operand_from_edge_index_comparison_operand(index)
+        )
+
+    def is_in(self, indices: EdgeIndicesComparisonOperand) -> None:
+        self._edge_index_operand.is_in(
+            _py_edge_indices_comparison_operand_from_edge_indices_comparison_operand(
+                indices
+            )
+        )
+
+    def is_not_in(self, indices: EdgeIndicesComparisonOperand) -> None:
+        self._edge_index_operand.is_not_in(
+            _py_edge_indices_comparison_operand_from_edge_indices_comparison_operand(
+                indices
+            )
+        )
+
+    def starts_with(self, index: EdgeIndexComparisonOperand) -> None:
+        self._edge_index_operand.starts_with(
+            _py_edge_index_comparison_operand_from_edge_index_comparison_operand(index)
+        )
+
+    def ends_with(self, index: EdgeIndexComparisonOperand) -> None:
+        self._edge_index_operand.ends_with(
+            _py_edge_index_comparison_operand_from_edge_index_comparison_operand(index)
+        )
+
+    def contains(self, index: EdgeIndexComparisonOperand) -> None:
+        self._edge_index_operand.contains(
+            _py_edge_index_comparison_operand_from_edge_index_comparison_operand(index)
+        )
+
+    def add(self, index: EdgeIndexArithmeticOperand) -> None:
+        self._edge_index_operand.add(
+            _py_edge_index_comparison_operand_from_edge_index_comparison_operand(index)
+        )
+
+    def subtract(self, index: EdgeIndexArithmeticOperand) -> None:
+        self._edge_index_operand.sub(
+            _py_edge_index_comparison_operand_from_edge_index_comparison_operand(index)
+        )
+
+    def multiply(self, index: EdgeIndexArithmeticOperand) -> None:
+        self._edge_index_operand.mul(
+            _py_edge_index_comparison_operand_from_edge_index_comparison_operand(index)
+        )
+
+    def modulo(self, index: EdgeIndexArithmeticOperand) -> None:
+        self._edge_index_operand.mod(
+            _py_edge_index_comparison_operand_from_edge_index_comparison_operand(index)
+        )
+
+    def power(self, index: EdgeIndexArithmeticOperand) -> None:
+        self._edge_index_operand.pow(
+            _py_edge_index_comparison_operand_from_edge_index_comparison_operand(index)
+        )
+
+    def either_or(
+        self,
+        either: Callable[[EdgeIndexOperand], None],
+        or_: Callable[[EdgeIndexOperand], None],
+    ) -> None:
+        self._edge_index_operand.either_or(
+            lambda edge_index: either(
+                EdgeIndexOperand._from_py_edge_index_operand(edge_index)
+            ),
+            lambda edge_index: or_(
+                EdgeIndexOperand._from_py_edge_index_operand(edge_index)
+            ),
+        )
+
+    def clone(self) -> EdgeIndexOperand:
+        return EdgeIndexOperand._from_py_edge_index_operand(
+            self._edge_index_operand.deep_clone()
+        )
+
+    @classmethod
+    def _from_py_edge_index_operand(
+        cls, py_edge_index_operand: PyEdgeIndexOperand
+    ) -> EdgeIndexOperand:
+        edge_index_operand = cls()
+        edge_index_operand._edge_index_operand = py_edge_index_operand
+        return edge_index_operand

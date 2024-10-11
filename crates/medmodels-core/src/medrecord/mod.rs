@@ -11,9 +11,24 @@ pub use self::{
     graph::{Attributes, EdgeIndex, NodeIndex},
     group_mapping::Group,
     querying::{
-        edge, node, ArithmeticOperation, EdgeAttributeOperand, EdgeIndexOperand, EdgeOperand,
-        EdgeOperation, NodeAttributeOperand, NodeIndexOperand, NodeOperand, NodeOperation,
-        TransformationOperation, ValueOperand,
+        attributes::{
+            AttributesTreeOperand, MultipleAttributesComparisonOperand, MultipleAttributesOperand,
+            SingleAttributeComparisonOperand, SingleAttributeOperand,
+        },
+        edges::{
+            EdgeIndexComparisonOperand, EdgeIndexOperand, EdgeIndicesComparisonOperand,
+            EdgeIndicesOperand, EdgeOperand,
+        },
+        nodes::{
+            EdgeDirection, NodeIndexComparisonOperand, NodeIndexOperand,
+            NodeIndicesComparisonOperand, NodeIndicesOperand, NodeOperand,
+        },
+        traits::DeepClone,
+        values::{
+            MultipleValuesComparisonOperand, MultipleValuesOperand, SingleValueComparisonOperand,
+            SingleValueOperand,
+        },
+        wrapper::{CardinalityWrapper, Wrapper},
     },
     schema::{AttributeDataType, AttributeType, GroupSchema, Schema},
 };
@@ -22,7 +37,7 @@ use ::polars::frame::DataFrame;
 use graph::Graph;
 use group_mapping::GroupMapping;
 use polars::{dataframe_to_edges, dataframe_to_nodes};
-use querying::{EdgeSelection, NodeSelection};
+use querying::{edges::EdgeSelection, nodes::NodeSelection};
 use serde::{Deserialize, Serialize};
 use std::{fs, mem, path::Path};
 
@@ -683,12 +698,22 @@ impl MedRecord {
         self.group_mapping.contains_group(group)
     }
 
-    pub fn neighbors(
+    pub fn neighbors_outgoing(
         &self,
         node_index: &NodeIndex,
     ) -> Result<impl Iterator<Item = &NodeIndex>, MedRecordError> {
         self.graph
-            .neighbors(node_index)
+            .neighbors_outgoing(node_index)
+            .map_err(MedRecordError::from)
+    }
+
+    // TODO: Add tests
+    pub fn neighbors_incoming(
+        &self,
+        node_index: &NodeIndex,
+    ) -> Result<impl Iterator<Item = &NodeIndex>, MedRecordError> {
+        self.graph
+            .neighbors_incoming(node_index)
             .map_err(MedRecordError::from)
     }
 
@@ -706,12 +731,18 @@ impl MedRecord {
         self.group_mapping.clear();
     }
 
-    pub fn select_nodes(&self, operation: NodeOperation) -> NodeSelection {
-        NodeSelection::new(self, operation)
+    pub fn select_nodes<Q>(&self, query: Q) -> NodeSelection
+    where
+        Q: FnOnce(&mut Wrapper<NodeOperand>),
+    {
+        NodeSelection::new(self, query)
     }
 
-    pub fn select_edges(&self, operation: EdgeOperation) -> EdgeSelection {
-        EdgeSelection::new(self, operation)
+    pub fn select_edges<Q>(&self, query: Q) -> EdgeSelection
+    where
+        Q: FnOnce(&mut Wrapper<EdgeOperand>),
+    {
+        EdgeSelection::new(self, query)
     }
 }
 
@@ -1870,7 +1901,7 @@ mod test {
     fn test_neighbors() {
         let medrecord = create_medrecord();
 
-        let neighbors = medrecord.neighbors(&"0".into()).unwrap();
+        let neighbors = medrecord.neighbors_outgoing(&"0".into()).unwrap();
 
         assert_eq!(2, neighbors.count());
     }
@@ -1881,7 +1912,7 @@ mod test {
 
         // Querying neighbors of a non-existing node sohuld fail
         assert!(medrecord
-            .neighbors(&"0".into())
+            .neighbors_outgoing(&"0".into())
             .is_err_and(|e| matches!(e, MedRecordError::IndexError(_))));
     }
 
@@ -1889,7 +1920,7 @@ mod test {
     fn test_neighbors_undirected() {
         let medrecord = create_medrecord();
 
-        let neighbors = medrecord.neighbors(&"2".into()).unwrap();
+        let neighbors = medrecord.neighbors_outgoing(&"2".into()).unwrap();
         assert_eq!(0, neighbors.count());
 
         let neighbors = medrecord.neighbors_undirected(&"2".into()).unwrap();
