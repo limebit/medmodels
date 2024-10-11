@@ -11,8 +11,23 @@ pub use self::{
     graph::{Attributes, EdgeIndex, NodeIndex},
     group_mapping::Group,
     querying::{
-        edges::EdgeOperand,
-        nodes::NodeOperand,
+        attributes::{
+            AttributesTreeOperand, MultipleAttributesComparisonOperand, MultipleAttributesOperand,
+            SingleAttributeComparisonOperand, SingleAttributeOperand,
+        },
+        edges::{
+            EdgeIndexComparisonOperand, EdgeIndexOperand, EdgeIndicesComparisonOperand,
+            EdgeIndicesOperand, EdgeOperand,
+        },
+        nodes::{
+            EdgeDirection, NodeIndexComparisonOperand, NodeIndexOperand,
+            NodeIndicesComparisonOperand, NodeIndicesOperand, NodeOperand,
+        },
+        traits::DeepClone,
+        values::{
+            MultipleValuesComparisonOperand, MultipleValuesOperand, SingleValueComparisonOperand,
+            SingleValueOperand,
+        },
         wrapper::{CardinalityWrapper, Wrapper},
     },
     schema::{AttributeDataType, AttributeType, GroupSchema, Schema},

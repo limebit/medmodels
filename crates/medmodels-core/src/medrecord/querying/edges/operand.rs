@@ -205,7 +205,7 @@ impl Wrapper<EdgeOperand> {
     }
 }
 
-macro_rules! implement_value_operation {
+macro_rules! implement_index_operation {
     ($name:ident, $variant:ident) => {
         pub fn $name(&mut self) -> Wrapper<EdgeIndexOperand> {
             let operand = Wrapper::<EdgeIndexOperand>::new(self.deep_clone(), SingleKind::$variant);
@@ -220,12 +220,12 @@ macro_rules! implement_value_operation {
     };
 }
 
-macro_rules! implement_single_value_comparison_operation {
+macro_rules! implement_single_index_comparison_operation {
     ($name:ident, $operation:ident, $kind:ident) => {
-        pub fn $name<V: Into<EdgeIndexComparisonOperand>>(&mut self, value: V) {
+        pub fn $name<V: Into<EdgeIndexComparisonOperand>>(&mut self, index: V) {
             self.operations
                 .push($operation::EdgeIndexComparisonOperation {
-                    operand: value.into(),
+                    operand: index.into(),
                     kind: SingleComparisonKind::$kind,
                 });
         }
@@ -234,9 +234,9 @@ macro_rules! implement_single_value_comparison_operation {
 
 macro_rules! implement_binary_arithmetic_operation {
     ($name:ident, $operation:ident, $kind:ident) => {
-        pub fn $name<V: Into<EdgeIndexComparisonOperand>>(&mut self, value: V) {
+        pub fn $name<V: Into<EdgeIndexComparisonOperand>>(&mut self, index: V) {
             self.operations.push($operation::BinaryArithmeticOpration {
-                operand: value.into(),
+                operand: index.into(),
                 kind: BinaryArithmeticKind::$kind,
             });
         }
@@ -268,9 +268,9 @@ macro_rules! implement_wrapper_operand_with_return {
 }
 
 macro_rules! implement_wrapper_operand_with_argument {
-    ($name:ident, $value_type:ty) => {
-        pub fn $name(&self, value: $value_type) {
-            self.0.write_or_panic().$name(value)
+    ($name:ident, $index_type:ty) => {
+        pub fn $name(&self, index: $index_type) {
+            self.0.write_or_panic().$name(index)
         }
     };
 }
@@ -285,26 +285,26 @@ impl DeepClone for EdgeIndexComparisonOperand {
     fn deep_clone(&self) -> Self {
         match self {
             Self::Operand(operand) => Self::Operand(operand.deep_clone()),
-            Self::Index(value) => Self::Index(*value),
+            Self::Index(index) => Self::Index(*index),
         }
     }
 }
 
 impl From<Wrapper<EdgeIndexOperand>> for EdgeIndexComparisonOperand {
-    fn from(value: Wrapper<EdgeIndexOperand>) -> Self {
-        Self::Operand(value.0.read_or_panic().deep_clone())
+    fn from(index: Wrapper<EdgeIndexOperand>) -> Self {
+        Self::Operand(index.0.read_or_panic().deep_clone())
     }
 }
 
 impl From<&Wrapper<EdgeIndexOperand>> for EdgeIndexComparisonOperand {
-    fn from(value: &Wrapper<EdgeIndexOperand>) -> Self {
-        Self::Operand(value.0.read_or_panic().deep_clone())
+    fn from(index: &Wrapper<EdgeIndexOperand>) -> Self {
+        Self::Operand(index.0.read_or_panic().deep_clone())
     }
 }
 
 impl<V: Into<EdgeIndex>> From<V> for EdgeIndexComparisonOperand {
-    fn from(value: V) -> Self {
-        Self::Index(value.into())
+    fn from(index: V) -> Self {
+        Self::Index(index.into())
     }
 }
 
@@ -318,32 +318,32 @@ impl DeepClone for EdgeIndicesComparisonOperand {
     fn deep_clone(&self) -> Self {
         match self {
             Self::Operand(operand) => Self::Operand(operand.deep_clone()),
-            Self::Indices(value) => Self::Indices(value.clone()),
+            Self::Indices(indices) => Self::Indices(indices.clone()),
         }
     }
 }
 
 impl From<Wrapper<EdgeIndicesOperand>> for EdgeIndicesComparisonOperand {
-    fn from(value: Wrapper<EdgeIndicesOperand>) -> Self {
-        Self::Operand(value.0.read_or_panic().deep_clone())
+    fn from(indices: Wrapper<EdgeIndicesOperand>) -> Self {
+        Self::Operand(indices.0.read_or_panic().deep_clone())
     }
 }
 
 impl From<&Wrapper<EdgeIndicesOperand>> for EdgeIndicesComparisonOperand {
-    fn from(value: &Wrapper<EdgeIndicesOperand>) -> Self {
-        Self::Operand(value.0.read_or_panic().deep_clone())
+    fn from(indices: &Wrapper<EdgeIndicesOperand>) -> Self {
+        Self::Operand(indices.0.read_or_panic().deep_clone())
     }
 }
 
 impl<V: Into<EdgeIndex>> From<Vec<V>> for EdgeIndicesComparisonOperand {
-    fn from(value: Vec<V>) -> Self {
-        Self::Indices(value.into_iter().map(Into::into).collect())
+    fn from(indices: Vec<V>) -> Self {
+        Self::Indices(indices.into_iter().map(Into::into).collect())
     }
 }
 
 impl<V: Into<EdgeIndex> + Clone, const N: usize> From<[V; N]> for EdgeIndicesComparisonOperand {
-    fn from(value: [V; N]) -> Self {
-        value.to_vec().into()
+    fn from(indices: [V; N]) -> Self {
+        indices.to_vec().into()
     }
 }
 
@@ -373,54 +373,54 @@ impl EdgeIndicesOperand {
     pub(crate) fn evaluate<'a>(
         &self,
         medrecord: &'a MedRecord,
-        values: impl Iterator<Item = EdgeIndex> + 'a,
+        indices: impl Iterator<Item = EdgeIndex> + 'a,
     ) -> MedRecordResult<impl Iterator<Item = EdgeIndex> + 'a> {
-        let values = Box::new(values) as BoxedIterator<EdgeIndex>;
+        let indices = Box::new(indices) as BoxedIterator<EdgeIndex>;
 
         self.operations
             .iter()
-            .try_fold(values, |value_tuples, operation| {
-                operation.evaluate(medrecord, value_tuples)
+            .try_fold(indices, |index_tuples, operation| {
+                operation.evaluate(medrecord, index_tuples)
             })
     }
 
-    implement_value_operation!(max, Max);
-    implement_value_operation!(min, Min);
-    implement_value_operation!(count, Count);
-    implement_value_operation!(sum, Sum);
-    implement_value_operation!(first, First);
-    implement_value_operation!(last, Last);
+    implement_index_operation!(max, Max);
+    implement_index_operation!(min, Min);
+    implement_index_operation!(count, Count);
+    implement_index_operation!(sum, Sum);
+    implement_index_operation!(first, First);
+    implement_index_operation!(last, Last);
 
-    implement_single_value_comparison_operation!(greater_than, EdgeIndicesOperation, GreaterThan);
-    implement_single_value_comparison_operation!(
+    implement_single_index_comparison_operation!(greater_than, EdgeIndicesOperation, GreaterThan);
+    implement_single_index_comparison_operation!(
         greater_than_or_equal_to,
         EdgeIndicesOperation,
         GreaterThanOrEqualTo
     );
-    implement_single_value_comparison_operation!(less_than, EdgeIndicesOperation, LessThan);
-    implement_single_value_comparison_operation!(
+    implement_single_index_comparison_operation!(less_than, EdgeIndicesOperation, LessThan);
+    implement_single_index_comparison_operation!(
         less_than_or_equal_to,
         EdgeIndicesOperation,
         LessThanOrEqualTo
     );
-    implement_single_value_comparison_operation!(equal_to, EdgeIndicesOperation, EqualTo);
-    implement_single_value_comparison_operation!(not_equal_to, EdgeIndicesOperation, NotEqualTo);
-    implement_single_value_comparison_operation!(starts_with, EdgeIndicesOperation, StartsWith);
-    implement_single_value_comparison_operation!(ends_with, EdgeIndicesOperation, EndsWith);
-    implement_single_value_comparison_operation!(contains, EdgeIndicesOperation, Contains);
+    implement_single_index_comparison_operation!(equal_to, EdgeIndicesOperation, EqualTo);
+    implement_single_index_comparison_operation!(not_equal_to, EdgeIndicesOperation, NotEqualTo);
+    implement_single_index_comparison_operation!(starts_with, EdgeIndicesOperation, StartsWith);
+    implement_single_index_comparison_operation!(ends_with, EdgeIndicesOperation, EndsWith);
+    implement_single_index_comparison_operation!(contains, EdgeIndicesOperation, Contains);
 
-    pub fn is_in<V: Into<EdgeIndicesComparisonOperand>>(&mut self, values: V) {
+    pub fn is_in<V: Into<EdgeIndicesComparisonOperand>>(&mut self, indices: V) {
         self.operations
             .push(EdgeIndicesOperation::EdgeIndicesComparisonOperation {
-                operand: values.into(),
+                operand: indices.into(),
                 kind: MultipleComparisonKind::IsIn,
             });
     }
 
-    pub fn is_not_in<V: Into<EdgeIndicesComparisonOperand>>(&mut self, values: V) {
+    pub fn is_not_in<V: Into<EdgeIndicesComparisonOperand>>(&mut self, indices: V) {
         self.operations
             .push(EdgeIndicesOperation::EdgeIndicesComparisonOperation {
-                operand: values.into(),
+                operand: indices.into(),
                 kind: MultipleComparisonKind::IsNotIn,
             });
     }
@@ -460,9 +460,9 @@ impl Wrapper<EdgeIndicesOperand> {
     pub(crate) fn evaluate<'a>(
         &self,
         medrecord: &'a MedRecord,
-        values: impl Iterator<Item = EdgeIndex> + 'a,
+        indices: impl Iterator<Item = EdgeIndex> + 'a,
     ) -> MedRecordResult<impl Iterator<Item = EdgeIndex> + 'a> {
-        self.0.read_or_panic().evaluate(medrecord, values)
+        self.0.read_or_panic().evaluate(medrecord, indices)
     }
 
     implement_wrapper_operand_with_return!(max, EdgeIndexOperand);
@@ -536,49 +536,49 @@ impl EdgeIndexOperand {
     pub(crate) fn evaluate(
         &self,
         medrecord: &MedRecord,
-        value: EdgeIndex,
+        index: EdgeIndex,
     ) -> MedRecordResult<Option<EdgeIndex>> {
         self.operations
             .iter()
-            .try_fold(Some(value), |value, operation| {
-                if let Some(value) = value {
-                    operation.evaluate(medrecord, value)
+            .try_fold(Some(index), |index, operation| {
+                if let Some(index) = index {
+                    operation.evaluate(medrecord, index)
                 } else {
                     Ok(None)
                 }
             })
     }
 
-    implement_single_value_comparison_operation!(greater_than, EdgeIndexOperation, GreaterThan);
-    implement_single_value_comparison_operation!(
+    implement_single_index_comparison_operation!(greater_than, EdgeIndexOperation, GreaterThan);
+    implement_single_index_comparison_operation!(
         greater_than_or_equal_to,
         EdgeIndexOperation,
         GreaterThanOrEqualTo
     );
-    implement_single_value_comparison_operation!(less_than, EdgeIndexOperation, LessThan);
-    implement_single_value_comparison_operation!(
+    implement_single_index_comparison_operation!(less_than, EdgeIndexOperation, LessThan);
+    implement_single_index_comparison_operation!(
         less_than_or_equal_to,
         EdgeIndexOperation,
         LessThanOrEqualTo
     );
-    implement_single_value_comparison_operation!(equal_to, EdgeIndexOperation, EqualTo);
-    implement_single_value_comparison_operation!(not_equal_to, EdgeIndexOperation, NotEqualTo);
-    implement_single_value_comparison_operation!(starts_with, EdgeIndexOperation, StartsWith);
-    implement_single_value_comparison_operation!(ends_with, EdgeIndexOperation, EndsWith);
-    implement_single_value_comparison_operation!(contains, EdgeIndexOperation, Contains);
+    implement_single_index_comparison_operation!(equal_to, EdgeIndexOperation, EqualTo);
+    implement_single_index_comparison_operation!(not_equal_to, EdgeIndexOperation, NotEqualTo);
+    implement_single_index_comparison_operation!(starts_with, EdgeIndexOperation, StartsWith);
+    implement_single_index_comparison_operation!(ends_with, EdgeIndexOperation, EndsWith);
+    implement_single_index_comparison_operation!(contains, EdgeIndexOperation, Contains);
 
-    pub fn is_in<V: Into<EdgeIndicesComparisonOperand>>(&mut self, values: V) {
+    pub fn is_in<V: Into<EdgeIndicesComparisonOperand>>(&mut self, indices: V) {
         self.operations
             .push(EdgeIndexOperation::EdgeIndicesComparisonOperation {
-                operand: values.into(),
+                operand: indices.into(),
                 kind: MultipleComparisonKind::IsIn,
             });
     }
 
-    pub fn is_not_in<V: Into<EdgeIndicesComparisonOperand>>(&mut self, values: V) {
+    pub fn is_not_in<V: Into<EdgeIndicesComparisonOperand>>(&mut self, indices: V) {
         self.operations
             .push(EdgeIndexOperation::EdgeIndicesComparisonOperation {
-                operand: values.into(),
+                operand: indices.into(),
                 kind: MultipleComparisonKind::IsNotIn,
             });
     }
@@ -617,9 +617,9 @@ impl Wrapper<EdgeIndexOperand> {
     pub(crate) fn evaluate(
         &self,
         medrecord: &MedRecord,
-        value: EdgeIndex,
+        index: EdgeIndex,
     ) -> MedRecordResult<Option<EdgeIndex>> {
-        self.0.read_or_panic().evaluate(medrecord, value)
+        self.0.read_or_panic().evaluate(medrecord, index)
     }
 
     implement_wrapper_operand_with_argument!(greater_than, impl Into<EdgeIndexComparisonOperand>);

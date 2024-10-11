@@ -21,6 +21,7 @@ impl From<PyMedRecordError> for PyErr {
             MedRecordError::ConversionError(message) => PyRuntimeError::new_err(message),
             MedRecordError::AssertionError(message) => PyAssertionError::new_err(message),
             MedRecordError::SchemaError(message) => PyValueError::new_err(message),
+            MedRecordError::QueryError(message) => PyRuntimeError::new_err(message),
         }
     }
 }

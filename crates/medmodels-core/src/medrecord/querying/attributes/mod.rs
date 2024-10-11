@@ -11,7 +11,10 @@ use crate::{
     medrecord::{Attributes, EdgeIndex, MedRecordAttribute, NodeIndex},
     MedRecord,
 };
-pub use operand::{AttributesTreeOperand, MultipleAttributesOperand};
+pub use operand::{
+    AttributesTreeOperand, MultipleAttributesComparisonOperand, MultipleAttributesOperand,
+    SingleAttributeComparisonOperand, SingleAttributeOperand,
+};
 pub use operation::{AttributesTreeOperation, MultipleAttributesOperation};
 use std::fmt::Display;
 
