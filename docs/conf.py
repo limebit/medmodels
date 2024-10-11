@@ -29,7 +29,6 @@ extensions = [
     "sphinx_togglebutton",
     "sphinx_multiversion",
     "sphinx.ext.extlinks",
-    "sphinx.ext.coverage",
 ]
 
 exclude_patterns = ["_build"]

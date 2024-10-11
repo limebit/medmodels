@@ -209,8 +209,8 @@ class TestContinuousEstimators(unittest.TestCase):
     def test_average_treatment_effect(self) -> None:
         ate_result = average_treatment_effect(
             self.medrecord,
-            treatment_true_set=set({"P2", "P3"}),
-            control_true_set=set({"P1", "P4", "P7"}),
+            treatment_outcome_true_set=set({"P2", "P3"}),
+            control_outcome_true_set=set({"P1", "P4", "P7"}),
             outcome_group=self.outcome_group,
             outcome_variable="intensity",
             reference="last",
@@ -220,8 +220,8 @@ class TestContinuousEstimators(unittest.TestCase):
 
         ate_result = average_treatment_effect(
             self.medrecord,
-            treatment_true_set=set({"P2", "P3"}),
-            control_true_set=set({"P1", "P4", "P7"}),
+            treatment_outcome_true_set=set({"P2", "P3"}),
+            control_outcome_true_set=set({"P1", "P4", "P7"}),
             outcome_group=self.outcome_group,
             outcome_variable="intensity",
             reference="first",
@@ -233,8 +233,8 @@ class TestContinuousEstimators(unittest.TestCase):
         with pytest.raises(ValueError, match="Outcome variable must be numeric"):
             average_treatment_effect(
                 self.medrecord,
-                treatment_true_set=set({"P2", "P3"}),
-                control_true_set=set({"P1", "P4", "P7"}),
+                treatment_outcome_true_set=set({"P2", "P3"}),
+                control_outcome_true_set=set({"P1", "P4", "P7"}),
                 outcome_group=self.outcome_group,
                 outcome_variable="type",
                 reference="last",
@@ -244,8 +244,8 @@ class TestContinuousEstimators(unittest.TestCase):
     def test_cohens_d(self) -> None:
         cohens_d_result = cohens_d(
             self.medrecord,
-            treatment_true_set=set({"P2", "P3"}),
-            control_true_set=set({"P1", "P4", "P7"}),
+            treatment_outcome_true_set=set({"P2", "P3"}),
+            control_outcome_true_set=set({"P1", "P4", "P7"}),
             outcome_group=self.outcome_group,
             outcome_variable="intensity",
             reference="last",
@@ -255,8 +255,8 @@ class TestContinuousEstimators(unittest.TestCase):
 
         cohens_d_result = cohens_d(
             self.medrecord,
-            treatment_true_set=set({"P2", "P3"}),
-            control_true_set=set({"P1", "P4", "P7"}),
+            treatment_outcome_true_set=set({"P2", "P3"}),
+            control_outcome_true_set=set({"P1", "P4", "P7"}),
             outcome_group=self.outcome_group,
             outcome_variable="intensity",
             reference="first",
@@ -266,8 +266,8 @@ class TestContinuousEstimators(unittest.TestCase):
 
         cohens_d_corrected = cohens_d(
             self.medrecord,
-            treatment_true_set=set({"P2", "P3"}),
-            control_true_set=set({"P1", "P4", "P7"}),
+            treatment_outcome_true_set=set({"P2", "P3"}),
+            control_outcome_true_set=set({"P1", "P4", "P7"}),
             outcome_group=self.outcome_group,
             outcome_variable="intensity",
             reference="last",
@@ -280,8 +280,8 @@ class TestContinuousEstimators(unittest.TestCase):
         with pytest.raises(ValueError, match="Outcome variable must be numeric"):
             cohens_d(
                 self.medrecord,
-                treatment_true_set=set({"P2", "P3"}),
-                control_true_set=set({"P1", "P4", "P7"}),
+                treatment_outcome_true_set=set({"P2", "P3"}),
+                control_outcome_true_set=set({"P1", "P4", "P7"}),
                 outcome_group=self.outcome_group,
                 outcome_variable="type",
                 reference="last",
