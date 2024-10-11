@@ -50,7 +50,7 @@ class DataType(metaclass=ABCMeta):
     def __eq__(self, value: object) -> bool: ...
 
     @staticmethod
-    def _from_pydatatype(datatype: PyDataType) -> DataType:
+    def _from_py_data_type(datatype: PyDataType) -> DataType:
         if isinstance(datatype, PyString):
             return String()
         elif isinstance(datatype, PyInt):
@@ -67,11 +67,11 @@ class DataType(metaclass=ABCMeta):
             return Any()
         elif isinstance(datatype, PyUnion):
             return Union(
-                DataType._from_pydatatype(datatype.dtype1),
-                DataType._from_pydatatype(datatype.dtype2),
+                DataType._from_py_data_type(datatype.dtype1),
+                DataType._from_py_data_type(datatype.dtype2),
             )
         else:
-            return Option(DataType._from_pydatatype(datatype.dtype))
+            return Option(DataType._from_py_data_type(datatype.dtype))
 
 
 class String(DataType):
@@ -222,18 +222,18 @@ class Union(DataType):
         return self._union
 
     def __str__(self) -> str:
-        return f"Union({DataType._from_pydatatype(self._union.dtype1).__str__()}, {DataType._from_pydatatype(self._union.dtype2).__str__()})"
+        return f"Union({DataType._from_py_data_type(self._union.dtype1).__str__()}, {DataType._from_py_data_type(self._union.dtype2).__str__()})"
 
     def __repr__(self) -> str:
-        return f"DataType.Union({DataType._from_pydatatype(self._union.dtype1).__repr__()}, {DataType._from_pydatatype(self._union.dtype2).__repr__()})"
+        return f"DataType.Union({DataType._from_py_data_type(self._union.dtype1).__repr__()}, {DataType._from_py_data_type(self._union.dtype2).__repr__()})"
 
     def __eq__(self, value: object) -> bool:
         return (
             isinstance(value, Union)
-            and DataType._from_pydatatype(self._union.dtype1)
-            == DataType._from_pydatatype(value._union.dtype1)
-            and DataType._from_pydatatype(self._union.dtype2)
-            == DataType._from_pydatatype(value._union.dtype2)
+            and DataType._from_py_data_type(self._union.dtype1)
+            == DataType._from_py_data_type(value._union.dtype1)
+            and DataType._from_py_data_type(self._union.dtype2)
+            == DataType._from_py_data_type(value._union.dtype2)
         )
 
 
@@ -247,12 +247,12 @@ class Option(DataType):
         return self._option
 
     def __str__(self) -> str:
-        return f"Option({DataType._from_pydatatype(self._option.dtype).__str__()})"
+        return f"Option({DataType._from_py_data_type(self._option.dtype).__str__()})"
 
     def __repr__(self) -> str:
-        return f"DataType.Option({DataType._from_pydatatype(self._option.dtype).__repr__()})"
+        return f"DataType.Option({DataType._from_py_data_type(self._option.dtype).__repr__()})"
 
     def __eq__(self, value: object) -> bool:
-        return isinstance(value, Option) and DataType._from_pydatatype(
+        return isinstance(value, Option) and DataType._from_py_data_type(
             self._option.dtype
-        ) == DataType._from_pydatatype(value._option.dtype)
+        ) == DataType._from_py_data_type(value._option.dtype)

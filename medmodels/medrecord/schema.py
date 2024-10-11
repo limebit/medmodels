@@ -19,7 +19,7 @@ class AttributeType(Enum):
     Temporal = auto()
 
     @staticmethod
-    def _from_pyattributetype(py_attribute_type: PyAttributeType) -> AttributeType:
+    def _from_py_attribute_type(py_attribute_type: PyAttributeType) -> AttributeType:
         """
         Converts a PyAttributeType to an AttributeType.
 
@@ -36,7 +36,7 @@ class AttributeType(Enum):
         elif py_attribute_type == PyAttributeType.Temporal:
             return AttributeType.Temporal
 
-    def _into_pyattributetype(self) -> PyAttributeType:
+    def _into_py_attribute_type(self) -> PyAttributeType:
         """
         Converts an AttributeType to a PyAttributeType.
 
@@ -81,7 +81,7 @@ class AttributeType(Enum):
             bool: True if the objects are equal, False otherwise.
         """
         if isinstance(value, PyAttributeType):
-            return self._into_pyattributetype() == value
+            return self._into_py_attribute_type() == value
         elif isinstance(value, AttributeType):
             return str(self) == str(value)
 
@@ -295,7 +295,7 @@ class GroupSchema:
         ) -> PyAttributeDataType:
             if isinstance(input, tuple):
                 return PyAttributeDataType(
-                    input[0]._inner(), input[1]._into_pyattributetype()
+                    input[0]._inner(), input[1]._into_py_attribute_type()
                 )
             return PyAttributeDataType(input._inner(), None)
 
@@ -334,8 +334,8 @@ class GroupSchema:
             input: PyAttributeDataType,
         ) -> Tuple[DataType, Optional[AttributeType]]:
             return (
-                DataType._from_pydatatype(input.data_type),
-                AttributeType._from_pyattributetype(input.attribute_type)
+                DataType._from_py_data_type(input.data_type),
+                AttributeType._from_py_attribute_type(input.attribute_type)
                 if input.attribute_type is not None
                 else None,
             )
@@ -361,8 +361,8 @@ class GroupSchema:
             input: PyAttributeDataType,
         ) -> Tuple[DataType, Optional[AttributeType]]:
             return (
-                DataType._from_pydatatype(input.data_type),
-                AttributeType._from_pyattributetype(input.attribute_type)
+                DataType._from_py_data_type(input.data_type),
+                AttributeType._from_py_attribute_type(input.attribute_type)
                 if input.attribute_type is not None
                 else None,
             )
@@ -422,7 +422,7 @@ class Schema:
             )
 
     @classmethod
-    def _from_pyschema(cls, schema: PySchema) -> Schema:
+    def _from_py_schema(cls, schema: PySchema) -> Schema:
         """
         Creates a Schema instance from an existing PySchema.
 

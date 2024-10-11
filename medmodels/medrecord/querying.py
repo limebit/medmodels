@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import sys
 from enum import Enum
-from typing import Callable, List, Union
+from typing import TYPE_CHECKING, Callable, List, Union
 
 from medmodels._medmodels import (
     PyAttributesTreeOperand,
@@ -26,10 +26,11 @@ from medmodels.medrecord.types import (
     NodeIndex,
 )
 
-if sys.version_info >= (3, 10):
-    from typing import TypeAlias
-else:
-    from typing_extensions import TypeAlias
+if TYPE_CHECKING:
+    if sys.version_info >= (3, 10):
+        from typing import TypeAlias
+    else:
+        from typing_extensions import TypeAlias
 
 NodeQuery: TypeAlias = Callable[["NodeOperand"], None]
 EdgeQuery: TypeAlias = Callable[["EdgeOperand"], None]
@@ -136,6 +137,15 @@ class EdgeDirection(Enum):
     OUTGOING = 1
     BOTH = 2
 
+    def _into_py_edge_direction(self) -> PyEdgeDirection:
+        return (
+            PyEdgeDirection.Incoming
+            if self == EdgeDirection.INCOMING
+            else PyEdgeDirection.Outgoing
+            if self == EdgeDirection.OUTGOING
+            else PyEdgeDirection.Both
+        )
+
 
 class NodeOperand:
     _node_operand: PyNodeOperand
@@ -172,16 +182,8 @@ class NodeOperand:
     def neighbors(
         self, edge_direction: EdgeDirection = EdgeDirection.OUTGOING
     ) -> NodeOperand:
-        py_edge_direction = (
-            PyEdgeDirection.Incoming
-            if edge_direction == EdgeDirection.INCOMING
-            else PyEdgeDirection.Outgoing
-            if edge_direction == EdgeDirection.OUTGOING
-            else PyEdgeDirection.Both
-        )
-
         return NodeOperand._from_py_node_operand(
-            self._node_operand.neighbors(py_edge_direction)
+            self._node_operand.neighbors(edge_direction._into_py_edge_direction())
         )
 
     def either_or(self, either: NodeQuery, or_: NodeQuery) -> None:
