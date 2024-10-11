@@ -91,7 +91,6 @@ class OverviewTable:
             group_header (str): Header for group column, i.e. 'Group Nodes'.
             decimal (int): Decimal point to round the float values to.
         """
-
         self.data = data
         self.group_header = group_header
         self.decimal = decimal
@@ -843,22 +842,21 @@ class MedRecord:
             edges
         ):
             return self.add_edges_pandas(edges, group)
-        elif is_polars_edge_dataframe_input(
+        if is_polars_edge_dataframe_input(
             edges
         ) or is_polars_edge_dataframe_input_list(edges):
             return self.add_edges_polars(edges, group)
-        else:
-            edge_indices = self._medrecord.add_edges(edges)
+        edge_indices = self._medrecord.add_edges(edges)
 
-            if group is None:
-                return edge_indices
-
-            if not self.contains_group(group):
-                self.add_group(group)
-
-            self.add_edge_to_group(group, edge_indices)
-
+        if group is None:
             return edge_indices
+
+        if not self.contains_group(group):
+            self.add_group(group)
+
+        self.add_edge_to_group(group, edge_indices)
+
+        return edge_indices
 
     def add_edges_pandas(
         self,

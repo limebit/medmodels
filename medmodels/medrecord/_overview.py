@@ -184,7 +184,7 @@ def prettify_table(
 
     info_order = ["min", "max", "mean", "values"]
 
-    for group in data.keys():
+    for group in data:
         # determine longest group name and count
         lengths[0] = max(len(str(group)), lengths[0])
 
