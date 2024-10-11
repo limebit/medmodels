@@ -107,7 +107,10 @@ class TestDataType(unittest.TestCase):
 
         assert str(union) == "Union(String, Union(Int, Bool))"
 
-        assert union.__repr__() == "DataType.Union(DataType.String, DataType.Union(DataType.Int, DataType.Bool))"
+        assert (
+            union.__repr__()
+            == "DataType.Union(DataType.String, DataType.Union(DataType.Int, DataType.Bool))"
+        )
 
         assert mr.Union(mr.String(), mr.Int()) == mr.Union(mr.String(), mr.Int())
         assert mr.Union(mr.String(), mr.Int()) != mr.Union(mr.Int(), mr.String())

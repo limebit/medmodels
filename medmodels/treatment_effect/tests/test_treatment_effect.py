@@ -198,20 +198,51 @@ def assert_treatment_effects_equal(
     assert treatment_effect1._outcomes_group == treatment_effect2._outcomes_group
     assert treatment_effect1._patients_group == treatment_effect2._patients_group
     assert treatment_effect1._time_attribute == treatment_effect2._time_attribute
-    assert treatment_effect1._washout_period_days == treatment_effect2._washout_period_days
-    assert treatment_effect1._washout_period_reference == treatment_effect2._washout_period_reference
+    assert (
+        treatment_effect1._washout_period_days == treatment_effect2._washout_period_days
+    )
+    assert (
+        treatment_effect1._washout_period_reference
+        == treatment_effect2._washout_period_reference
+    )
     assert treatment_effect1._grace_period_days == treatment_effect2._grace_period_days
-    assert treatment_effect1._grace_period_reference == treatment_effect2._grace_period_reference
-    assert treatment_effect1._follow_up_period_days == treatment_effect2._follow_up_period_days
-    assert treatment_effect1._follow_up_period_reference == treatment_effect2._follow_up_period_reference
-    assert treatment_effect1._outcome_before_treatment_days == treatment_effect2._outcome_before_treatment_days
-    assert treatment_effect1._filter_controls_operation == treatment_effect2._filter_controls_operation
+    assert (
+        treatment_effect1._grace_period_reference
+        == treatment_effect2._grace_period_reference
+    )
+    assert (
+        treatment_effect1._follow_up_period_days
+        == treatment_effect2._follow_up_period_days
+    )
+    assert (
+        treatment_effect1._follow_up_period_reference
+        == treatment_effect2._follow_up_period_reference
+    )
+    assert (
+        treatment_effect1._outcome_before_treatment_days
+        == treatment_effect2._outcome_before_treatment_days
+    )
+    assert (
+        treatment_effect1._filter_controls_operation
+        == treatment_effect2._filter_controls_operation
+    )
     assert treatment_effect1._matching_method == treatment_effect2._matching_method
-    assert treatment_effect1._matching_essential_covariates == treatment_effect2._matching_essential_covariates
-    assert treatment_effect1._matching_one_hot_covariates == treatment_effect2._matching_one_hot_covariates
+    assert (
+        treatment_effect1._matching_essential_covariates
+        == treatment_effect2._matching_essential_covariates
+    )
+    assert (
+        treatment_effect1._matching_one_hot_covariates
+        == treatment_effect2._matching_one_hot_covariates
+    )
     assert treatment_effect1._matching_model == treatment_effect2._matching_model
-    assert treatment_effect1._matching_number_of_neighbors == treatment_effect2._matching_number_of_neighbors
-    assert treatment_effect1._matching_hyperparam == treatment_effect2._matching_hyperparam
+    assert (
+        treatment_effect1._matching_number_of_neighbors
+        == treatment_effect2._matching_number_of_neighbors
+    )
+    assert (
+        treatment_effect1._matching_hyperparam == treatment_effect2._matching_hyperparam
+    )
 
 
 class TestTreatmentEffect(unittest.TestCase):
@@ -264,7 +295,9 @@ class TestTreatmentEffect(unittest.TestCase):
             .build()
         )
 
-        with pytest.raises(ValueError, match="Treatment group not found in the MedRecord"):
+        with pytest.raises(
+            ValueError, match="Treatment group not found in the MedRecord"
+        ):
             tee.estimate._check_medrecord(medrecord=self.medrecord)
 
         tee2 = (
@@ -274,7 +307,9 @@ class TestTreatmentEffect(unittest.TestCase):
             .build()
         )
 
-        with pytest.raises(ValueError, match="Outcome group not found in the MedRecord"):
+        with pytest.raises(
+            ValueError, match="Outcome group not found in the MedRecord"
+        ):
             tee2.estimate._check_medrecord(medrecord=self.medrecord)
 
         patient_group = "subjects"
@@ -286,7 +321,10 @@ class TestTreatmentEffect(unittest.TestCase):
             .build()
         )
 
-        with pytest.raises(ValueError, match=f"Patient group {patient_group} not found in the MedRecord"):
+        with pytest.raises(
+            ValueError,
+            match=f"Patient group {patient_group} not found in the MedRecord",
+        ):
             tee3.estimate._check_medrecord(medrecord=self.medrecord)
 
     def test_find_treated_patients(self) -> None:
@@ -551,7 +589,9 @@ class TestTreatmentEffect(unittest.TestCase):
             .build()
         )
 
-        with pytest.raises(ValueError, match="No outcomes found in the MedRecord for group "):
+        with pytest.raises(
+            ValueError, match="No outcomes found in the MedRecord for group "
+        ):
             tee3._find_outcomes(medrecord=self.medrecord, treated_group=treated_group)
 
     def test_filter_controls(self) -> None:
@@ -633,7 +673,9 @@ class TestTreatmentEffect(unittest.TestCase):
         self.assertEqual(control_outcome_true, {"P1", "P4", "P7"})
         self.assertEqual(control_outcome_false, {"P5", "P8", "P9"})
 
-        with pytest.raises(ValueError, match="No patients found for control groups in this MedRecord."):
+        with pytest.raises(
+            ValueError, match="No patients found for control groups in this MedRecord."
+        ):
             tee._find_controls(
                 self.medrecord,
                 control_group=patients - treated_group,
@@ -650,7 +692,9 @@ class TestTreatmentEffect(unittest.TestCase):
 
         self.medrecord.add_group("Headache")
 
-        with pytest.raises(ValueError, match="No outcomes found in the MedRecord for group."):
+        with pytest.raises(
+            ValueError, match="No outcomes found in the MedRecord for group."
+        ):
             tee2._find_controls(
                 self.medrecord,
                 control_group=patients - treated_group,

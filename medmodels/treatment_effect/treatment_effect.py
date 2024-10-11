@@ -256,9 +256,7 @@ class TreatmentEffect:
             )
         if not treated_group:
             msg = "No patients found for the treatment groups in this MedRecord."
-            raise ValueError(
-                msg
-            )
+            raise ValueError(msg)
 
         return treated_group
 
@@ -294,9 +292,7 @@ class TreatmentEffect:
         outcomes = medrecord.nodes_in_group(self._outcomes_group)
         if not outcomes:
             msg = f"No outcomes found in the MedRecord for group {self._outcomes_group}"
-            raise ValueError(
-                msg
-            )
+            raise ValueError(msg)
 
         for outcome in outcomes:
             nodes_to_check = set(
@@ -463,9 +459,7 @@ class TreatmentEffect:
         outcomes = medrecord.nodes_in_group(self._outcomes_group)
         if not outcomes:
             msg = f"No outcomes found in the MedRecord for group {self._outcomes_group}"
-            raise ValueError(
-                msg
-            )
+            raise ValueError(msg)
 
         # Finding the patients that had the outcome in the control group
         for outcome in outcomes:

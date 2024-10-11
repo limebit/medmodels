@@ -16,7 +16,17 @@ class TestSchema(unittest.TestCase):
         self.schema = create_medrecord().schema
 
     def test_groups(self) -> None:
-        assert sorted(["diagnosis", "drug", "patient_diagnosis", "patient_drug", "patient_procedure", "patient", "procedure"]) == sorted(self.schema.groups)
+        assert sorted(
+            [
+                "diagnosis",
+                "drug",
+                "patient_diagnosis",
+                "patient_drug",
+                "patient_procedure",
+                "patient",
+                "procedure",
+            ]
+        ) == sorted(self.schema.groups)
 
     def test_group(self) -> None:
         assert isinstance(self.schema.group("patient"), mr.GroupSchema)  # pyright: ignore[reportUnnecessaryIsInstance]
@@ -39,10 +49,16 @@ class TestGroupSchema(unittest.TestCase):
         self.schema = create_medrecord().schema
 
     def test_nodes(self) -> None:
-        assert self.schema.group("patient").nodes == {"age": (mr.Int(), mr.AttributeType.Continuous), "gender": (mr.String(), mr.AttributeType.Categorical)}
+        assert self.schema.group("patient").nodes == {
+            "age": (mr.Int(), mr.AttributeType.Continuous),
+            "gender": (mr.String(), mr.AttributeType.Categorical),
+        }
 
     def test_edges(self) -> None:
-        assert self.schema.group("patient_diagnosis").edges == {"diagnosis_time": (mr.DateTime(), mr.AttributeType.Temporal), "duration_days": (mr.Option(mr.Float()), mr.AttributeType.Continuous)}
+        assert self.schema.group("patient_diagnosis").edges == {
+            "diagnosis_time": (mr.DateTime(), mr.AttributeType.Temporal),
+            "duration_days": (mr.Option(mr.Float()), mr.AttributeType.Continuous),
+        }
 
     def test_strict(self) -> None:
         assert True is self.schema.group("patient").strict
@@ -60,7 +76,9 @@ class TestAttributesSchema(unittest.TestCase):
         )
 
     def test_repr(self) -> None:
-        assert repr(self.attributes_schema) == "{'description': (DataType.String, None)}"
+        assert (
+            repr(self.attributes_schema) == "{'description': (DataType.String, None)}"
+        )
 
         second_attributes_schema = (
             Schema(
@@ -77,7 +95,10 @@ class TestAttributesSchema(unittest.TestCase):
             .nodes
         )
 
-        assert repr(second_attributes_schema) == "{'description': (DataType.String, AttributeType.Categorical)}"
+        assert (
+            repr(second_attributes_schema)
+            == "{'description': (DataType.String, AttributeType.Categorical)}"
+        )
 
     def test_getitem(self) -> None:
         assert (mr.String(), None) == self.attributes_schema["description"]
@@ -158,14 +179,18 @@ class TestAttributesSchema(unittest.TestCase):
         assert [(mr.String(), None)] == list(self.attributes_schema.values())
 
     def test_items(self) -> None:
-        assert [("description", (mr.String(), None))] == list(self.attributes_schema.items())
+        assert [("description", (mr.String(), None))] == list(
+            self.attributes_schema.items()
+        )
 
     def test_get(self) -> None:
         assert (mr.String(), None) == self.attributes_schema.get("description")
 
         assert None is self.attributes_schema.get("nonexistent")
 
-        assert (mr.String(), None) == self.attributes_schema.get("nonexistent", (mr.String(), None))
+        assert (mr.String(), None) == self.attributes_schema.get(
+            "nonexistent", (mr.String(), None)
+        )
 
 
 class TestAttributeType(unittest.TestCase):

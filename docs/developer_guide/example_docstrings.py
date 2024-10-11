@@ -8,7 +8,7 @@ def example_function_args(
     param2: str | int,
     optional_param: list[str] | None = None,
     *args: float | str,
-    **kwargs: Dict[str, Any]
+    **kwargs: Dict[str, Any],
 ) -> tuple[bool, list[str]]:
     """Example function with PEP 484 type annotations and PEP 563 future annotations.
 

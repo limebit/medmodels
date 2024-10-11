@@ -132,25 +132,19 @@ class Estimate:
                 f"Patient group {self._treatment_effect._patients_group} not found in "
                 f"the MedRecord. Available groups: {medrecord.groups}"
             )
-            raise ValueError(
-                msg
-            )
+            raise ValueError(msg)
         if self._treatment_effect._treatments_group not in medrecord.groups:
             msg = (
                 "Treatment group not found in the MedRecord. "
                 f"Available groups: {medrecord.groups}"
             )
-            raise ValueError(
-                msg
-            )
+            raise ValueError(msg)
         if self._treatment_effect._outcomes_group not in medrecord.groups:
             msg = (
                 "Outcome group not found in the MedRecord."
                 f"Available groups: {medrecord.groups}"
             )
-            raise ValueError(
-                msg
-            )
+            raise ValueError(msg)
 
     def _sort_subjects_in_groups(
         self, medrecord: MedRecord
@@ -541,9 +535,7 @@ class Estimate:
 
         if hazard_control == 0:
             msg = "Control hazard rate is zero, cannot calculate hazard ratio."
-            raise ValueError(
-                msg
-            )
+            raise ValueError(msg)
 
         return hazard_treat / hazard_control
 

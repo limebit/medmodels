@@ -327,7 +327,10 @@ class TestMedRecord(unittest.TestCase):
 
         assert medrecord.group("1") == {"nodes": ["0"], "edges": [0]}
 
-        assert medrecord.group(["0", "1"]) == {"0": {"nodes": [], "edges": []}, "1": {"nodes": ["0"], "edges": [0]}}
+        assert medrecord.group(["0", "1"]) == {
+            "0": {"nodes": [], "edges": []},
+            "1": {"nodes": ["0"], "edges": [0]},
+        }
 
     def test_invalid_group(self) -> None:
         medrecord = create_medrecord()
@@ -351,11 +354,17 @@ class TestMedRecord(unittest.TestCase):
 
         edges = medrecord.outgoing_edges(["0", "1"])
 
-        assert {key: sorted(value) for key, value in edges.items()} == {"0": sorted([0, 3]), "1": [1, 2]}
+        assert {key: sorted(value) for key, value in edges.items()} == {
+            "0": sorted([0, 3]),
+            "1": [1, 2],
+        }
 
         edges = medrecord.outgoing_edges(node_select().index().is_in(["0", "1"]))
 
-        assert {key: sorted(value) for key, value in edges.items()} == {"0": sorted([0, 3]), "1": [1, 2]}
+        assert {key: sorted(value) for key, value in edges.items()} == {
+            "0": sorted([0, 3]),
+            "1": [1, 2],
+        }
 
     def test_invalid_outgoing_edges(self) -> None:
         medrecord = create_medrecord()
@@ -1383,7 +1392,10 @@ class TestMedRecord(unittest.TestCase):
 
         assert medrecord.groups_of_node(["0", "1"]) == {"0": ["0"], "1": ["0"]}
 
-        assert medrecord.groups_of_node(node_select().index().is_in(["0", "1"])) == {"0": ["0"], "1": ["0"]}
+        assert medrecord.groups_of_node(node_select().index().is_in(["0", "1"])) == {
+            "0": ["0"],
+            "1": ["0"],
+        }
 
     def test_invalid_groups_of_node(self) -> None:
         medrecord = create_medrecord()
@@ -1405,7 +1417,10 @@ class TestMedRecord(unittest.TestCase):
 
         assert medrecord.groups_of_edge([0, 1]) == {0: ["0"], 1: ["0"]}
 
-        assert medrecord.groups_of_edge(edge_select().index().is_in([0, 1])) == {0: ["0"], 1: ["0"]}
+        assert medrecord.groups_of_edge(edge_select().index().is_in([0, 1])) == {
+            0: ["0"],
+            1: ["0"],
+        }
 
     def test_invalid_groups_of_edge(self) -> None:
         medrecord = create_medrecord()
@@ -1480,11 +1495,17 @@ class TestMedRecord(unittest.TestCase):
 
         neighbors = medrecord.neighbors(["0", "1"])
 
-        assert {key: sorted(value) for key, value in neighbors.items()} == {"0": sorted(["1", "3"]), "1": ["0", "2"]}
+        assert {key: sorted(value) for key, value in neighbors.items()} == {
+            "0": sorted(["1", "3"]),
+            "1": ["0", "2"],
+        }
 
         neighbors = medrecord.neighbors(node_select().index().is_in(["0", "1"]))
 
-        assert {key: sorted(value) for key, value in neighbors.items()} == {"0": sorted(["1", "3"]), "1": ["0", "2"]}
+        assert {key: sorted(value) for key, value in neighbors.items()} == {
+            "0": sorted(["1", "3"]),
+            "1": ["0", "2"],
+        }
 
         neighbors = medrecord.neighbors("0", directed=False)
 
@@ -1492,13 +1513,19 @@ class TestMedRecord(unittest.TestCase):
 
         neighbors = medrecord.neighbors(["0", "1"], directed=False)
 
-        assert {key: sorted(value) for key, value in neighbors.items()} == {"0": sorted(["1", "3"]), "1": ["0", "2"]}
+        assert {key: sorted(value) for key, value in neighbors.items()} == {
+            "0": sorted(["1", "3"]),
+            "1": ["0", "2"],
+        }
 
         neighbors = medrecord.neighbors(
             node_select().index().is_in(["0", "1"]), directed=False
         )
 
-        assert {key: sorted(value) for key, value in neighbors.items()} == {"0": sorted(["1", "3"]), "1": ["0", "2"]}
+        assert {key: sorted(value) for key, value in neighbors.items()} == {
+            "0": sorted(["1", "3"]),
+            "1": ["0", "2"],
+        }
 
     def test_invalid_neighbors(self) -> None:
         medrecord = create_medrecord()

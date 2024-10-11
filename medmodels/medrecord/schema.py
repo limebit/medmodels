@@ -252,8 +252,12 @@ class GroupSchema:
     def __init__(
         self,
         *,
-        nodes: Optional[Dict[MedRecordAttribute, Union[DataType, Tuple[DataType, AttributeType]]]] = None,
-        edges: Optional[Dict[MedRecordAttribute, Union[DataType, Tuple[DataType, AttributeType]]]] = None,
+        nodes: Optional[
+            Dict[MedRecordAttribute, Union[DataType, Tuple[DataType, AttributeType]]]
+        ] = None,
+        edges: Optional[
+            Dict[MedRecordAttribute, Union[DataType, Tuple[DataType, AttributeType]]]
+        ] = None,
         strict: bool = False,
     ) -> None:
         """Initializes a new instance of GroupSchema.

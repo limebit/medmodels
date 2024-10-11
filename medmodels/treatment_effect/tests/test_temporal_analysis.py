@@ -164,7 +164,9 @@ class TestTreatmentEffect(unittest.TestCase):
         assert edge == 0
 
     def test_invalid_find_reference_time(self) -> None:
-        with pytest.raises(ValueError, match="Time attribute not found in the edge attributes"):
+        with pytest.raises(
+            ValueError, match="Time attribute not found in the edge attributes"
+        ):
             find_reference_edge(
                 self.medrecord,
                 node_index="P1",
@@ -174,7 +176,9 @@ class TestTreatmentEffect(unittest.TestCase):
             )
 
         node_index = "P2"
-        with pytest.raises(ValueError, match=f"No edge found for node {node_index} in this MedRecord"):
+        with pytest.raises(
+            ValueError, match=f"No edge found for node {node_index} in this MedRecord"
+        ):
             find_reference_edge(
                 self.medrecord,
                 node_index=node_index,
@@ -211,7 +215,9 @@ class TestTreatmentEffect(unittest.TestCase):
         assert not node_found2
 
     def test_invalid_node_in_time_window(self) -> None:
-        with pytest.raises(ValueError, match="Time attribute not found in the edge attributes"):
+        with pytest.raises(
+            ValueError, match="Time attribute not found in the edge attributes"
+        ):
             find_node_in_time_window(
                 self.medrecord,
                 subject_index="P3",

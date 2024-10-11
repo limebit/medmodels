@@ -776,9 +776,9 @@ class MedRecord:
             edges
         ):
             return self.add_edges_pandas(edges, group)
-        if is_polars_edge_dataframe_input(
+        if is_polars_edge_dataframe_input(edges) or is_polars_edge_dataframe_input_list(
             edges
-        ) or is_polars_edge_dataframe_input_list(edges):
+        ):
             return self.add_edges_polars(edges, group)
         if is_edge_tuple(edges):
             edges = [edges]
