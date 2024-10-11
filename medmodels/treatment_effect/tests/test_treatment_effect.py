@@ -6,7 +6,7 @@ from typing import List
 import pandas as pd
 
 from medmodels import MedRecord
-from medmodels.medrecord.querying import NodeOperand
+from medmodels.medrecord.querying import EdgeDirection, NodeOperand
 from medmodels.medrecord.types import NodeIndex
 from medmodels.treatment_effect.estimate import ContingencyTable, SubjectIndices
 from medmodels.treatment_effect.treatment_effect import TreatmentEffect
@@ -621,7 +621,7 @@ class TestTreatmentEffect(unittest.TestCase):
 
     def test_filter_controls(self):
         def query1(node: NodeOperand):
-            node.neighbors().index().equal_to("M2")
+            node.neighbors(EdgeDirection.BOTH).index().equal_to("M2")
 
         tee = (
             TreatmentEffect.builder()
