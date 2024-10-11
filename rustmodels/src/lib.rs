@@ -8,7 +8,7 @@ use medrecord::{
             PyAttributesTreeOperand, PyMultipleAttributesOperand, PySingleAttributeOperand,
         },
         edges::{PyEdgeIndexOperand, PyEdgeIndicesOperand, PyEdgeOperand},
-        nodes::{PyNodeIndexOperand, PyNodeIndicesOperand, PyNodeOperand},
+        nodes::{PyEdgeDirection, PyNodeIndexOperand, PyNodeIndicesOperand, PyNodeOperand},
         values::{PyMultipleValuesOperand, PySingleValueOperand},
     },
     schema::{PyAttributeDataType, PyAttributeType, PyGroupSchema, PySchema},
@@ -34,6 +34,8 @@ fn _medmodels(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyAttributeType>()?;
     m.add_class::<PyGroupSchema>()?;
     m.add_class::<PySchema>()?;
+
+    m.add_class::<PyEdgeDirection>()?;
 
     m.add_class::<PyNodeOperand>()?;
     m.add_class::<PyNodeIndicesOperand>()?;

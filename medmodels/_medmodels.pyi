@@ -238,7 +238,7 @@ class PyMedRecord:
         self, query: Callable[[PyNodeOperand], None]
     ) -> List[NodeIndex]: ...
     def select_edges(
-        self, query: Callable[[PyNodeOperand], None]
+        self, query: Callable[[PyEdgeOperand], None]
     ) -> List[EdgeIndex]: ...
 
 class PyEdgeDirection(Enum):

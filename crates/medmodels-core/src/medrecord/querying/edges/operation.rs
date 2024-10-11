@@ -278,7 +278,7 @@ impl EdgeOperation {
                 .edge_endpoints(edge_index)
                 .expect("Edge must exist");
 
-            node_indices.contains(edge_endpoints.1)
+            node_indices.contains(edge_endpoints.0)
         }))
     }
 
