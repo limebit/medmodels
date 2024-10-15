@@ -1,15 +1,15 @@
 from __future__ import annotations
 
-from abc import ABCMeta, abstractmethod
+from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Literal, Set, Tuple
 
 import polars as pl
 
-from medmodels.medrecord.medrecord import MedRecord
-from medmodels.medrecord.types import MedRecordAttributeInputList, NodeIndex
-
 if TYPE_CHECKING:
     import sys
+
+    from medmodels.medrecord.medrecord import MedRecord
+    from medmodels.medrecord.types import MedRecordAttributeInputList, NodeIndex
 
     if sys.version_info >= (3, 10):
         from typing import TypeAlias
@@ -19,7 +19,7 @@ if TYPE_CHECKING:
 MatchingMethod: TypeAlias = Literal["propensity", "nearest_neighbors"]
 
 
-class Matching(metaclass=ABCMeta):
+class Matching(ABC):
     """The Base Class for matching."""
 
     def _preprocess_data(

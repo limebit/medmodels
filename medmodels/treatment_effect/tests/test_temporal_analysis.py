@@ -1,7 +1,8 @@
 import unittest
-from typing import List
+from typing import List, Optional
 
 import pandas as pd
+import pytest
 
 from medmodels.medrecord.medrecord import MedRecord
 from medmodels.medrecord.types import NodeIndex
@@ -17,20 +18,17 @@ def create_patients(patient_list: List[NodeIndex]) -> pd.DataFrame:
     Returns:
         pd.DataFrame: A patients dataframe.
     """
-    patients = pd.DataFrame(
-        {
-            "index": ["P1", "P2", "P3"],
-            "age": [20, 30, 40],
-            "gender": [
-                "male",
-                "female",
-                "male",
-            ],
-        }
-    )
+    patients = pd.DataFrame({
+        "index": ["P1", "P2", "P3"],
+        "age": [20, 30, 40],
+        "gender": [
+            "male",
+            "female",
+            "male",
+        ],
+    })
 
-    patients = patients.loc[patients["index"].isin(patient_list)]
-    return patients
+    return patients.loc[patients["index"].isin(patient_list)]
 
 
 def create_diagnoses() -> pd.DataFrame:
@@ -39,13 +37,10 @@ def create_diagnoses() -> pd.DataFrame:
     Returns:
         pd.DataFrame: A diagnoses dataframe.
     """
-    diagnoses = pd.DataFrame(
-        {
-            "index": ["D1"],
-            "name": ["Stroke"],
-        }
-    )
-    return diagnoses
+    return pd.DataFrame({
+        "index": ["D1"],
+        "name": ["Stroke"],
+    })
 
 
 def create_prescriptions() -> pd.DataFrame:
@@ -54,13 +49,10 @@ def create_prescriptions() -> pd.DataFrame:
     Returns:
         pd.DataFrame: A prescriptions dataframe.
     """
-    prescriptions = pd.DataFrame(
-        {
-            "index": ["M1", "M2"],
-            "name": ["Rivaroxaban", "Warfarin"],
-        }
-    )
-    return prescriptions
+    return pd.DataFrame({
+        "index": ["M1", "M2"],
+        "name": ["Rivaroxaban", "Warfarin"],
+    })
 
 
 def create_edges(patient_list: List[NodeIndex]) -> pd.DataFrame:
@@ -69,47 +61,42 @@ def create_edges(patient_list: List[NodeIndex]) -> pd.DataFrame:
     Returns:
         pd.DataFrame: An edges dataframe.
     """
-    edges = pd.DataFrame(
-        {
-            "source": [
-                "M1",
-                "M2",
-                "M1",
-                "M2",
-                "D1",
-            ],
-            "target": [
-                "P1",
-                "P2",
-                "P3",
-                "P3",
-                "P3",
-            ],
-            "time": [
-                "2000-01-01",
-                "2000-01-01",
-                "2000-01-01",
-                "1999-12-15",
-                "2000-07-01",
-            ],
-        }
-    )
-    edges = edges.loc[edges["target"].isin(patient_list)]
-    return edges
+    edges = pd.DataFrame({
+        "source": [
+            "M1",
+            "M2",
+            "M1",
+            "M2",
+            "D1",
+        ],
+        "target": [
+            "P1",
+            "P2",
+            "P3",
+            "P3",
+            "P3",
+        ],
+        "time": [
+            "2000-01-01",
+            "2000-01-01",
+            "2000-01-01",
+            "1999-12-15",
+            "2000-07-01",
+        ],
+    })
+    return edges.loc[edges["target"].isin(patient_list)]
 
 
 def create_medrecord(
-    patient_list: List[NodeIndex] = [
-        "P1",
-        "P2",
-        "P3",
-    ],
+    patient_list: Optional[List[NodeIndex]] = None,
 ) -> MedRecord:
     """Creates a MedRecord object.
 
     Returns:
         MedRecord: A MedRecord object.
     """
+    if patient_list is None:
+        patient_list = ["P1", "P2", "P3"]
     patients = create_patients(patient_list=patient_list)
     diagnoses = create_diagnoses()
     prescriptions = create_prescriptions()
@@ -137,17 +124,17 @@ def create_medrecord(
 class TestTreatmentEffect(unittest.TestCase):
     """"""
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.medrecord = create_medrecord()
 
-    def test_find_reference_time(self):
+    def test_find_reference_time(self) -> None:
         edge = find_reference_edge(
             self.medrecord,
             node_index="P1",
             reference="last",
             connected_group="Rivaroxaban",
         )
-        self.assertEqual(0, edge)
+        assert edge == 0
 
         # adding medication time
         self.medrecord.add_edges(("M1", "P1", {"time": "2000-01-15"}))
@@ -158,7 +145,7 @@ class TestTreatmentEffect(unittest.TestCase):
             reference="last",
             connected_group="Rivaroxaban",
         )
-        self.assertEqual(5, edge)
+        assert edge == 5
 
         edge = find_reference_edge(
             self.medrecord,
@@ -166,11 +153,11 @@ class TestTreatmentEffect(unittest.TestCase):
             reference="first",
             connected_group="Rivaroxaban",
         )
-        self.assertEqual(0, edge)
+        assert edge == 0
 
-    def test_invalid_find_reference_time(self):
-        with self.assertRaisesRegex(
-            ValueError, "Time attribute not found in the edge attributes"
+    def test_invalid_find_reference_time(self) -> None:
+        with pytest.raises(
+            ValueError, match="Time attribute not found in the edge attributes"
         ):
             find_reference_edge(
                 self.medrecord,
@@ -181,8 +168,8 @@ class TestTreatmentEffect(unittest.TestCase):
             )
 
         node_index = "P2"
-        with self.assertRaisesRegex(
-            ValueError, f"No edge found for node {node_index} in this MedRecord"
+        with pytest.raises(
+            ValueError, match=f"No edge found for node {node_index} in this MedRecord"
         ):
             find_reference_edge(
                 self.medrecord,
@@ -192,7 +179,7 @@ class TestTreatmentEffect(unittest.TestCase):
                 time_attribute="time",
             )
 
-    def test_node_in_time_window(self):
+    def test_node_in_time_window(self) -> None:
         # check if patient has outcome a year after treatment
         node_found = find_node_in_time_window(
             self.medrecord,
@@ -204,7 +191,7 @@ class TestTreatmentEffect(unittest.TestCase):
             reference="last",
             time_attribute="time",
         )
-        self.assertTrue(node_found)
+        assert node_found
 
         # check if patient has outcome 30 days after treatment
         node_found2 = find_node_in_time_window(
@@ -217,11 +204,11 @@ class TestTreatmentEffect(unittest.TestCase):
             reference="last",
             time_attribute="time",
         )
-        self.assertFalse(node_found2)
+        assert not node_found2
 
-    def test_invalid_node_in_time_window(self):
-        with self.assertRaisesRegex(
-            ValueError, "Time attribute not found in the edge attributes"
+    def test_invalid_node_in_time_window(self) -> None:
+        with pytest.raises(
+            ValueError, match="Time attribute not found in the edge attributes"
         ):
             find_node_in_time_window(
                 self.medrecord,

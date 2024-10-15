@@ -184,7 +184,7 @@ def prettify_table(
 
     info_order = ["min", "max", "mean", "values"]
 
-    for group in data.keys():
+    for group in data:
         # determine longest group name and count
         lengths[0] = max(len(str(group)), lengths[0])
 
@@ -232,12 +232,10 @@ def prettify_table(
         "-" * (sum(lengths) + len(lengths)),
     ]
 
-    table.extend(
-        [
-            "".join(f"{row[x]: <{lengths[x]}} " for x in range(len(lengths)))
-            for row in rows
-        ]
-    )
+    table.extend([
+        "".join(f"{row[x]: <{lengths[x]}} " for x in range(len(lengths)))
+        for row in rows
+    ])
 
     table.append("-" * (sum(lengths) + len(lengths)))
 

@@ -94,7 +94,6 @@ class OverviewTable:
             group_header (str): Header for group column, i.e. 'Group Nodes'.
             decimal (int): Decimal point to round the float values to.
         """
-
         self.data = data
         self.group_header = group_header
         self.decimal = decimal
@@ -563,11 +562,10 @@ class MedRecord:
                 (source_node if isinstance(source_node, list) else [source_node]),
                 (target_node if isinstance(target_node, list) else [target_node]),
             )
-        else:
-            return self._medrecord.edges_connecting_undirected(
-                (source_node if isinstance(source_node, list) else [source_node]),
-                (target_node if isinstance(target_node, list) else [target_node]),
-            )
+        return self._medrecord.edges_connecting_undirected(
+            (source_node if isinstance(source_node, list) else [source_node]),
+            (target_node if isinstance(target_node, list) else [target_node]),
+        )
 
     @overload
     def remove_nodes(self, nodes: NodeIndex) -> Attributes: ...
@@ -778,25 +776,24 @@ class MedRecord:
             edges
         ):
             return self.add_edges_pandas(edges, group)
-        elif is_polars_edge_dataframe_input(
+        if is_polars_edge_dataframe_input(edges) or is_polars_edge_dataframe_input_list(
             edges
-        ) or is_polars_edge_dataframe_input_list(edges):
+        ):
             return self.add_edges_polars(edges, group)
-        else:
-            if is_edge_tuple(edges):
-                edges = [edges]
+        if is_edge_tuple(edges):
+            edges = [edges]
 
-            edge_indices = self._medrecord.add_edges(edges)
+        edge_indices = self._medrecord.add_edges(edges)
 
-            if group is None:
-                return edge_indices
-
-            if not self.contains_group(group):
-                self.add_group(group)
-
-            self.add_edges_to_group(group, edge_indices)
-
+        if group is None:
             return edge_indices
+
+        if not self.contains_group(group):
+            self.add_group(group)
+
+        self.add_edges_to_group(group, edge_indices)
+
+        return edge_indices
 
     def add_edges_pandas(
         self,
@@ -896,16 +893,15 @@ class MedRecord:
                 nodes if isinstance(nodes, list) else [nodes],
                 edges if isinstance(edges, list) else [edges],
             )
-        elif nodes is not None:
+        if nodes is not None:
             return self._medrecord.add_group(
                 group, nodes if isinstance(nodes, list) else [nodes], None
             )
-        elif edges is not None:
+        if edges is not None:
             return self._medrecord.add_group(
                 group, None, edges if isinstance(edges, list) else [edges]
             )
-        else:
-            return self._medrecord.add_group(group, None, None)
+        return self._medrecord.add_group(group, None, None)
 
     def remove_groups(self, groups: Union[Group, GroupInputList]) -> None:
         """Removes one or more groups from the MedRecord instance.
