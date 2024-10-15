@@ -1,13 +1,15 @@
 from __future__ import annotations
 
-from typing import Set
+from typing import TYPE_CHECKING, Set
 
-from medmodels import MedRecord
-from medmodels.medrecord.types import MedRecordAttributeInputList, NodeIndex
 from medmodels.treatment_effect.matching.algorithms.classic_distance_models import (
     nearest_neighbor,
 )
 from medmodels.treatment_effect.matching.matching import Matching
+
+if TYPE_CHECKING:
+    from medmodels import MedRecord
+    from medmodels.medrecord.types import MedRecordAttributeInputList, NodeIndex
 
 
 class NeighborsMatching(Matching):
@@ -25,7 +27,7 @@ class NeighborsMatching(Matching):
         self,
         *,
         number_of_neighbors: int = 1,
-    ):
+    ) -> None:
         """Initializes the nearest neighbors class.
 
         Args:
@@ -40,8 +42,8 @@ class NeighborsMatching(Matching):
         medrecord: MedRecord,
         control_group: Set[NodeIndex],
         treated_group: Set[NodeIndex],
-        essential_covariates: MedRecordAttributeInputList = ["gender", "age"],
-        one_hot_covariates: MedRecordAttributeInputList = ["gender"],
+        essential_covariates: MedRecordAttributeInputList = None,
+        one_hot_covariates: MedRecordAttributeInputList = None,
     ) -> Set[NodeIndex]:
         """Matches the controls based on the nearest neighbor algorithm.
 
@@ -57,6 +59,10 @@ class NeighborsMatching(Matching):
         Returns:
             Set[NodeIndex]: Node Ids of the matched controls.
         """
+        if one_hot_covariates is None:
+            one_hot_covariates = ["gender"]
+        if essential_covariates is None:
+            essential_covariates = ["gender", "age"]
         data_treated, data_control = self._preprocess_data(
             medrecord=medrecord,
             control_group=control_group,
