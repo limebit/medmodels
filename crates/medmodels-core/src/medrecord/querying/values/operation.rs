@@ -60,7 +60,9 @@ macro_rules! get_single_value_comparison_operand_value {
 
                 let comparison_value = get_single_operand_value!(kind, comparison_values);
 
-                comparison_value
+                operand.evaluate($medrecord, comparison_value)?.ok_or(
+                    MedRecordError::QueryError("No index to compare".to_string()),
+                )?
             }
             SingleValueComparisonOperand::Value(value) => value.clone(),
         }
@@ -608,8 +610,14 @@ impl MultipleValuesOperation {
                 let context = &operand.context;
                 let attribute = operand.attribute.clone();
 
-                context
+                // TODO: This is a temporary solution. It should be optimized.
+                let comparison_values = context
                     .get_values(medrecord, attribute)?
+                    .map(|value| (&0, value));
+
+                operand
+                    .evaluate(medrecord, comparison_values)?
+                    .map(|(_, value)| value)
                     .collect::<Vec<_>>()
             }
             MultipleValuesComparisonOperand::Values(values) => values.clone(),
@@ -880,8 +888,14 @@ impl SingleValueOperation {
                 let context = &operand.context;
                 let attribute = operand.attribute.clone();
 
-                context
+                // TODO: This is a temporary solution. It should be optimized.
+                let comparison_values = context
                     .get_values(medrecord, attribute)?
+                    .map(|value| (&0, value));
+
+                operand
+                    .evaluate(medrecord, comparison_values)?
+                    .map(|(_, value)| value)
                     .collect::<Vec<_>>()
             }
             MultipleValuesComparisonOperand::Values(values) => values.clone(),

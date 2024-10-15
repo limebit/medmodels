@@ -337,7 +337,9 @@ macro_rules! get_edge_index_comparison_operand_index {
 
                 let comparison_index = get_edge_index!(kind, comparison_indices);
 
-                comparison_index
+                operand.evaluate($medrecord, comparison_index)?.ok_or(
+                    MedRecordError::QueryError("No index to compare".to_string()),
+                )?
             }
             EdgeIndexComparisonOperand::Index(index) => index.clone(),
         }
@@ -552,7 +554,11 @@ impl EdgeIndicesOperation {
             EdgeIndicesComparisonOperand::Operand(operand) => {
                 let context = &operand.context;
 
-                context.evaluate(medrecord)?.cloned().collect::<Vec<_>>()
+                let comparison_indices = context.evaluate(medrecord)?.cloned();
+
+                operand
+                    .evaluate(medrecord, comparison_indices)?
+                    .collect::<Vec<_>>()
             }
             EdgeIndicesComparisonOperand::Indices(indices) => indices.clone(),
         };
@@ -708,7 +714,11 @@ impl EdgeIndexOperation {
             EdgeIndicesComparisonOperand::Operand(operand) => {
                 let context = &operand.context;
 
-                context.evaluate(medrecord)?.cloned().collect::<Vec<_>>()
+                let comparison_indices = context.evaluate(medrecord)?.cloned();
+
+                operand
+                    .evaluate(medrecord, comparison_indices)?
+                    .collect::<Vec<_>>()
             }
             EdgeIndicesComparisonOperand::Indices(indices) => indices.clone(),
         };

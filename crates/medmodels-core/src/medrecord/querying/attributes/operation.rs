@@ -74,7 +74,12 @@ macro_rules! get_single_attribute_comparison_operand_attribute {
 
                 let kind = &operand.kind;
 
-                get_single_operand_attribute!(kind, comparison_attributes)
+                let comparison_attributes =
+                    get_single_operand_attribute!(kind, comparison_attributes);
+
+                operand.evaluate($medrecord, comparison_attributes)?.ok_or(
+                    MedRecordError::QueryError("No attribute to compare".to_string()),
+                )?
             }
             SingleAttributeComparisonOperand::Attribute(attribute) => attribute.clone(),
         }
@@ -509,7 +514,8 @@ impl AttributesTreeOperation {
                 let comparison_attributes: Box<dyn Iterator<Item = (_, MedRecordAttribute)>> =
                     get_multiple_operand_attributes!(kind, comparison_attributes);
 
-                comparison_attributes
+                operand
+                    .evaluate(medrecord, comparison_attributes)?
                     .map(|(_, attribute)| attribute)
                     .collect::<Vec<_>>()
             }
@@ -998,10 +1004,11 @@ impl MultipleAttributesOperation {
                     .get_attributes(medrecord)?
                     .map(|attribute| (&0, attribute));
 
-                let attributes: Box<dyn Iterator<Item = (_, MedRecordAttribute)>> =
+                let comparison_attributes: Box<dyn Iterator<Item = (_, MedRecordAttribute)>> =
                     get_multiple_operand_attributes!(kind, comparison_attributes);
 
-                attributes
+                operand
+                    .evaluate(medrecord, comparison_attributes)?
                     .map(|(_, attribute)| attribute)
                     .collect::<Vec<_>>()
             }
@@ -1296,10 +1303,11 @@ impl SingleAttributeOperation {
                     .get_attributes(medrecord)?
                     .map(|attribute| (&0, attribute));
 
-                let attributes: Box<dyn Iterator<Item = (_, MedRecordAttribute)>> =
+                let comparison_attributes: Box<dyn Iterator<Item = (_, MedRecordAttribute)>> =
                     get_multiple_operand_attributes!(kind, comparison_attributes);
 
-                attributes
+                operand
+                    .evaluate(medrecord, comparison_attributes)?
                     .map(|(_, attribute)| attribute)
                     .collect::<Vec<_>>()
             }

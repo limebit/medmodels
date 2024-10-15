@@ -397,7 +397,9 @@ macro_rules! get_node_index_comparison_operand {
 
                 let comparison_index = get_node_index!(kind, comparison_indices);
 
-                comparison_index
+                operand.evaluate($medrecord, comparison_index)?.ok_or(
+                    MedRecordError::QueryError("No index to compare".to_string()),
+                )?
             }
             NodeIndexComparisonOperand::Index(index) => index.clone(),
         }
@@ -693,7 +695,11 @@ impl NodeIndicesOperation {
             NodeIndicesComparisonOperand::Operand(operand) => {
                 let context = &operand.context;
 
-                context.evaluate(medrecord)?.cloned().collect::<Vec<_>>()
+                let comparison_indices = context.evaluate(medrecord)?.cloned();
+
+                operand
+                    .evaluate(medrecord, comparison_indices)?
+                    .collect::<Vec<_>>()
             }
             NodeIndicesComparisonOperand::Indices(indices) => indices.clone(),
         };
@@ -917,7 +923,11 @@ impl NodeIndexOperation {
             NodeIndicesComparisonOperand::Operand(operand) => {
                 let context = &operand.context;
 
-                context.evaluate(medrecord)?.cloned().collect::<Vec<_>>()
+                let comparison_indices = context.evaluate(medrecord)?.cloned();
+
+                operand
+                    .evaluate(medrecord, comparison_indices)?
+                    .collect::<Vec<_>>()
             }
             NodeIndicesComparisonOperand::Indices(indices) => indices.clone(),
         };
