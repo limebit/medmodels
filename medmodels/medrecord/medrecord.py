@@ -793,14 +793,6 @@ class MedRecord:
 
         self.add_edges_to_group(group, edge_indices)
 
-        if group is None:
-            return edge_indices
-
-        if not self.contains_group(group):
-            self.add_group(group)
-
-        self.add_edges_to_group(group, edge_indices)
-
         return edge_indices
 
     def add_edges_pandas(

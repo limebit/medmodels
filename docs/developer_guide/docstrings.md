@@ -227,14 +227,12 @@ When writing type definitions in argument docstrings, avoid placing line breaks 
 If a type definition exceeds the maximum line length limit, deactivate the line length rule for that doctstring using [`# noqa: E501`](https://docs.astral.sh/ruff/rules/line-too-long/#error-suppression) after the closing `"""`. This keeps the type annotation intact while preventing the linter from flagging the long line as an error.
 :::
 
-
 :::{admonition} No Boolean Argument Types
 :type: note
-Avoid using booleans as function arguments due to the "boolean trap." Booleans reduce code clarity, as `True` or `False` doesn't explain meaning. They also limit future flexibility — if more than two options are needed, changing the argument type can cause breaking changes. Instead, use an enum or a more descriptive type for better clarity and flexibility.
+Avoid using booleans as function arguments due to the "boolean trap". Booleans reduce code clarity, as `True` or `False` doesn't explain meaning. They also limit future flexibility — if more than two options are needed, changing the argument type can cause breaking changes. Instead, use an enum or a more descriptive type for better clarity and flexibility.
 
 For more information, you can refer to [Adam Johnson's article](https://adamj.eu/tech/2021/07/10/python-type-hints-how-to-avoid-the-boolean-trap/) which discusses this in detail and provides examples of how to avoid the boolean trap.
 :::
-
 
 ### Return Types
 
@@ -255,7 +253,6 @@ def example_function(param1, param2):
 :type: note
 Don't add a `Returns` section when the function has no return value (`def fun() -> None`)
 :::
-
 
 ### Examples
 
@@ -286,8 +283,6 @@ The second block shows the return value when executing the code. The output valu
             >>> Output
 
 ```
-
-
 
 Full Example:
 
