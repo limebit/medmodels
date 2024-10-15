@@ -1,9 +1,10 @@
 """Tests for the TreatmentEffect class in the treatment_effect module."""
 
 import unittest
-from typing import List
+from typing import List, Optional
 
 import pandas as pd
+import pytest
 
 from medmodels import MedRecord
 from medmodels.medrecord.types import NodeIndex
@@ -19,26 +20,23 @@ def create_patients(patient_list: List[NodeIndex]) -> pd.DataFrame:
     Returns:
         pd.DataFrame: A patients dataframe.
     """
-    patients = pd.DataFrame(
-        {
-            "index": ["P1", "P2", "P3", "P4", "P5", "P6", "P7", "P8", "P9"],
-            "age": [20, 30, 40, 30, 40, 50, 60, 70, 80],
-            "gender": [
-                "male",
-                "female",
-                "male",
-                "female",
-                "male",
-                "female",
-                "male",
-                "female",
-                "male",
-            ],
-        }
-    )
+    patients = pd.DataFrame({
+        "index": ["P1", "P2", "P3", "P4", "P5", "P6", "P7", "P8", "P9"],
+        "age": [20, 30, 40, 30, 40, 50, 60, 70, 80],
+        "gender": [
+            "male",
+            "female",
+            "male",
+            "female",
+            "male",
+            "female",
+            "male",
+            "female",
+            "male",
+        ],
+    })
 
-    patients = patients.loc[patients["index"].isin(patient_list)]
-    return patients
+    return patients.loc[patients["index"].isin(patient_list)]
 
 
 def create_diagnoses() -> pd.DataFrame:
@@ -47,13 +45,10 @@ def create_diagnoses() -> pd.DataFrame:
     Returns:
         pd.DataFrame: A diagnoses dataframe.
     """
-    diagnoses = pd.DataFrame(
-        {
-            "index": ["D1"],
-            "name": ["Stroke"],
-        }
-    )
-    return diagnoses
+    return pd.DataFrame({
+        "index": ["D1"],
+        "name": ["Stroke"],
+    })
 
 
 def create_prescriptions() -> pd.DataFrame:
@@ -62,13 +57,10 @@ def create_prescriptions() -> pd.DataFrame:
     Returns:
         pd.DataFrame: A prescriptions dataframe.
     """
-    prescriptions = pd.DataFrame(
-        {
-            "index": ["M1", "M2"],
-            "name": ["Rivaroxaban", "Warfarin"],
-        }
-    )
-    return prescriptions
+    return pd.DataFrame({
+        "index": ["M1", "M2"],
+        "name": ["Rivaroxaban", "Warfarin"],
+    })
 
 
 def create_edges1(patient_list: List[NodeIndex]) -> pd.DataFrame:
@@ -77,39 +69,36 @@ def create_edges1(patient_list: List[NodeIndex]) -> pd.DataFrame:
     Returns:
         pd.DataFrame: An edges dataframe.
     """
-    edges = pd.DataFrame(
-        {
-            "source": [
-                "M2",
-                "M1",
-                "M2",
-                "M1",
-                "M2",
-                "M1",
-                "M2",
-            ],
-            "target": [
-                "P1",
-                "P2",
-                "P2",
-                "P3",
-                "P5",
-                "P6",
-                "P9",
-            ],
-            "time": [
-                "1999-10-15",
-                "2000-01-01",
-                "1999-12-15",
-                "2000-01-01",
-                "2000-01-01",
-                "2000-01-01",
-                "2000-01-01",
-            ],
-        }
-    )
-    edges = edges.loc[edges["target"].isin(patient_list)]
-    return edges
+    edges = pd.DataFrame({
+        "source": [
+            "M2",
+            "M1",
+            "M2",
+            "M1",
+            "M2",
+            "M1",
+            "M2",
+        ],
+        "target": [
+            "P1",
+            "P2",
+            "P2",
+            "P3",
+            "P5",
+            "P6",
+            "P9",
+        ],
+        "time": [
+            "1999-10-15",
+            "2000-01-01",
+            "1999-12-15",
+            "2000-01-01",
+            "2000-01-01",
+            "2000-01-01",
+            "2000-01-01",
+        ],
+    })
+    return edges.loc[edges["target"].isin(patient_list)]
 
 
 def create_edges2(patient_list: List[NodeIndex]) -> pd.DataFrame:
@@ -118,72 +107,61 @@ def create_edges2(patient_list: List[NodeIndex]) -> pd.DataFrame:
     Returns:
         pd.DataFrame: An edges dataframe.
     """
-    edges = pd.DataFrame(
-        {
-            "source": [
-                "D1",
-                "D1",
-                "D1",
-                "D1",
-                "D1",
-                "D1",
-            ],
-            "target": [
-                "P1",
-                "P2",
-                "P3",
-                "P3",
-                "P4",
-                "P7",
-            ],
-            "time": [
-                "2000-01-01",
-                "2000-07-01",
-                "1999-12-15",
-                "2000-01-05",
-                "2000-01-01",
-                "2000-01-01",
-            ],
-            "intensity": [
-                0.1,
-                0.2,
-                0.3,
-                0.4,
-                0.5,
-                0.6,
-            ],
-            "type": [
-                "A",
-                "B",
-                "A",
-                "B",
-                "A",
-                "A",
-            ],
-        }
-    )
-    edges = edges.loc[edges["target"].isin(patient_list)]
-    return edges
+    edges = pd.DataFrame({
+        "source": [
+            "D1",
+            "D1",
+            "D1",
+            "D1",
+            "D1",
+            "D1",
+        ],
+        "target": [
+            "P1",
+            "P2",
+            "P3",
+            "P3",
+            "P4",
+            "P7",
+        ],
+        "time": [
+            "2000-01-01",
+            "2000-07-01",
+            "1999-12-15",
+            "2000-01-05",
+            "2000-01-01",
+            "2000-01-01",
+        ],
+        "intensity": [
+            0.1,
+            0.2,
+            0.3,
+            0.4,
+            0.5,
+            0.6,
+        ],
+        "type": [
+            "A",
+            "B",
+            "A",
+            "B",
+            "A",
+            "A",
+        ],
+    })
+    return edges.loc[edges["target"].isin(patient_list)]
 
 
 def create_medrecord(
-    patient_list: List[NodeIndex] = [
-        "P1",
-        "P2",
-        "P3",
-        "P4",
-        "P5",
-        "P6",
-        "P7",
-        "P8",
-        "P9",
-    ],
+    patient_list: Optional[List[NodeIndex]] = None,
 ) -> MedRecord:
     """Creates a MedRecord object.
 
     Returns:
         MedRecord: A MedRecord object.
     """
+    if patient_list is None:
+        patient_list = ["P1", "P2", "P3", "P4", "P5", "P6", "P7", "P8", "P9"]
     patients = create_patients(patient_list=patient_list)
     diagnoses = create_diagnoses()
     prescriptions = create_prescriptions()
@@ -213,12 +191,12 @@ def create_medrecord(
 class TestContinuousEstimators(unittest.TestCase):
     """Class to test the continuous estimators."""
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.medrecord = create_medrecord()
         self.outcome_group = "Stroke"
         self.time_attribute = "time"
 
-    def test_average_treatment_effect(self):
+    def test_average_treatment_effect(self) -> None:
         ate_result = average_treatment_effect(
             self.medrecord,
             treatment_outcome_true_set=set({"P2", "P3"}),
@@ -241,8 +219,8 @@ class TestContinuousEstimators(unittest.TestCase):
         )
         self.assertAlmostEqual(-0.15, ate_result)
 
-    def test_invalid_treatment_effect(self):
-        with self.assertRaisesRegex(ValueError, "Outcome variable must be numeric"):
+    def test_invalid_treatment_effect(self) -> None:
+        with pytest.raises(ValueError, match="Outcome variable must be numeric"):
             average_treatment_effect(
                 self.medrecord,
                 treatment_outcome_true_set=set({"P2", "P3"}),
@@ -253,7 +231,7 @@ class TestContinuousEstimators(unittest.TestCase):
                 time_attribute=self.time_attribute,
             )
 
-    def test_cohens_d(self):
+    def test_cohens_d(self) -> None:
         cohens_d_result = cohens_d(
             self.medrecord,
             treatment_outcome_true_set=set({"P2", "P3"}),
@@ -288,8 +266,8 @@ class TestContinuousEstimators(unittest.TestCase):
         )
         self.assertAlmostEqual(0, cohens_d_corrected)
 
-    def test_invalid_cohens_D(self):
-        with self.assertRaisesRegex(ValueError, "Outcome variable must be numeric"):
+    def test_invalid_cohens_D(self) -> None:
+        with pytest.raises(ValueError, match="Outcome variable must be numeric"):
             cohens_d(
                 self.medrecord,
                 treatment_outcome_true_set=set({"P2", "P3"}),

@@ -1,12 +1,10 @@
 from __future__ import annotations
 
-from typing import Any, Dict, Optional, Set
+from typing import TYPE_CHECKING, Any, Dict, Optional, Set
 
 import numpy as np
 import polars as pl
 
-from medmodels import MedRecord
-from medmodels.medrecord.types import MedRecordAttributeInputList, NodeIndex
 from medmodels.treatment_effect.matching.algorithms.classic_distance_models import (
     nearest_neighbor,
 )
@@ -15,6 +13,10 @@ from medmodels.treatment_effect.matching.algorithms.propensity_score import (
     calculate_propensity,
 )
 from medmodels.treatment_effect.matching.matching import Matching
+
+if TYPE_CHECKING:
+    from medmodels import MedRecord
+    from medmodels.medrecord.types import MedRecordAttributeInputList, NodeIndex
 
 
 class PropensityMatching(Matching):
@@ -37,7 +39,7 @@ class PropensityMatching(Matching):
         model: Model = "logit",
         number_of_neighbors: int = 1,
         hyperparam: Optional[Dict[str, Any]] = None,
-    ):
+    ) -> None:
         """Initializes the propensity score class.
 
         Args:
@@ -60,8 +62,8 @@ class PropensityMatching(Matching):
         medrecord: MedRecord,
         control_group: Set[NodeIndex],
         treated_group: Set[NodeIndex],
-        essential_covariates: MedRecordAttributeInputList = ["gender", "age"],
-        one_hot_covariates: MedRecordAttributeInputList = ["gender"],
+        essential_covariates: MedRecordAttributeInputList = None,
+        one_hot_covariates: MedRecordAttributeInputList = None,
     ) -> Set[NodeIndex]:
         """Matches the controls based on propensity score matching.
 
@@ -78,6 +80,10 @@ class PropensityMatching(Matching):
             Set[NodeIndex]:  Node Ids of the matched controls.
         """
         # Preprocess the data
+        if one_hot_covariates is None:
+            one_hot_covariates = ["gender"]
+        if essential_covariates is None:
+            essential_covariates = ["gender", "age"]
         data_treated, data_control = self._preprocess_data(
             medrecord=medrecord,
             treated_group=treated_group,
@@ -91,9 +97,10 @@ class PropensityMatching(Matching):
 
         # Train the classification model
         x_train = np.concatenate((treated_array, control_array))
-        y_train = np.concatenate(
-            (np.ones(len(treated_array)), np.zeros(len(control_array)))
-        )
+        y_train = np.concatenate((
+            np.ones(len(treated_array)),
+            np.zeros(len(control_array)),
+        ))
 
         treated_prop, control_prop = calculate_propensity(
             x_train=x_train,

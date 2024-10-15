@@ -77,7 +77,8 @@ def find_reference_edge(
         edge_values = medrecord.edge[edges].values()
 
         if not all(time_attribute in edge_attribute for edge_attribute in edge_values):
-            raise ValueError("Time attribute not found in the edge attributes")
+            msg = "Time attribute not found in the edge attributes"
+            raise ValueError(msg)
 
         for edge in edges:
             edge_time = pd.to_datetime(str(medrecord.edge[edge][time_attribute]))
@@ -89,7 +90,8 @@ def find_reference_edge(
                 reference_time = edge_time
 
     if reference_edge is None:
-        raise ValueError(f"No edge found for node {node_index} in this MedRecord")
+        msg = f"No edge found for node {node_index} in this MedRecord"
+        raise ValueError(msg)
 
     return reference_edge
 
@@ -171,7 +173,8 @@ def find_node_in_time_window(
     for edge in edges:
         edge_attributes = medrecord.edge[edge]
         if time_attribute not in edge_attributes:
-            raise ValueError("Time attribute not found in the edge attributes")
+            msg = "Time attribute not found in the edge attributes"
+            raise ValueError(msg)
 
         event_time = pd.to_datetime(str(edge_attributes[time_attribute]))
         time_difference = event_time - reference_time

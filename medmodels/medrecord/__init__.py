@@ -20,17 +20,18 @@ from medmodels.medrecord.querying import EdgeOperand, NodeOperand
 from medmodels.medrecord.schema import AttributeType, GroupSchema, Schema
 
 __all__ = [
-    "MedRecord",
-    "String",
-    "Int",
-    "Float",
+    "Any",
+    "AttributeType",
     "Bool",
     "DateTime",
+    "EdgeIndex",
+    "Float",
+    "GroupSchema",
+    "Int",
+    "MedRecord",
+    "NodeIndex",
     "Null",
-    "Any",
-    "Union",
     "Option",
-    "AttributeType",
     "Schema",
     "GroupSchema",
     "NodeIndex",
@@ -39,4 +40,6 @@ __all__ = [
     "NodeQuery",
     "NodeOperand",
     "EdgeOperand",
+    "String",
+    "Union",
 ]
