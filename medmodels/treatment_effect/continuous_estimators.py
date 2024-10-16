@@ -59,34 +59,38 @@ def average_treatment_effect(
     Raises:
         ValueError: If the outcome variable is not numeric.
     """
-    treated_outcomes = np.array([
-        medrecord.edge[
-            find_reference_edge(
-                medrecord,
-                node_index,
-                outcome_group,
-                time_attribute=time_attribute,
-                reference=reference,
-            )
-        ][outcome_variable]
-        for node_index in treatment_outcome_true_set
-    ])
+    treated_outcomes = np.array(
+        [
+            medrecord.edge[
+                find_reference_edge(
+                    medrecord,
+                    node_index,
+                    outcome_group,
+                    time_attribute=time_attribute,
+                    reference=reference,
+                )
+            ][outcome_variable]
+            for node_index in treatment_outcome_true_set
+        ]
+    )
     if not all(isinstance(i, (int, float)) for i in treated_outcomes):
         msg = "Outcome variable must be numeric"
         raise ValueError(msg)
 
-    control_outcomes = np.array([
-        medrecord.edge[
-            find_reference_edge(
-                medrecord,
-                node_index,
-                outcome_group,
-                time_attribute="time",
-                reference=reference,
-            )
-        ][outcome_variable]
-        for node_index in control_outcome_true_set
-    ])
+    control_outcomes = np.array(
+        [
+            medrecord.edge[
+                find_reference_edge(
+                    medrecord,
+                    node_index,
+                    outcome_group,
+                    time_attribute="time",
+                    reference=reference,
+                )
+            ][outcome_variable]
+            for node_index in control_outcome_true_set
+        ]
+    )
     if not all(isinstance(i, (int, float)) for i in control_outcomes):
         msg = "Outcome variable must be numeric"
         raise ValueError(msg)
@@ -151,34 +155,38 @@ def cohens_d(
     Raises:
         ValueError: If the outcome variable is not numeric.
     """
-    treated_outcomes = np.array([
-        medrecord.edge[
-            find_reference_edge(
-                medrecord,
-                node_index,
-                outcome_group,
-                time_attribute=time_attribute,
-                reference=reference,
-            )
-        ][outcome_variable]
-        for node_index in treatment_outcome_true_set
-    ])
+    treated_outcomes = np.array(
+        [
+            medrecord.edge[
+                find_reference_edge(
+                    medrecord,
+                    node_index,
+                    outcome_group,
+                    time_attribute=time_attribute,
+                    reference=reference,
+                )
+            ][outcome_variable]
+            for node_index in treatment_outcome_true_set
+        ]
+    )
     if not all(isinstance(i, (int, float)) for i in treated_outcomes):
         msg = "Outcome variable must be numeric"
         raise ValueError(msg)
 
-    control_outcomes = np.array([
-        medrecord.edge[
-            find_reference_edge(
-                medrecord,
-                node_index,
-                outcome_group,
-                time_attribute="time",
-                reference=reference,
-            )
-        ][outcome_variable]
-        for node_index in control_outcome_true_set
-    ])
+    control_outcomes = np.array(
+        [
+            medrecord.edge[
+                find_reference_edge(
+                    medrecord,
+                    node_index,
+                    outcome_group,
+                    time_attribute="time",
+                    reference=reference,
+                )
+            ][outcome_variable]
+            for node_index in control_outcome_true_set
+        ]
+    )
     if not all(isinstance(i, (int, float)) for i in control_outcomes):
         msg = "Outcome variable must be numeric"
         raise ValueError(msg)

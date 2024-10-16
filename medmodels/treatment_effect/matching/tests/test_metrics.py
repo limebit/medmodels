@@ -17,11 +17,13 @@ class TestMetrics(unittest.TestCase):
         assert metrics.exact_metric(np.array([2, -1]), np.array([2, 1])) == np.inf
 
     def test_mahalanobis_metric(self) -> None:
-        data = np.array([
-            [64, 66, 68, 69, 73],
-            [580, 570, 590, 660, 600],
-            [29, 33, 37, 46, 55],
-        ])
+        data = np.array(
+            [
+                [64, 66, 68, 69, 73],
+                [580, 570, 590, 660, 600],
+                [29, 33, 37, 46, 55],
+            ]
+        )
         inv_cov = np.linalg.inv(np.cov(data))
         a1, a2 = np.array([68, 600, 40]), np.array([66, 640, 44])
         result = metrics.mahalanobis_metric(a1, a2, inv_cov=inv_cov)
