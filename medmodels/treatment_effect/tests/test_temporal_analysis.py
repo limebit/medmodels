@@ -18,15 +18,17 @@ def create_patients(patient_list: List[NodeIndex]) -> pd.DataFrame:
     Returns:
         pd.DataFrame: A patients dataframe.
     """
-    patients = pd.DataFrame({
-        "index": ["P1", "P2", "P3"],
-        "age": [20, 30, 40],
-        "gender": [
-            "male",
-            "female",
-            "male",
-        ],
-    })
+    patients = pd.DataFrame(
+        {
+            "index": ["P1", "P2", "P3"],
+            "age": [20, 30, 40],
+            "gender": [
+                "male",
+                "female",
+                "male",
+            ],
+        }
+    )
 
     return patients.loc[patients["index"].isin(patient_list)]
 
@@ -37,10 +39,12 @@ def create_diagnoses() -> pd.DataFrame:
     Returns:
         pd.DataFrame: A diagnoses dataframe.
     """
-    return pd.DataFrame({
-        "index": ["D1"],
-        "name": ["Stroke"],
-    })
+    return pd.DataFrame(
+        {
+            "index": ["D1"],
+            "name": ["Stroke"],
+        }
+    )
 
 
 def create_prescriptions() -> pd.DataFrame:
@@ -49,10 +53,12 @@ def create_prescriptions() -> pd.DataFrame:
     Returns:
         pd.DataFrame: A prescriptions dataframe.
     """
-    return pd.DataFrame({
-        "index": ["M1", "M2"],
-        "name": ["Rivaroxaban", "Warfarin"],
-    })
+    return pd.DataFrame(
+        {
+            "index": ["M1", "M2"],
+            "name": ["Rivaroxaban", "Warfarin"],
+        }
+    )
 
 
 def create_edges(patient_list: List[NodeIndex]) -> pd.DataFrame:
@@ -61,29 +67,31 @@ def create_edges(patient_list: List[NodeIndex]) -> pd.DataFrame:
     Returns:
         pd.DataFrame: An edges dataframe.
     """
-    edges = pd.DataFrame({
-        "source": [
-            "M1",
-            "M2",
-            "M1",
-            "M2",
-            "D1",
-        ],
-        "target": [
-            "P1",
-            "P2",
-            "P3",
-            "P3",
-            "P3",
-        ],
-        "time": [
-            "2000-01-01",
-            "2000-01-01",
-            "2000-01-01",
-            "1999-12-15",
-            "2000-07-01",
-        ],
-    })
+    edges = pd.DataFrame(
+        {
+            "source": [
+                "M1",
+                "M2",
+                "M1",
+                "M2",
+                "D1",
+            ],
+            "target": [
+                "P1",
+                "P2",
+                "P3",
+                "P3",
+                "P3",
+            ],
+            "time": [
+                "2000-01-01",
+                "2000-01-01",
+                "2000-01-01",
+                "1999-12-15",
+                "2000-07-01",
+            ],
+        }
+    )
     return edges.loc[edges["target"].isin(patient_list)]
 
 
