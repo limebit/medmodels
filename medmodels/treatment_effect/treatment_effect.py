@@ -309,7 +309,26 @@ class TreatmentEffect:
 
             # Find patients that had the outcome before the treatment
             if self._outcome_before_treatment_days:
-                outcome_before_treatment_nodes.update({
+                outcome_before_treatment_nodes.update(
+                    {
+                        node_index
+                        for node_index in nodes_to_check
+                        if find_node_in_time_window(
+                            medrecord,
+                            node_index,
+                            outcome,
+                            connected_group=self._treatments_group,
+                            start_days=-self._outcome_before_treatment_days,
+                            end_days=0,
+                            reference="first",
+                        )
+                    }
+                )
+                nodes_to_check -= outcome_before_treatment_nodes
+
+            # Find patients that had the outcome after the treatment
+            treatment_outcome_true.update(
+                {
                     node_index
                     for node_index in nodes_to_check
                     if find_node_in_time_window(
@@ -317,27 +336,12 @@ class TreatmentEffect:
                         node_index,
                         outcome,
                         connected_group=self._treatments_group,
-                        start_days=-self._outcome_before_treatment_days,
-                        end_days=0,
-                        reference="first",
+                        start_days=self._grace_period_days,
+                        end_days=self._follow_up_period_days,
+                        reference=self._follow_up_period_reference,
                     )
-                })
-                nodes_to_check -= outcome_before_treatment_nodes
-
-            # Find patients that had the outcome after the treatment
-            treatment_outcome_true.update({
-                node_index
-                for node_index in nodes_to_check
-                if find_node_in_time_window(
-                    medrecord,
-                    node_index,
-                    outcome,
-                    connected_group=self._treatments_group,
-                    start_days=self._grace_period_days,
-                    end_days=self._follow_up_period_days,
-                    reference=self._follow_up_period_reference,
-                )
-            })
+                }
+            )
 
         treated_group -= outcome_before_treatment_nodes
         if outcome_before_treatment_nodes:
@@ -373,19 +377,21 @@ class TreatmentEffect:
         # TODO: washout in both directions? We need a List then
         for washout_group_id, washout_days in self._washout_period_days.items():
             for washout_node in medrecord.nodes_in_group(washout_group_id):
-                washout_nodes.update({
-                    treated_node
-                    for treated_node in treated_group
-                    if find_node_in_time_window(
-                        medrecord,
-                        treated_node,
-                        washout_node,
-                        connected_group=self._treatments_group,
-                        start_days=-washout_days,
-                        end_days=0,
-                        reference=self._washout_period_reference,
-                    )
-                })
+                washout_nodes.update(
+                    {
+                        treated_node
+                        for treated_node in treated_group
+                        if find_node_in_time_window(
+                            medrecord,
+                            treated_node,
+                            washout_node,
+                            connected_group=self._treatments_group,
+                            start_days=-washout_days,
+                            end_days=0,
+                            reference=self._washout_period_reference,
+                        )
+                    }
+                )
 
                 treated_group -= washout_nodes
 

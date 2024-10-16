@@ -31,33 +31,41 @@ def create_edges() -> List[Tuple[NodeIndex, NodeIndex, Attributes]]:
 
 
 def create_pandas_nodes_dataframe() -> pd.DataFrame:
-    return pd.DataFrame({
-        "index": ["0", "1"],
-        "attribute": [1, 2],
-    })
+    return pd.DataFrame(
+        {
+            "index": ["0", "1"],
+            "attribute": [1, 2],
+        }
+    )
 
 
 def create_second_pandas_nodes_dataframe() -> pd.DataFrame:
-    return pd.DataFrame({
-        "index": ["2", "3"],
-        "attribute": [2, 3],
-    })
+    return pd.DataFrame(
+        {
+            "index": ["2", "3"],
+            "attribute": [2, 3],
+        }
+    )
 
 
 def create_pandas_edges_dataframe() -> pd.DataFrame:
-    return pd.DataFrame({
-        "source": ["0", "1"],
-        "target": ["1", "0"],
-        "attribute": [1, 2],
-    })
+    return pd.DataFrame(
+        {
+            "source": ["0", "1"],
+            "target": ["1", "0"],
+            "attribute": [1, 2],
+        }
+    )
 
 
 def create_second_pandas_edges_dataframe() -> pd.DataFrame:
-    return pd.DataFrame({
-        "source": ["0", "1"],
-        "target": ["1", "0"],
-        "attribute": [2, 3],
-    })
+    return pd.DataFrame(
+        {
+            "source": ["0", "1"],
+            "target": ["1", "0"],
+            "attribute": [2, 3],
+        }
+    )
 
 
 def create_medrecord() -> MedRecord:
@@ -277,11 +285,13 @@ class TestMedRecord(unittest.TestCase):
 
         medrecord.add_edges_to_group("group", edge_index)
 
-        edge_index = medrecord.add_edges((
-            "0",
-            "1",
-            {"attribute": 1, "attribute2": "1"},
-        ))
+        edge_index = medrecord.add_edges(
+            (
+                "0",
+                "1",
+                {"attribute": 1, "attribute2": "1"},
+            )
+        )
 
         with self.assertRaises(ValueError):
             medrecord.add_edges_to_group("group", edge_index)
@@ -602,10 +612,12 @@ class TestMedRecord(unittest.TestCase):
 
         assert medrecord.node_count() == 0
 
-        medrecord.add_nodes([
-            (create_pandas_nodes_dataframe(), "index"),
-            (create_second_pandas_nodes_dataframe(), "index"),
-        ])
+        medrecord.add_nodes(
+            [
+                (create_pandas_nodes_dataframe(), "index"),
+                (create_second_pandas_nodes_dataframe(), "index"),
+            ]
+        )
 
         assert medrecord.node_count() == 4
 
@@ -649,10 +661,12 @@ class TestMedRecord(unittest.TestCase):
 
         assert medrecord.node_count() == 0
 
-        medrecord.add_nodes([
-            (nodes, "index"),
-            (second_nodes, "index"),
-        ])
+        medrecord.add_nodes(
+            [
+                (nodes, "index"),
+                (second_nodes, "index"),
+            ]
+        )
 
         assert medrecord.node_count() == 4
 
@@ -908,10 +922,12 @@ class TestMedRecord(unittest.TestCase):
 
         assert medrecord.edge_count() == 0
 
-        medrecord.add_edges([
-            (create_pandas_edges_dataframe(), "source", "target"),
-            (create_second_pandas_edges_dataframe(), "source", "target"),
-        ])
+        medrecord.add_edges(
+            [
+                (create_pandas_edges_dataframe(), "source", "target"),
+                (create_second_pandas_edges_dataframe(), "source", "target"),
+            ]
+        )
 
         assert medrecord.edge_count() == 4
 
@@ -942,10 +958,12 @@ class TestMedRecord(unittest.TestCase):
 
         second_edges = pl.from_pandas(create_second_pandas_edges_dataframe())
 
-        medrecord.add_edges([
-            (edges, "source", "target"),
-            (second_edges, "source", "target"),
-        ])
+        medrecord.add_edges(
+            [
+                (edges, "source", "target"),
+                (second_edges, "source", "target"),
+            ]
+        )
 
         assert medrecord.edge_count() == 4
 

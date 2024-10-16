@@ -232,10 +232,12 @@ def prettify_table(
         "-" * (sum(lengths) + len(lengths)),
     ]
 
-    table.extend([
-        "".join(f"{row[x]: <{lengths[x]}} " for x in range(len(lengths)))
-        for row in rows
-    ])
+    table.extend(
+        [
+            "".join(f"{row[x]: <{lengths[x]}} " for x in range(len(lengths)))
+            for row in rows
+        ]
+    )
 
     table.append("-" * (sum(lengths) + len(lengths)))
 

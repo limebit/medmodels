@@ -141,6 +141,10 @@ ignore = [
     "ISC002",
 ]
 
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["D", "DOC"]
+"*/__init__.py" = ["D", "DOC"]
+
 [tool.ruff.lint.pydocstyle]
 convention = "google"
 

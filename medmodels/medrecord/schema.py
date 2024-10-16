@@ -328,10 +328,12 @@ class GroupSchema:
                 else None,
             )
 
-        return AttributesSchema({
-            x: _convert_node(self._group_schema.nodes[x])
-            for x in self._group_schema.nodes
-        })
+        return AttributesSchema(
+            {
+                x: _convert_node(self._group_schema.nodes[x])
+                for x in self._group_schema.nodes
+            }
+        )
 
     @property
     def edges(self) -> AttributesSchema:
@@ -352,10 +354,12 @@ class GroupSchema:
                 else None,
             )
 
-        return AttributesSchema({
-            x: _convert_edge(self._group_schema.edges[x])
-            for x in self._group_schema.edges
-        })
+        return AttributesSchema(
+            {
+                x: _convert_edge(self._group_schema.edges[x])
+                for x in self._group_schema.edges
+            }
+        )
 
     @property
     def strict(self) -> Optional[bool]:
