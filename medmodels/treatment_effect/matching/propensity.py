@@ -97,10 +97,12 @@ class PropensityMatching(Matching):
 
         # Train the classification model
         x_train = np.concatenate((treated_array, control_array))
-        y_train = np.concatenate((
-            np.ones(len(treated_array)),
-            np.zeros(len(control_array)),
-        ))
+        y_train = np.concatenate(
+            (
+                np.ones(len(treated_array)),
+                np.zeros(len(control_array)),
+            )
+        )
 
         treated_prop, control_prop = calculate_propensity(
             x_train=x_train,

@@ -11,25 +11,31 @@ from medmodels.medrecord.querying import EdgeOperand, NodeOperand
 
 
 def create_medrecord():
-    patients = pd.DataFrame({
-        "index": ["P1", "P2", "P3"],
-        "age": [20, 30, 70],
-    })
+    patients = pd.DataFrame(
+        {
+            "index": ["P1", "P2", "P3"],
+            "age": [20, 30, 70],
+        }
+    )
 
     diagnosis = pd.DataFrame({"index": ["D1", "D2"]})
 
-    prescriptions = pd.DataFrame({
-        "index": ["M1", "M2", "M3"],
-        "ATC": ["B01AF01", "B01AA03", np.nan],
-    })
+    prescriptions = pd.DataFrame(
+        {
+            "index": ["M1", "M2", "M3"],
+            "ATC": ["B01AF01", "B01AA03", np.nan],
+        }
+    )
 
     nodes = [patients, diagnosis, prescriptions]
 
-    edges = pd.DataFrame({
-        "source": ["D1", "M1", "D1"],
-        "target": ["P1", "P2", "P3"],
-        "time": ["2000-01-01", "1999-10-15", "1999-12-15"],
-    })
+    edges = pd.DataFrame(
+        {
+            "source": ["D1", "M1", "D1"],
+            "target": ["P1", "P2", "P3"],
+            "time": ["2000-01-01", "1999-10-15", "1999-12-15"],
+        }
+    )
 
     edges.time = pd.to_datetime(edges.time)
 

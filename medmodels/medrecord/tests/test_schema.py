@@ -16,15 +16,17 @@ class TestSchema(unittest.TestCase):
         self.schema = create_medrecord().schema
 
     def test_groups(self) -> None:
-        assert sorted([
-            "diagnosis",
-            "drug",
-            "patient_diagnosis",
-            "patient_drug",
-            "patient_procedure",
-            "patient",
-            "procedure",
-        ]) == sorted(self.schema.groups)
+        assert sorted(
+            [
+                "diagnosis",
+                "drug",
+                "patient_diagnosis",
+                "patient_drug",
+                "patient_procedure",
+                "patient",
+                "procedure",
+            ]
+        ) == sorted(self.schema.groups)
 
     def test_group(self) -> None:
         assert isinstance(self.schema.group("patient"), mr.GroupSchema)  # pyright: ignore[reportUnnecessaryIsInstance]
