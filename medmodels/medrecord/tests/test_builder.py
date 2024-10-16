@@ -1,5 +1,7 @@
 import unittest
 
+import pytest
+
 import medmodels.medrecord as mr
 
 
@@ -60,7 +62,10 @@ class TestMedRecordBuilder(unittest.TestCase):
 
         medrecord.add_nodes(("node1", {"attribute": 1}))
 
-        with self.assertRaises(ValueError):
+        with pytest.raises(
+            ValueError,
+            match="Attribute attribute of node with index node2 is of type String. Expected Integer.",
+        ):
             medrecord.add_nodes(("node2", {"attribute": "1"}))
 
 

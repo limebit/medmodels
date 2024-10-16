@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from enum import Enum, auto
 from typing import Callable, Dict, List, Optional, Sequence, Union, overload
 
 import polars as pl
@@ -86,7 +87,7 @@ class OverviewTable:
         data: Dict[Group, AttributeInfo],
         group_header: str,
         decimal: int,
-    ):
+    ) -> None:
         """Initializes the OverviewTable class.
 
         Args:
@@ -103,6 +104,11 @@ class OverviewTable:
         header = [self.group_header, "count", "attribute", "info"]
 
         return "\n".join(prettify_table(self.data, header=header, decimal=self.decimal))
+
+
+class EdgesDirected(Enum):
+    DIRECTED = auto()
+    UNDIRECTED = auto()
 
 
 class MedRecord:
@@ -528,7 +534,7 @@ class MedRecord:
         self,
         source_node: Union[NodeIndex, NodeIndexInputList, NodeQuery],
         target_node: Union[NodeIndex, NodeIndexInputList, NodeQuery],
-        directed: bool = True,
+        directed: EdgesDirected = EdgesDirected.DIRECTED,
     ) -> List[EdgeIndex]:
         """Retrieves the edges connecting the specified source and target nodes in the MedRecord.
 
@@ -544,7 +550,8 @@ class MedRecord:
             target_node (Union[NodeIndex, NodeIndexInputList, NodeQuery]):
                 The index or indices of the target node(s), or a node query to
                 select target nodes.
-            directed (bool, optional): Whether to consider edges as directed.
+            directed (EdgesDirected, optional): Whether to consider edges as directed.
+                Defaults to EdgesDirected.DIRECTED.
 
         Returns:
             List[EdgeIndex]: A list of edge indices connecting the specified source and
@@ -1197,20 +1204,20 @@ class MedRecord:
     def neighbors(
         self,
         node: NodeIndex,
-        directed: bool = True,
+        directed: EdgesDirected = EdgesDirected.DIRECTED,
     ) -> List[NodeIndex]: ...
 
     @overload
     def neighbors(
         self,
         node: Union[NodeIndexInputList, NodeQuery],
-        directed: bool = True,
+        directed: EdgesDirected = EdgesDirected.DIRECTED,
     ) -> Dict[NodeIndex, List[NodeIndex]]: ...
 
     def neighbors(
         self,
         node: Union[NodeIndex, NodeIndexInputList, NodeQuery],
-        directed: bool = True,
+        directed: EdgesDirected = EdgesDirected.DIRECTED,
     ) -> Union[List[NodeIndex], Dict[NodeIndex, List[NodeIndex]]]:
         """Retrieves the neighbors of the specified node(s) in the MedRecord.
 
@@ -1221,7 +1228,8 @@ class MedRecord:
         Args:
             node (Union[NodeIndex, NodeIndexInputList, NodeQuery]): One or more
                 node indices or a node query.
-            directed (bool, optional): Whether to consider edges as directed.
+            directed (EdgesDirected, optional): Whether to consider edges as directed.
+                Defaults to EdgesDirected.DIRECTED.
 
         Returns:
             Union[List[NodeIndex], Dict[NodeIndex, List[NodeIndex]]]: Neighboring nodes.
@@ -1229,7 +1237,7 @@ class MedRecord:
         if isinstance(node, Callable):
             node = self.select_nodes(node)
 
-        if directed:
+        if directed == EdgesDirected.DIRECTED:
             neighbors = self._medrecord.neighbors(
                 node if isinstance(node, list) else [node]
             )
