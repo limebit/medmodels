@@ -1,3 +1,5 @@
+"""This module contains the schema classes for the medrecord module."""
+
 from __future__ import annotations
 
 from enum import Enum, auto
@@ -16,6 +18,8 @@ if TYPE_CHECKING:
 
 
 class AttributeType(Enum):
+    """Enumeration of attribute types."""
+
     Categorical = auto()
     Continuous = auto()
     Temporal = auto()
@@ -87,6 +91,8 @@ class AttributeType(Enum):
 
 
 class AttributesSchema:
+    """A schema for a collection of attributes."""
+
     _attributes_schema: Dict[
         MedRecordAttribute, Tuple[DataType, Optional[AttributeType]]
     ]
@@ -103,10 +109,7 @@ class AttributesSchema:
             attributes_schema (Dict[MedRecordAttribute, Tuple[DataType, Optional[AttributeType]]]):
                 A dictionary mapping MedRecordAttributes to their data types and
                 optional attribute types.
-
-        Returns:
-            None
-        """
+        """  # noqa: W505
         self._attributes_schema = attributes_schema
 
     def __repr__(self) -> str:
@@ -120,7 +123,7 @@ class AttributesSchema:
     def __getitem__(
         self, key: MedRecordAttribute
     ) -> Tuple[DataType, Optional[AttributeType]]:
-        """Gets the data type and optional attribute type for a given MedRecordAttribute.
+        """Gets the type and optional attribute type for a given MedRecordAttribute.
 
         Args:
             key (MedRecordAttribute): The attribute for which the data type is
@@ -229,8 +232,9 @@ class AttributesSchema:
         key: MedRecordAttribute,
         default: Optional[Tuple[DataType, Optional[AttributeType]]] = None,
     ) -> Optional[Tuple[DataType, Optional[AttributeType]]]:
-        """Gets the data type and optional attribute type for a given attribute, returning
-        a default value if the attribute is not present.
+        """Gets the data type and optional attribute type for a given attribute.
+
+        It returns a default value if the attribute is not present.
 
         Args:
             key (MedRecordAttribute): The attribute for which the data type is
@@ -247,6 +251,8 @@ class AttributesSchema:
 
 
 class GroupSchema:
+    """A schema for a group of nodes and edges."""
+
     _group_schema: PyGroupSchema
 
     def __init__(
@@ -271,10 +277,7 @@ class GroupSchema:
                 optional attribute types. Defaults to an empty dictionary.
             strict (bool, optional): Indicates whether the schema should be strict.
                 Defaults to False.
-
-        Returns:
-            None
-        """
+        """  # noqa: W505
         if edges is None:
             edges = {}
         if nodes is None:
@@ -372,6 +375,8 @@ class GroupSchema:
 
 
 class Schema:
+    """A schema for a collection of groups."""
+
     _schema: PySchema
 
     def __init__(
@@ -390,9 +395,6 @@ class Schema:
                 Defaults to None.
             strict (bool, optional): Indicates whether the schema should be strict.
                 Defaults to False.
-
-        Returns:
-            None
         """
         if groups is None:
             groups = {}
@@ -441,8 +443,8 @@ class Schema:
             GroupSchema: The schema for the specified group.
 
         Raises:
-            ValueError: If the specified group does not exist.
-        """
+            ValueError: If the group does not exist in the schema.
+        """  # noqa: DOC502
         return GroupSchema._from_pygroupschema(self._schema.group(group))
 
     @property
