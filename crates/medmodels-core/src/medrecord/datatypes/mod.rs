@@ -14,6 +14,7 @@ pub enum DataType {
     Float,
     Bool,
     DateTime,
+    Duration,
     Null,
     Any,
     Union((Box<DataType>, Box<DataType>)),
@@ -26,6 +27,7 @@ impl Default for DataType {
     }
 }
 
+// TODO: Add tests for Duration
 impl From<MedRecordValue> for DataType {
     fn from(value: MedRecordValue) -> Self {
         match value {
@@ -34,11 +36,13 @@ impl From<MedRecordValue> for DataType {
             MedRecordValue::Float(_) => DataType::Float,
             MedRecordValue::Bool(_) => DataType::Bool,
             MedRecordValue::DateTime(_) => DataType::DateTime,
+            MedRecordValue::Duration(_) => DataType::Duration,
             MedRecordValue::Null => DataType::Null,
         }
     }
 }
 
+// TODO: Add tests for Duration
 impl From<&MedRecordValue> for DataType {
     fn from(value: &MedRecordValue) -> Self {
         match value {
@@ -47,6 +51,7 @@ impl From<&MedRecordValue> for DataType {
             MedRecordValue::Float(_) => DataType::Float,
             MedRecordValue::Bool(_) => DataType::Bool,
             MedRecordValue::DateTime(_) => DataType::DateTime,
+            MedRecordValue::Duration(_) => DataType::Duration,
             MedRecordValue::Null => DataType::Null,
         }
     }
@@ -94,6 +99,7 @@ impl PartialEq for DataType {
     }
 }
 
+// TODO: Add tests for Duration
 impl Display for DataType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -102,6 +108,7 @@ impl Display for DataType {
             DataType::Float => write!(f, "Float"),
             DataType::Bool => write!(f, "Boolean"),
             DataType::DateTime => write!(f, "DateTime"),
+            DataType::Duration => write!(f, "Duration"),
             DataType::Null => write!(f, "Null"),
             DataType::Any => write!(f, "Any"),
             DataType::Union((first_datatype, second_datatype)) => {
@@ -120,6 +127,7 @@ impl Display for DataType {
     }
 }
 
+// TODO: Add tests for Duration
 impl DataType {
     pub(crate) fn evaluate(&self, other: &Self) -> bool {
         match (self, other) {
@@ -138,6 +146,7 @@ impl DataType {
                     | (DataType::Float, DataType::Float)
                     | (DataType::Bool, DataType::Bool)
                     | (DataType::DateTime, DataType::DateTime)
+                    | (DataType::Duration, DataType::Duration)
                     | (DataType::Null, DataType::Null)
                     | (DataType::Any, DataType::Any)
             ),

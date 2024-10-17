@@ -3,10 +3,10 @@ use crate::{gil_hash_map::GILHashMap, medrecord::errors::PyMedRecordError};
 use chrono::NaiveDateTime;
 use medmodels_core::{errors::MedRecordError, medrecord::MedRecordValue};
 use pyo3::{
-    types::{PyAnyMethods, PyBool, PyDateTime, PyFloat, PyInt, PyString},
+    types::{PyAnyMethods, PyBool, PyDateTime, PyDelta, PyFloat, PyInt, PyString},
     Bound, FromPyObject, IntoPy, PyAny, PyObject, PyResult, Python,
 };
-use std::ops::Deref;
+use std::{ops::Deref, time::Duration};
 
 #[repr(transparent)]
 #[derive(Clone, Debug)]
@@ -69,6 +69,10 @@ pub(crate) fn convert_pyobject_to_medrecordvalue(
         Ok(MedRecordValue::DateTime(ob.extract::<NaiveDateTime>()?))
     }
 
+    fn convert_duration(ob: &Bound<'_, PyAny>) -> PyResult<MedRecordValue> {
+        Ok(MedRecordValue::Duration(ob.extract::<Duration>()?))
+    }
+
     fn convert_null(_ob: &Bound<'_, PyAny>) -> PyResult<MedRecordValue> {
         Ok(MedRecordValue::Null)
     }
@@ -98,6 +102,8 @@ pub(crate) fn convert_pyobject_to_medrecordvalue(
                     convert_float
                 } else if ob.is_instance_of::<PyDateTime>() {
                     convert_datetime
+                } else if ob.is_instance_of::<PyDelta>() {
+                    convert_duration
                 } else if ob.is_none() {
                     convert_null
                 } else {
@@ -124,6 +130,7 @@ impl IntoPy<PyObject> for PyMedRecordValue {
             MedRecordValue::Float(value) => value.into_py(py),
             MedRecordValue::Bool(value) => value.into_py(py),
             MedRecordValue::DateTime(value) => value.into_py(py),
+            MedRecordValue::Duration(value) => value.into_py(py),
             MedRecordValue::Null => py.None(),
         }
     }

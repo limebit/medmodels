@@ -120,6 +120,7 @@ pub enum MultipleValuesOperation {
     IsFloat,
     IsBool,
     IsDateTime,
+    IsDuration,
     IsNull,
 
     IsMax,
@@ -165,6 +166,7 @@ impl DeepClone for MultipleValuesOperation {
             Self::IsFloat => Self::IsFloat,
             Self::IsBool => Self::IsBool,
             Self::IsDateTime => Self::IsDateTime,
+            Self::IsDuration => Self::IsDuration,
             Self::IsNull => Self::IsNull,
             Self::IsMax => Self::IsMax,
             Self::IsMin => Self::IsMin,
@@ -229,6 +231,11 @@ impl MultipleValuesOperation {
                     matches!(value, MedRecordValue::DateTime(_))
                 })))
             }
+            Self::IsDuration => {
+                Ok(Box::new(values.filter(|(_, value)| {
+                    matches!(value, MedRecordValue::Duration(_))
+                })))
+            }
             Self::IsNull => {
                 Ok(Box::new(values.filter(|(_, value)| {
                     matches!(value, MedRecordValue::Null)
@@ -267,7 +274,7 @@ impl MultipleValuesOperation {
                     let second_dtype = DataType::from(max_value.1);
 
                     Err(MedRecordError::QueryError(format!(
-                        "Cannot compare values of data types {} and {}. Consider narrowing down the values using .is_string(), .is_int(), .is_float(), .is_bool() or .is_datetime()",
+                        "Cannot compare values of data types {} and {}. Consider narrowing down the values using .is_string(), .is_int(), .is_float(), .is_bool(), .is_datetime() or .is_duration()",
                         first_dtype, second_dtype
                     )))
                 }
@@ -292,7 +299,7 @@ impl MultipleValuesOperation {
                     let second_dtype = DataType::from(min_value.1);
 
                     Err(MedRecordError::QueryError(format!(
-                        "Cannot compare values of data types {} and {}. Consider narrowing down the values using .is_string(), .is_int(), .is_float(), .is_bool() or .is_datetime()",
+                        "Cannot compare values of data types {} and {}. Consider narrowing down the values using .is_string(), .is_int(), .is_float(), .is_bool(), .is_datetime() or .is_duration()",
                         first_dtype, second_dtype
                     )))
                 }
@@ -316,7 +323,7 @@ impl MultipleValuesOperation {
             match sum.add(value) {
                 Ok(sum) => Ok((sum, count + 1)),
                 Err(_) => Err(MedRecordError::QueryError(format!(
-                    "Cannot add values of data types {} and {}. Consider narrowing down the values using .is_int(), .is_float() or .is_datetime()",
+                    "Cannot add values of data types {} and {}. Consider narrowing down the values using .is_int(), .is_float(), .is_datetime() or .is_duration()",
                     first_dtype, second_dtype
                 ))),
             }
@@ -345,7 +352,7 @@ impl MultipleValuesOperation {
                         MedRecordValue::Int(value) => Ok(value as f64),
                         MedRecordValue::Float(value) => Ok(value),
                         _ => Err(MedRecordError::QueryError(format!(
-                            "Cannot calculate median of mixed data types {} and {}. Consider narrowing down the values using .is_int(), .is_float() or .is_datetime()",
+                            "Cannot calculate median of mixed data types {} and {}. Consider narrowing down the values using .is_int(), .is_float() , .is_datetime() or .is_duration()",
                             first_data_type, data_type
                         ))),
                     }
@@ -363,7 +370,7 @@ impl MultipleValuesOperation {
                         MedRecordValue::Int(value) => Ok(value as f64),
                         MedRecordValue::Float(value) => Ok(value),
                         _ => Err(MedRecordError::QueryError(format!(
-                            "Cannot calculate median of mixed data types {} and {}. Consider narrowing down the values using .is_int(), .is_float() or .is_datetime()",
+                            "Cannot calculate median of mixed data types {} and {}. Consider narrowing down the values using .is_int(), .is_float(), .is_datetime() or .is_duration()",
                             first_data_type, data_type
                         ))),
                     }
@@ -380,7 +387,7 @@ impl MultipleValuesOperation {
                     match value {
                         MedRecordValue::DateTime(naive_date_time) => Ok(naive_date_time),
                         _ => Err(MedRecordError::QueryError(format!(
-                            "Cannot calculate median of mixed data types {} and {}. Consider narrowing down the values using .is_int(), .is_float() or .is_datetime()",
+                            "Cannot calculate median of mixed data types {} and {}. Consider narrowing down the values using .is_int(), .is_float(), .is_datetime() or .is_duration()",
                             first_data_type, data_type
                         ))),
                     }
@@ -389,6 +396,23 @@ impl MultipleValuesOperation {
                 values.sort();
 
                 get_median!(values, DateTime)
+            }
+            MedRecordValue::Duration(value) => {
+                let mut values = values.map(|(_, value)| {
+                    let data_type = DataType::from(&value);
+
+                    match value {
+                        MedRecordValue::Duration(naive_date_time) => Ok(naive_date_time),
+                        _ => Err(MedRecordError::QueryError(format!(
+                            "Cannot calculate median of mixed data types {} and {}. Consider narrowing down the values using .is_int(), .is_float(), .is_datetime() or .is_duration()",
+                            first_data_type, data_type
+                        ))),
+                    }
+                }).collect::<MedRecordResult<Vec<_>>>()?;
+                values.push(value);
+                values.sort();
+
+                get_median!(values, Duration)
             }
             _ => Err(MedRecordError::QueryError(format!(
                 "Cannot calculate median of data type {}",
@@ -509,7 +533,7 @@ impl MultipleValuesOperation {
 
             sum.add(value).map_err(|_| {
                 MedRecordError::QueryError(format!(
-                    "Cannot add values of data types {} and {}. Consider narrowing down the values using .is_string(), .is_int(), .is_float(), .is_bool() or .is_datetime()",
+                    "Cannot add values of data types {} and {}. Consider narrowing down the values using .is_string(), .is_int(), .is_float(), .is_bool(), .is_datetime() or .is_duration()",
                     first_dtype, second_dtype
                 ))
             })
@@ -775,6 +799,7 @@ pub enum SingleValueOperation {
     IsFloat,
     IsBool,
     IsDateTime,
+    IsDuration,
     IsNull,
 
     EitherOr {
@@ -814,6 +839,7 @@ impl DeepClone for SingleValueOperation {
             Self::IsFloat => Self::IsFloat,
             Self::IsBool => Self::IsBool,
             Self::IsDateTime => Self::IsDateTime,
+            Self::IsDuration => Self::IsDuration,
             Self::IsNull => Self::IsNull,
             Self::EitherOr { either, or } => Self::EitherOr {
                 either: either.deep_clone(),
@@ -873,6 +899,10 @@ impl SingleValueOperation {
             }),
             Self::IsDateTime => Ok(match value {
                 MedRecordValue::DateTime(_) => Some(value),
+                _ => None,
+            }),
+            Self::IsDuration => Ok(match value {
+                MedRecordValue::Duration(_) => Some(value),
                 _ => None,
             }),
             Self::IsNull => Ok(match value {
