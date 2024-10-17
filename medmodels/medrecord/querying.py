@@ -1,3 +1,5 @@
+"""Query API for MedRecord."""
+
 from __future__ import annotations
 
 from enum import Enum
@@ -134,6 +136,8 @@ def _py_edge_indices_comparison_operand_from_edge_indices_comparison_operand(
 
 
 class EdgeDirection(Enum):
+    """Enumeration of edge directions."""
+
     INCOMING = 0
     OUTGOING = 1
     BOTH = 2
@@ -149,6 +153,8 @@ class EdgeDirection(Enum):
 
 
 class NodeOperand:
+    """Query API for nodes in a MedRecord."""
+
     _node_operand: PyNodeOperand
 
     def attribute(self, attribute: MedRecordAttribute) -> MultipleValuesOperand:
@@ -182,22 +188,71 @@ class NodeOperand:
     def neighbors(
         self, edge_direction: EdgeDirection = EdgeDirection.OUTGOING
     ) -> NodeOperand:
+        """Get a neighbors operand for the current node query.
+
+        It is used to query the nodes that have an edge connecting them to the
+        neighbors defined after this node operand.
+
+        Example:
+        ```python
+            node_operand.neighbors(EdgeDirection.OUTGOING).in_group(patients_group)
+        ```
+
+        Args:
+            edge_direction (EdgeDirection): The direction of the edges to consider.
+                Defaults to EdgeDirection.OUTGOING.
+
+        Returns:
+            NodeOperand: The neighbors of the current node query.
+        """
         return NodeOperand._from_py_node_operand(
             self._node_operand.neighbors(edge_direction._into_py_edge_direction())
         )
 
     def either_or(self, either: NodeQuery, or_: NodeQuery) -> None:
+        """Apply either-or logic to the current node query.
+
+        It is used to apply one query if the condition is met and another query if the
+        condition is not met.
+
+        Example:
+         ```python
+
+        node_operand.either_or(
+            lambda node: node.attribute("age").greater_than(10),
+            lambda node: node.attribute("age").less_than(10)
+        )
+
+        ```
+
+        Args:
+            either (Callable[[EdgeIndexOperand], None]): The query to apply if the
+                condition is met.
+            or_ (Callable[[EdgeIndexOperand], None]): The query to apply if the
+                condition is not met.
+        """
         self._node_operand.either_or(
             lambda node: either(NodeOperand._from_py_node_operand(node)),
             lambda node: or_(NodeOperand._from_py_node_operand(node)),
         )
 
     def exclude(self, query: NodeQuery) -> None:
+        """Exclude nodes based on the query.
+
+        Args:
+            query (Callable[[EdgeIndexOperand], None]): The query to apply to exclude
+                nodes.
+        """
         self._node_operand.exclude(
             lambda node: query(NodeOperand._from_py_node_operand(node))
         )
 
     def clone(self) -> NodeOperand:
+        """Create a deep clone of the current node query.
+
+        Returns:
+            NodeOperand: A deep clone of the current node query.
+        """
         return NodeOperand._from_py_node_operand(self._node_operand.deep_clone())
 
     @classmethod
@@ -1796,6 +1851,12 @@ class EdgeIndicesOperand:
         either: Callable[[EdgeIndicesOperand], None],
         or_: Callable[[EdgeIndicesOperand], None],
     ) -> None:
+        """Apply either-or logic to the edge indices.
+
+        Args:
+            either (Callable[[EdgeIndicesOperand], None]): The either logic to apply.
+            or_ (Callable[[EdgeIndicesOperand], None]): The or logic to apply.
+        """
         self._edge_indices_operand.either_or(
             lambda edge_indices: either(
                 EdgeIndicesOperand._from_edge_indices_operand(edge_indices)
@@ -1806,6 +1867,11 @@ class EdgeIndicesOperand:
         )
 
     def exclude(self, query: Callable[[EdgeIndicesOperand], None]) -> None:
+        """Exclude the edge indices that satisfy the given query.
+
+        Args:
+            query (Callable[[EdgeIndicesOperand], None]): The query to exclude.
+        """
         self._edge_indices_operand.exclude(
             lambda edge_indices: query(
                 EdgeIndicesOperand._from_edge_indices_operand(edge_indices)
@@ -1813,6 +1879,11 @@ class EdgeIndicesOperand:
         )
 
     def clone(self) -> EdgeIndicesOperand:
+        """Create a deep clone of the current edge indices operand.
+
+        Returns:
+            EdgeIndicesOperand: The cloned edge indices operand.
+        """
         return EdgeIndicesOperand._from_edge_indices_operand(
             self._edge_indices_operand.deep_clone()
         )
@@ -1827,39 +1898,78 @@ class EdgeIndicesOperand:
 
 
 class EdgeIndexOperand:
+    """A class representing an edge index operand.
+
+    An edge index operand is used to query edge indices in the graph database.
+    """
     _edge_index_operand: PyEdgeIndexOperand
 
     def greater_than(self, index: EdgeIndexComparisonOperand) -> None:
+        """Query the edge indices that are greater than the given index.
+
+        Args:
+            index (EdgeIndexComparisonOperand): The index to compare with.
+        """
         self._edge_index_operand.greater_than(
             _py_edge_index_comparison_operand_from_edge_index_comparison_operand(index)
         )
 
     def greater_than_or_equal_to(self, index: EdgeIndexComparisonOperand) -> None:
+        """Query the edge indices that are greater than or equal to the given index.
+
+        Args:
+            index (EdgeIndexComparisonOperand): The index to compare with.
+        """
         self._edge_index_operand.greater_than_or_equal_to(
             _py_edge_index_comparison_operand_from_edge_index_comparison_operand(index)
         )
 
     def less_than(self, index: EdgeIndexComparisonOperand) -> None:
+        """Query the edge indices that are less than the given index.
+
+        Args:
+            index (EdgeIndexComparisonOperand): The index to compare with.
+        """
         self._edge_index_operand.less_than(
             _py_edge_index_comparison_operand_from_edge_index_comparison_operand(index)
         )
 
     def less_than_or_equal_to(self, index: EdgeIndexComparisonOperand) -> None:
+        """Query the edge indices that are less than or equal to the given index.
+
+        Args:
+            index (EdgeIndexComparisonOperand): The index to compare with.
+        """
         self._edge_index_operand.less_than_or_equal_to(
             _py_edge_index_comparison_operand_from_edge_index_comparison_operand(index)
         )
 
     def equal_to(self, index: EdgeIndexComparisonOperand) -> None:
+        """Query the edge indices that are equal to the given index.
+
+        Args:
+            index (EdgeIndexComparisonOperand): The index to compare with.
+        """
         self._edge_index_operand.equal_to(
             _py_edge_index_comparison_operand_from_edge_index_comparison_operand(index)
         )
 
     def not_equal_to(self, index: EdgeIndexComparisonOperand) -> None:
+        """Query the edge indices that are not equal to the given index.
+
+        Args:
+            index (EdgeIndexComparisonOperand): The index to compare with.
+        """
         self._edge_index_operand.not_equal_to(
             _py_edge_index_comparison_operand_from_edge_index_comparison_operand(index)
         )
 
     def is_in(self, indices: EdgeIndicesComparisonOperand) -> None:
+        """Query the edge indices that are in the given indices list.
+
+        Args:
+            indices (EdgeIndicesComparisonOperand): The indices to compare with.
+        """
         self._edge_index_operand.is_in(
             _py_edge_indices_comparison_operand_from_edge_indices_comparison_operand(
                 indices
@@ -1867,6 +1977,11 @@ class EdgeIndexOperand:
         )
 
     def is_not_in(self, indices: EdgeIndicesComparisonOperand) -> None:
+        """Query the edge indices that are not in the given indices sequence.
+
+        Args:
+            indices (EdgeIndicesComparisonOperand): The indices to compare with.
+        """
         self._edge_index_operand.is_not_in(
             _py_edge_indices_comparison_operand_from_edge_indices_comparison_operand(
                 indices
@@ -1874,41 +1989,81 @@ class EdgeIndexOperand:
         )
 
     def starts_with(self, index: EdgeIndexComparisonOperand) -> None:
+        """Query the edge indices that start with the given index.
+
+        Args:
+            index (EdgeIndexComparisonOperand): The index to compare with.
+        """
         self._edge_index_operand.starts_with(
             _py_edge_index_comparison_operand_from_edge_index_comparison_operand(index)
         )
 
     def ends_with(self, index: EdgeIndexComparisonOperand) -> None:
+        """Query the edge indices that end with the given index.
+
+        Args:
+            index (EdgeIndexComparisonOperand): The index to compare with.
+        """
         self._edge_index_operand.ends_with(
             _py_edge_index_comparison_operand_from_edge_index_comparison_operand(index)
         )
 
     def contains(self, index: EdgeIndexComparisonOperand) -> None:
+        """Query the edge indices that contain the given index.
+
+        Args:
+            index (EdgeIndexComparisonOperand): The index to compare with.
+        """
         self._edge_index_operand.contains(
             _py_edge_index_comparison_operand_from_edge_index_comparison_operand(index)
         )
 
     def add(self, index: EdgeIndexArithmeticOperand) -> None:
+        """Add the given index to the current edge index.
+
+        Args:
+            index (EdgeIndexArithmeticOperand): The index to add.
+        """
         self._edge_index_operand.add(
             _py_edge_index_comparison_operand_from_edge_index_comparison_operand(index)
         )
 
     def subtract(self, index: EdgeIndexArithmeticOperand) -> None:
+        """Subtract the given index from the current edge index.
+
+        Args:
+            index (EdgeIndexArithmeticOperand): The index to subtract.
+        """
         self._edge_index_operand.sub(
             _py_edge_index_comparison_operand_from_edge_index_comparison_operand(index)
         )
 
     def multiply(self, index: EdgeIndexArithmeticOperand) -> None:
+        """Multiply the current edge index by the given index.
+
+        Args:
+            index (EdgeIndexArithmeticOperand): The index to multiply by.
+        """
         self._edge_index_operand.mul(
             _py_edge_index_comparison_operand_from_edge_index_comparison_operand(index)
         )
 
     def modulo(self, index: EdgeIndexArithmeticOperand) -> None:
+        """Take the modulo of the current edge index by the given index.
+
+        Args:
+            index (EdgeIndexArithmeticOperand): The index to take the modulo by.
+        """
         self._edge_index_operand.mod(
             _py_edge_index_comparison_operand_from_edge_index_comparison_operand(index)
         )
 
     def power(self, index: EdgeIndexArithmeticOperand) -> None:
+        """Raise the current edge index to the power of the given index.
+
+        Args:
+            index (EdgeIndexArithmeticOperand): The index to raise to the power of.
+        """
         self._edge_index_operand.pow(
             _py_edge_index_comparison_operand_from_edge_index_comparison_operand(index)
         )
@@ -1918,6 +2073,27 @@ class EdgeIndexOperand:
         either: Callable[[EdgeIndexOperand], None],
         or_: Callable[[EdgeIndexOperand], None],
     ) -> None:
+        """Apply either-or logic to the current edge index operand.
+
+        It is used to apply one query if the condition is met and another query if the
+        condition is not met.
+
+        Example:
+        ```python
+
+        edge_index_operand.either_or(
+            lambda edge_index: edge_index.greater_than(10),
+            lambda edge_index: edge_index.less_than(10)
+        )
+
+        ```
+
+        Args:
+            either (Callable[[EdgeIndexOperand], None]): The query to apply if the
+                condition is met.
+            or_ (Callable[[EdgeIndexOperand], None]): The query to apply if the
+                condition is not met.
+        """
         self._edge_index_operand.either_or(
             lambda edge_index: either(
                 EdgeIndexOperand._from_py_edge_index_operand(edge_index)
@@ -1928,6 +2104,11 @@ class EdgeIndexOperand:
         )
 
     def exclude(self, query: Callable[[EdgeIndexOperand], None]) -> None:
+        """Exclude the edge indices that meet the given query.
+
+        Args:
+            query (Callable[[EdgeIndexOperand], None]): The query to exclude.
+        """
         self._edge_index_operand.exclude(
             lambda edge_index: query(
                 EdgeIndexOperand._from_py_edge_index_operand(edge_index)
@@ -1935,6 +2116,11 @@ class EdgeIndexOperand:
         )
 
     def clone(self) -> EdgeIndexOperand:
+        """Clone the current edge index operand so that it can be reused.
+
+        Returns:
+            EdgeIndexOperand: The cloned edge index operand.
+        """
         return EdgeIndexOperand._from_py_edge_index_operand(
             self._edge_index_operand.deep_clone()
         )
