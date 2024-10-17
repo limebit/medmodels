@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import TYPE_CHECKING, Dict, List, Mapping, Tuple, TypedDict, Union
+from typing import TYPE_CHECKING, Dict, List, Mapping, Sequence, Tuple, TypedDict, Union
 
 import pandas as pd
 import polars as pl
@@ -90,6 +90,26 @@ PandasEdgeDataFrameInput: TypeAlias = Tuple[pd.DataFrame, str, str]
 
 AttributeInfo: TypeAlias = Union[
     "TemporalAttributeInfo", "NumericAttributeInfo", "StringAttributeInfo"
+]
+
+#: A type alias for input to a node.
+NodeInput = Union[
+    NodeTuple,
+    Sequence[NodeTuple],
+    PandasNodeDataFrameInput,
+    List[PandasNodeDataFrameInput],
+    PolarsNodeDataFrameInput,
+    List[PolarsNodeDataFrameInput],
+]
+
+#: A type alias for input to an edge.
+EdgeInput = Union[
+    EdgeTuple,
+    Sequence[EdgeTuple],
+    PandasEdgeDataFrameInput,
+    List[PandasEdgeDataFrameInput],
+    PolarsEdgeDataFrameInput,
+    List[PolarsEdgeDataFrameInput],
 ]
 
 

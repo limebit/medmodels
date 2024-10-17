@@ -31,7 +31,7 @@ from medmodels.medrecord.types import (
     is_polars_node_dataframe_input_list,
 )
 
-NodeInput = Union[
+NodeInputBuilder = Union[
     NodeTuple,
     List[NodeTuple],
     PandasNodeDataFrameInput,
@@ -39,10 +39,17 @@ NodeInput = Union[
     PolarsNodeDataFrameInput,
     List[PolarsNodeDataFrameInput],
 ]
-NodeInputWithGroup = Tuple[NodeInput, Group]
 
 
-def is_node_input(value: object) -> TypeIs[NodeInput]:
+def is_node_input_builder(value: object) -> TypeIs[NodeInputBuilder]:
+    """Check if a value is a valid node input.
+
+    Args:
+        value (object): The value to check.
+
+    Returns:
+        TypeIs[NodeInput]: True if the value is a valid node input, otherwise False.
+    """
     return (
         is_node_tuple(value)
         or is_node_tuple_list(value)
@@ -53,7 +60,7 @@ def is_node_input(value: object) -> TypeIs[NodeInput]:
     )
 
 
-EdgeInput = Union[
+EdgeInputBuilder = Union[
     EdgeTuple,
     List[EdgeTuple],
     PandasEdgeDataFrameInput,
@@ -61,7 +68,29 @@ EdgeInput = Union[
     PolarsEdgeDataFrameInput,
     List[PolarsEdgeDataFrameInput],
 ]
-EdgeInputWithGroup = Tuple[EdgeInput, Group]
+
+
+def is_edge_input_builder(value: object) -> TypeIs[EdgeInputBuilder]:
+    """Check if a value is a valid edge input.
+
+    Args:
+        value (object): The value to check.
+
+    Returns:
+        TypeIs[EdgeInput]: True if the value is a valid edge input, otherwise False.
+    """
+    return (
+        is_edge_tuple(value)
+        or is_edge_tuple_list(value)
+        or is_pandas_edge_dataframe_input(value)
+        or is_pandas_edge_dataframe_input_list(value)
+        or is_polars_edge_dataframe_input(value)
+        or is_polars_edge_dataframe_input_list(value)
+    )
+
+
+NodeInputWithGroup = Tuple[NodeInputBuilder, Group]
+EdgeInputWithGroup = Tuple[EdgeInputBuilder, Group]
 
 
 class MedRecordBuilder:
@@ -71,8 +100,8 @@ class MedRecordBuilder:
     specifying a schema.
     """
 
-    _nodes: List[Union[NodeInput, NodeInputWithGroup]]
-    _edges: List[Union[EdgeInput, EdgeInputWithGroup]]
+    _nodes: List[Union[NodeInputBuilder, NodeInputWithGroup]]
+    _edges: List[Union[EdgeInputBuilder, EdgeInputWithGroup]]
     _groups: Dict[Group, GroupInfo]
     _schema: Optional[Schema]
 
@@ -85,7 +114,7 @@ class MedRecordBuilder:
 
     def add_nodes(
         self,
-        nodes: NodeInput,
+        nodes: NodeInputBuilder,
         *,
         group: Optional[Group] = None,
     ) -> MedRecordBuilder:
@@ -107,7 +136,7 @@ class MedRecordBuilder:
 
     def add_edges(
         self,
-        edges: EdgeInput,
+        edges: EdgeInputBuilder,
         *,
         group: Optional[Group] = None,
     ) -> MedRecordBuilder:
@@ -163,64 +192,29 @@ class MedRecordBuilder:
         medrecord = mm.MedRecord()
 
         for node in self._nodes:
-            if is_node_tuple(node):
-                medrecord.add_node(*node)
-                continue
-
-            if (
-                is_node_tuple_list(node)
-                or is_pandas_node_dataframe_input(node)
-                or is_pandas_node_dataframe_input_list(node)
-                or is_polars_node_dataframe_input(node)
-                or is_polars_node_dataframe_input_list(node)
-            ):
+            if is_node_input_builder(node):
                 medrecord.add_nodes(node)
                 continue
 
             group = node[1]
             node = node[0]
 
-            if is_node_tuple(node):
-                medrecord.add_node(*node, group)
-                continue
-
             medrecord.add_nodes(node, group)
 
         for edge in self._edges:
-            if is_edge_tuple(edge):
-                medrecord.add_edge(*edge)
-                continue
-
-            if (
-                is_edge_tuple_list(edge)
-                or is_pandas_edge_dataframe_input(edge)
-                or is_pandas_edge_dataframe_input_list(edge)
-                or is_polars_edge_dataframe_input(edge)
-                or is_polars_edge_dataframe_input_list(edge)
-            ):
+            if is_edge_input_builder(edge):
                 medrecord.add_edges(edge)
                 continue
 
             group = edge[1]
             edge = edge[0]
 
-            if is_edge_tuple(edge):
-                medrecord.add_edge(*edge, group)
-                continue
-
-            if (
-                is_edge_tuple_list(edge)
-                or is_pandas_edge_dataframe_input(edge)
-                or is_pandas_edge_dataframe_input_list(edge)
-                or is_polars_edge_dataframe_input(edge)
-                or is_polars_edge_dataframe_input_list(edge)
-            ):
-                medrecord.add_edges(edge, group)
+            medrecord.add_edges(edge, group)
 
         for group in self._groups:
             if medrecord.contains_group(group):
-                medrecord.add_node_to_group(group, self._groups[group]["nodes"])
-                medrecord.add_edge_to_group(group, self._groups[group]["edges"])
+                medrecord.add_nodes_to_group(group, self._groups[group]["nodes"])
+                medrecord.add_edges_to_group(group, self._groups[group]["edges"])
             else:
                 medrecord.add_group(
                     group, self._groups[group]["nodes"], self._groups[group]["edges"]

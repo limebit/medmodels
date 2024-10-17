@@ -14,8 +14,7 @@ import logging
 from typing import Any, Dict, Literal, Optional, Set, Tuple
 
 from medmodels import MedRecord
-from medmodels.medrecord import node
-from medmodels.medrecord.querying import NodeOperation
+from medmodels.medrecord.querying import EdgeDirection, NodeOperand, NodeQuery
 from medmodels.medrecord.types import (
     Group,
     MedRecordAttribute,
@@ -50,7 +49,7 @@ class TreatmentEffect:
 
     _outcome_before_treatment_days: Optional[int]
 
-    _filter_controls_operation: Optional[NodeOperation]
+    _filter_controls_query: Optional[NodeQuery]
 
     _matching_method: Optional[MatchingMethod]
     _matching_essential_covariates: MedRecordAttributeInputList
@@ -92,7 +91,7 @@ class TreatmentEffect:
         follow_up_period_days: int = 365,
         follow_up_period_reference: Literal["first", "last"] = "last",
         outcome_before_treatment_days: Optional[int] = None,
-        filter_controls_operation: Optional[NodeOperation] = None,
+        filter_controls_query: Optional[NodeQuery] = None,
         matching_method: Optional[MatchingMethod] = None,
         matching_essential_covariates: MedRecordAttributeInputList = ["gender", "age"],
         matching_one_hot_covariates: MedRecordAttributeInputList = ["gender"],
@@ -127,8 +126,8 @@ class TreatmentEffect:
                 reference point for the follow-up period. Defaults to "last".
             outcome_before_treatment_days (Optional[int], optional): The number of days
                 before the treatment to consider for outcomes. Defaults to None.
-            filter_controls_operation (Optional[NodeOperation], optional): An optional
-                operation to filter the control group based on specified criteria.
+            filter_controls_query (Optional[NodeQuery], optional): An optional
+                query to filter the control group based on specified criteria.
                 Defaults to None.
             matching_method (Optional[MatchingMethod]): The method to match treatment
                 and control groups. Defaults to None.
@@ -158,7 +157,7 @@ class TreatmentEffect:
         treatment_effect._follow_up_period_days = follow_up_period_days
         treatment_effect._follow_up_period_reference = follow_up_period_reference
         treatment_effect._outcome_before_treatment_days = outcome_before_treatment_days
-        treatment_effect._filter_controls_operation = filter_controls_operation
+        treatment_effect._filter_controls_query = filter_controls_query
 
         treatment_effect._matching_method = matching_method
         treatment_effect._matching_essential_covariates = matching_essential_covariates
@@ -206,7 +205,7 @@ class TreatmentEffect:
             control_group=control_group,
             treated_group=treated_group,
             rejected_nodes=washout_nodes | outcome_before_treatment_nodes,
-            filter_controls_operation=self._filter_controls_operation,
+            filter_controls_query=self._filter_controls_query,
         )
 
         return (
@@ -234,18 +233,16 @@ class TreatmentEffect:
 
         treatments = medrecord.nodes_in_group(self._treatments_group)
 
+        def query(node: NodeOperand):
+            node.in_group(self._patients_group)
+
+            node.neighbors(edge_direction=EdgeDirection.BOTH).index().equal_to(
+                treatment
+            )
+
         # Create the group with all the patients that underwent the treatment
         for treatment in treatments:
-            treated_group.update(
-                set(
-                    medrecord.select_nodes(
-                        node().in_group(self._patients_group)
-                        & node().has_neighbor_with(
-                            node().index() == treatment, directed=False
-                        )
-                    )
-                )
-            )
+            treated_group.update(set(medrecord.select_nodes(query)))
         if not treated_group:
             raise ValueError(
                 "No patients found for the treatment groups in this MedRecord."
@@ -288,14 +285,14 @@ class TreatmentEffect:
                 f"No outcomes found in the MedRecord for group {self._outcomes_group}"
             )
 
+        def query(node: NodeOperand):
+            node.index().is_in(list(treated_group))
+
+            # This could probably be refactored to a proper query
+            node.neighbors(edge_direction=EdgeDirection.BOTH).index().equal_to(outcome)
+
         for outcome in outcomes:
-            nodes_to_check = set(
-                medrecord.select_nodes(
-                    node().has_neighbor_with(node().index() == outcome, directed=False)
-                    # This could probably be refactored to a proper query
-                    & node().index().is_in(list(treated_group))
-                )
-            )
+            nodes_to_check = set(medrecord.select_nodes(query))
 
             # Find patients that had the outcome before the treatment
             if self._outcome_before_treatment_days:
@@ -399,12 +396,12 @@ class TreatmentEffect:
         control_group: Set[NodeIndex],
         treated_group: Set[NodeIndex],
         rejected_nodes: Set[NodeIndex] = set(),
-        filter_controls_operation: Optional[NodeOperation] = None,
+        filter_controls_query: Optional[NodeQuery] = None,
     ) -> Tuple[Set[NodeIndex], Set[NodeIndex]]:
         """Identifies control groups among patients who did not undergo the specified treatments.
 
         It takes the control group and removes the rejected nodes, the treated nodes,
-        and applies the filter_controls_operation if specified.
+        and applies the filter_controls_query if specified.
 
         Control groups are divided into those who had the outcome
         (control_outcome_true) and those who did not (control_outcome_false),
@@ -419,8 +416,8 @@ class TreatmentEffect:
                 treatment.
             rejected_nodes (Set[NodeIndex]): A set of patient nodes that were rejected
                 due to the washout period or outcome before treatment.
-            filter_controls_operation (Optional[NodeOperation], optional): An optional
-                operation to filter the control group based on specified criteria.
+            filter_controls_query (Optional[NodeQuery], optional): An optional
+                query to filter the control group based on specified criteria.
                 Defaults to None.
 
         Returns:
@@ -436,9 +433,9 @@ class TreatmentEffect:
                 outcome group.
         """
         # Apply the filter to the control group if specified
-        if filter_controls_operation:
+        if filter_controls_query:
             control_group = (
-                set(medrecord.select_nodes(filter_controls_operation)) & control_group
+                set(medrecord.select_nodes(filter_controls_query)) & control_group
             )
 
         control_group = control_group - treated_group - rejected_nodes
@@ -453,17 +450,15 @@ class TreatmentEffect:
                 f"No outcomes found in the MedRecord for group {self._outcomes_group}"
             )
 
+        def query(node: NodeOperand):
+            node.index().is_in(list(control_group))
+
+            node.neighbors(edge_direction=EdgeDirection.BOTH).index().equal_to(outcome)
+
         # Finding the patients that had the outcome in the control group
         for outcome in outcomes:
-            control_outcome_true.update(
-                medrecord.select_nodes(
-                    # This could probably be refactored to a proper query
-                    node().index().is_in(list(control_group))
-                    & node().has_neighbor_with(
-                        node().index() == outcome, directed=False
-                    )
-                )
-            )
+            control_outcome_true.update(medrecord.select_nodes(query))
+
         control_outcome_false = control_group - control_outcome_true
 
         return control_outcome_true, control_outcome_false

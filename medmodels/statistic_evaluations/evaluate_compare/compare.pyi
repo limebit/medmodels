@@ -25,13 +25,15 @@ class DistanceSummary(TypedDict):
     distance: float
 
 class ComparerSummary(TypedDict):
-    """Dictionary for the comparing results."""
+    """Dictionary for comparing results."""
 
     attribute_tests: Dict[MedRecordAttribute, List[TestSummary]]
     concepts_tests: Dict[Group, List[TestSummary]]
     concepts_distance: Dict[Group, DistanceSummary]
 
 class TestSummary(TypedDict):
+    """Dictionary for hypothesis test results."""
+
     test: str
     Hypothesis: str
     not_reject: bool

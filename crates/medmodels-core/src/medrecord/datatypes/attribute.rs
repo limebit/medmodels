@@ -1,8 +1,16 @@
-use super::{Contains, EndsWith, MedRecordValue, StartsWith};
-use crate::errors::MedRecordError;
+use super::{
+    Abs, Contains, EndsWith, Lowercase, MedRecordValue, Mod, Pow, Slice, StartsWith, Trim, TrimEnd,
+    TrimStart, Uppercase,
+};
+use crate::errors::{MedRecordError, MedRecordResult};
 use medmodels_utils::implement_from_for_wrapper;
 use serde::{Deserialize, Serialize};
-use std::{cmp::Ordering, fmt::Display, hash::Hash};
+use std::{
+    cmp::Ordering,
+    fmt::Display,
+    hash::Hash,
+    ops::{Add, Mul, Sub},
+};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum MedRecordAttribute {
@@ -43,15 +51,6 @@ impl TryFrom<MedRecordValue> for MedRecordAttribute {
     }
 }
 
-impl Display for MedRecordAttribute {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::String(value) => write!(f, "{}", value),
-            Self::Int(value) => write!(f, "{}", value),
-        }
-    }
-}
-
 impl PartialEq for MedRecordAttribute {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
@@ -76,6 +75,140 @@ impl PartialOrd for MedRecordAttribute {
                 Some(value.cmp(other))
             }
             _ => None,
+        }
+    }
+}
+
+impl Display for MedRecordAttribute {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::String(value) => write!(f, "{}", value),
+            Self::Int(value) => write!(f, "{}", value),
+        }
+    }
+}
+
+// TODO: Add tests
+impl Add for MedRecordAttribute {
+    type Output = MedRecordResult<Self>;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        match (self, rhs) {
+            (MedRecordAttribute::String(value), MedRecordAttribute::String(rhs)) => {
+                Ok(MedRecordAttribute::String(value + rhs.as_str()))
+            }
+            (MedRecordAttribute::String(value), MedRecordAttribute::Int(rhs)) => Err(
+                MedRecordError::AssertionError(format!("Cannot add {} to {}", rhs, value)),
+            ),
+            (MedRecordAttribute::Int(value), MedRecordAttribute::String(rhs)) => Err(
+                MedRecordError::AssertionError(format!("Cannot add {} to {}", rhs, value)),
+            ),
+            (MedRecordAttribute::Int(value), MedRecordAttribute::Int(rhs)) => {
+                Ok(MedRecordAttribute::Int(value + rhs))
+            }
+        }
+    }
+}
+
+// TODO: Add tests
+impl Sub for MedRecordAttribute {
+    type Output = MedRecordResult<Self>;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        match (self, rhs) {
+            (MedRecordAttribute::String(value), MedRecordAttribute::String(rhs)) => Err(
+                MedRecordError::AssertionError(format!("Cannot subtract {} from {}", rhs, value)),
+            ),
+            (MedRecordAttribute::String(value), MedRecordAttribute::Int(rhs)) => Err(
+                MedRecordError::AssertionError(format!("Cannot subtract {} from {}", rhs, value)),
+            ),
+            (MedRecordAttribute::Int(value), MedRecordAttribute::String(rhs)) => Err(
+                MedRecordError::AssertionError(format!("Cannot subtract {} from {}", rhs, value)),
+            ),
+            (MedRecordAttribute::Int(value), MedRecordAttribute::Int(rhs)) => {
+                Ok(MedRecordAttribute::Int(value - rhs))
+            }
+        }
+    }
+}
+
+// TODO: Add tests
+impl Mul for MedRecordAttribute {
+    type Output = MedRecordResult<Self>;
+
+    fn mul(self, rhs: Self) -> Self::Output {
+        match (self, rhs) {
+            (MedRecordAttribute::String(value), MedRecordAttribute::String(rhs)) => Err(
+                MedRecordError::AssertionError(format!("Cannot multiply {} by {}", value, rhs)),
+            ),
+            (MedRecordAttribute::String(value), MedRecordAttribute::Int(rhs)) => Err(
+                MedRecordError::AssertionError(format!("Cannot multiply {} by {}", value, rhs)),
+            ),
+            (MedRecordAttribute::Int(value), MedRecordAttribute::String(rhs)) => Err(
+                MedRecordError::AssertionError(format!("Cannot multiply {} by {}", value, rhs)),
+            ),
+            (MedRecordAttribute::Int(value), MedRecordAttribute::Int(rhs)) => {
+                Ok(MedRecordAttribute::Int(value * rhs))
+            }
+        }
+    }
+}
+
+// TODO: Add tests
+impl Pow for MedRecordAttribute {
+    fn pow(self, rhs: Self) -> MedRecordResult<Self> {
+        match (self, rhs) {
+            (MedRecordAttribute::String(value), MedRecordAttribute::String(rhs)) => {
+                Err(MedRecordError::AssertionError(format!(
+                    "Cannot raise {} to the power of {}",
+                    value, rhs
+                )))
+            }
+            (MedRecordAttribute::String(value), MedRecordAttribute::Int(rhs)) => {
+                Err(MedRecordError::AssertionError(format!(
+                    "Cannot raise {} to the power of {}",
+                    value, rhs
+                )))
+            }
+            (MedRecordAttribute::Int(value), MedRecordAttribute::String(rhs)) => {
+                Err(MedRecordError::AssertionError(format!(
+                    "Cannot raise {} to the power of {}",
+                    value, rhs
+                )))
+            }
+            (MedRecordAttribute::Int(value), MedRecordAttribute::Int(rhs)) => {
+                Ok(MedRecordAttribute::Int(value.pow(rhs as u32)))
+            }
+        }
+    }
+}
+
+// TODO: Add tests
+impl Mod for MedRecordAttribute {
+    fn r#mod(self, rhs: Self) -> MedRecordResult<Self> {
+        match (self, rhs) {
+            (MedRecordAttribute::String(value), MedRecordAttribute::String(rhs)) => Err(
+                MedRecordError::AssertionError(format!("Cannot mod {} by {}", value, rhs)),
+            ),
+            (MedRecordAttribute::String(value), MedRecordAttribute::Int(rhs)) => Err(
+                MedRecordError::AssertionError(format!("Cannot mod {} by {}", value, rhs)),
+            ),
+            (MedRecordAttribute::Int(value), MedRecordAttribute::String(rhs)) => Err(
+                MedRecordError::AssertionError(format!("Cannot mod {} by {}", value, rhs)),
+            ),
+            (MedRecordAttribute::Int(value), MedRecordAttribute::Int(rhs)) => {
+                Ok(MedRecordAttribute::Int(value % rhs))
+            }
+        }
+    }
+}
+
+// TODO: Add tests
+impl Abs for MedRecordAttribute {
+    fn abs(self) -> Self {
+        match self {
+            MedRecordAttribute::Int(value) => MedRecordAttribute::Int(value.abs()),
+            _ => self,
         }
     }
 }
@@ -133,6 +266,72 @@ impl Contains for MedRecordAttribute {
             (MedRecordAttribute::Int(value), MedRecordAttribute::Int(other)) => {
                 value.to_string().contains(&other.to_string())
             }
+        }
+    }
+}
+
+// TODO: Add tests
+impl Slice for MedRecordAttribute {
+    fn slice(self, range: std::ops::Range<usize>) -> Self {
+        match self {
+            MedRecordAttribute::String(value) => value[range].into(),
+            MedRecordAttribute::Int(value) => value.to_string()[range].into(),
+        }
+    }
+}
+
+// TODO: Add tests
+impl Trim for MedRecordAttribute {
+    fn trim(self) -> Self {
+        match self {
+            MedRecordAttribute::String(value) => {
+                MedRecordAttribute::String(value.trim().to_string())
+            }
+            _ => self,
+        }
+    }
+}
+
+// TODO: Add tests
+impl TrimStart for MedRecordAttribute {
+    fn trim_start(self) -> Self {
+        match self {
+            MedRecordAttribute::String(value) => {
+                MedRecordAttribute::String(value.trim_start().to_string())
+            }
+            _ => self,
+        }
+    }
+}
+
+// TODO: Add tests
+impl TrimEnd for MedRecordAttribute {
+    fn trim_end(self) -> Self {
+        match self {
+            MedRecordAttribute::String(value) => {
+                MedRecordAttribute::String(value.trim_end().to_string())
+            }
+            _ => self,
+        }
+    }
+}
+
+// TODO: Add tests
+impl Lowercase for MedRecordAttribute {
+    fn lowercase(self) -> Self {
+        match self {
+            MedRecordAttribute::String(value) => MedRecordAttribute::String(value.to_lowercase()),
+            _ => self,
+        }
+    }
+}
+
+// TODO: Add tests
+impl Uppercase for MedRecordAttribute {
+    fn uppercase(self) -> Self {
+        match self {
+            MedRecordAttribute::String(value) => MedRecordAttribute::String(value.to_uppercase()),
+            _ => self,
         }
     }
 }

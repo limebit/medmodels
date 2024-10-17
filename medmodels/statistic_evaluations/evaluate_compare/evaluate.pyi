@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Dict, List, Optional, Tuple, Union
 
 from medmodels.medrecord.medrecord import MedRecord
-from medmodels.medrecord.querying import NodeOperation
+from medmodels.medrecord.querying import NodeQuery
 from medmodels.medrecord.schema import AttributeType
 from medmodels.medrecord.types import (
     AttributeSummary,
@@ -27,7 +27,7 @@ class CohortEvaluator:
         self,
         medrecord: MedRecord,
         name: str,
-        cohort_group: Union[Group, NodeOperation] = "patients",
+        cohort_group: Union[Group, NodeQuery] = "patients",
         time_attribute: MedRecordAttribute = "time",
         attributes: Optional[Dict[str, MedRecordAttribute]] = None,
         concepts_groups: Optional[GroupInputList] = None,
