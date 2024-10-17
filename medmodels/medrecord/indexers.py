@@ -1,3 +1,5 @@
+"""Indexers for MedRecord nodes and edges."""
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Callable, Dict, Tuple, Union, overload
@@ -25,9 +27,16 @@ if TYPE_CHECKING:
 
 
 class NodeIndexer:
+    """Indexer for MedRecord nodes."""
+
     _medrecord: MedRecord
 
     def __init__(self, medrecord: MedRecord) -> None:
+        """Initializes the NodeIndexer object.
+
+        Args:
+            medrecord (MedRecord): MedRecord object to index.
+        """
         self._medrecord = medrecord
 
     @overload
@@ -81,6 +90,19 @@ class NodeIndexer:
         Dict[NodeIndex, Attributes],
         Dict[NodeIndex, MedRecordValue],
     ]:
+        """Gets the node attributes for the specified key.
+
+        Args:
+            key (Union[NodeIndex, NodeIndexInputList, NodeQuery, slice, Tuple[Union[NodeIndex, NodeIndexInputList, NodeQuery, slice], Union[MedRecordAttribute, MedRecordAttributeInputList, slice]]):
+                The nodes to get attributes for.
+
+        Returns:
+            Union[MedRecordValue, Attributes, Dict[NodeIndex, Attributes], Dict[NodeIndex, MedRecordValue]]:
+                The node attributes to be extracted.
+
+        Raises:
+            ValueError: If the key is a slice, but not ":" is provided.
+        """  # noqa: W505
         if is_node_index(key):
             return self._medrecord._medrecord.node([key])[key]
 
@@ -266,6 +288,17 @@ class NodeIndexer:
         ],
         value: Union[AttributesInput, MedRecordValue],
     ) -> None:
+        """Sets the specified node attributes.
+
+        Args:
+            key (Union[NodeIndex, NodeIndexInputList, NodeQuery, slice, Tuple[Union[NodeIndex, NodeIndexInputList, NodeQuery, slice], Union[MedRecordAttribute, MedRecordAttributeInputList, slice]]):
+                The nodes to set attributes for.
+            value (Union[AttributesInput, MedRecordValue]): The values to set.
+
+        Raises:
+            ValueError: If there is a wrong value type or the key is a slice, but no ":"
+                is provided.
+        """  # noqa: W505
         if is_node_index(key):
             if not is_attributes(value):
                 msg = "Invalid value type. Expected Attributes"
@@ -530,6 +563,15 @@ class NodeIndexer:
             Union[MedRecordAttribute, MedRecordAttributeInputList, slice],
         ],
     ) -> None:
+        """Deletes the specified node attributes.
+
+        Args:
+            key (Tuple[Union[NodeIndex, NodeIndexInputList, NodeQuery, slice], Union[MedRecordAttribute, MedRecordAttributeInputList, slice]]):
+                The key to delete.
+
+        Raises:
+            ValueError: If the key is a slice, but not ":" is provided.
+        """  # noqa: W505
         index_selection, attribute_selection = key
 
         if is_node_index(index_selection) and is_medrecord_attribute(
@@ -674,9 +716,16 @@ class NodeIndexer:
 
 
 class EdgeIndexer:
+    """Indexer for MedRecord edges."""
+
     _medrecord: MedRecord
 
     def __init__(self, medrecord: MedRecord) -> None:
+        """Initializes the EdgeIndexer object.
+
+        Args:
+            medrecord (MedRecord): MedRecord object to index.
+        """
         self._medrecord = medrecord
 
     @overload
@@ -730,6 +779,19 @@ class EdgeIndexer:
         Dict[EdgeIndex, Attributes],
         Dict[EdgeIndex, MedRecordValue],
     ]:
+        """Gets the edge attributes for the specified key.
+
+        Args:
+            key (Union[EdgeIndex, EdgeIndexInputList, EdgeQuery, slice, Tuple[Union[EdgeIndex, EdgeIndexInputList, EdgeQuery, slice], Union[MedRecordAttribute, MedRecordAttributeInputList, slice]]):
+                The edges to get attributes for.
+
+        Returns:
+            Union[MedRecordValue, Attributes, Dict[EdgeIndex, Attributes], Dict[EdgeIndex, MedRecordValue]]:
+                The edge attributes to be extracted.
+
+        Raises:
+            ValueError: If the key is a slice, but not ":" is provided.
+        """  # noqa: W505
         if is_edge_index(key):
             return self._medrecord._medrecord.edge([key])[key]
 
@@ -915,6 +977,19 @@ class EdgeIndexer:
         ],
         value: Union[AttributesInput, MedRecordValue],
     ) -> None:
+        """Sets the edge attributes for the specified key.
+
+        Args:
+            key (Union[EdgeIndex, EdgeIndexInputList, EdgeQuery, slice, Tuple[Union[EdgeIndex, EdgeIndexInputList, EdgeQuery, slice], Union[MedRecordAttribute, MedRecordAttributeInputList, slice]]):
+                The edges to which the attributes should be set.
+
+            value (Union[AttributesInput, MedRecordValue]):
+                The values to set as attributes.
+
+        Raises:
+            ValueError: If there is a wrong value type or the key is a slice, but no ":"
+                is provided.
+        """  # noqa: W505
         if is_edge_index(key):
             if not is_attributes(value):
                 msg = "Invalid value type. Expected Attributes"
@@ -1177,6 +1252,15 @@ class EdgeIndexer:
             Union[MedRecordAttribute, MedRecordAttributeInputList, slice],
         ],
     ) -> None:
+        """Deletes the specified edge attributes.
+
+        Args:
+            key (Tuple[Union[EdgeIndex, EdgeIndexInputList, EdgeQuery, slice], Union[MedRecordAttribute, MedRecordAttributeInputList, slice]]):
+                The edges from which to delete the attributes.
+
+        Raises:
+            ValueError: If the key is a slice, but not ":" is provided.
+        """  # noqa: W505
         index_selection, attribute_selection = key
 
         if is_edge_index(index_selection) and is_medrecord_attribute(

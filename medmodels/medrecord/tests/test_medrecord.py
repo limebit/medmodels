@@ -8,6 +8,7 @@ import pytest
 
 import medmodels.medrecord as mr
 from medmodels import MedRecord
+from medmodels.medrecord.medrecord import EdgesDirected
 from medmodels.medrecord.querying import EdgeOperand, NodeOperand
 from medmodels.medrecord.types import Attributes, NodeIndex
 
@@ -496,7 +497,7 @@ class TestMedRecord(unittest.TestCase):
 
         assert sorted([0, 2, 3]) == sorted(edges)
 
-        edges = medrecord.edges_connecting("0", "1", directed=False)
+        edges = medrecord.edges_connecting("0", "1", directed=EdgesDirected.UNDIRECTED)
 
         assert sorted(edges) == [0, 1]
 
@@ -1582,11 +1583,11 @@ class TestMedRecord(unittest.TestCase):
             "1": ["0", "2"],
         }
 
-        neighbors = medrecord.neighbors("0", directed=False)
+        neighbors = medrecord.neighbors("0", directed=EdgesDirected.UNDIRECTED)
 
         assert sorted(["1", "3"]) == sorted(neighbors)
 
-        neighbors = medrecord.neighbors(["0", "1"], directed=False)
+        neighbors = medrecord.neighbors(["0", "1"], directed=EdgesDirected.UNDIRECTED)
 
         assert {key: sorted(value) for key, value in neighbors.items()} == {
             "0": sorted(["1", "3"]),
@@ -1596,7 +1597,7 @@ class TestMedRecord(unittest.TestCase):
         def query2(node: NodeOperand) -> None:
             node.index().is_in(["0", "1"])
 
-        neighbors = medrecord.neighbors(query2, directed=False)
+        neighbors = medrecord.neighbors(query2, directed=EdgesDirected.UNDIRECTED)
 
         assert {key: sorted(value) for key, value in neighbors.items()} == {
             "0": sorted(["1", "3"]),
@@ -1616,11 +1617,11 @@ class TestMedRecord(unittest.TestCase):
 
         # Querying undirected neighbors of a non-existing node should fail
         with pytest.raises(IndexError):
-            medrecord.neighbors("50", directed=False)
+            medrecord.neighbors("50", directed=EdgesDirected.UNDIRECTED)
 
         # Querying undirected neighbors of a non-existing node should fail
         with pytest.raises(IndexError):
-            medrecord.neighbors(["0", "50"], directed=False)
+            medrecord.neighbors(["0", "50"], directed=EdgesDirected.UNDIRECTED)
 
     def test_clear(self) -> None:
         medrecord = create_medrecord()

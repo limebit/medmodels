@@ -1,3 +1,5 @@
+"""Module for extracting and displaying an overview of the data in a MedRecord."""
+
 from __future__ import annotations
 
 import copy
@@ -5,27 +7,28 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Dict, List, Optional, Union
 
 import polars as pl
+from typing_extensions import TypeAlias
 
 from medmodels.medrecord.schema import AttributesSchema, AttributeType
+from medmodels.medrecord.types import Attributes, EdgeIndex, NodeIndex
 
 if TYPE_CHECKING:
     from medmodels.medrecord.types import (
         AttributeInfo,
-        Attributes,
-        EdgeIndex,
         Group,
         MedRecordAttribute,
-        NodeIndex,
         NumericAttributeInfo,
         StringAttributeInfo,
         TemporalAttributeInfo,
     )
 
+AttributeDictionary: TypeAlias = Union[
+    Dict[EdgeIndex, Attributes], Dict[NodeIndex, Attributes]
+]
+
 
 def extract_attribute_summary(
-    attribute_dictionary: Union[
-        Dict[EdgeIndex, Attributes], Dict[NodeIndex, Attributes]
-    ],
+    attribute_dictionary: AttributeDictionary,
     schema: Optional[AttributesSchema] = None,
 ) -> Dict[
     MedRecordAttribute,
@@ -34,8 +37,8 @@ def extract_attribute_summary(
     """Extracts a summary from a node or edge attribute dictionary.
 
     Args:
-        attribute_dict (Union[Dict[EdgeIndex, Attributes], Dict[NodeIndex, Attributes]]):
-            Edges or Nodes and their attributes and values.
+        attribute_dictionary (AttributeDictionary): Edges or Nodes and their attributes
+            and values.
         schema (Optional[AttributesSchema], optional): Attribute Schema for the group
             nodes or edges. Defaults to None.
         decimal (int): Decimal points to round the numeric values to. Defaults to 2.

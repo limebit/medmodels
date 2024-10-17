@@ -224,7 +224,7 @@ Example:
 
 When writing type definitions in argument docstrings, avoid placing line breaks inside the type annotations. For instance, complex types like `(Union[str, List[str], Dict[str, Any]])` should appear on a single line without splitting across lines. This ensures the type definition remains clear and avoids parsing issues.
 
-If a type definition exceeds the maximum line length limit, deactivate the line length rule for that doctstring using [`# noqa: E501`](https://docs.astral.sh/ruff/rules/line-too-long/#error-suppression) after the closing `"""`. This keeps the type annotation intact while preventing the linter from flagging the long line as an error.
+If a type definition exceeds the maximum line length limit, deactivate the line length rule for that doctstring using [`# noqa: W505`](https://docs.astral.sh/ruff/rules/line-too-long/#error-suppression) after the closing `"""`. This keeps the type annotation intact while preventing the linter from flagging the long line as an error.
 :::
 
 :::{admonition} No Boolean Argument Types
@@ -272,7 +272,7 @@ The first code block needs to start as shown below. It sets the code highlightin
 
 ```
 
-2. Result block
+1. Result block
 
 The second block shows the return value when executing the code. The output value(s) should be entered after `>>>`.
 
