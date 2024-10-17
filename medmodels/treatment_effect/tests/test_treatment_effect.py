@@ -1,6 +1,7 @@
 """Tests for the TreatmentEffect class in the treatment_effect module."""
 
 import unittest
+from datetime import datetime
 from typing import List
 
 import pandas as pd
@@ -97,13 +98,13 @@ def create_edges1(patient_list: List[NodeIndex]) -> pd.DataFrame:
                 "P9",
             ],
             "time": [
-                "1999-10-15",
-                "2000-01-01",
-                "1999-12-15",
-                "2000-01-01",
-                "2000-01-01",
-                "2000-01-01",
-                "2000-01-01",
+                datetime(1999, 10, 15),
+                datetime(2000, 1, 1),
+                datetime(1999, 12, 15),
+                datetime(2000, 1, 1),
+                datetime(2000, 1, 1),
+                datetime(2000, 1, 1),
+                datetime(2000, 1, 1),
             ],
         }
     )
@@ -136,12 +137,12 @@ def create_edges2(patient_list: List[NodeIndex]) -> pd.DataFrame:
                 "P7",
             ],
             "time": [
-                "2000-01-01",
-                "2000-07-01",
-                "1999-12-15",
-                "2000-01-05",
-                "2000-01-01",
-                "2000-01-01",
+                datetime(2000, 1, 1),
+                datetime(2000, 7, 1),
+                datetime(1999, 12, 15),
+                datetime(2000, 1, 5),
+                datetime(2000, 1, 1),
+                datetime(2000, 1, 1),
             ],
             "intensity": [
                 0.1,
@@ -524,6 +525,19 @@ class TestTreatmentEffect(unittest.TestCase):
         counts_tee = tee.estimate._compute_subject_counts(self.medrecord)
 
         self.assertEqual((1, 2, 3, 3), counts_tee)
+
+    def test_invalid_grace_period(self):
+        with self.assertRaisesRegex(
+            ValueError,
+            "The follow-up period must be greater than or equal to the grace period.",
+        ):
+            (
+                TreatmentEffect.builder()
+                .with_treatment("Rivaroxaban")
+                .with_outcome("Stroke")
+                .with_grace_period(1000)
+                .build()
+            )
 
     def test_washout_period(self):
         washout_dict = {"Warfarin": 30}

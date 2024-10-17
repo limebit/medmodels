@@ -143,12 +143,20 @@ class TreatmentEffect:
                 neighbors to match for each treated subject. Defaults to 1.
             matching_hyperparam (Optional[Dict[str, Any]], optional): The
                 hyperparameters for the matching model. Defaults to None.
+
+        Raises:
+            ValueError: If the follow-up period is less than the grace period.
         """
         treatment_effect._patients_group = patients_group
         treatment_effect._time_attribute = time_attribute
 
         treatment_effect._treatments_group = treatment
         treatment_effect._outcomes_group = outcome
+
+        if follow_up_period_days < grace_period_days:
+            raise ValueError(
+                "The follow-up period must be greater than or equal to the grace period."
+            )
 
         treatment_effect._washout_period_days = washout_period_days
         treatment_effect._washout_period_reference = washout_period_reference

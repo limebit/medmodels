@@ -1,8 +1,10 @@
+import datetime
 from typing import Literal
 
 import pandas as pd
 
 from medmodels.medrecord.medrecord import MedRecord
+from medmodels.medrecord.querying import EdgeOperand
 from medmodels.medrecord.types import EdgeIndex, Group, MedRecordAttribute, NodeIndex
 
 
@@ -13,7 +15,7 @@ def find_reference_edge(
     reference: Literal["first", "last"],
     time_attribute: MedRecordAttribute = "time",
 ) -> EdgeIndex:
-    """Determines the reference edge that represents the first or last exposure of a node index to any node in the connecte_group (list of nodes).
+    """Determines the reference edge that represents the first or last exposure of a node index to any node in the connected_group (list of nodes).
 
     This method is crucial for analyzing the temporal sequence of treatments and outcomes.
 
@@ -38,10 +40,8 @@ def find_reference_edge(
         EdgeIndex: The edge index of the reference exposure.
 
     Raises:
-        ValueError: If no edge with a time attribute is found for the node, indicating
-            an issue with the data or the connection to the specified nodes.
-        ValueError: If no edge is found for the specified node with the nodes in that
-            group in the MedRecord.
+        ValueError: If no edge with that time attribute or datetime datatype found for
+            the node in this MedRecord.
 
     Example:
         This function returns the edge containing the timestamp of the last exposure to any
@@ -58,40 +58,50 @@ def find_reference_edge(
             )
 
     """
-    if reference == "first":
-        reference_time = pd.Timestamp.max
-    elif reference == "last":
-        reference_time = pd.Timestamp.min
 
-    nodes_in_group = medrecord.nodes_in_group(connected_group)
-    reference_edge = None
+    def query_source_node(edge: EdgeOperand) -> None:
+        """Query the source node of an edge to have a specific index and the target node to be in a specified group.
 
-    for node_from_group in nodes_in_group:
-        edges = medrecord.edges_connecting(node_index, node_from_group, directed=False)
+        Args:
+            edge (EdgeOperand): The edge operand.
+        """
+        edge.source_node().index().equal_to(node_index)
+        edge.target_node().in_group(connected_group)
 
-        # If the node does not have an edge to that node, continue
-        if not edges:
-            continue
+    def query_target_node(edge: EdgeOperand) -> None:
+        """Query the source node of an edge to be in a specified group and the target node to have a specific index.
 
-        # If the node has an edge, check if it has the time attribute
-        edge_values = medrecord.edge[edges].values()
+        Args:
+            edge (EdgeOperand): The edge operand.
+        """
+        edge.source_node().in_group(connected_group)
+        edge.target_node().index().equal_to(node_index)
 
-        if not all(time_attribute in edge_attribute for edge_attribute in edge_values):
-            raise ValueError("Time attribute not found in the edge attributes")
+    def query(edge: EdgeOperand) -> None:
+        """Query the edge that connects the group to the node and has the minimum or maximum time attribute.
 
-        for edge in edges:
-            edge_time = pd.to_datetime(str(medrecord.edge[edge][time_attribute]))
+        Args:
+            edge (EdgeOperand): The edge operand.
+        """
+        edge.either_or(query_source_node, query_target_node)
+        edge.attribute(time_attribute).is_datetime()
 
-            if (reference == "first" and edge_time < reference_time) or (
-                reference == "last" and edge_time > reference_time
-            ):
-                reference_edge = edge
-                reference_time = edge_time
+        if reference == "first":
+            edge.attribute(time_attribute).is_min()
+        elif reference == "last":
+            edge.attribute(time_attribute).is_max()
 
-    if reference_edge is None:
-        raise ValueError(f"No edge found for node {node_index} in this MedRecord")
+    try:
+        reference_edge = medrecord.select_edges(query)
 
-    return reference_edge
+    except RuntimeError:
+        msg = (
+            f"No edge with that time attribute or datetime datatype found for node "
+            f"{node_index} in this MedRecord"
+        )
+        raise ValueError(msg)
+
+    return reference_edge[0]
 
 
 def find_node_in_time_window(
@@ -162,23 +172,43 @@ def find_node_in_time_window(
         reference=reference,
         time_attribute=time_attribute,
     )
-    reference_time = pd.to_datetime(str(medrecord.edge[reference_edge][time_attribute]))
+    reference_time = medrecord.edge[reference_edge][time_attribute]
 
-    start_period = pd.Timedelta(days=start_days)
-    end_period = pd.Timedelta(days=end_days)
-    edges = medrecord.edges_connecting(subject_index, event_node, directed=False)
+    def query_source_node(edge: EdgeOperand) -> None:
+        """Query the source node of an edge to have a specific index and the target node to be in a specified group.
 
-    for edge in edges:
-        edge_attributes = medrecord.edge[edge]
-        if time_attribute not in edge_attributes:
-            raise ValueError("Time attribute not found in the edge attributes")
+        Args:
+            edge (EdgeOperand): The edge operand.
+        """
+        edge.source_node().index().equal_to(subject_index)
+        edge.target_node().index().equal_to(event_node)
 
-        event_time = pd.to_datetime(str(edge_attributes[time_attribute]))
-        time_difference = event_time - reference_time
+    def query_target_node(edge: EdgeOperand) -> None:
+        """Query the source node of an edge to be in a specified group and the target node to have a specific index.
 
-        # Return True if the event happened within the specified time window
-        if start_period <= time_difference <= end_period:
-            return True
+        Args:
+            edge (EdgeOperand): The edge operand.
+        """
+        edge.source_node().index().equal_to(event_node)
+        edge.target_node().index().equal_to(subject_index)
 
-    # Return False if no event happened within the time window
-    return False
+    def query(edge: EdgeOperand) -> None:
+        """Query the edge that connects the group to the node and has the minimum or maximum time attribute.
+
+        Args:
+            edge (EdgeOperand): The edge operand.
+        """
+        edge.either_or(query_source_node, query_target_node)
+        edge.attribute(time_attribute).is_datetime()
+
+        edge.attribute(time_attribute).greater_than_or_equal_to(start_time)
+        edge.attribute(time_attribute).less_than_or_equal_to(end_time)
+
+    if not isinstance(reference_time, datetime.datetime):
+        msg = f"Reference time is not a datetime object: {reference_time}"
+        raise ValueError(msg)
+
+    start_time = reference_time + pd.Timedelta(days=start_days)
+    end_time = reference_time + pd.Timedelta(days=end_days)
+
+    return bool(medrecord.select_edges(query))

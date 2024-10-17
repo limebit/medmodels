@@ -1,4 +1,5 @@
 import unittest
+from datetime import datetime
 from typing import List
 
 import pandas as pd
@@ -86,11 +87,11 @@ def create_edges(patient_list: List[NodeIndex]) -> pd.DataFrame:
                 "P3",
             ],
             "time": [
-                "2000-01-01",
-                "2000-01-01",
-                "2000-01-01",
-                "1999-12-15",
-                "2000-07-01",
+                datetime(2000, 1, 1),
+                datetime(2000, 1, 1),
+                datetime(2000, 1, 1),
+                datetime(1999, 12, 15),
+                datetime(2000, 7, 1),
             ],
         }
     )
@@ -150,7 +151,7 @@ class TestTreatmentEffect(unittest.TestCase):
         self.assertEqual(0, edge)
 
         # adding medication time
-        self.medrecord.add_edges(("M1", "P1", {"time": "2000-01-15"}))
+        self.medrecord.add_edges(("M1", "P1", {"time": datetime(2000, 1, 15)}))
 
         edge = find_reference_edge(
             self.medrecord,
@@ -170,7 +171,8 @@ class TestTreatmentEffect(unittest.TestCase):
 
     def test_invalid_find_reference_time(self):
         with self.assertRaisesRegex(
-            ValueError, "Time attribute not found in the edge attributes"
+            ValueError,
+            "No edge with that time attribute or datetime datatype found for node P1 in this MedRecord",
         ):
             find_reference_edge(
                 self.medrecord,
@@ -182,7 +184,8 @@ class TestTreatmentEffect(unittest.TestCase):
 
         node_index = "P2"
         with self.assertRaisesRegex(
-            ValueError, f"No edge found for node {node_index} in this MedRecord"
+            ValueError,
+            "No edge with that time attribute or datetime datatype found for node P2 in this MedRecord",
         ):
             find_reference_edge(
                 self.medrecord,
@@ -221,7 +224,8 @@ class TestTreatmentEffect(unittest.TestCase):
 
     def test_invalid_node_in_time_window(self):
         with self.assertRaisesRegex(
-            ValueError, "Time attribute not found in the edge attributes"
+            ValueError,
+            "No edge with that time attribute or datetime datatype found for node P3 in this MedRecord",
         ):
             find_node_in_time_window(
                 self.medrecord,
