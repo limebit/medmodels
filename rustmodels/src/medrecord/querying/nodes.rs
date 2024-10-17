@@ -82,12 +82,8 @@ impl PyNodeOperand {
         self.0.has_attribute(attribute);
     }
 
-    pub fn outgoing_edges(&mut self) -> PyEdgeOperand {
-        self.0.outgoing_edges().into()
-    }
-
-    pub fn incoming_edges(&mut self) -> PyEdgeOperand {
-        self.0.incoming_edges().into()
+    pub fn edges(&mut self, direction: PyEdgeDirection) -> PyEdgeOperand {
+        self.0.edges(direction.into()).into()
     }
 
     pub fn neighbors(&mut self, direction: PyEdgeDirection) -> PyNodeOperand {
