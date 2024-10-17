@@ -311,6 +311,19 @@ impl MultipleValuesOperand {
             or: or_operand,
         });
     }
+
+    pub fn exclude<Q>(&mut self, query: Q)
+    where
+        Q: FnOnce(&mut Wrapper<MultipleValuesOperand>),
+    {
+        let mut operand =
+            Wrapper::<MultipleValuesOperand>::new(self.context.clone(), self.attribute.clone());
+
+        query(&mut operand);
+
+        self.operations
+            .push(MultipleValuesOperation::Exclude { operand });
+    }
 }
 
 impl Wrapper<MultipleValuesOperand> {
@@ -392,6 +405,13 @@ impl Wrapper<MultipleValuesOperand> {
         OQ: FnOnce(&mut Wrapper<MultipleValuesOperand>),
     {
         self.0.write_or_panic().either_or(either_query, or_query);
+    }
+
+    pub fn exclude<Q>(&self, query: Q)
+    where
+        Q: FnOnce(&mut Wrapper<MultipleValuesOperand>),
+    {
+        self.0.write_or_panic().exclude(query);
     }
 }
 
@@ -519,6 +539,19 @@ impl SingleValueOperand {
             or: or_operand,
         });
     }
+
+    pub fn exclude<Q>(&mut self, query: Q)
+    where
+        Q: FnOnce(&mut Wrapper<SingleValueOperand>),
+    {
+        let mut operand =
+            Wrapper::<SingleValueOperand>::new(self.context.clone(), self.kind.clone());
+
+        query(&mut operand);
+
+        self.operations
+            .push(SingleValueOperation::Exclude { operand });
+    }
 }
 
 impl Wrapper<SingleValueOperand> {
@@ -586,5 +619,12 @@ impl Wrapper<SingleValueOperand> {
         OQ: FnOnce(&mut Wrapper<SingleValueOperand>),
     {
         self.0.write_or_panic().eiter_or(either_query, or_query);
+    }
+
+    pub fn exclude<Q>(&self, query: Q)
+    where
+        Q: FnOnce(&mut Wrapper<SingleValueOperand>),
+    {
+        self.0.write_or_panic().exclude(query);
     }
 }

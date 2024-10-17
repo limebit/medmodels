@@ -74,6 +74,9 @@ pub enum NodeOperation {
         either: Wrapper<NodeOperand>,
         or: Wrapper<NodeOperand>,
     },
+    Exclude {
+        operand: Wrapper<NodeOperand>,
+    },
 }
 
 impl DeepClone for NodeOperation {
@@ -110,6 +113,9 @@ impl DeepClone for NodeOperation {
             Self::EitherOr { either, or } => Self::EitherOr {
                 either: either.deep_clone(),
                 or: or.deep_clone(),
+            },
+            Self::Exclude { operand } => Self::Exclude {
+                operand: operand.deep_clone(),
             },
         }
     }
@@ -168,10 +174,17 @@ impl NodeOperation {
             )?),
             Self::EitherOr { either, or } => {
                 // TODO: This is a temporary solution. It should be optimized.
-                let either_result = either.evaluate(medrecord)?.collect::<Vec<_>>();
-                let or_result = or.evaluate(medrecord)?.collect::<Vec<_>>();
+                let either_result = either.evaluate(medrecord)?.collect::<HashSet<_>>();
+                let or_result = or.evaluate(medrecord)?.collect::<HashSet<_>>();
 
-                Box::new(either_result.into_iter().chain(or_result).unique())
+                Box::new(node_indices.filter(move |node_index| {
+                    either_result.contains(node_index) || or_result.contains(node_index)
+                }))
+            }
+            Self::Exclude { operand } => {
+                let result = operand.evaluate(medrecord)?.collect::<HashSet<_>>();
+
+                Box::new(node_indices.filter(move |node_index| !result.contains(node_index)))
             }
         })
     }
@@ -439,6 +452,9 @@ pub enum NodeIndicesOperation {
         either: Wrapper<NodeIndicesOperand>,
         or: Wrapper<NodeIndicesOperand>,
     },
+    Exclude {
+        operand: Wrapper<NodeIndicesOperand>,
+    },
 }
 
 impl DeepClone for NodeIndicesOperation {
@@ -474,6 +490,9 @@ impl DeepClone for NodeIndicesOperation {
             Self::EitherOr { either, or } => Self::EitherOr {
                 either: either.deep_clone(),
                 or: or.deep_clone(),
+            },
+            Self::Exclude { operand } => Self::Exclude {
+                operand: operand.deep_clone(),
             },
         }
     }
@@ -529,6 +548,19 @@ impl NodeIndicesOperation {
             }
             Self::EitherOr { either, or } => {
                 Self::evaluate_either_or(medrecord, indices, either, or)
+            }
+            Self::Exclude { operand } => {
+                let node_indices = indices.collect::<Vec<_>>();
+
+                let result = operand
+                    .evaluate(medrecord, node_indices.clone().into_iter())?
+                    .collect::<HashSet<_>>();
+
+                Ok(Box::new(
+                    node_indices
+                        .into_iter()
+                        .filter(move |index| !result.contains(index)),
+                ))
             }
         }
     }
@@ -816,6 +848,9 @@ pub enum NodeIndexOperation {
         either: Wrapper<NodeIndexOperand>,
         or: Wrapper<NodeIndexOperand>,
     },
+    Exclude {
+        operand: Wrapper<NodeIndexOperand>,
+    },
 }
 
 impl DeepClone for NodeIndexOperation {
@@ -846,6 +881,9 @@ impl DeepClone for NodeIndexOperation {
             Self::EitherOr { either, or } => Self::EitherOr {
                 either: either.deep_clone(),
                 or: or.deep_clone(),
+            },
+            Self::Exclude { operand } => Self::Exclude {
+                operand: operand.deep_clone(),
             },
         }
     }
@@ -885,6 +923,11 @@ impl NodeIndexOperation {
                 _ => None,
             }),
             Self::EitherOr { either, or } => Self::evaluate_either_or(medrecord, index, either, or),
+            Self::Exclude { operand } => {
+                let result = operand.evaluate(medrecord, index.clone())?.is_some();
+
+                Ok(if result { None } else { Some(index) })
+            }
         }
     }
 

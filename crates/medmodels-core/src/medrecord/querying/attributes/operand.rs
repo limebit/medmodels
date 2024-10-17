@@ -321,6 +321,18 @@ impl AttributesTreeOperand {
             or: or_operand,
         });
     }
+
+    pub fn exclude<Q>(&mut self, query: Q)
+    where
+        Q: FnOnce(&mut Wrapper<AttributesTreeOperand>),
+    {
+        let mut operand = Wrapper::<AttributesTreeOperand>::new(self.context.clone());
+
+        query(&mut operand);
+
+        self.operations
+            .push(AttributesTreeOperation::Exclude { operand });
+    }
 }
 
 impl Wrapper<AttributesTreeOperand> {
@@ -406,6 +418,13 @@ impl Wrapper<AttributesTreeOperand> {
         OQ: FnOnce(&mut Wrapper<AttributesTreeOperand>),
     {
         self.0.write_or_panic().either_or(either_query, or_query);
+    }
+
+    pub fn exclude<Q>(&self, query: Q)
+    where
+        Q: FnOnce(&mut Wrapper<AttributesTreeOperand>),
+    {
+        self.0.write_or_panic().exclude(query)
     }
 }
 
@@ -575,6 +594,19 @@ impl MultipleAttributesOperand {
             or: or_operand,
         });
     }
+
+    pub fn exclude<Q>(&mut self, query: Q)
+    where
+        Q: FnOnce(&mut Wrapper<MultipleAttributesOperand>),
+    {
+        let mut operand =
+            Wrapper::<MultipleAttributesOperand>::new(self.context.clone(), self.kind.clone());
+
+        query(&mut operand);
+
+        self.operations
+            .push(MultipleAttributesOperation::Exclude { operand });
+    }
 }
 
 impl Wrapper<MultipleAttributesOperand> {
@@ -662,6 +694,13 @@ impl Wrapper<MultipleAttributesOperand> {
         OQ: FnOnce(&mut Wrapper<MultipleAttributesOperand>),
     {
         self.0.write_or_panic().either_or(either_query, or_query);
+    }
+
+    pub fn exclude<Q>(&self, query: Q)
+    where
+        Q: FnOnce(&mut Wrapper<MultipleAttributesOperand>),
+    {
+        self.0.write_or_panic().exclude(query)
     }
 }
 
@@ -794,6 +833,19 @@ impl SingleAttributeOperand {
             or: or_operand,
         });
     }
+
+    pub fn exclude<Q>(&mut self, query: Q)
+    where
+        Q: FnOnce(&mut Wrapper<SingleAttributeOperand>),
+    {
+        let mut operand =
+            Wrapper::<SingleAttributeOperand>::new(self.context.clone(), self.kind.clone());
+
+        query(&mut operand);
+
+        self.operations
+            .push(SingleAttributeOperation::Exclude { operand });
+    }
 }
 
 impl Wrapper<SingleAttributeOperand> {
@@ -870,5 +922,12 @@ impl Wrapper<SingleAttributeOperand> {
         OQ: FnOnce(&mut Wrapper<SingleAttributeOperand>),
     {
         self.0.write_or_panic().eiter_or(either_query, or_query);
+    }
+
+    pub fn exclude<Q>(&self, query: Q)
+    where
+        Q: FnOnce(&mut Wrapper<SingleAttributeOperand>),
+    {
+        self.0.write_or_panic().exclude(query);
     }
 }

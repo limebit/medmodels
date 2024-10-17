@@ -76,6 +76,14 @@ impl PyEdgeOperand {
         );
     }
 
+    pub fn exclude(&mut self, query: &Bound<'_, PyFunction>) {
+        self.0.exclude(|operand| {
+            query
+                .call1((PyEdgeOperand::from(operand.clone()),))
+                .expect("Call must succeed");
+        });
+    }
+
     pub fn deep_clone(&self) -> PyEdgeOperand {
         self.0.deep_clone().into()
     }
@@ -276,6 +284,14 @@ impl PyEdgeIndicesOperand {
         );
     }
 
+    pub fn exclude(&mut self, query: &Bound<'_, PyFunction>) {
+        self.0.exclude(|operand| {
+            query
+                .call1((PyEdgeIndicesOperand::from(operand.clone()),))
+                .expect("Call must succeed");
+        });
+    }
+
     pub fn deep_clone(&self) -> PyEdgeIndicesOperand {
         self.0.deep_clone().into()
     }
@@ -376,6 +392,14 @@ impl PyEdgeIndexOperand {
                     .expect("Call must succeed");
             },
         );
+    }
+
+    pub fn exclude(&mut self, query: &Bound<'_, PyFunction>) {
+        self.0.exclude(|operand| {
+            query
+                .call1((PyEdgeIndexOperand::from(operand.clone()),))
+                .expect("Call must succeed");
+        });
     }
 
     pub fn deep_clone(&self) -> PyEdgeIndexOperand {

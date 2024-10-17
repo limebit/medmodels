@@ -192,6 +192,11 @@ class NodeOperand:
             lambda node: or_(NodeOperand._from_py_node_operand(node)),
         )
 
+    def exclude(self, query: NodeQuery) -> None:
+        self._node_operand.exclude(
+            lambda node: query(NodeOperand._from_py_node_operand(node))
+        )
+
     def clone(self) -> NodeOperand:
         return NodeOperand._from_py_node_operand(self._node_operand.deep_clone())
 
@@ -236,6 +241,11 @@ class EdgeOperand:
         self._edge_operand.either_or(
             lambda edge: either(EdgeOperand._from_py_edge_operand(edge)),
             lambda edge: or_(EdgeOperand._from_py_edge_operand(edge)),
+        )
+
+    def exclude(self, query: EdgeQuery) -> None:
+        self._edge_operand.exclude(
+            lambda edge: query(EdgeOperand._from_py_edge_operand(edge))
         )
 
     def clone(self) -> EdgeOperand:
@@ -496,6 +506,13 @@ class MultipleValuesOperand:
             ),
         )
 
+    def exclude(self, query: Callable[[MultipleValuesOperand], None]) -> None:
+        self._multiple_values_operand.exclude(
+            lambda values: query(
+                MultipleValuesOperand._from_py_multiple_values_operand(values)
+            )
+        )
+
     def clone(self) -> MultipleValuesOperand:
         return MultipleValuesOperand._from_py_multiple_values_operand(
             self._multiple_values_operand.deep_clone()
@@ -686,6 +703,11 @@ class SingleValueOperand:
                 SingleValueOperand._from_py_single_value_operand(value)
             ),
             lambda value: or_(SingleValueOperand._from_py_single_value_operand(value)),
+        )
+
+    def exclude(self, query: Callable[[SingleValueOperand], None]) -> None:
+        self._single_value_operand.exclude(
+            lambda value: query(SingleValueOperand._from_py_single_value_operand(value))
         )
 
     def clone(self) -> SingleValueOperand:
@@ -896,6 +918,13 @@ class AttributesTreeOperand:
             lambda attributes: or_(
                 AttributesTreeOperand._from_py_attributes_tree_operand(attributes)
             ),
+        )
+
+    def exclude(self, query: Callable[[AttributesTreeOperand], None]) -> None:
+        self._attributes_tree_operand.exclude(
+            lambda attributes: query(
+                AttributesTreeOperand._from_py_attributes_tree_operand(attributes)
+            )
         )
 
     def clone(self) -> AttributesTreeOperand:
@@ -1117,6 +1146,15 @@ class MultipleAttributesOperand:
             ),
         )
 
+    def exclude(self, query: Callable[[MultipleAttributesOperand], None]) -> None:
+        self._multiple_attributes_operand.exclude(
+            lambda attributes: query(
+                MultipleAttributesOperand._from_py_multiple_attributes_operand(
+                    attributes
+                )
+            )
+        )
+
     def clone(self) -> MultipleAttributesOperand:
         return MultipleAttributesOperand._from_py_multiple_attributes_operand(
             self._multiple_attributes_operand.deep_clone()
@@ -1293,6 +1331,13 @@ class SingleAttributeOperand:
             ),
         )
 
+    def exclude(self, query: Callable[[SingleAttributeOperand], None]) -> None:
+        self._single_attribute_operand.exclude(
+            lambda attribute: query(
+                SingleAttributeOperand._from_py_single_attribute_operand(attribute)
+            )
+        )
+
     def clone(self) -> SingleAttributeOperand:
         return SingleAttributeOperand._from_py_single_attribute_operand(
             self._single_attribute_operand.deep_clone()
@@ -1459,6 +1504,13 @@ class NodeIndicesOperand:
             ),
         )
 
+    def exclude(self, query: Callable[[NodeIndicesOperand], None]) -> None:
+        self._node_indices_operand.exclude(
+            lambda node_indices: query(
+                NodeIndicesOperand._from_py_node_indices_operand(node_indices)
+            )
+        )
+
     def clone(self) -> NodeIndicesOperand:
         return NodeIndicesOperand._from_py_node_indices_operand(
             self._node_indices_operand.deep_clone()
@@ -1593,6 +1645,13 @@ class NodeIndexOperand:
             lambda node_index: or_(
                 NodeIndexOperand._from_py_node_index_operand(node_index)
             ),
+        )
+
+    def exclude(self, query: Callable[[NodeIndexOperand], None]) -> None:
+        self._node_index_operand.exclude(
+            lambda node_index: query(
+                NodeIndexOperand._from_py_node_index_operand(node_index)
+            )
         )
 
     def clone(self) -> NodeIndexOperand:
@@ -1740,6 +1799,13 @@ class EdgeIndicesOperand:
             ),
         )
 
+    def exclude(self, query: Callable[[EdgeIndicesOperand], None]) -> None:
+        self._edge_indices_operand.exclude(
+            lambda edge_indices: query(
+                EdgeIndicesOperand._from_edge_indices_operand(edge_indices)
+            )
+        )
+
     def clone(self) -> EdgeIndicesOperand:
         return EdgeIndicesOperand._from_edge_indices_operand(
             self._edge_indices_operand.deep_clone()
@@ -1853,6 +1919,13 @@ class EdgeIndexOperand:
             lambda edge_index: or_(
                 EdgeIndexOperand._from_py_edge_index_operand(edge_index)
             ),
+        )
+
+    def exclude(self, query: Callable[[EdgeIndexOperand], None]) -> None:
+        self._edge_index_operand.exclude(
+            lambda edge_index: query(
+                EdgeIndexOperand._from_py_edge_index_operand(edge_index)
+            )
         )
 
     def clone(self) -> EdgeIndexOperand:
