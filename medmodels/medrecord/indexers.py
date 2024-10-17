@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Callable, Dict, Tuple, Union, overload
 
-from medmodels.medrecord.querying import EdgeQuery, NodeQuery
 from medmodels.medrecord.types import (
     Attributes,
     AttributesInput,
@@ -22,6 +21,7 @@ from medmodels.medrecord.types import (
 
 if TYPE_CHECKING:
     from medmodels import MedRecord
+    from medmodels.medrecord.querying import EdgeQuery, NodeQuery
 
 
 class NodeIndexer:
@@ -63,7 +63,7 @@ class NodeIndexer:
         key: Tuple[Union[NodeIndexInputList, NodeQuery, slice], MedRecordAttribute],
     ) -> Dict[NodeIndex, MedRecordValue]: ...
 
-    def __getitem__(
+    def __getitem__(  # noqa: C901
         self,
         key: Union[
             NodeIndex,
@@ -252,7 +252,7 @@ class NodeIndexer:
         value: MedRecordValue,
     ) -> None: ...
 
-    def __setitem__(
+    def __setitem__(  # noqa: C901
         self,
         key: Union[
             NodeIndex,
@@ -523,7 +523,7 @@ class NodeIndexer:
             return None
         return None
 
-    def __delitem__(
+    def __delitem__(  # noqa: C901
         self,
         key: Tuple[
             Union[NodeIndex, NodeIndexInputList, NodeQuery, slice],
@@ -712,7 +712,7 @@ class EdgeIndexer:
         key: Tuple[Union[EdgeIndexInputList, EdgeQuery, slice], MedRecordAttribute],
     ) -> Dict[EdgeIndex, MedRecordValue]: ...
 
-    def __getitem__(
+    def __getitem__(  # noqa: C901
         self,
         key: Union[
             EdgeIndex,
@@ -901,7 +901,7 @@ class EdgeIndexer:
         value: MedRecordValue,
     ) -> None: ...
 
-    def __setitem__(
+    def __setitem__(  # noqa: C901
         self,
         key: Union[
             EdgeIndex,
@@ -1170,7 +1170,7 @@ class EdgeIndexer:
             return None
         return None
 
-    def __delitem__(
+    def __delitem__(  # noqa: C901
         self,
         key: Tuple[
             Union[EdgeIndex, EdgeIndexInputList, EdgeQuery, slice],

@@ -1,21 +1,25 @@
+from __future__ import annotations
+
 import copy
 from datetime import datetime
-from typing import Dict, List, Optional, Union
+from typing import TYPE_CHECKING, Dict, List, Optional, Union
 
 import polars as pl
 
 from medmodels.medrecord.schema import AttributesSchema, AttributeType
-from medmodels.medrecord.types import (
-    AttributeInfo,
-    Attributes,
-    EdgeIndex,
-    Group,
-    MedRecordAttribute,
-    NodeIndex,
-    NumericAttributeInfo,
-    StringAttributeInfo,
-    TemporalAttributeInfo,
-)
+
+if TYPE_CHECKING:
+    from medmodels.medrecord.types import (
+        AttributeInfo,
+        Attributes,
+        EdgeIndex,
+        Group,
+        MedRecordAttribute,
+        NodeIndex,
+        NumericAttributeInfo,
+        StringAttributeInfo,
+        TemporalAttributeInfo,
+    )
 
 
 def extract_attribute_summary(
@@ -210,7 +214,7 @@ def prettify_table(
                 row[2] = str(attribute) if first_line else ""
 
                 # displaying info based on the type
-                if "values" in info.keys():
+                if "values" in info:
                     row[3] = info[key]
                 else:
                     if isinstance(info[key], float):
