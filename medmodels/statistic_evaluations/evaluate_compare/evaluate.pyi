@@ -14,13 +14,6 @@ from medmodels.medrecord.types import (
 )
 
 class CohortEvaluator:
-    """Configuration for a cohort for evaluation and comparison.
-
-    Needs a medrecord and the corresponding patient group that should form the cohort.
-    The cohort group can be a predefined group in the MedRecord or a node query.
-
-    """
-
     medrecord: MedRecord
     name: str
     cohort_group: Group
