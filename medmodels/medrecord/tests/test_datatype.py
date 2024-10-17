@@ -116,7 +116,7 @@ class TestDataType(unittest.TestCase):
         assert mr.Union(mr.String(), mr.Int()) != mr.Union(mr.Int(), mr.String())
 
     def test_invalid_union(self) -> None:
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="Union must have at least two arguments"):
             mr.Union(mr.String())
 
     def test_option(self) -> None:

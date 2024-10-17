@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from enum import Enum, auto
-from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, Union, overload
+from typing import TYPE_CHECKING, Dict, Iterator, List, Optional, Tuple, Union, overload
 
 from medmodels._medmodels import (
     PyAttributeDataType,
@@ -143,7 +143,7 @@ class AttributesSchema:
         """
         return key in self._attributes_schema
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[MedRecordAttribute]:
         """Returns an iterator over the attributes schema.
 
         Returns:
@@ -190,7 +190,7 @@ class AttributesSchema:
 
         return True
 
-    def keys(self):
+    def keys(self):  # noqa: ANN201
         """Returns the attribute keys in the schema.
 
         Returns:
@@ -198,7 +198,7 @@ class AttributesSchema:
         """
         return self._attributes_schema.keys()
 
-    def values(self):
+    def values(self):  # noqa: ANN201
         """Returns the attribute values in the schema.
 
         Returns:
@@ -206,7 +206,7 @@ class AttributesSchema:
         """
         return self._attributes_schema.values()
 
-    def items(self):
+    def items(self):  # noqa: ANN201
         """Returns the attribute key-value pairs in the schema.
 
         Returns:
