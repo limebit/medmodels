@@ -1,3 +1,5 @@
+"""Query API for MedRecord."""
+
 from __future__ import annotations
 
 from enum import Enum
@@ -134,6 +136,8 @@ def _py_edge_indices_comparison_operand_from_edge_indices_comparison_operand(
 
 
 class EdgeDirection(Enum):
+    """Enumeration of edge directions."""
+
     INCOMING = 0
     OUTGOING = 1
     BOTH = 2
@@ -149,6 +153,8 @@ class EdgeDirection(Enum):
 
 
 class NodeOperand:
+    """Query API for nodes in a MedRecord."""
+
     _node_operand: PyNodeOperand
 
     def attribute(self, attribute: MedRecordAttribute) -> MultipleValuesOperand:

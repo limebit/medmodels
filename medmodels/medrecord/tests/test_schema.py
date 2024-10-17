@@ -31,7 +31,7 @@ class TestSchema(unittest.TestCase):
     def test_group(self) -> None:
         assert isinstance(self.schema.group("patient"), mr.GroupSchema)  # pyright: ignore[reportUnnecessaryIsInstance]
 
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="No schema found for group: nonexistent"):
             self.schema.group("nonexistent")
 
     def test_default(self) -> None:
@@ -214,3 +214,17 @@ class TestAttributeType(unittest.TestCase):
         assert mr.AttributeType.Temporal == PyAttributeType.Temporal
         assert mr.AttributeType.Temporal != mr.AttributeType.Categorical
         assert mr.AttributeType.Temporal != PyAttributeType.Categorical
+
+
+if __name__ == "__main__":
+    run_test = unittest.TestLoader().loadTestsFromTestCase(TestSchema)
+    unittest.TextTestRunner(verbosity=2).run(run_test)
+
+    run_test = unittest.TestLoader().loadTestsFromTestCase(TestGroupSchema)
+    unittest.TextTestRunner(verbosity=2).run(run_test)
+
+    run_test = unittest.TestLoader().loadTestsFromTestCase(TestAttributesSchema)
+    unittest.TextTestRunner(verbosity=2).run(run_test)
+
+    run_test = unittest.TestLoader().loadTestsFromTestCase(TestAttributeType)
+    unittest.TextTestRunner(verbosity=2).run(run_test)
