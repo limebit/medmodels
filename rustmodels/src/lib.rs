@@ -2,7 +2,9 @@ mod gil_hash_map;
 mod medrecord;
 
 use medrecord::{
-    datatype::{PyAny, PyBool, PyDateTime, PyFloat, PyInt, PyNull, PyOption, PyString, PyUnion},
+    datatype::{
+        PyAny, PyBool, PyDateTime, PyDuration, PyFloat, PyInt, PyNull, PyOption, PyString, PyUnion,
+    },
     querying::{
         attributes::{
             PyAttributesTreeOperand, PyMultipleAttributesOperand, PySingleAttributeOperand,
@@ -25,6 +27,7 @@ fn _medmodels(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyFloat>()?;
     m.add_class::<PyBool>()?;
     m.add_class::<PyDateTime>()?;
+    m.add_class::<PyDuration>()?;
     m.add_class::<PyNull>()?;
     m.add_class::<PyAny>()?;
     m.add_class::<PyUnion>()?;

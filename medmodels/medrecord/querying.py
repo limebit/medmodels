@@ -330,6 +330,9 @@ class MultipleValuesOperand:
     def is_datetime(self) -> None:
         self._multiple_values_operand.is_datetime()
 
+    def is_duration(self) -> None:
+        self._multiple_values_operand.is_duration()
+
     def is_null(self) -> None:
         self._multiple_values_operand.is_null()
 
@@ -543,6 +546,9 @@ class SingleValueOperand:
 
     def is_datetime(self) -> None:
         self._single_value_operand.is_datetime()
+
+    def is_duration(self) -> None:
+        self._single_value_operand.is_duration()
 
     def is_null(self) -> None:
         self._single_value_operand.is_null()
