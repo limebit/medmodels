@@ -26,7 +26,7 @@ use crate::{
 use itertools::Itertools;
 use std::{
     cmp::Ordering,
-    collections::HashMap,
+    collections::{HashMap, HashSet},
     fmt::Display,
     hash::Hash,
     ops::{Add, Mul, Range, Sub},
@@ -119,6 +119,9 @@ pub enum AttributesTreeOperation {
         either: Wrapper<AttributesTreeOperand>,
         or: Wrapper<AttributesTreeOperand>,
     },
+    Exclude {
+        operand: Wrapper<AttributesTreeOperand>,
+    },
 }
 
 impl DeepClone for AttributesTreeOperation {
@@ -154,6 +157,9 @@ impl DeepClone for AttributesTreeOperation {
             Self::EitherOr { either, or } => Self::EitherOr {
                 either: either.deep_clone(),
                 or: or.deep_clone(),
+            },
+            Self::Exclude { operand } => Self::Exclude {
+                operand: operand.deep_clone(),
             },
         }
     }
@@ -221,6 +227,7 @@ impl AttributesTreeOperation {
             Self::EitherOr { either, or } => {
                 Self::evaluate_either_or(medrecord, attributes, either, or)
             }
+            Self::Exclude { operand } => Self::evaluate_exclude(medrecord, attributes, operand),
         }
     }
 
@@ -670,6 +677,26 @@ impl AttributesTreeOperation {
                 .unique_by(|attribute| attribute.0),
         ))
     }
+
+    #[inline]
+    fn evaluate_exclude<'a, T: 'a + Eq + Hash + GetAttributes + Display>(
+        medrecord: &'a MedRecord,
+        attributes: impl Iterator<Item = (&'a T, Vec<MedRecordAttribute>)>,
+        operand: &Wrapper<AttributesTreeOperand>,
+    ) -> MedRecordResult<BoxedIterator<'a, (&'a T, Vec<MedRecordAttribute>)>> {
+        let attributes = attributes.collect::<Vec<_>>();
+
+        let result = operand
+            .evaluate(medrecord, attributes.clone().into_iter())?
+            .map(|(index, _)| index)
+            .collect::<HashSet<_>>();
+
+        Ok(Box::new(
+            attributes
+                .into_iter()
+                .filter(move |(index, _)| !result.contains(index)),
+        ))
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -709,6 +736,9 @@ pub enum MultipleAttributesOperation {
         either: Wrapper<MultipleAttributesOperand>,
         or: Wrapper<MultipleAttributesOperand>,
     },
+    Exclude {
+        operand: Wrapper<MultipleAttributesOperand>,
+    },
 }
 
 impl DeepClone for MultipleAttributesOperation {
@@ -747,6 +777,9 @@ impl DeepClone for MultipleAttributesOperation {
             Self::EitherOr { either, or } => Self::EitherOr {
                 either: either.deep_clone(),
                 or: or.deep_clone(),
+            },
+            Self::Exclude { operand } => Self::Exclude {
+                operand: operand.deep_clone(),
             },
         }
     }
@@ -805,6 +838,7 @@ impl MultipleAttributesOperation {
             Self::EitherOr { either, or } => {
                 Self::evaluate_either_or(medrecord, attributes, either, or)
             }
+            Self::Exclude { operand } => Self::evaluate_exclude(medrecord, attributes, operand),
         }
     }
 
@@ -1151,6 +1185,26 @@ impl MultipleAttributesOperation {
                 .unique_by(|attribute| attribute.0),
         ))
     }
+
+    #[inline]
+    fn evaluate_exclude<'a, T: 'a + Eq + Hash + GetAttributes + Display>(
+        medrecord: &'a MedRecord,
+        attributes: impl Iterator<Item = (&'a T, MedRecordAttribute)>,
+        operand: &Wrapper<MultipleAttributesOperand>,
+    ) -> MedRecordResult<BoxedIterator<'a, (&'a T, MedRecordAttribute)>> {
+        let attributes = attributes.collect::<Vec<_>>();
+
+        let result = operand
+            .evaluate(medrecord, attributes.clone().into_iter())?
+            .map(|(index, _)| index)
+            .collect::<HashSet<_>>();
+
+        Ok(Box::new(
+            attributes
+                .into_iter()
+                .filter(move |(index, _)| !result.contains(index)),
+        ))
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -1179,6 +1233,9 @@ pub enum SingleAttributeOperation {
     EitherOr {
         either: Wrapper<SingleAttributeOperand>,
         or: Wrapper<SingleAttributeOperand>,
+    },
+    Exclude {
+        operand: Wrapper<SingleAttributeOperand>,
     },
 }
 
@@ -1210,6 +1267,9 @@ impl DeepClone for SingleAttributeOperation {
             Self::EitherOr { either, or } => Self::EitherOr {
                 either: either.deep_clone(),
                 or: or.deep_clone(),
+            },
+            Self::Exclude { operand } => Self::Exclude {
+                operand: operand.deep_clone(),
             },
         }
     }
@@ -1254,6 +1314,12 @@ impl SingleAttributeOperation {
             }),
             Self::EitherOr { either, or } => {
                 Self::evaluate_either_or(medrecord, attribute, either, or)
+            }
+            Self::Exclude { operand } => {
+                Ok(match operand.evaluate(medrecord, attribute.clone())? {
+                    Some(_) => None,
+                    None => Some(attribute),
+                })
             }
         }
     }

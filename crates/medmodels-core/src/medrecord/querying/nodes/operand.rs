@@ -157,6 +157,17 @@ impl NodeOperand {
             or: or_operand,
         });
     }
+
+    pub fn exclude<Q>(&mut self, query: Q)
+    where
+        Q: FnOnce(&mut Wrapper<NodeOperand>),
+    {
+        let mut operand = Wrapper::<NodeOperand>::new();
+
+        query(&mut operand);
+
+        self.operations.push(NodeOperation::Exclude { operand });
+    }
 }
 
 impl Wrapper<NodeOperand> {
@@ -218,6 +229,13 @@ impl Wrapper<NodeOperand> {
         OQ: FnOnce(&mut Wrapper<NodeOperand>),
     {
         self.0.write_or_panic().either_or(either_query, or_query);
+    }
+
+    pub fn exclude<Q>(&mut self, query: Q)
+    where
+        Q: FnOnce(&mut Wrapper<NodeOperand>),
+    {
+        self.0.write_or_panic().exclude(query);
     }
 }
 
@@ -490,6 +508,18 @@ impl NodeIndicesOperand {
             or: or_operand,
         });
     }
+
+    pub fn exclude<Q>(&mut self, query: Q)
+    where
+        Q: FnOnce(&mut Wrapper<NodeIndicesOperand>),
+    {
+        let mut operand = Wrapper::<NodeIndicesOperand>::new(self.context.clone());
+
+        query(&mut operand);
+
+        self.operations
+            .push(NodeIndicesOperation::Exclude { operand });
+    }
 }
 
 impl Wrapper<NodeIndicesOperand> {
@@ -557,6 +587,13 @@ impl Wrapper<NodeIndicesOperand> {
         OQ: FnOnce(&mut Wrapper<NodeIndicesOperand>),
     {
         self.0.write_or_panic().either_or(either_query, or_query);
+    }
+
+    pub fn exclude<Q>(&self, query: Q)
+    where
+        Q: FnOnce(&mut Wrapper<NodeIndicesOperand>),
+    {
+        self.0.write_or_panic().exclude(query);
     }
 }
 
@@ -673,6 +710,18 @@ impl NodeIndexOperand {
             or: or_operand,
         });
     }
+
+    pub fn exclude<Q>(&mut self, query: Q)
+    where
+        Q: FnOnce(&mut Wrapper<NodeIndexOperand>),
+    {
+        let mut operand = Wrapper::<NodeIndexOperand>::new(self.context.clone(), self.kind.clone());
+
+        query(&mut operand);
+
+        self.operations
+            .push(NodeIndexOperation::Exclude { operand });
+    }
 }
 
 impl Wrapper<NodeIndexOperand> {
@@ -731,5 +780,12 @@ impl Wrapper<NodeIndexOperand> {
         OQ: FnOnce(&mut Wrapper<NodeIndexOperand>),
     {
         self.0.write_or_panic().eiter_or(either_query, or_query);
+    }
+
+    pub fn exclude<Q>(&self, query: Q)
+    where
+        Q: FnOnce(&mut Wrapper<NodeIndexOperand>),
+    {
+        self.0.write_or_panic().exclude(query);
     }
 }

@@ -108,6 +108,14 @@ impl PyNodeOperand {
         );
     }
 
+    pub fn exclude(&mut self, query: &Bound<'_, PyFunction>) {
+        self.0.exclude(|operand| {
+            query
+                .call1((PyNodeOperand::from(operand.clone()),))
+                .expect("Call must succeed");
+        });
+    }
+
     pub fn deep_clone(&self) -> Self {
         self.0.deep_clone().into()
     }
@@ -347,6 +355,14 @@ impl PyNodeIndicesOperand {
         );
     }
 
+    pub fn exclude(&mut self, query: &Bound<'_, PyFunction>) {
+        self.0.exclude(|operand| {
+            query
+                .call1((PyNodeIndicesOperand::from(operand.clone()),))
+                .expect("Call must succeed");
+        });
+    }
+
     pub fn deep_clone(&self) -> Self {
         self.0.deep_clone().into()
     }
@@ -483,6 +499,14 @@ impl PyNodeIndexOperand {
                     .expect("Call must succeed");
             },
         );
+    }
+
+    pub fn exclude(&mut self, query: &Bound<'_, PyFunction>) {
+        self.0.exclude(|operand| {
+            query
+                .call1((PyNodeIndexOperand::from(operand.clone()),))
+                .expect("Call must succeed");
+        });
     }
 
     pub fn deep_clone(&self) -> Self {

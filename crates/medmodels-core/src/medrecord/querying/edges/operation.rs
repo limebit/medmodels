@@ -58,6 +58,9 @@ pub enum EdgeOperation {
         either: Wrapper<EdgeOperand>,
         or: Wrapper<EdgeOperand>,
     },
+    Exclude {
+        operand: Wrapper<EdgeOperand>,
+    },
 }
 
 impl DeepClone for EdgeOperation {
@@ -87,6 +90,9 @@ impl DeepClone for EdgeOperation {
             Self::EitherOr { either, or } => Self::EitherOr {
                 either: either.deep_clone(),
                 or: or.deep_clone(),
+            },
+            Self::Exclude { operand } => Self::Exclude {
+                operand: operand.deep_clone(),
             },
         }
     }
@@ -135,7 +141,18 @@ impl EdgeOperation {
                 operand,
             )?),
             Self::EitherOr { either, or } => {
-                Box::new(Self::evaluate_either_or(medrecord, either, or)?)
+                // TODO: This is a temporary solution. It should be optimized.
+                let either_result = either.evaluate(medrecord)?.collect::<HashSet<_>>();
+                let or_result = or.evaluate(medrecord)?.collect::<HashSet<_>>();
+
+                Box::new(edge_indices.filter(move |node_index| {
+                    either_result.contains(node_index) || or_result.contains(node_index)
+                }))
+            }
+            Self::Exclude { operand } => {
+                let result = operand.evaluate(medrecord)?.collect::<HashSet<_>>();
+
+                Box::new(edge_indices.filter(move |node_index| !result.contains(node_index)))
             }
         })
     }
@@ -298,18 +315,6 @@ impl EdgeOperation {
             node_indices.contains(edge_endpoints.1)
         }))
     }
-
-    #[inline]
-    fn evaluate_either_or<'a>(
-        medrecord: &'a MedRecord,
-        either: &Wrapper<EdgeOperand>,
-        or: &Wrapper<EdgeOperand>,
-    ) -> MedRecordResult<impl Iterator<Item = &'a EdgeIndex>> {
-        let either_result = either.evaluate(medrecord)?;
-        let or_result = or.evaluate(medrecord)?;
-
-        Ok(either_result.chain(or_result).unique())
-    }
 }
 
 macro_rules! get_edge_index {
@@ -371,6 +376,9 @@ pub enum EdgeIndicesOperation {
         either: Wrapper<EdgeIndicesOperand>,
         or: Wrapper<EdgeIndicesOperand>,
     },
+    Exclude {
+        operand: Wrapper<EdgeIndicesOperand>,
+    },
 }
 
 impl DeepClone for EdgeIndicesOperation {
@@ -400,6 +408,9 @@ impl DeepClone for EdgeIndicesOperation {
             Self::EitherOr { either, or } => Self::EitherOr {
                 either: either.deep_clone(),
                 or: or.deep_clone(),
+            },
+            Self::Exclude { operand } => Self::Exclude {
+                operand: operand.deep_clone(),
             },
         }
     }
@@ -441,6 +452,19 @@ impl EdgeIndicesOperation {
             }
             Self::EitherOr { either, or } => {
                 Self::evaluate_either_or(medrecord, indices, either, or)
+            }
+            Self::Exclude { operand } => {
+                let edge_indices = indices.collect::<Vec<_>>();
+
+                let result = operand
+                    .evaluate(medrecord, edge_indices.clone().into_iter())?
+                    .collect::<HashSet<_>>();
+
+                Ok(Box::new(
+                    edge_indices
+                        .into_iter()
+                        .filter(move |index| !result.contains(index)),
+                ))
             }
         }
     }
@@ -629,6 +653,9 @@ pub enum EdgeIndexOperation {
         either: Wrapper<EdgeIndexOperand>,
         or: Wrapper<EdgeIndexOperand>,
     },
+    Exclude {
+        operand: Wrapper<EdgeIndexOperand>,
+    },
 }
 
 impl DeepClone for EdgeIndexOperation {
@@ -654,6 +681,9 @@ impl DeepClone for EdgeIndexOperation {
                 either: either.deep_clone(),
                 or: or.deep_clone(),
             },
+            Self::Exclude { operand } => Self::Exclude {
+                operand: operand.deep_clone(),
+            },
         }
     }
 }
@@ -675,6 +705,11 @@ impl EdgeIndexOperation {
                 Self::evaluate_binary_arithmetic_operation(medrecord, index, operand, kind)
             }
             Self::EitherOr { either, or } => Self::evaluate_either_or(medrecord, index, either, or),
+            Self::Exclude { operand } => {
+                let result = operand.evaluate(medrecord, index)?.is_some();
+
+                Ok(if result { None } else { Some(index) })
+            }
         }
     }
 

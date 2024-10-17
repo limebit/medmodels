@@ -247,6 +247,14 @@ impl PyAttributesTreeOperand {
         );
     }
 
+    pub fn exclude(&mut self, query: &Bound<'_, PyFunction>) {
+        self.0.exclude(|operand| {
+            query
+                .call1((PyAttributesTreeOperand::from(operand.clone()),))
+                .expect("Call must succeed");
+        });
+    }
+
     pub fn deep_clone(&self) -> PyAttributesTreeOperand {
         self.0.deep_clone().into()
     }
@@ -421,6 +429,14 @@ impl PyMultipleAttributesOperand {
         );
     }
 
+    pub fn exclude(&mut self, query: &Bound<'_, PyFunction>) {
+        self.0.exclude(|operand| {
+            query
+                .call1((PyMultipleAttributesOperand::from(operand.clone()),))
+                .expect("Call must succeed");
+        });
+    }
+
     pub fn deep_clone(&self) -> PyMultipleAttributesOperand {
         self.0.deep_clone().into()
     }
@@ -557,6 +573,14 @@ impl PySingleAttributeOperand {
                     .expect("Call must succeed");
             },
         );
+    }
+
+    pub fn exclude(&mut self, query: &Bound<'_, PyFunction>) {
+        self.0.exclude(|operand| {
+            query
+                .call1((PySingleAttributeOperand::from(operand.clone()),))
+                .expect("Call must succeed");
+        });
     }
 
     pub fn deep_clone(&self) -> PySingleAttributeOperand {

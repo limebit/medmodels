@@ -302,6 +302,14 @@ impl PyMultipleValuesOperand {
         );
     }
 
+    pub fn exclude(&mut self, query: &Bound<'_, PyFunction>) {
+        self.0.exclude(|operand| {
+            query
+                .call1((PyMultipleValuesOperand::from(operand.clone()),))
+                .expect("Call must succeed");
+        });
+    }
+
     pub fn deep_clone(&self) -> PyMultipleValuesOperand {
         self.0.deep_clone().into()
     }
@@ -474,6 +482,14 @@ impl PySingleValueOperand {
                     .expect("Call must succeed");
             },
         );
+    }
+
+    pub fn exclude(&mut self, query: &Bound<'_, PyFunction>) {
+        self.0.exclude(|operand| {
+            query
+                .call1((PySingleValueOperand::from(operand.clone()),))
+                .expect("Call must succeed");
+        });
     }
 
     pub fn deep_clone(&self) -> PySingleValueOperand {

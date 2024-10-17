@@ -24,6 +24,7 @@ use crate::{
 use itertools::Itertools;
 use std::{
     cmp::Ordering,
+    collections::HashSet,
     hash::Hash,
     ops::{Add, Div, Mul, Range, Sub},
 };
@@ -128,6 +129,9 @@ pub enum MultipleValuesOperation {
         either: Wrapper<MultipleValuesOperand>,
         or: Wrapper<MultipleValuesOperand>,
     },
+    Exclude {
+        operand: Wrapper<MultipleValuesOperand>,
+    },
 }
 
 impl DeepClone for MultipleValuesOperation {
@@ -167,6 +171,9 @@ impl DeepClone for MultipleValuesOperation {
             Self::EitherOr { either, or } => Self::EitherOr {
                 either: either.deep_clone(),
                 or: or.deep_clone(),
+            },
+            Self::Exclude { operand } => Self::Exclude {
+                operand: operand.deep_clone(),
             },
         }
     }
@@ -240,6 +247,7 @@ impl MultipleValuesOperation {
             Self::EitherOr { either, or } => {
                 Self::evaluate_either_or(medrecord, values, either, or)
             }
+            Self::Exclude { operand } => Self::evaluate_exclude(medrecord, values, operand),
         }
     }
 
@@ -722,6 +730,24 @@ impl MultipleValuesOperation {
             either_values.chain(or_values).unique_by(|value| value.0),
         ))
     }
+
+    #[inline]
+    fn evaluate_exclude<'a, T: 'a + Eq + Hash>(
+        medrecord: &'a MedRecord,
+        values: impl Iterator<Item = (&'a T, MedRecordValue)>,
+        operand: &Wrapper<MultipleValuesOperand>,
+    ) -> MedRecordResult<BoxedIterator<'a, (&'a T, MedRecordValue)>> {
+        let values = values.collect::<Vec<_>>();
+
+        let result = operand
+            .evaluate(medrecord, values.clone().into_iter())?
+            .map(|(t, _)| t)
+            .collect::<HashSet<_>>();
+
+        Ok(Box::new(
+            values.into_iter().filter(move |(t, _)| !result.contains(t)),
+        ))
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -754,6 +780,9 @@ pub enum SingleValueOperation {
     EitherOr {
         either: Wrapper<SingleValueOperand>,
         or: Wrapper<SingleValueOperand>,
+    },
+    Exclude {
+        operand: Wrapper<SingleValueOperand>,
     },
 }
 
@@ -789,6 +818,9 @@ impl DeepClone for SingleValueOperation {
             Self::EitherOr { either, or } => Self::EitherOr {
                 either: either.deep_clone(),
                 or: or.deep_clone(),
+            },
+            Self::Exclude { operand } => Self::Exclude {
+                operand: operand.deep_clone(),
             },
         }
     }
@@ -848,6 +880,10 @@ impl SingleValueOperation {
                 _ => None,
             }),
             Self::EitherOr { either, or } => Self::evaluate_either_or(medrecord, value, either, or),
+            Self::Exclude { operand } => Ok(match operand.evaluate(medrecord, value.clone())? {
+                Some(_) => None,
+                None => Some(value),
+            }),
         }
     }
 

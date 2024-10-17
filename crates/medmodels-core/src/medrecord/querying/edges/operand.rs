@@ -145,6 +145,17 @@ impl EdgeOperand {
             or: or_operand,
         });
     }
+
+    pub fn exclude<Q>(&mut self, query: Q)
+    where
+        Q: FnOnce(&mut Wrapper<EdgeOperand>),
+    {
+        let mut operand = Wrapper::<EdgeOperand>::new();
+
+        query(&mut operand);
+
+        self.operations.push(EdgeOperation::Exclude { operand });
+    }
 }
 
 impl Wrapper<EdgeOperand> {
@@ -202,6 +213,13 @@ impl Wrapper<EdgeOperand> {
         OQ: FnOnce(&mut Wrapper<EdgeOperand>),
     {
         self.0.write_or_panic().either_or(either_query, or_query);
+    }
+
+    pub fn exclude<Q>(&self, query: Q)
+    where
+        Q: FnOnce(&mut Wrapper<EdgeOperand>),
+    {
+        self.0.write_or_panic().exclude(query);
     }
 }
 
@@ -450,6 +468,18 @@ impl EdgeIndicesOperand {
             or: or_operand,
         });
     }
+
+    pub fn exclude<Q>(&mut self, query: Q)
+    where
+        Q: FnOnce(&mut Wrapper<EdgeIndicesOperand>),
+    {
+        let mut operand = Wrapper::<EdgeIndicesOperand>::new(self.context.clone());
+
+        query(&mut operand);
+
+        self.operations
+            .push(EdgeIndicesOperation::Exclude { operand });
+    }
 }
 
 impl Wrapper<EdgeIndicesOperand> {
@@ -504,6 +534,13 @@ impl Wrapper<EdgeIndicesOperand> {
         OQ: FnOnce(&mut Wrapper<EdgeIndicesOperand>),
     {
         self.0.write_or_panic().either_or(either_query, or_query);
+    }
+
+    pub fn exclude<Q>(&self, query: Q)
+    where
+        Q: FnOnce(&mut Wrapper<EdgeIndicesOperand>),
+    {
+        self.0.write_or_panic().exclude(query);
     }
 }
 
@@ -607,6 +644,18 @@ impl EdgeIndexOperand {
             or: or_operand,
         });
     }
+
+    pub fn exclude<Q>(&mut self, query: Q)
+    where
+        Q: FnOnce(&mut Wrapper<EdgeIndexOperand>),
+    {
+        let mut operand = Wrapper::<EdgeIndexOperand>::new(self.context.clone(), self.kind.clone());
+
+        query(&mut operand);
+
+        self.operations
+            .push(EdgeIndexOperation::Exclude { operand });
+    }
 }
 
 impl Wrapper<EdgeIndexOperand> {
@@ -651,5 +700,12 @@ impl Wrapper<EdgeIndexOperand> {
         OQ: FnOnce(&mut Wrapper<EdgeIndexOperand>),
     {
         self.0.write_or_panic().eiter_or(either_query, or_query);
+    }
+
+    pub fn exclude<Q>(&self, query: Q)
+    where
+        Q: FnOnce(&mut Wrapper<EdgeIndexOperand>),
+    {
+        self.0.write_or_panic().exclude(query);
     }
 }
