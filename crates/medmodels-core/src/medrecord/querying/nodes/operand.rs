@@ -110,21 +110,12 @@ impl NodeOperand {
         });
     }
 
-    pub fn outgoing_edges(&mut self) -> Wrapper<EdgeOperand> {
+    pub fn edges(&mut self, direction: EdgeDirection) -> Wrapper<EdgeOperand> {
         let operand = Wrapper::<EdgeOperand>::new();
 
-        self.operations.push(NodeOperation::OutgoingEdges {
+        self.operations.push(NodeOperation::Edges {
             operand: operand.clone(),
-        });
-
-        operand
-    }
-
-    pub fn incoming_edges(&mut self) -> Wrapper<EdgeOperand> {
-        let operand = Wrapper::<EdgeOperand>::new();
-
-        self.operations.push(NodeOperation::IncomingEdges {
-            operand: operand.clone(),
+            direction,
         });
 
         operand
@@ -211,12 +202,8 @@ impl Wrapper<NodeOperand> {
         self.0.write_or_panic().has_attribute(attribute);
     }
 
-    pub fn outgoing_edges(&mut self) -> Wrapper<EdgeOperand> {
-        self.0.write_or_panic().outgoing_edges()
-    }
-
-    pub fn incoming_edges(&mut self) -> Wrapper<EdgeOperand> {
-        self.0.write_or_panic().incoming_edges()
+    pub fn edges(&mut self, direction: EdgeDirection) -> Wrapper<EdgeOperand> {
+        self.0.write_or_panic().edges(direction)
     }
 
     pub fn neighbors(&mut self, direction: EdgeDirection) -> Wrapper<NodeOperand> {
