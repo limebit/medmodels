@@ -26,8 +26,8 @@ class Matching(metaclass=ABCMeta):
         self,
         *,
         medrecord: MedRecord,
-        control_group: Set[NodeIndex],
-        treated_group: Set[NodeIndex],
+        control_set: Set[NodeIndex],
+        treated_set: Set[NodeIndex],
         essential_covariates: MedRecordAttributeInputList,
         one_hot_covariates: MedRecordAttributeInputList,
     ) -> Tuple[pl.DataFrame, pl.DataFrame]:
@@ -35,8 +35,8 @@ class Matching(metaclass=ABCMeta):
 
         Args:
             medrecord (MedRecord):  MedRecord object containing the data.
-            control_group (Set[NodeIndex]): Set of treated subjects.
-            treated_group (Set[NodeIndex]): Set of control subjects.
+            control_set (Set[NodeIndex]): Set of treated subjects.
+            treated_set (Set[NodeIndex]): Set of control subjects.
             essential_covariates (MedRecordAttributeInputList):  Covariates
                 that are essential for matching
             one_hot_covariates (MedRecordAttributeInputList): Covariates that
@@ -55,7 +55,7 @@ class Matching(metaclass=ABCMeta):
         data = pl.DataFrame(
             data=[
                 {"id": k, **v}
-                for k, v in medrecord.node[list(control_group | treated_group)].items()
+                for k, v in medrecord.node[list(control_set | treated_set)].items()
             ]
         )
         original_columns = data.columns
@@ -74,8 +74,8 @@ class Matching(metaclass=ABCMeta):
         data = data.select(essential_covariates)
 
         # Select the sets of treated and control subjects
-        data_treated = data.filter(pl.col("id").is_in(treated_group))
-        data_control = data.filter(pl.col("id").is_in(control_group))
+        data_treated = data.filter(pl.col("id").is_in(treated_set))
+        data_control = data.filter(pl.col("id").is_in(control_set))
 
         return data_treated, data_control
 
@@ -83,8 +83,8 @@ class Matching(metaclass=ABCMeta):
     def match_controls(
         self,
         *,
-        control_group: Set[NodeIndex],
-        treated_group: Set[NodeIndex],
+        control_set: Set[NodeIndex],
+        treated_set: Set[NodeIndex],
         medrecord: MedRecord,
         essential_covariates: MedRecordAttributeInputList = ["gender", "age"],
         one_hot_covariates: MedRecordAttributeInputList = ["gender"],
