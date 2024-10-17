@@ -1,5 +1,6 @@
+import sys
 from enum import Enum
-from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Sequence, Union
+from typing import Callable, Dict, List, Optional, Sequence, Union
 
 from medmodels.medrecord.types import (
     Attributes,
@@ -18,13 +19,10 @@ from medmodels.medrecord.types import (
     PolarsNodeDataFrameInput,
 )
 
-if TYPE_CHECKING:
-    import sys
-
-    if sys.version_info >= (3, 10):
-        from typing import TypeAlias
-    else:
-        from typing_extensions import TypeAlias
+if sys.version_info >= (3, 10):
+    from typing import TypeAlias
+else:
+    from typing_extensions import TypeAlias
 
 PyDataType: TypeAlias = Union[
     PyString,

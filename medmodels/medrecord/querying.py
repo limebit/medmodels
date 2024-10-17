@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import sys
 from enum import Enum
 from typing import TYPE_CHECKING, Callable, List, Union
 
@@ -27,6 +26,8 @@ from medmodels.medrecord.types import (
 )
 
 if TYPE_CHECKING:
+    import sys
+
     if sys.version_info >= (3, 10):
         from typing import TypeAlias
     else:
