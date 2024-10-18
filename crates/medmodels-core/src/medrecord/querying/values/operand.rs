@@ -289,6 +289,7 @@ impl MultipleValuesOperand {
     implement_assertion_operation!(is_float, MultipleValuesOperation::IsFloat);
     implement_assertion_operation!(is_bool, MultipleValuesOperation::IsBool);
     implement_assertion_operation!(is_datetime, MultipleValuesOperation::IsDateTime);
+    implement_assertion_operation!(is_duration, MultipleValuesOperation::IsDuration);
     implement_assertion_operation!(is_null, MultipleValuesOperation::IsNull);
     implement_assertion_operation!(is_max, MultipleValuesOperation::IsMax);
     implement_assertion_operation!(is_min, MultipleValuesOperation::IsMin);
@@ -395,6 +396,7 @@ impl Wrapper<MultipleValuesOperand> {
     implement_wrapper_operand!(is_float);
     implement_wrapper_operand!(is_bool);
     implement_wrapper_operand!(is_datetime);
+    implement_wrapper_operand!(is_duration);
     implement_wrapper_operand!(is_null);
     implement_wrapper_operand!(is_max);
     implement_wrapper_operand!(is_min);
@@ -519,6 +521,7 @@ impl SingleValueOperand {
     implement_assertion_operation!(is_float, SingleValueOperation::IsFloat);
     implement_assertion_operation!(is_bool, SingleValueOperation::IsBool);
     implement_assertion_operation!(is_datetime, SingleValueOperation::IsDateTime);
+    implement_assertion_operation!(is_duration, SingleValueOperation::IsDuration);
     implement_assertion_operation!(is_null, SingleValueOperation::IsNull);
 
     pub fn eiter_or<EQ, OQ>(&mut self, either_query: EQ, or_query: OQ)
@@ -611,6 +614,7 @@ impl Wrapper<SingleValueOperand> {
     implement_wrapper_operand!(is_float);
     implement_wrapper_operand!(is_bool);
     implement_wrapper_operand!(is_datetime);
+    implement_wrapper_operand!(is_duration);
     implement_wrapper_operand!(is_null);
 
     pub fn either_or<EQ, OQ>(&self, either_query: EQ, or_query: OQ)
