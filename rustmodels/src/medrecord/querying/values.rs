@@ -276,6 +276,10 @@ impl PyMultipleValuesOperand {
         self.0.is_datetime();
     }
 
+    pub fn is_duration(&self) {
+        self.0.is_duration();
+    }
+
     pub fn is_null(&self) {
         self.0.is_null();
     }
@@ -464,6 +468,10 @@ impl PySingleValueOperand {
 
     pub fn is_datetime(&self) {
         self.0.is_datetime();
+    }
+
+    pub fn is_duration(&self) {
+        self.0.is_duration();
     }
 
     pub fn is_null(&self) {
