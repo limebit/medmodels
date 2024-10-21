@@ -1,3 +1,5 @@
+"""Module for the propensity score matching."""
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Dict, Optional, Set
@@ -62,8 +64,8 @@ class PropensityMatching(Matching):
         medrecord: MedRecord,
         control_group: Set[NodeIndex],
         treated_group: Set[NodeIndex],
-        essential_covariates: MedRecordAttributeInputList = None,
-        one_hot_covariates: MedRecordAttributeInputList = None,
+        essential_covariates: Optional[MedRecordAttributeInputList] = None,
+        one_hot_covariates: Optional[MedRecordAttributeInputList] = None,
     ) -> Set[NodeIndex]:
         """Matches the controls based on propensity score matching.
 
@@ -71,19 +73,22 @@ class PropensityMatching(Matching):
             medrecord (MedRecord): medrecord object containing the data.
             treated_group (Set[NodeIndex]): Set of treated subjects.
             control_group (Set[NodeIndex]): Set of control subjects.
-            essential_covariates (MedRecordAttributeInputList, optional): Covariates
-                that are essential for matching. Defaults to ["gender", "age"].
-            one_hot_covariates (MedRecordAttributeInputList, optional): Covariates that
-                are one-hot encoded for matching. Defaults to ["gender"].
+            essential_covariates (Optional[MedRecordAttributeInputList], optional):
+                Covariates that are essential for matching. Defaults to
+                ["gender", "age"].
+            one_hot_covariates (Optional[MedRecordAttributeInputList], optional):
+                Covariates that are one-hot encoded for matching. Defaults to
+                ["gender"].
 
         Returns:
             Set[NodeIndex]:  Node Ids of the matched controls.
         """
-        # Preprocess the data
-        if one_hot_covariates is None:
-            one_hot_covariates = ["gender"]
         if essential_covariates is None:
             essential_covariates = ["gender", "age"]
+        if one_hot_covariates is None:
+            one_hot_covariates = ["gender"]
+
+        # Preprocess the data
         data_treated, data_control = self._preprocess_data(
             medrecord=medrecord,
             treated_group=treated_group,
@@ -91,6 +96,7 @@ class PropensityMatching(Matching):
             essential_covariates=essential_covariates,
             one_hot_covariates=one_hot_covariates,
         )
+
         # Convert the Polars DataFrames to NumPy arrays
         treated_array = data_treated.drop("id").cast(pl.Float64, strict=True).to_numpy()
         control_array = data_control.drop("id").cast(pl.Float64, strict=True).to_numpy()
@@ -104,7 +110,8 @@ class PropensityMatching(Matching):
             )
         )
 
-        treated_prop, control_prop = calculate_propensity(
+        # Calculate the propensity scores for the treated and control sets
+        treated_propensity, control_propensity = calculate_propensity(
             x_train=x_train,
             y_train=y_train,
             treated_test=treated_array,
@@ -114,8 +121,12 @@ class PropensityMatching(Matching):
         )
 
         # Add propensity score to the original data polars dataframes
-        data_treated = data_treated.with_columns(pl.Series("prop_score", treated_prop))
-        data_control = data_control.with_columns(pl.Series("prop_score", control_prop))
+        data_treated = data_treated.with_columns(
+            pl.Series("prop_score", treated_propensity)
+        )
+        data_control = data_control.with_columns(
+            pl.Series("prop_score", control_propensity)
+        )
 
         matched_control = nearest_neighbor(
             data_treated,

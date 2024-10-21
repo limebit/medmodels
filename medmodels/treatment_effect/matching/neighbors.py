@@ -1,6 +1,8 @@
+"""Module for the nearest neighbor matching."""
+
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Set
+from typing import TYPE_CHECKING, Optional, Set
 
 from medmodels.treatment_effect.matching.algorithms.classic_distance_models import (
     nearest_neighbor,
@@ -42,8 +44,8 @@ class NeighborsMatching(Matching):
         medrecord: MedRecord,
         control_group: Set[NodeIndex],
         treated_group: Set[NodeIndex],
-        essential_covariates: MedRecordAttributeInputList = None,
-        one_hot_covariates: MedRecordAttributeInputList = None,
+        essential_covariates: Optional[MedRecordAttributeInputList] = None,
+        one_hot_covariates: Optional[MedRecordAttributeInputList] = None,
     ) -> Set[NodeIndex]:
         """Matches the controls based on the nearest neighbor algorithm.
 
@@ -51,18 +53,21 @@ class NeighborsMatching(Matching):
             medrecord (MedRecord): MedRecord object containing the data.
             treated_group (Set[NodeIndex]): Set of treated subjects.
             control_group (Set[NodeIndex]): Set of control subjects.
-            essential_covariates (MedRecordAttributeInputList, optional): Covariates
-                that are essential for matching
-            one_hot_covariates (MedRecordAttributeInputList, optional): Covariates that
-                are one-hot encoded for matching
+            essential_covariates (Optional[MedRecordAttributeInputList], optional):
+                Covariates that are essential for matching. Defaults to
+                ["gender", "age"].
+            one_hot_covariates (Optional[MedRecordAttributeInputList], optional):
+                Covariates that are one-hot encoded for matching. Defaults to
+                ["gender"].
 
         Returns:
             Set[NodeIndex]: Node Ids of the matched controls.
         """
-        if one_hot_covariates is None:
-            one_hot_covariates = ["gender"]
         if essential_covariates is None:
             essential_covariates = ["gender", "age"]
+        if one_hot_covariates is None:
+            one_hot_covariates = ["gender"]
+
         data_treated, data_control = self._preprocess_data(
             medrecord=medrecord,
             control_group=control_group,

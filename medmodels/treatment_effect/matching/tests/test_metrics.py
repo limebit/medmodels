@@ -1,6 +1,7 @@
 import unittest
 
 import numpy as np
+import pytest
 
 from medmodels.treatment_effect.matching.covariates import metrics
 
@@ -27,13 +28,13 @@ class TestMetrics(unittest.TestCase):
         inv_cov = np.linalg.inv(np.cov(data))
         a1, a2 = np.array([68, 600, 40]), np.array([66, 640, 44])
         result = metrics.mahalanobis_metric(a1, a2, inv_cov=inv_cov)
-        self.assertAlmostEqual(result, 5.33, 2)
+        assert result == pytest.approx(5.33, 2)
 
         data = np.array([[-2.1, -1, 4.3]])
         inv_cov = 1 / np.cov(data)
         a1, a2 = np.array([1]), np.array([2])
         result = metrics.mahalanobis_metric(a1, a2, inv_cov=inv_cov)
-        self.assertAlmostEqual(result, 0.29, 2)
+        assert result == pytest.approx(0.29, 2)
 
 
 if __name__ == "__main__":

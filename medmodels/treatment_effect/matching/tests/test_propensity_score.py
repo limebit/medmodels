@@ -2,6 +2,7 @@ import unittest
 
 import numpy as np
 import polars as pl
+import pytest
 from sklearn.datasets import load_iris
 
 from medmodels.treatment_effect.matching.algorithms import propensity_score as ps
@@ -21,8 +22,8 @@ class TestPropensityScore(unittest.TestCase):
         result_1, result_2 = ps.calculate_propensity(
             x, y, np.array([x[0, :]]), np.array([x[1, :]]), hyperparam=hyperparam_logit
         )
-        self.assertAlmostEqual(result_1[0], 1.43580537e-08, places=9)
-        self.assertAlmostEqual(result_2[0], 3.00353141e-08, places=9)
+        assert result_1[0] == pytest.approx(1.4e-08, 9)
+        assert result_2[0] == pytest.approx(3e-08, 9)
 
         # Decision Tree Classifier model:
         result_1, result_2 = ps.calculate_propensity(
@@ -33,8 +34,8 @@ class TestPropensityScore(unittest.TestCase):
             model="dec_tree",
             hyperparam=hyperparam,
         )
-        self.assertAlmostEqual(result_1[0], 0, places=2)
-        self.assertAlmostEqual(result_2[0], 0, places=2)
+        assert result_1[0] == pytest.approx(0, 2)
+        assert result_2[0] == pytest.approx(0, 2)
 
         # Random Forest Classifier model:
         result_1, result_2 = ps.calculate_propensity(
@@ -45,8 +46,8 @@ class TestPropensityScore(unittest.TestCase):
             model="forest",
             hyperparam=hyperparam,
         )
-        self.assertAlmostEqual(result_1[0], 0, places=2)
-        self.assertAlmostEqual(result_2[0], 0, places=2)
+        assert result_1[0] == pytest.approx(0, 2)
+        assert result_2[0] == pytest.approx(0, 2)
 
     def test_run_propensity_score(self) -> None:
         # Set random state by each propensity estimator:

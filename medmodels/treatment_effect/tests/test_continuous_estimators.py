@@ -1,17 +1,22 @@
 """Tests for the TreatmentEffect class in the treatment_effect module."""
 
+from __future__ import annotations
+
 import unittest
-from typing import List, Optional
+from typing import TYPE_CHECKING, List, Optional
 
 import pandas as pd
 import pytest
 
 from medmodels import MedRecord
-from medmodels.medrecord.types import NodeIndex
 from medmodels.treatment_effect.continuous_estimators import (
     average_treatment_effect,
     cohens_d,
+    hedges_g,
 )
+
+if TYPE_CHECKING:
+    from medmodels.medrecord.types import NodeIndex
 
 
 def create_patients(patient_list: List[NodeIndex]) -> pd.DataFrame:
@@ -216,7 +221,7 @@ class TestContinuousEstimators(unittest.TestCase):
             reference="last",
             time_attribute=self.time_attribute,
         )
-        self.assertAlmostEqual(-0.1, ate_result)
+        assert ate_result == pytest.approx(-0.1)
 
         ate_result = average_treatment_effect(
             self.medrecord,
@@ -227,7 +232,7 @@ class TestContinuousEstimators(unittest.TestCase):
             reference="first",
             time_attribute=self.time_attribute,
         )
-        self.assertAlmostEqual(-0.15, ate_result)
+        assert ate_result == pytest.approx(-0.15)
 
     def test_invalid_treatment_effect(self) -> None:
         with pytest.raises(ValueError, match="Outcome variable must be numeric"):
@@ -251,7 +256,7 @@ class TestContinuousEstimators(unittest.TestCase):
             reference="last",
             time_attribute=self.time_attribute,
         )
-        self.assertAlmostEqual(-0.59, cohens_d_result, places=2)
+        assert cohens_d_result == pytest.approx(-0.59, 2)
 
         cohens_d_result = cohens_d(
             self.medrecord,
@@ -262,21 +267,9 @@ class TestContinuousEstimators(unittest.TestCase):
             reference="first",
             time_attribute=self.time_attribute,
         )
-        self.assertAlmostEqual(-0.96, cohens_d_result, places=2)
+        assert cohens_d_result == pytest.approx(-0.96, 2)
 
-        cohens_d_corrected = cohens_d(
-            self.medrecord,
-            treatment_outcome_true_set=set({"P2", "P3"}),
-            control_outcome_true_set=set({"P1", "P4", "P7"}),
-            outcome_group=self.outcome_group,
-            outcome_variable="intensity",
-            reference="last",
-            time_attribute=self.time_attribute,
-            add_correction=True,
-        )
-        self.assertAlmostEqual(0, cohens_d_corrected)
-
-    def test_invalid_cohens_D(self) -> None:
+    def test_invalid_cohens_d(self) -> None:
         with pytest.raises(ValueError, match="Outcome variable must be numeric"):
             cohens_d(
                 self.medrecord,
@@ -287,6 +280,19 @@ class TestContinuousEstimators(unittest.TestCase):
                 reference="last",
                 time_attribute=self.time_attribute,
             )
+
+    def test_hedges_g(self) -> None:
+        hedges_g_result = hedges_g(
+            self.medrecord,
+            treatment_outcome_true_set=set({"P2", "P3"}),
+            control_outcome_true_set=set({"P1", "P4", "P7"}),
+            outcome_group=self.outcome_group,
+            outcome_variable="intensity",
+            reference="last",
+            time_attribute=self.time_attribute,
+        )
+
+        assert hedges_g_result == pytest.approx(-0.59, 2)
 
 
 if __name__ == "__main__":

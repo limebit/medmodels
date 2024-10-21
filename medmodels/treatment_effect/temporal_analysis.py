@@ -1,8 +1,10 @@
+"""This module contains functions for temporal analysis of treatment effects."""
+
 from typing import Literal
 
 import pandas as pd
 
-from medmodels.medrecord.medrecord import MedRecord
+from medmodels.medrecord.medrecord import EdgesDirected, MedRecord
 from medmodels.medrecord.types import EdgeIndex, Group, MedRecordAttribute, NodeIndex
 
 
@@ -13,13 +15,11 @@ def find_reference_edge(
     reference: Literal["first", "last"],
     time_attribute: MedRecordAttribute = "time",
 ) -> EdgeIndex:
-    """Determines the reference edge that represents the first or last exposure of a node index to any node in the connecte_group (list of nodes).
+    """Determines the reference edge containing the first/last last exposure.
 
-    This method is crucial for analyzing the temporal sequence of treatments and outcomes.
-
-    This function iterates over all nodes in the gorup and finds the reference edge
-    among them (first or last), ensuring that the analysis considers the reference
-    exposure.
+    This function returns the edge containing the first/last exposure (depending on
+    the `reference` argument) of a node to any other node in the connected_group. This
+    method is crucial for analyzing the temporal sequence of treatments and outcomes.
 
     Args:
         medrecord (MedRecord): An instance of the MedRecord class containing medical
@@ -44,8 +44,8 @@ def find_reference_edge(
             group in the MedRecord.
 
     Example:
-        This function returns the edge containing the timestamp of the last exposure to any
-        medication in the group "medications" for subject "P1".
+        This function returns the edge containing the timestamp of the last exposure to
+        any medication in the group "medications" for subject "P1".
 
         .. highlight:: python
         .. code-block:: python
@@ -67,7 +67,9 @@ def find_reference_edge(
     reference_edge = None
 
     for node_from_group in nodes_in_group:
-        edges = medrecord.edges_connecting(node_index, node_from_group, directed=False)
+        edges = medrecord.edges_connecting(
+            node_index, node_from_group, directed=EdgesDirected.UNDIRECTED
+        )
 
         # If the node does not have an edge to that node, continue
         if not edges:
@@ -106,7 +108,11 @@ def find_node_in_time_window(
     reference: Literal["first", "last"],
     time_attribute: MedRecordAttribute = "time",
 ) -> bool:
-    """Determines whether an event occurred within a specified time window for a given subject node.
+    """Determines whether an event occurred within a specified time window.
+
+    It looks for the occurrence of an event within a specified time window relative to
+    a reference event for the given node. The time window is defined by the interval:
+    reference event plus `start_days`, and reference event plus `end_days`.
 
     This method helps in identifying events that are temporally related to a reference
     event by considering the temporal sequence of events.
@@ -137,8 +143,8 @@ def find_node_in_time_window(
 
     Examples:
         This function checks if the event "E1" occurred within a time window of 30 days
-        before and after the last exposure to any medication in the group "medications" for
-        the subject "P1":
+        before and after the last exposure to any medication in the group "medications"
+        for the subject "P1":
 
         .. code-block:: python
             :linenos:
@@ -168,7 +174,9 @@ def find_node_in_time_window(
 
     start_period = pd.Timedelta(days=start_days)
     end_period = pd.Timedelta(days=end_days)
-    edges = medrecord.edges_connecting(subject_index, event_node, directed=False)
+    edges = medrecord.edges_connecting(
+        subject_index, event_node, directed=EdgesDirected.UNDIRECTED
+    )
 
     for edge in edges:
         edge_attributes = medrecord.edge[edge]

@@ -1,3 +1,9 @@
+"""This module contains the TreatmentEffectBuilder class.
+
+The TreatmentEffectBuilder class is used to build a TreatmentEffect object with the
+desired configurations for the treatment effect estimation using a builder pattern.
+"""
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Dict, Literal, Optional
@@ -16,6 +22,12 @@ if TYPE_CHECKING:
 
 
 class TreatmentEffectBuilder:
+    """Builder class for the TreatmentEffect object.
+
+    The TreatmentEffectBuilder class is used to build a TreatmentEffect object with the
+    desired configurations for the treatment effect estimation using a builder pattern.
+    """
+
     treatment: Group
     outcome: Group
 
@@ -40,7 +52,7 @@ class TreatmentEffectBuilder:
     matching_one_hot_covariates: Optional[MedRecordAttributeInputList]
     matching_model: Optional[Model]
     matching_number_of_neighbors: Optional[int]
-    matching_hyperparam: Optional[Dict[str, Any]]
+    matching_hyperparameters: Optional[Dict[str, Any]]
 
     def with_treatment(self, treatment: Group) -> TreatmentEffectBuilder:
         """Sets the treatment group for the treatment effect estimation.
@@ -106,8 +118,8 @@ class TreatmentEffectBuilder:
     ) -> TreatmentEffectBuilder:
         """Sets the washout period for the treatment effect estimation.
 
-        The washout period is the period of time before the treatment that is not considered in the
-        estimation.
+        The washout period is the period of time before the treatment that is not
+        considered in the estimation.
 
         Args:
             days (Optional[Dict[str, int]], optional): The duration of the washout
@@ -135,8 +147,8 @@ class TreatmentEffectBuilder:
     ) -> TreatmentEffectBuilder:
         """Sets the grace period for the treatment effect estimation.
 
-        The grace period is the period of time after the treatment that is not considered in the
-        estimation.
+        The grace period is the period of time after the treatment that is not
+        considered in the estimation.
 
         Args:
             days (Optional[int], optional): The duration of the grace period in days.
@@ -220,58 +232,59 @@ class TreatmentEffectBuilder:
 
     def with_propensity_matching(
         self,
-        essential_covariates: MedRecordAttributeInputList = None,
-        one_hot_covariates: MedRecordAttributeInputList = None,
+        essential_covariates: Optional[MedRecordAttributeInputList] = None,
+        one_hot_covariates: Optional[MedRecordAttributeInputList] = None,
         model: Model = "logit",
         number_of_neighbors: int = 1,
-        hyperparam: Optional[Dict[str, Any]] = None,
+        hyperparameters: Optional[Dict[str, Any]] = None,
     ) -> TreatmentEffectBuilder:
         """Adjust the treatment effect estimate using propensity score matching.
 
         Args:
-            essential_covariates (MedRecordAttributeInputList, optional):
+            essential_covariates (Optional[MedRecordAttributeInputList], optional):
                 Covariates that are essential for matching. Defaults to
                 ["gender", "age"].
-            one_hot_covariates (MedRecordAttributeInputList, optional):
+            one_hot_covariates (Optional[MedRecordAttributeInputList], optional):
                 Covariates that are one-hot encoded for matching. Defaults to
                 ["gender"].
             model (Model, optional): Model to choose for the matching. Defaults to
                 "logit".
             number_of_neighbors (int, optional): Number of neighbors to consider
                 for the matching. Defaults to 1.
-            hyperparam (Optional[Dict[str, Any]], optional): Hyperparameters for the
-                matching model. Defaults to None.
+            hyperparameters (Optional[Dict[str, Any]], optional): Hyperparameters for
+                the matching model. Defaults to None.
 
         Returns:
             TreatmentEffectBuilder: The current instance of the TreatmentEffectBuilder
                 with updated matching configurations.
         """
-        if one_hot_covariates is None:
-            one_hot_covariates = ["gender"]
         if essential_covariates is None:
             essential_covariates = ["gender", "age"]
+        if one_hot_covariates is None:
+            one_hot_covariates = ["gender"]
+
         self.matching_method = "propensity"
         self.matching_essential_covariates = essential_covariates
         self.matching_one_hot_covariates = one_hot_covariates
         self.matching_model = model
         self.matching_number_of_neighbors = number_of_neighbors
-        self.matching_hyperparam = hyperparam
+        self.matching_hyperparameters = hyperparameters
 
         return self
 
     def with_nearest_neighbors_matching(
         self,
-        essential_covariates: MedRecordAttributeInputList = None,
-        one_hot_covariates: MedRecordAttributeInputList = None,
+        essential_covariates: Optional[MedRecordAttributeInputList] = None,
+        one_hot_covariates: Optional[MedRecordAttributeInputList] = None,
         number_of_neighbors: int = 1,
     ) -> TreatmentEffectBuilder:
         """Adjust the treatment effect estimate using nearest neighbors matching.
 
         Args:
-            essential_covariates (MedRecordAttributeInputList, optional):
+            essential_covariates (Optional[MedRecordAttributeInputList], optional):
                 Covariates that are essential for matching. Defaults to
                 ["gender", "age"].
-            one_hot_covariates (MedRecordAttributeInputList, optional):
+            one_hot_covariates (Optional[MedRecordAttributeInputList], optional):
                 Covariates that are one-hot encoded for matching. Defaults to
                 ["gender"].
             number_of_neighbors (int, optional): Number of neighbors to consider for the
@@ -281,10 +294,11 @@ class TreatmentEffectBuilder:
             TreatmentEffectBuilder: The current instance of the TreatmentEffectBuilder
                 with updated matching configurations.
         """
-        if one_hot_covariates is None:
-            one_hot_covariates = ["gender"]
         if essential_covariates is None:
             essential_covariates = ["gender", "age"]
+        if one_hot_covariates is None:
+            one_hot_covariates = ["gender"]
+
         self.matching_method = "nearest_neighbors"
         self.matching_essential_covariates = essential_covariates
         self.matching_one_hot_covariates = one_hot_covariates
