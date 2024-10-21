@@ -75,6 +75,7 @@ EdgeTuple: TypeAlias = Union[
     Tuple[NodeIndex, NodeIndex, AttributesInput],
 ]
 
+
 #: A type alias for input to a Polars DataFrame for nodes.
 PolarsNodeDataFrameInput: TypeAlias = Tuple[pl.DataFrame, str]
 
@@ -86,6 +87,10 @@ PandasNodeDataFrameInput: TypeAlias = Tuple[pd.DataFrame, str]
 
 #: A type alias for input to a Pandas DataFrame for edges.
 PandasEdgeDataFrameInput: TypeAlias = Tuple[pd.DataFrame, str, str]
+
+AttributeInfo: TypeAlias = Union[
+    "TemporalAttributeInfo", "NumericAttributeInfo", "StringAttributeInfo"
+]
 
 #: A type alias for input to a node.
 NodeInput = Union[
@@ -115,16 +120,6 @@ class GroupInfo(TypedDict):
     edges: List[EdgeIndex]
 
 
-class AttributeInfo(TypedDict):
-    """A dictionary containing info about nodes/edges and their attributes."""
-
-    count: int
-    attribute: Dict[
-        MedRecordAttribute,
-        Union[TemporalAttributeInfo, NumericAttributeInfo, StringAttributeInfo],
-    ]
-
-
 class TemporalAttributeInfo(TypedDict):
     """Dictionary for a temporal attribute and its metrics."""
 
@@ -144,6 +139,16 @@ class StringAttributeInfo(TypedDict):
     """Dictionary for a string attribute and its values."""
 
     values: str
+
+
+class AttributeSummary(TypedDict):
+    """A dictionary containing info about nodes/edges and their attributes."""
+
+    count: int
+    attribute: Dict[
+        MedRecordAttribute,
+        AttributeInfo,
+    ]
 
 
 def is_medrecord_attribute(value: object) -> TypeIs[MedRecordAttribute]:
