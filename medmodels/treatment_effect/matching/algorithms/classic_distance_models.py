@@ -1,11 +1,22 @@
-from typing import Optional, Tuple
+"""Models for matching treated and control units based on distance metrics.
+
+This module contains functions for matching treated and control units based on
+distance metrics. The functions are used to find the nearest neighbors in the
+control set for each treated patient.
+"""
+
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Optional, Tuple
 
 import numpy as np
 import polars as pl
-from numpy.typing import NDArray
 from scipy.optimize import linear_sum_assignment
 
-from medmodels.medrecord.types import MedRecordAttributeInputList
+if TYPE_CHECKING:
+    from numpy.typing import NDArray
+
+    from medmodels.medrecord.types import MedRecordAttributeInputList
 
 
 def nearest_neighbor(
@@ -14,13 +25,13 @@ def nearest_neighbor(
     number_of_neighbors: int = 1,
     covariates: Optional[MedRecordAttributeInputList] = None,
 ) -> pl.DataFrame:
-    """Performs nearest neighbor matching between two dataframes using the Hungarian algorithm.
+    """Performs nearest neighbor matching between two polars dataframes.
 
     This method matches elements from the treated set with their closest matches in the
     control set based on the specified covariates. The function leverages the Hungarian
-    algorithm (linear_sum_assignment) to find the optimal matching and ensures that each
-    treated unit is matched with the specified number of nearest control units without
-    reusing any control unit.
+    algorithm (`linear_sum_assignment`) to find the optimal matching and ensures that
+    each treated unit is matched with the specified number of nearest control units
+    without reusing any control unit.
 
     Args:
         treated_set (pl.DataFrame): DataFrame for which matches are sought.
@@ -33,10 +44,14 @@ def nearest_neighbor(
     Returns:
         pl.DataFrame: DataFrame containing the matched control units for each treated
             unit.
+
+    Raises:
+        ValueError: If the treated set is too large for the given number of neighbors.
     """
     if treated_set.shape[0] * number_of_neighbors > control_set.shape[0]:
         msg = "The treated set is too large for the given number of neighbors."
         raise ValueError(msg)
+
     if not covariates:
         covariates = treated_set.columns
 
@@ -72,7 +87,13 @@ def normalize_data(
     treated_set: pl.DataFrame,
     covariates: MedRecordAttributeInputList,
 ) -> Tuple[NDArray[np.float64], NDArray[np.float64]]:
-    """Normalizes the data by taking the maximum and minimum values of the combined treated and control sets.
+    """Normalizes the data of the control and treated sets on the specified covariates.
+
+    The values of the specified covariates on the control and treated sets are
+    normalized. Thi is performed by taking the maximum and minimum values of the
+    combined treated and control sets and subtracting the minimum values from the
+    data and dividing by the difference between the maximum and minimum values. The
+    normalized data is then returned in the form of numpy arrays.
 
     Args:
         control_set (pl.DataFrame): Control set.
@@ -86,7 +107,7 @@ def normalize_data(
     control_array = control_set.select(covariates).to_numpy().astype(float)
     treated_array = treated_set.select(covariates).to_numpy().astype(float)
 
-    # Normalize data: take the maximums and minimums per columns of both arrays combined
+    # Take the maximums and minimums per columns of both arrays combined
     maximum_values = np.maximum(
         np.max(treated_array, axis=0), np.max(control_array, axis=0)
     )
