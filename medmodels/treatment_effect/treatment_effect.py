@@ -37,6 +37,8 @@ if TYPE_CHECKING:
     from medmodels.treatment_effect.matching.algorithms.propensity_score import Model
     from medmodels.treatment_effect.matching.matching import MatchingMethod
 
+logger = logging.getLogger(__name__)
+
 
 class TreatmentEffect:
     """The TreatmentEffect class for analyzing treatment effects in medical records."""
@@ -72,7 +74,7 @@ class TreatmentEffect:
         treatment: Group,
         outcome: Group,
     ) -> None:
-        """Initializes a Treatment Effect analysis setup.
+        """Instantiates a Treatment Effect class.
 
         It requires the group of the Medrecord that contains the treatment node IDs and
         the group of the Medrecord that contains the outcome node IDs.
@@ -116,7 +118,7 @@ class TreatmentEffect:
         matching_number_of_neighbors: int = 1,
         matching_hyperparameters: Optional[Dict[str, Any]] = None,
     ) -> None:
-        """Initializes a Treatment Effect analysis setup.
+        """Sets the configuration for the TreatmentEffect instance.
 
         Validates the presence of specified dimensions and attributes within the
         provided MedRecord object, ensuring the specified treatments and outcomes are
@@ -354,7 +356,7 @@ class TreatmentEffect:
         treated_group -= outcome_before_treatment_nodes
         if outcome_before_treatment_nodes:
             dropped_num = len(outcome_before_treatment_nodes)
-            logging.warning(
+            logger.warning(
                 "%d subject%s dropped due to outcome before treatment.",
                 dropped_num,
                 " was" if dropped_num == 1 else "s were",
@@ -406,7 +408,7 @@ class TreatmentEffect:
 
         if washout_nodes:
             dropped_num = len(washout_nodes)
-            logging.warning(
+            logger.warning(
                 "%d subject%s dropped due to outcome before treatment.",
                 dropped_num,
                 " was" if dropped_num == 1 else "s were",

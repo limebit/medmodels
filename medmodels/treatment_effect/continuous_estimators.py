@@ -10,6 +10,8 @@ from medmodels.medrecord.medrecord import MedRecord
 from medmodels.medrecord.types import Group, MedRecordAttribute, NodeIndex
 from medmodels.treatment_effect.temporal_analysis import find_reference_edge
 
+logger = logging.getLogger(__name__)
+
 
 def average_treatment_effect(
     medrecord: MedRecord,
@@ -195,7 +197,7 @@ def cohens_d(
     minimum_length = min(len(treated_outcomes), len(control_outcomes))
 
     if minimum_length < 50:
-        logging.warning(
+        logger.warning(
             "Small sample size detected. Consider using Hedges' g for an unbiased effect size estimate."
         )
 
@@ -283,19 +285,15 @@ def hedges_g(
     number_control = len(control_outcomes)
     degrees_of_freedom = number_treated + number_control - 2
 
-    # Calculate pooled standard deviation
-    treated_std_dev = treated_outcomes.std(ddof=1)
-    control_std_dev = control_outcomes.std(ddof=1)
-    pooled_std_dev = sqrt(
-        (
-            (number_treated - 1) * treated_std_dev**2
-            + (number_control - 1) * control_std_dev**2
-        )
-        / degrees_of_freedom
+    cohen_d = cohens_d(
+        medrecord,
+        treatment_outcome_true_set,
+        control_outcome_true_set,
+        outcome_group,
+        outcome_variable,
+        reference,
+        time_attribute,
     )
-
-    # Calculate Cohen's d
-    cohen_d = (treated_outcomes.mean() - control_outcomes.mean()) / pooled_std_dev
 
     # Correction factor J
     correction_factor_j = 1 - (3 / (4 * degrees_of_freedom - 1))

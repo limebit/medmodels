@@ -1,4 +1,4 @@
-"""This module contains functions t generate reports of the treatment effect class."""
+"""This module contains functions to generate reports of the treatment effect class."""
 
 from __future__ import annotations
 

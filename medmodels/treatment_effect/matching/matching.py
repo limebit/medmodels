@@ -1,4 +1,4 @@
-"""Matching abstract class.
+"""Module containing the matching abstract class.
 
 Matching is the process of selecting control subjects that are similar to treated
 subjects. The class provides the base for the matching algorithms, such as propensity
@@ -27,7 +27,7 @@ MatchingMethod: TypeAlias = Literal["propensity", "nearest_neighbors"]
 
 
 class Matching(ABC):
-    """The Base Class for matching."""
+    """The Abstract Class for matching."""
 
     def _preprocess_data(
         self,

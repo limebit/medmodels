@@ -1,8 +1,4 @@
-"""This module contains the TreatmentEffectBuilder class.
-
-The TreatmentEffectBuilder class is used to build a TreatmentEffect object with the
-desired configurations for the treatment effect estimation using a builder pattern.
-"""
+"""This module contains the TreatmentEffectBuilder class."""
 
 from __future__ import annotations
 
@@ -24,8 +20,9 @@ if TYPE_CHECKING:
 class TreatmentEffectBuilder:
     """Builder class for the TreatmentEffect object.
 
-    The TreatmentEffectBuilder class is used to build a TreatmentEffect object with the
-    desired configurations for the treatment effect estimation using a builder pattern.
+    The TreatmentEffectBuilder class is used to build a TreatmentEffect object with
+    the desired configurations for the treatment effect estimation using a builder
+    pattern.
     """
 
     treatment: Group

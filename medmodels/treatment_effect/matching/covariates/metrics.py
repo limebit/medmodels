@@ -34,7 +34,7 @@ def absolute_metric(
 
 
 def exact_metric(vector1: NDArray[np.float64], vector2: NDArray[np.float64]) -> float:
-    r"""Computes the exact metric between two vector.
+    r"""Computes the exact metric between two vectors.
 
     This exact metric can be used for matching, which is particularly applicable for
     discrete or categorical covariates rather than continuous ones.

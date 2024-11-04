@@ -1,9 +1,4 @@
-"""Models for matching treated and control units based on distance metrics.
-
-This module contains functions for matching treated and control units based on
-distance metrics. The functions are used to find the nearest neighbors in the
-control set for each treated patient.
-"""
+"""Models for matching treated and control units based on distance metrics."""
 
 from __future__ import annotations
 
@@ -90,7 +85,7 @@ def normalize_data(
     """Normalizes the data of the control and treated sets on the specified covariates.
 
     The values of the specified covariates on the control and treated sets are
-    normalized. Thi is performed by taking the maximum and minimum values of the
+    normalized. This is performed by taking the maximum and minimum values of the
     combined treated and control sets and subtracting the minimum values from the
     data and dividing by the difference between the maximum and minimum values. The
     normalized data is then returned in the form of numpy arrays.
