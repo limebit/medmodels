@@ -1,9 +1,8 @@
 from math import sqrt
 from typing import Literal, Optional, Set, Tuple
 
-from scipy.stats import ttest_ind
-
 import numpy as np
+from scipy.stats import ttest_ind
 
 from medmodels.medrecord.medrecord import MedRecord
 from medmodels.medrecord.querying import EdgeOperand
@@ -262,6 +261,7 @@ def cohens_d(
         / sqrt((treated_outcomes.std() ** 2 + control_outcomes.std() ** 2) / 2)
     )
 
+
 def t_test(
     medrecord: MedRecord,
     treatment_outcome_true_set: Set[NodeIndex],
@@ -269,7 +269,7 @@ def t_test(
     outcome_group: Group,
     outcome_variable: MedRecordAttribute,
     reference: Literal["first", "last"] = "last",
-    time_attribute: MedRecordAttribute = "time",
+    time_attribute: Optional[MedRecordAttribute] = "time",
     equal_var: bool = False,
 ) -> Tuple[float, float]:
     """Performs a two-sample t-test to compare the means of the treated and control groups.
@@ -293,7 +293,7 @@ def t_test(
             t-test is performed. Defaults to False.
 
     Returns:
-        tuple[float, float]: The t-statistic and the p-value.
+        Tuple[float, float]: The t-statistic and the p-value.
 
     Raises:
         ValueError: If the outcome variable is not numeric.
@@ -360,87 +360,13 @@ def t_test(
     # Perform the two-sample t-test
     t_stat, p_value = ttest_ind(treated_outcomes, control_outcomes, equal_var=equal_var)
 
-    return t_stat, p_value
-
-def t_test(
-    medrecord: MedRecord,
-    treatment_outcome_true_set: Set[NodeIndex],
-    control_outcome_true_set: Set[NodeIndex],
-    outcome_group: Group,
-    outcome_variable: MedRecordAttribute,
-    reference: Literal["first", "last"] = "last",
-    time_attribute: MedRecordAttribute = "time",
-    equal_var: bool = False,
-) -> Tuple[float, float]:
-    """Performs a two-sample t-test to compare the means of the treated and control groups.
-
-    The t-test evaluates whether the means of two groups are statistically different.
-
-    Args:
-        medrecord (MedRecord): An instance of the MedRecord class containing medical data.
-        treatment_outcome_true_set (Set[NodeIndex]): A set of node indices representing
-            the treated group that also have the outcome.
-        control_outcome_true_set (Set[NodeIndex]): A set of node indices representing
-            the control group that have the outcome.
-        outcome_group (Group): The group of nodes that contain the outcome variable.
-        outcome_variable (MedRecordAttribute): The attribute in the edge that contains
-            the outcome variable. It must be numeric and continuous.
-        reference (Literal["first", "last"], optional): The reference point for the
-            exposure time. Options include "first" and "last". Defaults to "last".
-        time_attribute (MedRecordAttribute, optional): The attribute in the edge that
-            contains the time information. Defaults to "time".
-        equal_var (bool, optional): Assumes equal variance if True; otherwise, Welch’s
-            t-test is performed. Defaults to False.
-
-    Returns:
-        tuple[float, float]: The t-statistic and the p-value.
-
-    Raises:
-        ValueError: If the outcome variable is not numeric.
-    """
-    treated_outcomes = np.array(
-        [
-            medrecord.edge[
-                find_reference_edge(
-                    medrecord,
-                    node_index,
-                    outcome_group,
-                    time_attribute=time_attribute,
-                    reference=reference,
-                )
-            ][outcome_variable]
-            for node_index in treatment_outcome_true_set
-        ]
-    )
-    if not all(isinstance(i, (int, float)) for i in treated_outcomes):
-        raise ValueError("Outcome variable must be numeric")
-
-    control_outcomes = np.array(
-        [
-            medrecord.edge[
-                find_reference_edge(
-                    medrecord,
-                    node_index,
-                    outcome_group,
-                    time_attribute="time",
-                    reference=reference,
-                )
-            ][outcome_variable]
-            for node_index in control_outcome_true_set
-        ]
-    )
-    if not all(isinstance(i, (int, float)) for i in control_outcomes):
-        raise ValueError("Outcome variable must be numeric")
-
-    # Perform the two-sample t-test
-    t_stat, p_value = ttest_ind(treated_outcomes, control_outcomes, equal_var=equal_var)
-
-    return t_stat, p_value
+    return float(t_stat), float(p_value)  # pyright: ignore[reportArgumentType]
 
 
-CONTINUOUS_ESTIMATOR = {
+CONTINUOUS_ESTIMATORS = {
     "average_te": average_treatment_effect,
     "cohens_d": cohens_d,
+    "t-test": t_test,
 }
 
 

@@ -38,7 +38,7 @@ class TreatmentEffectBuilder:
     matching_one_hot_covariates: Optional[MedRecordAttributeInputList]
     matching_model: Optional[Model]
     matching_number_of_neighbors: Optional[int]
-    matching_hyperparam: Optional[Dict[str, Any]]
+    matching_hyperparameters: Optional[Dict[str, Any]]
 
     def with_treatment(self, treatment: Group) -> TreatmentEffectBuilder:
         """Sets the treatment group for the treatment effect estimation.
@@ -219,27 +219,25 @@ class TreatmentEffectBuilder:
 
     def with_propensity_matching(
         self,
-        essential_covariates: MedRecordAttributeInputList = ["gender", "age"],
-        one_hot_covariates: MedRecordAttributeInputList = ["gender"],
+        essential_covariates: Optional[MedRecordAttributeInputList] = None,
+        one_hot_covariates: Optional[MedRecordAttributeInputList] = None,
         model: Model = "logit",
         number_of_neighbors: int = 1,
-        hyperparam: Optional[Dict[str, Any]] = None,
+        hyperparameters: Optional[Dict[str, Any]] = None,
     ) -> TreatmentEffectBuilder:
         """Adjust the treatment effect estimate using propensity score matching.
 
         Args:
-            essential_covariates (MedRecordAttributeInputList, optional):
-                Covariates that are essential for matching. Defaults to
-                ["gender", "age"].
-            one_hot_covariates (MedRecordAttributeInputList, optional):
-                Covariates that are one-hot encoded for matching. Defaults to
-                ["gender"].
+            essential_covariates (Optional[MedRecordAttributeInputList]):
+                Covariates that are essential for matching. Defaults to None.
+            one_hot_covariates (Optional[MedRecordAttributeInputList]):
+                Covariates that are one-hot encoded for matching. Defaults to None.
             model (Model, optional): Model to choose for the matching. Defaults to
                 "logit".
             number_of_neighbors (int, optional): Number of neighbors to consider
                 for the matching. Defaults to 1.
-            hyperparam (Optional[Dict[str, Any]], optional): Hyperparameters for the
-                matching model. Defaults to None.
+            hyperparameters (Optional[Dict[str, Any]], optional): Hyperparameters for
+                the matching model. Defaults to None.
 
         Returns:
             TreatmentEffectBuilder: The current instance of the TreatmentEffectBuilder
@@ -250,27 +248,25 @@ class TreatmentEffectBuilder:
         self.matching_one_hot_covariates = one_hot_covariates
         self.matching_model = model
         self.matching_number_of_neighbors = number_of_neighbors
-        self.matching_hyperparam = hyperparam
+        self.matching_hyperparameters = hyperparameters
 
         return self
 
     def with_nearest_neighbors_matching(
         self,
-        essential_covariates: MedRecordAttributeInputList = ["gender", "age"],
-        one_hot_covariates: MedRecordAttributeInputList = ["gender"],
+        essential_covariates: Optional[MedRecordAttributeInputList] = None,
+        one_hot_covariates: Optional[MedRecordAttributeInputList] = None,
         number_of_neighbors: int = 1,
     ) -> TreatmentEffectBuilder:
         """Adjust the treatment effect estimate using nearest neighbors matching.
 
         Args:
-            essential_covariates (MedRecordAttributeInputList, optional):
-                Covariates that are essential for matching. Defaults to
-                ["gender", "age"].
-            one_hot_covariates (MedRecordAttributeInputList, optional):
-                Covariates that are one-hot encoded for matching. Defaults to
-                ["gender"].
-            number_of_neighbors (int, optional): Number of neighbors to consider for the
-                matching. Defaults to 1.
+            essential_covariates (Optional[MedRecordAttributeInputList]):
+                Covariates that are essential for matching. Defaults to None.
+            one_hot_covariates (Optional[MedRecordAttributeInputList]):
+                Covariates that are one-hot encoded for matching. Defaults to None.
+            number_of_neighbors (int, optional): Number of neighbors to consider for
+                the matching. Defaults to 1.
 
         Returns:
             TreatmentEffectBuilder: The current instance of the TreatmentEffectBuilder
@@ -280,6 +276,21 @@ class TreatmentEffectBuilder:
         self.matching_essential_covariates = essential_covariates
         self.matching_one_hot_covariates = one_hot_covariates
         self.matching_number_of_neighbors = number_of_neighbors
+
+        return self
+
+    def with_verbose(self, verbose: bool) -> TreatmentEffectBuilder:
+        """Sets the verbose mode for the treatment effect estimation.
+
+        Args:
+            verbose (bool): Whether to print the progress of the treatment effect
+                estimation.
+
+        Returns:
+            TreatmentEffectBuilder: The current instance of the TreatmentEffectBuilder
+                with updated verbose mode.
+        """
+        self.verbose = verbose
 
         return self
 

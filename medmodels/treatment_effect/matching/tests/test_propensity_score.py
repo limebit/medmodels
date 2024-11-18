@@ -12,14 +12,18 @@ class TestPropensityScore(unittest.TestCase):
         x, y = load_iris(return_X_y=True)
 
         # Set random state by each propensity estimator:
-        hyperparam = {"random_state": 1}
-        hyperparam_logit = {"random_state": 1, "max_iter": 200}
+        hyperparameters = {"random_state": 1}
+        hyperparameters_logit = {"random_state": 1, "max_iter": 200}
         x = np.array(x)
         y = np.array(y)
 
         # Logistic Regression model:
         result_1, result_2 = ps.calculate_propensity(
-            x, y, np.array([x[0, :]]), np.array([x[1, :]]), hyperparam=hyperparam_logit
+            x,
+            y,
+            np.array([x[0, :]]),
+            np.array([x[1, :]]),
+            hyperparameters=hyperparameters_logit,
         )
         self.assertAlmostEqual(result_1[0], 1.43580537e-08, places=9)
         self.assertAlmostEqual(result_2[0], 3.00353141e-08, places=9)
@@ -31,7 +35,7 @@ class TestPropensityScore(unittest.TestCase):
             np.array([x[0, :]]),
             np.array([x[1, :]]),
             model="dec_tree",
-            hyperparam=hyperparam,
+            hyperparameters=hyperparameters,
         )
         self.assertAlmostEqual(result_1[0], 0, places=2)
         self.assertAlmostEqual(result_2[0], 0, places=2)
@@ -43,15 +47,15 @@ class TestPropensityScore(unittest.TestCase):
             np.array([x[0, :]]),
             np.array([x[1, :]]),
             model="forest",
-            hyperparam=hyperparam,
+            hyperparameters=hyperparameters,
         )
         self.assertAlmostEqual(result_1[0], 0, places=2)
         self.assertAlmostEqual(result_2[0], 0, places=2)
 
     def test_run_propensity_score(self):
         # Set random state by each propensity estimator:
-        hyperparam = {"random_state": 1}
-        hyperparam_logit = {"random_state": 1, "max_iter": 200}
+        hyperparameters = {"random_state": 1}
+        hyperparameters_logit = {"random_state": 1, "max_iter": 200}
 
         ###########################################
         # 1D example
@@ -61,21 +65,21 @@ class TestPropensityScore(unittest.TestCase):
         # logit model
         expected_logit = pl.DataFrame({"a": [1.0, 3.0]})
         result_logit = ps.run_propensity_score(
-            treated_set, control_set, hyperparam=hyperparam_logit
+            treated_set, control_set, hyperparameters=hyperparameters_logit
         )
         self.assertTrue(result_logit.equals(expected_logit))
 
         # dec_tree metric
         expected_logit = pl.DataFrame({"a": [1.0, 1.0]})
         result_logit = ps.run_propensity_score(
-            treated_set, control_set, model="dec_tree", hyperparam=hyperparam
+            treated_set, control_set, model="dec_tree", hyperparameters=hyperparameters
         )
         self.assertTrue(result_logit.equals(expected_logit))
 
         # forest model
         expected_logit = pl.DataFrame({"a": [1.0, 1.0]})
         result_logit = ps.run_propensity_score(
-            treated_set, control_set, model="forest", hyperparam=hyperparam
+            treated_set, control_set, model="forest", hyperparameters=hyperparameters
         )
         self.assertTrue(result_logit.equals(expected_logit))
 
@@ -90,7 +94,10 @@ class TestPropensityScore(unittest.TestCase):
         # logit model
         expected_logit = pl.DataFrame({"a": [1.0], "b": [3.0], "c": [5.0]})
         result_logit = ps.run_propensity_score(
-            treated_set, control_set, covariates=covs, hyperparam=hyperparam_logit
+            treated_set,
+            control_set,
+            covariates=covs,
+            hyperparameters=hyperparameters_logit,
         )
         self.assertTrue(result_logit.equals(expected_logit))
 
@@ -101,7 +108,7 @@ class TestPropensityScore(unittest.TestCase):
             control_set,
             model="dec_tree",
             covariates=covs,
-            hyperparam=hyperparam,
+            hyperparameters=hyperparameters,
         )
         self.assertTrue(result_logit.equals(expected_logit))
 
@@ -112,7 +119,7 @@ class TestPropensityScore(unittest.TestCase):
             control_set,
             model="forest",
             covariates=covs,
-            hyperparam=hyperparam,
+            hyperparameters=hyperparameters,
         )
         self.assertTrue(result_logit.equals(expected_logit))
 

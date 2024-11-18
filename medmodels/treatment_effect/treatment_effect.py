@@ -56,11 +56,13 @@ class TreatmentEffect:
     _filter_controls_query: Optional[NodeQuery]
 
     _matching_method: Optional[MatchingMethod]
-    _matching_essential_covariates: MedRecordAttributeInputList
-    _matching_one_hot_covariates: MedRecordAttributeInputList
+    _matching_essential_covariates: Optional[MedRecordAttributeInputList]
+    _matching_one_hot_covariates: Optional[MedRecordAttributeInputList]
     _matching_model: Model
     _matching_number_of_neighbors: int
-    _matching_hyperparam: Optional[Dict[str, Any]]
+    _matching_hyperparameters: Optional[Dict[str, Any]]
+
+    _verbose: bool
 
     def __init__(
         self,
@@ -97,11 +99,12 @@ class TreatmentEffect:
         outcome_before_treatment_days: Optional[int] = None,
         filter_controls_query: Optional[NodeQuery] = None,
         matching_method: Optional[MatchingMethod] = None,
-        matching_essential_covariates: MedRecordAttributeInputList = ["gender", "age"],
-        matching_one_hot_covariates: MedRecordAttributeInputList = ["gender"],
+        matching_essential_covariates: Optional[MedRecordAttributeInputList] = None,
+        matching_one_hot_covariates: Optional[MedRecordAttributeInputList] = None,
         matching_model: Model = "logit",
         matching_number_of_neighbors: int = 1,
-        matching_hyperparam: Optional[Dict[str, Any]] = None,
+        matching_hyperparameters: Optional[Dict[str, Any]] = None,
+        verbose: bool = True,
     ) -> None:
         """Initializes a Treatment Effect analysis setup with specified treatments and outcomes within a medical record dataset.
 
@@ -137,18 +140,18 @@ class TreatmentEffect:
                 Defaults to None.
             matching_method (Optional[MatchingMethod]): The method to match treatment
                 and control groups. Defaults to None.
-            matching_essential_covariates (MedRecordAttributeInputList, optional):
-                The essential covariates to use for matching. Defaults to
-                ["gender", "age"].
-            matching_one_hot_covariates (MedRecordAttributeInputList, optional):
-                The one-hot covariates to use for matching. Defaults to
-                ["gender"].
+            matching_essential_covariates (Optional[MedRecordAttributeInputList]):
+                Covariates that are essential for matching. Defaults to None.
+            matching_one_hot_covariates (Optional[MedRecordAttributeInputList]):
+                Covariates that are one-hot encoded for matching. Defaults to None.
             matching_model (Model, optional): The model to use for matching.
                 Defaults to "logit".
             matching_number_of_neighbors (int, optional): The number of
                 neighbors to match for each treated subject. Defaults to 1.
-            matching_hyperparam (Optional[Dict[str, Any]], optional): The
+            matching_hyperparameters (Optional[Dict[str, Any]], optional): The
                 hyperparameters for the matching model. Defaults to None.
+            verbose (bool, optional): Whether to print verbose output. Defaults to
+                True.
 
         Raises:
             ValueError: If the follow-up period is less than the grace period.
@@ -178,7 +181,9 @@ class TreatmentEffect:
         treatment_effect._matching_one_hot_covariates = matching_one_hot_covariates
         treatment_effect._matching_model = matching_model
         treatment_effect._matching_number_of_neighbors = matching_number_of_neighbors
-        treatment_effect._matching_hyperparam = matching_hyperparam
+        treatment_effect._matching_hyperparameters = matching_hyperparameters
+
+        treatment_effect._verbose = verbose
 
     def _find_groups(
         self, medrecord: MedRecord
@@ -210,9 +215,10 @@ class TreatmentEffect:
                 medrecord, treated_set
             )
         else:
-            logging.warning(
-                "Washout period is not applied because the time attribute is not set."
-            )
+            if self._verbose:
+                logging.warning(
+                    "Washout period is not applied because the time attribute is not set."
+                )
             washout_nodes = set()
 
         treated_set, treated_outcome_true, outcome_before_treatment_nodes = (
@@ -302,7 +308,6 @@ class TreatmentEffect:
             )
 
         if outcome_before_treatment_days and self._time_attribute:
-
             for node_index in treated_set:
                 outcome_before_treatment_nodes.update(
                     set(
@@ -321,10 +326,11 @@ class TreatmentEffect:
             treated_set -= outcome_before_treatment_nodes
 
             dropped_num = len(outcome_before_treatment_nodes)
-            logging.warning(
-                f"{dropped_num} subject{' was' if dropped_num == 1 else 's were'} "
-                f"dropped due to outcome before treatment."
-            )
+            if self._verbose:
+                logging.warning(
+                    f"{dropped_num} subject{' was' if dropped_num == 1 else 's were'} "
+                    f"dropped due to outcome before treatment."
+                )
 
         if self._time_attribute:
             treated_outcome_true = set()
@@ -332,29 +338,30 @@ class TreatmentEffect:
             for node_index in treated_set:
                 treated_outcome_true.update(
                     set(
-                            medrecord.select_nodes(
-                                lambda node: self._query_node_within_time_window(
-                                    node,
-                                    node_index,
-                                    self._outcomes_group,
-                                    self._grace_period_days,
-                                    self._follow_up_period_days,
-                                    self._follow_up_period_reference,
-                            )
+                        medrecord.select_nodes(
+                            lambda node: self._query_node_within_time_window(
+                                node,
+                                node_index,
+                                self._outcomes_group,
+                                self._grace_period_days,
+                                self._follow_up_period_days,
+                                self._follow_up_period_reference,
                             )
                         )
                     )
+                )
         else:
             treated_outcome_true = set(
                 medrecord.select_nodes(
                     lambda node: self._query_set_outcome_true(node, treated_set)
                 )
             )
-            logging.warning(
-                "Time attribute is not set, thus the grace period, follow-up period,"
-                + "and outcome before treatment are not applied. The treatment effect"
-                + "analysis is performed in a static way."
-            )
+            if self._verbose:
+                logging.warning(
+                    "Time attribute is not set, thus the grace period, follow-up period,"
+                    + "and outcome before treatment are not applied. The treatment effect"
+                    + "analysis is performed in a static way."
+                )
 
         return treated_set, treated_outcome_true, outcome_before_treatment_nodes
 
@@ -402,10 +409,11 @@ class TreatmentEffect:
 
         if washout_nodes:
             dropped_num = len(washout_nodes)
-            logging.warning(
-                f"{dropped_num} subject{' was' if dropped_num == 1 else 's were'} "
-                f"dropped due to outcome before treatment."
-            )
+            if self._verbose:
+                logging.warning(
+                    f"{dropped_num} subject{' was' if dropped_num == 1 else 's were'} "
+                    f"dropped due to outcome before treatment."
+                )
 
         return treated_set, washout_nodes
 

@@ -268,7 +268,8 @@ def assert_treatment_effects_equal(
         treatment_effect2._matching_number_of_neighbors,
     )
     test_case.assertEqual(
-        treatment_effect1._matching_hyperparam, treatment_effect2._matching_hyperparam
+        treatment_effect1._matching_hyperparameters,
+        treatment_effect2._matching_hyperparameters,
     )
 
 

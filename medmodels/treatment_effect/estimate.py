@@ -182,7 +182,7 @@ class Estimate:
                 else PropensityMatching(
                     number_of_neighbors=self._treatment_effect._matching_number_of_neighbors,
                     model=self._treatment_effect._matching_model,
-                    hyperparam=self._treatment_effect._matching_hyperparam,
+                    hyperparameters=self._treatment_effect._matching_hyperparameters,
                 )
             )
 
@@ -192,6 +192,7 @@ class Estimate:
                 medrecord=medrecord,
                 treated_set=treated_set,
                 control_set=control_set,
+                patients_group=self._treatment_effect._patients_group,
                 essential_covariates=self._treatment_effect._matching_essential_covariates,
                 one_hot_covariates=self._treatment_effect._matching_one_hot_covariates,
             )
