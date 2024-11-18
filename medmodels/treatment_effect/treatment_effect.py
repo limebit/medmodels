@@ -68,8 +68,8 @@ class TreatmentEffect:
     _filter_controls_query: Optional[NodeQuery]
 
     _matching_method: Optional[MatchingMethod]
-    _matching_essential_covariates: MedRecordAttributeInputList
-    _matching_one_hot_covariates: MedRecordAttributeInputList
+    _matching_essential_covariates: Optional[MedRecordAttributeInputList]
+    _matching_one_hot_covariates: Optional[MedRecordAttributeInputList]
     _matching_model: Model
     _matching_number_of_neighbors: int
     _matching_hyperparameters: Optional[Dict[str, Any]]

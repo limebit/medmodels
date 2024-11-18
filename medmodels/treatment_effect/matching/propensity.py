@@ -7,6 +7,8 @@ from typing import TYPE_CHECKING, Any, Dict, Optional, Set
 import numpy as np
 import polars as pl
 
+from medmodels import MedRecord
+from medmodels.medrecord.types import MedRecordAttributeInputList, NodeIndex
 from medmodels.treatment_effect.matching.algorithms.classic_distance_models import (
     nearest_neighbor,
 )
@@ -18,7 +20,7 @@ from medmodels.treatment_effect.matching.matching import Matching
 
 if TYPE_CHECKING:
     from medmodels import MedRecord
-    from medmodels.medrecord.types import MedRecordAttributeInputList, NodeIndex
+    from medmodels.medrecord.types import Group, MedRecordAttributeInputList, NodeIndex
 
 
 class PropensityMatching(Matching):
@@ -40,23 +42,22 @@ class PropensityMatching(Matching):
         *,
         model: Model = "logit",
         number_of_neighbors: int = 1,
-        hyperparam: Optional[Dict[str, Any]] = None,
+        hyperparameters: Optional[Dict[str, Any]] = None,
     ) -> None:
         """Initializes the propensity score class.
 
         Args:
             model (Model, optional): classification method to be used, default: "logit".
                 Can be chosen from ["logit", "dec_tree", "forest"].
-            nearest_neighbors_algorithm (NNAlgorithm, optional): algorithm used to
-                compute nearest neighbors. Defaults to "auto".
             number_of_neighbors (int, optional): number of neighbors to be matched per
                 treated subject. Defaults to 1.
-            hyperparam (Optional[Dict[str, Any]], optional): hyperparameters for the
-                classification model, default: None.
+            hyperparameters (Optional[Dict[str, Any]], optional): hyperparameters for
+                the classification model. Defaults to None.
         """
+        super().__init__(number_of_neighbors)
         self.model = model
         self.number_of_neighbors = number_of_neighbors
-        self.hyperparam = hyperparam
+        self.hyperparameters = hyperparameters
 
     def match_controls(
         self,
@@ -64,6 +65,7 @@ class PropensityMatching(Matching):
         medrecord: MedRecord,
         control_set: Set[NodeIndex],
         treated_set: Set[NodeIndex],
+        patients_group: Group,
         essential_covariates: Optional[MedRecordAttributeInputList] = None,
         one_hot_covariates: Optional[MedRecordAttributeInputList] = None,
     ) -> Set[NodeIndex]:
@@ -71,8 +73,9 @@ class PropensityMatching(Matching):
 
         Args:
             medrecord (MedRecord): medrecord object containing the data.
-            treated_set (Set[NodeIndex]): Set of treated subjects.
             control_set (Set[NodeIndex]): Set of control subjects.
+            treated_set (Set[NodeIndex]): Set of treated subjects.
+            patients_group (Group): Group of patients in MedRecord.
             essential_covariates (Optional[MedRecordAttributeInputList], optional):
                 Covariates that are essential for matching. Defaults to
                 ["gender", "age"].
@@ -93,6 +96,7 @@ class PropensityMatching(Matching):
             medrecord=medrecord,
             treated_set=treated_set,
             control_set=control_set,
+            patients_group=patients_group,
             essential_covariates=essential_covariates,
             one_hot_covariates=one_hot_covariates,
         )
@@ -116,7 +120,7 @@ class PropensityMatching(Matching):
             y_train=y_train,
             treated_test=treated_array,
             control_test=control_array,
-            hyperparam=self.hyperparam,
+            hyperparameters=self.hyperparameters,
             model=self.model,
         )
 

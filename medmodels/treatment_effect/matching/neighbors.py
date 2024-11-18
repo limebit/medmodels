@@ -11,7 +11,7 @@ from medmodels.treatment_effect.matching.matching import Matching
 
 if TYPE_CHECKING:
     from medmodels import MedRecord
-    from medmodels.medrecord.types import MedRecordAttributeInputList, NodeIndex
+    from medmodels.medrecord.types import Group, MedRecordAttributeInputList, NodeIndex
 
 
 class NeighborsMatching(Matching):
@@ -36,7 +36,7 @@ class NeighborsMatching(Matching):
             number_of_neighbors (int, optional): Number of nearest neighbors to find for
                 each treated unit. Defaults to 1.
         """
-        self.number_of_neighbors = number_of_neighbors
+        super().__init__(number_of_neighbors)
 
     def match_controls(
         self,
@@ -44,6 +44,7 @@ class NeighborsMatching(Matching):
         medrecord: MedRecord,
         control_set: Set[NodeIndex],
         treated_set: Set[NodeIndex],
+        patients_group: Group,
         essential_covariates: Optional[MedRecordAttributeInputList] = None,
         one_hot_covariates: Optional[MedRecordAttributeInputList] = None,
     ) -> Set[NodeIndex]:
@@ -51,8 +52,9 @@ class NeighborsMatching(Matching):
 
         Args:
             medrecord (MedRecord): MedRecord object containing the data.
-            treated_set (Set[NodeIndex]): Set of treated subjects.
             control_set (Set[NodeIndex]): Set of control subjects.
+            treated_set (Set[NodeIndex]): Set of treated subjects.
+            patients_group (Group): Group of patients in the MedRecord.
             essential_covariates (Optional[MedRecordAttributeInputList], optional):
                 Covariates that are essential for matching. Defaults to
                 ["gender", "age"].
@@ -72,6 +74,7 @@ class NeighborsMatching(Matching):
             medrecord=medrecord,
             control_set=control_set,
             treated_set=treated_set,
+            patients_group=patients_group,
             essential_covariates=essential_covariates,
             one_hot_covariates=one_hot_covariates,
         )
