@@ -274,7 +274,7 @@ The first code block needs to start as shown below. It sets the code highlightin
 
 ```
 
-2. Result block
+1. Result block
 
 The second block shows the return value when executing the code. The output value(s) should be entered after `>>>`.
 
@@ -285,8 +285,6 @@ The second block shows the return value when executing the code. The output valu
             >>> Output
 
 ```
-
-
 
 Full Example:
 
@@ -337,7 +335,7 @@ Will be shown in the API Docs as:
 ```
 ````
 
-Check out the docs of [find_node_in_time_window()](medmodels.treatment_effect.temporal_analysis.find_node_in_time_window) for a real example.
+Check out the docs of [find_reference_edge()](medmodels.treatment_effect.temporal_analysis.find_reference_edge) for a real example.
 
 ### Raises
 
