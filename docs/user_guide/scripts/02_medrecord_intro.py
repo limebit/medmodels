@@ -33,27 +33,37 @@ record.add_nodes((medications, "ID"), group="Medications")
 
 record.add_edges((patient_medication, "Pat_ID", "Med_ID"))
 
-record.add_group("US-Patients", ["Patient 01", "Patient 02"])
+record.add_group("US-Patients", nodes=["Patient 01", "Patient 02"])
+
+record.add_nodes(
+    (
+        pd.DataFrame(
+            [["Patient 04", 65, "M", "USA"]], columns=["ID", "Age", "Sex", "Loc"]
+        ),
+        "ID",
+    ),
+)
 
 record.overview_nodes()
 
 record.overview_edges()
 
+# Adding edges to a certain group so that they are shown in the overview
+record.add_group("Patient-Medication", edges=record.edges)
+
+record.overview_edges()
+
 # Getting all available nodes
 record.nodes
-# ['Patient 03', 'Med 01', 'Med 02', 'Patient 01', 'Patient 02']
 
 # Accessing a certain node
 record.node["Patient 01"]
-# {'Age': 72, 'Loc': 'USA', 'Sex': 'M'}
 
 # Getting all available groups
 record.groups
-# ['Medications', 'Patients', 'US-Patients']
 
 # Getting the nodes that are within a certain group
 record.nodes_in_group("Medications")
-# ['Med 02', 'Med 01']
 
 record.to_ron("record.ron")
 new_record = mm.MedRecord.from_ron("record.ron")

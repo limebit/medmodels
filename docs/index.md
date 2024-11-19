@@ -44,7 +44,6 @@ developer_guide/index
 
 The MedModels documentation is your go-to resource for exploring the package. It offers complete API descriptions and a detailed user guide, giving you everything you need to effectively utilize its features.
 
-
 ```{only} html
 [![black](https://img.shields.io/badge/code_style-black-black.svg)](https://black.readthedocs.io/en/stable/)
 ![python versions](https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11%20%7C%203.12-blue)
