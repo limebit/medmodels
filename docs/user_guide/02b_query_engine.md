@@ -208,7 +208,7 @@ lines: 58-67
 
 :::{dropdown} Methods used in the snippet
 
-- [`neighbors()`](medmodels.medrecord.querying.NodeOperand.neighbors){target="_blank"} : Returns a [`NodeOperand()`](medmodels.medrecord.querying.NodeOperand){target="_blank"} to query the neighbors of those nodes.
+- [`neighbors()`](medmodels.medrecord.querying.NodeOperand.neighbors){target="_blank"} : Returns a [`NodeOperand`](medmodels.medrecord.querying.NodeOperand){target="_blank"} to query the neighbors of those nodes.
 - [`attribute()`](medmodels.medrecord.querying.NodeOperand.attribute){target="_blank"} : Returns a [`MultipleValuesOperand()`](medmodels.medrecord.querying.MultipleValuesOperand){target="_blank"} to query on the values of the nodes for that attribute.
 - [`lowercase()`](medmodels.medrecord.querying.MultipleValuesOperand.lowercase){target="_blank"} : Converts the values that are strings to lowercase.
 - [`contains()`](medmodels.medrecord.querying.NodeIndexOperand.contains){target="_blank"} : Query node indices containing that argument.
@@ -250,9 +250,9 @@ lines: 79-88
 - [`in_group()`](medmodels.medrecord.querying.EdgeOperand.in_group){target="_blank"} : Query nodes that belong to that group.
 - [`attribute()`](medmodels.medrecord.querying.EdgeOperand.attribute){target="_blank"} : Returns a [`MultipleValuesOperand()`](medmodels.medrecord.querying.MultipleValuesOperand){target="_blank"} to query on the values of the nodes for that attribute.
 - [`less_than()`](medmodels.medrecord.querying.MultipleValuesOperand.less_than){target="_blank"} : Query values that are less than that value.
-- [`source_node()`](medmodels.medrecord.querying.EdgeOperand.source_node){target="_blank"} : Returns a [`NodeOperand()`](medmodels.medrecord.querying.NodeOperand) to query on the source nodes for those edges.
+- [`source_node()`](medmodels.medrecord.querying.EdgeOperand.source_node){target="_blank"} : Returns a [`NodeOperand`](medmodels.medrecord.querying.NodeOperand) to query on the source nodes for those edges.
 - [`is_max()`](medmodels.medrecord.querying.MultipleValuesOperand.is_max){target="_blank"} : Query on the values that hold on the maximum value among all of the.
-- [`target_node()`](medmodels.medrecord.querying.EdgeOperand.target_node){target="_blank"} : Returns a [`NodeOperand()`](medmodels.medrecord.querying.NodeOperand){target="_blank"} to query on the target nodes for those edges.
+- [`target_node()`](medmodels.medrecord.querying.EdgeOperand.target_node){target="_blank"} : Returns a [`NodeOperand`](medmodels.medrecord.querying.NodeOperand){target="_blank"} to query on the target nodes for those edges.
 - [`contains()`](medmodels.medrecord.querying.NodeIndexOperand.contains){target="_blank"} : Query node indices containing that argument.
 - [`select_edges()`](medmodels.medrecord.medrecord.MedRecord.select_edges){target="_blank"} : Select edges that match that query.
 
@@ -406,7 +406,7 @@ lines: 162
 - [`subtract()`](medmodels.medrecord.querying.SingleValueOperand.subtract){target="_blank"} : Subtract the argument from the single value operand.
 - [`greater_than()`](medmodels.medrecord.querying.MultipleValuesOperand.greater_than){target="_blank"} : Query values that are greater than that value.
 - [`less_than()`](medmodels.medrecord.querying.MultipleValuesOperand.less_than){target="_blank"} : Query values that are less than that value.
-- [`select_nodes()`](medmodels.medrecord.medrecord.MedRecord.select_nodes`){target="_blank"} : Select nodes that match that query.
+- [`select_nodes()`](medmodels.medrecord.medrecord.MedRecord.select_nodes){target="_blank"} : Select nodes that match that query.
 
 :::
 
