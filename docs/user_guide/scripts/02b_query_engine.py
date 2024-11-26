@@ -5,15 +5,15 @@ medrecord = MedRecord().from_example_dataset()
 
 
 # Basic node query
-def query_node_basic(node: NodeOperand):
+def query_node_in_patient(node: NodeOperand):
     node.in_group("patient")
 
 
-medrecord.select_nodes(query_node_basic)
+medrecord.select_nodes(query_node_in_patient)
 
 
 # Intermediate node query
-def query_node_intermmediate(node: NodeOperand):
+def query_node_patient_older_than_30(node: NodeOperand):
     node.in_group("patient")
     node.index().contains("pat")
 
@@ -21,11 +21,23 @@ def query_node_intermmediate(node: NodeOperand):
     node.attribute("age").greater_than(30)
 
 
-medrecord.select_nodes(query_node_intermmediate)
+medrecord.select_nodes(query_node_patient_older_than_30)
+
+
+# Reusing node query
+def query_node_reused(node: NodeOperand):
+    query_node_in_patient(node)
+    node.index().contains("pat")
+
+    node.has_attribute("age")
+    node.attribute("age").greater_than(30)
+
+
+medrecord.select_nodes(query_node_reused)
 
 
 # Advanced node query
-def query_node_advanced(node: NodeOperand):
+def query_node_male_patient_under_mean(node: NodeOperand):
     node.in_group("patient")
     node.index().contains("pat")
 
@@ -40,12 +52,12 @@ def query_node_advanced(node: NodeOperand):
     node.attribute("age").less_than(mean_age)
 
 
-medrecord.select_nodes(query_node_advanced)
+medrecord.select_nodes(query_node_male_patient_under_mean)
 
 
 # Node query with neighbors function
 def query_node_neighbors(node: NodeOperand):
-    query_node_intermmediate(node)
+    query_node_patient_older_than_30(node)
 
     description_neighbors = node.neighbors().attribute("description")
     description_neighbors.lowercase()
@@ -56,16 +68,16 @@ medrecord.select_nodes(query_node_neighbors)
 
 
 # Basic edge query
-def query_edge_basic(edge: EdgeOperand):
+def query_edge_patient_drug(edge: EdgeOperand):
     edge.in_group("patient_drug")
 
 
-edges = medrecord.select_edges(query_edge_basic)
+edges = medrecord.select_edges(query_edge_patient_drug)
 edges[0:5]
 
 
 # Advanced edge query
-def query_edge_advanced(edge: EdgeOperand):
+def query_edge_old_patient_cheap_insulin(edge: EdgeOperand):
     edge.in_group("patient_drug")
     edge.attribute("cost").less_than(200)
 
@@ -73,7 +85,7 @@ def query_edge_advanced(edge: EdgeOperand):
     edge.target_node().attribute("description").contains("insulin")
 
 
-medrecord.select_edges(query_edge_advanced)
+medrecord.select_edges(query_edge_old_patient_cheap_insulin)
 
 
 # Combined node and edge query
@@ -133,11 +145,18 @@ def query_node_clone(node: NodeOperand):
     node.index().contains("pat")
 
     mean_age_original = node.attribute("age").mean()
-    mean_age_clone = mean_age_original.clone()
+    mean_age_clone = mean_age_original.clone()  # Clone the mean age
+
+    # Subtract 5 fom the cloned mean age (original remains unchanged)
     mean_age_clone.subtract(5)
 
-    node.attribute("age").greater_than(mean_age_clone)
-    node.attribute("age").less_than(mean_age_original)
+    node.attribute("age").less_than(mean_age_original)  # Mean age
+    node.attribute("age").greater_than(mean_age_clone)  # Mean age minus 5
 
 
 medrecord.select_nodes(query_node_clone)
+
+# Node queries as function arguments
+medrecord.node[query_node_either_or]
+medrecord.groups_of_node(query_node_patient_older_than_30)
+medrecord.edge_endpoints(query_edge_old_patient_cheap_insulin)
