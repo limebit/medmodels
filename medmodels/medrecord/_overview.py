@@ -216,7 +216,7 @@ def prettify_table(
                     if isinstance(info[key], float):
                         row[3] = f"{key}: {info[key]:.{decimal}f}"
                     elif isinstance(info[key], datetime):
-                        row[3] = info[key].strftime("%Y-%m-%d %H:%M:%S")
+                        row[3] = f"{key}: {info[key].strftime('%Y-%m-%d %H:%M:%S')}"
                     else:
                         row[3] = f"{key}: {info[key]}"
 

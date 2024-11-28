@@ -1716,6 +1716,19 @@ class TestMedRecord(unittest.TestCase):
             },
         )
 
+        # test group input list
+
+        self.assertDictEqual(
+            medrecord._describe_group_nodes(groups=["Float", "Odd"]),
+            {
+                "Float": {"count": 0, "attribute": {}},
+                "Odd": {
+                    "count": 2,
+                    "attribute": {"amet": {"values": "Values: consectetur"}},
+                },
+            },
+        )
+
     def test_describe_group_edges(self):
         medrecord = create_medrecord()
 
@@ -1733,6 +1746,21 @@ class TestMedRecord(unittest.TestCase):
                     },
                 },
                 "Ungrouped Edges": {"count": 2, "attribute": {}},
+            },
+        )
+
+        # test the specified group list
+        self.assertDictEqual(
+            medrecord._describe_group_edges(groups=["Even"]),
+            {
+                "Even": {
+                    "count": 2,
+                    "attribute": {
+                        "eiusmod": {"values": "Values: tempor"},
+                        "incididunt": {"values": "Values: ut"},
+                        "sed": {"values": "Values: do"},
+                    },
+                },
             },
         )
 

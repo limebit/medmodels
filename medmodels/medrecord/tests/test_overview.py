@@ -59,6 +59,19 @@ def create_medrecord():
 
     medrecord.add_edges_polars(edges=(edges_disease, "source", "target"))
 
+    edges_meds = pd.DataFrame(
+        {
+            "source": ["M1", "M2", "M3"],
+            "target": ["P1", "P2", "P3"],
+            "time": ["2000-01-01", "1999-10-15", "1999-12-15"],
+        }
+    )
+    edges_meds["time"] = pd.to_datetime(edges_meds["time"])
+
+    medrecord.add_edges_pandas(
+        edges=(edges_meds, "source", "target"), group="patient-medications"
+    )
+
     for group, group_list in groups:
         medrecord.add_group(group, group_list)
 
@@ -117,7 +130,7 @@ class TestOverview(unittest.TestCase):
             temp_attributes,
             {
                 "time": {
-                    "max": datetime(1999, 10, 15, 0, 0),
+                    "max": datetime(2000, 1, 1, 0, 0),
                     "min": datetime(1999, 10, 15, 0, 0),
                 }
             },
@@ -188,7 +201,7 @@ class TestOverview(unittest.TestCase):
 
         header = ["group nodes", "count", "attribute", "info"]
 
-        expected_empty = [
+        expected_nodes = [
             "---------------------------------------------------------",
             "Group Nodes     Count Attribute Info                     ",
             "---------------------------------------------------------",
@@ -204,7 +217,24 @@ class TestOverview(unittest.TestCase):
 
         self.assertEqual(
             prettify_table(medrecord._describe_group_nodes(), header, decimal=2),
-            expected_empty,
+            expected_nodes,
+        )
+
+        header = ["group edges", "count", "attribute", "info"]
+
+        expected_edges = [
+            "-------------------------------------------------------------",
+            "Group Edges         Count Attribute Info                     ",
+            "-------------------------------------------------------------",
+            "patient-medications 3     time      min: 1999-10-15 00:00:00 ",
+            "                                    max: 2000-01-01 00:00:00 ",
+            "Ungrouped Edges     6     -         -                        ",
+            "-------------------------------------------------------------",
+        ]
+
+        self.assertEqual(
+            prettify_table(medrecord._describe_group_edges(), header, decimal=2),
+            expected_edges,
         )
 
 
