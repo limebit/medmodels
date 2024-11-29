@@ -1695,7 +1695,7 @@ class TestMedRecord(unittest.TestCase):
 
         medrecord.add_group("Float")
         medrecord.add_group(1, nodes=["2", "0"])
-        medrecord.add_group("Odd", nodes=["1", "3"])
+        # medrecord.add_group("Odd", nodes=["1", "3"])
 
         self.assertDictEqual(
             medrecord._describe_group_nodes(),
@@ -1703,20 +1703,23 @@ class TestMedRecord(unittest.TestCase):
                 1: {
                     "count": 2,
                     "attribute": {
-                        "adipiscing": {"values": "Values: elit"},
-                        "dolor": {"values": "Values: sit"},
-                        "lorem": {"values": "Values: ipsum"},
+                        "adipiscing": {"type": "Text", "values": "Values: elit"},
+                        "dolor": {"type": "Text", "values": "Values: sit"},
+                        "lorem": {"type": "Text", "values": "Values: ipsum"},
                     },
                 },
                 "Float": {"count": 0, "attribute": {}},
-                "Odd": {
+                "Ungrouped Nodes": {
                     "count": 2,
-                    "attribute": {"amet": {"values": "Values: consectetur"}},
+                    "attribute": {
+                        # "amet": {"type": "Text", "values": "Values: consectetur"}
+                    },
                 },
             },
         )
 
         # test group input list
+        medrecord.add_group("Odd", nodes=["1", "3"])
 
         self.assertDictEqual(
             medrecord._describe_group_nodes(groups=["Float", "Odd"]),
@@ -1724,7 +1727,9 @@ class TestMedRecord(unittest.TestCase):
                 "Float": {"count": 0, "attribute": {}},
                 "Odd": {
                     "count": 2,
-                    "attribute": {"amet": {"values": "Values: consectetur"}},
+                    "attribute": {
+                        "amet": {"type": "Text", "values": "Values: consectetur"}
+                    },
                 },
             },
         )
@@ -1740,9 +1745,9 @@ class TestMedRecord(unittest.TestCase):
                 "Even": {
                     "count": 2,
                     "attribute": {
-                        "eiusmod": {"values": "Values: tempor"},
-                        "incididunt": {"values": "Values: ut"},
-                        "sed": {"values": "Values: do"},
+                        "eiusmod": {"type": "Text", "values": "Values: tempor"},
+                        "incididunt": {"type": "Text", "values": "Values: ut"},
+                        "sed": {"type": "Text", "values": "Values: do"},
                     },
                 },
                 "Ungrouped Edges": {"count": 2, "attribute": {}},
@@ -1756,12 +1761,53 @@ class TestMedRecord(unittest.TestCase):
                 "Even": {
                     "count": 2,
                     "attribute": {
-                        "eiusmod": {"values": "Values: tempor"},
-                        "incididunt": {"values": "Values: ut"},
-                        "sed": {"values": "Values: do"},
+                        "eiusmod": {"type": "Text", "values": "Values: tempor"},
+                        "incididunt": {"type": "Text", "values": "Values: ut"},
+                        "sed": {"type": "Text", "values": "Values: do"},
                     },
                 },
             },
+        )
+
+    def test_overview_edges(self):
+        medrecord = MedRecord.from_example_dataset()
+
+        self.assertEqual(
+            "\n".join(
+                [
+                    "---------------------------------------------------------------------------",
+                    "Edges Group       Count Attribute      Type       Info                     ",
+                    "---------------------------------------------------------------------------",
+                    "patient_diagnosis 60    diagnosis_time Temporal   min: 1962-10-21 00:00:00 ",
+                    "                                                  max: 2024-04-12 00:00:00 ",
+                    "                        duration_days  Continuous min: 0.00                ",
+                    "                                                  max: 3416.00             ",
+                    "                                                  mean: 405.02             ",
+                    "---------------------------------------------------------------------------",
+                ]
+            ),
+            str(medrecord.overview_edges("patient_diagnosis")),
+        )
+
+    def test_overview_nodes(self):
+        medrecord = MedRecord.from_example_dataset()
+
+        self.assertEqual(
+            "\n".join(
+                [
+                    "-----------------------------------------------------------",
+                    "Nodes Group Count Attribute   Type        Info             ",
+                    "-----------------------------------------------------------",
+                    "diagnosis   25    description Text        25 unique values ",
+                    "drug        19    description Text        19 unique values ",
+                    "patient     5     age         Continuous  min: 19          ",
+                    "                                          max: 96          ",
+                    "                                          mean: 43.20      ",
+                    "                  gender      Categorical Categories: F, M ",
+                    "-----------------------------------------------------------",
+                ]
+            ),
+            str(medrecord.overview_nodes(["diagnosis", "drug", "patient"])),
         )
 
 

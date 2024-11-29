@@ -128,6 +128,7 @@ class AttributeInfo(TypedDict):
 class TemporalAttributeInfo(TypedDict):
     """Dictionary for a temporal attribute and its metrics."""
 
+    type: str
     min: datetime
     max: datetime
 
@@ -135,6 +136,7 @@ class TemporalAttributeInfo(TypedDict):
 class NumericAttributeInfo(TypedDict):
     """Dictionary for a numeric attribute and its metrics."""
 
+    type: str
     min: Union[int, float]
     max: Union[int, float]
     mean: Union[int, float]
@@ -143,6 +145,7 @@ class NumericAttributeInfo(TypedDict):
 class StringAttributeInfo(TypedDict):
     """Dictionary for a string attribute and its values."""
 
+    type: str
     values: str
 
 

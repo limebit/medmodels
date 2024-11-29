@@ -1,6 +1,6 @@
 import copy
 from datetime import datetime
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Literal, Optional, Union
 
 import polars as pl
 
@@ -50,7 +50,7 @@ def extract_attribute_summary(
         attribute_values = data[attribute].drop_nulls()
 
         if len(attribute_values) == 0:
-            attribute_info = {"values": "-"}
+            attribute_info = {"type": "-", "values": "-"}
         # check if the attribute has as an attribute type defined in the schema
         elif schema and attribute in schema and schema[attribute][1]:
             if schema[attribute][1] == AttributeType.Continuous:
@@ -101,6 +101,7 @@ def _extract_numeric_attribute_info(
     assert isinstance(mean, (int, float))
 
     return {
+        "type": "Continuous",
         "min": min,
         "max": max,
         "mean": mean,
@@ -125,6 +126,7 @@ def _extract_temporal_attribute_info(
             attribute_series = attribute_series.str.to_datetime()
 
     return {
+        "type": "Temporal",
         "min": min(attribute_series),
         "max": max(attribute_series),
     }
@@ -132,7 +134,7 @@ def _extract_temporal_attribute_info(
 
 def _extract_string_attribute_info(
     attribute_series: pl.Series,
-    short_string_prefix: str = "Values",
+    short_string_prefix: Literal["Values", "Categories"] = "Values",
     long_string_suffix: str = "unique values",
     max_number_values: int = 5,
     max_line_length: int = 100,
@@ -141,8 +143,8 @@ def _extract_string_attribute_info(
 
     Args:
         attribute_series (pl.Series): Series containing attribute values.
-        short_string_prefix (str, optional): Prefix for Info string in case of listing
-            all the values. Defaults to "Values".
+        short_string_prefix (Literal["Values", "Categories"], optional): Prefix for
+            Info string in case of listing all the values. Defaults to "Values".
         long_string_suffix (str, optional): Suffix for attribute info in case of too
             many values to list. Here only the count will be displayed.
             Defaults to "unique values".
@@ -161,7 +163,10 @@ def _extract_string_attribute_info(
     if (len(values) > max_number_values) | (len(values_string) > max_line_length):
         values_string = f"{len(values)} {long_string_suffix}"
 
-    return {"values": values_string}
+    return {
+        "type": "Categorical" if short_string_prefix == "Categories" else "Text",
+        "values": values_string,
+    }
 
 
 def prettify_table(
@@ -182,7 +187,7 @@ def prettify_table(
 
     rows = []
 
-    info_order = ["min", "max", "mean", "values"]
+    info_order = ["type", "min", "max", "mean", "values"]
 
     for group in data.keys():
         # determine longest group name and count
@@ -190,7 +195,7 @@ def prettify_table(
 
         lengths[1] = max(len(str(data[group]["count"])), lengths[1])
 
-        row = [str(group), str(data[group]["count"]), "-", "-"]
+        row = [str(group), str(data[group]["count"]), "-", "-", "-"]
 
         # in case of no attribute info, just keep Group name and count
         if not data[group]["attribute"]:
@@ -204,23 +209,29 @@ def prettify_table(
             first_line = True
 
             for key in sorted(info.keys(), key=lambda x: info_order.index(x)):
+                if key == "type":
+                    continue
+
                 if not first_line:
                     row[0], row[1] = "", ""
 
                 row[2] = str(attribute) if first_line else ""
 
+                row[3] = info["type"] if first_line else ""
+
                 # displaying info based on the type
                 if "values" in info.keys():
-                    row[3] = info[key]
+                    row[4] = info[key]
                 else:
                     if isinstance(info[key], float):
-                        row[3] = f"{key}: {info[key]:.{decimal}f}"
+                        row[4] = f"{key}: {info[key]:.{decimal}f}"
                     elif isinstance(info[key], datetime):
-                        row[3] = f"{key}: {info[key].strftime('%Y-%m-%d %H:%M:%S')}"
+                        row[4] = f"{key}: {info[key].strftime('%Y-%m-%d %H:%M:%S')}"
                     else:
-                        row[3] = f"{key}: {info[key]}"
+                        row[4] = f"{key}: {info[key]}"
 
                 lengths[3] = max(len(row[3]), lengths[3])
+                lengths[4] = max(len(row[4]), lengths[4])
 
                 rows.append(copy.deepcopy(row))
 

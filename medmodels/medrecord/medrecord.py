@@ -101,7 +101,7 @@ class OverviewTable:
 
     def __repr__(self) -> str:
         """Returns a string representation of the group nodes/ edges overview."""
-        header = [self.group_header, "count", "attribute", "info"]
+        header = [self.group_header, "count", "attribute", "type", "info"]
 
         return "\n".join(prettify_table(self.data, header=header, decimal=self.decimal))
 
@@ -1375,14 +1375,14 @@ class MedRecord:
         return "\n".join([str(self.overview_nodes()), "", str(self.overview_edges())])
 
     def overview_nodes(
-        self, groups: Optional[GroupInputList] = None, decimal: int = 2
+        self, groups: Optional[Union[Group, GroupInputList]] = None, decimal: int = 2
     ) -> OverviewTable:
         """Gets a summary for all nodes in groups and their attributes.
 
         Args:
-            groups (Optional[GroupInputList], optional): List of node groups to display.
-                If no groups are given, all groups containing nodes are shown.
-                Defaults to None.
+            groups (Optional[Union[Group, GroupInputList]], optional): Group or list of
+                node groups to display. If no groups are given, all groups containing
+                nodes are shown. Defaults to None.
             decimal (int, optional): Decimal point to round the float values to.
                 Defaults to 2.
 
@@ -1404,21 +1404,26 @@ class MedRecord:
         ----------------------------------------------------
 
         """
-        nodes_data = self._describe_group_nodes(groups=groups)
+        if groups:
+            nodes_data = self._describe_group_nodes(
+                groups if isinstance(groups, list) else [groups]
+            )
+        else:
+            nodes_data = self._describe_group_nodes()
 
         return OverviewTable(
             data=nodes_data, group_header="Nodes Group", decimal=decimal
         )
 
     def overview_edges(
-        self, groups: Optional[GroupInputList] = None, decimal: int = 2
+        self, groups: Optional[Union[Group, GroupInputList]] = None, decimal: int = 2
     ) -> OverviewTable:
         """Gets a summary for all edges in groups and their attributes.
 
         Args:
-            groups (Optional[GroupInputList], optional): List of edge groups to display.
-                If no groups are given, all groups containing nodes are shown.
-                Defaults to None.
+            groups (Optional[Union[Group, GroupInputList]], optional): Group or list of
+                edge groups to display. If no groups are given, all groups containing
+                nodes are shown. Defaults to None.
             decimal (int, optional): Decimal point to round the float values to.
                 Defaults to 2.
 
@@ -1438,7 +1443,12 @@ class MedRecord:
                                                            mean: 405.02
         ----------------------------------------------------------------------------
         """
-        edges_data = self._describe_group_edges(groups=groups)
+        if groups:
+            edges_data = self._describe_group_edges(
+                groups if isinstance(groups, list) else [groups]
+            )
+        else:
+            edges_data = self._describe_group_edges()
 
         return OverviewTable(
             data=edges_data, group_header="Edges Group", decimal=decimal

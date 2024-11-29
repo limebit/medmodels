@@ -97,7 +97,9 @@ class TestOverview(unittest.TestCase):
         # numeric type
         numeric_attribute = extract_attribute_summary(medrecord.node[query2])
 
-        numeric_expected = {"age": {"min": 20, "max": 70, "mean": 40.0}}
+        numeric_expected = {
+            "age": {"type": "Continuous", "min": 20, "max": 70, "mean": 40.0}
+        }
 
         self.assertDictEqual(numeric_attribute, numeric_expected)
 
@@ -108,7 +110,8 @@ class TestOverview(unittest.TestCase):
         str_attributes = extract_attribute_summary(medrecord.node[query3])
 
         self.assertDictEqual(
-            str_attributes, {"ATC": {"values": "Values: B01AA03, B01AF01"}}
+            str_attributes,
+            {"ATC": {"type": "Text", "values": "Values: B01AA03, B01AF01"}},
         )
 
         def query4(node: NodeOperand):
@@ -117,7 +120,7 @@ class TestOverview(unittest.TestCase):
         # nan attribute
         nan_attributes = extract_attribute_summary(medrecord.node[query4])
 
-        self.assertDictEqual(nan_attributes, {"ATC": {"values": "-"}})
+        self.assertDictEqual(nan_attributes, {"ATC": {"type": "-", "values": "-"}})
 
         def query5(edge: EdgeOperand):
             edge.source_node().in_group("Medications")
@@ -130,6 +133,7 @@ class TestOverview(unittest.TestCase):
             temp_attributes,
             {
                 "time": {
+                    "type": "Temporal",
                     "max": datetime(2000, 1, 1, 0, 0),
                     "min": datetime(1999, 10, 15, 0, 0),
                 }
@@ -148,10 +152,11 @@ class TestOverview(unittest.TestCase):
             mixed_attributes,
             {
                 "time": {
+                    "type": "Temporal",
                     "min": datetime(1999, 12, 15, 0, 0),
                     "max": datetime(2000, 1, 1, 0, 0),
                 },
-                "intensity": {"values": "Values: 1, low"},
+                "intensity": {"type": "Text", "values": "Values: 1, low"},
             },
         )
 
@@ -167,8 +172,8 @@ class TestOverview(unittest.TestCase):
         self.assertDictEqual(
             node_info,
             {
-                "age": {"min": 19, "max": 96, "mean": 43.20},
-                "gender": {"values": "Categories: F, M"},
+                "age": {"type": "Continuous", "min": 19, "max": 96, "mean": 43.20},
+                "gender": {"type": "Categorical", "values": "Categories: F, M"},
             },
         )
 
@@ -185,10 +190,12 @@ class TestOverview(unittest.TestCase):
             patient_diagnosis,
             {
                 "diagnosis_time": {
+                    "type": "Temporal",
                     "min": datetime(1962, 10, 21, 0, 0),
                     "max": datetime(2024, 4, 12, 0, 0),
                 },
                 "duration_days": {
+                    "type": "Continuous",
                     "min": 0.0,
                     "max": 3416.0,
                     "mean": 405.0232558139535,
@@ -199,20 +206,20 @@ class TestOverview(unittest.TestCase):
     def test_prettify_table(self):
         medrecord = create_medrecord()
 
-        header = ["group nodes", "count", "attribute", "info"]
+        header = ["group nodes", "count", "attribute", "type", "info"]
 
         expected_nodes = [
-            "---------------------------------------------------------",
-            "Group Nodes     Count Attribute Info                     ",
-            "---------------------------------------------------------",
-            "Aspirin         1     ATC       -                        ",
-            "Medications     3     ATC       Values: B01AA03, B01AF01 ",
-            "Patients        3     age       min: 20                  ",
-            "                                max: 70                  ",
-            "                                mean: 40.00              ",
-            "Stroke          1     -         -                        ",
-            "Ungrouped Nodes 1     -         -                        ",
-            "---------------------------------------------------------",
+            "--------------------------------------------------------------------",
+            "Group Nodes     Count Attribute Type       Info                     ",
+            "--------------------------------------------------------------------",
+            "Aspirin         1     ATC       -          -                        ",
+            "Medications     3     ATC       Text       Values: B01AA03, B01AF01 ",
+            "Patients        3     age       Continuous min: 20                  ",
+            "                                           max: 70                  ",
+            "                                           mean: 40.00              ",
+            "Stroke          1     -         -          -                        ",
+            "Ungrouped Nodes 1     -         -          -                        ",
+            "--------------------------------------------------------------------",
         ]
 
         self.assertEqual(
@@ -220,16 +227,16 @@ class TestOverview(unittest.TestCase):
             expected_nodes,
         )
 
-        header = ["group edges", "count", "attribute", "info"]
+        header = ["group edges", "count", "attribute", "type", "info"]
 
         expected_edges = [
-            "-------------------------------------------------------------",
-            "Group Edges         Count Attribute Info                     ",
-            "-------------------------------------------------------------",
-            "patient-medications 3     time      min: 1999-10-15 00:00:00 ",
-            "                                    max: 2000-01-01 00:00:00 ",
-            "Ungrouped Edges     6     -         -                        ",
-            "-------------------------------------------------------------",
+            "----------------------------------------------------------------------",
+            "Group Edges         Count Attribute Type     Info                     ",
+            "----------------------------------------------------------------------",
+            "patient-medications 3     time      Temporal min: 1999-10-15 00:00:00 ",
+            "                                             max: 2000-01-01 00:00:00 ",
+            "Ungrouped Edges     6     -         -        -                        ",
+            "----------------------------------------------------------------------",
         ]
 
         self.assertEqual(
