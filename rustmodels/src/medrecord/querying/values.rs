@@ -27,7 +27,7 @@ impl From<PySingleValueComparisonOperand> for SingleValueComparisonOperand {
     }
 }
 
-impl<'a> FromPyObject<'a> for PySingleValueComparisonOperand {
+impl FromPyObject<'_> for PySingleValueComparisonOperand {
     fn extract_bound(ob: &Bound<'_, PyAny>) -> PyResult<Self> {
         if let Ok(value) = ob.extract::<PyMedRecordValue>() {
             Ok(SingleValueComparisonOperand::Value(value.into()).into())
@@ -60,7 +60,7 @@ impl From<PyMultipleValuesComparisonOperand> for MultipleValuesComparisonOperand
     }
 }
 
-impl<'a> FromPyObject<'a> for PyMultipleValuesComparisonOperand {
+impl FromPyObject<'_> for PyMultipleValuesComparisonOperand {
     fn extract_bound(ob: &Bound<'_, PyAny>) -> PyResult<Self> {
         if let Ok(values) = ob.extract::<Vec<PyMedRecordValue>>() {
             Ok(MultipleValuesComparisonOperand::Values(

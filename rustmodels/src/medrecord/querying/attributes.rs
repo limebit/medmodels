@@ -29,7 +29,7 @@ impl From<PySingleAttributeComparisonOperand> for SingleAttributeComparisonOpera
     }
 }
 
-impl<'a> FromPyObject<'a> for PySingleAttributeComparisonOperand {
+impl FromPyObject<'_> for PySingleAttributeComparisonOperand {
     fn extract_bound(ob: &Bound<'_, PyAny>) -> PyResult<Self> {
         if let Ok(attribute) = ob.extract::<PyMedRecordAttribute>() {
             Ok(SingleAttributeComparisonOperand::Attribute(attribute.into()).into())
@@ -62,7 +62,7 @@ impl From<PyMultipleAttributesComparisonOperand> for MultipleAttributesCompariso
     }
 }
 
-impl<'a> FromPyObject<'a> for PyMultipleAttributesComparisonOperand {
+impl FromPyObject<'_> for PyMultipleAttributesComparisonOperand {
     fn extract_bound(ob: &Bound<'_, PyAny>) -> PyResult<Self> {
         if let Ok(values) = ob.extract::<Vec<PyMedRecordAttribute>>() {
             Ok(MultipleAttributesComparisonOperand::Attributes(
