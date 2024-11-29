@@ -25,7 +25,7 @@ impl From<PyMedRecordAttributeCardinalityWrapper> for CardinalityWrapper<MedReco
     }
 }
 
-impl<'a> FromPyObject<'a> for PyMedRecordAttributeCardinalityWrapper {
+impl FromPyObject<'_> for PyMedRecordAttributeCardinalityWrapper {
     fn extract_bound(ob: &Bound<'_, PyAny>) -> PyResult<Self> {
         if let Ok(attribute) = ob.extract::<PyMedRecordAttribute>() {
             Ok(CardinalityWrapper::Single(MedRecordAttribute::from(attribute)).into())
