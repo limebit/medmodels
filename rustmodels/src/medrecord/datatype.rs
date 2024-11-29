@@ -142,7 +142,7 @@ pub(crate) fn convert_pyobject_to_datatype(ob: &Bound<'_, pyo3::PyAny>) -> PyRes
     })
 }
 
-impl<'a> FromPyObject<'a> for PyDataType {
+impl FromPyObject<'_> for PyDataType {
     fn extract_bound(ob: &Bound<'_, pyo3::PyAny>) -> PyResult<Self> {
         convert_pyobject_to_datatype(ob).map(Self)
     }

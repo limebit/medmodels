@@ -116,7 +116,7 @@ pub(crate) fn convert_pyobject_to_medrecordvalue(
     })
 }
 
-impl<'a> FromPyObject<'a> for PyMedRecordValue {
+impl FromPyObject<'_> for PyMedRecordValue {
     fn extract_bound(ob: &Bound<'_, PyAny>) -> PyResult<Self> {
         convert_pyobject_to_medrecordvalue(ob).map(PyMedRecordValue::from)
     }
