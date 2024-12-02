@@ -76,8 +76,13 @@ impl PyMedRecord {
     }
 
     #[staticmethod]
-    pub fn from_example_dataset() -> Self {
-        Self(MedRecord::from_example_dataset())
+    pub fn from_simple_example_dataset() -> Self {
+        Self(MedRecord::from_simple_example_dataset())
+    }
+
+    #[staticmethod]
+    pub fn from_advanced_example_dataset() -> Self {
+        Self(MedRecord::from_advanced_example_dataset())
     }
 
     #[staticmethod]
