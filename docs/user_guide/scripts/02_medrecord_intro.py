@@ -35,9 +35,9 @@ record.add_edges((patient_medication, "Pat_ID", "Med_ID"))
 
 record.add_group("US-Patients", ["Patient 01", "Patient 02"])
 
-record.print_attribute_table_nodes()
+record.overview_nodes()
 
-record.print_attribute_table_edges()
+record.overview_edges()
 
 # Getting all available nodes
 record.nodes
