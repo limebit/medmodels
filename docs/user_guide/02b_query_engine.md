@@ -6,7 +6,7 @@ The **MedRecord Query Engine** enables users to find node and edges' indices sto
 
 ## Example dataset
 
-An example dataset for the following demonstrations was generated with the method [`from_simple_example_dataset`](medmodels.medrecord.medrecord.MedRecord.from_simple_example_dataset){target="\_blank"} from the [`MedRecord`](medmodels.medrecord.medrecord.MedRecord){target="\_blank"} class.
+An example dataset for the following demonstrations was generated with the method [`from_example_dataset`](medmodels.medrecord.medrecord.MedRecord.from_example_dataset){target="\_blank"} from the [`MedRecord`](medmodels.medrecord.medrecord.MedRecord){target="\_blank"} class.
 
 ```{literalinclude} scripts/02b_show_dataset.py
 ---
@@ -208,7 +208,7 @@ lines: 59-68
 
 :::{dropdown} Methods used in the snippet
 
-- [`neighbors()`](medmodels.medrecord.querying.NodeOperand.neighbors){target="\_blank"} : Returns a [`NodeOperand`](medmodels.medrecord.querying.NodeOperand){target="\_blank"} to query the neighbors of those nodes.
+- [`neighbors()`](medmodels.medrecord.querying.NodeOperand.neighbors){target="\_blank"} : Returns a [`NodeOperand()`](medmodels.medrecord.querying.NodeOperand){target="\_blank"} to query the neighbors of those nodes.
 - [`attribute()`](medmodels.medrecord.querying.NodeOperand.attribute){target="\_blank"} : Returns a [`MultipleValuesOperand()`](medmodels.medrecord.querying.MultipleValuesOperand){target="\_blank"} to query on the values of the nodes for that attribute.
 - [`lowercase()`](medmodels.medrecord.querying.MultipleValuesOperand.lowercase){target="\_blank"} : Converts the values that are strings to lowercase.
 - [`contains()`](medmodels.medrecord.querying.NodeIndexOperand.contains){target="\_blank"} : Query node indices containing that argument.
@@ -250,9 +250,9 @@ lines: 80-89
 - [`in_group()`](medmodels.medrecord.querying.EdgeOperand.in_group){target="\_blank"} : Query nodes that belong to that group.
 - [`attribute()`](medmodels.medrecord.querying.EdgeOperand.attribute){target="\_blank"} : Returns a [`MultipleValuesOperand()`](medmodels.medrecord.querying.MultipleValuesOperand){target="\_blank"} to query on the values of the nodes for that attribute.
 - [`less_than()`](medmodels.medrecord.querying.MultipleValuesOperand.less_than){target="\_blank"} : Query values that are less than that value.
-- [`source_node()`](medmodels.medrecord.querying.EdgeOperand.source_node){target="\_blank"} : Returns a [`NodeOperand`](medmodels.medrecord.querying.NodeOperand) to query on the source nodes for those edges.
+- [`source_node()`](medmodels.medrecord.querying.EdgeOperand.source_node){target="\_blank"} : Returns a [`NodeOperand()`](medmodels.medrecord.querying.NodeOperand) to query on the source nodes for those edges.
 - [`is_max()`](medmodels.medrecord.querying.MultipleValuesOperand.is_max){target="\_blank"} : Query on the values that hold on the maximum value among all of the.
-- [`target_node()`](medmodels.medrecord.querying.EdgeOperand.target_node){target="\_blank"} : Returns a [`NodeOperand`](medmodels.medrecord.querying.NodeOperand){target="\_blank"} to query on the target nodes for those edges.
+- [`target_node()`](medmodels.medrecord.querying.EdgeOperand.target_node){target="\_blank"} : Returns a [`NodeOperand()`](medmodels.medrecord.querying.NodeOperand){target="\_blank"} to query on the target nodes for those edges.
 - [`contains()`](medmodels.medrecord.querying.NodeIndexOperand.contains){target="\_blank"} : Query node indices containing that argument.
 - [`select_edges()`](medmodels.medrecord.medrecord.MedRecord.select_edges){target="\_blank"} : Select edges that match that query.
 
@@ -348,7 +348,7 @@ lines: 143-158
 
 :::{dropdown} Methods used in the snippet
 
-- [`in_group()`](medmodels.medrecord.querying.EdgeOperand.in_group){target="\_blank"} : Query nodes that belong to that group.
+- [`in_group()`](medmodels.medrecord.querying.EdgeOperand.in_group){target="\_blank"} : Query nodes that belong to that group.: Query edges that belong to that group.
 - [`index()`](medmodels.medrecord.querying.NodeOperand.index){target="\_blank"}: Returns a [`NodeIndexOperand`](medmodels.medrecord.querying.NodeIndexOperand){target="\_blank"}` to query on the indices.
 - [`contains()`](medmodels.medrecord.querying.NodeIndexOperand.contains){target="\_blank"} : Query node indices containing that argument.
 - [`contains()`](medmodels.medrecord.querying.EdgeOperand.attribute){target="\_blank"} : Returns a [`MultipleValuesOperand()`](medmodels.medrecord.querying.MultipleValuesOperand){target="\_blank"} to query on the values of the edges for that attribute.
