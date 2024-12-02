@@ -7,8 +7,9 @@ from pathlib import Path
 
 from sphinx.application import Sphinx
 
-# Add parent directory to sys.path for autodoc
+# Add current and parent directory to sys.path for autodoc
 sys.path.insert(0, str(Path(__file__).parent.parent))
+sys.path.insert(0, str(Path(__file__).parent))
 
 # Project information
 project = "MedModels"
@@ -25,6 +26,7 @@ extensions = [
     "sphinx.ext.autosummary",
     "sphinx_autodoc_typehints",
     "sphinx_design",
+    "sphinx_extensions",
     "sphinx_copybutton",
     "sphinx_pyscript",
     "sphinx_tippy",
