@@ -387,11 +387,11 @@ Grouping can also be used to make sub populations that share the same properties
 ```python
 young_age = 20
 # query and get node indices
-young_id = medrecord.select_nodes(node().attribute("age") < young_age)
+young_id = medrecord.select_nodes(node().attribute("age").less_than(young_age))
 medrecord.add_group(group="Young", node=young_id)
 
 # node operation
-medrecord.add_group(group="Woman", node=node().attribute("gender").equal("F"))
+medrecord.add_group(group="Woman", node=node().attribute("gender").equal_to("F"))
 ```
 
 The nodes of a group or a list of groups can be easily accessed with `group()`. The return is either a list of node indices for a single group or a dictionary with each group name,
@@ -538,7 +538,7 @@ print(medrecord.edge[patient_drug_edges[0]])
 Edges can also be selected using the query engine. The logic operators and functions are similar to the ones used for `select_nodes()`.
 
 ```python
-medrecord.select_edges(edge().attribute("cost").greater(500))
+medrecord.select_edges(edge().attribute("cost").greater_than(500))
 ```
 
     [114, 117, 124]
