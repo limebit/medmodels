@@ -286,18 +286,23 @@ class TreatmentEffect:
             )
 
         if outcome_before_treatment_days:
-            outcome_before_treatment_nodes = set(
-                medrecord.select_nodes(
-                    lambda node: self._query_node_within_time_window(
-                        node,
-                        treated_set,
-                        self._outcomes_group,
-                        -outcome_before_treatment_days,
-                        0,
-                        "first",
+            outcome_before_treatment_nodes = set()
+
+            for node_index in treated_set:
+                outcome_before_treatment_nodes.update(
+                    set(
+                        medrecord.select_nodes(
+                            lambda node: self._query_node_within_time_window(
+                                node,
+                                node_index,
+                                self._outcomes_group,
+                                -outcome_before_treatment_days,
+                                0,
+                                "first",
+                            )
+                        )
                     )
                 )
-            )
             treated_set -= outcome_before_treatment_nodes
 
             dropped_num = len(outcome_before_treatment_nodes)
@@ -306,18 +311,23 @@ class TreatmentEffect:
                 f"dropped due to outcome before treatment."
             )
 
-        treated_outcome_true = set(
-            medrecord.select_nodes(
-                lambda node: self._query_node_within_time_window(
-                    node,
-                    treated_set,
-                    self._outcomes_group,
-                    self._grace_period_days,
-                    self._follow_up_period_days,
-                    self._follow_up_period_reference,
+        treated_outcome_true = set()
+
+        for node_index in treated_set:
+            treated_outcome_true.update(
+                set(
+                    medrecord.select_nodes(
+                        lambda node: self._query_node_within_time_window(
+                            node,
+                            node_index,
+                            self._outcomes_group,
+                            self._grace_period_days,
+                            self._follow_up_period_days,
+                            self._follow_up_period_reference,
+                        )
+                    )
                 )
             )
-        )
 
         return treated_set, treated_outcome_true, outcome_before_treatment_nodes
 
@@ -344,19 +354,24 @@ class TreatmentEffect:
         # Apply the washout period to the treatment group
         # TODO: washout in both directions? We need a List then
         for washout_group_id, washout_days in self._washout_period_days.items():
-            washout_nodes.update(
-                medrecord.select_nodes(
-                    lambda node: self._query_node_within_time_window(
-                        node,
-                        treated_set,
-                        washout_group_id,
-                        -washout_days,
-                        0,
-                        self._washout_period_reference,
+            nodes_found = set()
+
+            for node_index in treated_set:
+                nodes_found.update(
+                    medrecord.select_nodes(
+                        lambda node: self._query_node_within_time_window(
+                            node,
+                            node_index,
+                            washout_group_id,
+                            -washout_days,
+                            0,
+                            self._washout_period_reference,
+                        )
                     )
                 )
-            )
-            treated_set -= washout_nodes
+
+            washout_nodes.update(nodes_found)
+            treated_set -= nodes_found
 
         if washout_nodes:
             dropped_num = len(washout_nodes)
@@ -441,44 +456,48 @@ class TreatmentEffect:
     def _query_node_within_time_window(
         self,
         node: NodeOperand,
-        treated_set: Set[NodeIndex],
+        node_index: NodeIndex,
         outcome_group: Group,
         start_days: int,
         end_days: int,
         reference: Literal["first", "last"],
     ) -> None:
-        """Queries for nodes with edges containing time information within a specified time window.
+        """Queries for a node with edges containing time information within a specified time window.
 
-        It queries for nodes that:
-            - Are in the treated group.
-            - Have edges with time information.
-            - Have edges that connect to the treatment group.
-            - Have edges that connect to the outcome group.
+        It queries whether a node:
+            - Is the specified node.
+            - Has edges with time information.
+            - Has edges that connect to the treatment group.
+            - Jas edges that connect to the outcome group.
             - The time of the outcome is within the specified time window: it being
                 greater or equal than the first or last time of treatment (depending on
                 the `reference`) and less or equal than the time of treatment plus the
                 `end_days` specified.
 
         Args:
-            node (NodeOperand): The node to query.
-            treated_set (Set[NodeIndex]): A set of patient nodes that underwent the
-                treatment.
+            node (NodeOperand): The node operand to query.
+            node_index (NodeIndex): The index of the node to query.
             start_days (int): The start of the time window in days relative to the
                 reference event.
             end_days (int): The end of the time window in days relative to the reference
                 event.
             reference (Literal["first", "last"]): The reference point for the time window.
         """
-        node.index().is_in(list(treated_set))
+        node.in_group(self._patients_group)
+        edges_node = node.edges()
+        edges_node.either_or(
+            lambda edge: edge.source_node().index().is_in([node_index]),
+            lambda edge: edge.target_node().index().is_in([node_index]),
+        )
 
-        edges_to_treatment = node.edges()
+        edges_to_treatment = edges_node.clone()
         edges_to_treatment.attribute(self._time_attribute).is_datetime()
         edges_to_treatment.either_or(
             lambda edge: edge.source_node().in_group(self._treatments_group),
             lambda edge: edge.target_node().in_group(self._treatments_group),
         )
 
-        edges_to_outcome = node.edges()
+        edges_to_outcome = edges_node
         edges_to_outcome.attribute(self._time_attribute).is_datetime()
         edges_to_outcome.either_or(
             lambda edge: edge.source_node().in_group(outcome_group),
