@@ -384,37 +384,62 @@ class TestTreatmentEffect(unittest.TestCase):
         )
         treated_set = tee._find_treated_patients(self.medrecord)
 
-        nodes = self.medrecord.select_nodes(
-            lambda node: tee._query_node_within_time_window(
-                node, treated_set, "Stroke", 0, 365, "last"
+        self.assertTrue(
+            self.medrecord.select_nodes(
+                lambda node: tee._query_node_within_time_window(
+                    node, "P3", "Stroke", 0, 365, "last"
+                )
             )
         )
-        self.assertIn("P3", nodes)
-        self.assertIn("P2", nodes)
+        self.assertTrue(
+            self.medrecord.select_nodes(
+                lambda node: tee._query_node_within_time_window(
+                    node, "P2", "Stroke", 0, 365, "last"
+                )
+            )
+        )
 
         # Only one not having an outcome in that time period (no outcome at all)
-        self.assertNotIn("P6", nodes)
+        self.assertFalse(
+            self.medrecord.select_nodes(
+                lambda node: tee._query_node_within_time_window(
+                    node, "P6", "Stroke", 0, 365, "last"
+                )
+            )
+        )
         self.assertIn("P6", treated_set)
 
         # check which patients have outcome within 30 days after treatment
-        nodes = self.medrecord.select_nodes(
-            lambda node: tee._query_node_within_time_window(
-                node, treated_set, "Stroke", 0, 30, "last"
+        self.assertTrue(
+            self.medrecord.select_nodes(
+                lambda node: tee._query_node_within_time_window(
+                    node, "P3", "Stroke", 0, 30, "last"
+                )
             )
         )
-        self.assertIn("P3", nodes)
-        self.assertNotIn(
-            "P2", nodes
+        self.assertFalse(
+            self.medrecord.select_nodes(
+                lambda node: tee._query_node_within_time_window(
+                    node, "P2", "Stroke", 0, 30, "last"
+                )
+            )
         )  # P2 has no outcome in the 30 days window after treatment
 
         # If we reduce the window to 3 days, we have no patients with outcome in that window
-        nodes = self.medrecord.select_nodes(
-            lambda node: tee._query_node_within_time_window(
-                node, treated_set, "Stroke", 0, 3, "last"
+        self.assertFalse(
+            self.medrecord.select_nodes(
+                lambda node: tee._query_node_within_time_window(
+                    node, "P3", "Stroke", 0, 3, "last"
+                )
             )
         )
-        self.assertNotIn("P3", nodes)
-        self.assertNotIn("P2", nodes)
+        self.assertFalse(
+            self.medrecord.select_nodes(
+                lambda node: tee._query_node_within_time_window(
+                    node, "P2", "Stroke", 0, 3, "last"
+                )
+            )
+        )
 
     def test_find_groups(self):
         tee = (
