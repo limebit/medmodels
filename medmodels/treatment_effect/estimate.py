@@ -7,6 +7,7 @@ from medmodels.medrecord.types import MedRecordAttribute, NodeIndex
 from medmodels.treatment_effect.continuous_estimators import (
     average_treatment_effect,
     cohens_d,
+    t_test,
 )
 from medmodels.treatment_effect.matching.matching import Matching
 from medmodels.treatment_effect.matching.neighbors import NeighborsMatching
@@ -629,4 +630,22 @@ class Estimate:
             reference=reference,
             time_attribute=self._treatment_effect._time_attribute,
             add_correction=add_correction,
+        )
+
+    def t_test(
+        self,
+        medrecord: MedRecord,
+        outcome_variable: MedRecordAttribute,
+        reference: Literal["first", "last"] = "last",
+    ) -> Tuple[float, float]:
+        subjects = self.subject_indices(medrecord=medrecord)
+
+        return t_test(
+            medrecord=medrecord,
+            treatment_outcome_true_set=subjects.get("treated_outcome_true"),
+            control_outcome_true_set=subjects.get("control_outcome_true"),
+            outcome_group=self._treatment_effect._outcomes_group,
+            outcome_variable=outcome_variable,
+            reference=reference,
+            time_attribute=self._treatment_effect._time_attribute,
         )
