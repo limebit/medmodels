@@ -304,7 +304,7 @@ class TestTreatmentEffect(unittest.TestCase):
             TreatmentEffect.builder()
             .with_treatment("Rivaroxaban")
             .with_outcome("Stroke")
-            .with_time_attribute("time")
+            .with_time_attribute(None)
             .with_patients_group("patients")
             .with_washout_period(reference="first")
             .with_grace_period(days=0, reference="last")
@@ -379,6 +379,7 @@ class TestTreatmentEffect(unittest.TestCase):
             TreatmentEffect.builder()
             .with_outcome("Stroke")
             .with_treatment("Rivaroxaban")
+            .with_time_attribute("time")
             .build()
         )
         treated_set = tee._find_treated_patients(self.medrecord)
@@ -423,6 +424,25 @@ class TestTreatmentEffect(unittest.TestCase):
             .build()
         )
 
+        (
+            treatment_outcome_true,
+            treatment_outcome_false,
+            control_outcome_true,
+            control_outcome_false,
+        ) = tee._find_groups(self.medrecord)
+        self.assertEqual(treatment_outcome_true, set({"P2", "P3"}))
+        self.assertEqual(treatment_outcome_false, set({"P6"}))
+        self.assertEqual(control_outcome_true, set({"P1", "P4", "P7"}))
+        self.assertEqual(control_outcome_false, set({"P5", "P8", "P9"}))
+
+        # for this scenario, it works the same in temporal and static analysis
+        tee = (
+            TreatmentEffect.builder()
+            .with_treatment("Rivaroxaban")
+            .with_outcome("Stroke")
+            .with_time_attribute("time")
+            .build()
+        )
         (
             treatment_outcome_true,
             treatment_outcome_false,
@@ -543,6 +563,7 @@ class TestTreatmentEffect(unittest.TestCase):
             TreatmentEffect.builder()
             .with_treatment("Rivaroxaban")
             .with_outcome("Stroke")
+            .with_time_attribute("time")
             .with_follow_up_period(30)
             .build()
         )
@@ -559,6 +580,7 @@ class TestTreatmentEffect(unittest.TestCase):
             .with_treatment("Rivaroxaban")
             .with_outcome("Stroke")
             .with_grace_period(10)
+            .with_time_attribute("time")
             .build()
         )
 
@@ -578,6 +600,7 @@ class TestTreatmentEffect(unittest.TestCase):
                 .with_treatment("Rivaroxaban")
                 .with_outcome("Stroke")
                 .with_grace_period(1000)
+                .with_time_attribute("time")
                 .build()
             )
 
@@ -589,6 +612,7 @@ class TestTreatmentEffect(unittest.TestCase):
             .with_treatment("Rivaroxaban")
             .with_outcome("Stroke")
             .with_washout_period(washout_dict)
+            .with_time_attribute("time")
             .build()
         )
 
@@ -610,6 +634,7 @@ class TestTreatmentEffect(unittest.TestCase):
             .with_treatment("Rivaroxaban")
             .with_outcome("Stroke")
             .with_washout_period(washout_dict2)
+            .with_time_attribute("time")
             .build()
         )
 
@@ -629,6 +654,7 @@ class TestTreatmentEffect(unittest.TestCase):
             TreatmentEffect.builder()
             .with_treatment("Rivaroxaban")
             .with_outcome("Stroke")
+            .with_time_attribute("time")
             .build()
         )
         treated_set = tee._find_treated_patients(self.medrecord)
@@ -644,6 +670,7 @@ class TestTreatmentEffect(unittest.TestCase):
             TreatmentEffect.builder()
             .with_treatment("Rivaroxaban")
             .with_outcome("Stroke")
+            .with_time_attribute("time")
             .with_outcome_before_treatment_exclusion(30)
             .build()
         )
@@ -659,12 +686,13 @@ class TestTreatmentEffect(unittest.TestCase):
         self.assertEqual(outcome_before_treatment_nodes, set({"P3"}))
 
         # case 3 no outcome
-        self.medrecord.add_group("Headache")
+        self.medrecord.add_group("no_outcome")
 
         tee3 = (
             TreatmentEffect.builder()
             .with_treatment("Rivaroxaban")
-            .with_outcome("Headache")
+            .with_outcome("no_outcome")
+            .with_time_attribute("time")
             .with_outcome_before_treatment_exclusion(30)
             .build()
         )
@@ -675,14 +703,15 @@ class TestTreatmentEffect(unittest.TestCase):
             tee3._find_outcomes(medrecord=self.medrecord, treated_set=treated_set)
 
     def test_filter_controls(self):
-        def query1(node: NodeOperand):
+        def query_neighbors_to_m2(node: NodeOperand):
             node.neighbors(EdgeDirection.BOTH).index().equal_to("M2")
 
         tee = (
             TreatmentEffect.builder()
             .with_treatment("Rivaroxaban")
             .with_outcome("Stroke")
-            .filter_controls(query1)
+            .with_time_attribute("time")
+            .filter_controls(query_neighbors_to_m2)
             .build()
         )
         counts_tee = tee.estimate._compute_subject_counts(self.medrecord)
@@ -690,15 +719,15 @@ class TestTreatmentEffect(unittest.TestCase):
         self.assertEqual(counts_tee, (2, 1, 1, 2))
 
         # filter females only
-
-        def query2(node: NodeOperand):
+        def query_female_patients(node: NodeOperand):
             node.attribute("gender").equal_to("female")
 
         tee2 = (
             TreatmentEffect.builder()
             .with_treatment("Rivaroxaban")
             .with_outcome("Stroke")
-            .filter_controls(query2)
+            .with_time_attribute("time")
+            .filter_controls(query_female_patients)
             .build()
         )
 
@@ -831,11 +860,38 @@ class TestTreatmentEffect(unittest.TestCase):
         self.assertDictEqual(report_test, full_report)
 
     def test_continuous_estimators_report(self):
-        """Test the continuous report of the TreatmentEffect class."""
+        """Test the continuous report of the TreatmentEffect."""
         tee = (
             TreatmentEffect.builder()
             .with_treatment("Rivaroxaban")
             .with_outcome("Stroke")
+            .build()
+        )
+
+        report_test = {
+            "average_treatment_effect": tee.estimate.average_treatment_effect(
+                self.medrecord,
+                outcome_variable="intensity",
+            ),
+            "cohens_d": tee.estimate.cohens_d(
+                self.medrecord, outcome_variable="intensity"
+            ),
+        }
+
+        self.assertDictEqual(
+            report_test,
+            tee.report.continuous_estimators_report(
+                self.medrecord, outcome_variable="intensity"
+            ),
+        )
+
+    def test_continuous_estimators_report_with_time(self):
+        """Test the continuous report of the TreatmentEffect with time attribute."""
+        tee = (
+            TreatmentEffect.builder()
+            .with_treatment("Rivaroxaban")
+            .with_outcome("Stroke")
+            .with_time_attribute("time")
             .build()
         )
 
