@@ -6,6 +6,10 @@ treatment and experienced outcomes, and find a control group with similar criter
 without undergoing the treatment. The class supports customizable criteria filtering,
 time constraints between treatment and outcome, and optional matching of control groups
 to treatment groups using a specified matching class.
+
+The default TreatmentEffect class performs an static analysis without considering time.
+To perform a time-based analysis, users can specify a time attribute in the configuration
+and set the washout period, grace period, and follow-up period.
 """
 
 from __future__ import annotations
@@ -36,7 +40,7 @@ class TreatmentEffect:
     _outcomes_group: Group
 
     _patients_group: Group
-    _time_attribute: MedRecordAttribute
+    _time_attribute: Optional[MedRecordAttribute]
 
     _washout_period_days: Dict[str, int]
     _washout_period_reference: Literal["first", "last"]
@@ -83,7 +87,7 @@ class TreatmentEffect:
         treatment: Group,
         outcome: Group,
         patients_group: Group = "patients",
-        time_attribute: MedRecordAttribute = "time",
+        time_attribute: Optional[MedRecordAttribute] = None,
         washout_period_days: Dict[str, int] = dict(),
         washout_period_reference: Literal["first", "last"] = "first",
         grace_period_days: int = 0,
@@ -110,10 +114,12 @@ class TreatmentEffect:
             outcome (Group): The group of outcomes to analyze.
             patients_group (Group, optional): The group of patients to analyze.
                 Defaults to "patients".
-            time_attribute (MedRecordAttribute, optional): The time attribute to use for
-                time-based analysis. Defaults to "time".
+            time_attribute (Optional[MedRecordAttribute], optional):  The time
+                attribute. If None, the treatment effect analysis is performed in an
+                static way (without considering time). Defaults to None.
             washout_period_days (Dict[str, int], optional): The washout period in days
-                for each treatment group. Defaults to dict().
+                for each treatment group. In the case of no time attribute, it is not
+                applied. Defaults to dict().
             washout_period_reference (Literal["first", "last"], optional): The reference
                 point for the washout period. Defaults to "first".
             grace_period_days (int, optional): The grace period in days after the
@@ -198,7 +204,14 @@ class TreatmentEffect:
         """
         # Find patients that underwent the treatment
         treated_set = self._find_treated_patients(medrecord)
-        treated_set, washout_nodes = self._apply_washout_period(medrecord, treated_set)
+
+        if self._time_attribute:
+            treated_set, washout_nodes = self._apply_washout_period(
+                medrecord, treated_set
+            )
+        else:
+            washout_nodes = set()
+
         treated_set, treated_outcome_true, outcome_before_treatment_nodes = (
             self._find_outcomes(medrecord, treated_set)
         )
@@ -285,7 +298,7 @@ class TreatmentEffect:
                 f"No outcomes found in the MedRecord for group {self._outcomes_group}"
             )
 
-        if outcome_before_treatment_days:
+        if outcome_before_treatment_days and self._time_attribute:
             outcome_before_treatment_nodes = set(
                 medrecord.select_nodes(
                     lambda node: self._query_node_within_time_window(
@@ -306,18 +319,25 @@ class TreatmentEffect:
                 f"dropped due to outcome before treatment."
             )
 
-        treated_outcome_true = set(
-            medrecord.select_nodes(
-                lambda node: self._query_node_within_time_window(
-                    node,
-                    treated_set,
-                    self._outcomes_group,
-                    self._grace_period_days,
-                    self._follow_up_period_days,
-                    self._follow_up_period_reference,
+        if self._time_attribute:
+            treated_outcome_true = set(
+                medrecord.select_nodes(
+                    lambda node: self._query_node_within_time_window(
+                        node,
+                        treated_set,
+                        self._outcomes_group,
+                        self._grace_period_days,
+                        self._follow_up_period_days,
+                        self._follow_up_period_reference,
+                    )
                 )
             )
-        )
+        else:
+            treated_outcome_true = set(
+                medrecord.select_nodes(
+                    lambda node: self._query_set_outcome_true(node, treated_set)
+                )
+            )
 
         return treated_set, treated_outcome_true, outcome_before_treatment_nodes
 
@@ -426,17 +446,25 @@ class TreatmentEffect:
                 f"No outcomes found in the MedRecord for group {self._outcomes_group}"
             )
 
-        def query(node: NodeOperand):
-            node.index().is_in(list(control_set))
-            node.neighbors(edge_direction=EdgeDirection.BOTH).in_group(
-                self._outcomes_group
-            )
-
         # Finding the patients that had the outcome in the control group
-        control_outcome_true = set(medrecord.select_nodes(query))
+        control_outcome_true = set(
+            medrecord.select_nodes(
+                lambda node: self._query_set_outcome_true(node, control_set)
+            )
+        )
         control_outcome_false = control_set - control_outcome_true
 
         return control_outcome_true, control_outcome_false
+
+    def _query_set_outcome_true(self, node: NodeOperand, set: Set[NodeIndex]):
+        """Query for nodes that are in the given set and have the outcome.
+
+        Args:
+            node (NodeOperand): The node to query.
+            set (Set[NodeIndex]): The set of nodes to query.
+        """
+        node.index().is_in(list(set))
+        node.neighbors(edge_direction=EdgeDirection.BOTH).in_group(self._outcomes_group)
 
     def _query_node_within_time_window(
         self,
@@ -468,8 +496,13 @@ class TreatmentEffect:
             end_days (int): The end of the time window in days relative to the reference
                 event.
             reference (Literal["first", "last"]): The reference point for the time window.
+
+        Raises:
+            ValueError: If the time attribute is not set.
         """
         node.index().is_in(list(treated_set))
+        if self._time_attribute is None:
+            raise ValueError("Time attribute is not set.")
 
         edges_to_treatment = node.edges()
         edges_to_treatment.attribute(self._time_attribute).is_datetime()

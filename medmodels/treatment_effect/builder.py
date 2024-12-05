@@ -82,12 +82,13 @@ class TreatmentEffectBuilder:
         return self
 
     def with_time_attribute(
-        self, attribute: MedRecordAttribute
+        self, attribute: Optional[MedRecordAttribute]
     ) -> TreatmentEffectBuilder:
         """Sets the time attribute to be used in the treatment effect estimation.
 
         Args:
-            attribute (MedRecordAttribute): The time attribute.
+            attribute (Optional[MedRecordAttribute]): The time attribute. If None,
+                there is no temporal analysis, but only static one.
 
         Returns:
             TreatmentEffectBuilder: The current instance of the TreatmentEffectBuilder
