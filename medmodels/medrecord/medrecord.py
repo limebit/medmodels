@@ -1386,7 +1386,6 @@ class MedRecord:
             decimal (int, optional): Decimal point to round the float values to.
                 Defaults to 2.
 
-
         Returns:
             OverviewTable: Display of edge groups and their attributes.
 
@@ -1429,7 +1428,6 @@ class MedRecord:
 
         Returns:
             OverviewTable: Display of edge groups and their attributes.
-
 
         Example:
 

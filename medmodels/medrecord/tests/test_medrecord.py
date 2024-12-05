@@ -1695,7 +1695,6 @@ class TestMedRecord(unittest.TestCase):
 
         medrecord.add_group("Float")
         medrecord.add_group(1, nodes=["2", "0"])
-        # medrecord.add_group("Odd", nodes=["1", "3"])
 
         self.assertDictEqual(
             medrecord._describe_group_nodes(),
@@ -1711,9 +1710,7 @@ class TestMedRecord(unittest.TestCase):
                 "Float": {"count": 0, "attribute": {}},
                 "Ungrouped Nodes": {
                     "count": 2,
-                    "attribute": {
-                        # "amet": {"type": "Text", "values": "Values: consectetur"}
-                    },
+                    "attribute": {},
                 },
             },
         )
