@@ -95,11 +95,11 @@ def average_treatment_effect(
 
     else:
         edges_treated_outcomes = medrecord.select_edges(
-            lambda edge: query_edges_set_outcome(
+            lambda edge: query_edges_between_set_outcome(
                 edge, treatment_outcome_true_set, outcome_group
             )
         )
-        treated_outcomes = treated_outcomes = np.array(
+        treated_outcomes = np.array(
             [
                 medrecord.edge[edge_id][outcome_variable]
                 for edge_id in edges_treated_outcomes
@@ -107,11 +107,11 @@ def average_treatment_effect(
         )
 
         edges_control_outcomes = medrecord.select_edges(
-            lambda edge: query_edges_set_outcome(
+            lambda edge: query_edges_between_set_outcome(
                 edge, control_outcome_true_set, outcome_group
             )
         )
-        control_outcomes = treated_outcomes = np.array(
+        control_outcomes = np.array(
             [
                 medrecord.edge[edge_id][outcome_variable]
                 for edge_id in edges_control_outcomes
@@ -175,8 +175,7 @@ def cohens_d(
         time_attribute (Optional[MedRecordAttribute], optional): The attribute in the
             edge that contains the time information. If it is equal to None, there is
             no time component in the data and all edges between the sets and the
-            outcomes are considered for the average treatment effect. Defaults to
-            "time".
+            outcomes are considered for the Cohen's D calculation. Defaults to "time".
         add_correction (bool, optional): Whether to apply a correction factor for small
             sample sizes. When True, using Hedges' g formula instead of Cohens' D.
             Defaults to False.
@@ -218,11 +217,11 @@ def cohens_d(
         )
     else:
         edges_treated_outcomes = medrecord.select_edges(
-            lambda edge: query_edges_set_outcome(
+            lambda edge: query_edges_between_set_outcome(
                 edge, treatment_outcome_true_set, outcome_group
             )
         )
-        treated_outcomes = treated_outcomes = np.array(
+        treated_outcomes = np.array(
             [
                 medrecord.edge[edge_id][outcome_variable]
                 for edge_id in edges_treated_outcomes
@@ -230,11 +229,11 @@ def cohens_d(
         )
 
         edges_control_outcomes = medrecord.select_edges(
-            lambda edge: query_edges_set_outcome(
+            lambda edge: query_edges_between_set_outcome(
                 edge, control_outcome_true_set, outcome_group
             )
         )
-        control_outcomes = treated_outcomes = np.array(
+        control_outcomes = np.array(
             [
                 medrecord.edge[edge_id][outcome_variable]
                 for edge_id in edges_control_outcomes
@@ -268,7 +267,7 @@ CONTINUOUS_ESTIMATOR = {
 }
 
 
-def query_edges_set_outcome(
+def query_edges_between_set_outcome(
     edge: EdgeOperand, set: Set[NodeIndex], outcomes_group: Group
 ):
     """Query edges that connect a set of nodes to the outcomes group.
@@ -284,15 +283,7 @@ def query_edges_set_outcome(
         lambda edge: edge.source_node().index().is_in(list_nodes),
         lambda edge: edge.target_node().index().is_in(list_nodes),
     )
-    edge.either_or(
-        lambda edge: edge.source_node().index().is_in(list_nodes),
-        lambda edge: edge.target_node().index().is_in(list_nodes),
-    )
 
-    edge.either_or(
-        lambda edge: edge.source_node().in_group(outcomes_group),
-        lambda edge: edge.target_node().in_group(outcomes_group),
-    )
     edge.either_or(
         lambda edge: edge.source_node().in_group(outcomes_group),
         lambda edge: edge.target_node().in_group(outcomes_group),

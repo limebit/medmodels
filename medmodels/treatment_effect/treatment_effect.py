@@ -210,6 +210,9 @@ class TreatmentEffect:
                 medrecord, treated_set
             )
         else:
+            logging.warning(
+                "Washout period is not applied because the time attribute is not set."
+            )
             washout_nodes = set()
 
         treated_set, treated_outcome_true, outcome_before_treatment_nodes = (
@@ -337,6 +340,11 @@ class TreatmentEffect:
                 medrecord.select_nodes(
                     lambda node: self._query_set_outcome_true(node, treated_set)
                 )
+            )
+            logging.warning(
+                "Time attribute is not set, thus the grace period, follow-up period,"
+                + "and outcome before treatment are not applied. The treatment effect"
+                + "analysis is performed in a static way."
             )
 
         return treated_set, treated_outcome_true, outcome_before_treatment_nodes
