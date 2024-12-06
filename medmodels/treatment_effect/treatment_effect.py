@@ -92,7 +92,7 @@ class TreatmentEffect:
         washout_period_reference: Literal["first", "last"] = "first",
         grace_period_days: int = 0,
         grace_period_reference: Literal["first", "last"] = "last",
-        follow_up_period_days: int = 365,
+        follow_up_period_days: int = 1000 * 365,
         follow_up_period_reference: Literal["first", "last"] = "last",
         outcome_before_treatment_days: Optional[int] = None,
         filter_controls_query: Optional[NodeQuery] = None,
@@ -120,14 +120,14 @@ class TreatmentEffect:
             washout_period_days (Dict[str, int], optional): The washout period in days
                 for each treatment group. In the case of no time attribute, it is not
                 applied. Defaults to dict().
-            washout_period_reference (Literal["first", "last"], optional): The reference
-                point for the washout period. Defaults to "first".
+            washout_period_reference (Literal["first", "last"], optional): The
+                reference point for the washout period. Defaults to "first".
             grace_period_days (int, optional): The grace period in days after the
                 treatment. Defaults to 0.
             grace_period_reference (Literal["first", "last"], optional): The reference
                 point for the grace period. Defaults to "last".
             follow_up_period_days (int, optional): The follow-up period in days after
-                the treatment. Defaults to 365.
+                the treatment. Defaults to 365000.
             follow_up_period_reference (Literal["first", "last"], optional): The
                 reference point for the follow-up period. Defaults to "last".
             outcome_before_treatment_days (Optional[int], optional): The number of days
@@ -179,6 +179,22 @@ class TreatmentEffect:
         treatment_effect._matching_model = matching_model
         treatment_effect._matching_number_of_neighbors = matching_number_of_neighbors
         treatment_effect._matching_hyperparam = matching_hyperparam
+
+        if washout_period_days and not time_attribute:
+            logging.warning(
+                "Washout period is not applied because the time attribute is not set."
+            )
+
+        if (
+            grace_period_days
+            or (follow_up_period_days != 1000 * 365)
+            or outcome_before_treatment_days
+        ) and not time_attribute:
+            logging.warning(
+                "Time attribute is not set, thus the grace period, follow-up "
+                + "period, and outcome before treatment cannot be applied. The "
+                + "treatment effect analysis is performed in a static way."
+            )
 
     def _find_groups(
         self, medrecord: MedRecord
@@ -316,7 +332,7 @@ class TreatmentEffect:
             dropped_num = len(outcome_before_treatment_nodes)
             logging.warning(
                 f"{dropped_num} subject{' was' if dropped_num == 1 else 's were'} "
-                f"dropped due to outcome before treatment."
+                f"dropped due to having an outcome before the treatment."
             )
 
         if self._time_attribute:
@@ -382,7 +398,7 @@ class TreatmentEffect:
             dropped_num = len(washout_nodes)
             logging.warning(
                 f"{dropped_num} subject{' was' if dropped_num == 1 else 's were'} "
-                f"dropped due to outcome before treatment."
+                f"dropped due to having a treatment in the washout period."
             )
 
         return treated_set, washout_nodes

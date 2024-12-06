@@ -308,11 +308,43 @@ class TestTreatmentEffect(unittest.TestCase):
             .with_patients_group("patients")
             .with_washout_period(reference="first")
             .with_grace_period(days=0, reference="last")
-            .with_follow_up_period(365, reference="last")
+            .with_follow_up_period(365000, reference="last")
             .build()
         )
 
         assert_treatment_effects_equal(self, tee, tee_builder)
+
+    def test_time_warnings(self):
+        """Test the warnings raised by the TreatmentEffect class with no time attribute."""
+        with self.assertLogs(level="WARNING") as log_capture:
+            _ = (
+                TreatmentEffect.builder()
+                .with_treatment("Rivaroxaban")
+                .with_outcome("Stroke")
+                .with_washout_period({"Warfarin": 30})
+                .build()
+            )
+
+        self.assertIn(
+            "Washout period is not applied because the time attribute is not set.",
+            log_capture.output[0],
+        )
+
+        with self.assertLogs(level="WARNING") as log_capture:
+            _ = (
+                TreatmentEffect.builder()
+                .with_treatment("Rivaroxaban")
+                .with_outcome("Stroke")
+                .with_follow_up_period(365)
+                .build()
+            )
+
+        self.assertIn(
+            "Time attribute is not set, thus the grace period, follow-up "
+            + "period, and outcome before treatment cannot be applied. The "
+            + "treatment effect analysis is performed in a static way.",
+            log_capture.output[0],
+        )
 
     def test_check_medrecord(self):
         tee = (
@@ -600,6 +632,7 @@ class TestTreatmentEffect(unittest.TestCase):
                 .with_treatment("Rivaroxaban")
                 .with_outcome("Stroke")
                 .with_grace_period(1000)
+                .with_follow_up_period(365)
                 .with_time_attribute("time")
                 .build()
             )
@@ -619,12 +652,17 @@ class TestTreatmentEffect(unittest.TestCase):
         self.assertDictEqual(tee._washout_period_days, washout_dict)
 
         treated_set = tee._find_treated_patients(self.medrecord)
-        treated_set, washout_nodes = tee._apply_washout_period(
-            self.medrecord, treated_set
-        )
+        with self.assertLogs(level="WARNING") as log_capture:
+            treated_set, washout_nodes = tee._apply_washout_period(
+                self.medrecord, treated_set
+            )
 
         self.assertEqual(treated_set, set({"P3", "P6"}))
         self.assertEqual(washout_nodes, set({"P2"}))
+        self.assertIn(
+            "1 subject was dropped due to having a treatment in the washout period.",
+            log_capture.output[0],
+        )
 
         # smaller washout period
         washout_dict2 = {"Warfarin": 10}
@@ -678,12 +716,19 @@ class TestTreatmentEffect(unittest.TestCase):
         self.assertEqual(tee2._outcome_before_treatment_days, 30)
 
         treated_set = tee2._find_treated_patients(self.medrecord)
-        treated_set, treatment_outcome_true, outcome_before_treatment_nodes = (
-            tee2._find_outcomes(self.medrecord, treated_set)
-        )
+        with self.assertLogs(level="WARNING") as log_capture:
+            treated_set, treatment_outcome_true, outcome_before_treatment_nodes = (
+                tee2._find_outcomes(self.medrecord, treated_set)
+            )
+
         self.assertEqual(treated_set, set({"P2", "P6"}))
         self.assertEqual(treatment_outcome_true, set({"P2"}))
         self.assertEqual(outcome_before_treatment_nodes, set({"P3"}))
+
+        self.assertIn(
+            "1 subject was dropped due to having an outcome before the treatment.",
+            log_capture.output[0],
+        )
 
         # case 3 no outcome
         self.medrecord.add_group("no_outcome")
