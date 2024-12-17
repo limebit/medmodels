@@ -30,12 +30,12 @@ def create_patients(patients_list: List[NodeIndex]) -> pd.DataFrame:
             "age": [20, 30, 40, 30, 40, 50, 60, 70, 80],
             "gender": [
                 "male",
-                "female",
                 "male",
                 "female",
-                "male",
                 "female",
                 "male",
+                "male",
+                "female",
                 "female",
                 "male",
             ],
@@ -70,6 +70,7 @@ def create_medrecord(patients_list: Optional[List[NodeIndex]] = None) -> MedReco
     patients = create_patients(patients_list=patients_list)
     medrecord = MedRecord.from_pandas(nodes=[(patients, "index")])
     medrecord.add_group(group="patients", nodes=patients["index"].to_list())
+    medrecord.add_nodes(("P10", {}), "patients")
     return medrecord
 
 
@@ -155,7 +156,7 @@ class TestNeighborsMatching(unittest.TestCase):
         # Assert that the correct number of controls were matched
         assert len(matched_controls) == len(treated_set)
 
-        # Assert it works equally if no covariates are given (automatically assigned)
+        # It should do the same if no covariates are given (all attributes assigned)
         matched_controls_no_covariates_specified = neighbors_matching.match_controls(
             medrecord=self.medrecord,
             control_set=control_set,
@@ -163,8 +164,7 @@ class TestNeighborsMatching(unittest.TestCase):
             patients_group="patients",
         )
 
-        assert matched_controls_no_covariates_specified.issubset(control_set)
-        assert len(matched_controls_no_covariates_specified) == len(treated_set)
+        assert matched_controls_no_covariates_specified == matched_controls
 
     def test_check_nodes(self) -> None:
         neighbors_matching = NeighborsMatching(number_of_neighbors=1)
@@ -190,7 +190,10 @@ class TestNeighborsMatching(unittest.TestCase):
         # Test insufficient control subjects
         with pytest.raises(
             ValueError,
-            match="Not enough control subjects to match the treated subjects",
+            match="Not enough control subjects to match the treated subjects. "
+            + "Number of controls: 1, Number of treated subjects: 3, "
+            + "Number of neighbors required per treated subject: 1, "
+            + "Total controls needed: 3.",
         ):
             neighbors_matching._check_nodes(
                 medrecord=self.medrecord,
@@ -202,7 +205,10 @@ class TestNeighborsMatching(unittest.TestCase):
         neighbors_matching_two_neighbors = NeighborsMatching(number_of_neighbors=2)
         with pytest.raises(
             ValueError,
-            match="Not enough control subjects to match the treated subjects",
+            match="Not enough control subjects to match the treated subjects. "
+            + "Number of controls: 5, Number of treated subjects: 3, "
+            + "Number of neighbors required per treated subject: 2, "
+            + "Total controls needed: 6.",
         ):
             neighbors_matching_two_neighbors._check_nodes(
                 medrecord=self.medrecord,

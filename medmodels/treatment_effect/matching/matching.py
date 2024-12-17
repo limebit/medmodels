@@ -55,9 +55,11 @@ class Matching(ABC):
             treated_set (Set[NodeIndex]): Set of control subjects.
             patients_group (Group): The group of patients.
             essential_covariates (Optional[MedRecordAttributeInputList]):
-                Covariates that are essential for matching. Defaults to None.
+                Covariates that are essential for matching. Defaults to None, meaning
+                all the attributes of the patients are used.
             one_hot_covariates (Optional[MedRecordAttributeInputList]):
-                Covariates that are one-hot encoded for matching. Defaults to None.
+                Covariates that are one-hot encoded for matching. Defaults to None,
+                meaning all the categorical attributes of the patients are used.
 
         Returns:
             Tuple[pl.DataFrame, pl.DataFrame]: Treated and control groups with their
@@ -74,8 +76,6 @@ class Matching(ABC):
                     medrecord.node[medrecord.nodes_in_group(patients_group)]
                 )
             )
-        else:
-            essential_covariates = list(essential_covariates)
 
         control_set = self._check_nodes(
             medrecord=medrecord,
@@ -85,9 +85,9 @@ class Matching(ABC):
         )
 
         if "id" not in essential_covariates:
-            essential_covariates.append("id")
+            essential_covariates.append("id")  # pyright: ignore[reportArgumentType]
 
-        # Dataframe wth the essential covariates
+        # Dataframe with the essential covariates
         data = pl.DataFrame(
             data=[
                 {"id": k, **v}
@@ -104,11 +104,21 @@ class Matching(ABC):
             one_hot_covariates = [
                 covariate
                 for covariate, values in attributes.items()
-                if "values" in values
+                if "Categorical" in values["type"]
             ]
 
-        if not all(
-            covariate in essential_covariates for covariate in one_hot_covariates
+            one_hot_covariates = [
+                covariate
+                for covariate in one_hot_covariates
+                if covariate in essential_covariates
+            ]
+
+        # If there are one-hot covariates, check if all are in the essential covariates
+        if (
+            not all(
+                covariate in essential_covariates for covariate in one_hot_covariates
+            )
+            and one_hot_covariates
         ):
             msg = "One-hot covariates must be in the essential covariates"
             raise AssertionError(msg)
@@ -122,8 +132,8 @@ class Matching(ABC):
 
         # Add to essential covariates the new columns created by one-hot encoding and
         # delete the ones that were one-hot encoded
-        essential_covariates.extend(new_columns)
-        [essential_covariates.remove(col) for col in one_hot_covariates]
+        essential_covariates.extend(new_columns)  # pyright: ignore[reportArgumentType]
+        [essential_covariates.remove(col) for col in one_hot_covariates]  # pyright: ignore[reportArgumentType]
         data = data.select(essential_covariates)
 
         # Select the sets of treated and control subjects
@@ -170,8 +180,15 @@ class Matching(ABC):
                 lambda node: query_essential_covariates(node, control_set)
             )
         )
+
         if len(control_set) < self.number_of_neighbors * len(treated_set):
-            msg = "Not enough control subjects to match the treated subjects"
+            msg = (
+                f"Not enough control subjects to match the treated subjects. "
+                f"Number of controls: {len(control_set)}, "
+                f"Number of treated subjects: {len(treated_set)}, "
+                f"Number of neighbors required per treated subject: {self.number_of_neighbors}, "
+                f"Total controls needed: {self.number_of_neighbors * len(treated_set)}."
+            )
             raise ValueError(msg)
 
         if len(treated_set) != len(
