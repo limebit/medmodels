@@ -221,7 +221,7 @@ lines: 49
 ---
 ```
 
-However, they need to belong in order to show their attributes in the overview.
+However, they need to belong to a group in order to show their attributes in the overview.
 
 ```{exec-literalinclude} scripts/02_medrecord_intro.py
 ---
@@ -240,7 +240,7 @@ lines: 52, 54
 
 Now that we have stored some structured data in our MedRecord, we might want to access certain elements of it. The main way to do this is by either selecting the data with their indices or via groups that they are in.
 
-We can for example, get all available nodes:
+We can, for example, get all available nodes:
 
 ```{exec-literalinclude} scripts/02_medrecord_intro.py
 ---
@@ -270,7 +270,7 @@ lines: 63
 ---
 ```
 
-Or get all nodes belong to a certain group:
+Or get all that nodes belong to a certain group:
 
 ```{exec-literalinclude} scripts/02_medrecord_intro.py
 ---
@@ -283,12 +283,12 @@ lines: 66
 :::{dropdown} Methods used in the snippet
 
 - [`nodes()`](medmodels.medrecord.medrecord.MedRecord.nodes){target="_blank"} : Lists the node indices in the MedRecord instance.
-- [`node[]`](medmodels.medrecord.medrecord.MedRecord.node){target="_blank"} : Provides access to node attributes within the MedRecord instance via an indexer.
+- [`node[]`](medmodels.medrecord.medrecord.MedRecord.node){target="_blank"} : Provides access to node information within the MedRecord instance via an indexer, returning a dictionary with node indices as keys and node attributes as values.
 - [`groups()`](medmodels.medrecord.medrecord.MedRecord.groups){target="_blank"} : Lists the groups in the MedRecord instance.
-- [`nodes_in_group()`](medmodels.medrecord.medrecord.MedRecord.nodes_in_group){target="_blank"} : Retrieves the node indices associated with the specified group/s in the MedRecord.
+- [`nodes_in_group()`](medmodels.medrecord.medrecord.MedRecord.nodes_in_group){target="_blank"} : Retrieves the node indices associated with the specified group(s) in the MedRecord.
 :::
 
-The MedRecord can be queried in very advanced ways in order to find very specific nodes based on time, relations, neighbors or other. These advanced querying methods are covered in one of the next sections of the user guide.
+The MedRecord can be queried in very advanced ways in order to find very specific nodes based on time, relations, neighbors or other. These advanced querying methods are covered in one of the next sections of the user guide, [Query Engine](02b_query_engine.md).
 
 ## Full example Code
 
