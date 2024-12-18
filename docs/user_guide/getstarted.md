@@ -321,7 +321,7 @@ patient_drug_edges = medrecord.add_edges_polars(
 
 :::{dropdown} Methods used in the snippet
 
-* [`add_edges_polars()`](medmodels.medrecord.medrecord.MedRecord.add_edges_polars){target="_blank"} : Adds nodes to the MedRecord from different data formats and optionally assigns them to a group.
+* [`add_edges_polars()`](medmodels.medrecord.medrecord.MedRecord.add_edges_polars){target="_blank"} : Adds edges to the MedRecord from Polars data frames and optionally assigns them to a group.
 
 :::
 
@@ -385,7 +385,7 @@ print(f"Age of multiple patients: {medrecord.node[['pat_2', 'pat_3', 'pat_4'], '
 
 :::{dropdown} Methods used in the snippet
 
-* [`node[]`](medmodels.medrecord.medrecord.MedRecord.node){target="_blank"} : Provides access to node attributes within the MedRecord instance via an indexer.
+* [`node[]`](medmodels.medrecord.medrecord.MedRecord.node){target="_blank"} : Provides access to node information within the MedRecord instance via an indexer, returning a dictionary with node indices as keys and node attributes as values.
 :::
 
 ### Setting and updating node attributes
@@ -410,7 +410,7 @@ print(f"First patient attributes: {medrecord.node[first_patient]}")
 
 :::{dropdown} Methods used in the snippet
 
-* [`node[]`](medmodels.medrecord.medrecord.MedRecord.node){target="_blank"} : Provides access to node attributes within the MedRecord instance via an indexer.
+* [`node[]`](medmodels.medrecord.medrecord.MedRecord.node){target="_blank"} : Provides access to node information within the MedRecord instance via an indexer, returning a dictionary with node indices as keys and node attributes as values.
 :::
 
 ### Selecting nodes and grouping
@@ -485,7 +485,7 @@ medrecord.group(["Young", "Woman"])
 
 :::{dropdown} Methods used in the snippet
 
-* [`group()`](medmodels.medrecord.medrecord.MedRecord.group){target="_blank"} : Returns the node and edge indices associated with the specified group/s in the MedRecord.
+* [`group()`](medmodels.medrecord.medrecord.MedRecord.group){target="_blank"} : Returns the node and edge indices associated with the specified group(s) in the MedRecord.
 * [`groups_of_node()`](medmodels.medrecord.medrecord.MedRecord.groups_of_node){target="_blank"} : Retrieves the groups associated with the specified node(s) in the MedRecord.
 :::
 
@@ -513,7 +513,7 @@ print(
 * [`attribute()`](medmodels.medrecord.querying.NodeOperand.attribute){target="_blank"} : Returns a [`MultipleValuesOperand`](medmodels.medrecord.querying.MultipleValuesOperand){target="_blank"} to query on the values of the nodes for that attribute.
 * [`greater_than_or_equal_to()`](medmodels.medrecord.querying.MultipleValuesOperand.greater_than_or_equal_to){target="_blank"} : Query values that are greater or equal to a specific value.
 * [`less_than()`](medmodels.medrecord.querying.MultipleValuesOperand.less_than){target="_blank"} : Query values that are less than that value.
-* [`group()`](medmodels.medrecord.medrecord.MedRecord.group){target="_blank"} : Returns the node and edge indices associated with the specified group/s in the MedRecord.
+* [`group()`](medmodels.medrecord.medrecord.MedRecord.group){target="_blank"} : Returns the node and edge indices associated with the specified group(s) in the MedRecord.
 * [`add_nodes_to_group()`](medmodels.medrecord.medrecord.MedRecord.add_nodes_to_group){target="_blank"} : Retrieves the groups associated with the specified node(s) in the MedRecord.
 :::
 
@@ -572,7 +572,7 @@ patient_diagnosis_edges = medrecord.edges_connecting(
 * [`edges_connecting()`](medmodels.medrecord.medrecord.MedRecord.edges_connecting){target="_blank"} : Retrieves the edges connecting the specified source and target nodes in the MedRecord.
 :::
 
-All outgoing or incoming edges of a node or a list of nodes can be retrieved with the functions [`outgoing_edges()`](medmodels.medrecord.medrecord.MedRecord.outgoing_edges){target="_blank"} or [`incoming_edges()`](medmodels.medrecord.medrecord.MedRecord.incoming_edges){target="_blank"} respectively. If the edges of a list of nodes is requested, the return will be a dictionary with the nodes as keys and their edges as values in lists. Otherwise for a single node, the return will be a simple list.
+All outgoing or incoming edges of a node or a list of nodes can be retrieved with the functions [`outgoing_edges()`](medmodels.medrecord.medrecord.MedRecord.outgoing_edges){target="_blank"} or [`incoming_edges()`](medmodels.medrecord.medrecord.MedRecord.incoming_edges){target="_blank"}, respectively. If the edges of a list of nodes is requested, the return will be a dictionary with the nodes as keys and their edges as values in lists. Otherwise for a single node, the return will be a simple list.
 
 The outgoing edges of a node are only the ones where the node is defined as the source node, while incoming edges of a node are the edges, where the specific node is defined as a target node.
 
@@ -674,7 +674,7 @@ medrecord.select_edges(edge().attribute("cost").greater_than(500))
 
 * [`select_edges()`](medmodels.medrecord.medrecord.MedRecord.select_edges){target="_blank"} : Select edges that match that query.
 * [`edge()`](medmodels.medrecord.querying.EdgeOperand){target="_blank"} : Returns a [`EdgeOperand`](medmodels.medrecord.querying.EdgeOperand){target="_blank"} to query on the edges of the MedRecord.
-* [`attribute()`](medmodels.medrecord.querying.EdgeOperand.attribute){target="_blank"} : Returns a [`MultipleValuesOperand()`](medmodels.medrecord.querying.MultipleValuesOperand){target="_blank"} to query on the values of the nodes for that attribute.
+* [`attribute()`](medmodels.medrecord.querying.EdgeOperand.attribute){target="_blank"} : Returns a [`MultipleValuesOperand()`](medmodels.medrecord.querying.MultipleValuesOperand){target="_blank"} to query on the values of the edges for that attribute.
 * [`greater_than()`](medmodels.medrecord.querying.MultipleValuesOperand.greater_than){target="_blank"} : Query values that are greater than that value.
 :::
 
