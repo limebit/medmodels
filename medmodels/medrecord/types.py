@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Dict, List, Mapping, Sequence, Tuple, TypedDict, Union
 
 import pandas as pd
@@ -25,7 +25,7 @@ MedRecordAttributeInputList: TypeAlias = Union[
 ]
 
 #: A type alias for the value of a medical record attribute.
-MedRecordValue: TypeAlias = Union[str, int, float, bool, datetime, None]
+MedRecordValue: TypeAlias = Union[str, int, float, bool, datetime, timedelta, None]
 
 #: A type alias for a node index.
 NodeIndex: TypeAlias = MedRecordAttribute

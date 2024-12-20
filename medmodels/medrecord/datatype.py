@@ -7,6 +7,7 @@ from medmodels._medmodels import (
     PyAny,
     PyBool,
     PyDateTime,
+    PyDuration,
     PyFloat,
     PyInt,
     PyNull,
@@ -29,6 +30,7 @@ PyDataType: TypeAlias = typing.Union[
     PyFloat,
     PyBool,
     PyDateTime,
+    PyDuration,
     PyNull,
     PyAny,
     PyUnion,
@@ -61,7 +63,9 @@ class DataType(ABC):
             return Bool()
         if isinstance(datatype, PyDateTime):
             return DateTime()
-        if isinstance(datatype, PyNull):
+        elif isinstance(datatype, PyDuration):
+            return Duration()
+        elif isinstance(datatype, PyNull):
             return Null()
         if isinstance(datatype, PyAny):
             return Any()
@@ -166,6 +170,25 @@ class DateTime(DataType):
 
     def __eq__(self, value: object) -> bool:
         return isinstance(value, DateTime)
+
+
+class Duration(DataType):
+    _duration: PyDuration
+
+    def __init__(self) -> None:
+        self._duration = PyDuration()
+
+    def _inner(self) -> PyDataType:
+        return self._duration
+
+    def __str__(self) -> str:
+        return "Duration"
+
+    def __repr__(self) -> str:
+        return "DataType.Duration"
+
+    def __eq__(self, value: object) -> bool:
+        return isinstance(value, Duration)
 
 
 class Null(DataType):

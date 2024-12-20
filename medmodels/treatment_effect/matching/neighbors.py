@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Set
+from typing import TYPE_CHECKING, Optional, Set
 
 from medmodels.treatment_effect.matching.algorithms.classic_distance_models import (
     nearest_neighbor,
@@ -40,21 +40,21 @@ class NeighborsMatching(Matching):
         self,
         *,
         medrecord: MedRecord,
-        control_group: Set[NodeIndex],
-        treated_group: Set[NodeIndex],
-        essential_covariates: MedRecordAttributeInputList = None,
-        one_hot_covariates: MedRecordAttributeInputList = None,
+        control_set: Set[NodeIndex],
+        treated_set: Set[NodeIndex],
+        essential_covariates: Optional[MedRecordAttributeInputList] = None,
+        one_hot_covariates: Optional[MedRecordAttributeInputList] = None,
     ) -> Set[NodeIndex]:
         """Matches the controls based on the nearest neighbor algorithm.
 
         Args:
             medrecord (MedRecord): MedRecord object containing the data.
-            treated_group (Set[NodeIndex]): Set of treated subjects.
-            control_group (Set[NodeIndex]): Set of control subjects.
-            essential_covariates (MedRecordAttributeInputList, optional): Covariates
-                that are essential for matching
-            one_hot_covariates (MedRecordAttributeInputList, optional): Covariates that
-                are one-hot encoded for matching
+            treated_set (Set[NodeIndex]): Set of treated subjects.
+            control_set (Set[NodeIndex]): Set of control subjects.
+            essential_covariates (Optional[MedRecordAttributeInputList], optional):
+                Covariates that are essential for matching
+            one_hot_covariates (Optional[MedRecordAttributeInputList], optional):
+                Covariates that are one-hot encoded for matching
 
         Returns:
             Set[NodeIndex]: Node Ids of the matched controls.
@@ -65,8 +65,8 @@ class NeighborsMatching(Matching):
             essential_covariates = ["gender", "age"]
         data_treated, data_control = self._preprocess_data(
             medrecord=medrecord,
-            control_group=control_group,
-            treated_group=treated_group,
+            control_set=control_set,
+            treated_set=treated_set,
             essential_covariates=essential_covariates,
             one_hot_covariates=one_hot_covariates,
         )

@@ -167,10 +167,13 @@ class Estimate:
                 MedRecord (patients, treatments, outcomes).
         """
         self._check_medrecord(medrecord=medrecord)
-        treatment_true, treatment_false, control_true, control_false = (
-            self._treatment_effect._find_groups(medrecord)
-        )
-        treated_group = treatment_true | treatment_false
+        (
+            treated_outcome_true,
+            treated_outcome_false,
+            control_outcome_true,
+            control_outcome_false,
+        ) = self._treatment_effect._find_groups(medrecord)
+        treated_set = treated_outcome_true | treated_outcome_false
 
         if self._treatment_effect._matching_method:
             matching: Matching = (
@@ -185,22 +188,29 @@ class Estimate:
                 )
             )
 
-            control_group = control_true | control_false
+            control_set = control_outcome_true | control_outcome_false
 
             matched_controls = matching.match_controls(
                 medrecord=medrecord,
-                treated_group=treated_group,
-                control_group=control_group,
+                treated_set=treated_set,
+                control_set=control_set,
                 essential_covariates=self._treatment_effect._matching_essential_covariates,
                 one_hot_covariates=self._treatment_effect._matching_one_hot_covariates,
             )
-            control_true, control_false = self._treatment_effect._find_controls(
-                medrecord=medrecord,
-                control_group=matched_controls,
-                treated_group=treated_group,
+            control_outcome_true, control_outcome_false = (
+                self._treatment_effect._find_controls(
+                    medrecord=medrecord,
+                    control_set=matched_controls,
+                    treated_set=treated_set,
+                )
             )
 
-        return treatment_true, treatment_false, control_true, control_false
+        return (
+            treated_outcome_true,
+            treated_outcome_false,
+            control_outcome_true,
+            control_outcome_false,
+        )
 
     def _compute_subject_counts(
         self, medrecord: MedRecord
