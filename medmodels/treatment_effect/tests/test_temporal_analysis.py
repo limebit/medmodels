@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import unittest
 from datetime import datetime
-from typing import List, Optional
+from typing import TYPE_CHECKING, List, Optional
 
 import pandas as pd
 import pytest
@@ -10,6 +10,9 @@ import pytest
 from medmodels.medrecord.medrecord import MedRecord
 from medmodels.medrecord.types import NodeIndex
 from medmodels.treatment_effect.temporal_analysis import find_reference_edge
+
+if TYPE_CHECKING:
+    from medmodels.medrecord.types import NodeIndex
 
 
 def create_patients(patient_list: List[NodeIndex]) -> pd.DataFrame:

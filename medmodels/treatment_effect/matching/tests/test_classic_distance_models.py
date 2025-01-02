@@ -48,7 +48,7 @@ class TestClassicDistanceModels(unittest.TestCase):
 
         with pytest.raises(
             ValueError,
-            match="The treated set is too large for the given number of neighbors.",
+            match="The treated set is too large for the given number of neighbors",
         ):
             cdm.nearest_neighbor(t_set, c_set, number_of_neighbors=2)
 

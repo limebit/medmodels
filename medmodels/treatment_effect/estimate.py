@@ -1,3 +1,5 @@
+"""Estimators class for calculating treatment effect metrics."""
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Literal, Set, Tuple, TypedDict
@@ -5,6 +7,7 @@ from typing import TYPE_CHECKING, Literal, Set, Tuple, TypedDict
 from medmodels.treatment_effect.continuous_estimators import (
     average_treatment_effect,
     cohens_d,
+    hedges_g,
 )
 from medmodels.treatment_effect.matching.neighbors import NeighborsMatching
 from medmodels.treatment_effect.matching.propensity import PropensityMatching
@@ -16,7 +19,18 @@ if TYPE_CHECKING:
     from medmodels.treatment_effect.treatment_effect import TreatmentEffect
 
 
+class SubjectIndices(TypedDict):
+    """Dictionary with the patient ids of all contingency table groups."""
+
+    treated_outcome_true: Set[NodeIndex]
+    treated_outcome_false: Set[NodeIndex]
+    control_outcome_true: Set[NodeIndex]
+    control_outcome_false: Set[NodeIndex]
+
+
 class ContingencyTable:
+    """Contingency table for the treatment and control groups with/without outcome."""
+
     number_treated_outcome_true: int
     number_treated_outcome_false: int
     number_control_outcome_true: int
@@ -28,7 +42,7 @@ class ContingencyTable:
         number_treated_outcome_false: int,
         number_control_outcome_true: int,
         number_control_outcome_false: int,
-    ):
+    ) -> None:
         """Initializes the ContingencyTable object.
 
         It stores the number of patients in the treatment and control groups with and
@@ -49,7 +63,7 @@ class ContingencyTable:
         self.number_control_outcome_true = number_control_outcome_true
         self.number_control_outcome_false = number_control_outcome_false
 
-    def __str__(self):
+    def __str__(self) -> str:
         """Returns a string representation of the ContingencyTable object.
 
         The contingency table provides an overview of the number of subjects in the
@@ -89,32 +103,27 @@ class ContingencyTable:
             "control_outcome_false",
         ],
     ) -> int:
-        """Returns the number of subjects in the treatment and control groups with and without the outcome.
+        """Returns the number of subjects in the given group.
 
         Args:
-            key (Literal["treated_outcome_true", "treated_outcome_false",
-                "control_outcome_true", "control_outcome_false"]): The key to access the
-                number of subjects in the treatment and control groups with and without
-                the outcome.
+            key (Literal["treated_outcome_true", "treated_outcome_false", "control_outcome_true", "control_outcome_false"]):
+                The key to access the number of subjects in the treatment and control
+                groups with and without the outcome.
 
         Returns:
             int: Number of subject in the selected group.
-        """
+        """  # noqa: W505
         completed_key = "number_" + key
         return getattr(self, completed_key)
 
 
-class SubjectIndices(TypedDict):
-    treated_outcome_true: Set[NodeIndex]
-    treated_outcome_false: Set[NodeIndex]
-    control_outcome_true: Set[NodeIndex]
-    control_outcome_false: Set[NodeIndex]
-
-
 class Estimate:
+    """Estimators class for calculating treatment effect metrics."""
+
     _treatment_effect: TreatmentEffect
 
     def __init__(self, treatment_effect: TreatmentEffect) -> None:
+        """Initializes the Estimate object."""
         self._treatment_effect = treatment_effect
 
     def _check_medrecord(self, medrecord: MedRecord) -> None:
@@ -149,7 +158,10 @@ class Estimate:
     def _sort_subjects_in_groups(
         self, medrecord: MedRecord
     ) -> Tuple[Set[NodeIndex], Set[NodeIndex], Set[NodeIndex], Set[NodeIndex]]:
-        """Sorts subjects into the contingency table of treatment-outcome, treatment-no outcome, control-outcome and control-no outcome.
+        """Sorts subjects into the different groups of the contingency table.
+
+        This means, sorting the subjects into treatment-outcome, treatment-no outcome,
+        control-outcome and control-no outcome.
 
         The treatment group and control matching is determined based on the treatment
         effect configuration.
@@ -161,10 +173,6 @@ class Estimate:
             Tuple[Set[NodeIndex], Set[NodeIndex], Set[NodeIndex], Set[NodeIndex]: The
                 patient ids of true and false subjects in the treatment and control
                 groups, respectively.
-
-        Raises:
-            ValueError: Raises Error if the required groups are not present in the
-                MedRecord (patients, treatments, outcomes).
         """
         self._check_medrecord(medrecord=medrecord)
         (
@@ -184,7 +192,7 @@ class Estimate:
                 else PropensityMatching(
                     number_of_neighbors=self._treatment_effect._matching_number_of_neighbors,
                     model=self._treatment_effect._matching_model,
-                    hyperparam=self._treatment_effect._matching_hyperparam,
+                    hyperparam=self._treatment_effect._matching_hyperparameters,
                 )
             )
 
@@ -240,15 +248,17 @@ class Estimate:
         ) = self._sort_subjects_in_groups(medrecord=medrecord)
 
         if len(treated_outcome_false) == 0:
-            raise ValueError(
-                "No subjects found in the group of treated with no outcome"
-            )
+            msg = "No subjects found in the group of treated with no outcome"
+            raise ValueError(msg)
+
         if len(control_outcome_true) == 0:
-            raise ValueError("No subjects found in the group of controls with outcome")
+            msg = "No subjects found in the group of controls with outcome"
+            raise ValueError(msg)
+
         if len(control_outcome_false) == 0:
-            raise ValueError(
-                "No subjects found in the group of controls with no outcome"
-            )
+            msg = "No subjects found in the group of controls with no outcome"
+            raise ValueError(msg)
+
         return (
             len(treated_outcome_true),
             len(treated_outcome_false),
@@ -257,7 +267,11 @@ class Estimate:
         )
 
     def subject_indices(self, medrecord: MedRecord) -> SubjectIndices:
-        """Overview of which subjects are in the treatment and control groups and whether they have the outcome or not.
+        """Overview of which subjects are in which group from the contingency table.
+
+        Returns a dictionary with the patient ids of all contingency table groups, i.e.,
+        the treated group with and without the outcome, and the control group with and
+        without the outcome.
 
         Args:
             medrecord (MedRecord): The MedRecord object containing the data.
@@ -265,10 +279,6 @@ class Estimate:
         Returns:
             SubjectIndices: Dictionary with the patient ids of true and false subjects
                 in the treatment and control groups, respectively.
-
-        Raises:
-            ValueError: Raises Error if the required groups are not present in the
-                MedRecord (patients, treatments, outcomes).
         """
         (
             treated_outcome_true,
@@ -285,7 +295,10 @@ class Estimate:
         )
 
     def subject_counts(self, medrecord: MedRecord) -> ContingencyTable:
-        """Returns the subject counts for the treatment and control groups in a contingency table object.
+        """Overview of how many subjects are in which group from the contingency table.
+
+        Returns a contingency table object with the number of subjects in the treatment
+        and control groups with and without the outcome.
 
         Args:
             medrecord (MedRecord): The MedRecord object containing the data.
@@ -294,14 +307,6 @@ class Estimate:
             ContingencyTable: The contingency table object containing the number of
                 subjects in the treatment and control groups with and without the
                 outcome.
-
-        Raises:
-            ValueError: Raises error if the required groups are not present in the
-                MedRecord (patients, treatments, outcomes).
-            ValueError: If there are no subjects in the group of treated with no
-                outcome, in the one of controls with outcome or in the one of controls
-                with no outcome, an error is raised. This would result in division by
-                zero errors.
         """
         (
             number_treated_outcome_true,
@@ -318,9 +323,11 @@ class Estimate:
         )
 
     def relative_risk(self, medrecord: MedRecord) -> float:
-        """Calculates the relative risk (RR) of an event occurring in the treatment group compared to the control group.
+        """Calculates the relative risk (RR) of an event.
 
-        RR is a key measure in epidemiological studies for estimating the likelihood of an event in one group relative to another.
+        RR is a key measure in epidemiological studies for estimating the likelihood of
+        an event in one group relative to another, in this case, the treatment group
+        compared to the control group.
 
         The interpretation of RR is as follows:
         - RR = 1 indicates no difference in risk between the two groups.
@@ -333,14 +340,6 @@ class Estimate:
         Returns:
             float: The calculated relative risk between the treatment and control
                 groups.
-
-        Raises:
-            ValueError: Raises Error if the required groups are not present in the
-                MedRecord (patients, treatments, outcomes).
-            ValueError: If there are no subjects in the group of treated with no
-                outcome, in the one of controls with outcome or in the one of controls
-                with no outcome, an error is raised. This would result in division by
-                zero errors.
         """
         (
             number_treated_outcome_true,
@@ -358,11 +357,14 @@ class Estimate:
         )
 
     def odds_ratio(self, medrecord: MedRecord) -> float:
-        """Calculates the odds ratio (OR) to quantify the association between exposure to a treatment and the occurrence of an outcome.
+        """Calculates the odds ratio (OR).
 
-        OR compares the odds of an event occurring in the treatment group to the odds in the control group, providing
-        insight into the strength of the association between the treatment and the
-        outcome.
+        The OR quantifies the association between exposure to a treatment and the
+        occurrence of an outcome.
+
+        OR compares the odds of an event occurring in the treatment group to the odds
+        in the control group, providing insight into the strength of the association
+        between the treatment and the outcome.
 
         Interpretation of the odds ratio:
         - OR = 1 indicates no difference in odds between the two groups.
@@ -374,14 +376,6 @@ class Estimate:
 
         Returns:
             float: The calculated odds ratio between the treatment and control groups.
-
-        Raises:
-            ValueError: Raises Error if the required groups are not present in the
-                MedRecord (patients, treatments, outcomes).
-            ValueError: If there are no subjects in the group of treated with no
-                outcome, in the one of controls with outcome or in the one of controls
-                with no outcome, an error is raised. This would result in division by
-                zero errors.
         """
         (
             number_treated_outcome_true,
@@ -395,29 +389,27 @@ class Estimate:
         )
 
     def confounding_bias(self, medrecord: MedRecord) -> float:
-        """Calculates the confounding bias (CB) to assess the impact of potential confounders on the observed association between treatment and outcome.
+        """Calculates the confounding bias (CB).
 
-        A confounder is a variable that influences both the dependent (outcome) and independent (treatment) variables, potentially biasing the study results.
+        The CB is used to assess the impact of potential confounders on the observed
+        association between treatment and outcome. A confounder is a variable that
+        influences both the dependent (outcome) and independent (treatment) variables,
+        potentially biasing the study results.
 
         Interpretation of CB:
         - CB = 1 indicates no confounding bias.
-        - CB != 1 suggests the presence of confounding bias, indicating potential confounders.
+        - CB != 1 suggests the presence of confounding bias.
 
-        The method relies on the relative risk (RR) as an intermediary measure and adjusts the observed association for potential confounding effects. This adjustment helps in identifying whether the observed association might be influenced by factors other than the treatment.
+        The method relies on the relative risk (RR) as an intermediary measure and
+        adjusts the observed association for potential confounding effects. This
+        adjustment helps in identifying whether the observed association might be
+        influenced by factors other than the treatment.
 
         Args:
             medrecord (MedRecord): The MedRecord object containing the data.
 
         Returns:
             float: The calculated confounding bias.
-
-        Raises:
-            ValueError: If the required groups are not present in the MedRecord
-                (patients, treatments, outcomes).
-            ValueError: If there are no subjects in the group of treated with no
-                outcome, in the one of controls with outcome or in the one of controls
-                with no outcome, an error is raised. This would result in division by
-                zero errors.
         """
         (
             number_treated_outcome_true,
@@ -443,12 +435,12 @@ class Estimate:
         return numerator / denominator
 
     def absolute_risk_reduction(self, medrecord: MedRecord) -> float:
-        """Calculates the absolute risk reduction (ARR) of an event occurring in the treatment group compared to the control group.
+        """Calculates the absolute risk reduction (ARR).
 
-        AR is a measure of the incidence of an event in each group. ARR quantifies in
-        turn the difference in risk between the treatment and control groups. It is
-        positive if the treatment reduces the risk, and negative if it increases the
-        risk.
+        AR (absolute risk) is a measure of the incidence of an event in each group.
+        ARR, in turn, quantifies the difference in risk between the treatment and
+        control groups. It is positive if the treatment reduces the risk, and negative
+        if it increases the risk.
 
         Args:
             medrecord (MedRecord): The MedRecord object containing the data.
@@ -456,14 +448,6 @@ class Estimate:
         Returns:
             float: The calculated absolute risk reduction between the treatment and
                 control groups.
-
-        Raises:
-            ValueError: Raises Error if the required groups are not present in the
-                MedRecord (patients, treatments, outcomes).
-            ValueError: If there are no subjects in the group of treated with no
-                outcome, in the one of controls with outcome or in the one of controls
-                with no outcome, an error is raised. This would result in division by
-                zero errors.
         """
         (
             number_treated_outcome_true,
@@ -482,7 +466,7 @@ class Estimate:
         return ar_control_group - ar_treated_group
 
     def number_needed_to_treat(self, medrecord: MedRecord) -> float:
-        """Calculates the number needed to treat (NNT) to prevent one additional bad outcome.
+        """Calculates the number needed to treat (NNT) to prevent one extra bad outcome.
 
         NNT is derived from the absolute risk reduction (ARR) and provides an estimate
         of the number of patients that need to be treated to prevent one additional bad
@@ -506,11 +490,13 @@ class Estimate:
         """
         absolute_risk_reduction = self.absolute_risk_reduction(medrecord)
         if absolute_risk_reduction == 0:
-            raise ValueError("Absolute Risk Reduction is zero, cannot calculate NNT.")
+            msg = "Absolute Risk Reduction is zero, cannot calculate NNT."
+            raise ValueError(msg)
+
         return 1 / absolute_risk_reduction
 
     def hazard_ratio(self, medrecord: MedRecord) -> float:
-        """Calculates the hazard ratio (HR) for the treatment group compared to the control group.
+        """Calculates the hazard ratio (HR).
 
         HR is used to compare the hazard rates of two groups in survival analysis.
 
@@ -555,9 +541,14 @@ class Estimate:
         outcome_variable: MedRecordAttribute,
         reference: Literal["first", "last"] = "last",
     ) -> float:
-        """Calculates the Average Treatment Effect (ATE) as the difference between the outcome means of the treated and control sets.
+        """Calculates the Average Treatment Effect (ATE).
 
-        A positive ATE indicates that the treatment increased the outcome, while a negative ATE suggests a decrease.
+        It is calculated as the difference between the outcome means of the treated and
+        control sets. A positive ATE indicates that the treatment increased the outcome,
+        while a negative ATE suggests a decrease.
+
+        The ATE is computed as follows when the numbers of observations in treated and
+        control sets are N and M, respectively:
 
         Args:
             medrecord (MedRecord): An instance of the MedRecord class containing medical
@@ -589,18 +580,21 @@ class Estimate:
         medrecord: MedRecord,
         outcome_variable: MedRecordAttribute,
         reference: Literal["first", "last"] = "last",
-        add_correction: bool = False,
     ) -> float:
-        """Calculates Cohen's D, the standardized mean difference between two sets, measuring the effect size of the difference between two outcome means.
+        """Calculates Cohen's D, the standardized mean difference between two sets.
 
+        This measures the effect size of the difference between two outcome means.
         It's applicable for any two sets but is recommended for sets of the same size.
         Cohen's D indicates how many standard deviations the two groups differ by, with
         1 standard deviation equal to 1 z-score.
 
         A rule of thumb for interpreting Cohen's D:
-        - Small effect = 0.2
-        - Medium effect = 0.5
-        - Large effect = 0.8
+        - Small effect = ±0.2
+        - Medium effect = ±0.5
+        - Large effect = ±0.8
+
+        If the difference is negative, it indicates the mean in the treated group is
+        lower than the control group.
 
         This metric provides a dimensionless measure of effect size, facilitating the
         comparison across different studies and contexts.
@@ -630,5 +624,44 @@ class Estimate:
             outcome_variable=outcome_variable,
             reference=reference,
             time_attribute=self._treatment_effect._time_attribute,
-            add_correction=add_correction,
+        )
+
+    def hedges_g(
+        self,
+        medrecord: MedRecord,
+        outcome_variable: MedRecordAttribute,
+        reference: Literal["first", "last"] = "last",
+    ) -> float:
+        """Calculates Hedges' g, the unbiased effect size estimate.
+
+        Hedges' g is a corrected version of Cohen's d that provides an unbiased estimate
+        of the effect size, especially important when sample sizes are small (under 50).
+
+        The correction factor is applied regardless of the sample size.
+
+        Args:
+            medrecord (MedRecord): An instance of the MedRecord class containing medical
+                data.
+            outcome_variable (MedRecordAttribute): The attribute in the edge that
+                contains the outcome variable. It must be numeric and continuous.
+            reference (Literal["first", "last"], optional): The reference point for the
+                exposure time. Options include "first" and "last". If "first", the
+                function returns the earliest exposure edge. If "last", the function
+                returns the latest exposure edge. Defaults to "last".
+            add_correction (bool, optional): Whether to apply a correction factor for
+                small sample sizes. Defaults to False.
+
+        Returns:
+            float: The Hedges' g coefficient, representing the effect size.
+        """
+        subjects = self.subject_indices(medrecord=medrecord)
+
+        return hedges_g(
+            medrecord=medrecord,
+            treatment_outcome_true_set=subjects.get("treated_outcome_true"),
+            control_outcome_true_set=subjects.get("control_outcome_true"),
+            outcome_group=self._treatment_effect._outcomes_group,
+            outcome_variable=outcome_variable,
+            reference=reference,
+            time_attribute=self._treatment_effect._time_attribute,
         )

@@ -1,17 +1,19 @@
-"""Tests for the TreatmentEffect class in the treatment_effect module."""
+from __future__ import annotations
 
 import unittest
 from datetime import datetime
-from typing import List, Optional
+from typing import TYPE_CHECKING, List, Optional
 
 import pandas as pd
 import pytest
 
 from medmodels import MedRecord
 from medmodels.medrecord.querying import EdgeDirection, NodeOperand
-from medmodels.medrecord.types import NodeIndex
 from medmodels.treatment_effect.estimate import ContingencyTable, SubjectIndices
 from medmodels.treatment_effect.treatment_effect import TreatmentEffect
+
+if TYPE_CHECKING:
+    from medmodels.medrecord.types import NodeIndex
 
 
 def create_patients(patient_list: List[NodeIndex]) -> pd.DataFrame:
@@ -241,34 +243,31 @@ def assert_treatment_effects_equal(
         treatment_effect1._matching_number_of_neighbors
         == treatment_effect2._matching_number_of_neighbors
     )
-    test_case.assertEqual(
-        treatment_effect1._outcome_before_treatment_days,
-        treatment_effect2._outcome_before_treatment_days,
+    assert (
+        treatment_effect1._outcome_before_treatment_days
+        == treatment_effect2._outcome_before_treatment_days
     )
-    test_case.assertEqual(
-        treatment_effect1._filter_controls_query,
-        treatment_effect2._filter_controls_query,
+    assert (
+        treatment_effect1._filter_controls_query
+        == treatment_effect2._filter_controls_query
     )
-    test_case.assertEqual(
-        treatment_effect1._matching_method, treatment_effect2._matching_method
+    assert treatment_effect1._matching_method == treatment_effect2._matching_method
+    assert (
+        treatment_effect1._matching_essential_covariates
+        == treatment_effect2._matching_essential_covariates
     )
-    test_case.assertEqual(
-        treatment_effect1._matching_essential_covariates,
-        treatment_effect2._matching_essential_covariates,
+    assert (
+        treatment_effect1._matching_one_hot_covariates
+        == treatment_effect2._matching_one_hot_covariates
     )
-    test_case.assertEqual(
-        treatment_effect1._matching_one_hot_covariates,
-        treatment_effect2._matching_one_hot_covariates,
+    assert treatment_effect1._matching_model == treatment_effect2._matching_model
+    assert (
+        treatment_effect1._matching_number_of_neighbors
+        == treatment_effect2._matching_number_of_neighbors
     )
-    test_case.assertEqual(
-        treatment_effect1._matching_model, treatment_effect2._matching_model
-    )
-    test_case.assertEqual(
-        treatment_effect1._matching_number_of_neighbors,
-        treatment_effect2._matching_number_of_neighbors,
-    )
-    test_case.assertEqual(
-        treatment_effect1._matching_hyperparam, treatment_effect2._matching_hyperparam
+    assert (
+        treatment_effect1._matching_hyperparameters
+        == treatment_effect2._matching_hyperparameters
     )
 
 
@@ -363,18 +362,19 @@ class TestTreatmentEffect(unittest.TestCase):
         )
 
         treated_set = tee._find_treated_patients(self.medrecord)
-        self.assertEqual(treated_set, set({"P2", "P3", "P6"}))
+        assert treated_set == set({"P2", "P3", "P6"})
 
         # no treatment_group
         patients = set(self.medrecord.nodes_in_group("patients"))
         medrecord2 = create_medrecord(list(patients - treated_set))
 
-        with self.assertRaisesRegex(
-            ValueError, "No patients found for the treatment groups in this MedRecord."
+        with pytest.raises(
+            ValueError,
+            match="No patients found for the treatment group in this MedRecord",
         ):
             tee.estimate._compute_subject_counts(medrecord=medrecord2)
 
-    def test_query_node_within_time_window(self):
+    def test_query_node_within_time_window(self) -> None:
         # check if patient has outcome a year after treatment
         tee = (
             TreatmentEffect.builder()
@@ -389,12 +389,12 @@ class TestTreatmentEffect(unittest.TestCase):
                 node, treated_set, "Stroke", 0, 365, "last"
             )
         )
-        self.assertIn("P3", nodes)
-        self.assertIn("P2", nodes)
+        assert "P3" in nodes
+        assert "P2" in nodes
 
         # Only one not having an outcome in that time period (no outcome at all)
-        self.assertNotIn("P6", nodes)
-        self.assertIn("P6", treated_set)
+        assert "P6" not in nodes
+        assert "P6" in treated_set
 
         # check which patients have outcome within 30 days after treatment
         nodes = self.medrecord.select_nodes(
@@ -402,21 +402,21 @@ class TestTreatmentEffect(unittest.TestCase):
                 node, treated_set, "Stroke", 0, 30, "last"
             )
         )
-        self.assertIn("P3", nodes)
-        self.assertNotIn(
-            "P2", nodes
+        assert "P3" in nodes
+        assert (
+            "P2" not in nodes
         )  # P2 has no outcome in the 30 days window after treatment
 
-        # If we reduce the window to 3 days, we have no patients with outcome in that window
+        # If we reduce the window to 3 days, no patients with outcome in that window
         nodes = self.medrecord.select_nodes(
             lambda node: tee._query_node_within_time_window(
                 node, treated_set, "Stroke", 0, 3, "last"
             )
         )
-        self.assertNotIn("P3", nodes)
-        self.assertNotIn("P2", nodes)
+        assert "P3" not in nodes
+        assert "P2" not in nodes
 
-    def test_find_groups(self):
+    def test_find_groups(self) -> None:
         tee = (
             TreatmentEffect.builder()
             .with_outcome("Stroke")
@@ -430,10 +430,10 @@ class TestTreatmentEffect(unittest.TestCase):
             control_outcome_true,
             control_outcome_false,
         ) = tee._find_groups(self.medrecord)
-        self.assertEqual(treatment_outcome_true, set({"P2", "P3"}))
-        self.assertEqual(treatment_outcome_false, set({"P6"}))
-        self.assertEqual(control_outcome_true, set({"P1", "P4", "P7"}))
-        self.assertEqual(control_outcome_false, set({"P5", "P8", "P9"}))
+        assert treatment_outcome_true == set({"P2", "P3"})
+        assert treatment_outcome_false == set({"P6"})
+        assert control_outcome_true == set({"P1", "P4", "P7"})
+        assert control_outcome_false == set({"P5", "P8", "P9"})
 
     def test_compute_subject_counts(self) -> None:
         tee = (
@@ -446,7 +446,7 @@ class TestTreatmentEffect(unittest.TestCase):
 
         assert counts == (2, 1, 3, 3)
 
-    def test_invalid_compute_subject_counts(self):
+    def test_invalid_compute_subject_counts(self) -> None:
         tee = (
             TreatmentEffect.builder()
             .with_treatment("Rivaroxaban")
@@ -471,24 +471,26 @@ class TestTreatmentEffect(unittest.TestCase):
         medrecord2 = create_medrecord(
             patient_list=list(all_patients - control_outcome_false)
         )
-        with self.assertRaisesRegex(
-            ValueError, "No subjects found in the group of controls with no outcome"
+        with pytest.raises(
+            ValueError,
+            match="No subjects found in the group of controls with no outcome",
         ):
             tee.estimate._compute_subject_counts(medrecord=medrecord2)
 
         medrecord3 = create_medrecord(
             patient_list=list(all_patients - treatment_outcome_false)
         )
-        with self.assertRaisesRegex(
-            ValueError, "No subjects found in the group of treated with no outcome"
+        with pytest.raises(
+            ValueError,
+            match="No subjects found in the group of treated with no outcome",
         ):
             tee.estimate._compute_subject_counts(medrecord=medrecord3)
 
         medrecord4 = create_medrecord(
             patient_list=list(all_patients - control_outcome_true)
         )
-        with self.assertRaisesRegex(
-            ValueError, "No subjects found in the group of controls with outcome"
+        with pytest.raises(
+            ValueError, match="No subjects found in the group of controls with outcome"
         ):
             tee.estimate._compute_subject_counts(medrecord=medrecord4)
 
@@ -501,13 +503,13 @@ class TestTreatmentEffect(unittest.TestCase):
         )
 
         subjects_tee = tee.estimate.subject_counts(self.medrecord)
-        self.assertEqual(3, subjects_tee["control_outcome_false"])
-        self.assertEqual(3, subjects_tee["control_outcome_true"])
-        self.assertEqual(1, subjects_tee["treated_outcome_false"])
-        self.assertEqual(2, subjects_tee["treated_outcome_true"])
-        self.assertIsInstance(subjects_tee, ContingencyTable)
+        assert isinstance(subjects_tee, ContingencyTable)
+        assert subjects_tee["control_outcome_false"] == 3
+        assert subjects_tee["control_outcome_true"] == 3
+        assert subjects_tee["treated_outcome_false"] == 1
+        assert subjects_tee["treated_outcome_true"] == 2
 
-    def test_subjects_indices(self):
+    def test_subjects_indices(self) -> None:
         tee = (
             TreatmentEffect.builder()
             .with_treatment("Rivaroxaban")
@@ -522,22 +524,7 @@ class TestTreatmentEffect(unittest.TestCase):
             control_outcome_false={"P5", "P8", "P9"},
         )
         subjects_tee = tee.estimate.subject_indices(self.medrecord)
-        self.assertEqual(
-            subjects_test["control_outcome_false"],
-            subjects_tee["control_outcome_false"],
-        )
-        self.assertEqual(
-            subjects_test["control_outcome_true"],
-            subjects_tee["control_outcome_true"],
-        )
-        self.assertEqual(
-            subjects_test["treated_outcome_false"],
-            subjects_tee["treated_outcome_false"],
-        )
-        self.assertEqual(
-            subjects_test["treated_outcome_true"],
-            subjects_tee["treated_outcome_true"],
-        )
+        assert subjects_tee == subjects_test
 
     def test_follow_up_period(self) -> None:
         tee = (
@@ -552,7 +539,7 @@ class TestTreatmentEffect(unittest.TestCase):
 
         counts_tee = tee.estimate._compute_subject_counts(self.medrecord)
 
-        self.assertEqual((1, 2, 3, 3), counts_tee)
+        assert counts_tee == (1, 2, 3, 3)
 
     def test_grace_period(self) -> None:
         tee = (
@@ -567,12 +554,12 @@ class TestTreatmentEffect(unittest.TestCase):
 
         counts_tee = tee.estimate._compute_subject_counts(self.medrecord)
 
-        self.assertEqual((1, 2, 3, 3), counts_tee)
+        assert counts_tee == (1, 2, 3, 3)
 
-    def test_invalid_grace_period(self):
-        with self.assertRaisesRegex(
+    def test_invalid_grace_period(self) -> None:
+        with pytest.raises(
             ValueError,
-            "The follow-up period must be greater than or equal to the grace period.",
+            match="The follow-up period must be greater than or equal to the grace period",
         ):
             (
                 TreatmentEffect.builder()
@@ -582,7 +569,7 @@ class TestTreatmentEffect(unittest.TestCase):
                 .build()
             )
 
-    def test_washout_period(self):
+    def test_washout_period(self) -> None:
         washout_dict = {"Warfarin": 30}
 
         tee = (
@@ -593,15 +580,15 @@ class TestTreatmentEffect(unittest.TestCase):
             .build()
         )
 
-        self.assertDictEqual(tee._washout_period_days, washout_dict)
+        assert tee._washout_period_days == washout_dict
 
         treated_set = tee._find_treated_patients(self.medrecord)
         treated_set, washout_nodes = tee._apply_washout_period(
             self.medrecord, treated_set
         )
 
-        self.assertEqual(treated_set, set({"P3", "P6"}))
-        self.assertEqual(washout_nodes, set({"P2"}))
+        assert treated_set == set({"P3", "P6"})
+        assert washout_nodes == set({"P2"})
 
         # smaller washout period
         washout_dict2 = {"Warfarin": 10}
@@ -614,15 +601,15 @@ class TestTreatmentEffect(unittest.TestCase):
             .build()
         )
 
-        self.assertDictEqual(tee2._washout_period_days, washout_dict2)
+        assert tee2._washout_period_days == washout_dict2
 
         treated_set = tee2._find_treated_patients(self.medrecord)
         treated_set, washout_nodes = tee2._apply_washout_period(
             self.medrecord, treated_set
         )
 
-        self.assertEqual(treated_set, set({"P2", "P3", "P6"}))
-        self.assertEqual(washout_nodes, set({}))
+        assert treated_set == set({"P2", "P3", "P6"})
+        assert washout_nodes == set({})
 
     def test_outcome_before_treatment(self) -> None:
         # case 1 find outcomes for default tee
@@ -636,9 +623,10 @@ class TestTreatmentEffect(unittest.TestCase):
         treated_set, treatment_outcome_true, outcome_before_treatment_nodes = (
             tee._find_outcomes(self.medrecord, treated_set)
         )
-        self.assertEqual(treated_set, set({"P2", "P3", "P6"}))
-        self.assertEqual(treatment_outcome_true, set({"P2", "P3"}))
-        self.assertEqual(outcome_before_treatment_nodes, set())
+
+        assert treated_set == set({"P2", "P3", "P6"})
+        assert treatment_outcome_true == set({"P2", "P3"})
+        assert outcome_before_treatment_nodes == set()
 
         # case 2 set exclusion time for outcome before treatment
         tee2 = (
@@ -655,9 +643,10 @@ class TestTreatmentEffect(unittest.TestCase):
         treated_set, treatment_outcome_true, outcome_before_treatment_nodes = (
             tee2._find_outcomes(self.medrecord, treated_set)
         )
-        self.assertEqual(treated_set, set({"P2", "P6"}))
-        self.assertEqual(treatment_outcome_true, set({"P2"}))
-        self.assertEqual(outcome_before_treatment_nodes, set({"P3"}))
+
+        assert treated_set == set({"P2", "P6"})
+        assert treatment_outcome_true == set({"P2"})
+        assert outcome_before_treatment_nodes == set({"P3"})
 
         # case 3 no outcome
         self.medrecord.add_group("Headache")
@@ -671,12 +660,12 @@ class TestTreatmentEffect(unittest.TestCase):
         )
 
         with pytest.raises(
-            ValueError, match="No outcomes found in the MedRecord for group "
+            ValueError, match="No outcomes found in the MedRecord for group Headache"
         ):
             tee3._find_outcomes(medrecord=self.medrecord, treated_set=treated_set)
 
-    def test_filter_controls(self):
-        def query1(node: NodeOperand):
+    def test_filter_controls(self) -> None:
+        def query1(node: NodeOperand) -> None:
             node.neighbors(EdgeDirection.BOTH).index().equal_to("M2")
 
         tee = (
@@ -688,11 +677,10 @@ class TestTreatmentEffect(unittest.TestCase):
         )
         counts_tee = tee.estimate._compute_subject_counts(self.medrecord)
 
-        self.assertEqual(counts_tee, (2, 1, 1, 2))
+        assert counts_tee == (2, 1, 1, 2)
 
         # filter females only
-
-        def query2(node: NodeOperand):
+        def query2(node: NodeOperand) -> None:
             node.attribute("gender").equal_to("female")
 
         tee2 = (
@@ -705,7 +693,7 @@ class TestTreatmentEffect(unittest.TestCase):
 
         counts_tee2 = tee2.estimate._compute_subject_counts(self.medrecord)
 
-        self.assertEqual(counts_tee2, (2, 1, 1, 1))
+        assert counts_tee2 == (2, 1, 1, 1)
 
     def test_nearest_neighbors(self) -> None:
         tee = (
@@ -718,11 +706,11 @@ class TestTreatmentEffect(unittest.TestCase):
 
         subjects = tee.estimate.subject_indices(self.medrecord)
 
-        # multiple patients are equally similar to the treatment group
-        # these are exact macthes and should always be included
-        self.assertIn("P4", subjects["control_outcome_true"])
-        self.assertIn("P5", subjects["control_outcome_false"])
-        self.assertIn("P8", subjects["control_outcome_false"])
+        # Multiple patients are equally similar to the treatment group
+        # These are exact macthes and should always be included
+        assert "P4" in subjects["control_outcome_true"]
+        assert "P5" in subjects["control_outcome_false"]
+        assert "P8" in subjects["control_outcome_false"]
 
     def test_propensity_matching(self) -> None:
         tee = (
@@ -735,9 +723,9 @@ class TestTreatmentEffect(unittest.TestCase):
 
         subjects = tee.estimate.subject_indices(self.medrecord)
 
-        self.assertIn("P4", subjects["control_outcome_true"])
-        self.assertIn("P5", subjects["control_outcome_false"])
-        self.assertIn("P1", subjects["control_outcome_true"])
+        assert "P4" in subjects["control_outcome_true"]
+        assert "P5" in subjects["control_outcome_false"]
+        assert "P1" in subjects["control_outcome_true"]
 
     def test_find_controls(self) -> None:
         tee = (
@@ -755,11 +743,12 @@ class TestTreatmentEffect(unittest.TestCase):
             control_set=patients - treated_set,
             treated_set=patients.intersection(treated_set),
         )
-        self.assertEqual(control_outcome_true, {"P1", "P4", "P7"})
-        self.assertEqual(control_outcome_false, {"P5", "P8", "P9"})
+
+        assert control_outcome_true == {"P1", "P4", "P7"}
+        assert control_outcome_false == {"P5", "P8", "P9"}
 
         with pytest.raises(
-            ValueError, match="No patients found for control groups in this MedRecord."
+            ValueError, match="No patients found for control groups in this MedRecord"
         ):
             tee._find_controls(
                 self.medrecord,
@@ -778,7 +767,7 @@ class TestTreatmentEffect(unittest.TestCase):
         self.medrecord.add_group("Headache")
 
         with pytest.raises(
-            ValueError, match="No outcomes found in the MedRecord for group."
+            ValueError, match="No outcomes found in the MedRecord for group Headache"
         ):
             tee2._find_controls(
                 self.medrecord,
@@ -796,14 +785,14 @@ class TestTreatmentEffect(unittest.TestCase):
         )
 
         # Calculate metrics
-        self.assertAlmostEqual(
-            tee.estimate.absolute_risk_reduction(self.medrecord), -1 / 6
+        assert tee.estimate.absolute_risk_reduction(self.medrecord) == pytest.approx(
+            -1 / 6
         )
-        self.assertAlmostEqual(tee.estimate.relative_risk(self.medrecord), 4 / 3)
-        self.assertAlmostEqual(tee.estimate.odds_ratio(self.medrecord), 2)
-        self.assertAlmostEqual(tee.estimate.confounding_bias(self.medrecord), 22 / 21)
-        self.assertAlmostEqual(tee.estimate.hazard_ratio(self.medrecord), 4 / 3)
-        self.assertAlmostEqual(tee.estimate.number_needed_to_treat(self.medrecord), -6)
+        assert tee.estimate.relative_risk(self.medrecord) == pytest.approx(4 / 3)
+        assert tee.estimate.odds_ratio(self.medrecord) == pytest.approx(2)
+        assert tee.estimate.confounding_bias(self.medrecord) == pytest.approx(22 / 21)
+        assert tee.estimate.hazard_ratio(self.medrecord) == pytest.approx(4 / 3)
+        assert tee.estimate.number_needed_to_treat(self.medrecord) == pytest.approx(-6)
 
     def test_full_report(self) -> None:
         """Test the full reporting of the TreatmentEffect class."""
@@ -829,10 +818,9 @@ class TestTreatmentEffect(unittest.TestCase):
                 self.medrecord
             ),
         }
-        self.assertDictEqual(report_test, full_report)
+        assert full_report == report_test
 
     def test_continuous_estimators_report(self) -> None:
-        """Test the continuous report of the TreatmentEffect class."""
         tee = (
             TreatmentEffect.builder()
             .with_treatment("Rivaroxaban")
@@ -848,13 +836,13 @@ class TestTreatmentEffect(unittest.TestCase):
             "cohens_d": tee.estimate.cohens_d(
                 self.medrecord, outcome_variable="intensity"
             ),
-        }
-
-        self.assertDictEqual(
-            report_test,
-            tee.report.continuous_estimators_report(
+            "hedges_g": tee.estimate.hedges_g(
                 self.medrecord, outcome_variable="intensity"
             ),
+        }
+
+        assert report_test == tee.report.continuous_estimators_report(
+            self.medrecord, outcome_variable="intensity"
         )
 
 

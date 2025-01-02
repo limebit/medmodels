@@ -1,3 +1,5 @@
+"""Module for the nearest neighbor matching."""
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Optional, Set
@@ -52,17 +54,20 @@ class NeighborsMatching(Matching):
             treated_set (Set[NodeIndex]): Set of treated subjects.
             control_set (Set[NodeIndex]): Set of control subjects.
             essential_covariates (Optional[MedRecordAttributeInputList], optional):
-                Covariates that are essential for matching
+                Covariates that are essential for matching. Defaults to
+                ["gender", "age"].
             one_hot_covariates (Optional[MedRecordAttributeInputList], optional):
-                Covariates that are one-hot encoded for matching
+                Covariates that are one-hot encoded for matching. Defaults to
+                ["gender"].
 
         Returns:
             Set[NodeIndex]: Node Ids of the matched controls.
         """
-        if one_hot_covariates is None:
-            one_hot_covariates = ["gender"]
         if essential_covariates is None:
             essential_covariates = ["gender", "age"]
+        if one_hot_covariates is None:
+            one_hot_covariates = ["gender"]
+
         data_treated, data_control = self._preprocess_data(
             medrecord=medrecord,
             control_set=control_set,

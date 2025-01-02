@@ -1,3 +1,5 @@
+"""This module contains functions to generate reports of the treatment effect class."""
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Literal, TypedDict
@@ -9,6 +11,8 @@ if TYPE_CHECKING:
 
 
 class FullReport(TypedDict):
+    """A dictionary containing the results of all estimation methods."""
+
     relative_risk: float
     odds_ratio: float
     confounding_bias: float
@@ -18,14 +22,25 @@ class FullReport(TypedDict):
 
 
 class ContinuousReport(TypedDict):
+    """A dictionary containing the results of continuous treatment effect estimators."""
+
     average_treatment_effect: float
     cohens_d: float
+    hedges_g: float
 
 
 class Report:
+    """Class to generate reports of the treatment effect class."""
+
     _treatment_effect: TreatmentEffect
 
     def __init__(self, treatment_effect: TreatmentEffect) -> None:
+        """Initializes the Report class.
+
+        Args:
+            treatment_effect (TreatmentEffect): An instance of the TreatmentEffect
+                class.
+        """
         self._treatment_effect = treatment_effect
 
     def full_report(self, medrecord: MedRecord) -> FullReport:
@@ -60,7 +75,6 @@ class Report:
         medrecord: MedRecord,
         outcome_variable: MedRecordAttribute,
         reference: Literal["first", "last"] = "last",
-        add_cohens_d_correction: bool = False,
     ) -> ContinuousReport:
         """Generates a report of continuous treatment effect estimators.
 
@@ -73,12 +87,11 @@ class Report:
                 exposure time. Options include "first" and "last". If "first", the
                 function returns the earliest exposure edge. If "last", the function
                 returns the latest exposure edge. Defaults to "last".
-            add_cohens_d_correction (bool, optional): A boolean indicating whether to
-                include a correction for Cohen's d. Defaults to False.
 
         Returns:
             ContinuousReport: A dictionary containing the results of continuous
-                treatment effect estimators: average treatment effect and Cohen's d.
+                treatment effect estimators: average treatment effect, Cohen's d and
+                Hedges' g.
         """
         average_treatment_effect = (
             self._treatment_effect.estimate.average_treatment_effect(
@@ -91,9 +104,15 @@ class Report:
             medrecord,
             outcome_variable,
             reference=reference,
-            add_correction=add_cohens_d_correction,
         )
+        hedges_g_value = self._treatment_effect.estimate.hedges_g(
+            medrecord,
+            outcome_variable,
+            reference=reference,
+        )
+
         return {
             "average_treatment_effect": average_treatment_effect,
             "cohens_d": cohens_d_value,
+            "hedges_g": hedges_g_value,
         }

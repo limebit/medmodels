@@ -565,7 +565,7 @@ class MedRecord:
         if isinstance(target_node, Callable):
             target_node = self.select_nodes(target_node)
 
-        if directed:
+        if directed == EdgesDirected.DIRECTED:
             return self._medrecord.edges_connecting(
                 (source_node if isinstance(source_node, list) else [source_node]),
                 (target_node if isinstance(target_node, list) else [target_node]),
