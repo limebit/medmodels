@@ -1,3 +1,12 @@
+"""Propensity Score Matching.
+
+This module provides functions for calculating propensity scores and executing
+propensity score matching. The propensity score is the probability of being in the
+treatment group given a set of covariates. Propensity score matching is a method for
+matching treated and control units based on their propensity scores, ensuring that the
+two groups are comparable.
+"""
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Dict, Literal, Optional, Tuple, Union
@@ -36,7 +45,10 @@ def calculate_propensity(
     model: Model = "logit",
     hyperparam: Optional[Dict[str, Any]] = None,
 ) -> Tuple[NDArray[np.float64], NDArray[np.float64]]:
-    """Trains a classification algorithm on training data, predicts the probability of being in the last class for treated and control test datasets, and returns these probabilities.
+    """Calculates the propensity/probabilities of a subject being in the treated group.
+
+    A classification algorithm is trained, and it is used to predict the probability of
+    a subject of being either in the treated or in the control set of patients.
 
     This function supports multiple classification algorithms and allows specifying
     hyperparameters. It is designed for binary classification tasks, focusing on the
