@@ -102,7 +102,7 @@ class OverviewTable:
 
     def __repr__(self) -> str:
         """Returns a string representation of the group nodes/ edges overview."""
-        header = [self.group_header, "count", "attribute", "type", "info"]
+        header = [self.group_header, "count", "attribute", "type", "data"]
 
         return "\n".join(prettify_table(self.data, header=header, decimal=self.decimal))
 
@@ -1312,14 +1312,16 @@ class MedRecord:
                 "attribute": extract_attribute_summary(self.node[nodes], schema=schema),
             }
 
-        if add_ungrouped:
-            ungrouped_count = self.node_count() - len(set(grouped_nodes))
+        if not add_ungrouped:
+            return nodes_info
 
-            if ungrouped_count > 0:
-                nodes_info["Ungrouped Nodes"] = {
-                    "count": ungrouped_count,
-                    "attribute": {},
-                }
+        ungrouped_count = self.node_count() - len(set(grouped_nodes))
+
+        if ungrouped_count > 0:
+            nodes_info["Ungrouped Nodes"] = {
+                "count": ungrouped_count,
+                "attribute": {},
+            }
 
         return nodes_info
 
@@ -1361,14 +1363,16 @@ class MedRecord:
                 "attribute": extract_attribute_summary(self.edge[edges], schema=schema),
             }
 
-        if add_ungrouped:
-            ungrouped_count = self.edge_count() - len(set(grouped_edges))
+        if not add_ungrouped:
+            return edges_info
 
-            if ungrouped_count > 0:
-                edges_info["Ungrouped Edges"] = {
-                    "count": ungrouped_count,
-                    "attribute": {},
-                }
+        ungrouped_count = self.edge_count() - len(set(grouped_edges))
+
+        if ungrouped_count > 0:
+            edges_info["Ungrouped Edges"] = {
+                "count": ungrouped_count,
+                "attribute": {},
+            }
 
         return edges_info
 
@@ -1396,16 +1400,16 @@ class MedRecord:
 
         Example:
 
-        ----------------------------------------------------
-        Nodes Group     Count Attribute   Info
-        ----------------------------------------------------
-        diagnosis       25    description 25 unique values
-        patient         5     age         min: 19
-                                          max: 96
-                                          mean: 43.20
-                              gender      Categories: F, M
-        Ungrouped Nodes 10    -           -
-        ----------------------------------------------------
+        --------------------------------------------------------------
+        Nodes Group     Count Attribute   Type        Data
+        --------------------------------------------------------------
+        diagnosis       25    description Categorical 25 unique values
+        patient         5     age         Continuous  min: 19
+                                                      max: 96
+                                                      mean: 43.20
+                              gender      Categorical Categories: F, M
+        Ungrouped Nodes 10    -           -           -
+        --------------------------------------------------------------
 
         """
         if groups:
@@ -1436,15 +1440,15 @@ class MedRecord:
 
         Example:
 
-        ----------------------------------------------------------------------------
-        Edges Group                 Count Attribute        Info
-        ----------------------------------------------------------------------------
-        Patient-Diagnosis           60    diagnosis_time   min: 1962-10-21 00:00:00
-                                                           max: 2024-04-12 00:00:00
-                                          duration_days    min: 0
-                                                           max: 3416
-                                                           mean: 405.02
-        ----------------------------------------------------------------------------
+        --------------------------------------------------------------------------
+        Edges Group       Count Attribute      Type       Data
+        --------------------------------------------------------------------------
+        Patient-Diagnosis 60    diagnosis_time Temporal   min: 1962-10-21 00:00:00
+                                                          max: 2024-04-12 00:00:00
+                                duration_days  Continuous min: 0
+                                                          max: 3416
+                                                          mean: 405.02
+        --------------------------------------------------------------------------
         """
         if groups:
             edges_data = self._describe_group_edges(

@@ -1,7 +1,17 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Dict, List, Mapping, Sequence, Tuple, TypedDict, Union
+from typing import (
+    TYPE_CHECKING,
+    Dict,
+    List,
+    Literal,
+    Mapping,
+    Sequence,
+    Tuple,
+    TypedDict,
+    Union,
+)
 
 import pandas as pd
 import polars as pl
@@ -128,7 +138,7 @@ class AttributeInfo(TypedDict):
 class TemporalAttributeInfo(TypedDict):
     """Dictionary for a temporal attribute and its metrics."""
 
-    type: str
+    type: Literal["Temporal"]
     min: datetime
     max: datetime
 
@@ -136,7 +146,7 @@ class TemporalAttributeInfo(TypedDict):
 class NumericAttributeInfo(TypedDict):
     """Dictionary for a numeric attribute and its metrics."""
 
-    type: str
+    type: Literal["Continuous"]
     min: Union[int, float]
     max: Union[int, float]
     mean: Union[int, float]
@@ -145,7 +155,7 @@ class NumericAttributeInfo(TypedDict):
 class StringAttributeInfo(TypedDict):
     """Dictionary for a string attribute and its values."""
 
-    type: str
+    type: Literal["Categorical"]
     values: str
 
 

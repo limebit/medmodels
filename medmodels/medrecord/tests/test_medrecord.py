@@ -1702,9 +1702,9 @@ class TestMedRecord(unittest.TestCase):
                 1: {
                     "count": 2,
                     "attribute": {
-                        "adipiscing": {"type": "Text", "values": "Values: elit"},
-                        "dolor": {"type": "Text", "values": "Values: sit"},
-                        "lorem": {"type": "Text", "values": "Values: ipsum"},
+                        "adipiscing": {"type": "Categorical", "values": "Values: elit"},
+                        "dolor": {"type": "Categorical", "values": "Values: sit"},
+                        "lorem": {"type": "Categorical", "values": "Values: ipsum"},
                     },
                 },
                 "Float": {"count": 0, "attribute": {}},
@@ -1725,7 +1725,7 @@ class TestMedRecord(unittest.TestCase):
                 "Odd": {
                     "count": 2,
                     "attribute": {
-                        "amet": {"type": "Text", "values": "Values: consectetur"}
+                        "amet": {"type": "Categorical", "values": "Values: consectetur"}
                     },
                 },
             },
@@ -1742,9 +1742,9 @@ class TestMedRecord(unittest.TestCase):
                 "Even": {
                     "count": 2,
                     "attribute": {
-                        "eiusmod": {"type": "Text", "values": "Values: tempor"},
-                        "incididunt": {"type": "Text", "values": "Values: ut"},
-                        "sed": {"type": "Text", "values": "Values: do"},
+                        "eiusmod": {"type": "Categorical", "values": "Values: tempor"},
+                        "incididunt": {"type": "Categorical", "values": "Values: ut"},
+                        "sed": {"type": "Categorical", "values": "Values: do"},
                     },
                 },
                 "Ungrouped Edges": {"count": 2, "attribute": {}},
@@ -1758,9 +1758,9 @@ class TestMedRecord(unittest.TestCase):
                 "Even": {
                     "count": 2,
                     "attribute": {
-                        "eiusmod": {"type": "Text", "values": "Values: tempor"},
-                        "incididunt": {"type": "Text", "values": "Values: ut"},
-                        "sed": {"type": "Text", "values": "Values: do"},
+                        "eiusmod": {"type": "Categorical", "values": "Values: tempor"},
+                        "incididunt": {"type": "Categorical", "values": "Values: ut"},
+                        "sed": {"type": "Categorical", "values": "Values: do"},
                     },
                 },
             },
@@ -1773,7 +1773,7 @@ class TestMedRecord(unittest.TestCase):
             "\n".join(
                 [
                     "---------------------------------------------------------------------------",
-                    "Edges Group       Count Attribute      Type       Info                     ",
+                    "Edges Group       Count Attribute      Type       Data                     ",
                     "---------------------------------------------------------------------------",
                     "patient_diagnosis 60    diagnosis_time Temporal   min: 1962-10-21 00:00:00 ",
                     "                                                  max: 2024-04-12 00:00:00 ",
@@ -1793,10 +1793,10 @@ class TestMedRecord(unittest.TestCase):
             "\n".join(
                 [
                     "-----------------------------------------------------------",
-                    "Nodes Group Count Attribute   Type        Info             ",
+                    "Nodes Group Count Attribute   Type        Data             ",
                     "-----------------------------------------------------------",
-                    "diagnosis   25    description Text        25 unique values ",
-                    "drug        19    description Text        19 unique values ",
+                    "diagnosis   25    description Categorical 25 unique values ",
+                    "drug        19    description Categorical 19 unique values ",
                     "patient     5     age         Continuous  min: 19          ",
                     "                                          max: 96          ",
                     "                                          mean: 43.20      ",

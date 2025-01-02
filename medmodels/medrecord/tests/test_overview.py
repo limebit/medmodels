@@ -111,7 +111,7 @@ class TestOverview(unittest.TestCase):
 
         self.assertDictEqual(
             str_attributes,
-            {"ATC": {"type": "Text", "values": "Values: B01AA03, B01AF01"}},
+            {"ATC": {"type": "Categorical", "values": "Values: B01AA03, B01AF01"}},
         )
 
         def query4(node: NodeOperand):
@@ -156,7 +156,7 @@ class TestOverview(unittest.TestCase):
                     "min": datetime(1999, 12, 15, 0, 0),
                     "max": datetime(2000, 1, 1, 0, 0),
                 },
-                "intensity": {"type": "Text", "values": "Values: 1, low"},
+                "intensity": {"type": "Categorical", "values": "Values: 1, low"},
             },
         )
 
@@ -209,17 +209,17 @@ class TestOverview(unittest.TestCase):
         header = ["group nodes", "count", "attribute", "type", "info"]
 
         expected_nodes = [
-            "--------------------------------------------------------------------",
-            "Group Nodes     Count Attribute Type       Info                     ",
-            "--------------------------------------------------------------------",
-            "Aspirin         1     ATC       -          -                        ",
-            "Medications     3     ATC       Text       Values: B01AA03, B01AF01 ",
-            "Patients        3     age       Continuous min: 20                  ",
-            "                                           max: 70                  ",
-            "                                           mean: 40.00              ",
-            "Stroke          1     -         -          -                        ",
-            "Ungrouped Nodes 1     -         -          -                        ",
-            "--------------------------------------------------------------------",
+            "---------------------------------------------------------------------",
+            "Group Nodes     Count Attribute Type        Info                     ",
+            "---------------------------------------------------------------------",
+            "Aspirin         1     ATC       -           -                        ",
+            "Medications     3     ATC       Categorical Values: B01AA03, B01AF01 ",
+            "Patients        3     age       Continuous  min: 20                  ",
+            "                                            max: 70                  ",
+            "                                            mean: 40.00              ",
+            "Stroke          1     -         -           -                        ",
+            "Ungrouped Nodes 1     -         -           -                        ",
+            "---------------------------------------------------------------------",
         ]
 
         self.assertEqual(

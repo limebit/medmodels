@@ -144,13 +144,13 @@ def _extract_string_attribute_info(
     Args:
         attribute_series (pl.Series): Series containing attribute values.
         short_string_prefix (Literal["Values", "Categories"], optional): Prefix for
-            Info string in case of listing all the values. Defaults to "Values".
-        long_string_suffix (str, optional): Suffix for attribute info in case of too
+            information string in case of listing all the values. Defaults to "Values".
+        long_string_suffix (str, optional): Suffix for attribute information in case of too
             many values to list. Here only the count will be displayed.
             Defaults to "unique values".
         max_number_values (int, optional): Maximum values that should be listed in the
-            info string. Defaults to 5.
-        max_line_length (int, optional): Maximum line length for the info string.
+            information string. Defaults to 5.
+        max_line_length (int, optional): Maximum line length for the information string.
             Defaults to 100.
 
     Returns:
@@ -164,7 +164,7 @@ def _extract_string_attribute_info(
         values_string = f"{len(values)} {long_string_suffix}"
 
     return {
-        "type": "Categorical" if short_string_prefix == "Categories" else "Text",
+        "type": "Categorical",
         "values": values_string,
     }
 
@@ -175,7 +175,7 @@ def prettify_table(
     """Takes a DataFrame and turns it into a list for displaying a pretty table.
 
     Args:
-        data (Dict[Group, AttributeInfo]): Table info
+        data (Dict[Group, AttributeInfo]): Table information
             stored in a dictionary.
         header (List[str]): Header line consisting of column names for the table.
         decimal (int): Decimal point to round the float values to.
@@ -219,7 +219,7 @@ def prettify_table(
 
                 row[3] = info["type"] if first_line else ""
 
-                # displaying info based on the type
+                # displaying information based on the type
                 if "values" in info.keys():
                     row[4] = info[key]
                 else:
