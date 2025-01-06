@@ -1,7 +1,17 @@
 from __future__ import annotations
 
-from datetime import datetime
-from typing import TYPE_CHECKING, Dict, List, Mapping, Sequence, Tuple, TypedDict, Union
+from datetime import datetime, timedelta
+from typing import (
+    TYPE_CHECKING,
+    Dict,
+    List,
+    Literal,
+    Mapping,
+    Sequence,
+    Tuple,
+    TypedDict,
+    Union,
+)
 
 import pandas as pd
 import polars as pl
@@ -25,7 +35,7 @@ MedRecordAttributeInputList: TypeAlias = Union[
 ]
 
 #: A type alias for the value of a medical record attribute.
-MedRecordValue: TypeAlias = Union[str, int, float, bool, datetime, None]
+MedRecordValue: TypeAlias = Union[str, int, float, bool, datetime, timedelta, None]
 
 #: A type alias for a node index.
 NodeIndex: TypeAlias = MedRecordAttribute
@@ -123,6 +133,7 @@ class GroupInfo(TypedDict):
 class TemporalAttributeInfo(TypedDict):
     """Dictionary for a temporal attribute and its metrics."""
 
+    type: Literal["Temporal"]
     min: datetime
     max: datetime
 
@@ -130,6 +141,7 @@ class TemporalAttributeInfo(TypedDict):
 class NumericAttributeInfo(TypedDict):
     """Dictionary for a numeric attribute and its metrics."""
 
+    type: Literal["Continuous"]
     min: Union[int, float]
     max: Union[int, float]
     mean: Union[int, float]
@@ -138,6 +150,7 @@ class NumericAttributeInfo(TypedDict):
 class StringAttributeInfo(TypedDict):
     """Dictionary for a string attribute and its values."""
 
+    type: Literal["Categorical"]
     values: str
 
 

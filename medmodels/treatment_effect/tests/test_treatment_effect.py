@@ -1,6 +1,7 @@
 """Tests for the TreatmentEffect class in the treatment_effect module."""
 
 import unittest
+from datetime import datetime
 from typing import List
 
 import pandas as pd
@@ -97,13 +98,13 @@ def create_edges1(patient_list: List[NodeIndex]) -> pd.DataFrame:
                 "P9",
             ],
             "time": [
-                "1999-10-15",
-                "2000-01-01",
-                "1999-12-15",
-                "2000-01-01",
-                "2000-01-01",
-                "2000-01-01",
-                "2000-01-01",
+                datetime(1999, 10, 15),
+                datetime(2000, 1, 1),
+                datetime(1999, 12, 15),
+                datetime(2000, 1, 1),
+                datetime(2000, 1, 1),
+                datetime(2000, 1, 1),
+                datetime(2000, 1, 1),
             ],
         }
     )
@@ -136,12 +137,12 @@ def create_edges2(patient_list: List[NodeIndex]) -> pd.DataFrame:
                 "P7",
             ],
             "time": [
-                "2000-01-01",
-                "2000-07-01",
-                "1999-12-15",
-                "2000-01-05",
-                "2000-01-01",
-                "2000-01-01",
+                datetime(2000, 1, 1),
+                datetime(2000, 7, 1),
+                datetime(1999, 12, 15),
+                datetime(2000, 1, 5),
+                datetime(2000, 1, 1),
+                datetime(2000, 1, 1),
             ],
             "intensity": [
                 0.1,
@@ -360,17 +361,59 @@ class TestTreatmentEffect(unittest.TestCase):
             .build()
         )
 
-        treated_group = tee._find_treated_patients(self.medrecord)
-        self.assertEqual(treated_group, set({"P2", "P3", "P6"}))
+        treated_set = tee._find_treated_patients(self.medrecord)
+        self.assertEqual(treated_set, set({"P2", "P3", "P6"}))
 
         # no treatment_group
         patients = set(self.medrecord.nodes_in_group("patients"))
-        medrecord2 = create_medrecord(list(patients - treated_group))
+        medrecord2 = create_medrecord(list(patients - treated_set))
 
         with self.assertRaisesRegex(
             ValueError, "No patients found for the treatment groups in this MedRecord."
         ):
             tee.estimate._compute_subject_counts(medrecord=medrecord2)
+
+    def test_query_node_within_time_window(self):
+        # check if patient has outcome a year after treatment
+        tee = (
+            TreatmentEffect.builder()
+            .with_outcome("Stroke")
+            .with_treatment("Rivaroxaban")
+            .build()
+        )
+        treated_set = tee._find_treated_patients(self.medrecord)
+
+        nodes = self.medrecord.select_nodes(
+            lambda node: tee._query_node_within_time_window(
+                node, treated_set, "Stroke", 0, 365, "last"
+            )
+        )
+        self.assertIn("P3", nodes)
+        self.assertIn("P2", nodes)
+
+        # Only one not having an outcome in that time period (no outcome at all)
+        self.assertNotIn("P6", nodes)
+        self.assertIn("P6", treated_set)
+
+        # check which patients have outcome within 30 days after treatment
+        nodes = self.medrecord.select_nodes(
+            lambda node: tee._query_node_within_time_window(
+                node, treated_set, "Stroke", 0, 30, "last"
+            )
+        )
+        self.assertIn("P3", nodes)
+        self.assertNotIn(
+            "P2", nodes
+        )  # P2 has no outcome in the 30 days window after treatment
+
+        # If we reduce the window to 3 days, we have no patients with outcome in that window
+        nodes = self.medrecord.select_nodes(
+            lambda node: tee._query_node_within_time_window(
+                node, treated_set, "Stroke", 0, 3, "last"
+            )
+        )
+        self.assertNotIn("P3", nodes)
+        self.assertNotIn("P2", nodes)
 
     def test_find_groups(self):
         tee = (
@@ -525,6 +568,19 @@ class TestTreatmentEffect(unittest.TestCase):
 
         self.assertEqual((1, 2, 3, 3), counts_tee)
 
+    def test_invalid_grace_period(self):
+        with self.assertRaisesRegex(
+            ValueError,
+            "The follow-up period must be greater than or equal to the grace period.",
+        ):
+            (
+                TreatmentEffect.builder()
+                .with_treatment("Rivaroxaban")
+                .with_outcome("Stroke")
+                .with_grace_period(1000)
+                .build()
+            )
+
     def test_washout_period(self):
         washout_dict = {"Warfarin": 30}
 
@@ -538,12 +594,12 @@ class TestTreatmentEffect(unittest.TestCase):
 
         self.assertDictEqual(tee._washout_period_days, washout_dict)
 
-        treated_group = tee._find_treated_patients(self.medrecord)
-        treated_group, washout_nodes = tee._apply_washout_period(
-            self.medrecord, treated_group
+        treated_set = tee._find_treated_patients(self.medrecord)
+        treated_set, washout_nodes = tee._apply_washout_period(
+            self.medrecord, treated_set
         )
 
-        self.assertEqual(treated_group, set({"P3", "P6"}))
+        self.assertEqual(treated_set, set({"P3", "P6"}))
         self.assertEqual(washout_nodes, set({"P2"}))
 
         # smaller washout period
@@ -559,12 +615,12 @@ class TestTreatmentEffect(unittest.TestCase):
 
         self.assertDictEqual(tee2._washout_period_days, washout_dict2)
 
-        treated_group = tee2._find_treated_patients(self.medrecord)
-        treated_group, washout_nodes = tee2._apply_washout_period(
-            self.medrecord, treated_group
+        treated_set = tee2._find_treated_patients(self.medrecord)
+        treated_set, washout_nodes = tee2._apply_washout_period(
+            self.medrecord, treated_set
         )
 
-        self.assertEqual(treated_group, set({"P2", "P3", "P6"}))
+        self.assertEqual(treated_set, set({"P2", "P3", "P6"}))
         self.assertEqual(washout_nodes, set({}))
 
     def test_outcome_before_treatment(self):
@@ -575,11 +631,11 @@ class TestTreatmentEffect(unittest.TestCase):
             .with_outcome("Stroke")
             .build()
         )
-        treated_group = tee._find_treated_patients(self.medrecord)
-        treated_group, treatment_outcome_true, outcome_before_treatment_nodes = (
-            tee._find_outcomes(self.medrecord, treated_group)
+        treated_set = tee._find_treated_patients(self.medrecord)
+        treated_set, treatment_outcome_true, outcome_before_treatment_nodes = (
+            tee._find_outcomes(self.medrecord, treated_set)
         )
-        self.assertEqual(treated_group, set({"P2", "P3", "P6"}))
+        self.assertEqual(treated_set, set({"P2", "P3", "P6"}))
         self.assertEqual(treatment_outcome_true, set({"P2", "P3"}))
         self.assertEqual(outcome_before_treatment_nodes, set())
 
@@ -594,16 +650,15 @@ class TestTreatmentEffect(unittest.TestCase):
 
         self.assertEqual(tee2._outcome_before_treatment_days, 30)
 
-        treated_group = tee2._find_treated_patients(self.medrecord)
-        treated_group, treatment_outcome_true, outcome_before_treatment_nodes = (
-            tee2._find_outcomes(self.medrecord, treated_group)
+        treated_set = tee2._find_treated_patients(self.medrecord)
+        treated_set, treatment_outcome_true, outcome_before_treatment_nodes = (
+            tee2._find_outcomes(self.medrecord, treated_set)
         )
-        self.assertEqual(treated_group, set({"P2", "P6"}))
+        self.assertEqual(treated_set, set({"P2", "P6"}))
         self.assertEqual(treatment_outcome_true, set({"P2"}))
         self.assertEqual(outcome_before_treatment_nodes, set({"P3"}))
 
         # case 3 no outcome
-
         self.medrecord.add_group("Headache")
 
         tee3 = (
@@ -617,7 +672,7 @@ class TestTreatmentEffect(unittest.TestCase):
         with self.assertRaisesRegex(
             ValueError, "No outcomes found in the MedRecord for group "
         ):
-            tee3._find_outcomes(medrecord=self.medrecord, treated_group=treated_group)
+            tee3._find_outcomes(medrecord=self.medrecord, treated_set=treated_set)
 
     def test_filter_controls(self):
         def query1(node: NodeOperand):
@@ -692,12 +747,12 @@ class TestTreatmentEffect(unittest.TestCase):
         )
 
         patients = set(self.medrecord.nodes_in_group("patients"))
-        treated_group = {"P2", "P3", "P6"}
+        treated_set = {"P2", "P3", "P6"}
 
         control_outcome_true, control_outcome_false = tee._find_controls(
             self.medrecord,
-            control_group=patients - treated_group,
-            treated_group=patients.intersection(treated_group),
+            control_set=patients - treated_set,
+            treated_set=patients.intersection(treated_set),
         )
         self.assertEqual(control_outcome_true, {"P1", "P4", "P7"})
         self.assertEqual(control_outcome_false, {"P5", "P8", "P9"})
@@ -707,9 +762,9 @@ class TestTreatmentEffect(unittest.TestCase):
         ):
             tee._find_controls(
                 self.medrecord,
-                control_group=patients - treated_group,
-                treated_group=patients.intersection(treated_group),
-                rejected_nodes=patients - treated_group,
+                control_set=patients - treated_set,
+                treated_set=patients.intersection(treated_set),
+                rejected_nodes=patients - treated_set,
             )
 
         tee2 = (
@@ -726,8 +781,8 @@ class TestTreatmentEffect(unittest.TestCase):
         ):
             tee2._find_controls(
                 self.medrecord,
-                control_group=patients - treated_group,
-                treated_group=patients.intersection(treated_group),
+                control_set=patients - treated_set,
+                treated_set=patients.intersection(treated_set),
             )
 
     def test_metrics(self):

@@ -1,6 +1,7 @@
 """Tests for the TreatmentEffect class in the treatment_effect module."""
 
 import unittest
+from datetime import datetime
 from typing import List
 
 import pandas as pd
@@ -98,13 +99,13 @@ def create_edges1(patient_list: List[NodeIndex]) -> pd.DataFrame:
                 "P9",
             ],
             "time": [
-                "1999-10-15",
-                "2000-01-01",
-                "1999-12-15",
-                "2000-01-01",
-                "2000-01-01",
-                "2000-01-01",
-                "2000-01-01",
+                datetime(1999, 10, 15),
+                datetime(2000, 1, 1),
+                datetime(1999, 12, 15),
+                datetime(2000, 1, 1),
+                datetime(2000, 1, 1),
+                datetime(2000, 1, 1),
+                datetime(2000, 1, 1),
             ],
         }
     )
@@ -137,12 +138,12 @@ def create_edges2(patient_list: List[NodeIndex]) -> pd.DataFrame:
                 "P7",
             ],
             "time": [
-                "2000-01-01",
-                "2000-07-01",
-                "1999-12-15",
-                "2000-01-05",
-                "2000-01-01",
-                "2000-01-01",
+                datetime.strptime("2000-01-01", "%Y-%m-%d"),
+                datetime.strptime("2000-07-01", "%Y-%m-%d"),
+                datetime.strptime("1999-12-15", "%Y-%m-%d"),
+                datetime.strptime("2000-01-05", "%Y-%m-%d"),
+                datetime.strptime("2000-01-01", "%Y-%m-%d"),
+                datetime.strptime("2000-01-01", "%Y-%m-%d"),
             ],
             "intensity": [
                 0.1,

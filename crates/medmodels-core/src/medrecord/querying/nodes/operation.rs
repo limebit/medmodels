@@ -58,11 +58,9 @@ pub enum NodeOperation {
         attribute: CardinalityWrapper<MedRecordAttribute>,
     },
 
-    OutgoingEdges {
+    Edges {
         operand: Wrapper<EdgeOperand>,
-    },
-    IncomingEdges {
-        operand: Wrapper<EdgeOperand>,
+        direction: EdgeDirection,
     },
 
     Neighbors {
@@ -97,11 +95,9 @@ impl DeepClone for NodeOperation {
             Self::HasAttribute { attribute } => Self::HasAttribute {
                 attribute: attribute.clone(),
             },
-            Self::OutgoingEdges { operand } => Self::OutgoingEdges {
+            Self::Edges { operand, direction } => Self::Edges {
                 operand: operand.deep_clone(),
-            },
-            Self::IncomingEdges { operand } => Self::IncomingEdges {
-                operand: operand.deep_clone(),
+                direction: direction.clone(),
             },
             Self::Neighbors {
                 operand,
@@ -153,15 +149,11 @@ impl NodeOperation {
                 node_indices,
                 attribute.clone(),
             )),
-            Self::OutgoingEdges { operand } => Box::new(Self::evaluate_outgoing_edges(
+            Self::Edges { operand, direction } => Box::new(Self::evaluate_edges(
                 medrecord,
                 node_indices,
                 operand.clone(),
-            )?),
-            Self::IncomingEdges { operand } => Box::new(Self::evaluate_incoming_edges(
-                medrecord,
-                node_indices,
-                operand.clone(),
+                direction.clone(),
             )?),
             Self::Neighbors {
                 operand,
@@ -315,40 +307,36 @@ impl NodeOperation {
     }
 
     #[inline]
-    fn evaluate_outgoing_edges<'a>(
+    fn evaluate_edges<'a>(
         medrecord: &'a MedRecord,
         node_indices: impl Iterator<Item = &'a NodeIndex>,
         operand: Wrapper<EdgeOperand>,
+        direction: EdgeDirection,
     ) -> MedRecordResult<impl Iterator<Item = &'a NodeIndex>> {
         let edge_indices = operand.evaluate(medrecord)?.collect::<RoaringBitmap>();
 
         Ok(node_indices.filter(move |node_index| {
-            let outgoing_edge_indices = medrecord
-                .outgoing_edges(node_index)
-                .expect("Node must exist");
+            let connected_indices = match direction {
+                EdgeDirection::Incoming => medrecord
+                    .outgoing_edges(node_index)
+                    .expect("Node must exist")
+                    .collect::<RoaringBitmap>(),
+                EdgeDirection::Outgoing => medrecord
+                    .incoming_edges(node_index)
+                    .expect("Node must exist")
+                    .collect::<RoaringBitmap>(),
+                EdgeDirection::Both => medrecord
+                    .incoming_edges(node_index)
+                    .expect("Node must exist")
+                    .chain(
+                        medrecord
+                            .outgoing_edges(node_index)
+                            .expect("Node must exist"),
+                    )
+                    .collect::<RoaringBitmap>(),
+            };
 
-            let outgoing_edge_indices = outgoing_edge_indices.collect::<RoaringBitmap>();
-
-            !outgoing_edge_indices.is_disjoint(&edge_indices)
-        }))
-    }
-
-    #[inline]
-    fn evaluate_incoming_edges<'a>(
-        medrecord: &'a MedRecord,
-        node_indices: impl Iterator<Item = &'a NodeIndex>,
-        operand: Wrapper<EdgeOperand>,
-    ) -> MedRecordResult<impl Iterator<Item = &'a NodeIndex>> {
-        let edge_indices = operand.evaluate(medrecord)?.collect::<RoaringBitmap>();
-
-        Ok(node_indices.filter(move |node_index| {
-            let incoming_edge_indices = medrecord
-                .incoming_edges(node_index)
-                .expect("Node must exist");
-
-            let incoming_edge_indices = incoming_edge_indices.collect::<RoaringBitmap>();
-
-            !incoming_edge_indices.is_disjoint(&edge_indices)
+            !connected_indices.is_disjoint(&edge_indices)
         }))
     }
 
