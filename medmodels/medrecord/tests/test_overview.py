@@ -62,6 +62,19 @@ def create_medrecord() -> mm.MedRecord:
 
     medrecord.add_edges_polars(edges=(edges_disease, "source", "target"))
 
+    edges_meds = pd.DataFrame(
+        {
+            "source": ["M1", "M2", "M3"],
+            "target": ["P1", "P2", "P3"],
+            "time": ["2000-01-01", "1999-10-15", "1999-12-15"],
+        }
+    )
+    edges_meds["time"] = pd.to_datetime(edges_meds["time"])
+
+    medrecord.add_edges_pandas(
+        edges=(edges_meds, "source", "target"), group="patient-medications"
+    )
+
     for group, group_list in groups:
         medrecord.add_group(group, group_list)
 
@@ -87,7 +100,9 @@ class TestOverview(unittest.TestCase):
         # numeric type
         numeric_attribute = extract_attribute_summary(medrecord.node[query2])
 
-        numeric_expected = {"age": {"min": 20, "max": 70, "mean": 40.0}}
+        numeric_expected = {
+            "age": {"type": "Continuous", "min": 20, "max": 70, "mean": 40.0}
+        }
 
         assert numeric_attribute == numeric_expected
 
@@ -97,7 +112,9 @@ class TestOverview(unittest.TestCase):
         # string attributes
         str_attributes = extract_attribute_summary(medrecord.node[query3])
 
-        assert str_attributes == {"ATC": {"values": "Values: B01AA03, B01AF01"}}
+        assert str_attributes == {
+            "ATC": {"type": "Categorical", "values": "Values: B01AA03, B01AF01"}
+        }
 
         def query4(node: NodeOperand) -> None:
             node.in_group("Aspirin")
@@ -105,7 +122,7 @@ class TestOverview(unittest.TestCase):
         # nan attribute
         nan_attributes = extract_attribute_summary(medrecord.node[query4])
 
-        assert nan_attributes == {"ATC": {"values": "-"}}
+        assert nan_attributes == {"ATC": {"type": "-", "values": "-"}}
 
         def query5(edge: EdgeOperand) -> None:
             edge.source_node().in_group("Medications")
@@ -116,7 +133,8 @@ class TestOverview(unittest.TestCase):
 
         assert temp_attributes == {
             "time": {
-                "max": datetime(1999, 10, 15, 0, 0),
+                "type": "Temporal",
+                "max": datetime(2000, 1, 1, 0, 0),
                 "min": datetime(1999, 10, 15, 0, 0),
             }
         }
@@ -131,10 +149,11 @@ class TestOverview(unittest.TestCase):
         )
         assert mixed_attributes == {
             "time": {
+                "type": "Temporal",
                 "min": datetime(1999, 12, 15, 0, 0),
                 "max": datetime(2000, 1, 1, 0, 0),
             },
-            "intensity": {"values": "Values: 1, low"},
+            "intensity": {"type": "Categorical", "values": "Values: 1, low"},
         }
 
         # with schema
@@ -147,8 +166,8 @@ class TestOverview(unittest.TestCase):
         )
 
         assert node_info == {
-            "age": {"min": 19, "max": 96, "mean": 43.20},
-            "gender": {"values": "Categories: F, M"},
+            "age": {"type": "Continuous", "min": 19, "max": 96, "mean": 43.20},
+            "gender": {"type": "Categorical", "values": "Categories: F, M"},
         }
 
         def query7(edge: EdgeOperand) -> None:
@@ -162,10 +181,12 @@ class TestOverview(unittest.TestCase):
 
         assert patient_diagnosis == {
             "diagnosis_time": {
+                "type": "Temporal",
                 "min": datetime(1962, 10, 21, 0, 0),
                 "max": datetime(2024, 4, 12, 0, 0),
             },
             "duration_days": {
+                "type": "Continuous",
                 "min": 0.0,
                 "max": 3416.0,
                 "mean": 405.0232558139535,
@@ -175,25 +196,42 @@ class TestOverview(unittest.TestCase):
     def test_prettify_table(self) -> None:
         medrecord = create_medrecord()
 
-        header = ["group nodes", "count", "attribute", "info"]
+        header = ["group nodes", "count", "attribute", "type", "info"]
 
-        expected_empty = [
-            "---------------------------------------------------------",
-            "Group Nodes     Count Attribute Info                     ",
-            "---------------------------------------------------------",
-            "Aspirin         1     ATC       -                        ",
-            "Medications     3     ATC       Values: B01AA03, B01AF01 ",
-            "Patients        3     age       min: 20                  ",
-            "                                max: 70                  ",
-            "                                mean: 40.00              ",
-            "Stroke          1     -         -                        ",
-            "Ungrouped Nodes 1     -         -                        ",
-            "---------------------------------------------------------",
+        expected_nodes = [
+            "---------------------------------------------------------------------",
+            "Group Nodes     Count Attribute Type        Info                     ",
+            "---------------------------------------------------------------------",
+            "Aspirin         1     ATC       -           -                        ",
+            "Medications     3     ATC       Categorical Values: B01AA03, B01AF01 ",
+            "Patients        3     age       Continuous  min: 20                  ",
+            "                                            max: 70                  ",
+            "                                            mean: 40.00              ",
+            "Stroke          1     -         -           -                        ",
+            "Ungrouped Nodes 1     -         -           -                        ",
+            "---------------------------------------------------------------------",
         ]
 
         assert (
             prettify_table(medrecord._describe_group_nodes(), header, decimal=2)
-            == expected_empty
+            == expected_nodes
+        )
+
+        header = ["group edges", "count", "attribute", "type", "info"]
+
+        expected_edges = [
+            "----------------------------------------------------------------------",
+            "Group Edges         Count Attribute Type     Info                     ",
+            "----------------------------------------------------------------------",
+            "patient-medications 3     time      Temporal min: 1999-10-15 00:00:00 ",
+            "                                             max: 2000-01-01 00:00:00 ",
+            "Ungrouped Edges     6     -         -        -                        ",
+            "----------------------------------------------------------------------",
+        ]
+
+        assert (
+            prettify_table(medrecord._describe_group_edges(), header, decimal=2)
+            == expected_edges
         )
 
 
