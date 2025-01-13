@@ -1,3 +1,5 @@
+"""Sphinx configuration."""
+
 import sys
 from datetime import date
 from pathlib import Path
@@ -69,6 +71,7 @@ autodoc_default_options = {
     "private-members": False,
     "inherited-members": True,
     "show-inheritance": True,
+    "ignore-module-all": False,
 }
 
 autosummary_generate = True
@@ -170,7 +173,7 @@ latex_engine = "xelatex"
 
 
 # Local Sphinx extensions
-def setup(app: Sphinx):
+def setup(app: Sphinx) -> None:
     """Add custom directives and transformations to Sphinx."""
     from myst_parser._docs import (
         DirectiveDoc,

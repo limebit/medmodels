@@ -7,9 +7,9 @@ The `TreatmentEffect` module is designed for analyzing treatment effects within 
    :toctree: _autosummary
    :recursive:
 
-   medmodels.treatment_effect.treatment_effect.TreatmentEffect
-   medmodels.treatment_effect.builder.TreatmentEffectBuilder
-   medmodels.treatment_effect.estimate.Estimate
-   medmodels.treatment_effect.report.Report
+   medmodels.treatment_effect.treatment_effect
+   medmodels.treatment_effect.builder
+   medmodels.treatment_effect.estimate
+   medmodels.treatment_effect.report
    medmodels.treatment_effect.temporal_analysis
 ```

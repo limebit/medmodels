@@ -1,15 +1,22 @@
+"""Module containing the matching abstract class.
+
+Matching is the process of selecting control subjects that are similar to treated
+subjects. The class provides the base for the matching algorithms, such as propensity
+score matching and nearest neighbor matching.
+"""
+
 from __future__ import annotations
 
-from abc import ABCMeta, abstractmethod
-from typing import TYPE_CHECKING, Literal, Set, Tuple
+from abc import ABC, abstractmethod
+from typing import TYPE_CHECKING, Literal, Optional, Set, Tuple
 
 import polars as pl
 
-from medmodels.medrecord.medrecord import MedRecord
-from medmodels.medrecord.types import MedRecordAttributeInputList, NodeIndex
-
 if TYPE_CHECKING:
     import sys
+
+    from medmodels.medrecord.medrecord import MedRecord
+    from medmodels.medrecord.types import MedRecordAttributeInputList, NodeIndex
 
     if sys.version_info >= (3, 10):
         from typing import TypeAlias
@@ -19,8 +26,8 @@ if TYPE_CHECKING:
 MatchingMethod: TypeAlias = Literal["propensity", "nearest_neighbors"]
 
 
-class Matching(metaclass=ABCMeta):
-    """The Base Class for matching."""
+class Matching(ABC):
+    """The Abstract Class for matching."""
 
     def _preprocess_data(
         self,
@@ -83,9 +90,24 @@ class Matching(metaclass=ABCMeta):
     def match_controls(
         self,
         *,
+        medrecord: MedRecord,
         control_set: Set[NodeIndex],
         treated_set: Set[NodeIndex],
-        medrecord: MedRecord,
-        essential_covariates: MedRecordAttributeInputList = ["gender", "age"],
-        one_hot_covariates: MedRecordAttributeInputList = ["gender"],
-    ) -> Set[NodeIndex]: ...
+        essential_covariates: Optional[MedRecordAttributeInputList] = None,
+        one_hot_covariates: Optional[MedRecordAttributeInputList] = None,
+    ) -> Set[NodeIndex]:
+        """Matches the controls based on the matching algorithm.
+
+        Args:
+            medrecord (MedRecord): MedRecord object containing the data.
+            control_set (Set[NodeIndex]): Set of control subjects.
+            treated_set (Set[NodeIndex]): Set of treated subjects.
+            essential_covariates (Optional[MedRecordAttributeInputList], optional):
+                Covariates that are essential for matching. Defaults to None.
+            one_hot_covariates (Optional[MedRecordAttributeInputList], optional):
+                Covariates that are one-hot encoded for matching. Defaults to None.
+
+        Returns:
+            Set[NodeIndex]: Node Ids of the matched controls.
+        """
+        ...

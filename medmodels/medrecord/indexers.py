@@ -1,8 +1,9 @@
+"""Indexers for MedRecord nodes and edges."""
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Callable, Dict, Tuple, Union, overload
 
-from medmodels.medrecord.querying import EdgeQuery, NodeQuery
 from medmodels.medrecord.types import (
     Attributes,
     AttributesInput,
@@ -22,12 +23,20 @@ from medmodels.medrecord.types import (
 
 if TYPE_CHECKING:
     from medmodels import MedRecord
+    from medmodels.medrecord.querying import EdgeQuery, NodeQuery
 
 
 class NodeIndexer:
+    """Indexer for MedRecord nodes."""
+
     _medrecord: MedRecord
 
     def __init__(self, medrecord: MedRecord) -> None:
+        """Initializes the NodeIndexer object.
+
+        Args:
+            medrecord (MedRecord): MedRecord object to index.
+        """
         self._medrecord = medrecord
 
     @overload
@@ -63,7 +72,7 @@ class NodeIndexer:
         key: Tuple[Union[NodeIndexInputList, NodeQuery, slice], MedRecordAttribute],
     ) -> Dict[NodeIndex, MedRecordValue]: ...
 
-    def __getitem__(
+    def __getitem__(  # noqa: C901
         self,
         key: Union[
             NodeIndex,
@@ -81,6 +90,19 @@ class NodeIndexer:
         Dict[NodeIndex, Attributes],
         Dict[NodeIndex, MedRecordValue],
     ]:
+        """Gets the node attributes for the specified key.
+
+        Args:
+            key (Union[NodeIndex, NodeIndexInputList, NodeQuery, slice, Tuple[Union[NodeIndex, NodeIndexInputList, NodeQuery, slice], Union[MedRecordAttribute, MedRecordAttributeInputList, slice]]):
+                The nodes to get attributes for.
+
+        Returns:
+            Union[MedRecordValue, Attributes, Dict[NodeIndex, Attributes], Dict[NodeIndex, MedRecordValue]]:
+                The node attributes to be extracted.
+
+        Raises:
+            ValueError: If the key is a slice, but not ":" is provided.
+        """  # noqa: W505
         if is_node_index(key):
             return self._medrecord._medrecord.node([key])[key]
 
@@ -92,7 +114,8 @@ class NodeIndexer:
 
         if isinstance(key, slice):
             if key.start is not None or key.stop is not None or key.step is not None:
-                raise ValueError("Invalid slice, only ':' is allowed")
+                msg = "Invalid slice, only ':' is allowed"
+                raise ValueError(msg)
 
             return self._medrecord._medrecord.node(self._medrecord.nodes)
 
@@ -110,7 +133,7 @@ class NodeIndexer:
         ):
             attributes = self._medrecord._medrecord.node(index_selection)
 
-            return {x: attributes[x][attribute_selection] for x in attributes.keys()}
+            return {x: attributes[x][attribute_selection] for x in attributes}
 
         if isinstance(index_selection, Callable) and is_medrecord_attribute(
             attribute_selection
@@ -119,7 +142,7 @@ class NodeIndexer:
                 self._medrecord.select_nodes(index_selection)
             )
 
-            return {x: attributes[x][attribute_selection] for x in attributes.keys()}
+            return {x: attributes[x][attribute_selection] for x in attributes}
 
         if isinstance(index_selection, slice) and is_medrecord_attribute(
             attribute_selection
@@ -129,11 +152,12 @@ class NodeIndexer:
                 or index_selection.stop is not None
                 or index_selection.step is not None
             ):
-                raise ValueError("Invalid slice, only ':' is allowed")
+                msg = "Invalid slice, only ':' is allowed"
+                raise ValueError(msg)
 
             attributes = self._medrecord._medrecord.node(self._medrecord.nodes)
 
-            return {x: attributes[x][attribute_selection] for x in attributes.keys()}
+            return {x: attributes[x][attribute_selection] for x in attributes}
 
         if is_node_index(index_selection) and isinstance(attribute_selection, list):
             return {
@@ -148,7 +172,7 @@ class NodeIndexer:
 
             return {
                 x: {y: attributes[x][y] for y in attribute_selection}
-                for x in attributes.keys()
+                for x in attributes
             }
 
         if isinstance(index_selection, Callable) and isinstance(
@@ -160,7 +184,7 @@ class NodeIndexer:
 
             return {
                 x: {y: attributes[x][y] for y in attribute_selection}
-                for x in attributes.keys()
+                for x in attributes
             }
 
         if isinstance(index_selection, slice) and isinstance(attribute_selection, list):
@@ -169,13 +193,14 @@ class NodeIndexer:
                 or index_selection.stop is not None
                 or index_selection.step is not None
             ):
-                raise ValueError("Invalid slice, only ':' is allowed")
+                msg = "Invalid slice, only ':' is allowed"
+                raise ValueError(msg)
 
             attributes = self._medrecord._medrecord.node(self._medrecord.nodes)
 
             return {
                 x: {y: attributes[x][y] for y in attribute_selection}
-                for x in attributes.keys()
+                for x in attributes
             }
 
         if is_node_index(index_selection) and isinstance(attribute_selection, slice):
@@ -184,7 +209,8 @@ class NodeIndexer:
                 or attribute_selection.stop is not None
                 or attribute_selection.step is not None
             ):
-                raise ValueError("Invalid slice, only ':' is allowed")
+                msg = "Invalid slice, only ':' is allowed"
+                raise ValueError(msg)
 
             return self._medrecord._medrecord.node([index_selection])[index_selection]
 
@@ -194,7 +220,8 @@ class NodeIndexer:
                 or attribute_selection.stop is not None
                 or attribute_selection.step is not None
             ):
-                raise ValueError("Invalid slice, only ':' is allowed")
+                msg = "Invalid slice, only ':' is allowed"
+                raise ValueError(msg)
 
             return self._medrecord._medrecord.node(index_selection)
 
@@ -206,7 +233,8 @@ class NodeIndexer:
                 or attribute_selection.stop is not None
                 or attribute_selection.step is not None
             ):
-                raise ValueError("Invalid slice, only ':' is allowed")
+                msg = "Invalid slice, only ':' is allowed"
+                raise ValueError(msg)
 
             return self._medrecord._medrecord.node(
                 self._medrecord.select_nodes(index_selection)
@@ -223,9 +251,11 @@ class NodeIndexer:
                 or attribute_selection.stop is not None
                 or attribute_selection.step is not None
             ):
-                raise ValueError("Invalid slice, only ':' is allowed")
+                msg = "Invalid slice, only ':' is allowed"
+                raise ValueError(msg)
 
             return self._medrecord._medrecord.node(self._medrecord.nodes)
+        return None
 
     @overload
     def __setitem__(
@@ -244,7 +274,7 @@ class NodeIndexer:
         value: MedRecordValue,
     ) -> None: ...
 
-    def __setitem__(
+    def __setitem__(  # noqa: C901
         self,
         key: Union[
             NodeIndex,
@@ -258,21 +288,35 @@ class NodeIndexer:
         ],
         value: Union[AttributesInput, MedRecordValue],
     ) -> None:
+        """Sets the specified node attributes.
+
+        Args:
+            key (Union[NodeIndex, NodeIndexInputList, NodeQuery, slice, Tuple[Union[NodeIndex, NodeIndexInputList, NodeQuery, slice], Union[MedRecordAttribute, MedRecordAttributeInputList, slice]]):
+                The nodes to set attributes for.
+            value (Union[AttributesInput, MedRecordValue]): The values to set.
+
+        Raises:
+            ValueError: If there is a wrong value type or the key is a slice, but no ":"
+                is provided.
+        """  # noqa: W505
         if is_node_index(key):
             if not is_attributes(value):
-                raise ValueError("Invalid value type. Expected Attributes")
+                msg = "Invalid value type. Expected Attributes"
+                raise ValueError(msg)
 
             return self._medrecord._medrecord.replace_node_attributes([key], value)
 
         if isinstance(key, list):
             if not is_attributes(value):
-                raise ValueError("Invalid value type. Expected Attributes")
+                msg = "Invalid value type. Expected Attributes"
+                raise ValueError(msg)
 
             return self._medrecord._medrecord.replace_node_attributes(key, value)
 
         if isinstance(key, Callable):
             if not is_attributes(value):
-                raise ValueError("Invalid value type. Expected Attributes")
+                msg = "Invalid value type. Expected Attributes"
+                raise ValueError(msg)
 
             return self._medrecord._medrecord.replace_node_attributes(
                 self._medrecord.select_nodes(key), value
@@ -280,10 +324,12 @@ class NodeIndexer:
 
         if isinstance(key, slice):
             if key.start is not None or key.stop is not None or key.step is not None:
-                raise ValueError("Invalid slice, only ':' is allowed")
+                msg = "Invalid slice, only ':' is allowed"
+                raise ValueError(msg)
 
             if not is_attributes(value):
-                raise ValueError("Invalid value type. Expected Attributes")
+                msg = "Invalid value type. Expected Attributes"
+                raise ValueError(msg)
 
             return self._medrecord._medrecord.replace_node_attributes(
                 self._medrecord.nodes, value
@@ -295,7 +341,8 @@ class NodeIndexer:
             attribute_selection
         ):
             if not is_medrecord_value(value):
-                raise ValueError("Invalid value type. Expected MedRecordValue")
+                msg = "Invalid value type. Expected MedRecordValue"
+                raise ValueError(msg)
 
             return self._medrecord._medrecord.update_node_attribute(
                 [index_selection], attribute_selection, value
@@ -305,7 +352,8 @@ class NodeIndexer:
             attribute_selection
         ):
             if not is_medrecord_value(value):
-                raise ValueError("Invalid value type. Expected MedRecordValue")
+                msg = "Invalid value type. Expected MedRecordValue"
+                raise ValueError(msg)
 
             return self._medrecord._medrecord.update_node_attribute(
                 index_selection, attribute_selection, value
@@ -315,7 +363,8 @@ class NodeIndexer:
             attribute_selection
         ):
             if not is_medrecord_value(value):
-                raise ValueError("Invalid value type. Expected MedRecordValue")
+                msg = "Invalid value type. Expected MedRecordValue"
+                raise ValueError(msg)
 
             return self._medrecord._medrecord.update_node_attribute(
                 self._medrecord.select_nodes(index_selection),
@@ -331,10 +380,12 @@ class NodeIndexer:
                 or index_selection.stop is not None
                 or index_selection.step is not None
             ):
-                raise ValueError("Invalid slice, only ':' is allowed")
+                msg = "Invalid slice, only ':' is allowed"
+                raise ValueError(msg)
 
             if not is_medrecord_value(value):
-                raise ValueError("Invalid value type. Expected MedRecordValue")
+                msg = "Invalid value type. Expected MedRecordValue"
+                raise ValueError(msg)
 
             return self._medrecord._medrecord.update_node_attribute(
                 self._medrecord.nodes,
@@ -344,38 +395,41 @@ class NodeIndexer:
 
         if is_node_index(index_selection) and isinstance(attribute_selection, list):
             if not is_medrecord_value(value):
-                raise ValueError("Invalid value type. Expected MedRecordValue")
+                msg = "Invalid value type. Expected MedRecordValue"
+                raise ValueError(msg)
 
             for attribute in attribute_selection:
                 self._medrecord._medrecord.update_node_attribute(
                     [index_selection], attribute, value
                 )
 
-            return
+            return None
 
         if isinstance(index_selection, list) and isinstance(attribute_selection, list):
             if not is_medrecord_value(value):
-                raise ValueError("Invalid value type. Expected MedRecordValue")
+                msg = "Invalid value type. Expected MedRecordValue"
+                raise ValueError(msg)
 
             for attribute in attribute_selection:
                 self._medrecord._medrecord.update_node_attribute(
                     index_selection, attribute, value
                 )
 
-            return
+            return None
 
         if isinstance(index_selection, Callable) and isinstance(
             attribute_selection, list
         ):
             if not is_medrecord_value(value):
-                raise ValueError("Invalid value type. Expected MedRecordValue")
+                msg = "Invalid value type. Expected MedRecordValue"
+                raise ValueError(msg)
 
             for attribute in attribute_selection:
                 self._medrecord._medrecord.update_node_attribute(
                     self._medrecord.select_nodes(index_selection), attribute, value
                 )
 
-            return
+            return None
 
         if isinstance(index_selection, slice) and isinstance(attribute_selection, list):
             if (
@@ -383,17 +437,19 @@ class NodeIndexer:
                 or index_selection.stop is not None
                 or index_selection.step is not None
             ):
-                raise ValueError("Invalid slice, only ':' is allowed")
+                msg = "Invalid slice, only ':' is allowed"
+                raise ValueError(msg)
 
             if not is_medrecord_value(value):
-                raise ValueError("Invalid value type. Expected MedRecordValue")
+                msg = "Invalid value type. Expected MedRecordValue"
+                raise ValueError(msg)
 
             for attribute in attribute_selection:
                 self._medrecord._medrecord.update_node_attribute(
                     self._medrecord.nodes, attribute, value
                 )
 
-            return
+            return None
 
         if is_node_index(index_selection) and isinstance(attribute_selection, slice):
             if (
@@ -401,23 +457,25 @@ class NodeIndexer:
                 or attribute_selection.stop is not None
                 or attribute_selection.step is not None
             ):
-                raise ValueError("Invalid slice, only ':' is allowed")
+                msg = "Invalid slice, only ':' is allowed"
+                raise ValueError(msg)
 
             if not is_medrecord_value(value):
-                raise ValueError("Invalid value type. Expected MedRecordValue")
+                msg = "Invalid value type. Expected MedRecordValue"
+                raise ValueError(msg)
 
             attributes = self._medrecord._medrecord.node([index_selection])[
                 index_selection
             ]
 
-            for attribute in attributes.keys():
+            for attribute in attributes:
                 self._medrecord._medrecord.update_node_attribute(
                     [index_selection],
                     attribute,
                     value,
                 )
 
-            return
+            return None
 
         if isinstance(index_selection, list) and isinstance(attribute_selection, slice):
             if (
@@ -425,20 +483,22 @@ class NodeIndexer:
                 or attribute_selection.stop is not None
                 or attribute_selection.step is not None
             ):
-                raise ValueError("Invalid slice, only ':' is allowed")
+                msg = "Invalid slice, only ':' is allowed"
+                raise ValueError(msg)
 
             if not is_medrecord_value(value):
-                raise ValueError("Invalid value type. Expected MedRecordValue")
+                msg = "Invalid value type. Expected MedRecordValue"
+                raise ValueError(msg)
 
             attributes = self._medrecord._medrecord.node(index_selection)
 
-            for node in attributes.keys():
-                for attribute in attributes[node].keys():
+            for node in attributes:
+                for attribute in attributes[node]:
                     self._medrecord._medrecord.update_node_attribute(
                         [node], attribute, value
                     )
 
-            return
+            return None
 
         if isinstance(index_selection, Callable) and isinstance(
             attribute_selection, slice
@@ -448,22 +508,24 @@ class NodeIndexer:
                 or attribute_selection.stop is not None
                 or attribute_selection.step is not None
             ):
-                raise ValueError("Invalid slice, only ':' is allowed")
+                msg = "Invalid slice, only ':' is allowed"
+                raise ValueError(msg)
 
             if not is_medrecord_value(value):
-                raise ValueError("Invalid value type. Expected MedRecordValue")
+                msg = "Invalid value type. Expected MedRecordValue"
+                raise ValueError(msg)
 
             attributes = self._medrecord._medrecord.node(
                 self._medrecord.select_nodes(index_selection)
             )
 
-            for node in attributes.keys():
-                for attribute in attributes[node].keys():
+            for node in attributes:
+                for attribute in attributes[node]:
                     self._medrecord._medrecord.update_node_attribute(
                         [node], attribute, value
                     )
 
-            return
+            return None
 
         if isinstance(index_selection, slice) and isinstance(
             attribute_selection, slice
@@ -476,28 +538,40 @@ class NodeIndexer:
                 or attribute_selection.stop is not None
                 or attribute_selection.step is not None
             ):
-                raise ValueError("Invalid slice, only ':' is allowed")
+                msg = "Invalid slice, only ':' is allowed"
+                raise ValueError(msg)
 
             if not is_medrecord_value(value):
-                raise ValueError("Invalid value type. Expected MedRecordValue")
+                msg = "Invalid value type. Expected MedRecordValue"
+                raise ValueError(msg)
 
             attributes = self._medrecord._medrecord.node(self._medrecord.nodes)
 
-            for node in attributes.keys():
-                for attribute in attributes[node].keys():
+            for node in attributes:
+                for attribute in attributes[node]:
                     self._medrecord._medrecord.update_node_attribute(
                         [node], attribute, value
                     )
 
-            return
+            return None
+        return None
 
-    def __delitem__(
+    def __delitem__(  # noqa: C901
         self,
         key: Tuple[
             Union[NodeIndex, NodeIndexInputList, NodeQuery, slice],
             Union[MedRecordAttribute, MedRecordAttributeInputList, slice],
         ],
     ) -> None:
+        """Deletes the specified node attributes.
+
+        Args:
+            key (Tuple[Union[NodeIndex, NodeIndexInputList, NodeQuery, slice], Union[MedRecordAttribute, MedRecordAttributeInputList, slice]]):
+                The key to delete.
+
+        Raises:
+            ValueError: If the key is a slice, but not ":" is provided.
+        """  # noqa: W505
         index_selection, attribute_selection = key
 
         if is_node_index(index_selection) and is_medrecord_attribute(
@@ -530,7 +604,8 @@ class NodeIndexer:
                 or index_selection.stop is not None
                 or index_selection.step is not None
             ):
-                raise ValueError("Invalid slice, only ':' is allowed")
+                msg = "Invalid slice, only ':' is allowed"
+                raise ValueError(msg)
 
             return self._medrecord._medrecord.remove_node_attribute(
                 self._medrecord.nodes,
@@ -543,7 +618,7 @@ class NodeIndexer:
                     [index_selection], attribute
                 )
 
-            return
+            return None
 
         if isinstance(index_selection, list) and isinstance(attribute_selection, list):
             for attribute in attribute_selection:
@@ -551,7 +626,7 @@ class NodeIndexer:
                     index_selection, attribute
                 )
 
-            return
+            return None
 
         if isinstance(index_selection, Callable) and isinstance(
             attribute_selection, list
@@ -561,7 +636,7 @@ class NodeIndexer:
                     self._medrecord.select_nodes(index_selection), attribute
                 )
 
-            return
+            return None
 
         if isinstance(index_selection, slice) and isinstance(attribute_selection, list):
             if (
@@ -569,14 +644,15 @@ class NodeIndexer:
                 or index_selection.stop is not None
                 or index_selection.step is not None
             ):
-                raise ValueError("Invalid slice, only ':' is allowed")
+                msg = "Invalid slice, only ':' is allowed"
+                raise ValueError(msg)
 
             for attribute in attribute_selection:
                 self._medrecord._medrecord.remove_node_attribute(
                     self._medrecord.nodes, attribute
                 )
 
-            return
+            return None
 
         if is_node_index(index_selection) and isinstance(attribute_selection, slice):
             if (
@@ -584,7 +660,8 @@ class NodeIndexer:
                 or attribute_selection.stop is not None
                 or attribute_selection.step is not None
             ):
-                raise ValueError("Invalid slice, only ':' is allowed")
+                msg = "Invalid slice, only ':' is allowed"
+                raise ValueError(msg)
 
             return self._medrecord._medrecord.replace_node_attributes(
                 [index_selection], {}
@@ -596,7 +673,8 @@ class NodeIndexer:
                 or attribute_selection.stop is not None
                 or attribute_selection.step is not None
             ):
-                raise ValueError("Invalid slice, only ':' is allowed")
+                msg = "Invalid slice, only ':' is allowed"
+                raise ValueError(msg)
 
             return self._medrecord._medrecord.replace_node_attributes(
                 index_selection, {}
@@ -610,7 +688,8 @@ class NodeIndexer:
                 or attribute_selection.stop is not None
                 or attribute_selection.step is not None
             ):
-                raise ValueError("Invalid slice, only ':' is allowed")
+                msg = "Invalid slice, only ':' is allowed"
+                raise ValueError(msg)
 
             return self._medrecord._medrecord.replace_node_attributes(
                 self._medrecord.select_nodes(index_selection), {}
@@ -627,17 +706,26 @@ class NodeIndexer:
                 or attribute_selection.stop is not None
                 or attribute_selection.step is not None
             ):
-                raise ValueError("Invalid slice, only ':' is allowed")
+                msg = "Invalid slice, only ':' is allowed"
+                raise ValueError(msg)
 
             return self._medrecord._medrecord.replace_node_attributes(
                 self._medrecord.nodes, {}
             )
+        return None
 
 
 class EdgeIndexer:
+    """Indexer for MedRecord edges."""
+
     _medrecord: MedRecord
 
     def __init__(self, medrecord: MedRecord) -> None:
+        """Initializes the EdgeIndexer object.
+
+        Args:
+            medrecord (MedRecord): MedRecord object to index.
+        """
         self._medrecord = medrecord
 
     @overload
@@ -673,7 +761,7 @@ class EdgeIndexer:
         key: Tuple[Union[EdgeIndexInputList, EdgeQuery, slice], MedRecordAttribute],
     ) -> Dict[EdgeIndex, MedRecordValue]: ...
 
-    def __getitem__(
+    def __getitem__(  # noqa: C901
         self,
         key: Union[
             EdgeIndex,
@@ -691,6 +779,19 @@ class EdgeIndexer:
         Dict[EdgeIndex, Attributes],
         Dict[EdgeIndex, MedRecordValue],
     ]:
+        """Gets the edge attributes for the specified key.
+
+        Args:
+            key (Union[EdgeIndex, EdgeIndexInputList, EdgeQuery, slice, Tuple[Union[EdgeIndex, EdgeIndexInputList, EdgeQuery, slice], Union[MedRecordAttribute, MedRecordAttributeInputList, slice]]):
+                The edges to get attributes for.
+
+        Returns:
+            Union[MedRecordValue, Attributes, Dict[EdgeIndex, Attributes], Dict[EdgeIndex, MedRecordValue]]:
+                The edge attributes to be extracted.
+
+        Raises:
+            ValueError: If the key is a slice, but not ":" is provided.
+        """  # noqa: W505
         if is_edge_index(key):
             return self._medrecord._medrecord.edge([key])[key]
 
@@ -702,7 +803,8 @@ class EdgeIndexer:
 
         if isinstance(key, slice):
             if key.start is not None or key.stop is not None or key.step is not None:
-                raise ValueError("Invalid slice, only ':' is allowed")
+                msg = "Invalid slice, only ':' is allowed"
+                raise ValueError(msg)
 
             return self._medrecord._medrecord.edge(self._medrecord.edges)
 
@@ -720,7 +822,7 @@ class EdgeIndexer:
         ):
             attributes = self._medrecord._medrecord.edge(index_selection)
 
-            return {x: attributes[x][attribute_selection] for x in attributes.keys()}
+            return {x: attributes[x][attribute_selection] for x in attributes}
 
         if isinstance(index_selection, Callable) and is_medrecord_attribute(
             attribute_selection
@@ -729,7 +831,7 @@ class EdgeIndexer:
                 self._medrecord.select_edges(index_selection)
             )
 
-            return {x: attributes[x][attribute_selection] for x in attributes.keys()}
+            return {x: attributes[x][attribute_selection] for x in attributes}
 
         if isinstance(index_selection, slice) and is_medrecord_attribute(
             attribute_selection
@@ -739,11 +841,12 @@ class EdgeIndexer:
                 or index_selection.stop is not None
                 or index_selection.step is not None
             ):
-                raise ValueError("Invalid slice, only ':' is allowed")
+                msg = "Invalid slice, only ':' is allowed"
+                raise ValueError(msg)
 
             attributes = self._medrecord._medrecord.edge(self._medrecord.edges)
 
-            return {x: attributes[x][attribute_selection] for x in attributes.keys()}
+            return {x: attributes[x][attribute_selection] for x in attributes}
 
         if is_edge_index(index_selection) and isinstance(attribute_selection, list):
             return {
@@ -758,7 +861,7 @@ class EdgeIndexer:
 
             return {
                 x: {y: attributes[x][y] for y in attribute_selection}
-                for x in attributes.keys()
+                for x in attributes
             }
 
         if isinstance(index_selection, Callable) and isinstance(
@@ -770,7 +873,7 @@ class EdgeIndexer:
 
             return {
                 x: {y: attributes[x][y] for y in attribute_selection}
-                for x in attributes.keys()
+                for x in attributes
             }
 
         if isinstance(index_selection, slice) and isinstance(attribute_selection, list):
@@ -779,13 +882,14 @@ class EdgeIndexer:
                 or index_selection.stop is not None
                 or index_selection.step is not None
             ):
-                raise ValueError("Invalid slice, only ':' is allowed")
+                msg = "Invalid slice, only ':' is allowed"
+                raise ValueError(msg)
 
             attributes = self._medrecord._medrecord.edge(self._medrecord.edges)
 
             return {
                 x: {y: attributes[x][y] for y in attribute_selection}
-                for x in attributes.keys()
+                for x in attributes
             }
 
         if is_edge_index(index_selection) and isinstance(attribute_selection, slice):
@@ -794,7 +898,8 @@ class EdgeIndexer:
                 or attribute_selection.stop is not None
                 or attribute_selection.step is not None
             ):
-                raise ValueError("Invalid slice, only ':' is allowed")
+                msg = "Invalid slice, only ':' is allowed"
+                raise ValueError(msg)
 
             return self._medrecord._medrecord.edge([index_selection])[index_selection]
 
@@ -804,7 +909,8 @@ class EdgeIndexer:
                 or attribute_selection.stop is not None
                 or attribute_selection.step is not None
             ):
-                raise ValueError("Invalid slice, only ':' is allowed")
+                msg = "Invalid slice, only ':' is allowed"
+                raise ValueError(msg)
 
             return self._medrecord._medrecord.edge(index_selection)
 
@@ -816,7 +922,8 @@ class EdgeIndexer:
                 or attribute_selection.stop is not None
                 or attribute_selection.step is not None
             ):
-                raise ValueError("Invalid slice, only ':' is allowed")
+                msg = "Invalid slice, only ':' is allowed"
+                raise ValueError(msg)
 
             return self._medrecord._medrecord.edge(
                 self._medrecord.select_edges(index_selection)
@@ -833,9 +940,11 @@ class EdgeIndexer:
                 or attribute_selection.stop is not None
                 or attribute_selection.step is not None
             ):
-                raise ValueError("Invalid slice, only ':' is allowed")
+                msg = "Invalid slice, only ':' is allowed"
+                raise ValueError(msg)
 
             return self._medrecord._medrecord.edge(self._medrecord.edges)
+        return None
 
     @overload
     def __setitem__(
@@ -854,7 +963,7 @@ class EdgeIndexer:
         value: MedRecordValue,
     ) -> None: ...
 
-    def __setitem__(
+    def __setitem__(  # noqa: C901
         self,
         key: Union[
             EdgeIndex,
@@ -868,21 +977,37 @@ class EdgeIndexer:
         ],
         value: Union[AttributesInput, MedRecordValue],
     ) -> None:
+        """Sets the edge attributes for the specified key.
+
+        Args:
+            key (Union[EdgeIndex, EdgeIndexInputList, EdgeQuery, slice, Tuple[Union[EdgeIndex, EdgeIndexInputList, EdgeQuery, slice], Union[MedRecordAttribute, MedRecordAttributeInputList, slice]]):
+                The edges to which the attributes should be set.
+
+            value (Union[AttributesInput, MedRecordValue]):
+                The values to set as attributes.
+
+        Raises:
+            ValueError: If there is a wrong value type or the key is a slice, but no ":"
+                is provided.
+        """  # noqa: W505
         if is_edge_index(key):
             if not is_attributes(value):
-                raise ValueError("Invalid value type. Expected Attributes")
+                msg = "Invalid value type. Expected Attributes"
+                raise ValueError(msg)
 
             return self._medrecord._medrecord.replace_edge_attributes([key], value)
 
         if isinstance(key, list):
             if not is_attributes(value):
-                raise ValueError("Invalid value type. Expected Attributes")
+                msg = "Invalid value type. Expected Attributes"
+                raise ValueError(msg)
 
             return self._medrecord._medrecord.replace_edge_attributes(key, value)
 
         if isinstance(key, Callable):
             if not is_attributes(value):
-                raise ValueError("Invalid value type. Expected Attributes")
+                msg = "Invalid value type. Expected Attributes"
+                raise ValueError(msg)
 
             return self._medrecord._medrecord.replace_edge_attributes(
                 self._medrecord.select_edges(key), value
@@ -890,10 +1015,12 @@ class EdgeIndexer:
 
         if isinstance(key, slice):
             if key.start is not None or key.stop is not None or key.step is not None:
-                raise ValueError("Invalid slice, only ':' is allowed")
+                msg = "Invalid slice, only ':' is allowed"
+                raise ValueError(msg)
 
             if not is_attributes(value):
-                raise ValueError("Invalid value type. Expected Attributes")
+                msg = "Invalid value type. Expected Attributes"
+                raise ValueError(msg)
 
             return self._medrecord._medrecord.replace_edge_attributes(
                 self._medrecord.edges, value
@@ -905,7 +1032,8 @@ class EdgeIndexer:
             attribute_selection
         ):
             if not is_medrecord_value(value):
-                raise ValueError("Invalid value type. Expected MedRecordValue")
+                msg = "Invalid value type. Expected MedRecordValue"
+                raise ValueError(msg)
 
             return self._medrecord._medrecord.update_edge_attribute(
                 [index_selection], attribute_selection, value
@@ -915,7 +1043,8 @@ class EdgeIndexer:
             attribute_selection
         ):
             if not is_medrecord_value(value):
-                raise ValueError("Invalid value type. Expected MedRecordValue")
+                msg = "Invalid value type. Expected MedRecordValue"
+                raise ValueError(msg)
 
             return self._medrecord._medrecord.update_edge_attribute(
                 index_selection, attribute_selection, value
@@ -925,7 +1054,8 @@ class EdgeIndexer:
             attribute_selection
         ):
             if not is_medrecord_value(value):
-                raise ValueError("Invalid value type. Expected MedRecordValue")
+                msg = "Invalid value type. Expected MedRecordValue"
+                raise ValueError(msg)
 
             return self._medrecord._medrecord.update_edge_attribute(
                 self._medrecord.select_edges(index_selection),
@@ -941,10 +1071,12 @@ class EdgeIndexer:
                 or index_selection.stop is not None
                 or index_selection.step is not None
             ):
-                raise ValueError("Invalid slice, only ':' is allowed")
+                msg = "Invalid slice, only ':' is allowed"
+                raise ValueError(msg)
 
             if not is_medrecord_value(value):
-                raise ValueError("Invalid value type. Expected MedRecordValue")
+                msg = "Invalid value type. Expected MedRecordValue"
+                raise ValueError(msg)
 
             return self._medrecord._medrecord.update_edge_attribute(
                 self._medrecord.edges,
@@ -954,38 +1086,41 @@ class EdgeIndexer:
 
         if is_edge_index(index_selection) and isinstance(attribute_selection, list):
             if not is_medrecord_value(value):
-                raise ValueError("Invalid value type. Expected MedRecordValue")
+                msg = "Invalid value type. Expected MedRecordValue"
+                raise ValueError(msg)
 
             for attribute in attribute_selection:
                 self._medrecord._medrecord.update_edge_attribute(
                     [index_selection], attribute, value
                 )
 
-            return
+            return None
 
         if isinstance(index_selection, list) and isinstance(attribute_selection, list):
             if not is_medrecord_value(value):
-                raise ValueError("Invalid value type. Expected MedRecordValue")
+                msg = "Invalid value type. Expected MedRecordValue"
+                raise ValueError(msg)
 
             for attribute in attribute_selection:
                 self._medrecord._medrecord.update_edge_attribute(
                     index_selection, attribute, value
                 )
 
-            return
+            return None
 
         if isinstance(index_selection, Callable) and isinstance(
             attribute_selection, list
         ):
             if not is_medrecord_value(value):
-                raise ValueError("Invalid value type. Expected MedRecordValue")
+                msg = "Invalid value type. Expected MedRecordValue"
+                raise ValueError(msg)
 
             for attribute in attribute_selection:
                 self._medrecord._medrecord.update_edge_attribute(
                     self._medrecord.select_edges(index_selection), attribute, value
                 )
 
-            return
+            return None
 
         if isinstance(index_selection, slice) and isinstance(attribute_selection, list):
             if (
@@ -993,17 +1128,19 @@ class EdgeIndexer:
                 or index_selection.stop is not None
                 or index_selection.step is not None
             ):
-                raise ValueError("Invalid slice, only ':' is allowed")
+                msg = "Invalid slice, only ':' is allowed"
+                raise ValueError(msg)
 
             if not is_medrecord_value(value):
-                raise ValueError("Invalid value type. Expected MedRecordValue")
+                msg = "Invalid value type. Expected MedRecordValue"
+                raise ValueError(msg)
 
             for attribute in attribute_selection:
                 self._medrecord._medrecord.update_edge_attribute(
                     self._medrecord.edges, attribute, value
                 )
 
-            return
+            return None
 
         if is_edge_index(index_selection) and isinstance(attribute_selection, slice):
             if (
@@ -1011,21 +1148,23 @@ class EdgeIndexer:
                 or attribute_selection.stop is not None
                 or attribute_selection.step is not None
             ):
-                raise ValueError("Invalid slice, only ':' is allowed")
+                msg = "Invalid slice, only ':' is allowed"
+                raise ValueError(msg)
 
             if not is_medrecord_value(value):
-                raise ValueError("Invalid value type. Expected MedRecordValue")
+                msg = "Invalid value type. Expected MedRecordValue"
+                raise ValueError(msg)
 
             attributes = self._medrecord._medrecord.edge([index_selection])[
                 index_selection
             ]
 
-            for attribute in attributes.keys():
+            for attribute in attributes:
                 self._medrecord._medrecord.update_edge_attribute(
                     [index_selection], attribute, value
                 )
 
-            return
+            return None
 
         if isinstance(index_selection, list) and isinstance(attribute_selection, slice):
             if (
@@ -1033,20 +1172,22 @@ class EdgeIndexer:
                 or attribute_selection.stop is not None
                 or attribute_selection.step is not None
             ):
-                raise ValueError("Invalid slice, only ':' is allowed")
+                msg = "Invalid slice, only ':' is allowed"
+                raise ValueError(msg)
 
             if not is_medrecord_value(value):
-                raise ValueError("Invalid value type. Expected MedRecordValue")
+                msg = "Invalid value type. Expected MedRecordValue"
+                raise ValueError(msg)
 
             attributes = self._medrecord._medrecord.edge(index_selection)
 
-            for edge in attributes.keys():
-                for attribute in attributes[edge].keys():
+            for edge in attributes:
+                for attribute in attributes[edge]:
                     self._medrecord._medrecord.update_edge_attribute(
                         [edge], attribute, value
                     )
 
-            return
+            return None
 
         if isinstance(index_selection, Callable) and isinstance(
             attribute_selection, slice
@@ -1056,22 +1197,24 @@ class EdgeIndexer:
                 or attribute_selection.stop is not None
                 or attribute_selection.step is not None
             ):
-                raise ValueError("Invalid slice, only ':' is allowed")
+                msg = "Invalid slice, only ':' is allowed"
+                raise ValueError(msg)
 
             if not is_medrecord_value(value):
-                raise ValueError("Invalid value type. Expected MedRecordValue")
+                msg = "Invalid value type. Expected MedRecordValue"
+                raise ValueError(msg)
 
             attributes = self._medrecord._medrecord.edge(
                 self._medrecord.select_edges(index_selection)
             )
 
-            for edge in attributes.keys():
-                for attribute in attributes[edge].keys():
+            for edge in attributes:
+                for attribute in attributes[edge]:
                     self._medrecord._medrecord.update_edge_attribute(
                         [edge], attribute, value
                     )
 
-            return
+            return None
 
         if isinstance(index_selection, slice) and isinstance(
             attribute_selection, slice
@@ -1084,28 +1227,40 @@ class EdgeIndexer:
                 or attribute_selection.stop is not None
                 or attribute_selection.step is not None
             ):
-                raise ValueError("Invalid slice, only ':' is allowed")
+                msg = "Invalid slice, only ':' is allowed"
+                raise ValueError(msg)
 
             if not is_medrecord_value(value):
-                raise ValueError("Invalid value type. Expected MedRecordValue")
+                msg = "Invalid value type. Expected MedRecordValue"
+                raise ValueError(msg)
 
             attributes = self._medrecord._medrecord.edge(self._medrecord.edges)
 
-            for edge in attributes.keys():
-                for attribute in attributes[edge].keys():
+            for edge in attributes:
+                for attribute in attributes[edge]:
                     self._medrecord._medrecord.update_edge_attribute(
                         [edge], attribute, value
                     )
 
-            return
+            return None
+        return None
 
-    def __delitem__(
+    def __delitem__(  # noqa: C901
         self,
         key: Tuple[
             Union[EdgeIndex, EdgeIndexInputList, EdgeQuery, slice],
             Union[MedRecordAttribute, MedRecordAttributeInputList, slice],
         ],
     ) -> None:
+        """Deletes the specified edge attributes.
+
+        Args:
+            key (Tuple[Union[EdgeIndex, EdgeIndexInputList, EdgeQuery, slice], Union[MedRecordAttribute, MedRecordAttributeInputList, slice]]):
+                The edges from which to delete the attributes.
+
+        Raises:
+            ValueError: If the key is a slice, but not ":" is provided.
+        """  # noqa: W505
         index_selection, attribute_selection = key
 
         if is_edge_index(index_selection) and is_medrecord_attribute(
@@ -1138,7 +1293,8 @@ class EdgeIndexer:
                 or index_selection.stop is not None
                 or index_selection.step is not None
             ):
-                raise ValueError("Invalid slice, only ':' is allowed")
+                msg = "Invalid slice, only ':' is allowed"
+                raise ValueError(msg)
 
             return self._medrecord._medrecord.remove_edge_attribute(
                 self._medrecord.edges,
@@ -1151,7 +1307,7 @@ class EdgeIndexer:
                     [index_selection], attribute
                 )
 
-            return
+            return None
 
         if isinstance(index_selection, list) and isinstance(attribute_selection, list):
             for attribute in attribute_selection:
@@ -1159,7 +1315,7 @@ class EdgeIndexer:
                     index_selection, attribute
                 )
 
-            return
+            return None
 
         if isinstance(index_selection, Callable) and isinstance(
             attribute_selection, list
@@ -1169,7 +1325,7 @@ class EdgeIndexer:
                     self._medrecord.select_edges(index_selection), attribute
                 )
 
-            return
+            return None
 
         if isinstance(index_selection, slice) and isinstance(attribute_selection, list):
             if (
@@ -1177,14 +1333,15 @@ class EdgeIndexer:
                 or index_selection.stop is not None
                 or index_selection.step is not None
             ):
-                raise ValueError("Invalid slice, only ':' is allowed")
+                msg = "Invalid slice, only ':' is allowed"
+                raise ValueError(msg)
 
             for attribute in attribute_selection:
                 self._medrecord._medrecord.remove_edge_attribute(
                     self._medrecord.edges, attribute
                 )
 
-            return
+            return None
 
         if is_edge_index(index_selection) and isinstance(attribute_selection, slice):
             if (
@@ -1192,7 +1349,8 @@ class EdgeIndexer:
                 or attribute_selection.stop is not None
                 or attribute_selection.step is not None
             ):
-                raise ValueError("Invalid slice, only ':' is allowed")
+                msg = "Invalid slice, only ':' is allowed"
+                raise ValueError(msg)
 
             return self._medrecord._medrecord.replace_edge_attributes(
                 [index_selection], {}
@@ -1204,7 +1362,8 @@ class EdgeIndexer:
                 or attribute_selection.stop is not None
                 or attribute_selection.step is not None
             ):
-                raise ValueError("Invalid slice, only ':' is allowed")
+                msg = "Invalid slice, only ':' is allowed"
+                raise ValueError(msg)
 
             return self._medrecord._medrecord.replace_edge_attributes(
                 index_selection, {}
@@ -1218,7 +1377,8 @@ class EdgeIndexer:
                 or attribute_selection.stop is not None
                 or attribute_selection.step is not None
             ):
-                raise ValueError("Invalid slice, only ':' is allowed")
+                msg = "Invalid slice, only ':' is allowed"
+                raise ValueError(msg)
 
             return self._medrecord._medrecord.replace_edge_attributes(
                 self._medrecord.select_edges(index_selection), {}
@@ -1235,8 +1395,10 @@ class EdgeIndexer:
                 or attribute_selection.stop is not None
                 or attribute_selection.step is not None
             ):
-                raise ValueError("Invalid slice, only ':' is allowed")
+                msg = "Invalid slice, only ':' is allowed"
+                raise ValueError(msg)
 
             return self._medrecord._medrecord.replace_edge_attributes(
                 self._medrecord.edges, {}
             )
+        return None
