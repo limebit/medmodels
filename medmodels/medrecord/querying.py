@@ -158,7 +158,7 @@ class NodeOperand:
     _node_operand: PyNodeOperand
 
     def attribute(self, attribute: MedRecordAttribute) -> MultipleValuesOperand:
-        """Returns an operand containing the values of that attribute for the nodes.
+        """Returns an operand representing the values of that attribute for the nodes.
 
         This method is used to query the values of an attribute for the nodes in the
         current node query.
@@ -167,7 +167,7 @@ class NodeOperand:
             attribute (MedRecordAttribute): The attribute to query.
 
         Returns:
-            MultipleValuesOperand: The operand containing the values of the attribute
+            MultipleValuesOperand: The operand representing the values of the attribute
                 for the nodes in the current node query.
         """
         return MultipleValuesOperand._from_py_multiple_values_operand(
@@ -175,13 +175,13 @@ class NodeOperand:
         )
 
     def attributes(self) -> AttributesTreeOperand:
-        """Returns an operand containing all the attributes of the nodes queried.
+        """Returns an operand representing all the attributes of the nodes queried.
 
         This method is used to query all the attributes of the nodes in the current node
         query.
 
         Returns:
-            AttributesTreeOperand: The operand containing all the attributes of the
+            AttributesTreeOperand: The operand representing all the attributes of the
                 nodes in the current node query.
         """
         return AttributesTreeOperand._from_py_attributes_tree_operand(
@@ -189,12 +189,12 @@ class NodeOperand:
         )
 
     def index(self) -> NodeIndicesOperand:
-        """Returns an operand containing the indices of the nodes queried.
+        """Returns an operand representing the indices of the nodes queried.
 
         This method is used to query the indices of the nodes in the current node query.
 
         Returns:
-            NodeIndicesOperand: The operand containing the indices of the nodes in the
+            NodeIndicesOperand: The operand representing the indices of the nodes in the
                 current node query.
         """
         return NodeIndicesOperand._from_py_node_indices_operand(
@@ -322,13 +322,13 @@ class EdgeOperand:
     _edge_operand: PyEdgeOperand
 
     def attribute(self, attribute: MedRecordAttribute) -> MultipleValuesOperand:
-        """Returns an operand containing the values of that attribute for the edges.
+        """Returns an operand representing the values of that attribute for the edges.
 
         Args:
             attribute (MedRecordAttribute): The attribute to query.
 
         Returns:
-            MultipleValuesOperand: The operand containing the values of the attribute
+            MultipleValuesOperand: The operand representing the values of the attribute
                 for the edges in the current edge query.
         """
         return MultipleValuesOperand._from_py_multiple_values_operand(
@@ -336,10 +336,10 @@ class EdgeOperand:
         )
 
     def attributes(self) -> AttributesTreeOperand:
-        """Returns an operand containing all the attributes of the edges queried.
+        """Returns an operand representing all the attributes of the edges queried.
 
         Returns:
-            AttributesTreeOperand: The operand containing all the attributes of the
+            AttributesTreeOperand: The operand representing all the attributes of the
                 edges in the current edge query.
         """
         return AttributesTreeOperand._from_py_attributes_tree_operand(
@@ -347,10 +347,10 @@ class EdgeOperand:
         )
 
     def index(self) -> EdgeIndicesOperand:
-        """Returns an operand containing the indices of the edges queried.
+        """Returns an operand representing the indices of the edges queried.
 
         Returns:
-            EdgeIndicesOperand: The operand containing the indices of the edges in the
+            EdgeIndicesOperand: The operand representing the indices of the edges in the
                 current edge query.
         """
         return EdgeIndicesOperand._from_edge_indices_operand(self._edge_operand.index())
@@ -1315,11 +1315,21 @@ class AttributesTreeOperand:
         )
 
     def count(self) -> MultipleAttributesOperand:
+        """Query the number of attributes for each node/edge.
+
+        Returns:
+            MultipleAttributesOperand: The number of attributes for each node/edge.
+        """
         return MultipleAttributesOperand._from_py_multiple_attributes_operand(
             self._attributes_tree_operand.count()
         )
 
     def sum(self) -> MultipleAttributesOperand:
+        """Query the sum of the attributes for each node/edge.
+
+        Returns:
+            MultipleAttributesOperand: The sum of the attributes for each node/edge.
+        """
         return MultipleAttributesOperand._from_py_multiple_attributes_operand(
             self._attributes_tree_operand.sum()
         )
@@ -1719,21 +1729,43 @@ class MultipleAttributesOperand:
         )
 
     def count(self) -> SingleAttributeOperand:
+        """Query the number of attribute names across nodes/edges.
+
+        Returns:
+            SingleAttributeOperand: The number of attribute names across all
+                nodes/edges.
+        """
         return SingleAttributeOperand._from_py_single_attribute_operand(
             self._multiple_attributes_operand.count()
         )
 
     def sum(self) -> SingleAttributeOperand:
+        """Query the sum of the attribute names across nodes/edges.
+
+        Returns:
+            SingleAttributeOperand: The sum of the attribute names across all
+                nodes/edges.
+        """
         return SingleAttributeOperand._from_py_single_attribute_operand(
             self._multiple_attributes_operand.sum()
         )
 
     def first(self) -> SingleAttributeOperand:
+        """Query the first attribute name across nodes/edges.
+
+        Returns:
+            SingleAttributeOperand: The first attribute name across all nodes/edges.
+        """
         return SingleAttributeOperand._from_py_single_attribute_operand(
             self._multiple_attributes_operand.first()
         )
 
     def last(self) -> SingleAttributeOperand:
+        """Query the last attribute name across nodes/edges.
+
+        Returns:
+            SingleAttributeOperand: The last attribute name across all nodes/edges.
+        """
         return SingleAttributeOperand._from_py_single_attribute_operand(
             self._multiple_attributes_operand.last()
         )
@@ -2003,10 +2035,10 @@ class MultipleAttributesOperand:
         self._multiple_attributes_operand.uppercase()
 
     def to_values(self) -> MultipleValuesOperand:
-        """Returns an operand containing the values of the attributes.
+        """Returns an operand representing the values of the attributes.
 
         Returns:
-            MultipleValuesOperand: An operand containing the values of the attributes.
+            MultipleValuesOperand: An operand representing the values of the attributes.
         """
         return MultipleValuesOperand._from_py_multiple_values_operand(
             self._multiple_attributes_operand.to_values()
