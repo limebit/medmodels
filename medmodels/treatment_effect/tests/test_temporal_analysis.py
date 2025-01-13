@@ -1,16 +1,15 @@
 from __future__ import annotations
 
 import unittest
+from datetime import datetime
 from typing import TYPE_CHECKING, List, Optional
 
 import pandas as pd
 import pytest
 
 from medmodels.medrecord.medrecord import MedRecord
-from medmodels.treatment_effect.temporal_analysis import (
-    find_node_in_time_window,
-    find_reference_edge,
-)
+from medmodels.medrecord.types import NodeIndex
+from medmodels.treatment_effect.temporal_analysis import find_reference_edge
 
 if TYPE_CHECKING:
     from medmodels.medrecord.types import NodeIndex
@@ -88,11 +87,11 @@ def create_edges(patient_list: List[NodeIndex]) -> pd.DataFrame:
                 "P3",
             ],
             "time": [
-                "2000-01-01",
-                "2000-01-01",
-                "2000-01-01",
-                "1999-12-15",
-                "2000-07-01",
+                datetime(2000, 1, 1),
+                datetime(2000, 1, 1),
+                datetime(2000, 1, 1),
+                datetime(1999, 12, 15),
+                datetime(2000, 7, 1),
             ],
         }
     )
@@ -133,7 +132,7 @@ def create_medrecord(
     return medrecord
 
 
-class TestTreatmentEffect(unittest.TestCase):
+class TestTemporalAnalysis(unittest.TestCase):
     """"""
 
     def setUp(self) -> None:
@@ -149,7 +148,7 @@ class TestTreatmentEffect(unittest.TestCase):
         assert edge == 0
 
         # adding medication time
-        self.medrecord.add_edges(("M1", "P1", {"time": "2000-01-15"}))
+        self.medrecord.add_edges(("M1", "P1", {"time": datetime(2000, 1, 15)}))
 
         edge = find_reference_edge(
             self.medrecord,
@@ -169,7 +168,8 @@ class TestTreatmentEffect(unittest.TestCase):
 
     def test_invalid_find_reference_time(self) -> None:
         with pytest.raises(
-            ValueError, match="Time attribute not found in the edge attributes"
+            ValueError,
+            match="No edge with that time attribute or with a datetime data type was found for node P1 in this MedRecord",
         ):
             find_reference_edge(
                 self.medrecord,
@@ -181,7 +181,8 @@ class TestTreatmentEffect(unittest.TestCase):
 
         node_index = "P2"
         with pytest.raises(
-            ValueError, match=f"No edge found for node {node_index} in this MedRecord"
+            ValueError,
+            match="No edge with that time attribute or with a datetime data type was found for node P2 in this MedRecord",
         ):
             find_reference_edge(
                 self.medrecord,
@@ -191,49 +192,7 @@ class TestTreatmentEffect(unittest.TestCase):
                 time_attribute="time",
             )
 
-    def test_node_in_time_window(self) -> None:
-        # check if patient has outcome a year after treatment
-        node_found = find_node_in_time_window(
-            self.medrecord,
-            subject_index="P3",
-            event_node="D1",
-            connected_group="Rivaroxaban",
-            start_days=0,
-            end_days=365,
-            reference="last",
-            time_attribute="time",
-        )
-        assert node_found
-
-        # check if patient has outcome 30 days after treatment
-        node_found2 = find_node_in_time_window(
-            self.medrecord,
-            subject_index="P3",
-            connected_group="Rivaroxaban",
-            event_node="D1",
-            start_days=0,
-            end_days=30,
-            reference="last",
-            time_attribute="time",
-        )
-        assert not node_found2
-
-    def test_invalid_node_in_time_window(self) -> None:
-        with pytest.raises(
-            ValueError, match="Time attribute not found in the edge attributes"
-        ):
-            find_node_in_time_window(
-                self.medrecord,
-                subject_index="P3",
-                connected_group="Rivaroxaban",
-                event_node="D1",
-                start_days=0,
-                end_days=30,
-                reference="last",
-                time_attribute="no_time",
-            )
-
 
 if __name__ == "__main__":
-    run_test = unittest.TestLoader().loadTestsFromTestCase(TestTreatmentEffect)
+    run_test = unittest.TestLoader().loadTestsFromTestCase(TestTemporalAnalysis)
     unittest.TextTestRunner(verbosity=2).run(run_test)

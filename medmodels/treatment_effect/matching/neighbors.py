@@ -42,8 +42,8 @@ class NeighborsMatching(Matching):
         self,
         *,
         medrecord: MedRecord,
-        control_group: Set[NodeIndex],
-        treated_group: Set[NodeIndex],
+        control_set: Set[NodeIndex],
+        treated_set: Set[NodeIndex],
         essential_covariates: Optional[MedRecordAttributeInputList] = None,
         one_hot_covariates: Optional[MedRecordAttributeInputList] = None,
     ) -> Set[NodeIndex]:
@@ -51,8 +51,8 @@ class NeighborsMatching(Matching):
 
         Args:
             medrecord (MedRecord): MedRecord object containing the data.
-            treated_group (Set[NodeIndex]): Set of treated subjects.
-            control_group (Set[NodeIndex]): Set of control subjects.
+            treated_set (Set[NodeIndex]): Set of treated subjects.
+            control_set (Set[NodeIndex]): Set of control subjects.
             essential_covariates (Optional[MedRecordAttributeInputList], optional):
                 Covariates that are essential for matching. Defaults to
                 ["gender", "age"].
@@ -70,8 +70,8 @@ class NeighborsMatching(Matching):
 
         data_treated, data_control = self._preprocess_data(
             medrecord=medrecord,
-            control_group=control_group,
-            treated_group=treated_group,
+            control_set=control_set,
+            treated_set=treated_set,
             essential_covariates=essential_covariates,
             one_hot_covariates=one_hot_covariates,
         )

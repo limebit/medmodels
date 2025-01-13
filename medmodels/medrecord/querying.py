@@ -174,11 +174,10 @@ class NodeOperand:
     ) -> None:
         self._node_operand.has_attribute(attribute)
 
-    def outgoing_edges(self) -> EdgeOperand:
-        return EdgeOperand._from_py_edge_operand(self._node_operand.outgoing_edges())
-
-    def incoming_edges(self) -> EdgeOperand:
-        return EdgeOperand._from_py_edge_operand(self._node_operand.incoming_edges())
+    def edges(self, direction: EdgeDirection = EdgeDirection.BOTH) -> EdgeOperand:
+        return EdgeOperand._from_py_edge_operand(
+            self._node_operand.edges(direction._into_py_edge_direction())
+        )
 
     def neighbors(
         self, edge_direction: EdgeDirection = EdgeDirection.OUTGOING
@@ -331,6 +330,9 @@ class MultipleValuesOperand:
 
     def is_datetime(self) -> None:
         self._multiple_values_operand.is_datetime()
+
+    def is_duration(self) -> None:
+        self._multiple_values_operand.is_duration()
 
     def is_null(self) -> None:
         self._multiple_values_operand.is_null()
@@ -545,6 +547,9 @@ class SingleValueOperand:
 
     def is_datetime(self) -> None:
         self._single_value_operand.is_datetime()
+
+    def is_duration(self) -> None:
+        self._single_value_operand.is_duration()
 
     def is_null(self) -> None:
         self._single_value_operand.is_null()

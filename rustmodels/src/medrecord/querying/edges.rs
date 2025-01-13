@@ -104,7 +104,7 @@ impl From<PyEdgeIndexComparisonOperand> for EdgeIndexComparisonOperand {
     }
 }
 
-impl<'a> FromPyObject<'a> for PyEdgeIndexComparisonOperand {
+impl FromPyObject<'_> for PyEdgeIndexComparisonOperand {
     fn extract_bound(ob: &Bound<'_, PyAny>) -> PyResult<Self> {
         if let Ok(index) = ob.extract::<EdgeIndex>() {
             Ok(EdgeIndexComparisonOperand::Index(index).into())
@@ -137,7 +137,7 @@ impl From<PyEdgeIndicesComparisonOperand> for EdgeIndicesComparisonOperand {
     }
 }
 
-impl<'a> FromPyObject<'a> for PyEdgeIndicesComparisonOperand {
+impl FromPyObject<'_> for PyEdgeIndicesComparisonOperand {
     fn extract_bound(ob: &Bound<'_, PyAny>) -> PyResult<Self> {
         if let Ok(indices) = ob.extract::<Vec<EdgeIndex>>() {
             Ok(EdgeIndicesComparisonOperand::Indices(indices).into())

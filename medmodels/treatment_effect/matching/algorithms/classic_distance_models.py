@@ -44,7 +44,7 @@ def nearest_neighbor(
         ValueError: If the treated set is too large for the given number of neighbors.
     """
     if treated_set.shape[0] * number_of_neighbors > control_set.shape[0]:
-        msg = "The treated set is too large for the given number of neighbors."
+        msg = "The treated set is too large for the given number of neighbors"
         raise ValueError(msg)
 
     if not covariates:

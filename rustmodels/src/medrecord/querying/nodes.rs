@@ -82,12 +82,8 @@ impl PyNodeOperand {
         self.0.has_attribute(attribute);
     }
 
-    pub fn outgoing_edges(&mut self) -> PyEdgeOperand {
-        self.0.outgoing_edges().into()
-    }
-
-    pub fn incoming_edges(&mut self) -> PyEdgeOperand {
-        self.0.incoming_edges().into()
+    pub fn edges(&mut self, direction: PyEdgeDirection) -> PyEdgeOperand {
+        self.0.edges(direction.into()).into()
     }
 
     pub fn neighbors(&mut self, direction: PyEdgeDirection) -> PyNodeOperand {
@@ -136,7 +132,7 @@ impl From<PyNodeIndexComparisonOperand> for NodeIndexComparisonOperand {
     }
 }
 
-impl<'a> FromPyObject<'a> for PyNodeIndexComparisonOperand {
+impl FromPyObject<'_> for PyNodeIndexComparisonOperand {
     fn extract_bound(ob: &Bound<'_, PyAny>) -> PyResult<Self> {
         if let Ok(index) = ob.extract::<PyNodeIndex>() {
             Ok(NodeIndexComparisonOperand::Index(NodeIndex::from(index)).into())
@@ -169,7 +165,7 @@ impl From<PyNodeIndicesComparisonOperand> for NodeIndicesComparisonOperand {
     }
 }
 
-impl<'a> FromPyObject<'a> for PyNodeIndicesComparisonOperand {
+impl FromPyObject<'_> for PyNodeIndicesComparisonOperand {
     fn extract_bound(ob: &Bound<'_, PyAny>) -> PyResult<Self> {
         if let Ok(indices) = ob.extract::<Vec<PyNodeIndex>>() {
             Ok(NodeIndicesComparisonOperand::Indices(
