@@ -400,7 +400,6 @@ class TreatmentEffect:
                     )
                 )
             )
-
             treated_set -= washout_nodes
 
         if washout_nodes:
