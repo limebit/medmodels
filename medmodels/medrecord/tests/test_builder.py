@@ -64,7 +64,7 @@ class TestMedRecordBuilder(unittest.TestCase):
 
         with pytest.raises(
             ValueError,
-            match="Attribute attribute of node with index node2 is of type String. Expected Integer.",
+            match=r"Attribute attribute of node with index node2 is of type String\. Expected Integer\.",
         ):
             medrecord.add_nodes(("node2", {"attribute": "1"}))
 

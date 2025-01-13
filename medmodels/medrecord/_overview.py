@@ -1,3 +1,5 @@
+"""Module for extracting and displaying an overview of the data in a MedRecord."""
+
 from __future__ import annotations
 
 import copy
@@ -7,25 +9,32 @@ from typing import TYPE_CHECKING, Dict, List, Literal, Optional, Union
 import polars as pl
 
 from medmodels.medrecord.schema import AttributesSchema, AttributeType
+from medmodels.medrecord.types import Attributes, EdgeIndex, NodeIndex
 
 if TYPE_CHECKING:
+    import sys
+
     from medmodels.medrecord.types import (
         AttributeInfo,
-        Attributes,
-        EdgeIndex,
         Group,
         MedRecordAttribute,
-        NodeIndex,
         NumericAttributeInfo,
         StringAttributeInfo,
         TemporalAttributeInfo,
     )
 
+    if sys.version_info >= (3, 10):
+        from typing import TypeAlias
+    else:
+        from typing_extensions import TypeAlias
+
+AttributeDictionary: TypeAlias = Union[
+    Dict[EdgeIndex, Attributes], Dict[NodeIndex, Attributes]
+]
+
 
 def extract_attribute_summary(
-    attribute_dictionary: Union[
-        Dict[EdgeIndex, Attributes], Dict[NodeIndex, Attributes]
-    ],
+    attribute_dictionary: AttributeDictionary,
     schema: Optional[AttributesSchema] = None,
 ) -> Dict[
     MedRecordAttribute,
@@ -34,8 +43,8 @@ def extract_attribute_summary(
     """Extracts a summary from a node or edge attribute dictionary.
 
     Args:
-        attribute_dictionary (Union[Dict[EdgeIndex, Attributes], Dict[NodeIndex, Attributes]]):
-            Edges or Nodes and their attributes and values.
+        attribute_dictionary (AttributeDictionary): Edges or Nodes and their attributes
+            and values.
         schema (Optional[AttributesSchema], optional): Attribute Schema for the group
             nodes or edges. Defaults to None.
         decimal (int): Decimal points to round the numeric values to. Defaults to 2.
@@ -43,7 +52,7 @@ def extract_attribute_summary(
     Returns:
         Dict[MedRecordAttribute, Union[TemporalAttributeInfo, NumericAttributeInfo,
             StringAttributeInfo]: Summary of node or edge attributes.
-    """  # noqa: W505
+    """
     data = pl.DataFrame(data=[{"id": k, **v} for k, v in attribute_dictionary.items()])
 
     data_dict = {}
