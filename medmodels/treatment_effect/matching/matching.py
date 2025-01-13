@@ -33,8 +33,8 @@ class Matching(ABC):
         self,
         *,
         medrecord: MedRecord,
-        control_group: Set[NodeIndex],
-        treated_group: Set[NodeIndex],
+        control_set: Set[NodeIndex],
+        treated_set: Set[NodeIndex],
         essential_covariates: MedRecordAttributeInputList,
         one_hot_covariates: MedRecordAttributeInputList,
     ) -> Tuple[pl.DataFrame, pl.DataFrame]:
@@ -42,8 +42,8 @@ class Matching(ABC):
 
         Args:
             medrecord (MedRecord):  MedRecord object containing the data.
-            control_group (Set[NodeIndex]): Set of treated subjects.
-            treated_group (Set[NodeIndex]): Set of control subjects.
+            control_set (Set[NodeIndex]): Set of treated subjects.
+            treated_set (Set[NodeIndex]): Set of control subjects.
             essential_covariates (MedRecordAttributeInputList):  Covariates
                 that are essential for matching
             one_hot_covariates (MedRecordAttributeInputList): Covariates that
@@ -62,7 +62,7 @@ class Matching(ABC):
         data = pl.DataFrame(
             data=[
                 {"id": k, **v}
-                for k, v in medrecord.node[list(control_group | treated_group)].items()
+                for k, v in medrecord.node[list(control_set | treated_set)].items()
             ]
         )
         original_columns = data.columns
@@ -81,8 +81,8 @@ class Matching(ABC):
         data = data.select(essential_covariates)
 
         # Select the sets of treated and control subjects
-        data_treated = data.filter(pl.col("id").is_in(treated_group))
-        data_control = data.filter(pl.col("id").is_in(control_group))
+        data_treated = data.filter(pl.col("id").is_in(treated_set))
+        data_control = data.filter(pl.col("id").is_in(control_set))
 
         return data_treated, data_control
 
@@ -90,9 +90,9 @@ class Matching(ABC):
     def match_controls(
         self,
         *,
-        control_group: Set[NodeIndex],
-        treated_group: Set[NodeIndex],
         medrecord: MedRecord,
+        control_set: Set[NodeIndex],
+        treated_set: Set[NodeIndex],
         essential_covariates: Optional[MedRecordAttributeInputList] = None,
         one_hot_covariates: Optional[MedRecordAttributeInputList] = None,
     ) -> Set[NodeIndex]:
@@ -100,8 +100,8 @@ class Matching(ABC):
 
         Args:
             medrecord (MedRecord): MedRecord object containing the data.
-            treated_group (Set[NodeIndex]): Set of treated subjects.
-            control_group (Set[NodeIndex]): Set of control subjects.
+            control_set (Set[NodeIndex]): Set of control subjects.
+            treated_set (Set[NodeIndex]): Set of treated subjects.
             essential_covariates (Optional[MedRecordAttributeInputList], optional):
                 Covariates that are essential for matching. Defaults to None.
             one_hot_covariates (Optional[MedRecordAttributeInputList], optional):

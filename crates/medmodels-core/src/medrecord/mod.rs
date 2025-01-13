@@ -374,7 +374,7 @@ impl MedRecord {
         &'a self,
         outgoing_node_indices: Vec<&'a NodeIndex>,
         incoming_node_indices: Vec<&'a NodeIndex>,
-    ) -> impl Iterator<Item = &EdgeIndex> + 'a {
+    ) -> impl Iterator<Item = &'a EdgeIndex> + 'a {
         self.graph
             .edges_connecting(outgoing_node_indices, incoming_node_indices)
     }
@@ -383,7 +383,7 @@ impl MedRecord {
         &'a self,
         first_node_indices: Vec<&'a NodeIndex>,
         second_node_indices: Vec<&'a NodeIndex>,
-    ) -> impl Iterator<Item = &EdgeIndex> + 'a {
+    ) -> impl Iterator<Item = &'a EdgeIndex> + 'a {
         self.graph
             .edges_connecting_undirected(first_node_indices, second_node_indices)
     }

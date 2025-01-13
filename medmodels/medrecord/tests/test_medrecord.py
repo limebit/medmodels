@@ -1658,21 +1658,33 @@ class TestMedRecord(unittest.TestCase):
 
         medrecord.add_group("Float")
         medrecord.add_group(1, nodes=["2", "0"])
-        medrecord.add_group("Odd", nodes=["1", "3"])
 
         assert medrecord._describe_group_nodes() == {
             1: {
                 "count": 2,
                 "attribute": {
-                    "adipiscing": {"values": "Values: elit"},
-                    "dolor": {"values": "Values: sit"},
-                    "lorem": {"values": "Values: ipsum"},
+                    "adipiscing": {"type": "Categorical", "values": "Values: elit"},
+                    "dolor": {"type": "Categorical", "values": "Values: sit"},
+                    "lorem": {"type": "Categorical", "values": "Values: ipsum"},
                 },
             },
             "Float": {"count": 0, "attribute": {}},
+            "Ungrouped Nodes": {
+                "count": 2,
+                "attribute": {},
+            },
+        }
+
+        # test group input list
+        medrecord.add_group("Odd", nodes=["1", "3"])
+
+        assert medrecord._describe_group_nodes(groups=["Float", "Odd"]) == {
+            "Float": {"count": 0, "attribute": {}},
             "Odd": {
                 "count": 2,
-                "attribute": {"amet": {"values": "Values: consectetur"}},
+                "attribute": {
+                    "amet": {"type": "Categorical", "values": "Values: consectetur"}
+                },
             },
         }
 
@@ -1685,13 +1697,42 @@ class TestMedRecord(unittest.TestCase):
             "Even": {
                 "count": 2,
                 "attribute": {
-                    "eiusmod": {"values": "Values: tempor"},
-                    "incididunt": {"values": "Values: ut"},
-                    "sed": {"values": "Values: do"},
+                    "eiusmod": {"type": "Categorical", "values": "Values: tempor"},
+                    "incididunt": {"type": "Categorical", "values": "Values: ut"},
+                    "sed": {"type": "Categorical", "values": "Values: do"},
                 },
             },
             "Ungrouped Edges": {"count": 2, "attribute": {}},
         }
+
+        # test the specified group list
+        assert medrecord._describe_group_edges(groups=["Even"]) == {
+            "Even": {
+                "count": 2,
+                "attribute": {
+                    "eiusmod": {"type": "Categorical", "values": "Values: tempor"},
+                    "incididunt": {"type": "Categorical", "values": "Values: ut"},
+                    "sed": {"type": "Categorical", "values": "Values: do"},
+                },
+            },
+        }
+
+    def test_overview_edges(self) -> None:
+        medrecord = MedRecord.from_example_dataset()
+
+        assert "\n".join(
+            [
+                "---------------------------------------------------------------------------",
+                "Edges Group       Count Attribute      Type       Data                     ",
+                "---------------------------------------------------------------------------",
+                "patient_diagnosis 60    diagnosis_time Temporal   min: 1962-10-21 00:00:00 ",
+                "                                                  max: 2024-04-12 00:00:00 ",
+                "                        duration_days  Continuous min: 0.00                ",
+                "                                                  max: 3416.00             ",
+                "                                                  mean: 405.02             ",
+                "---------------------------------------------------------------------------",
+            ]
+        ) == str(medrecord.overview_edges("patient_diagnosis"))
 
 
 if __name__ == "__main__":
