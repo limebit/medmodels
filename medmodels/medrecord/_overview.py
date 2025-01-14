@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, Dict, List, Literal, Optional, Union
 import polars as pl
 
 from medmodels.medrecord.schema import AttributesSchema, AttributeType
-from medmodels.medrecord.types import AttributeSummary, Attributes, EdgeIndex, NodeIndex
+from medmodels.medrecord.types import Attributes, AttributeSummary, EdgeIndex, NodeIndex
 
 if TYPE_CHECKING:
     import sys
