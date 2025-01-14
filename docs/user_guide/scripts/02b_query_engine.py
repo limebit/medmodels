@@ -1,3 +1,4 @@
+# ruff: noqa: D100, D103
 from medmodels import MedRecord
 from medmodels.medrecord.querying import EdgeOperand, NodeOperand
 
@@ -5,7 +6,7 @@ medrecord = MedRecord().from_example_dataset()
 
 
 # Basic node query
-def query_node_in_patient(node: NodeOperand):
+def query_node_in_patient(node: NodeOperand) -> None:
     node.in_group("patient")
 
 
@@ -13,7 +14,7 @@ medrecord.select_nodes(query_node_in_patient)
 
 
 # Intermediate node query
-def query_node_patient_older_than_30(node: NodeOperand):
+def query_node_patient_older_than_30(node: NodeOperand) -> None:
     node.in_group("patient")
     node.index().contains("pat")
 
@@ -25,7 +26,7 @@ medrecord.select_nodes(query_node_patient_older_than_30)
 
 
 # Reusing node query
-def query_node_reused(node: NodeOperand):
+def query_node_reused(node: NodeOperand) -> None:
     query_node_in_patient(node)
     node.index().contains("pat")
 
@@ -37,7 +38,7 @@ medrecord.select_nodes(query_node_reused)
 
 
 # Advanced node query
-def query_node_male_patient_under_mean(node: NodeOperand):
+def query_node_male_patient_under_mean(node: NodeOperand) -> None:
     node.in_group("patient")
     node.index().contains("pat")
 
@@ -56,7 +57,7 @@ medrecord.select_nodes(query_node_male_patient_under_mean)
 
 
 # Node query with neighbors function
-def query_node_neighbors(node: NodeOperand):
+def query_node_neighbors(node: NodeOperand) -> None:
     query_node_patient_older_than_30(node)
 
     description_neighbors = node.neighbors().attribute("description")
@@ -68,7 +69,7 @@ medrecord.select_nodes(query_node_neighbors)
 
 
 # Basic edge query
-def query_edge_patient_drug(edge: EdgeOperand):
+def query_edge_patient_drug(edge: EdgeOperand) -> None:
     edge.in_group("patient_drug")
 
 
@@ -77,7 +78,7 @@ edges[0:5]
 
 
 # Advanced edge query
-def query_edge_old_patient_cheap_insulin(edge: EdgeOperand):
+def query_edge_old_patient_cheap_insulin(edge: EdgeOperand) -> None:
     edge.in_group("patient_drug")
     edge.attribute("cost").less_than(200)
 
@@ -89,13 +90,13 @@ medrecord.select_edges(query_edge_old_patient_cheap_insulin)
 
 
 # Combined node and edge query
-def query_edge_combined(edge: EdgeOperand):
+def query_edge_combined(edge: EdgeOperand) -> None:
     edge.in_group("patient_drug")
     edge.attribute("cost").less_than(200)
     edge.attribute("quantity").equal_to(1)
 
 
-def query_node_combined(node: NodeOperand):
+def query_node_combined(node: NodeOperand) -> None:
     node.in_group("patient")
     node.attribute("age").is_int()
     node.attribute("age").greater_than(30)
@@ -108,19 +109,19 @@ medrecord.select_nodes(query_node_combined)
 
 
 # Either/or query
-def query_edge_either(edge: EdgeOperand):
+def query_edge_either(edge: EdgeOperand) -> None:
     edge.in_group("patient_drug")
     edge.attribute("cost").less_than(200)
     edge.attribute("quantity").equal_to(1)
 
 
-def query_edge_or(edge: EdgeOperand):
+def query_edge_or(edge: EdgeOperand) -> None:
     edge.in_group("patient_drug")
     edge.attribute("cost").less_than(200)
     edge.attribute("quantity").equal_to(12)
 
 
-def query_node_either_or(node: NodeOperand):
+def query_node_either_or(node: NodeOperand) -> None:
     node.in_group("patient")
     node.attribute("age").greater_than(30)
 
@@ -131,7 +132,7 @@ medrecord.select_nodes(query_node_either_or)
 
 
 # Exclude query
-def query_node_exclude(node: NodeOperand):
+def query_node_exclude(node: NodeOperand) -> None:
     node.in_group("patient")
     node.exclude(query_node_either_or)
 
@@ -140,7 +141,7 @@ medrecord.select_nodes(query_node_exclude)
 
 
 # Clone query
-def query_node_clone(node: NodeOperand):
+def query_node_clone(node: NodeOperand) -> None:
     node.in_group("patient")
     node.index().contains("pat")
 

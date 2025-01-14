@@ -1,3 +1,4 @@
+# ruff: noqa: D100, D103
 from typing import Tuple
 
 import pandas as pd

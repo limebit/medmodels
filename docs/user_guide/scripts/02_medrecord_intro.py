@@ -1,3 +1,4 @@
+# ruff: noqa: D100, B018
 import pandas as pd
 
 import medmodels as mm
