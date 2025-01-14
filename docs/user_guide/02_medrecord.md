@@ -4,7 +4,6 @@
 :maxdepth: 1
 :caption: Contents:
 :hidden:
-
 02a_schema
 02b_query_engine
 ```
@@ -18,7 +17,7 @@ MedModels delivers advanced data analytics methods out-of-the-box by utilizing a
 ```{literalinclude} scripts/02_medrecord_intro.py
 ---
 language: python
-lines: 3
+lines: 4
 ---
 ```
 
@@ -53,7 +52,7 @@ This data, stored for example in a Pandas DataFrame, looks like this:
 ```{literalinclude} scripts/02_medrecord_intro.py
 ---
 language: python
-lines: 6-13
+lines: 7-14
 ---
 ```
 
@@ -63,7 +62,7 @@ The Builder Pattern simplifies creating complex objects by constructing them ste
 ```{literalinclude} scripts/02_medrecord_intro.py
 ---
 language: python
-lines: 30
+lines: 31
 ---
 ```
 
@@ -85,7 +84,7 @@ We can now proceed by adding additional data, such as the following medications.
 ```{literalinclude} scripts/02_medrecord_intro.py
 ---
 language: python
-lines: 16-18
+lines: 17-19
 ---
 ```
 
@@ -94,7 +93,7 @@ Using the builder pattern to construct the MedRecord allows us to pass as many n
 ```{literalinclude} scripts/02_medrecord_intro.py
 ---
 language: python
-lines: 32
+lines: 33
 ---
 ```
 
@@ -159,7 +158,7 @@ For certain analyses, we may want to define specific subcohorts within our MedRe
 ```{literalinclude} scripts/02_medrecord_intro.py
 ---
 language: python
-lines: 36
+lines: 37
 ---
 ```
 
@@ -182,7 +181,7 @@ When building a MedRecord, you may want to save it to create a persistent versio
 ```{literalinclude} scripts/02_medrecord_intro.py
 ---
 language: python
-lines: 68-69
+lines: 69-70
 ---
 ```
 
@@ -200,7 +199,7 @@ The MedRecord class is designed to efficiently handle large datasets while maint
 ---
 language: python
 setup-lines: 1-45
-lines: 47
+lines: 48
 ---
 ```
 
@@ -216,8 +215,8 @@ We can do the same to get an overview over edges in our MedRecord by using the [
 ```{exec-literalinclude} scripts/02_medrecord_intro.py
 ---
 language: python
-setup-lines: 1-45
-lines: 49
+setup-lines: 1-46
+lines: 50
 ---
 ```
 
@@ -226,8 +225,8 @@ However, they need to belong to a group in order to show their attributes in the
 ```{exec-literalinclude} scripts/02_medrecord_intro.py
 ---
 language: python
-setup-lines: 1-45
-lines: 52, 54
+setup-lines: 1-46
+lines: 52, 55
 ---
 ```
 
@@ -245,8 +244,8 @@ We can, for example, get all available nodes:
 ```{exec-literalinclude} scripts/02_medrecord_intro.py
 ---
 language: python
-setup-lines: 1-52
-lines: 57
+setup-lines: 1-53
+lines: 58
 ---
 ```
 
@@ -255,8 +254,8 @@ Or access the attributes of a specific node:
 ```{exec-literalinclude} scripts/02_medrecord_intro.py
 ---
 language: python
-setup-lines: 1-52
-lines: 60
+setup-lines: 1-53
+lines: 61
 ---
 ```
 
@@ -265,8 +264,8 @@ Or get all available groups:
 ```{exec-literalinclude} scripts/02_medrecord_intro.py
 ---
 language: python
-setup-lines: 1-52
-lines: 63
+setup-lines: 1-53
+lines: 64
 ---
 ```
 
@@ -275,8 +274,8 @@ Or get all that nodes belong to a certain group:
 ```{exec-literalinclude} scripts/02_medrecord_intro.py
 ---
 language: python
-setup-lines: 1-52
-lines: 66
+setup-lines: 1-53
+lines: 67
 ---
 ```
 

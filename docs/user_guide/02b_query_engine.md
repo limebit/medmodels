@@ -11,7 +11,7 @@ An example dataset for the following demonstrations was generated with the metho
 ```{literalinclude} scripts/02b_show_dataset.py
 ---
 language: python
-lines: 7
+lines: 8
 ---
 ```
 
@@ -20,15 +20,7 @@ This example dataset includes a set of patients, drugs, diagnoses and procedures
 ```{exec-literalinclude} scripts/02b_show_dataset.py
 ---
 language: python
-setup-lines: 1-36
-lines: 38
----
-```
-
-```{exec-literalinclude} scripts/02b_show_dataset.py
----
-language: python
-setup-lines: 1-36
+setup-lines: 1-37
 lines: 39
 ---
 ```
@@ -36,8 +28,16 @@ lines: 39
 ```{exec-literalinclude} scripts/02b_show_dataset.py
 ---
 language: python
-setup-lines: 1-36
+setup-lines: 1-37
 lines: 40
+---
+```
+
+```{exec-literalinclude} scripts/02b_show_dataset.py
+---
+language: python
+setup-lines: 1-37
+lines: 41
 ---
 ```
 
@@ -48,8 +48,8 @@ The [`NodeOperand`](medmodels.medrecord.querying.NodeOperand){target="\_blank"} 
 ```{exec-literalinclude} scripts/02b_query_engine.py
 ---
 language: python
-setup-lines: 1-4
-lines: 7-12
+setup-lines: 1-5
+lines: 8-13
 ---
 ```
 
@@ -65,8 +65,8 @@ You can get to the same result via different approaches. That makes the query en
 ```{exec-literalinclude} scripts/02b_query_engine.py
 ---
 language: python
-setup-lines: 1-4
-lines: 15-24
+setup-lines: 1-5
+lines: 16-25
 ---
 ```
 
@@ -93,8 +93,8 @@ As you can see, the query engine can prove to be highly useful for finding nodes
 ```{exec-literalinclude} scripts/02b_query_engine.py
 ---
 language: python
-setup-lines: 1-12
-lines: 27-36
+setup-lines: 1-13
+lines: 28-37
 ---
 ```
 
@@ -124,8 +124,8 @@ You can also perform mathematical calculations like [`mean()`](medmodels.medreco
 ```{exec-literalinclude} scripts/02b_query_engine.py
 ---
 language: python
-setup-lines: 1-4
-lines: 39-55
+setup-lines: 1-5
+lines: 40-56
 ---
 ```
 
@@ -201,8 +201,8 @@ In this following example we are selecting the nodes that fulfill the following 
 ```{exec-literalinclude} scripts/02b_query_engine.py
 ---
 language: python
-setup-lines: 1-4, 15-24
-lines: 58-67
+setup-lines: 1-5, 16-25
+lines: 59-68
 ---
 ```
 
@@ -223,8 +223,8 @@ The querying class [`EdgeOperand`](medmodels.medrecord.querying.EdgeOperand){tar
 ```{exec-literalinclude} scripts/02b_query_engine.py
 ---
 language: python
-setup-lines: 1-4
-lines: 70-76
+setup-lines: 1-5
+lines: 71-77
 ---
 ```
 
@@ -240,8 +240,8 @@ The edge operand follows the same principles as the node operand, with some extr
 ```{exec-literalinclude} scripts/02b_query_engine.py
 ---
 language: python
-setup-lines: 1-4
-lines: 79-88
+setup-lines: 1-5
+lines: 80-89
 ---
 ```
 
@@ -269,8 +269,8 @@ The full power of the query engine appears once you combine both operands inside
 ```{exec-literalinclude} scripts/02b_query_engine.py
 ---
 language: python
-setup-lines: 1-4
-lines: 91-107
+setup-lines: 1-5
+lines: 92-108
 ---
 ```
 
@@ -294,8 +294,8 @@ The inherent structure of the query engine works with logical **AND** operations
 ```{exec-literalinclude} scripts/02b_query_engine.py
 ---
 language: python
-setup-lines: 1-4
-lines: 110-130
+setup-lines: 1-5
+lines: 111-131
 ---
 ```
 
@@ -317,8 +317,8 @@ This includes also _"pat_3"_, that was not included in the previous section beca
 ```{exec-literalinclude} scripts/02b_query_engine.py
 ---
 language: python
-setup-lines: 1-4, 109-129
-lines: 133-139
+setup-lines: 1-5, 110-130
+lines: 134-140
 ---
 ```
 
@@ -341,8 +341,8 @@ To address this limitation, the [`clone()`](medmodels.medrecord.querying.SingleV
 ```{exec-literalinclude} scripts/02b_query_engine.py
 ---
 language: python
-setup-lines: 1-4
-lines: 142-157
+setup-lines: 1-5
+lines: 143-158
 ---
 ```
 
@@ -370,8 +370,8 @@ In all previous snippets, we have used queries with the method [`select_nodes()`
 ```{exec-literalinclude} scripts/02b_query_engine.py
 ---
 language: python
-setup-lines: 1-153
-lines: 160
+setup-lines: 1-154
+lines: 161
 ---
 ```
 
@@ -380,8 +380,8 @@ lines: 160
 ```{exec-literalinclude} scripts/02b_query_engine.py
 ---
 language: python
-setup-lines: 1-153
-lines: 161
+setup-lines: 1-154
+lines: 162
 ---
 ```
 
@@ -390,8 +390,8 @@ lines: 161
 ```{exec-literalinclude} scripts/02b_query_engine.py
 ---
 language: python
-setup-lines: 1-154
-lines: 162
+setup-lines: 1-155
+lines: 163
 ---
 ```
 
