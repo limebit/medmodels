@@ -1,27 +1,40 @@
+"""Module for extracting and displaying an overview of the data in a MedRecord."""
+
+from __future__ import annotations
+
 import copy
 from datetime import datetime
-from typing import Dict, List, Literal, Optional, Union
+from typing import TYPE_CHECKING, Dict, List, Literal, Optional, Union
 
 import polars as pl
 
 from medmodels.medrecord.schema import AttributesSchema, AttributeType
-from medmodels.medrecord.types import (
-    AttributeInfo,
-    Attributes,
-    EdgeIndex,
-    Group,
-    MedRecordAttribute,
-    NodeIndex,
-    NumericAttributeInfo,
-    StringAttributeInfo,
-    TemporalAttributeInfo,
-)
+from medmodels.medrecord.types import Attributes, EdgeIndex, NodeIndex
+
+if TYPE_CHECKING:
+    import sys
+
+    from medmodels.medrecord.types import (
+        AttributeInfo,
+        Group,
+        MedRecordAttribute,
+        NumericAttributeInfo,
+        StringAttributeInfo,
+        TemporalAttributeInfo,
+    )
+
+    if sys.version_info >= (3, 10):
+        from typing import TypeAlias
+    else:
+        from typing_extensions import TypeAlias
+
+AttributeDictionary: TypeAlias = Union[
+    Dict[EdgeIndex, Attributes], Dict[NodeIndex, Attributes]
+]
 
 
 def extract_attribute_summary(
-    attribute_dictionary: Union[
-        Dict[EdgeIndex, Attributes], Dict[NodeIndex, Attributes]
-    ],
+    attribute_dictionary: AttributeDictionary,
     schema: Optional[AttributesSchema] = None,
 ) -> Dict[
     MedRecordAttribute,
@@ -30,8 +43,8 @@ def extract_attribute_summary(
     """Extracts a summary from a node or edge attribute dictionary.
 
     Args:
-        attribute_dict (Union[Dict[EdgeIndex, Attributes], Dict[NodeIndex, Attributes]]):
-            Edges or Nodes and their attributes and values.
+        attribute_dictionary (AttributeDictionary): Edges or Nodes and their attributes
+            and values.
         schema (Optional[AttributesSchema], optional): Attribute Schema for the group
             nodes or edges. Defaults to None.
         decimal (int): Decimal points to round the numeric values to. Defaults to 2.
@@ -145,9 +158,9 @@ def _extract_string_attribute_info(
         attribute_series (pl.Series): Series containing attribute values.
         short_string_prefix (Literal["Values", "Categories"], optional): Prefix for
             information string in case of listing all the values. Defaults to "Values".
-        long_string_suffix (str, optional): Suffix for attribute information in case of too
-            many values to list. Here only the count will be displayed.
-            Defaults to "unique values".
+        long_string_suffix (str, optional): Suffix for attribute information in case of
+            too many values to list. Here only the count will be displayed. Defaults to
+            "unique values".
         max_number_values (int, optional): Maximum values that should be listed in the
             information string. Defaults to 5.
         max_line_length (int, optional): Maximum line length for the information string.
@@ -189,7 +202,7 @@ def prettify_table(
 
     info_order = ["type", "min", "max", "mean", "values"]
 
-    for group in data.keys():
+    for group in data:
         # determine longest group name and count
         lengths[0] = max(len(str(group)), lengths[0])
 
@@ -220,7 +233,7 @@ def prettify_table(
                 row[3] = info["type"] if first_line else ""
 
                 # displaying information based on the type
-                if "values" in info.keys():
+                if "values" in info:
                     row[4] = info[key]
                 else:
                     if isinstance(info[key], float):
