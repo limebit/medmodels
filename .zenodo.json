@@ -1,0 +1,14 @@
+{
+  "creators": [
+    {
+      "name": "MedModels GmbH"
+    }
+  ],
+  "license": "BSD 3-Clause License",
+  "title": "MedModels",
+  "keywords": [
+    "Electronic Health Records",
+    "Laser",
+    "Behavior"
+  ]
+}
