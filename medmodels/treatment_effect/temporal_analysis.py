@@ -1,3 +1,5 @@
+"""This module contains functions for temporal analysis of treatment effects."""
+
 from typing import Literal
 
 from medmodels.medrecord.medrecord import MedRecord
@@ -12,13 +14,11 @@ def find_reference_edge(
     reference: Literal["first", "last"],
     time_attribute: MedRecordAttribute = "time",
 ) -> EdgeIndex:
-    """Determines the reference edge that represents the first or last exposure of a node index to any node in the connected_group (list of nodes).
+    """Determines the reference edge containing the first/last last exposure.
 
-    This method is crucial for analyzing the temporal sequence of treatments and outcomes.
-
-    This function iterates over all nodes in the gorup and finds the reference edge
-    among them (first or last), ensuring that the analysis considers the reference
-    exposure.
+    This function returns the edge containing the first/last exposure (depending on
+    the `reference` argument) of a node to any other node in the connected_group. This
+    method is crucial for analyzing the temporal sequence of treatments and outcomes.
 
     Args:
         medrecord (MedRecord): An instance of the MedRecord class containing medical
@@ -41,8 +41,8 @@ def find_reference_edge(
             the node in this MedRecord.
 
     Example:
-        This function returns the edge containing the timestamp of the last exposure to any
-        medication in the group "medications" for subject "P1".
+        This function returns the edge containing the timestamp of the last exposure to
+        any medication in the group "medications" for subject "P1".
 
         .. highlight:: python
         .. code-block:: python
@@ -57,7 +57,10 @@ def find_reference_edge(
     """
 
     def query_source_node(edge: EdgeOperand) -> None:
-        """Query the source node of an edge to have a specific index and the target node to be in a specified group.
+        """Query for the source node of an edge.
+
+        Query the source node of an edge to have a specific index and the target node to
+        be in the specified group.
 
         Args:
             edge (EdgeOperand): The edge operand.
@@ -66,7 +69,10 @@ def find_reference_edge(
         edge.target_node().in_group(connected_group)
 
     def query_target_node(edge: EdgeOperand) -> None:
-        """Query the source node of an edge to be in a specified group and the target node to have a specific index.
+        """Query the target  node of an edge.
+
+        Query the source node of an edge to be in a specified group and the target node
+        to have a specified index.
 
         Args:
             edge (EdgeOperand): The edge operand.
@@ -75,7 +81,11 @@ def find_reference_edge(
         edge.target_node().index().equal_to(node_index)
 
     def query(edge: EdgeOperand) -> None:
-        """Query the edge that connects the group to the node and has the minimum or maximum time attribute.
+        """Query the reference edge.
+
+        Query the edge that:
+            - Connects the specified group to the specified node.
+            - Has the minimum or maximum time attribute.
 
         Args:
             edge (EdgeOperand): The edge operand.
@@ -91,11 +101,11 @@ def find_reference_edge(
     try:
         reference_edge = medrecord.select_edges(query)
 
-    except RuntimeError:
+    except RuntimeError as err:
         msg = (
             f"No edge with that time attribute or with a datetime data type was found for node "
             f"{node_index} in this MedRecord"
         )
-        raise ValueError(msg)
+        raise ValueError(msg) from err
 
     return reference_edge[0]

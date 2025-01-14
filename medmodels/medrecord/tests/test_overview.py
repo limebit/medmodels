@@ -10,7 +10,7 @@ from medmodels.medrecord._overview import extract_attribute_summary, prettify_ta
 from medmodels.medrecord.querying import EdgeOperand, NodeOperand
 
 
-def create_medrecord():
+def create_medrecord() -> mm.MedRecord:
     patients = pd.DataFrame(
         {
             "index": ["P1", "P2", "P3"],
@@ -21,7 +21,10 @@ def create_medrecord():
     diagnosis = pd.DataFrame({"index": ["D1", "D2"]})
 
     prescriptions = pd.DataFrame(
-        {"index": ["M1", "M2", "M3"], "ATC": ["B01AF01", "B01AA03", np.nan]}
+        {
+            "index": ["M1", "M2", "M3"],
+            "ATC": ["B01AF01", "B01AA03", np.nan],
+        }
     )
 
     nodes = [patients, diagnosis, prescriptions]
@@ -79,19 +82,19 @@ def create_medrecord():
 
 
 class TestOverview(unittest.TestCase):
-    def test_extract_attribute_summary(self):
+    def test_extract_attribute_summary(self) -> None:
         # medrecord without schema
         medrecord = create_medrecord()
 
-        def query1(node: NodeOperand):
+        def query1(node: NodeOperand) -> None:
             node.in_group("Stroke")
 
         # No attributes
         no_attributes = extract_attribute_summary(medrecord.node[query1])
 
-        self.assertDictEqual(no_attributes, {})
+        assert no_attributes == {}
 
-        def query2(node: NodeOperand):
+        def query2(node: NodeOperand) -> None:
             node.in_group("Patients")
 
         # numeric type
@@ -101,46 +104,42 @@ class TestOverview(unittest.TestCase):
             "age": {"type": "Continuous", "min": 20, "max": 70, "mean": 40.0}
         }
 
-        self.assertDictEqual(numeric_attribute, numeric_expected)
+        assert numeric_attribute == numeric_expected
 
-        def query3(node: NodeOperand):
+        def query3(node: NodeOperand) -> None:
             node.in_group("Medications")
 
         # string attributes
         str_attributes = extract_attribute_summary(medrecord.node[query3])
 
-        self.assertDictEqual(
-            str_attributes,
-            {"ATC": {"type": "Categorical", "values": "Values: B01AA03, B01AF01"}},
-        )
+        assert str_attributes == {
+            "ATC": {"type": "Categorical", "values": "Values: B01AA03, B01AF01"}
+        }
 
-        def query4(node: NodeOperand):
+        def query4(node: NodeOperand) -> None:
             node.in_group("Aspirin")
 
         # nan attribute
         nan_attributes = extract_attribute_summary(medrecord.node[query4])
 
-        self.assertDictEqual(nan_attributes, {"ATC": {"type": "-", "values": "-"}})
+        assert nan_attributes == {"ATC": {"type": "-", "values": "-"}}
 
-        def query5(edge: EdgeOperand):
+        def query5(edge: EdgeOperand) -> None:
             edge.source_node().in_group("Medications")
             edge.target_node().in_group("Patients")
 
         # temporal attributes
         temp_attributes = extract_attribute_summary(medrecord.edge[query5])
 
-        self.assertDictEqual(
-            temp_attributes,
-            {
-                "time": {
-                    "type": "Temporal",
-                    "max": datetime(2000, 1, 1, 0, 0),
-                    "min": datetime(1999, 10, 15, 0, 0),
-                }
-            },
-        )
+        assert temp_attributes == {
+            "time": {
+                "type": "Temporal",
+                "max": datetime(2000, 1, 1, 0, 0),
+                "min": datetime(1999, 10, 15, 0, 0),
+            }
+        }
 
-        def query6(edge: EdgeOperand):
+        def query6(edge: EdgeOperand) -> None:
             edge.source_node().in_group("Stroke")
             edge.target_node().in_group("Patients")
 
@@ -148,17 +147,14 @@ class TestOverview(unittest.TestCase):
         mixed_attributes = extract_attribute_summary(
             medrecord.edge[medrecord.select_edges(query6)]
         )
-        self.assertDictEqual(
-            mixed_attributes,
-            {
-                "time": {
-                    "type": "Temporal",
-                    "min": datetime(1999, 12, 15, 0, 0),
-                    "max": datetime(2000, 1, 1, 0, 0),
-                },
-                "intensity": {"type": "Categorical", "values": "Values: 1, low"},
+        assert mixed_attributes == {
+            "time": {
+                "type": "Temporal",
+                "min": datetime(1999, 12, 15, 0, 0),
+                "max": datetime(2000, 1, 1, 0, 0),
             },
-        )
+            "intensity": {"type": "Categorical", "values": "Values: 1, low"},
+        }
 
         # with schema
         mr_schema = mm.MedRecord.from_example_dataset()
@@ -169,15 +165,12 @@ class TestOverview(unittest.TestCase):
             schema=mr_schema.schema.group("patient").nodes,
         )
 
-        self.assertDictEqual(
-            node_info,
-            {
-                "age": {"type": "Continuous", "min": 19, "max": 96, "mean": 43.20},
-                "gender": {"type": "Categorical", "values": "Categories: F, M"},
-            },
-        )
+        assert node_info == {
+            "age": {"type": "Continuous", "min": 19, "max": 96, "mean": 43.20},
+            "gender": {"type": "Categorical", "values": "Categories: F, M"},
+        }
 
-        def query7(edge: EdgeOperand):
+        def query7(edge: EdgeOperand) -> None:
             edge.in_group("patient_diagnosis")
 
         # compare schema and not schema
@@ -186,24 +179,21 @@ class TestOverview(unittest.TestCase):
             schema=mr_schema.schema.group("patient_diagnosis").edges,
         )
 
-        self.assertDictEqual(
-            patient_diagnosis,
-            {
-                "diagnosis_time": {
-                    "type": "Temporal",
-                    "min": datetime(1962, 10, 21, 0, 0),
-                    "max": datetime(2024, 4, 12, 0, 0),
-                },
-                "duration_days": {
-                    "type": "Continuous",
-                    "min": 0.0,
-                    "max": 3416.0,
-                    "mean": 405.0232558139535,
-                },
+        assert patient_diagnosis == {
+            "diagnosis_time": {
+                "type": "Temporal",
+                "min": datetime(1962, 10, 21, 0, 0),
+                "max": datetime(2024, 4, 12, 0, 0),
             },
-        )
+            "duration_days": {
+                "type": "Continuous",
+                "min": 0.0,
+                "max": 3416.0,
+                "mean": 405.0232558139535,
+            },
+        }
 
-    def test_prettify_table(self):
+    def test_prettify_table(self) -> None:
         medrecord = create_medrecord()
 
         header = ["group nodes", "count", "attribute", "type", "info"]
@@ -222,9 +212,9 @@ class TestOverview(unittest.TestCase):
             "---------------------------------------------------------------------",
         ]
 
-        self.assertEqual(
-            prettify_table(medrecord._describe_group_nodes(), header, decimal=2),
-            expected_nodes,
+        assert (
+            prettify_table(medrecord._describe_group_nodes(), header, decimal=2)
+            == expected_nodes
         )
 
         header = ["group edges", "count", "attribute", "type", "info"]
@@ -239,9 +229,9 @@ class TestOverview(unittest.TestCase):
             "----------------------------------------------------------------------",
         ]
 
-        self.assertEqual(
-            prettify_table(medrecord._describe_group_edges(), header, decimal=2),
-            expected_edges,
+        assert (
+            prettify_table(medrecord._describe_group_edges(), header, decimal=2)
+            == expected_edges
         )
 
 
