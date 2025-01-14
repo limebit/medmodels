@@ -13,7 +13,7 @@ description = "Limebit MedModels Crate"
 [workspace.dependencies]
 hashbrown = { version = "0.14.5", features = ["serde"] }
 serde = { version = "1.0.203", features = ["derive"] }
-polars = { version = "0.45.0", features = ["polars-io"] }
+polars = { version = "0.45.0", features = ["polars-io", "dtype-full"] }
 chrono = { version = "0.4.38", features = ["serde"] }
 
 medmodels = { version = "0.1.2", path = "crates/medmodels" }
