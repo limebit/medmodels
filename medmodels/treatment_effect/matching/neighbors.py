@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Optional, Set
+from typing import TYPE_CHECKING, Optional, Sequence, Set
 
 from medmodels.treatment_effect.matching.algorithms.classic_distance_models import (
     nearest_neighbor,
@@ -11,7 +11,7 @@ from medmodels.treatment_effect.matching.matching import Matching
 
 if TYPE_CHECKING:
     from medmodels import MedRecord
-    from medmodels.medrecord.types import Group, MedRecordAttributeInputList, NodeIndex
+    from medmodels.medrecord.types import Group, MedRecordAttribute, NodeIndex
 
 
 class NeighborsMatching(Matching):
@@ -45,8 +45,8 @@ class NeighborsMatching(Matching):
         control_set: Set[NodeIndex],
         treated_set: Set[NodeIndex],
         patients_group: Group,
-        essential_covariates: Optional[MedRecordAttributeInputList] = None,
-        one_hot_covariates: Optional[MedRecordAttributeInputList] = None,
+        essential_covariates: Optional[Sequence[MedRecordAttribute]] = None,
+        one_hot_covariates: Optional[Sequence[MedRecordAttribute]] = None,
     ) -> Set[NodeIndex]:
         """Matches the controls based on the nearest neighbor algorithm.
 
@@ -55,10 +55,10 @@ class NeighborsMatching(Matching):
             control_set (Set[NodeIndex]): Set of control subjects.
             treated_set (Set[NodeIndex]): Set of treated subjects.
             patients_group (Group): Group of patients in the MedRecord.
-            essential_covariates (Optional[MedRecordAttributeInputList], optional):
+            essential_covariates (Optional[Sequence[MedRecordAttribute]], optional):
                 Covariates that are essential for matching. Defaults to
                 ["gender", "age"].
-            one_hot_covariates (Optional[MedRecordAttributeInputList], optional):
+            one_hot_covariates (Optional[Sequence[MedRecordAttribute]], optional):
                 Covariates that are one-hot encoded for matching. Defaults to
                 ["gender"].
 
@@ -75,8 +75,8 @@ class NeighborsMatching(Matching):
             control_set=control_set,
             treated_set=treated_set,
             patients_group=patients_group,
-            essential_covariates=essential_covariates,
-            one_hot_covariates=one_hot_covariates,
+            essential_covariates=list(essential_covariates),
+            one_hot_covariates=list(one_hot_covariates),
         )
 
         # Run the algorithm to find the matched controls

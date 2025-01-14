@@ -8,7 +8,16 @@ score matching and nearest neighbor matching.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Literal, Optional, Set, Tuple, TypeAlias
+from typing import (
+    TYPE_CHECKING,
+    List,
+    Literal,
+    Optional,
+    Sequence,
+    Set,
+    Tuple,
+    TypeAlias,
+)
 
 import polars as pl
 
@@ -18,7 +27,7 @@ from medmodels.medrecord.medrecord import MedRecord
 if TYPE_CHECKING:
     from medmodels.medrecord.medrecord import MedRecord
     from medmodels.medrecord.querying import NodeOperand
-    from medmodels.medrecord.types import Group, MedRecordAttributeInputList, NodeIndex
+    from medmodels.medrecord.types import Group, MedRecordAttribute, NodeIndex
 
 MatchingMethod: TypeAlias = Literal["propensity", "nearest_neighbors"]
 
@@ -44,8 +53,8 @@ class Matching(ABC):
         control_set: Set[NodeIndex],
         treated_set: Set[NodeIndex],
         patients_group: Group,
-        essential_covariates: Optional[MedRecordAttributeInputList] = None,
-        one_hot_covariates: Optional[MedRecordAttributeInputList] = None,
+        essential_covariates: Optional[List[MedRecordAttribute]] = None,
+        one_hot_covariates: Optional[List[MedRecordAttribute]] = None,
     ) -> Tuple[pl.DataFrame, pl.DataFrame]:
         """Prepared the data for the matching algorithms.
 
@@ -54,10 +63,10 @@ class Matching(ABC):
             control_set (Set[NodeIndex]): Set of treated subjects.
             treated_set (Set[NodeIndex]): Set of control subjects.
             patients_group (Group): The group of patients.
-            essential_covariates (Optional[MedRecordAttributeInputList]):
+            essential_covariates (Optional[List[MedRecordAttribute]], optional):
                 Covariates that are essential for matching. Defaults to None, meaning
                 all the attributes of the patients are used.
-            one_hot_covariates (Optional[MedRecordAttributeInputList]):
+            one_hot_covariates (Optional[List[MedRecordAttribute]], optional):
                 Covariates that are one-hot encoded for matching. Defaults to None,
                 meaning all the categorical attributes of the patients are used.
 
@@ -71,10 +80,9 @@ class Matching(ABC):
         """
         if essential_covariates is None:
             # If no essential covariates provided, use all attributes of patients group
+            nodes_attributes = medrecord.node[medrecord.nodes_in_group(patients_group)]
             essential_covariates = list(
-                extract_attribute_summary(
-                    medrecord.node[medrecord.nodes_in_group(patients_group)]
-                )
+                {key for attributes in nodes_attributes.values() for key in attributes}
             )
 
         control_set = self._check_nodes(
@@ -85,7 +93,7 @@ class Matching(ABC):
         )
 
         if "id" not in essential_covariates:
-            essential_covariates.append("id")  # pyright: ignore[reportArgumentType]
+            essential_covariates.append("id")
 
         # Dataframe with the essential covariates
         data = pl.DataFrame(
@@ -132,8 +140,8 @@ class Matching(ABC):
 
         # Add to essential covariates the new columns created by one-hot encoding and
         # delete the ones that were one-hot encoded
-        essential_covariates.extend(new_columns)  # pyright: ignore[reportArgumentType]
-        [essential_covariates.remove(col) for col in one_hot_covariates]  # pyright: ignore[reportArgumentType]
+        essential_covariates.extend(new_columns)
+        [essential_covariates.remove(col) for col in one_hot_covariates]
         data = data.select(essential_covariates)
 
         # Select the sets of treated and control subjects
@@ -147,7 +155,7 @@ class Matching(ABC):
         medrecord: MedRecord,
         treated_set: Set[NodeIndex],
         control_set: Set[NodeIndex],
-        essential_covariates: MedRecordAttributeInputList,
+        essential_covariates: List[MedRecordAttribute],
     ) -> Set[NodeIndex]:
         """Check if the treated and control sets are disjoint.
 
@@ -155,7 +163,7 @@ class Matching(ABC):
             medrecord (MedRecord): MedRecord object containing the data.
             treated_set (Set[NodeIndex]): Set of treated subjects.
             control_set (Set[NodeIndex]): Set of control subjects.
-            essential_covariates (MedRecordAttributeInputList): Covariates that are
+            essential_covariates (List[MedRecordAttribute]): Covariates that are
                 essential for matching.
 
         Returns:
@@ -170,8 +178,7 @@ class Matching(ABC):
             node: NodeOperand, patients_set: Set[NodeIndex]
         ) -> None:
             """Query the nodes that have all the essential covariates."""
-            for attribute in essential_covariates:
-                node.has_attribute(attribute)
+            node.has_attribute(essential_covariates)
 
             node.index().is_in(list(patients_set))
 
@@ -208,8 +215,8 @@ class Matching(ABC):
         medrecord: MedRecord,
         control_set: Set[NodeIndex],
         treated_set: Set[NodeIndex],
-        essential_covariates: Optional[MedRecordAttributeInputList] = None,
-        one_hot_covariates: Optional[MedRecordAttributeInputList] = None,
+        essential_covariates: Optional[Sequence[MedRecordAttribute]] = None,
+        one_hot_covariates: Optional[Sequence[MedRecordAttribute]] = None,
     ) -> Set[NodeIndex]:
         """Matches the controls based on the matching algorithm.
 
@@ -217,9 +224,9 @@ class Matching(ABC):
             medrecord (MedRecord): MedRecord object containing the data.
             control_set (Set[NodeIndex]): Set of control subjects.
             treated_set (Set[NodeIndex]): Set of treated subjects.
-            essential_covariates (Optional[MedRecordAttributeInputList], optional):
+            essential_covariates (Optional[Sequence[MedRecordAttribute]], optional):
                 Covariates that are essential for matching. Defaults to None.
-            one_hot_covariates (Optional[MedRecordAttributeInputList], optional):
+            one_hot_covariates (Optional[Sequence[MedRecordAttribute]], optional):
                 Covariates that are one-hot encoded for matching. Defaults to None.
 
         Returns:
