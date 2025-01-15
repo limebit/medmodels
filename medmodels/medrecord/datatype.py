@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import typing
 from abc import ABC, abstractmethod
+from typing import TypeAlias
 
 from medmodels._medmodels import (
     PyAny,
@@ -17,14 +18,6 @@ from medmodels._medmodels import (
     PyString,
     PyUnion,
 )
-
-if typing.TYPE_CHECKING:
-    import sys
-
-    if sys.version_info >= (3, 10):
-        from typing import TypeAlias
-    else:
-        from typing_extensions import TypeAlias
 
 PyDataType: TypeAlias = typing.Union[
     PyString,

@@ -41,16 +41,6 @@ if TYPE_CHECKING:
     from medmodels.treatment_effect.matching.algorithms.propensity_score import Model
     from medmodels.treatment_effect.matching.matching import MatchingMethod
 
-if TYPE_CHECKING:
-    from medmodels import MedRecord
-    from medmodels.medrecord.types import (
-        Group,
-        MedRecordAttribute,
-        MedRecordAttributeInputList,
-        NodeIndex,
-    )
-    from medmodels.treatment_effect.matching.algorithms.propensity_score import Model
-    from medmodels.treatment_effect.matching.matching import MatchingMethod
 
 logger = logging.getLogger(__name__)
 

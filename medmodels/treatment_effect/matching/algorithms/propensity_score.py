@@ -9,7 +9,7 @@ two groups are comparable.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Dict, Literal, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Any, Dict, Literal, Optional, Tuple, TypeAlias, Union
 
 import numpy as np
 import polars as pl
@@ -22,17 +22,9 @@ from medmodels.treatment_effect.matching.algorithms.classic_distance_models impo
 )
 
 if TYPE_CHECKING:
-    import sys
-
     from numpy.typing import NDArray
 
     from medmodels.medrecord.types import MedRecordAttributeInputList
-
-    if sys.version_info >= (3, 10):
-        from typing import TypeAlias
-    else:
-        from typing_extensions import TypeAlias
-
 
 Model: TypeAlias = Literal["logit", "dec_tree", "forest"]
 
