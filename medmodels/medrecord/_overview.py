@@ -9,10 +9,10 @@ from typing import TYPE_CHECKING, Dict, List, Literal, Optional, Union
 import polars as pl
 
 from medmodels.medrecord.schema import AttributesSchema, AttributeType
-from medmodels.medrecord.types import AttributeSummary, Attributes, EdgeIndex, NodeIndex
+from medmodels.medrecord.types import Attributes, AttributeSummary, EdgeIndex, NodeIndex
 
 if TYPE_CHECKING:
-    import sys
+    from typing import TypeAlias
 
     from medmodels.medrecord.types import (
         AttributeInfo,
@@ -22,11 +22,6 @@ if TYPE_CHECKING:
         StringAttributeInfo,
         TemporalAttributeInfo,
     )
-
-    if sys.version_info >= (3, 10):
-        from typing import TypeAlias
-    else:
-        from typing_extensions import TypeAlias
 
 AttributeDictionary: TypeAlias = Union[
     Dict[EdgeIndex, Attributes], Dict[NodeIndex, Attributes]

@@ -4,7 +4,7 @@ MedModels leverages a combination of Python and Rust code. To contribute effecti
 
 **Requirements:**
 
-- Python (3.9, 3.10, 3.11 or 3.12)
+- Python (3.10, 3.11, 3.12 or 3.13)
 - Rust compiler (follow instructions from [https://www.rust-lang.org/tools/install](https://www.rust-lang.org/tools/install))
 
 **Using the Makefile:**

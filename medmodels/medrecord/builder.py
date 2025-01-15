@@ -4,11 +4,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, Union
 
-if TYPE_CHECKING:
-    from typing_extensions import TypeIs
-
-    from medmodels.medrecord.schema import Schema
-
 import medmodels as mm
 from medmodels.medrecord.types import (
     EdgeTuple,
@@ -33,6 +28,11 @@ from medmodels.medrecord.types import (
     is_polars_node_dataframe_input,
     is_polars_node_dataframe_input_list,
 )
+
+if TYPE_CHECKING:
+    from typing_extensions import TypeIs
+
+    from medmodels.medrecord.schema import Schema
 
 NodeInputBuilder = Union[
     NodeTuple,

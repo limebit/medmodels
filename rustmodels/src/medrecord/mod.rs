@@ -45,6 +45,7 @@ impl PyMedRecord {
     }
 
     #[staticmethod]
+    #[pyo3(signature = (nodes, edges=None))]
     pub fn from_tuples(
         nodes: Vec<(PyNodeIndex, PyAttributes)>,
         edges: Option<Vec<(PyNodeIndex, PyNodeIndex, PyAttributes)>>,
@@ -446,6 +447,7 @@ impl PyMedRecord {
             .map_err(PyMedRecordError::from)?)
     }
 
+    #[pyo3(signature = (group, node_indices_to_add=None, edge_indices_to_add=None))]
     pub fn add_group(
         &mut self,
         group: PyGroup,
