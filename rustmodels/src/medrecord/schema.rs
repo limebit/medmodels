@@ -13,12 +13,12 @@ use super::{
     PyGroup,
 };
 
-#[pyclass]
-#[derive(Debug, Clone)]
+#[pyclass(eq, eq_int)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum PyAttributeType {
-    Categorical,
-    Continuous,
-    Temporal,
+    Categorical = 0,
+    Continuous = 1,
+    Temporal = 2,
 }
 
 impl From<AttributeType> for PyAttributeType {
@@ -81,6 +81,7 @@ impl DeepFrom<AttributeDataType> for PyAttributeDataType {
 #[pymethods]
 impl PyAttributeDataType {
     #[new]
+    #[pyo3(signature = (data_type, attribute_type=None))]
     pub fn new(data_type: PyDataType, attribute_type: Option<PyAttributeType>) -> Self {
         Self {
             data_type,
@@ -131,6 +132,7 @@ impl DeepFrom<GroupSchema> for PyGroupSchema {
 #[pymethods]
 impl PyGroupSchema {
     #[new]
+    #[pyo3(signature = (nodes, edges, strict=None))]
     fn new(
         nodes: HashMap<PyMedRecordAttribute, PyAttributeDataType>,
         edges: HashMap<PyMedRecordAttribute, PyAttributeDataType>,
@@ -179,6 +181,7 @@ impl From<PySchema> for Schema {
 #[pymethods]
 impl PySchema {
     #[new]
+    #[pyo3(signature = (groups, default=None, strict=None))]
     fn new(
         groups: HashMap<PyGroup, PyGroupSchema>,
         default: Option<PyGroupSchema>,
