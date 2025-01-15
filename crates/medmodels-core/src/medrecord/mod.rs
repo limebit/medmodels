@@ -807,16 +807,16 @@ mod test {
     }
 
     fn create_nodes_dataframe() -> Result<DataFrame, PolarsError> {
-        let s0 = Series::new("index", &["0", "1"]);
-        let s1 = Series::new("attribute", &[1, 2]);
-        DataFrame::new(vec![s0, s1])
+        let s0 = Series::new("index".into(), &["0", "1"]);
+        let s1 = Series::new("attribute".into(), &[1, 2]);
+        DataFrame::new(vec![s0.into(), s1.into()])
     }
 
     fn create_edges_dataframe() -> Result<DataFrame, PolarsError> {
-        let s0 = Series::new("from", &["0", "1"]);
-        let s1 = Series::new("to", &["1", "0"]);
-        let s2 = Series::new("attribute", &[1, 2]);
-        DataFrame::new(vec![s0, s1, s2])
+        let s0 = Series::new("from".into(), &["0", "1"]);
+        let s1 = Series::new("to".into(), &["1", "0"]);
+        let s2 = Series::new("attribute".into(), &[1, 2]);
+        DataFrame::new(vec![s0.into(), s1.into(), s2.into()])
     }
 
     fn create_medrecord() -> MedRecord {
