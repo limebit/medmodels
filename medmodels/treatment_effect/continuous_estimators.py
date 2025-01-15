@@ -15,7 +15,6 @@ if TYPE_CHECKING:
     from medmodels.medrecord.querying import EdgeOperand
     from medmodels.medrecord.types import Group, MedRecordAttribute, NodeIndex
 
-
 logger = logging.getLogger(__name__)
 
 

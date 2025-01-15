@@ -8,7 +8,6 @@ import pandas as pd
 import pytest
 
 from medmodels.medrecord.medrecord import MedRecord
-from medmodels.medrecord.types import NodeIndex
 from medmodels.treatment_effect.temporal_analysis import find_reference_edge
 
 if TYPE_CHECKING:
