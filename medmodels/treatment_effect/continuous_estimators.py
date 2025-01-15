@@ -1,14 +1,20 @@
 """Functions to estimate the treatment effect for continuous outcomes."""
 
+from __future__ import annotations
+
 import logging
 from math import sqrt
-from typing import Literal, Set
+from typing import TYPE_CHECKING, Literal, Optional, Set
 
 import numpy as np
 
-from medmodels.medrecord.medrecord import MedRecord
-from medmodels.medrecord.types import Group, MedRecordAttribute, NodeIndex
 from medmodels.treatment_effect.temporal_analysis import find_reference_edge
+
+if TYPE_CHECKING:
+    from medmodels.medrecord.medrecord import MedRecord
+    from medmodels.medrecord.querying import EdgeOperand
+    from medmodels.medrecord.types import Group, MedRecordAttribute, NodeIndex
+
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +26,7 @@ def average_treatment_effect(
     outcome_group: Group,
     outcome_variable: MedRecordAttribute,
     reference: Literal["first", "last"] = "last",
-    time_attribute: MedRecordAttribute = "time",
+    time_attribute: Optional[MedRecordAttribute] = None,
 ) -> float:
     r"""Calculates the Average Treatment Effect (ATE).
 
@@ -57,8 +63,11 @@ def average_treatment_effect(
             exposure time. Options include "first" and "last". If "first", the function
             returns the earliest exposure edge. If "last", the function returns the
             latest exposure edge. Defaults to "last".
-        time_attribute (MedRecordAttribute, optional): The attribute in the edge that
-            contains the time information. Defaults to "time".
+        time_attribute (Optional[MedRecordAttribute], optional): The attribute in the
+            edge that contains the time information. If it is equal to None, there is
+            no time component in the data and all edges between the sets and the
+            outcomes are considered for the average treatment effect. Defaults to
+            None.
 
     Returns:
         float: The average treatment effect.
@@ -66,39 +75,64 @@ def average_treatment_effect(
     Raises:
         ValueError: If the outcome variable is not numeric.
     """
-    treated_outcomes = np.array(
-        [
-            medrecord.edge[
-                find_reference_edge(
-                    medrecord,
-                    node_index,
-                    outcome_group,
-                    time_attribute=time_attribute,
-                    reference=reference,
-                )
-            ][outcome_variable]
-            for node_index in treatment_outcome_true_set
-        ]
-    )
-    if not all(isinstance(i, (int, float)) for i in treated_outcomes):
-        msg = "Outcome variable must be numeric"
-        raise ValueError(msg)
+    if time_attribute is not None:
+        treated_outcomes = np.array(
+            [
+                medrecord.edge[
+                    find_reference_edge(
+                        medrecord,
+                        node_index,
+                        outcome_group,
+                        time_attribute=time_attribute,
+                        reference=reference,
+                    )
+                ][outcome_variable]
+                for node_index in treatment_outcome_true_set
+            ]
+        )
+        control_outcomes = np.array(
+            [
+                medrecord.edge[
+                    find_reference_edge(
+                        medrecord,
+                        node_index,
+                        outcome_group,
+                        time_attribute="time",
+                        reference=reference,
+                    )
+                ][outcome_variable]
+                for node_index in control_outcome_true_set
+            ]
+        )
 
-    control_outcomes = np.array(
-        [
-            medrecord.edge[
-                find_reference_edge(
-                    medrecord,
-                    node_index,
-                    outcome_group,
-                    time_attribute=time_attribute,
-                    reference=reference,
-                )
-            ][outcome_variable]
-            for node_index in control_outcome_true_set
-        ]
-    )
-    if not all(isinstance(i, (int, float)) for i in control_outcomes):
+    else:
+        edges_treated_outcomes = medrecord.select_edges(
+            lambda edge: query_edges_between_set_outcome(
+                edge, treatment_outcome_true_set, outcome_group
+            )
+        )
+        treated_outcomes = np.array(
+            [
+                medrecord.edge[edge_id][outcome_variable]
+                for edge_id in edges_treated_outcomes
+            ]
+        )
+
+        edges_control_outcomes = medrecord.select_edges(
+            lambda edge: query_edges_between_set_outcome(
+                edge, control_outcome_true_set, outcome_group
+            )
+        )
+        control_outcomes = np.array(
+            [
+                medrecord.edge[edge_id][outcome_variable]
+                for edge_id in edges_control_outcomes
+            ]
+        )
+
+    if not all(isinstance(i, (int, float)) for i in treated_outcomes) or not all(
+        isinstance(i, (int, float)) for i in control_outcomes
+    ):
         msg = "Outcome variable must be numeric"
         raise ValueError(msg)
 
@@ -112,7 +146,7 @@ def cohens_d(
     outcome_group: Group,
     outcome_variable: MedRecordAttribute,
     reference: Literal["first", "last"] = "last",
-    time_attribute: MedRecordAttribute = "time",
+    time_attribute: Optional[MedRecordAttribute] = None,
 ) -> float:
     """Calculates Cohen's D, the standardized mean difference between two sets.
 
@@ -147,7 +181,7 @@ def cohens_d(
             returns the earliest exposure edge. If "last", the function returns the
             latest exposure edge. Defaults to "last".
         time_attribute (MedRecordAttribute, optional): The attribute in the edge that
-            contains the time information. Defaults to "time".
+            contains the time information. Defaults to None.
 
     Returns:
         float: The Cohen's D coefficient, representing the effect size.
@@ -158,39 +192,63 @@ def cohens_d(
     Warning:
         If the sample size is small (less than 50), the function advises Hedges' g use.
     """
-    treated_outcomes = np.array(
-        [
-            medrecord.edge[
-                find_reference_edge(
-                    medrecord,
-                    node_index,
-                    outcome_group,
-                    time_attribute=time_attribute,
-                    reference=reference,
-                )
-            ][outcome_variable]
-            for node_index in treatment_outcome_true_set
-        ]
-    )
-    if not all(isinstance(i, (int, float)) for i in treated_outcomes):
-        msg = "Outcome variable must be numeric"
-        raise ValueError(msg)
+    if time_attribute is not None:
+        treated_outcomes = np.array(
+            [
+                medrecord.edge[
+                    find_reference_edge(
+                        medrecord,
+                        node_index,
+                        outcome_group,
+                        time_attribute=time_attribute,
+                        reference=reference,
+                    )
+                ][outcome_variable]
+                for node_index in treatment_outcome_true_set
+            ]
+        )
+        control_outcomes = np.array(
+            [
+                medrecord.edge[
+                    find_reference_edge(
+                        medrecord,
+                        node_index,
+                        outcome_group,
+                        time_attribute="time",
+                        reference=reference,
+                    )
+                ][outcome_variable]
+                for node_index in control_outcome_true_set
+            ]
+        )
+    else:
+        edges_treated_outcomes = medrecord.select_edges(
+            lambda edge: query_edges_between_set_outcome(
+                edge, treatment_outcome_true_set, outcome_group
+            )
+        )
+        treated_outcomes = np.array(
+            [
+                medrecord.edge[edge_id][outcome_variable]
+                for edge_id in edges_treated_outcomes
+            ]
+        )
 
-    control_outcomes = np.array(
-        [
-            medrecord.edge[
-                find_reference_edge(
-                    medrecord,
-                    node_index,
-                    outcome_group,
-                    time_attribute=time_attribute,
-                    reference=reference,
-                )
-            ][outcome_variable]
-            for node_index in control_outcome_true_set
-        ]
-    )
-    if not all(isinstance(i, (int, float)) for i in control_outcomes):
+        edges_control_outcomes = medrecord.select_edges(
+            lambda edge: query_edges_between_set_outcome(
+                edge, control_outcome_true_set, outcome_group
+            )
+        )
+        control_outcomes = np.array(
+            [
+                medrecord.edge[edge_id][outcome_variable]
+                for edge_id in edges_control_outcomes
+            ]
+        )
+
+    if not all(isinstance(i, (int, float)) for i in treated_outcomes) or not all(
+        isinstance(i, (int, float)) for i in control_outcomes
+    ):
         msg = "Outcome variable must be numeric"
         raise ValueError(msg)
 
@@ -213,7 +271,7 @@ def hedges_g(
     outcome_group: Group,
     outcome_variable: MedRecordAttribute,
     reference: Literal["first", "last"] = "last",
-    time_attribute: MedRecordAttribute = "time",
+    time_attribute: Optional[MedRecordAttribute] = None,
 ) -> float:
     """Calculates Hedges' g, the unbiased effect size estimate.
 
@@ -236,8 +294,8 @@ def hedges_g(
             exposure time. Options include "first" and "last". If "first", the function
             returns the earliest exposure edge. If "last", the function returns the
             latest exposure edge. Defaults to "last".
-        time_attribute (MedRecordAttribute, optional): The attribute in the edge that
-            contains the time information. Defaults to "time".
+        time_attribute (Optional[MedRecordAttribute], optional): The attribute in the
+            edge that contains the time information. Defaults to None.
 
     Returns:
         float: The Hedges' g coefficient, representing the effect size.
@@ -245,39 +303,62 @@ def hedges_g(
     Raises:
         ValueError: If the outcome variable is not numeric.
     """
-    treated_outcomes = np.array(
-        [
-            medrecord.edge[
-                find_reference_edge(
-                    medrecord,
-                    node_index,
-                    outcome_group,
-                    time_attribute=time_attribute,
-                    reference=reference,
-                )
-            ][outcome_variable]
-            for node_index in treatment_outcome_true_set
-        ]
-    )
-    if not all(isinstance(i, (int, float)) for i in treated_outcomes):
-        msg = "Outcome variable must be numeric"
-        raise ValueError(msg)
+    if time_attribute is not None:
+        treated_outcomes = np.array(
+            [
+                medrecord.edge[
+                    find_reference_edge(
+                        medrecord,
+                        node_index,
+                        outcome_group,
+                        time_attribute=time_attribute,
+                        reference=reference,
+                    )
+                ][outcome_variable]
+                for node_index in treatment_outcome_true_set
+            ]
+        )
+        control_outcomes = np.array(
+            [
+                medrecord.edge[
+                    find_reference_edge(
+                        medrecord,
+                        node_index,
+                        outcome_group,
+                        time_attribute="time",
+                        reference=reference,
+                    )
+                ][outcome_variable]
+                for node_index in control_outcome_true_set
+            ]
+        )
+    else:
+        edges_treated_outcomes = medrecord.select_edges(
+            lambda edge: query_edges_between_set_outcome(
+                edge, treatment_outcome_true_set, outcome_group
+            )
+        )
+        treated_outcomes = np.array(
+            [
+                medrecord.edge[edge_id][outcome_variable]
+                for edge_id in edges_treated_outcomes
+            ]
+        )
 
-    control_outcomes = np.array(
-        [
-            medrecord.edge[
-                find_reference_edge(
-                    medrecord,
-                    node_index,
-                    outcome_group,
-                    time_attribute=time_attribute,
-                    reference=reference,
-                )
-            ][outcome_variable]
-            for node_index in control_outcome_true_set
-        ]
-    )
-    if not all(isinstance(i, (int, float)) for i in control_outcomes):
+        edges_control_outcomes = medrecord.select_edges(
+            lambda edge: query_edges_between_set_outcome(
+                edge, control_outcome_true_set, outcome_group
+            )
+        )
+        control_outcomes = np.array(
+            [
+                medrecord.edge[edge_id][outcome_variable]
+                for edge_id in edges_control_outcomes
+            ]
+        )
+    if not all(isinstance(i, (int, float)) for i in treated_outcomes) or not all(
+        isinstance(i, (int, float)) for i in control_outcomes
+    ):
         msg = "Outcome variable must be numeric"
         raise ValueError(msg)
 
@@ -285,14 +366,8 @@ def hedges_g(
     number_control = len(control_outcomes)
     degrees_of_freedom = number_treated + number_control - 2
 
-    cohen_d = cohens_d(
-        medrecord,
-        treatment_outcome_true_set,
-        control_outcome_true_set,
-        outcome_group,
-        outcome_variable,
-        reference,
-        time_attribute,
+    cohen_d = (treated_outcomes.mean() - control_outcomes.mean()) / sqrt(
+        (treated_outcomes.std(ddof=1) ** 2 + control_outcomes.std(ddof=1) ** 2) / 2
     )
 
     # Correction factor J
@@ -306,3 +381,26 @@ CONTINUOUS_ESTIMATOR = {
     "cohens_d": cohens_d,
     "hedges_g": hedges_g,
 }
+
+
+def query_edges_between_set_outcome(
+    edge: EdgeOperand, set: Set[NodeIndex], outcomes_group: Group
+) -> None:
+    """Query edges that connect a set of nodes to the outcomes group.
+
+    Args:
+        edge (EdgeOperand): The edge operand to query.
+        set (Set[NodeIndex]): A set of node indices representing the treated group that
+            also have the outcome.
+        outcomes_group (Group): The group of nodes that contain the outcome variable.
+    """
+    list_nodes = list(set)
+    edge.either_or(
+        lambda edge: edge.source_node().index().is_in(list_nodes),
+        lambda edge: edge.target_node().index().is_in(list_nodes),
+    )
+
+    edge.either_or(
+        lambda edge: edge.source_node().in_group(outcomes_group),
+        lambda edge: edge.target_node().in_group(outcomes_group),
+    )
