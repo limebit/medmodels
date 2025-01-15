@@ -43,8 +43,8 @@ MedModels is designed for a wide range of users working with real-world data and
 * Real-World Data Analysts
 * Health Economists
 * Clinicians
-* Data scientists
-* Software developers
+* Data Scientists
+* Software Developers
 
 ## Key Features
 
