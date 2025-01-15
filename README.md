@@ -48,7 +48,7 @@ MedModels is designed for a wide range of users working with real-world data and
 
 ## Key Features
 
-* **Rust-based Data Class:** Enables efficient transformation of patient data into flexible and extensible network graph structures.
+* **Rust-Based Data Class:** Enables efficient transformation of patient data into flexible and extensible network graph structures.
 * **High-Performance Computing:**  Handle large datasets in memory while maintaining fast processing speeds due to the underlying Rust implementation.
 * **Standardized Workflows:** Streamline common tasks in real-world evidence analysis, reducing the need for custom code.
 * **Interoperability:**  Facilitates collaboration and data sharing by providing a common data structure and analysis framework.
