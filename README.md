@@ -22,7 +22,7 @@
 
 
 <h2 align="center">
-  MedModels: A Rust powered Python Framework for Modern Healthcare Research
+  MedModels: A Rust-Powered Python Framework for Modern Healthcare Research
 </h2>
 
 ## Motivation
@@ -31,7 +31,7 @@ Analyzing real-world evidence, especially patient data, is a complex task demand
 
 * **Inefficient codebases:** Duplication of effort and potential inconsistencies.
 * **Faulty implementations:** Increased risk of errors in custom code.
-* **Technical debt:**  Maintaining and updating numerous, disparate codebases becomes challenging.
+* **Technical debt:**  Maintaining and updating numerous, heterogeneous codebases becomes challenging.
 
 MedModels addresses these challenges by providing a standardized, reliable, and efficient framework for handling, processing, and analyzing electronic health records (EHR) and claims data.
 
@@ -48,16 +48,20 @@ MedModels is designed for a wide range of users working with real-world data and
 
 ## Key Features
 
-* **Rust-Based Data Class:** Enables efficient transformation of patient data into flexible and extensible network graph structures.
-* **High-Performance Computing:**  Handle large datasets in memory while maintaining fast processing speeds due to the underlying Rust implementation.
-* **Standardized Workflows:** Streamline common tasks in real-world evidence analysis, reducing the need for custom code.
-* **Interoperability:**  Facilitates collaboration and data sharing by providing a common data structure and analysis framework.
+* **Rust-Based Data Class:** Facilitates the efficient transformation of patient data into adaptable and scalable network graph structures.
+* **High-Performance Computing:**  Handles large datasets in memory while maintaining fast processing speeds due to the underlying Rust implementation.
+* **Standardized Workflows:** Streamlines common tasks in real-world evidence analysis, reducing the need for custom code.
+* **Interoperability:**  Supports collaboration and data sharing through a unified data structure and analysis framework.
 
 ## Key Components
 
 * **MedRecord Data Structure:**
-    * **Graph-based Representation:**  Organizes medical data using nodes (e.g., patients, medications, diagnoses) and edges (e.g., date, dosage, duration) to capture complex interactions and dependencies.
+    * **Graph-Based Representation:**  Organizes medical data using nodes (e.g., patients, medications, diagnoses) and edges (e.g., date, dosage, duration) to capture complex interactions and dependencies.
     * **Dynamic Management:**  Provides methods to add, remove, and modify nodes and edges, as well as their associated attributes, allowing for flexible data manipulation.
+    * **Effortless Creation:** Easily create a `MedRecord` from various data sources:
+        * **Pandas DataFrames:** Seamlessly convert your existing Pandas DataFrames into a `MedRecord`.
+        * **Polars DataFrames:**  Alternatively, use Polars DataFrames as input for efficient data handling.
+        * **Standard Python Structures:**  Create a `MedRecord` directly from standard Python data structures like dictionaries and lists, offering flexibility for different data formats.
     * **Efficient Querying:**  Enables efficient querying and retrieval of information from the graph structure, supporting various analytical tasks.
     * **Grouping and Filtering:**  Allows grouping of nodes and edges for simplified management and targeted analysis of specific subsets of data.
     * **High-Performance Backend:**  Built on a Rust backend for optimal performance and efficient handling of large-scale medical datasets.
@@ -70,7 +74,7 @@ MedModels is designed for a wide range of users working with real-world data and
 * **Treatment Effect Analysis:**
 
     *  **Estimating Treatment Effects:**  Provides a range of methods for estimating treatment effects from observational data, including:
-        *  **Continuous Outcomes:** Analyze treatment effects on continuous outcomes
+        *  **Continuous Outcomes:** Analyze treatment effects on continuous outcomes.
         *  **Binary Outcomes:**  Estimate odds ratios, risk ratios, and other metrics for binary outcomes.
         *  **Time-to-Event Outcomes:**  Perform survival analysis and estimate hazard ratios for time-to-event outcomes.
         *  **Effect Size Metrics:** Calculate standardized effect size metrics like Cohen's d and Hedges' g.
@@ -83,7 +87,7 @@ MedModels is designed for a wide range of users working with real-world data and
 
 **Installation:**
 
-MedModels can be installed from PyPI using the `pip` command:
+MedModels can be installed from [PyPI](https://pypi.org/project/medmodels/) using the `pip` command:
 
 ```bash
 pip install medmodels
@@ -125,16 +129,10 @@ patient_medication = pd.DataFrame(
 # Create a MedRecord object using the builder pattern
 record = mm.MedRecord.builder().add_nodes((patients, "ID"), group="Patients").build()
 
-# Add medications as nodes to the MedRecord
-record.add_nodes((medications, "ID"), group="Medications")
+# Print an combined overview of the nodes and edges in the MedRecord
+print(record)
 
-# Add edges representing the patient-medication relationships
-record.add_edges((patient_medication, "Pat_ID", "Med_ID"))
-
-# Create a group of US patients
-record.add_group("US-Patients", ["Patient 01", "Patient 02"])
-
-# Print an overview of the nodes and edges in the MedRecord
+# You can also print only nodes and edges respectively
 record.overview_nodes()
 record.overview_edges()
 
