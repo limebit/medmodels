@@ -3,7 +3,7 @@ name = "medmodels"
 version = "0.1.2"
 description = "Limebit Medmodels Package"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 classifiers = [
     'Development Status :: 3 - Alpha',
     'Intended Audience :: Developers',
@@ -16,10 +16,10 @@ classifiers = [
     'Operating System :: Unix',
     'Programming Language :: Python',
     'Programming Language :: Python :: 3',
-    'Programming Language :: Python :: 3.9',
     'Programming Language :: Python :: 3.10',
     'Programming Language :: Python :: 3.11',
     'Programming Language :: Python :: 3.12',
+    'Programming Language :: Python :: 3.13',
     'Programming Language :: Python :: 3 :: Only',
     'Programming Language :: Rust',
     'Topic :: Scientific/Engineering',
@@ -29,7 +29,7 @@ classifiers = [
 dependencies = [
     "numpy>=2.0.0",
     "pandas>=2.2.2",
-    "polars[pandas]>=1.6.0",
+    "polars[pandas]==1.17.0",
     "scikit-learn>=1.5.0",
 ]
 

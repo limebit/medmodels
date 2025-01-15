@@ -11,6 +11,7 @@ from typing import (
     Mapping,
     Sequence,
     Tuple,
+    TypeAlias,
     TypedDict,
     Union,
 )
@@ -19,14 +20,7 @@ import pandas as pd
 import polars as pl
 
 if TYPE_CHECKING:
-    import sys
-
-    if sys.version_info >= (3, 10):
-        from typing import TypeAlias
-
-        from typing_extensions import TypeIs
-    else:
-        from typing_extensions import TypeAlias, TypeIs
+    from typing_extensions import TypeIs
 
 #: A type alias for attributes of a medical record.
 MedRecordAttribute: TypeAlias = Union[str, int]

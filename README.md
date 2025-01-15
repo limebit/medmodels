@@ -8,7 +8,7 @@
   <a href="https://github.com/astral-sh/ruff">
     <img alt="Code Style" src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json">
   </a>
-  <img alt="Python Versions" src="https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11%20%7C%203.12-blue">
+  <img alt="Python Versions" src="https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-blue">
   <a href="https://github.com/limebit/medmodels/blob/main/LICENSE">
     <img alt="MedModels License" src="https://img.shields.io/github/license/limebit/medmodels.svg">
   </a>

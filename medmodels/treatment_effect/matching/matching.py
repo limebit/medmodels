@@ -8,20 +8,13 @@ score matching and nearest neighbor matching.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Literal, Optional, Set, Tuple
+from typing import TYPE_CHECKING, Literal, Optional, Set, Tuple, TypeAlias
 
 import polars as pl
 
 if TYPE_CHECKING:
-    import sys
-
     from medmodels.medrecord.medrecord import MedRecord
     from medmodels.medrecord.types import MedRecordAttributeInputList, NodeIndex
-
-    if sys.version_info >= (3, 10):
-        from typing import TypeAlias
-    else:
-        from typing_extensions import TypeAlias
 
 MatchingMethod: TypeAlias = Literal["propensity", "nearest_neighbors"]
 
