@@ -6,9 +6,18 @@
   ],
   "license": "BSD 3-Clause License",
   "title": "MedModels",
+  "description": "A Rust powered Python framework for modern healthcare research. MedModels provides tools for data handling, data preprocessing, model training and evaluation with a focus on real-world evidence and electronic health records.",
   "keywords": [
     "Electronic Health Records",
-    "Laser",
-    "Behavior"
+    "Machine Learning",
+    "Medical Outcomes",
+    "Real World Evidence",
+    "Data Science"
+  ],
+  "related_identifiers": [
+    {
+      "relation": "isSupplementTo",
+      "identifier": "https://github.com/limebit/medmodels"
+    }
   ]
 }
