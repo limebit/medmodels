@@ -304,7 +304,6 @@ class TestTreatmentEffect:
             TreatmentEffect.builder()
             .with_treatment("Rivaroxaban")
             .with_outcome("Stroke")
-            .with_time_attribute(None)
             .with_patients_group("patients")
             .with_washout_period(reference="first")
             .with_grace_period(days=0, reference="last")
