@@ -1,5 +1,9 @@
 <div align="center">
-  <img alt="MedModels Logo" src="https://raw.githubusercontent.com/limebit/medmodels-static/refs/heads/main/logos/logo_black.svg">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/limebit/medmodels-static/refs/heads/main/logos/logo_white.svg">
+    <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/limebit/medmodels-static/refs/heads/main/logos/logo_black.svg">
+    <img alt="MedModels Logo">
+  </picture>
 </div>
 
 <br>
