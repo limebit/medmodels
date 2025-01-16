@@ -135,8 +135,8 @@ record = (
 print(record)
 
 # You can also print only nodes and edges respectively
-record.overview_nodes()
-record.overview_edges()
+print(record.overview_nodes())
+print(record.overview_edges())
 
 # Accessing all available nodes
 print(record.nodes)
