@@ -31,11 +31,7 @@
 
 ## Motivation
 
-Analyzing real-world evidence, especially patient data, is a complex task demanding accuracy and reproducibility.  Currently, research teams often re-implement the same statistical methods and data processing pipelines, leading to:
-
-* **Inefficient codebases:** Duplication of effort and potential inconsistencies.
-* **Faulty implementations:** Increased risk of errors in custom code.
-* **Technical debt:**  Maintaining and updating numerous, heterogeneous codebases becomes challenging.
+Analyzing real-world evidence, especially patient data, is a complex task demanding accuracy and reproducibility. Currently, research teams often re-implement the same statistical methods and data processing pipelines, leading to inefficient codebases, faulty implementations and technical debt.
 
 MedModels addresses these challenges by providing a standardized, reliable, and efficient framework for handling, processing, and analyzing electronic health records (EHR) and claims data.
 
@@ -61,19 +57,14 @@ MedModels is designed for a wide range of users working with real-world data and
 
 * **MedRecord Data Structure:**
     * **Graph-Based Representation:**  Organizes medical data using nodes (e.g., patients, medications, diagnoses) and edges (e.g., date, dosage, duration) to capture complex interactions and dependencies.
+    * **Efficient Querying:**  Enables efficient querying and retrieval of information from the graph structure, supporting various analytical tasks.
     * **Dynamic Management:**  Provides methods to add, remove, and modify nodes and edges, as well as their associated attributes, allowing for flexible data manipulation.
     * **Effortless Creation:** Easily create a `MedRecord` from various data sources:
         * **Pandas DataFrames:** Seamlessly convert your existing Pandas DataFrames into a `MedRecord`.
         * **Polars DataFrames:**  Alternatively, use Polars DataFrames as input for efficient data handling.
         * **Standard Python Structures:**  Create a `MedRecord` directly from standard Python data structures like dictionaries and lists, offering flexibility for different data formats.
-    * **Efficient Querying:**  Enables efficient querying and retrieval of information from the graph structure, supporting various analytical tasks.
     * **Grouping and Filtering:**  Allows grouping of nodes and edges for simplified management and targeted analysis of specific subsets of data.
     * **High-Performance Backend:**  Built on a Rust backend for optimal performance and efficient handling of large-scale medical datasets.
-    * **Easy Sharing and Storage:** MedRecords can be exported as `.ron` files (Rusty Object Notation), a human-readable format that is easy to share, store, and version control.
-
- * **Query Engine**:
-    * **Flexible Querying:**  Efficiently query nodes and edges of the MedRecord based on various criteria, including attributes, labels, and relationships.
-    * **High-Performance Implementation:**  Leverages a Rust backend for fast and efficient query execution, even on large datasets.
 
 * **Treatment Effect Analysis:**
 
@@ -131,7 +122,14 @@ patient_medication = pd.DataFrame(
 )
 
 # Create a MedRecord object using the builder pattern
-record = mm.MedRecord.builder().add_nodes((patients, "ID"), group="Patients").build()
+record = (
+    mm.MedRecord.builder()
+    .add_nodes((patients, "ID"), group="Patients")
+    .add_nodes((medications, "ID"), group="Medications")
+    .add_edges((patient_medication, "Pat_ID", "Med_ID"))
+    .add_group("US-Patients", nodes=["Patient 01", "Patient 02"])
+    .build()
+)
 
 # Print an combined overview of the nodes and edges in the MedRecord
 print(record)
