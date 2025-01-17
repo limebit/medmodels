@@ -103,7 +103,7 @@ class OverviewTable:
         """Initializes the OverviewTable class.
 
         Args:
-            data (Dict[Group, AttributeSummary]): Dictionary containing attribute info.
+            data (Dict[Group, AttributeSummary]): Dictionary containing attribute information.
             group_header (str): Header for group column, i.e. 'Group Nodes'.
             decimal (int): Decimal point to round the float values to.
         """
