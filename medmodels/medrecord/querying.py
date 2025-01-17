@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import TYPE_CHECKING, Callable, List, Union
+from typing import Callable, List, TypeAlias, Union
 
 from medmodels._medmodels import (
     PyAttributesTreeOperand,
@@ -26,14 +26,6 @@ from medmodels.medrecord.types import (
     MedRecordValue,
     NodeIndex,
 )
-
-if TYPE_CHECKING:
-    import sys
-
-    if sys.version_info >= (3, 10):
-        from typing import TypeAlias
-    else:
-        from typing_extensions import TypeAlias
 
 NodeQuery: TypeAlias = Callable[["NodeOperand"], None]
 EdgeQuery: TypeAlias = Callable[["EdgeOperand"], None]

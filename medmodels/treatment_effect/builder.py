@@ -23,6 +23,9 @@ class TreatmentEffectBuilder:
     The TreatmentEffectBuilder class is used to build a TreatmentEffect object with
     the desired configurations for the treatment effect estimation using a builder
     pattern.
+
+    By default, it configures a static treatment effect estimation. To configure a
+    time-dependent treatment effect estimation, the time_attribute must be set.
     """
 
     treatment: Group
@@ -96,6 +99,9 @@ class TreatmentEffectBuilder:
         self, attribute: MedRecordAttribute
     ) -> TreatmentEffectBuilder:
         """Sets the time attribute to be used in the treatment effect estimation.
+
+        It turs the treatment effect estimation from a static to a time-dependent
+        analysis.
 
         Args:
             attribute (MedRecordAttribute): The time attribute.

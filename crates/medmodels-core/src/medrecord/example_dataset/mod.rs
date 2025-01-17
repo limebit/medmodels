@@ -14,53 +14,61 @@ const PATIENT_PROCEDURE: &[u8] = include_bytes!("./synthetic_data/patient_proced
 impl MedRecord {
     pub fn from_example_dataset() -> Self {
         let cursor = Cursor::new(DIAGNOSIS_DATA);
-        let diagnosis = CsvReadOptions::default()
+        let mut diagnosis = CsvReadOptions::default()
             .with_has_header(true)
             .into_reader_with_file_handle(cursor)
             .finish()
             .expect("DataFrame can be built");
+        diagnosis.rechunk_mut();
         let diagnosis_ids = diagnosis
             .column("diagnosis_code")
             .expect("Column must exist")
+            .as_materialized_series()
             .iter()
             .map(|value| MedRecordAttribute::try_from(value).expect("AnyValue can be converted"))
             .collect::<Vec<_>>();
 
         let cursor = Cursor::new(DRUG_DATA);
-        let drug = CsvReadOptions::default()
+        let mut drug = CsvReadOptions::default()
             .with_has_header(true)
             .into_reader_with_file_handle(cursor)
             .finish()
             .expect("DataFrame can be built");
+        drug.rechunk_mut();
         let drug_ids = drug
             .column("drug_code")
             .expect("Column must exist")
+            .as_materialized_series()
             .iter()
             .map(|value| MedRecordAttribute::try_from(value).expect("AnyValue can be converted"))
             .collect::<Vec<_>>();
 
         let cursor = Cursor::new(PATIENT_DATA);
-        let patient = CsvReadOptions::default()
+        let mut patient = CsvReadOptions::default()
             .with_has_header(true)
             .into_reader_with_file_handle(cursor)
             .finish()
             .expect("DataFrame can be built");
+        patient.rechunk_mut();
         let patient_ids = patient
             .column("patient_id")
             .expect("Column must exist")
+            .as_materialized_series()
             .iter()
             .map(|value| MedRecordAttribute::try_from(value).expect("AnyValue can be converted"))
             .collect::<Vec<_>>();
 
         let cursor = Cursor::new(PROCEDURE_DATA);
-        let procedure = CsvReadOptions::default()
+        let mut procedure = CsvReadOptions::default()
             .with_has_header(true)
             .into_reader_with_file_handle(cursor)
             .finish()
             .expect("DataFrame can be built");
+        procedure.rechunk_mut();
         let procedure_ids = procedure
             .column("procedure_code")
             .expect("Column must exist")
+            .as_materialized_series()
             .iter()
             .map(|value| MedRecordAttribute::try_from(value).expect("AnyValue can be converted"))
             .collect::<Vec<_>>();
