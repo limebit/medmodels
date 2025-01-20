@@ -270,17 +270,33 @@ class MedRecord:
         return medrecord
 
     @classmethod
-    def from_example_dataset(cls) -> MedRecord:
-        """Creates a MedRecord instance from an example dataset.
+    def from_simple_example_dataset(cls) -> MedRecord:
+        """Creates a MedRecord instance from a simple example dataset.
 
         The example dataset was created using the Synthea™ Patient Generator:
-        https://github.com/synthetichealth/synthea
+        https://github.com/synthetichealth/synthea, and it includes 5 patients with
+        their diagnoses, prescriptions and procedures.
 
         Returns:
             MedRecord: A new instance created from the example dataset.
         """
         medrecord = cls.__new__(cls)
-        medrecord._medrecord = PyMedRecord.from_example_dataset()
+        medrecord._medrecord = PyMedRecord.from_simple_example_dataset()
+        return medrecord
+
+    @classmethod
+    def from_advanced_example_dataset(cls) -> MedRecord:
+        """Creates a MedRecord instance from an advanced example dataset.
+
+        The example dataset was created using the Synthea™ Patient Generator:
+        https://github.com/synthetichealth/synthea, and it includes 600 patients with
+        their diagnoses, prescriptions, procedures, and death events.
+
+        Returns:
+            MedRecord: A new instance created from the advanced example dataset.
+        """
+        medrecord = cls.__new__(cls)
+        medrecord._medrecord = PyMedRecord.from_advanced_example_dataset()
         return medrecord
 
     @classmethod

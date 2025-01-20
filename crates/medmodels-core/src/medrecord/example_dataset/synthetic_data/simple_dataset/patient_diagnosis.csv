@@ -1,4 +1,4 @@
-patient_id,diagnosis_code,diagnosis_time,duration_days
+patient_id,diagnosis_code,time,duration_days
 pat_1,diagnosis_82423001,2014-02-06,
 pat_1,diagnosis_73595000,2014-04-08,1113.0
 pat_1,diagnosis_741062008,2014-04-08,371.0

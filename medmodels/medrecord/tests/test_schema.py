@@ -8,7 +8,7 @@ from medmodels.medrecord.schema import GroupSchema, Schema
 
 
 def create_medrecord() -> mr.MedRecord:
-    return mr.MedRecord.from_example_dataset()
+    return mr.MedRecord.from_simple_example_dataset()
 
 
 class TestSchema(unittest.TestCase):
@@ -56,7 +56,7 @@ class TestGroupSchema(unittest.TestCase):
 
     def test_edges(self) -> None:
         assert self.schema.group("patient_diagnosis").edges == {
-            "diagnosis_time": (mr.DateTime(), mr.AttributeType.Temporal),
+            "time": (mr.DateTime(), mr.AttributeType.Temporal),
             "duration_days": (mr.Option(mr.Float()), mr.AttributeType.Continuous),
         }
 
