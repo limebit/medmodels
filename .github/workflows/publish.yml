@@ -12,15 +12,15 @@ jobs:
     strategy:
       matrix:
         platform:
-          - runner: ubuntu-latest
+          - runner: ubuntu-22.04
             target: x86_64
-          - runner: ubuntu-latest
+          - runner: ubuntu-22.04
             target: x86
-          - runner: ubuntu-latest
+          - runner: ubuntu-22.04
             target: aarch64
-          - runner: ubuntu-latest
+          - runner: ubuntu-22.04
             target: armv7
-          - runner: ubuntu-latest
+          - runner: ubuntu-22.04
             target: ppc64le
     steps:
       - uses: actions/checkout@v4
@@ -45,13 +45,13 @@ jobs:
     strategy:
       matrix:
         platform:
-          - runner: ubuntu-latest
+          - runner: ubuntu-22.04
             target: x86_64
-          - runner: ubuntu-latest
+          - runner: ubuntu-22.04
             target: x86
-          - runner: ubuntu-latest
+          - runner: ubuntu-22.04
             target: aarch64
-          - runner: ubuntu-latest
+          - runner: ubuntu-22.04
             target: armv7
     steps:
       - uses: actions/checkout@v4
@@ -125,7 +125,7 @@ jobs:
           path: dist
 
   sdist:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
       - name: Build sdist
@@ -141,7 +141,7 @@ jobs:
 
   release:
     name: Release
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     needs: [linux, musllinux, windows, macos, sdist]
     steps:
       - uses: actions/download-artifact@v4
