@@ -103,7 +103,8 @@ class OverviewTable:
         """Initializes the OverviewTable class.
 
         Args:
-            data (Dict[Group, AttributeSummary]): Dictionary containing attribute info for edges/nodes.
+            data (Dict[Group, AttributeSummary]): Dictionary containing attribute
+                information.
             group_header (str): Header for group column, i.e. 'Group Nodes'.
             decimal (int): Decimal point to round the float values to.
         """
@@ -1302,14 +1303,9 @@ class MedRecord:
     ) -> Dict[Group, AttributeSummary]:
         """Creates a summary of group nodes and their attributes.
 
-                Returns:
-        <<<<<<< HEAD
-                    Dict[Group, AttributeSummary]: Dictionary with all nodes in medrecord groups
-                        and their attributes.
-        =======
-                    pl.DataFrame: Dataframe with all nodes in medrecord groups and their
-                        attributes.
-        >>>>>>> main
+        Returns:
+            Dict[Group, AttributeSummary]: Dictionary with all nodes in medrecord groups
+                and their attributes.
         """
         nodes_info = {}
         grouped_nodes = []
