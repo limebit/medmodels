@@ -6,7 +6,7 @@ The **MedRecord Query Engine** enables users to find node and edges' indices sto
 
 ## Example dataset
 
-An example dataset for the following demonstrations was generated with the method [`from_example_dataset`](medmodels.medrecord.medrecord.MedRecord.from_example_dataset){target="\_blank"} from the [`MedRecord`](medmodels.medrecord.medrecord.MedRecord){target="\_blank"} class.
+An example dataset for the following demonstrations was generated with the method [`from_simple_example_dataset`](medmodels.medrecord.medrecord.MedRecord.from_simple_example_dataset){target="\_blank"} from the [`MedRecord`](medmodels.medrecord.medrecord.MedRecord){target="\_blank"} class.
 
 ```{literalinclude} scripts/02b_show_dataset.py
 ---

@@ -1755,7 +1755,7 @@ class TestMedRecord(unittest.TestCase):
         ) == str(medrecord.overview_edges("patient_diagnosis"))
 
     def test_overview_nodes(self) -> None:
-        medrecord = MedRecord.from_example_dataset()
+        medrecord = MedRecord.from_simple_example_dataset()
 
         assert "\n".join(
             [

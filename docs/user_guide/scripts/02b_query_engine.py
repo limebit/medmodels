@@ -2,7 +2,7 @@
 from medmodels import MedRecord
 from medmodels.medrecord.querying import EdgeOperand, NodeOperand
 
-medrecord = MedRecord().from_example_dataset()
+medrecord = MedRecord().from_simple_example_dataset()
 
 
 # Basic node query
