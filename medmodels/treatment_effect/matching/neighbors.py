@@ -55,10 +55,10 @@ class NeighborsMatching(Matching):
             control_set (Set[NodeIndex]): Set of control subjects.
             treated_set (Set[NodeIndex]): Set of treated subjects.
             patients_group (Group): Group of patients in the MedRecord.
-            essential_covariates (Optional[List[MedRecordAttribute]], optional):
+            essential_covariates (Optional[Sequence[MedRecordAttribute]], optional):
                 Covariates that are essential for matching. Defaults to None, meaning
                 all the attributes of the patients are used.
-            one_hot_covariates (Optional[List[MedRecordAttribute]], optional):
+            one_hot_covariates (Optional[Sequence[MedRecordAttribute]], optional):
                 Covariates that are one-hot encoded for matching. Defaults to None,
                 meaning all the categorical attributes of the patients are used.
 
