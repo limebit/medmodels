@@ -218,16 +218,19 @@ class NodeOperand:
         It is used to query the edges connecting the nodes defined after this node
         operand, having the direction specified.
 
-        Example:
-        ```python
-            node_operand.edges(EdgeDirection.OUTGOING).attribute("weight").greater_than(10)
-        ```
         Args:
             direction (EdgeDirection): The direction of the edges to consider.
                 Defaults to EdgeDirection.BOTH.
 
         Returns:
             EdgeOperand: The edges connecting the nodes defined after this node operand.
+
+        Example:
+
+            .. highlight:: python
+            .. code-block:: python
+
+                node_operand.edges(EdgeDirection.OUTGOING).attribute("weight").greater_than(10)
         """
         return EdgeOperand._from_py_edge_operand(
             self._node_operand.edges(direction._into_py_edge_direction())
@@ -241,17 +244,20 @@ class NodeOperand:
         It is used to query the nodes that have an edge connecting them to the
         neighbors defined after this node operand.
 
-        Example:
-        ```python
-            node_operand.neighbors(EdgeDirection.OUTGOING).in_group(patients_group)
-        ```
-
         Args:
             edge_direction (EdgeDirection): The direction of the edges to consider.
                 Defaults to EdgeDirection.OUTGOING.
 
         Returns:
             NodeOperand: The neighbors of the current node query.
+
+        Example:
+
+            .. highlight:: python
+            .. code-block:: python
+
+                node_operand.neighbors(EdgeDirection.OUTGOING).in_group(patients_group)
+
         """
         return NodeOperand._from_py_node_operand(
             self._node_operand.neighbors(edge_direction._into_py_edge_direction())
@@ -263,19 +269,19 @@ class NodeOperand:
         It applies the combination of the two queries to the node query. It returns all
         nodes that satisfy either the first query or the second query.
 
-        Example:
-         ```python
-
-        node_operand.either_or(
-            lambda node: node.attribute("age").greater_than(10),
-            lambda node: node.attribute("age").less_than(10)
-        )
-
-        ```
-
         Args:
             either (Callable[[EdgeIndexOperand], None]): One of the queries to apply.
             or_ (Callable[[EdgeIndexOperand], None]): The other query to apply.
+
+        Example:
+
+            .. highlight:: python
+            .. code-block:: python
+
+                node_operand.either_or(
+                    lambda node: node.attribute("age").greater_than(10),
+                    lambda node: node.attribute("age").less_than(10),
+                )
         """
         self._node_operand.either_or(
             lambda node: either(NodeOperand._from_py_node_operand(node)),
@@ -388,17 +394,21 @@ class EdgeOperand:
         This method applies the combination of the two queries to the edge query. It
         returns all edges that satisfy either the first query or the second query.
 
-        Example:
-        ```python
-        edge_operand.either_or(
-            lambda edge: edge.source_node().in_group("group1"),
-            lambda edge: edge.target_node().in_group("group1"),
-        )
-        ```
-
         Args:
             either (Callable[[EdgeIndexOperand], None]): One of the queries to apply.
             or_ (Callable[[EdgeIndexOperand], None]): The other query to apply.
+
+        Example:
+
+            .. highlight:: python
+            .. code-block:: python
+
+                edge_operand.either_or(
+                    lambda edge: edge.source_node().in_group("group1"),
+                    lambda edge: edge.target_node().in_group("group1"),
+                )
+
+
         """
         self._edge_operand.either_or(
             lambda edge: either(EdgeOperand._from_py_edge_operand(edge)),
@@ -871,17 +881,19 @@ class MultipleValuesOperand:
         query. It returns all multiple values that satisfy either the first query or the
         second query.
 
-        Example:
-        ```python
-        multiple_values_operand.either_or(
-            lambda values: values.is_int(), lambda values: values.is_float()
-        )
-        ```
-
         Args:
             either (Callable[[MultipleValuesOperand], None]): One of the queries to
                 apply.
             or_ (Callable[[MultipleValuesOperand], None]): The other query to apply.
+
+        Example:
+            .. highlight:: python
+            .. code-block:: python
+
+                multiple_values_operand.either_or(
+                    lambda values: values.is_int(), lambda values: values.is_float()
+                )
+
         """
         self._multiple_values_operand.either_or(
             lambda values: either(
@@ -1228,16 +1240,18 @@ class SingleValueOperand:
         query. It returns all single values that satisfy either the first query or the
         second query.
 
-        Example:
-        ```python
-        single_value_operand.either_or(
-            lambda value: value.is_int(), lambda value: value.is_float()
-        )
-        ```
-
         Args:
             either (Callable[[SingleValueOperand], None]): One of the queries to apply.
             or_ (Callable[[SingleValueOperand], None]): The other query to apply.
+
+        Example:
+            .. highlight:: python
+            .. code-block:: python
+
+                single_value_operand.either_or(
+                    lambda value: value.is_int(), lambda value: value.is_float()
+                )
+
         """
         self._single_value_operand.either_or(
             lambda value: either(
@@ -1632,21 +1646,24 @@ class AttributesTreeOperand:
         attribute names that satisfy either the first query or the second query for
         each node/edge.
 
-        Example:
-            ```python
-            # Example usage of either_or logic to filter attributes
-            attributes_tree_operand.either_or(
-                lambda attributes: attributes.is_int(),  # Query for integer attributes
-                lambda attributes: attributes.is_float(),  # Query for float attributes
-            )
-            ```
-
         Args:
             either (Callable[[AttributesTreeOperand], None]): A query function to
                 evaluate one condition on the attributes.
             or_ (Callable[[AttributesTreeOperand], None]): A query function to evaluate
                 the alternative condition on the attributes.
-        """
+
+        Example:
+            Example usage of `either_or` logic to filter attributes
+
+            .. highlight:: python
+            .. code-block:: python
+
+                attributes_tree_operand.either_or(
+                    lambda attributes: attributes.is_int(),  # Query for integer attributes
+                    lambda attributes: attributes.is_float(),  # Query for float attributes
+                )
+
+        """  # noqa: W505
         self._attributes_tree_operand.either_or(
             lambda attributes: either(
                 AttributesTreeOperand._from_py_attributes_tree_operand(attributes)
@@ -2057,21 +2074,23 @@ class MultipleAttributesOperand:
         This method evaluates two queries on the multiple attributes and returns all
         attribute names that satisfy either the first query or the second query.
 
-        Example:
-            ```python
-            # Example usage of either_or logic to filter attributes
-            multiple_attributes_operand.either_or(
-                lambda attributes: attributes.is_int(),  # Query for integer attributes
-                lambda attributes: attributes.is_float(),  # Query for float attributes
-            )
-            ```
-
         Args:
             either (Callable[[MultipleAttributesOperand], None]): A query function to
                 evaluate one condition on the multiple attributes.
             or_ (Callable[[MultipleAttributesOperand], None]): A query function to
                 evaluate the alternative condition on the multiple attributes.
-        """
+
+        Example:
+            Example usage of `either_or` logic to filter attributes
+
+            .. highlight:: python
+            .. code-block:: python
+
+                multiple_attributes_operand.either_or(
+                    lambda attributes: attributes.is_int(),  # Query for integer attributes
+                    lambda attributes: attributes.is_float(),  # Query for float attributes
+                )
+        """  # noqa: W505
         self._multiple_attributes_operand.either_or(
             lambda attributes: either(
                 MultipleAttributesOperand._from_py_multiple_attributes_operand(
@@ -2395,18 +2414,19 @@ class SingleAttributeOperand:
         This method evaluates two queries on the single attribute name and returns the
         attribute name that satisfies either the first query or the second query.
 
-        Example:
-        ```python
-        single_attribute_operand.either_or(
-            lambda attribute: attribute.is_in(["a", "b"]),
-            lambda attribute: attribute.is_in(["A", "B"]),
-        )
-        ```
-
         Args:
             either (Callable[[SingleAttributeOperand], None]): One of the queries to
                 apply.
             or_ (Callable[[SingleAttributeOperand], None]): The other query to apply.
+
+        Example:
+            .. highlight:: python
+            .. code-block:: python
+
+                single_attribute_operand.either_or(
+                    lambda attribute: attribute.is_in(["a", "b"]),
+                    lambda attribute: attribute.is_in(["A", "B"]),
+                )
         """
         self._single_attribute_operand.either_or(
             lambda attribute: either(
@@ -2737,16 +2757,18 @@ class NodeIndicesOperand:
         This method evaluates two queries on the node indices and returns all node
         indices that satisfy either the first query or the second query.
 
-        Example:
-        ```python
-        node_indices_operand.either_or(
-            lambda node_indices: node_indices.is_int(),
-            lambda node_indices: node_indices.is_float(),
-        )
-        ```
         Args:
             either (Callable[[NodeIndicesOperand], None]): One of the queries to apply.
             or_ (Callable[[NodeIndicesOperand], None]): The other query to apply.
+
+        Example:
+            .. highlight:: python
+            .. code-block:: python
+
+                node_indices_operand.either_or(
+                    lambda node_indices: node_indices.is_int(),
+                    lambda node_indices: node_indices.is_float(),
+                )
         """
         self._node_indices_operand.either_or(
             lambda node_indices: either(
@@ -3016,16 +3038,17 @@ class NodeIndexOperand:
         This method evaluates two queries on the node index and returns the node index
         that satisfies either the first query or the second query.
 
-        Example:
-        ```python
-        node_index_operand.either_or(
-            lambda index: index.is_int(), lambda index: index.is_float()
-        )
-        ```
-
         Args:
             either (Callable[[NodeIndexOperand], None]): One of the queries to apply.
             or_ (Callable[[NodeIndexOperand], None]): The other query to apply.
+
+        Example:
+            .. highlight:: python
+            .. code-block:: python
+
+                node_index_operand.either_or(
+                    lambda index: index.is_int(), lambda index: index.is_float()
+                )
         """
         self._node_index_operand.either_or(
             lambda node_index: either(
@@ -3311,17 +3334,19 @@ class EdgeIndicesOperand:
         This method evaluates two queries on the edge indices and returns the edge
         indices that satisfy either the first query or the second query.
 
-        Example:
-        ```python
-
-        edge_indices_operand.either_or(
-            lambda edge_indices: edge_indices.contains(1),
-            lambda edge_indices: edge_indices.less_than(10),
-        )
-
         Args:
             either (Callable[[EdgeIndexOperand], None]): One of the queries to apply.
             or_ (Callable[[EdgeIndexOperand], None]): The other query to apply.
+
+        Example:
+            .. highlight:: python
+            .. code-block:: python
+
+                edge_indices_operand.either_or(
+                    lambda edge_indices: edge_indices.contains(1),
+                    lambda edge_indices: edge_indices.less_than(10),
+                )
+
         """
         self._edge_indices_operand.either_or(
             lambda edge_indices: either(
@@ -3549,17 +3574,18 @@ class EdgeIndexOperand:
         This method evaluates two queries on the edge index and returns the edge index
         that satisfies either the first query or the second query.
 
-        Example:
-        ```python
-        edge_index_operand.either_or(
-            lambda edge_index: edge_index.contains(1),
-            lambda edge_index: edge_index.less_than(10),
-        )
-        ```
-
         Args:
             either (Callable[[EdgeIndexOperand], None]): One of the queries to apply.
             or_ (Callable[[EdgeIndexOperand], None]): The other query to apply.
+
+        Example:
+            .. highlight:: python
+            .. code-block:: python
+
+                edge_index_operand.either_or(
+                    lambda edge_index: edge_index.contains(1),
+                    lambda edge_index: edge_index.less_than(10),
+                )
         """
         self._edge_index_operand.either_or(
             lambda edge_index: either(
