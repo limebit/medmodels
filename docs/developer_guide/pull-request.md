@@ -33,5 +33,5 @@ Once you've made your changes to the MedModels codebase and are ready to share t
 
 **4. Address Feedback and Merge:**
 
-- Once submitted, reviewers may provide feedback or request changes. Address these comments and make any necessary adjustments to your code.
+- Once submitted, reviewers may provide feedback or request changes. Address these comments and make any necessary adjustments to your code. Review comments should only be resolved by the comment author, not the pull request author.
 - After receiving approval from reviewers, admins can merge your pull request into the main branch.
