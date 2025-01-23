@@ -71,13 +71,15 @@ class ContingencyTable:
         (false).
 
         Example:
-        -----------------------------------
-                           Outcome
-        Group           True     False
-        -----------------------------------
-        Treated         2        1
-        Control         3        3
-        -----------------------------------
+            .. code-block:: text
+
+                -----------------------------------
+                                Outcome
+                Group           True     False
+                -----------------------------------
+                Treated         2        1
+                Control         3        3
+                -----------------------------------
         """
         line = "-" * 35
         upper_header_line = "{:<18} {:<10}".format("", "Outcome")

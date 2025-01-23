@@ -31,11 +31,11 @@ Example:
 
 ```{literalinclude} example_docstrings.py
 :lines: 1-5, 6-38
-:emphasize-lines: 13
+:emphasize-lines: 15
 ```
 
 :::{admonition} No Linebreaks In Summary Line
-:type: note
+:class: note
 The summary line cannot contain line breaks and must not exceed the maximum line length. Ensure that the summary line provides a brief description of the function's purpose. Further explanation and details can be given in the [Description](#description) text block underneath.
 :::
 
@@ -216,11 +216,11 @@ Example:
 
 ```{literalinclude} example_docstrings.py
 :lines: 1-5, 6-38
-:emphasize-lines: 18-26
+:emphasize-lines: 20-28
 ```
 
 :::{admonition} No Linebreak in Type Definitions
-:type: note
+:class: note
 
 When writing type definitions in argument docstrings, avoid placing line breaks inside the type annotations. For instance, complex types like `(Union[str, List[str], Dict[str, Any]])` should appear on a single line without splitting across lines. This ensures the type definition remains clear and avoids parsing issues.
 
@@ -228,7 +228,7 @@ If a type definition exceeds the maximum line length limit, deactivate the line 
 :::
 
 :::{admonition} No Boolean Argument Types
-:type: note
+:class: note
 Avoid using booleans as function arguments due to the "boolean trap". Booleans reduce code clarity, as `True` or `False` doesn't explain meaning. They also limit future flexibility — if more than two options are needed, changing the argument type can cause breaking changes. Instead, use an enum or a more descriptive type for better clarity and flexibility.
 
 For more information, you can refer to [Adam Johnson's article](https://adamj.eu/tech/2021/07/10/python-type-hints-how-to-avoid-the-boolean-trap/) which discusses this in detail and provides examples of how to avoid the boolean trap.
@@ -250,7 +250,7 @@ def example_function(param1, param2):
 ```
 
 :::{admonition} Don't Document `None` Return Value
-:type: note
+:class: note
 Don't add a `Returns` section when the function has no return value (`def fun() -> None`)
 :::
 
@@ -333,7 +333,7 @@ Will be shown in the API Docs as:
 ```
 ````
 
-Check out the docs of [find_node_in_time_window()](medmodels.treatment_effect.temporal_analysis.find_node_in_time_window) for a real example.
+Check out the docs of [find_reference_edge()](medmodels.treatment_effect.temporal_analysis.find_reference_edge) for a real example.
 
 ### Raises
 
