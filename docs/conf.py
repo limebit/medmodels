@@ -156,7 +156,7 @@ html_theme_options = {
         "json_url": "https://www.medmodels.de/docs/switcher.json",
         "version_match": version,
     },
-    "check_switcher": False,
+    "show_version_warning_banner": True,
 }
 
 html_context = {
