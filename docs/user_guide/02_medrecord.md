@@ -71,7 +71,7 @@ lines: 31
 - [`builder()`](medmodels.medrecord.medrecord.MedRecord.builder){target="_blank"} : Creates a new [`MedRecordBuilder`](medmodels.medrecord.builder.MedRecordBuilder){target="_blank"} instance to build a [`MedRecord`](medmodels.medrecord.medrecord.MedRecord){target="_blank"}.
 - [`add_nodes()`](medmodels.medrecord.builder.MedRecordBuilder.add_nodes){target="_blank"} : Adds nodes to the MedRecord from different data formats and optionally assigns them to a group.
 - [`build()`](medmodels.medrecord.builder.MedRecordBuilder.build){target="_blank"} : Constructs a MedRecord instance from the builder’s configuration.
-  :::
+:::
 
 The MedModels MedRecord object, `record`, now contains three patients. Each patient is identified by a unique index and has specific attributes, such as age, sex, and location. These patients serve as the initial nodes in the graph structure of our MedRecord, and are represented as follows:
 
@@ -100,7 +100,7 @@ lines: 33
 :::{dropdown} Methods used in the snippet
 
 - [`add_nodes()`](medmodels.medrecord.medrecord.MedRecord.add_nodes){target="_blank"} : Adds nodes to the MedRecord from different data formats and optionally assigns them to a group.
-  :::
+:::
 
 This will expand the MedRecord, adding several new nodes to the graph. However, these nodes are not yet connected, so let's establish relationships between them!
 
@@ -189,7 +189,7 @@ lines: 69-70
 
 - [`to_ron()`](medmodels.medrecord.medrecord.MedRecord.to_ron){target="_blank"} : Writes the MedRecord instance to a RON file.
 - [`from_ron()`](medmodels.medrecord.medrecord.MedRecord.from_ron){target="_blank"} : Creates a MedRecord instance from a RON file.
-  :::
+:::
 
 ## Overview Tables
 
@@ -206,7 +206,7 @@ lines: 48
 :::{dropdown} Methods used in the snippet
 
 - [`overview_nodes()`](medmodels.medrecord.medrecord.MedRecord.overview_nodes){target="_blank"} : Gets a summary for all nodes in groups and their attributes.
-  :::
+:::
 
 As shown, we have two groups of nodes - Patients and Medications - created when adding the nodes. Additionally, there’s a group called _'US-Patients'_ that we created. For each group of nodes, we can view their attributes along with a brief statistical summary, such as the minimum, maximum, and mean for numeric variables.
 
@@ -233,7 +233,7 @@ lines: 52, 55
 :::{dropdown} Methods used in the snippet
 
 - [`overview_edges()`](medmodels.medrecord.medrecord.MedRecord.overview_edges){target="_blank"} : Gets a summary for all edges in groups and their attributes.
-  :::
+:::
 
 ## Accessing Elements in a MedRecord
 
@@ -285,7 +285,7 @@ lines: 67
 - [`node[]`](medmodels.medrecord.medrecord.MedRecord.node){target="_blank"} : Provides access to node information within the MedRecord instance via an indexer, returning a dictionary with node indices as keys and node attributes as values.
 - [`groups()`](medmodels.medrecord.medrecord.MedRecord.groups){target="_blank"} : Lists the groups in the MedRecord instance.
 - [`nodes_in_group()`](medmodels.medrecord.medrecord.MedRecord.nodes_in_group){target="_blank"} : Retrieves the node indices associated with the specified group(s) in the MedRecord.
-  :::
+:::
 
 The MedRecord can be queried in very advanced ways in order to find very specific nodes based on time, relations, neighbors or other. These advanced querying methods are covered in one of the next sections of the user guide, [Query Engine](02b_query_engine.md).
 
