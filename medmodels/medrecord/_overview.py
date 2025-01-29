@@ -50,20 +50,20 @@ def extract_attribute_summary(
         Dict[MedRecordAttribute, Union[TemporalAttributeInfo, NumericAttributeInfo,
             StringAttributeInfo]: Summary of node or edge attributes.
     """
-    list_of_dicts = [{**v} for v in attribute_dictionary.values()]
-
     data = {}
-    for dictionary in list_of_dicts:
+
+    for dictionary in attribute_dictionary.values():
         for key, value in dictionary.items():
             data.setdefault(key, []).append(value)
 
     data_dict = {}
 
-    for attribute in sorted(data.keys()):
+    for attribute in sorted(data):
         attribute_values = [value for value in data[attribute] if value is not None]
 
-        if len(attribute_values) == 0:
+        if not attribute_values:
             attribute_info = {"type": "-", "values": "-"}
+
         # check if the attribute has as an attribute type defined in the schema
         elif schema and attribute in schema and schema[attribute][1]:
             if schema[attribute][1] == AttributeType.Continuous:
@@ -76,6 +76,7 @@ def extract_attribute_summary(
                     long_string_suffix="categories",
                     short_string_prefix="Categories",
                 )
+
         # Without Schema
         else:
             if all(isinstance(value, (int, float)) for value in attribute_values):
