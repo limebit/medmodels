@@ -14,7 +14,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 project = "MedModels"
 author = "Limebit GmbH"
 copyright = f"{date.today().year}, {author}"
-version = importlib.metadata.version(project)
+version = f"v{importlib.metadata.version(project)}"
 
 # General configuration
 extensions = [
