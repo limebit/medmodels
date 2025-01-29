@@ -10,7 +10,7 @@
 
 ## Preface
 
-Every major library has a central object that consitutes its core. For [PyTorch](https://pytorch.org/), it is the `torch.Tensor`, whereas for [Numpy](https://numpy.org/), it is the `np.array`. In our case, MedModels centres around the [`MedRecord`](medmodels.medrecord.medrecord.MedRecord){target="_blank"} as its foundational structure.
+Every major library has a central object that constitutes its core. For [PyTorch](https://pytorch.org/), it is the `torch.Tensor`, whereas for [Numpy](https://numpy.org/), it is the `np.array`. In our case, MedModels centres around the `MedRecord` as its foundational structure.
 
 MedModels delivers advanced data analytics methods out-of-the-box by utilizing a structured approach to data storage. This is enabled by the [`MedRecord`](medmodels.medrecord.medrecord.MedRecord){target="_blank"} class, which organizes data of any complexity within a graph structure. With its Rust backend implementation, MedRecord guarantees high performance, even when working with extremely large datasets.
 
@@ -135,7 +135,7 @@ We can add these edges then to our MedRecord Graph:
 ```{literalinclude} scripts/02_medrecord_intro.py
 ---
 language: python
-lines: 34
+lines: 35
 ---
 ```
 
@@ -164,7 +164,7 @@ lines: 37
 
 :::{dropdown} Methods used in the snippet
 
-- [`add_group()`](medmodels.medrecord.medrecord.MedRecord.add_group){target="_blank"} : Adds a group to the MedRecord instance with an optional list of node indices.
+- [`add_group()`](medmodels.medrecord.medrecord.MedRecord.add_group){target="_blank"} : Adds a group to the MedRecord instance with an optional list of node and/or edge indices.
 
 :::
 
@@ -198,7 +198,7 @@ The MedRecord class is designed to efficiently handle large datasets while maint
 ```{exec-literalinclude} scripts/02_medrecord_intro.py
 ---
 language: python
-setup-lines: 1-45
+setup-lines: 1-46
 lines: 48
 ---
 ```
@@ -226,13 +226,19 @@ However, they need to belong to a group in order to show their attributes in the
 ---
 language: python
 setup-lines: 1-46
-lines: 52, 55
+lines: 53, 55
 ---
 ```
 
 :::{dropdown} Methods used in the snippet
 
+- [`edges`](medmodels.medrecord.medrecord.MedRecord.edges){target="_blank"} : Lists the edge indices in the MedRecord instance.
+- [`add_group()`](medmodels.medrecord.medrecord.MedRecord.add_group){target="_blank"} : Adds a group to the MedRecord instance with an optional list of node and/or edge indices.
 - [`overview_edges()`](medmodels.medrecord.medrecord.MedRecord.overview_edges){target="_blank"} : Gets a summary for all edges in groups and their attributes.
+:::
+
+:::{note}
+ In this case, we are using the [`edges`](medmodels.medrecord.medrecord.MedRecord.edges){target="_blank"} property to add all edges in the MedRecord to that group since there are no type of edges in our MedRecord. In any other case, you should provide the specific indices of the edges you want to add to that group. You can learn how to select specific edges in the [Query Engine](02b_query_engine.md) user guide.
 :::
 
 ## Accessing Elements in a MedRecord
@@ -296,5 +302,6 @@ The full code examples for this chapter can be found here:
 ```{literalinclude} scripts/02_medrecord_intro.py
 ---
 language: python
+lines: 2-70
 ---
 ```
