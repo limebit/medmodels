@@ -514,7 +514,7 @@ print(
 * [`greater_than_or_equal_to()`](medmodels.medrecord.querying.MultipleValuesOperand.greater_than_or_equal_to){target="_blank"} : Query values that are greater or equal to a specific value.
 * [`less_than()`](medmodels.medrecord.querying.MultipleValuesOperand.less_than){target="_blank"} : Query values that are less than that value.
 * [`group()`](medmodels.medrecord.medrecord.MedRecord.group){target="_blank"} : Returns the node and edge indices associated with the specified group(s) in the MedRecord.
-* [`add_nodes_to_group()`](medmodels.medrecord.medrecord.MedRecord.add_nodes_to_group){target="_blank"} : Retrieves the groups associated with the specified node(s) in the MedRecord.
+* [`add_nodes_to_group()`](medmodels.medrecord.medrecord.MedRecord.add_nodes_to_group){target="_blank"} : Adds one or more nodes to a specified group in the MedRecord.
 :::
 
 It is possible to remove nodes from groups and to remove groups entirely from the MedRecord.
@@ -546,7 +546,7 @@ medrecord.add_group(group="Diagnosis", node=node().index().starts_with("diagnosi
 
 :::{dropdown} Methods used in the snippet
 
-* [`remove_nodes_from_group()`](medmodels.medrecord.medrecord.MedRecord.remove_nodes_from_group){target="_blank"} : Select nodes that match that query.
+* [`remove_nodes_from_group()`](medmodels.medrecord.medrecord.MedRecord.remove_nodes_from_group){target="_blank"} : Removes one or more nodes from a specified group.
 * [`select_nodes()`](medmodels.medrecord.medrecord.MedRecord.select_nodes){target="_blank"} : Select nodes that match that query.
 * [`node()`](medmodels.medrecord.querying.NodeOperand){target="_blank"} : Returns a [`NodeOperand`](medmodels.medrecord.querying.NodeOperand){target="_blank"} to query on the nodes of the MedRecord.
 * [`in_group()`](medmodels.medrecord.querying.NodeOperand.in_group){target="_blank"} : Query the nodes that are in that given group.
