@@ -13,10 +13,12 @@ Example:
     ---
     ```
 """
+# ruff: noqa: D100, D103
 
 import contextlib
 import io
-from typing import List
+from pathlib import Path
+from typing import Any, Callable, ClassVar, Dict, List
 
 from docutils import nodes
 from sphinx.application import Sphinx
@@ -29,14 +31,14 @@ class ExecLiteralInclude(SphinxDirective):
 
     required_arguments = 1  # The file path is the only required argument
     optional_arguments = 0
-    option_spec = {
+    option_spec: ClassVar[Dict[str, Callable[[str], Any]]] = {  # pyright: ignore[reportIncompatibleVariableOverride]
         "lines": lambda x: x,
         "setup-lines": lambda x: x,
         "language": lambda x: x,
     }
     has_content = False
 
-    def run(self) -> List[nodes.Node]:
+    def run(self) -> List[nodes.Node]:  # noqa: C901
         """Process the directive and return nodes to be inserted into the document.
 
         Returns:
@@ -46,12 +48,12 @@ class ExecLiteralInclude(SphinxDirective):
         Raises:
             FileNotFoundError: If the specified file does not exist.
             Exception: If an error occurs while executing the code.
-        """
+        """  # noqa: DOC502
         environment = self.state.document.settings.env
         _, filename = environment.relfn2path(self.arguments[0])
 
         try:
-            with open(filename, "r") as file:
+            with Path(filename).open("r") as file:
                 code_lines = file.readlines()
         except FileNotFoundError:
             error = self.state_machine.reporter.error(
@@ -113,7 +115,7 @@ class ExecLiteralInclude(SphinxDirective):
                     if self._is_expression(last_line):
                         result = eval(last_line, exec_globals)
                         if result is not None:
-                            print(repr(result))
+                            print(repr(result))  # noqa: T201
                     else:
                         exec(last_line, exec_globals)
 
