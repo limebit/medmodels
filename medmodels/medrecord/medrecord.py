@@ -1015,7 +1015,7 @@ class MedRecord:
             Union[EdgeIndex, EdgeIndexInputList, EdgeIndexQuery, EdgeIndicesQuery]
         ] = None,
     ) -> None:
-        """Adds a group to the MedRecord instance with an optional list of node indices.
+        """Adds a group to the MedRecord, optionally with node and edge indices.
 
         If node indices are specified, they are added to the group. If no nodes are
         specified, the group is created without any nodes.
