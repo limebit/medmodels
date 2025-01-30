@@ -1754,6 +1754,24 @@ class TestMedRecord(unittest.TestCase):
             ]
         ) == str(medrecord.overview_edges("patient_diagnosis"))
 
+    def test_overview_nodes(self) -> None:
+        medrecord = MedRecord.from_simple_example_dataset()
+
+        assert "\n".join(
+            [
+                "-----------------------------------------------------------",
+                "Nodes Group Count Attribute   Type        Data             ",
+                "-----------------------------------------------------------",
+                "diagnosis   25    description Categorical 25 unique values ",
+                "drug        19    description Categorical 19 unique values ",
+                "patient     5     age         Continuous  min: 19          ",
+                "                                          max: 96          ",
+                "                                          mean: 43.20      ",
+                "                  gender      Categorical Categories: F, M ",
+                "-----------------------------------------------------------",
+            ]
+        ) == str(medrecord.overview_nodes(["diagnosis", "drug", "patient"]))
+
 
 if __name__ == "__main__":
     run_test = unittest.TestLoader().loadTestsFromTestCase(TestMedRecord)
