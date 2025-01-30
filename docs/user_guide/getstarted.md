@@ -2,12 +2,12 @@
 
 ## MedRecord
 
-A _MedRecord_ is a data class that contains medical data in a network structure. It is based on _nodes_ and _edges_, which are connections between nodes. The MedRecord makes it easy to connect a dataset with different medical data tables or DataFrames into one structure with the necessary relationships.
+A [`MedRecord`](medmodels.medrecord.medrecord.MedRecord){target="_blank"} is a data class that contains medical data in a network structure. It is based on _nodes_ and _edges_, which are connections between nodes. The MedRecord makes it easy to connect a dataset with different medical data tables or DataFrames into one structure with the necessary relationships.
 The MedModels framework is based on the MedRecord class and all MedModels methods take a MedRecord as input.
 
 ## Nodes
 
-Nodes are the core components of a MedRecord. Each data entry, such as patient, diagnoses or procedure entries, is an indivual node in the MedRecord. Each node needs to have a unique identifier and can have different attributes associated to it. For example the patient data would have the _patient_id_ column as the unique identifier, and _gender_ and _age_ could be additional attributes for each patient.
+Nodes are the core components of a [`MedRecord`](medmodels.medrecord.medrecord.MedRecord){target="_blank"}. Each data entry, such as patient, diagnoses or procedure entries, is an indivual node in the MedRecord. Each node needs to have a unique identifier and can have different attributes associated to it. For example the patient data would have the _patient_id_ column as the unique identifier, and _gender_ and _age_ could be additional attributes for each patient.
 
 ```python
 # nodes - patient information
@@ -246,6 +246,12 @@ edges = [
 medrecord = MedRecord.from_tuples(nodes, edges)
 ```
 
+:::{dropdown} Methods used in the snippet
+
+* [`from_tuples()`](medmodels.medrecord.medrecord.MedRecord.from_tuples){target="_blank"} : Creates a MedRecord instance from lists of node and edge tuples.
+
+:::
+
 ### Pandas DataFrames
 
 If the MedRecord is created from a Pandas DataFrame, nodes and edges can be either a single DataFrame or a list of DataFrames. Edges are optional, but nodes need to be created to continue.
@@ -274,6 +280,12 @@ medrecord = MedRecord.from_pandas(
 )
 ```
 
+:::{dropdown} Methods used in the snippet
+
+* [`from_pandas()`](medmodels.medrecord.medrecord.MedRecord.from_pandas){target="_blank"} : Creates a MedRecord from Pandas DataFrames of nodes and optionally edges.
+
+:::
+
 #### Adding Nodes
 
 Nodes and Edges can be added to an existing MedRecord later, either as single DataFrames or a list of DataFrames.
@@ -283,6 +295,12 @@ Nodes and Edges can be added to an existing MedRecord later, either as single Da
 drug.set_index("drug_code", inplace=True)
 medrecord.add_nodes(nodes=drug)
 ```
+
+:::{dropdown} Methods used in the snippet
+
+* [`add_nodes()`](medmodels.medrecord.medrecord.MedRecord.add_nodes){target="_blank"} : Adds nodes to the MedRecord from different data formats and optionally assigns them to a group.
+
+:::
 
 ### Polars Dataframes
 
@@ -301,9 +319,15 @@ patient_drug_edges = medrecord.add_edges_polars(
 )
 ```
 
+:::{dropdown} Methods used in the snippet
+
+* [`add_edges_polars()`](medmodels.medrecord.medrecord.MedRecord.add_edges_polars){target="_blank"} : Adds edges to the MedRecord from Polars data frames and optionally assigns them to a group.
+
+:::
+
 ### Removing entries
 
-Nodes and edges can be easily removed by their identifier. To check if a node or edge exists, the `contains_node()` or `contains_edge()` functions can be used. If a node is deleted from the MedRecord, its corresponding edges will also be removed.
+Nodes and edges can be easily removed by their identifier. To check if a node or edge exists, the [`contains_node()`](medmodels.medrecord.medrecord.MedRecord.contains_node){target="_blank"} or [`contains_edge()`](medmodels.medrecord.medrecord.MedRecord.contains_edge){target="_blank"} functions can be used. If a node is deleted from the MedRecord, its corresponding edges will also be removed.
 
 ```python
 # returns attributes for the node that will be removed
@@ -312,6 +336,14 @@ medrecord.contains_node("pat_6") or medrecord.contains_edge(edge_pat6_pat2_id)
 ```
 
     False
+
+:::{dropdown} Methods used in the snippet
+
+* [`remove_nodes()`](medmodels.medrecord.medrecord.MedRecord.remove_nodes){target="_blank"} : Removes a node or multiple nodes from the MedRecord and returns their attributes.
+* [`contains_node()`](medmodels.medrecord.medrecord.MedRecord.contains_node){target="_blank"} : Checks whether a specific node exists in the MedRecord.
+* [`contains_edge()`](medmodels.medrecord.medrecord.MedRecord.contains_edge){target="_blank"} : Checks whether a specific edge exists in the MedRecord.
+
+:::
 
 ### Size of a MedRecord
 
@@ -324,6 +356,13 @@ print(
 ```
 
     The medrecord has 73 nodes and 160 edges.
+
+:::{dropdown} Methods used in the snippet
+
+* [`node_count()`](medmodels.medrecord.medrecord.MedRecord.node_count){target="_blank"} : Returns the total number of nodes currently managed by the MedRecord.
+* [`edge_count()`](medmodels.medrecord.medrecord.MedRecord.edge_count){target="_blank"} : Returns the total number of edges currently managed by the MedRecord.
+
+:::
 
 ## Nodes
 
@@ -343,6 +382,11 @@ print(f"Age of multiple patients: {medrecord.node[['pat_2', 'pat_3', 'pat_4'], '
     First patient attributes: {'gender': 'M', 'age': 42}
     Gender of first patient: M
     Age of multiple patients: {'pat_4': 19, 'pat_2': 22, 'pat_3': 96}
+
+:::{dropdown} Methods used in the snippet
+
+* [`node[]`](medmodels.medrecord.medrecord.MedRecord.node){target="_blank"} : Provides access to node information within the MedRecord instance via an indexer, returning a dictionary with node indices as keys and node attributes as values.
+:::
 
 ### Setting and updating node attributes
 
@@ -364,14 +408,19 @@ print(f"First patient attributes: {medrecord.node[first_patient]}")
     First patient attributes: {'gender': 'F', 'death': True, 'age': 42}
     First patient attributes: {'gender': 'F', 'age': 42}
 
+:::{dropdown} Methods used in the snippet
+
+* [`node[]`](medmodels.medrecord.medrecord.MedRecord.node){target="_blank"} : Provides access to node information within the MedRecord instance via an indexer, returning a dictionary with node indices as keys and node attributes as values.
+:::
+
 ### Selecting nodes and grouping
 
-Nodes can be selected using the MedRecords query engine. The `select_nodes()` function works with logical operators on node properties, attributes or the node index and returns a list of node indices.
+Nodes can be selected using the MedRecords query engine. The [`select_nodes()`](medmodels.medrecord.medrecord.MedRecord.select_nodes){target="_blank"} function works with logical operators on node properties, attributes or the node index and returns a list of node indices.
 
 Nodes and edges can be organized in groups for easier access. Nodes can be added to a group by their indices.
 
 ```python
-# select all indeces for node
+# select all indices for node
 patient_ids = medrecord.select_nodes(node().index().starts_with("pat"))
 medrecord.add_group(group="Patient", node=patient_ids)
 
@@ -379,6 +428,16 @@ print(f"Patients: {medrecord.select_nodes(node().in_group('Patient'))}")
 ```
 
     Patients: ['pat_5', 'pat_1', 'pat_4', 'pat_3', 'pat_2']
+
+:::{dropdown} Methods used in the snippet
+
+* [`select_nodes()`](medmodels.medrecord.medrecord.MedRecord.select_nodes){target="_blank"} : Select nodes that match that query.
+* [`node()`](medmodels.medrecord.querying.NodeOperand){target="_blank"} : Returns a [`NodeOperand`](medmodels.medrecord.querying.NodeOperand){target="_blank"} to query on the nodes of the MedRecord.
+* [`index()`](medmodels.medrecord.querying.NodeOperand.index){target="_blank"} : Returns a [`NodeIndexOperand`](medmodels.medrecord.querying.NodeIndexOperand){target="_blank"} to query on the node indices of the node operand.
+* [`starts_with()`](medmodels.medrecord.querying.NodeIndexOperand.starts_with){target="_blank"} : Query the node indices that start with that argument.
+* [`add_group()`](medmodels.medrecord.medrecord.MedRecord.add_group){target="_blank"} : Adds a group to the MedRecord, optionally with node and edge indices.
+* [`in_group()`](medmodels.medrecord.querying.NodeOperand.in_group){target="_blank"} : Query the nodes that are in that given group.
+:::
 
 ### Creating sub populations
 
@@ -394,10 +453,20 @@ medrecord.add_group(group="Young", node=young_id)
 medrecord.add_group(group="Woman", node=node().attribute("gender").equal_to("F"))
 ```
 
-The nodes of a group or a list of groups can be easily accessed with `group()`. The return is either a list of node indices for a single group or a dictionary with each group name,
+:::{dropdown} Methods used in the snippet
+
+* [`select_nodes()`](medmodels.medrecord.medrecord.MedRecord.select_nodes){target="_blank"} : Select nodes that match that query.
+* [`node()`](medmodels.medrecord.querying.NodeOperand){target="_blank"} : Returns a [`NodeOperand`](medmodels.medrecord.querying.NodeOperand){target="_blank"} to query on the nodes of the MedRecord.
+* [`attribute()`](medmodels.medrecord.querying.NodeOperand.attribute){target="_blank"} : Returns a [`MultipleValuesOperand`](medmodels.medrecord.querying.MultipleValuesOperand){target="_blank"} to query on the values of the nodes for that attribute.
+* [`less_than()`](medmodels.medrecord.querying.MultipleValuesOperand.less_than){target="_blank"} : Query values that are less than that value.
+* [`equal_to()`](medmodels.medrecord.querying.MultipleValuesOperand.equal_to){target="_blank"} : Query values equal to that value.
+* [`add_group()`](medmodels.medrecord.medrecord.MedRecord.add_group){target="_blank"} : Adds a group to the MedRecord, optionally with node and edge indices.
+:::
+
+The nodes of a group or a list of groups can be easily accessed with [`group()`](medmodels.medrecord.medrecord.MedRecord.group){target="_blank"}. The return is either a list of node indices for a single group or a dictionary with each group name,
 mapping to its list of node indices in case of multiple groups.
 
-To get all groups in which a node or a list of nodes is categorized, the function `groups_of_nodes()` can be used.
+To get all groups in which a node or a list of nodes is categorized, the function [`groups_of_node()`](medmodels.medrecord.medrecord.MedRecord.groups_of_node){target="_blank"} can be used.
 
 ```python
 print(
@@ -414,13 +483,19 @@ medrecord.group(["Young", "Woman"])
 
     {'Young': ['pat_4'], 'Woman': ['pat_3', 'pat_1', 'pat_2']}
 
+:::{dropdown} Methods used in the snippet
+
+* [`group()`](medmodels.medrecord.medrecord.MedRecord.group){target="_blank"} : Returns the node and edge indices associated with the specified group(s) in the MedRecord.
+* [`groups_of_node()`](medmodels.medrecord.medrecord.MedRecord.groups_of_node){target="_blank"} : Retrieves the groups associated with the specified node(s) in the MedRecord.
+:::
+
 Nodes can also be added to an existing group later.
 
 ```python
 higher_age = 25
 additional_young_id = medrecord.select_nodes(
-    node().attribute("age").greater_or_equal(young_age)
-    & node().attribute("age").less(higher_age)
+    node().attribute("age").greater_than_or_equal_to(young_age)
+    & node().attribute("age").less_than(higher_age)
 )
 medrecord.add_nodes_to_group(group="Young", nodes=additional_young_id)
 
@@ -430,6 +505,17 @@ print(
 ```
 
     Patients in Group 'Young' if threshold age is 25: ['pat_4', 'pat_2']
+
+:::{dropdown} Methods used in the snippet
+
+* [`select_nodes()`](medmodels.medrecord.medrecord.MedRecord.select_nodes){target="_blank"} : Select nodes that match that query.
+* [`node()`](medmodels.medrecord.querying.NodeOperand){target="_blank"} : Returns a [`NodeOperand`](medmodels.medrecord.querying.NodeOperand){target="_blank"} to query on the nodes of the MedRecord.
+* [`attribute()`](medmodels.medrecord.querying.NodeOperand.attribute){target="_blank"} : Returns a [`MultipleValuesOperand`](medmodels.medrecord.querying.MultipleValuesOperand){target="_blank"} to query on the values of the nodes for that attribute.
+* [`greater_than_or_equal_to()`](medmodels.medrecord.querying.MultipleValuesOperand.greater_than_or_equal_to){target="_blank"} : Query values that are greater or equal to a specific value.
+* [`less_than()`](medmodels.medrecord.querying.MultipleValuesOperand.less_than){target="_blank"} : Query values that are less than that value.
+* [`group()`](medmodels.medrecord.medrecord.MedRecord.group){target="_blank"} : Returns the node and edge indices associated with the specified group(s) in the MedRecord.
+* [`add_nodes_to_group()`](medmodels.medrecord.medrecord.MedRecord.add_nodes_to_group){target="_blank"} : Adds one or more nodes to a specified group in the MedRecord.
+:::
 
 It is possible to remove nodes from groups and to remove groups entirely from the MedRecord.
 
@@ -458,20 +544,35 @@ print(
 medrecord.add_group(group="Diagnosis", node=node().index().starts_with("diagnosis"))
 ```
 
+:::{dropdown} Methods used in the snippet
+
+* [`remove_nodes_from_group()`](medmodels.medrecord.medrecord.MedRecord.remove_nodes_from_group){target="_blank"} : Removes one or more nodes from a specified group.
+* [`select_nodes()`](medmodels.medrecord.medrecord.MedRecord.select_nodes){target="_blank"} : Select nodes that match that query.
+* [`node()`](medmodels.medrecord.querying.NodeOperand){target="_blank"} : Returns a [`NodeOperand`](medmodels.medrecord.querying.NodeOperand){target="_blank"} to query on the nodes of the MedRecord.
+* [`in_group()`](medmodels.medrecord.querying.NodeOperand.in_group){target="_blank"} : Query the nodes that are in that given group.
+* [`group_count()`](medmodels.medrecord.medrecord.MedRecord.group_count){target="_blank"} : Returns the total number of groups currently defined within the MedRecord.
+* [`remove_groups()`](medmodels.medrecord.medrecord.MedRecord.remove_groups){target="_blank"} : Removes one or more groups from the MedRecord instance.
+* [`contains_group()`](medmodels.medrecord.medrecord.MedRecord.contains_group){target="_blank"} : Checks whether a specific group exists in the MedRecord.
+:::
+
 ## Edges
 
 ### Getting edge indices
 
-Edges are assigned a unique index when they are added to the MedRecord. To retrieve the indices for a specific edge, the corresponding source and target node have to be specified in `edges_connecting()`. The same concept can also be used to get a list of all edge indices that are connecting a group of source nodes to a group of target nodes.
+Edges are assigned a unique index when they are added to the MedRecord. To retrieve the indices for a specific edge, the corresponding source and target node have to be specified in [`edges_connecting()`](medmodels.medrecord.medrecord.MedRecord.edges_connecting){target="_blank"}. The same concept can also be used to get a list of all edge indices that are connecting a group of source nodes to a group of target nodes.
 
 ```python
-# next PR
 patient_diagnosis_edges = medrecord.edges_connecting(
     source_node=medrecord.group("Patient"), target_node=medrecord.group("Diagnosis")
 )
 ```
 
-All outgoing or incoming edges of a node or a list of nodes can be retrieved with the functions `outgoing_edges()` or `incoming_edges()` respectively. If the edges of a list of nodes is requested, the return will be a dictionary with the nodes as keys and their edges as values in lists. Otherwise for a single node, the return will be a simple list.
+:::{dropdown} Methods used in the snippet
+
+* [`edges_connecting()`](medmodels.medrecord.medrecord.MedRecord.edges_connecting){target="_blank"} : Retrieves the edges connecting the specified source and target nodes in the MedRecord.
+:::
+
+All outgoing or incoming edges of a node or a list of nodes can be retrieved with the functions [`outgoing_edges()`](medmodels.medrecord.medrecord.MedRecord.outgoing_edges){target="_blank"} or [`incoming_edges()`](medmodels.medrecord.medrecord.MedRecord.incoming_edges){target="_blank"}, respectively. If the edges of a list of nodes is requested, the return will be a dictionary with the nodes as keys and their edges as values in lists. Otherwise for a single node, the return will be a simple list.
 
 The outgoing edges of a node are only the ones where the node is defined as the source node, while incoming edges of a node are the edges, where the specific node is defined as a target node.
 
@@ -483,6 +584,7 @@ print(
 ```
 
     The first patient has 24 outgoing edges and 0 incoming edges.
+
 
 ```python
 # diagnosis edges
@@ -497,13 +599,28 @@ print(
 
     The diabetes diagnosis has 0 outgoing edges and the following incoming edges: [8, 25].
 
-From the edge indices, the source and target nodes can be retrieved with `edge_endpoints()`.
+:::{dropdown} Methods used in the snippet
+
+* [`outgoing_edges()`](medmodels.medrecord.medrecord.MedRecord.outgoing_edges){target="_blank"} : Lists the outgoing edges of the specified node(s) in the MedRecord.
+* [`incoming_edges()`](medmodels.medrecord.medrecord.MedRecord.incoming_edges){target="_blank"} : Lists the incoming edges of the specified node(s) in the MedRecord.
+* [`select_nodes()`](medmodels.medrecord.medrecord.MedRecord.select_nodes){target="_blank"} : Select nodes that match that query.
+* [`node()`](medmodels.medrecord.querying.NodeOperand){target="_blank"} : Returns a [`NodeOperand`](medmodels.medrecord.querying.NodeOperand){target="_blank"} to query on the nodes of the MedRecord.
+* [`attribute()`](medmodels.medrecord.querying.NodeOperand.attribute){target="_blank"} : Returns a [`MultipleValuesOperand`](medmodels.medrecord.querying.MultipleValuesOperand){target="_blank"} to query on the values of the nodes for that attribute.
+* [`contains()`](medmodels.medrecord.querying.NodeIndexOperand.contains){target="_blank"} : Query node indices containing that argument.
+:::
+
+From the edge indices, the source and target nodes can be retrieved with [`edge_endpoints()`](medmodels.medrecord.medrecord.MedRecord.edge_endpoints){target="_blank"}.
 
 ```python
 medrecord.edge_endpoints(diabetes_incoming_edges)
 ```
 
     {25: ('pat_3', 'diagnosis_15777000'), 8: ('pat_1', 'diagnosis_15777000')}
+
+:::{dropdown} Methods used in the snippet
+
+* [`edge_endpoints()`](medmodels.medrecord.medrecord.MedRecord.edge_endpoints){target="_blank"} : Retrieves the source and target nodes of the specified edge(s) in the MedRecord.
+:::
 
 ### Getting edge attributes
 
@@ -519,6 +636,11 @@ print(
     {25: {'diagnosis_time': '1981-01-04', 'duration_days': None}, 8: {'diagnosis_time': '2020-05-12', 'duration_days': None}}
     The first drug of the first patient costs 215.58$.
 
+:::{dropdown} Methods used in the snippet
+
+* [`edge[]`](medmodels.medrecord.medrecord.MedRecord.edge){target="_blank"} : Provides access to edge attributes within the MedRecord instance via an indexer.
+:::
+
 ### Setting and updating attributes
 
 New attributes for edges can be created or existing attributes can be updated with the indexing method.
@@ -533,6 +655,11 @@ print(medrecord.edge[patient_drug_edges[0]])
 
     {'start_time': '2014-04-08T12:54:59Z', 'cost': 100, 'price_changed': True, 'quantity': 3}
 
+:::{dropdown} Methods used in the snippet
+
+* [`edge[]`](medmodels.medrecord.medrecord.MedRecord.edge){target="_blank"} : Provides access to edge attributes within the MedRecord instance via an indexer.
+:::
+
 ### Selecting edges
 
 Edges can also be selected using the query engine. The logic operators and functions are similar to the ones used for `select_nodes()`.
@@ -543,19 +670,32 @@ medrecord.select_edges(edge().attribute("cost").greater_than(500))
 
     [114, 117, 124]
 
+:::{dropdown} Methods used in the snippet
+
+* [`select_edges()`](medmodels.medrecord.medrecord.MedRecord.select_edges){target="_blank"} : Select edges that match that query.
+* [`edge()`](medmodels.medrecord.querying.EdgeOperand){target="_blank"} : Returns a [`EdgeOperand`](medmodels.medrecord.querying.EdgeOperand){target="_blank"} to query on the edges of the MedRecord.
+* [`attribute()`](medmodels.medrecord.querying.EdgeOperand.attribute){target="_blank"} : Returns a [`MultipleValuesOperand()`](medmodels.medrecord.querying.MultipleValuesOperand){target="_blank"} to query on the values of the edges for that attribute.
+* [`greater_than()`](medmodels.medrecord.querying.MultipleValuesOperand.greater_than){target="_blank"} : Query values that are greater than that value.
+:::
+
 ## Saving the MedRecord
 
 A MedRecord instance and all its data can be saved as a RON (Rusty Object Notation) file. From there, it can also be loaded and a new MedRecord instance can be created from an existing RON file.
 
 ```python
 medrecord.to_ron("medrecord.ron")
-
 medrecord_loaded = MedRecord.from_ron("medrecord.ron")
 ```
 
+:::{dropdown} Methods used in the snippet
+
+* [`to_ron()`](medmodels.medrecord.medrecord.MedRecord.to_ron){target="_blank"} : Writes the MedRecord instance to a RON file.
+* [`from_ron()`](medmodels.medrecord.medrecord.MedRecord.from_ron){target="_blank"} : Creates a MedRecord instance from a RON file.
+:::
+
 ## Clearing the MedRecord
 
-All data can be removed from the MedRecord with the `clear()` function.
+All data can be removed from the MedRecord with the [`clear()`](medmodels.medrecord.medrecord.MedRecord.clear){target="_blank"} function.
 
 ```python
 medrecord.clear()
@@ -563,3 +703,9 @@ medrecord.node_count()
 ```
 
     0
+
+:::{dropdown} Methods used in the snippet
+
+* [`clear()`](medmodels.medrecord.medrecord.MedRecord.clear){target="_blank"} : Clears all data from the MedRecord instance.
+* [`node_count()`](medmodels.medrecord.medrecord.MedRecord.node_count){target="_blank"} : Returns the total number of nodes currently managed by the MedRecord.
+:::
