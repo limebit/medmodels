@@ -1,10 +1,11 @@
+# ruff: noqa: D100, D103
 from typing import Tuple
 
 import pandas as pd
 
 from medmodels import MedRecord
 
-medrecord = MedRecord().from_example_dataset()
+medrecord = MedRecord().from_simple_example_dataset()
 
 
 # Showing example dataset

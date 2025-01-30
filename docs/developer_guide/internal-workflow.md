@@ -90,7 +90,7 @@ Epic issues are large tasks divided into smaller sub-tasks, marked with the `epi
 
 Example:
 
-```
+```markdown
 - [ ] Sub-task 1
 - [ ] Sub-task 2
 - [ ] Sub-task 3
