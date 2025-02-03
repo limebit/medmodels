@@ -61,7 +61,7 @@ def extract_attribute_summary(
     for attribute in sorted(data):
         attribute_values = [value for value in data[attribute] if value is not None]
 
-        if not attribute_values:
+        if len(attribute_values) == 0:
             attribute_info = {"type": "-", "values": "-"}
 
         # check if the attribute has as an attribute type defined in the schema
