@@ -1,4 +1,4 @@
-use super::{datatypes::DataType, AttributeType, GroupSchema, MedRecordAttribute, Schema};
+use super::{datatypes::DataType, AttributeType, GroupSchema, InferredSchema, MedRecordAttribute};
 use crate::MedRecord;
 use polars::{
     io::SerReader,
@@ -8,7 +8,7 @@ use std::{collections::HashMap, io::Cursor, sync::Arc};
 
 macro_rules! simple_dataset_schema {
     () => {
-        Schema {
+        InferredSchema {
             groups: HashMap::from([
                 (
                     "diagnosis".into(),
@@ -119,7 +119,7 @@ macro_rules! simple_dataset_schema {
 
 macro_rules! advanced_dataset_schema {
     () => {
-        Schema {
+        InferredSchema {
             groups: HashMap::from([
                 (
                     "diagnosis".into(),
@@ -703,7 +703,7 @@ impl MedRecord {
 
 #[cfg(test)]
 mod test {
-    use super::{AttributeType, DataType, GroupSchema, Schema};
+    use super::{AttributeType, DataType, GroupSchema, InferredSchema};
     use crate::MedRecord;
     use std::collections::HashMap;
 
