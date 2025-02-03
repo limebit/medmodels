@@ -30,7 +30,7 @@ pub use self::{
         },
         wrapper::{CardinalityWrapper, Wrapper},
     },
-    schema::{AttributeDataType, AttributeType, GroupSchema, Schema},
+    schema::{AttributeDataType, AttributeType, GroupSchema, InferredSchema},
 };
 use crate::errors::MedRecordError;
 use ::polars::frame::DataFrame;
@@ -133,7 +133,7 @@ fn dataframes_to_tuples(
 pub struct MedRecord {
     graph: Graph,
     group_mapping: GroupMapping,
-    schema: Schema,
+    schema: InferredSchema,
 }
 
 impl MedRecord {
@@ -141,11 +141,11 @@ impl MedRecord {
         Self {
             graph: Graph::new(),
             group_mapping: GroupMapping::new(),
-            schema: Schema::default(),
+            schema: InferredSchema::default(),
         }
     }
 
-    pub fn with_schema(schema: Schema) -> Self {
+    pub fn with_schema(schema: InferredSchema) -> Self {
         Self {
             graph: Graph::new(),
             group_mapping: GroupMapping::new(),
@@ -153,7 +153,7 @@ impl MedRecord {
         }
     }
 
-    pub fn with_capacity(nodes: usize, edges: usize, schema: Option<Schema>) -> Self {
+    pub fn with_capacity(nodes: usize, edges: usize, schema: Option<InferredSchema>) -> Self {
         Self {
             graph: Graph::with_capacity(nodes, edges),
             group_mapping: GroupMapping::new(),
@@ -164,7 +164,7 @@ impl MedRecord {
     pub fn from_tuples(
         nodes: Vec<(NodeIndex, Attributes)>,
         edges: Option<Vec<(NodeIndex, NodeIndex, Attributes)>>,
-        schema: Option<Schema>,
+        schema: Option<InferredSchema>,
     ) -> Result<Self, MedRecordError> {
         let mut medrecord = Self::with_capacity(
             nodes.len(),
@@ -188,7 +188,7 @@ impl MedRecord {
     pub fn from_dataframes(
         nodes_dataframes: impl IntoIterator<Item = impl Into<NodeDataFrameInput>>,
         edges_dataframes: impl IntoIterator<Item = impl Into<EdgeDataFrameInput>>,
-        schema: Option<Schema>,
+        schema: Option<InferredSchema>,
     ) -> Result<MedRecord, MedRecordError> {
         let (nodes, edges) = dataframes_to_tuples(nodes_dataframes, edges_dataframes)?;
 
@@ -197,7 +197,7 @@ impl MedRecord {
 
     pub fn from_nodes_dataframes(
         nodes_dataframes: impl IntoIterator<Item = impl Into<NodeDataFrameInput>>,
-        schema: Option<Schema>,
+        schema: Option<InferredSchema>,
     ) -> Result<MedRecord, MedRecordError> {
         let nodes = node_dataframes_to_tuples(nodes_dataframes)?;
 
@@ -241,7 +241,7 @@ impl MedRecord {
         })
     }
 
-    pub fn update_schema(&mut self, schema: Schema) -> Result<(), MedRecordError> {
+    pub fn update_schema(&mut self, schema: InferredSchema) -> Result<(), MedRecordError> {
         let mut old_schema = schema;
 
         mem::swap(&mut self.schema, &mut old_schema);
@@ -309,7 +309,7 @@ impl MedRecord {
         Ok(())
     }
 
-    pub fn get_schema(&self) -> &Schema {
+    pub fn get_schema(&self) -> &InferredSchema {
         &self.schema
     }
 
@@ -763,7 +763,7 @@ impl Default for MedRecord {
 #[cfg(test)]
 mod test {
     use super::{
-        Attributes, DataType, GroupSchema, MedRecord, MedRecordAttribute, NodeIndex, Schema,
+        Attributes, DataType, GroupSchema, InferredSchema, MedRecord, MedRecordAttribute, NodeIndex,
     };
     use crate::errors::MedRecordError;
     use polars::prelude::{DataFrame, NamedFrom, PolarsError, Series};
@@ -836,7 +836,7 @@ mod test {
 
     #[test]
     fn test_schema() {
-        let schema = Schema {
+        let schema = InferredSchema {
             groups: HashMap::from([(
                 "group".into(),
                 GroupSchema {
@@ -1037,7 +1037,7 @@ mod test {
             )
             .unwrap();
 
-        let schema = Schema {
+        let schema = InferredSchema {
             groups: Default::default(),
             default: Some(GroupSchema {
                 nodes: HashMap::from([("attribute".into(), DataType::Int.into())]),
@@ -1060,7 +1060,7 @@ mod test {
             .add_node("0".into(), HashMap::from([("attribute2".into(), 1.into())]))
             .unwrap();
 
-        let schema = Schema {
+        let schema = InferredSchema {
             groups: Default::default(),
             default: Some(GroupSchema {
                 nodes: HashMap::from([("attribute".into(), DataType::Int.into())]),
@@ -1074,7 +1074,7 @@ mod test {
             .update_schema(schema.clone())
             .is_err_and(|e| { matches!(e, MedRecordError::SchemaError(_)) }));
 
-        assert_eq!(Schema::default(), *medrecord.get_schema());
+        assert_eq!(InferredSchema::default(), *medrecord.get_schema());
 
         let mut medrecord = MedRecord::new();
 
@@ -1096,7 +1096,7 @@ mod test {
             .update_schema(schema.clone())
             .is_err_and(|e| { matches!(e, MedRecordError::SchemaError(_)) }));
 
-        assert_eq!(Schema::default(), *medrecord.get_schema());
+        assert_eq!(InferredSchema::default(), *medrecord.get_schema());
     }
 
     #[test]

@@ -1,6 +1,6 @@
 use medmodels_core::{
     errors::MedRecordError,
-    medrecord::{AttributeDataType, AttributeType, GroupSchema, Schema},
+    medrecord::{AttributeDataType, AttributeType, GroupSchema, InferredSchema},
 };
 use pyo3::prelude::*;
 use std::collections::HashMap;
@@ -164,15 +164,15 @@ impl PyGroupSchema {
 #[pyclass]
 #[repr(transparent)]
 #[derive(Debug, Clone)]
-pub struct PySchema(Schema);
+pub struct PySchema(InferredSchema);
 
-impl From<Schema> for PySchema {
-    fn from(value: Schema) -> Self {
+impl From<InferredSchema> for PySchema {
+    fn from(value: InferredSchema) -> Self {
         Self(value)
     }
 }
 
-impl From<PySchema> for Schema {
+impl From<PySchema> for InferredSchema {
     fn from(value: PySchema) -> Self {
         value.0
     }
@@ -187,7 +187,7 @@ impl PySchema {
         default: Option<PyGroupSchema>,
         strict: Option<bool>,
     ) -> Self {
-        PySchema(Schema {
+        PySchema(InferredSchema {
             groups: groups
                 .into_iter()
                 .map(|(k, v)| (k.into(), v.into()))
