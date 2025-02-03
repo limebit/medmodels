@@ -1,4 +1,4 @@
-patient_id,procedure_code,procedure_time,duration_minutes
+patient_id,procedure_code,time,duration_minutes
 pat_1,procedure_710824005,2017-04-25T12:54:59Z,30
 pat_1,procedure_763302001,2018-05-01T15:02:56Z,21
 pat_1,procedure_171207006,2020-05-12T14:05:34Z,11

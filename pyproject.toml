@@ -1,6 +1,6 @@
 [project]
 name = "medmodels"
-version = "0.1.2"
+version = "0.2.1"
 description = "Limebit Medmodels Package"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -29,7 +29,7 @@ classifiers = [
 dependencies = [
     "numpy>=2.0.0",
     "pandas>=2.2.2",
-    "polars[pandas]==1.17.0",
+    "polars[pandas]<=1.17.0",
     "scikit-learn>=1.5.0",
     "scipy>=1.9.0",
 ]

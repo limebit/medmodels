@@ -35,7 +35,7 @@ def calculate_propensity(
     treated_test: NDArray[Union[np.int64, np.float64]],
     control_test: NDArray[Union[np.int64, np.float64]],
     model: Model = "logit",
-    hyperparam: Optional[Dict[str, Any]] = None,
+    hyperparameters: Optional[Dict[str, Any]] = None,
 ) -> Tuple[NDArray[np.float64], NDArray[np.float64]]:
     """Calculates the propensity/probabilities of a subject being in the treated group.
 
@@ -55,8 +55,8 @@ def calculate_propensity(
             control group to predict probabilities.
         model (Model, optional): Classification algorithm to use. Options: "logit",
             "dec_tree", "forest".
-        hyperparam (Optional[Dict[str, Any]], optional): Manual hyperparameter settings.
-            Uses default if None.
+        hyperparameters (Optional[Dict[str, Any]], optional): Manual hyperparameter
+            settings. Uses default hyperparameters if None.
 
     Returns:
         Tuple[NDArray[np.float64], NDArray[np.float64]: Probabilities of the positive
@@ -67,7 +67,7 @@ def calculate_propensity(
         last class for treated and control sets, e.g., ([0.], [0.]).
     """
     propensity_model = PROP_MODEL[model]
-    pm = propensity_model(**hyperparam) if hyperparam else propensity_model()
+    pm = propensity_model(**hyperparameters) if hyperparameters else propensity_model()
     pm.fit(x_train, y_train)
 
     # Predict the probability of the treated and control groups
@@ -82,7 +82,7 @@ def run_propensity_score(
     control_set: pl.DataFrame,
     model: Model = "logit",
     number_of_neighbors: int = 1,
-    hyperparam: Optional[Dict[str, Any]] = None,
+    hyperparameters: Optional[Dict[str, Any]] = None,
     covariates: Optional[MedRecordAttributeInputList] = None,
 ) -> pl.DataFrame:
     """Executes Propensity Score matching using a specified classification algorithm.
@@ -101,7 +101,7 @@ def run_propensity_score(
             Options include "logit", "dec_tree", "forest".
         number_of_neighbors (int, optional): Number of nearest neighbors to find for
             each treated unit. Defaults to 1.
-        hyperparam (Optional[Dict[str, Any]], optional): Hyperparameters for model
+        hyperparameters (Optional[Dict[str, Any]], optional): Hyperparameters for model
             tuning. Increases computation time if set. Uses default if None.
         covariates (Optional[MedRecordAttributeInputList], optional): Features for
             matching. Uses all if None.
@@ -125,7 +125,7 @@ def run_propensity_score(
         y_train,
         treated_array,
         control_array,
-        hyperparam=hyperparam,
+        hyperparameters=hyperparameters,
         model=model,
     )
 

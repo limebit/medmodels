@@ -157,7 +157,7 @@ class TestOverview(unittest.TestCase):
         }
 
         # with schema
-        mr_schema = mm.MedRecord.from_example_dataset()
+        mr_schema = mm.MedRecord.from_simple_example_dataset()
         nodes_schema = mr_schema.group("patient")["nodes"]
 
         node_info = extract_attribute_summary(
@@ -180,7 +180,7 @@ class TestOverview(unittest.TestCase):
         )
 
         assert patient_diagnosis == {
-            "diagnosis_time": {
+            "time": {
                 "type": "Temporal",
                 "min": datetime(1962, 10, 21, 0, 0),
                 "max": datetime(2024, 4, 12, 0, 0),

@@ -270,17 +270,33 @@ class MedRecord:
         return medrecord
 
     @classmethod
-    def from_example_dataset(cls) -> MedRecord:
-        """Creates a MedRecord instance from an example dataset.
+    def from_simple_example_dataset(cls) -> MedRecord:
+        """Creates a MedRecord instance from a simple example dataset.
 
         The example dataset was created using the Synthea™ Patient Generator:
-        https://github.com/synthetichealth/synthea
+        https://github.com/synthetichealth/synthea, and it includes 5 patients with
+        their diagnoses, prescriptions and procedures.
 
         Returns:
             MedRecord: A new instance created from the example dataset.
         """
         medrecord = cls.__new__(cls)
-        medrecord._medrecord = PyMedRecord.from_example_dataset()
+        medrecord._medrecord = PyMedRecord.from_simple_example_dataset()
+        return medrecord
+
+    @classmethod
+    def from_advanced_example_dataset(cls) -> MedRecord:
+        """Creates a MedRecord instance from an advanced example dataset.
+
+        The example dataset was created using the Synthea™ Patient Generator:
+        https://github.com/synthetichealth/synthea, and it includes 600 patients with
+        their diagnoses, prescriptions, procedures, and death events.
+
+        Returns:
+            MedRecord: A new instance created from the advanced example dataset.
+        """
+        medrecord = cls.__new__(cls)
+        medrecord._medrecord = PyMedRecord.from_advanced_example_dataset()
         return medrecord
 
     @classmethod
@@ -1417,18 +1433,18 @@ class MedRecord:
             OverviewTable: Display of edge groups and their attributes.
 
         Example:
+            .. code-block:: text
 
-        --------------------------------------------------------------
-        Nodes Group     Count Attribute   Type        Data
-        --------------------------------------------------------------
-        diagnosis       25    description Categorical 25 unique values
-        patient         5     age         Continuous  min: 19
-                                                      max: 96
-                                                      mean: 43.20
-                              gender      Categorical Categories: F, M
-        Ungrouped Nodes 10    -           -           -
-        --------------------------------------------------------------
-
+                --------------------------------------------------------------
+                Nodes Group     Count Attribute   Type        Data
+                --------------------------------------------------------------
+                diagnosis       25    description Categorical 25 unique values
+                patient         5     age         Continuous  min: 19
+                                                              max: 96
+                                                              mean: 43.20
+                                      gender      Categorical Categories: F, M
+                Ungrouped Nodes 10    -           -           -
+                --------------------------------------------------------------
         """
         if groups:
             nodes_data = self._describe_group_nodes(
@@ -1457,17 +1473,19 @@ class MedRecord:
             OverviewTable: Display of edge groups and their attributes.
 
         Example:
+            .. code-block:: text
 
-        --------------------------------------------------------------------------
-        Edges Group       Count Attribute      Type       Data
-        --------------------------------------------------------------------------
-        Patient-Diagnosis 60    diagnosis_time Temporal   min: 1962-10-21 00:00:00
-                                                          max: 2024-04-12 00:00:00
-                                duration_days  Continuous min: 0
-                                                          max: 3416
-                                                          mean: 405.02
-        --------------------------------------------------------------------------
-        """
+                --------------------------------------------------------------------------
+                Edges Group       Count Attribute      Type       Data
+                --------------------------------------------------------------------------
+                Patient-Diagnosis 60    diagnosis_time Temporal   min: 1962-10-21 00:00:00
+                                                                  max: 2024-04-12 00:00:00
+                                        duration_days  Continuous min: 0
+                                                                  max: 3416
+                                                                  mean: 405.02
+                --------------------------------------------------------------------------
+
+        """  # noqa: W505
         if groups:
             edges_data = self._describe_group_edges(
                 groups if isinstance(groups, list) else [groups]

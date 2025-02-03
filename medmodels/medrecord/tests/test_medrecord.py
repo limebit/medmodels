@@ -226,16 +226,36 @@ class TestMedRecord(unittest.TestCase):
                 [(edges, "source", "target"), (edges, "source", "invalid")],
             )
 
-    def test_from_example_dataset(self) -> None:
-        medrecord = MedRecord.from_example_dataset()
+    def test_from_simple_example_dataset(self) -> None:
+        medrecord = MedRecord.from_simple_example_dataset()
 
         assert medrecord.node_count() == 73
         assert medrecord.edge_count() == 160
 
+        assert len(medrecord.nodes_in_group("patient")) == 5
         assert len(medrecord.nodes_in_group("diagnosis")) == 25
         assert len(medrecord.nodes_in_group("drug")) == 19
-        assert len(medrecord.nodes_in_group("patient")) == 5
         assert len(medrecord.nodes_in_group("procedure")) == 24
+
+        assert len(medrecord.edges_in_group("patient_diagnosis")) == 60
+        assert len(medrecord.edges_in_group("patient_drug")) == 50
+        assert len(medrecord.edges_in_group("patient_procedure")) == 50
+
+    def test_from_advanced_example_dataset(self) -> None:
+        medrecord = MedRecord.from_advanced_example_dataset()
+
+        assert medrecord.node_count() == 1088
+        assert medrecord.edge_count() == 16883
+
+        assert len(medrecord.nodes_in_group("patient")) == 600
+        assert len(medrecord.nodes_in_group("diagnosis")) == 206
+        assert len(medrecord.nodes_in_group("drug")) == 185
+        assert len(medrecord.nodes_in_group("procedure")) == 96
+
+        assert len(medrecord.edges_in_group("patient_diagnosis")) == 5741
+        assert len(medrecord.edges_in_group("patient_drug")) == 10373
+        assert len(medrecord.edges_in_group("patient_procedure")) == 677
+        assert len(medrecord.edges_in_group("patient_event")) == 92
 
     def test_ron(self) -> None:
         medrecord = create_medrecord()
@@ -1718,19 +1738,19 @@ class TestMedRecord(unittest.TestCase):
         }
 
     def test_overview_edges(self) -> None:
-        medrecord = MedRecord.from_example_dataset()
+        medrecord = MedRecord.from_simple_example_dataset()
 
         assert "\n".join(
             [
-                "---------------------------------------------------------------------------",
-                "Edges Group       Count Attribute      Type       Data                     ",
-                "---------------------------------------------------------------------------",
-                "patient_diagnosis 60    diagnosis_time Temporal   min: 1962-10-21 00:00:00 ",
-                "                                                  max: 2024-04-12 00:00:00 ",
-                "                        duration_days  Continuous min: 0.00                ",
-                "                                                  max: 3416.00             ",
-                "                                                  mean: 405.02             ",
-                "---------------------------------------------------------------------------",
+                "--------------------------------------------------------------------------",
+                "Edges Group       Count Attribute     Type       Data                     ",
+                "--------------------------------------------------------------------------",
+                "patient_diagnosis 60    duration_days Continuous min: 0.00                ",
+                "                                                 max: 3416.00             ",
+                "                                                 mean: 405.02             ",
+                "                        time          Temporal   min: 1962-10-21 00:00:00 ",
+                "                                                 max: 2024-04-12 00:00:00 ",
+                "--------------------------------------------------------------------------",
             ]
         ) == str(medrecord.overview_edges("patient_diagnosis"))
 
