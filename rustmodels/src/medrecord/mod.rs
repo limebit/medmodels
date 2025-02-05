@@ -105,7 +105,7 @@ impl PyMedRecord {
 
     #[getter]
     pub fn schema(&self) -> PySchema {
-        self.0.get_schema().clone().into()
+        todo!()
     }
 
     #[getter]
