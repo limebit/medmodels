@@ -30,7 +30,11 @@ pub use self::{
         },
         wrapper::{CardinalityWrapper, Wrapper},
     },
-    schema::{AttributeDataType, AttributeType, GroupSchema, InferredSchema},
+    schema::{
+        inferred::{InferredGroupSchema, InferredSchema},
+        provided::{ProvidedGroupSchema, ProvidedSchema},
+        AttributeDataType, AttributeType, Schema,
+    },
 };
 use crate::errors::MedRecordError;
 use ::polars::frame::DataFrame;
@@ -133,7 +137,7 @@ fn dataframes_to_tuples(
 pub struct MedRecord {
     graph: Graph,
     group_mapping: GroupMapping,
-    schema: InferredSchema,
+    schema: Schema,
 }
 
 impl MedRecord {
@@ -141,30 +145,35 @@ impl MedRecord {
         Self {
             graph: Graph::new(),
             group_mapping: GroupMapping::new(),
-            schema: InferredSchema::default(),
+            schema: Schema::default(),
         }
     }
 
-    pub fn with_schema(schema: InferredSchema) -> Self {
+    pub fn with_schema(schema: ProvidedSchema) -> Self {
         Self {
             graph: Graph::new(),
             group_mapping: GroupMapping::new(),
-            schema,
+            schema: Schema::Provided(schema),
         }
     }
 
-    pub fn with_capacity(nodes: usize, edges: usize, schema: Option<InferredSchema>) -> Self {
+    pub fn with_capacity(nodes: usize, edges: usize, schema: Option<ProvidedSchema>) -> Self {
+        let schema = match schema {
+            Some(schema) => Schema::Provided(schema),
+            None => Schema::default(),
+        };
+
         Self {
             graph: Graph::with_capacity(nodes, edges),
             group_mapping: GroupMapping::new(),
-            schema: schema.unwrap_or_default(),
+            schema,
         }
     }
 
     pub fn from_tuples(
         nodes: Vec<(NodeIndex, Attributes)>,
         edges: Option<Vec<(NodeIndex, NodeIndex, Attributes)>>,
-        schema: Option<InferredSchema>,
+        schema: Option<ProvidedSchema>,
     ) -> Result<Self, MedRecordError> {
         let mut medrecord = Self::with_capacity(
             nodes.len(),
@@ -188,7 +197,7 @@ impl MedRecord {
     pub fn from_dataframes(
         nodes_dataframes: impl IntoIterator<Item = impl Into<NodeDataFrameInput>>,
         edges_dataframes: impl IntoIterator<Item = impl Into<EdgeDataFrameInput>>,
-        schema: Option<InferredSchema>,
+        schema: Option<ProvidedSchema>,
     ) -> Result<MedRecord, MedRecordError> {
         let (nodes, edges) = dataframes_to_tuples(nodes_dataframes, edges_dataframes)?;
 
@@ -197,7 +206,7 @@ impl MedRecord {
 
     pub fn from_nodes_dataframes(
         nodes_dataframes: impl IntoIterator<Item = impl Into<NodeDataFrameInput>>,
-        schema: Option<InferredSchema>,
+        schema: Option<ProvidedSchema>,
     ) -> Result<MedRecord, MedRecordError> {
         let nodes = node_dataframes_to_tuples(nodes_dataframes)?;
 
@@ -241,75 +250,43 @@ impl MedRecord {
         })
     }
 
-    pub fn update_schema(&mut self, schema: InferredSchema) -> Result<(), MedRecordError> {
-        let mut old_schema = schema;
+    pub fn update_schema(&mut self, schema: ProvidedSchema) -> Result<(), MedRecordError> {
+        for (node_index, node) in self.graph.nodes.iter() {
+            let groups_of_node = self
+                .groups_of_node(node_index)
+                .expect("groups of node must exist")
+                .collect::<Vec<_>>();
 
-        mem::swap(&mut self.schema, &mut old_schema);
-
-        let result = self
-            .graph
-            .nodes
-            .iter()
-            .map(|(node_index, node)| {
-                let groups_of_node = self
-                    .groups_of_node(node_index)
-                    .expect("groups of node must exist")
-                    .collect::<Vec<_>>();
-
-                if !groups_of_node.is_empty() {
-                    for group in groups_of_node {
-                        self.schema
-                            .validate_node(node_index, &node.attributes, Some(group))?;
-                    }
-                } else {
-                    self.schema
-                        .validate_node(node_index, &node.attributes, None)?;
+            if !groups_of_node.is_empty() {
+                for group in groups_of_node {
+                    schema.validate_node(node_index, &node.attributes, Some(group))?;
                 }
-
-                Ok(())
-            })
-            .collect::<Result<Vec<_>, MedRecordError>>();
-
-        if let Err(error) = result {
-            self.schema = old_schema;
-
-            return Err(error);
+            } else {
+                schema.validate_node(node_index, &node.attributes, None)?;
+            }
         }
 
-        let result = self
-            .graph
-            .edges
-            .iter()
-            .map(|(edge_index, edge)| {
-                let groups_of_edge = self
-                    .groups_of_edge(edge_index)
-                    .expect("groups of edge must exist")
-                    .collect::<Vec<_>>();
+        for (edge_index, edge) in self.graph.edges.iter() {
+            let groups_of_edge = self
+                .groups_of_edge(edge_index)
+                .expect("groups of edge must exist")
+                .collect::<Vec<_>>();
 
-                if !groups_of_edge.is_empty() {
-                    for group in groups_of_edge {
-                        self.schema
-                            .validate_edge(edge_index, &edge.attributes, Some(group))?;
-                    }
-                } else {
-                    self.schema
-                        .validate_edge(edge_index, &edge.attributes, None)?;
+            if !groups_of_edge.is_empty() {
+                for group in groups_of_edge {
+                    schema.validate_edge(edge_index, &edge.attributes, Some(group))?;
                 }
-
-                Ok(())
-            })
-            .collect::<Result<Vec<_>, MedRecordError>>();
-
-        if let Err(error) = result {
-            self.schema = old_schema;
-
-            return Err(error);
+            } else {
+                schema.validate_edge(edge_index, &edge.attributes, None)?;
+            }
         }
+
+        mem::swap(&mut self.schema, &mut Schema::Provided(schema));
 
         Ok(())
     }
 
-    pub fn get_schema(&self) -> &InferredSchema {
+    pub fn get_schema(&self) -> &Schema {
         &self.schema
     }
 
@@ -401,7 +378,14 @@ impl MedRecord {
         node_index: NodeIndex,
         attributes: Attributes,
     ) -> Result<(), MedRecordError> {
-        self.schema.validate_node(&node_index, &attributes, None)?;
+        match &mut self.schema {
+            Schema::Inferred(ref mut inferred_schema) => {
+                inferred_schema.update_node(&attributes, None);
+            }
+            Schema::Provided(provided_schema) => {
+                provided_schema.validate_node(&node_index, &attributes, None)?;
+            }
+        }
 
         self.graph
             .add_node(node_index, attributes)
@@ -454,14 +438,23 @@ impl MedRecord {
             .add_edge(source_node_index, target_node_index, attributes.to_owned())
             .map_err(MedRecordError::from)?;
 
-        match self.schema.validate_edge(&edge_index, &attributes, None) {
-            Ok(()) => Ok(edge_index),
-            Err(e) => {
-                self.graph
-                    .remove_edge(&edge_index)
-                    .expect("Edge must exist");
+        match &mut self.schema {
+            Schema::Inferred(ref mut inferred_schema) => {
+                inferred_schema.update_edge(&attributes, None);
 
-                Err(e.into())
+                Ok(edge_index)
+            }
+            Schema::Provided(provided_schema) => {
+                match provided_schema.validate_edge(&edge_index, &attributes, None) {
+                    Ok(()) => Ok(edge_index),
+                    Err(e) => {
+                        self.graph
+                            .remove_edge(&edge_index)
+                            .expect("Edge must exist");
+
+                        Err(e.into())
+                    }
+                }
             }
         }
     }
@@ -587,8 +580,14 @@ impl MedRecord {
     ) -> Result<(), MedRecordError> {
         let node_attributes = self.graph.node_attributes(&node_index)?;
 
-        self.schema
-            .validate_node(&node_index, node_attributes, Some(&group))?;
+        match &mut self.schema {
+            Schema::Inferred(ref mut inferred_schema) => {
+                inferred_schema.update_node(node_attributes, Some(&group));
+            }
+            Schema::Provided(provided_schema) => {
+                provided_schema.validate_node(&node_index, node_attributes, Some(&group))?;
+            }
+        }
 
         self.group_mapping.add_node_to_group(group, node_index)
     }
@@ -600,8 +599,14 @@ impl MedRecord {
     ) -> Result<(), MedRecordError> {
         let edge_attributes = self.graph.edge_attributes(&edge_index)?;
 
-        self.schema
-            .validate_edge(&edge_index, edge_attributes, Some(&group))?;
+        match &mut self.schema {
+            Schema::Inferred(ref mut inferred_schema) => {
+                inferred_schema.update_edge(edge_attributes, Some(&group));
+            }
+            Schema::Provided(provided_schema) => {
+                provided_schema.validate_edge(&edge_index, edge_attributes, Some(&group))?;
+            }
+        }
 
         self.group_mapping.add_edge_to_group(group, edge_index)
     }
@@ -762,10 +767,17 @@ impl Default for MedRecord {
 
 #[cfg(test)]
 mod test {
-    use super::{
-        Attributes, DataType, GroupSchema, InferredSchema, MedRecord, MedRecordAttribute, NodeIndex,
+    use super::{Attributes, DataType, MedRecord, MedRecordAttribute, NodeIndex};
+    use crate::{
+        errors::MedRecordError,
+        medrecord::{
+            schema::{
+                provided::{ProvidedGroupSchema, ProvidedSchema},
+                Schema,
+            },
+            AttributeType,
+        },
     };
-    use crate::errors::MedRecordError;
     use polars::prelude::{DataFrame, NamedFrom, PolarsError, Series};
     use std::{collections::HashMap, fs};
 
@@ -836,27 +848,38 @@ mod test {
 
     #[test]
     fn test_schema() {
-        let schema = InferredSchema {
+        let schema = ProvidedSchema {
             groups: HashMap::from([(
                 "group".into(),
-                GroupSchema {
-                    nodes: HashMap::from([("attribute2".into(), DataType::Int.into())]),
-                    edges: HashMap::from([("attribute2".into(), DataType::Int.into())]),
-                    strict: None,
+                ProvidedGroupSchema {
+                    nodes: HashMap::from([(
+                        "attribute2".into(),
+                        (DataType::Int, AttributeType::Unstructured).into(),
+                    )]),
+                    edges: HashMap::from([(
+                        "attribute2".into(),
+                        (DataType::Int, AttributeType::Unstructured).into(),
+                    )]),
+                    strict: false,
                 },
             )]),
-            default: Some(GroupSchema {
-                nodes: HashMap::from([("attribute".into(), DataType::Int.into())]),
-                edges: HashMap::from([("attribute".into(), DataType::Int.into())]),
-                strict: None,
-            }),
-            strict: None,
+            default: ProvidedGroupSchema {
+                nodes: HashMap::from([(
+                    "attribute".into(),
+                    (DataType::Int, AttributeType::Unstructured).into(),
+                )]),
+                edges: HashMap::from([(
+                    "attribute".into(),
+                    (DataType::Int, AttributeType::Unstructured).into(),
+                )]),
+                strict: false,
+            },
         };
 
         let mut medrecord = MedRecord::with_schema(schema.clone());
         medrecord.add_group("group".into(), None, None).unwrap();
 
-        assert_eq!(schema, *medrecord.get_schema());
+        assert_eq!(Schema::Provided(schema), *medrecord.get_schema());
 
         assert!(medrecord
             .add_node("0".into(), HashMap::from([("attribute".into(), 1.into())]))
@@ -1037,19 +1060,24 @@ mod test {
             )
             .unwrap();
 
-        let schema = InferredSchema {
+        let schema = ProvidedSchema {
             groups: Default::default(),
-            default: Some(GroupSchema {
-                nodes: HashMap::from([("attribute".into(), DataType::Int.into())]),
-                edges: HashMap::from([("attribute".into(), DataType::Int.into())]),
-                strict: None,
-            }),
-            strict: None,
+            default: ProvidedGroupSchema {
+                nodes: HashMap::from([(
+                    "attribute".into(),
+                    (DataType::Int, AttributeType::Unstructured).into(),
+                )]),
+                edges: HashMap::from([(
+                    "attribute".into(),
+                    (DataType::Int, AttributeType::Unstructured).into(),
+                )]),
+                strict: false,
+            },
         };
 
         assert!(medrecord.update_schema(schema.clone()).is_ok());
 
-        assert_eq!(schema, *medrecord.get_schema());
+        assert_eq!(Schema::Provided(schema), *medrecord.get_schema());
     }
 
     #[test]
@@ -1060,21 +1088,28 @@ mod test {
             .add_node("0".into(), HashMap::from([("attribute2".into(), 1.into())]))
             .unwrap();
 
-        let schema = InferredSchema {
+        let schema = ProvidedSchema {
             groups: Default::default(),
-            default: Some(GroupSchema {
-                nodes: HashMap::from([("attribute".into(), DataType::Int.into())]),
-                edges: HashMap::from([("attribute".into(), DataType::Int.into())]),
-                strict: None,
-            }),
-            strict: None,
+            default: ProvidedGroupSchema {
+                nodes: HashMap::from([(
+                    "attribute".into(),
+                    (DataType::Int, AttributeType::Unstructured).into(),
+                )]),
+                edges: HashMap::from([(
+                    "attribute".into(),
+                    (DataType::Int, AttributeType::Unstructured).into(),
+                )]),
+                strict: false,
+            },
         };
+
+        let previous_schema = medrecord.get_schema().clone();
 
         assert!(medrecord
             .update_schema(schema.clone())
             .is_err_and(|e| { matches!(e, MedRecordError::SchemaError(_)) }));
 
-        assert_eq!(InferredSchema::default(), *medrecord.get_schema());
+        assert_eq!(previous_schema, *medrecord.get_schema());
 
         let mut medrecord = MedRecord::new();
 
@@ -1092,11 +1127,13 @@ mod test {
             )
             .unwrap();
 
+        let previous_schema = medrecord.get_schema().clone();
+
         assert!(medrecord
             .update_schema(schema.clone())
             .is_err_and(|e| { matches!(e, MedRecordError::SchemaError(_)) }));
 
-        assert_eq!(InferredSchema::default(), *medrecord.get_schema());
+        assert_eq!(previous_schema, *medrecord.get_schema());
     }
 
     #[test]

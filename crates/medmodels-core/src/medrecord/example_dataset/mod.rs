@@ -1,4 +1,11 @@
-use super::{datatypes::DataType, AttributeType, GroupSchema, InferredSchema, MedRecordAttribute};
+use super::{
+    datatypes::DataType,
+    schema::{
+        provided::{ProvidedGroupSchema, ProvidedSchema},
+        Schema,
+    },
+    AttributeType, MedRecordAttribute,
+};
 use crate::MedRecord;
 use polars::{
     io::SerReader,
@@ -8,27 +15,33 @@ use std::{collections::HashMap, io::Cursor, sync::Arc};
 
 macro_rules! simple_dataset_schema {
     () => {
-        InferredSchema {
+        ProvidedSchema {
             groups: HashMap::from([
                 (
                     "diagnosis".into(),
-                    GroupSchema {
-                        nodes: HashMap::from([("description".into(), DataType::String.into())]),
+                    ProvidedGroupSchema {
+                        nodes: HashMap::from([(
+                            "description".into(),
+                            (DataType::String, AttributeType::Unstructured).into(),
+                        )]),
                         edges: HashMap::new(),
-                        strict: Some(true),
+                        strict: true,
                     },
                 ),
                 (
                     "drug".into(),
-                    GroupSchema {
-                        nodes: HashMap::from([("description".into(), DataType::String.into())]),
+                    ProvidedGroupSchema {
+                        nodes: HashMap::from([(
+                            "description".into(),
+                            (DataType::String, AttributeType::Unstructured).into(),
+                        )]),
                         edges: HashMap::new(),
-                        strict: Some(true),
+                        strict: true,
                     },
                 ),
                 (
                     "patient".into(),
-                    GroupSchema {
+                    ProvidedGroupSchema {
                         nodes: HashMap::from([
                             (
                                 "gender".into(),
@@ -40,20 +53,23 @@ macro_rules! simple_dataset_schema {
                             ),
                         ]),
                         edges: HashMap::new(),
-                        strict: Some(true),
+                        strict: true,
                     },
                 ),
                 (
                     "procedure".into(),
-                    GroupSchema {
-                        nodes: HashMap::from([("description".into(), DataType::String.into())]),
+                    ProvidedGroupSchema {
+                        nodes: HashMap::from([(
+                            "description".into(),
+                            (DataType::String, AttributeType::Unstructured).into(),
+                        )]),
                         edges: HashMap::new(),
-                        strict: Some(true),
+                        strict: true,
                     },
                 ),
                 (
                     "patient_diagnosis".into(),
-                    GroupSchema {
+                    ProvidedGroupSchema {
                         nodes: HashMap::new(),
                         edges: HashMap::from([
                             (
@@ -69,12 +85,12 @@ macro_rules! simple_dataset_schema {
                                     .into(),
                             ),
                         ]),
-                        strict: Some(true),
+                        strict: true,
                     },
                 ),
                 (
                     "patient_drug".into(),
-                    GroupSchema {
+                    ProvidedGroupSchema {
                         nodes: HashMap::new(),
                         edges: HashMap::from([
                             (
@@ -90,12 +106,12 @@ macro_rules! simple_dataset_schema {
                                 (DataType::Float, AttributeType::Continuous).into(),
                             ),
                         ]),
-                        strict: Some(true),
+                        strict: true,
                     },
                 ),
                 (
                     "patient_procedure".into(),
-                    GroupSchema {
+                    ProvidedGroupSchema {
                         nodes: HashMap::new(),
                         edges: HashMap::from([
                             (
@@ -107,39 +123,48 @@ macro_rules! simple_dataset_schema {
                                 (DataType::Float, AttributeType::Continuous).into(),
                             ),
                         ]),
-                        strict: Some(true),
+                        strict: true,
                     },
                 ),
             ]),
-            default: None,
-            strict: Some(true),
+            default: ProvidedGroupSchema {
+                nodes: Default::default(),
+                edges: Default::default(),
+                strict: true,
+            },
         }
     };
 }
 
 macro_rules! advanced_dataset_schema {
     () => {
-        InferredSchema {
+        ProvidedSchema {
             groups: HashMap::from([
                 (
                     "diagnosis".into(),
-                    GroupSchema {
-                        nodes: HashMap::from([("description".into(), DataType::String.into())]),
+                    ProvidedGroupSchema {
+                        nodes: HashMap::from([(
+                            "description".into(),
+                            (DataType::String, AttributeType::Unstructured).into(),
+                        )]),
                         edges: HashMap::new(),
-                        strict: Some(true),
+                        strict: true,
                     },
                 ),
                 (
                     "drug".into(),
-                    GroupSchema {
-                        nodes: HashMap::from([("description".into(), DataType::String.into())]),
+                    ProvidedGroupSchema {
+                        nodes: HashMap::from([(
+                            "description".into(),
+                            (DataType::String, AttributeType::Unstructured).into(),
+                        )]),
                         edges: HashMap::new(),
-                        strict: Some(true),
+                        strict: true,
                     },
                 ),
                 (
                     "patient".into(),
-                    GroupSchema {
+                    ProvidedGroupSchema {
                         nodes: HashMap::from([
                             (
                                 "gender".into(),
@@ -151,28 +176,31 @@ macro_rules! advanced_dataset_schema {
                             ),
                         ]),
                         edges: HashMap::new(),
-                        strict: Some(true),
+                        strict: true,
                     },
                 ),
                 (
                     "procedure".into(),
-                    GroupSchema {
-                        nodes: HashMap::from([("description".into(), DataType::String.into())]),
+                    ProvidedGroupSchema {
+                        nodes: HashMap::from([(
+                            "description".into(),
+                            (DataType::String, AttributeType::Unstructured).into(),
+                        )]),
                         edges: HashMap::new(),
-                        strict: Some(true),
+                        strict: true,
                     },
                 ),
                 (
                     "event".into(),
-                    GroupSchema {
+                    ProvidedGroupSchema {
                         nodes: HashMap::new(),
                         edges: HashMap::new(),
-                        strict: Some(true),
+                        strict: true,
                     },
                 ),
                 (
                     "patient_diagnosis".into(),
-                    GroupSchema {
+                    ProvidedGroupSchema {
                         nodes: HashMap::new(),
                         edges: HashMap::from([
                             (
@@ -188,12 +216,12 @@ macro_rules! advanced_dataset_schema {
                                     .into(),
                             ),
                         ]),
-                        strict: Some(true),
+                        strict: true,
                     },
                 ),
                 (
                     "patient_drug".into(),
-                    GroupSchema {
+                    ProvidedGroupSchema {
                         nodes: HashMap::new(),
                         edges: HashMap::from([
                             (
@@ -209,12 +237,12 @@ macro_rules! advanced_dataset_schema {
                                 (DataType::Float, AttributeType::Continuous).into(),
                             ),
                         ]),
-                        strict: Some(true),
+                        strict: true,
                     },
                 ),
                 (
                     "patient_procedure".into(),
-                    GroupSchema {
+                    ProvidedGroupSchema {
                         nodes: HashMap::new(),
                         edges: HashMap::from([
                             (
@@ -226,23 +254,26 @@ macro_rules! advanced_dataset_schema {
                                 (DataType::Float, AttributeType::Continuous).into(),
                             ),
                         ]),
-                        strict: Some(true),
+                        strict: true,
                     },
                 ),
                 (
                     "patient_event".into(),
-                    GroupSchema {
+                    ProvidedGroupSchema {
                         nodes: HashMap::new(),
                         edges: HashMap::from([(
                             "time".into(),
                             (DataType::DateTime, AttributeType::Temporal).into(),
                         )]),
-                        strict: Some(true),
+                        strict: true,
                     },
                 ),
             ]),
-            default: None,
-            strict: Some(true),
+            default: ProvidedGroupSchema {
+                nodes: Default::default(),
+                edges: Default::default(),
+                strict: true,
+            },
         }
     };
 }
@@ -460,7 +491,7 @@ impl MedRecord {
             )
             .expect("Group can be added");
 
-        medrecord.schema = simple_dataset_schema!();
+        medrecord.schema = Schema::Provided(simple_dataset_schema!());
 
         medrecord
     }
@@ -695,7 +726,7 @@ impl MedRecord {
             .add_group("patient_event".into(), None, Some(patient_event_ids))
             .expect("Group can be added");
 
-        medrecord.schema = advanced_dataset_schema!();
+        medrecord.schema = Schema::Provided(advanced_dataset_schema!());
 
         medrecord
     }
@@ -703,8 +734,11 @@ impl MedRecord {
 
 #[cfg(test)]
 mod test {
-    use super::{AttributeType, DataType, GroupSchema, InferredSchema};
-    use crate::MedRecord;
+    use super::{AttributeType, DataType};
+    use crate::{
+        medrecord::schema::provided::{ProvidedGroupSchema, ProvidedSchema},
+        MedRecord,
+    };
     use std::collections::HashMap;
 
     #[test]

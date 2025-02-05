@@ -1,6 +1,6 @@
 use medmodels_core::{
     errors::MedRecordError,
-    medrecord::{AttributeDataType, AttributeType, GroupSchema, InferredSchema},
+    medrecord::{AttributeDataType, AttributeType, ProvidedGroupSchema, ProvidedSchema, Schema},
 };
 use pyo3::prelude::*;
 use std::collections::HashMap;
@@ -19,6 +19,7 @@ pub enum PyAttributeType {
     Categorical = 0,
     Continuous = 1,
     Temporal = 2,
+    Unstructured = 3,
 }
 
 impl From<AttributeType> for PyAttributeType {
@@ -27,6 +28,7 @@ impl From<AttributeType> for PyAttributeType {
             AttributeType::Categorical => Self::Categorical,
             AttributeType::Continuous => Self::Continuous,
             AttributeType::Temporal => Self::Temporal,
+            AttributeType::Unstructured => Self::Unstructured,
         }
     }
 }
@@ -37,6 +39,7 @@ impl From<PyAttributeType> for AttributeType {
             PyAttributeType::Categorical => Self::Categorical,
             PyAttributeType::Continuous => Self::Continuous,
             PyAttributeType::Temporal => Self::Temporal,
+            PyAttributeType::Unstructured => Self::Unstructured,
         }
     }
 }
@@ -45,14 +48,14 @@ impl From<PyAttributeType> for AttributeType {
 #[derive(Debug, Clone)]
 pub struct PyAttributeDataType {
     data_type: PyDataType,
-    attribute_type: Option<PyAttributeType>,
+    attribute_type: PyAttributeType,
 }
 
 impl From<PyAttributeDataType> for AttributeDataType {
     fn from(value: PyAttributeDataType) -> Self {
         Self {
             data_type: value.data_type.into(),
-            attribute_type: value.attribute_type.map(|t| t.into()),
+            attribute_type: value.attribute_type.into(),
         }
     }
 }
@@ -61,7 +64,7 @@ impl From<AttributeDataType> for PyAttributeDataType {
     fn from(value: AttributeDataType) -> Self {
         Self {
             data_type: value.data_type.into(),
-            attribute_type: value.attribute_type.map(|t| t.into()),
+            attribute_type: value.attribute_type.into(),
         }
     }
 }
@@ -81,8 +84,8 @@ impl DeepFrom<AttributeDataType> for PyAttributeDataType {
 #[pymethods]
 impl PyAttributeDataType {
     #[new]
-    #[pyo3(signature = (data_type, attribute_type=None))]
-    pub fn new(data_type: PyDataType, attribute_type: Option<PyAttributeType>) -> Self {
+    #[pyo3(signature = (data_type, attribute_type))]
+    pub fn new(data_type: PyDataType, attribute_type: PyAttributeType) -> Self {
         Self {
             data_type,
             attribute_type,
@@ -95,7 +98,7 @@ impl PyAttributeDataType {
     }
 
     #[getter]
-    pub fn attribute_type(&self) -> Option<PyAttributeType> {
+    pub fn attribute_type(&self) -> PyAttributeType {
         self.attribute_type.clone()
     }
 }
@@ -103,28 +106,28 @@ impl PyAttributeDataType {
 #[pyclass]
 #[repr(transparent)]
 #[derive(Debug, Clone)]
-pub struct PyGroupSchema(GroupSchema);
+pub struct PyGroupSchema(ProvidedGroupSchema);
 
-impl From<GroupSchema> for PyGroupSchema {
-    fn from(value: GroupSchema) -> Self {
+impl From<ProvidedGroupSchema> for PyGroupSchema {
+    fn from(value: ProvidedGroupSchema) -> Self {
         Self(value)
     }
 }
 
-impl From<PyGroupSchema> for GroupSchema {
+impl From<PyGroupSchema> for ProvidedGroupSchema {
     fn from(value: PyGroupSchema) -> Self {
         value.0
     }
 }
 
-impl DeepFrom<PyGroupSchema> for GroupSchema {
-    fn deep_from(value: PyGroupSchema) -> GroupSchema {
+impl DeepFrom<PyGroupSchema> for ProvidedGroupSchema {
+    fn deep_from(value: PyGroupSchema) -> ProvidedGroupSchema {
         value.into()
     }
 }
 
-impl DeepFrom<GroupSchema> for PyGroupSchema {
-    fn deep_from(value: GroupSchema) -> PyGroupSchema {
+impl DeepFrom<ProvidedGroupSchema> for PyGroupSchema {
+    fn deep_from(value: ProvidedGroupSchema) -> PyGroupSchema {
         value.into()
     }
 }
@@ -132,13 +135,13 @@ impl DeepFrom<GroupSchema> for PyGroupSchema {
 #[pymethods]
 impl PyGroupSchema {
     #[new]
-    #[pyo3(signature = (nodes, edges, strict=None))]
+    #[pyo3(signature = (nodes, edges, strict=true))]
     fn new(
         nodes: HashMap<PyMedRecordAttribute, PyAttributeDataType>,
         edges: HashMap<PyMedRecordAttribute, PyAttributeDataType>,
-        strict: Option<bool>,
+        strict: bool,
     ) -> Self {
-        PyGroupSchema(GroupSchema {
+        PyGroupSchema(ProvidedGroupSchema {
             nodes: nodes.deep_into(),
             edges: edges.deep_into(),
             strict,
@@ -156,7 +159,7 @@ impl PyGroupSchema {
     }
 
     #[getter]
-    fn strict(&self) -> Option<bool> {
+    fn strict(&self) -> bool {
         self.0.strict
     }
 }
@@ -164,15 +167,15 @@ impl PyGroupSchema {
 #[pyclass]
 #[repr(transparent)]
 #[derive(Debug, Clone)]
-pub struct PySchema(InferredSchema);
+pub struct PySchema(Schema);
 
-impl From<InferredSchema> for PySchema {
-    fn from(value: InferredSchema) -> Self {
+impl From<Schema> for PySchema {
+    fn from(value: Schema) -> Self {
         Self(value)
     }
 }
 
-impl From<PySchema> for InferredSchema {
+impl From<PySchema> for Schema {
     fn from(value: PySchema) -> Self {
         value.0
     }
@@ -180,26 +183,16 @@ impl From<PySchema> for InferredSchema {
 
 #[pymethods]
 impl PySchema {
-    #[new]
-    #[pyo3(signature = (groups, default=None, strict=None))]
-    fn new(
-        groups: HashMap<PyGroup, PyGroupSchema>,
-        default: Option<PyGroupSchema>,
-        strict: Option<bool>,
-    ) -> Self {
-        PySchema(InferredSchema {
-            groups: groups
-                .into_iter()
-                .map(|(k, v)| (k.into(), v.into()))
-                .collect(),
-            default: default.deep_into(),
-            strict,
-        })
-    }
-
     #[getter]
     fn groups(&self) -> Vec<PyGroup> {
-        self.0.groups.keys().map(|g| g.clone().into()).collect()
+        match self.0 {
+            Schema::Provided(ref schema) => {
+                schema.groups.keys().map(|g| g.clone().into()).collect()
+            }
+            Schema::Inferred(ref schema) => {
+                schema.groups.keys().map(|g| g.clone().into()).collect()
+            }
+        }
     }
 
     fn group(&self, group: PyGroup) -> PyResult<PyGroupSchema> {
@@ -216,12 +209,7 @@ impl PySchema {
     }
 
     #[getter]
-    fn default(&self) -> Option<PyGroupSchema> {
-        self.0.default.clone().map(|g| g.into())
-    }
-
-    #[getter]
-    fn strict(&self) -> Option<bool> {
-        self.0.strict
+    fn default(&self) -> PyGroupSchema {
+        self.0.default.clone().into()
     }
 }
