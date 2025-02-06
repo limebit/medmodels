@@ -44,6 +44,14 @@ impl From<PyAttributeType> for AttributeType {
     }
 }
 
+#[pymethods]
+impl PyAttributeType {
+    #[staticmethod]
+    fn infer_from(data_type: PyDataType) -> Self {
+        AttributeType::infer_from(&data_type.into()).into()
+    }
+}
+
 #[pyclass]
 #[derive(Debug, Clone)]
 pub struct PyAttributeDataType {

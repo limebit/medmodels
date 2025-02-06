@@ -3,18 +3,33 @@
 from __future__ import annotations
 
 from enum import Enum, auto
-from typing import TYPE_CHECKING, Dict, Iterator, List, Optional, Tuple, Union, overload
+from typing import (
+    TYPE_CHECKING,
+    Dict,
+    Iterator,
+    List,
+    Optional,
+    Tuple,
+    TypeAlias,
+    Union,
+    overload,
+)
 
 from medmodels._medmodels import (
     PyAttributeDataType,
     PyAttributeType,
-    PyGroupSchema,
-    PySchema,
+    PyInferredGroupSchema,
+    PyInferredSchema,
+    PyProvidedGroupSchema,
+    PyProvidedSchema,
 )
 from medmodels.medrecord.datatype import DataType
 
 if TYPE_CHECKING:
     from medmodels.medrecord.types import Group, MedRecordAttribute
+
+PySchema: TypeAlias = Union[PyInferredSchema, PyProvidedSchema]
+PyGroupSchema: TypeAlias = Union[PyInferredGroupSchema, PyProvidedGroupSchema]
 
 
 class AttributeType(Enum):
@@ -96,22 +111,18 @@ class AttributeType(Enum):
 class AttributesSchema:
     """A schema for a collection of attributes."""
 
-    _attributes_schema: Dict[
-        MedRecordAttribute, Tuple[DataType, Optional[AttributeType]]
-    ]
+    _attributes_schema: Dict[MedRecordAttribute, Tuple[DataType, AttributeType]]
 
     def __init__(
         self,
-        attributes_schema: Dict[
-            MedRecordAttribute, Tuple[DataType, Optional[AttributeType]]
-        ],
+        attributes_schema: Dict[MedRecordAttribute, Tuple[DataType, AttributeType]],
     ) -> None:
         """Initializes a new instance of AttributesSchema.
 
         Args:
-            attributes_schema (Dict[MedRecordAttribute, Tuple[DataType, Optional[AttributeType]]]):
+            attributes_schema (Dict[MedRecordAttribute, Tuple[DataType, AttributeType]]):
                 A dictionary mapping MedRecordAttributes to their data types and
-                optional attribute types.
+                attribute types.
         """  # noqa: W505
         self._attributes_schema = attributes_schema
 
@@ -123,9 +134,7 @@ class AttributesSchema:
         """
         return self._attributes_schema.__repr__()
 
-    def __getitem__(
-        self, key: MedRecordAttribute
-    ) -> Tuple[DataType, Optional[AttributeType]]:
+    def __getitem__(self, key: MedRecordAttribute) -> Tuple[DataType, AttributeType]:
         """Gets the type and optional attribute type for a given MedRecordAttribute.
 
         Args:
@@ -133,8 +142,8 @@ class AttributesSchema:
                 requested.
 
         Returns:
-            Tuple[DataType, Optional[AttributeType]]: The data type and optional
-                attribute type of the given attribute.
+            Tuple[DataType, AttributeType]: The data type and optional attribute type
+                of the given attribute.
         """
         return self._attributes_schema[key]
 
@@ -223,18 +232,18 @@ class AttributesSchema:
     @overload
     def get(
         self, key: MedRecordAttribute
-    ) -> Optional[Tuple[DataType, Optional[AttributeType]]]: ...
+    ) -> Optional[Tuple[DataType, AttributeType]]: ...
 
     @overload
     def get(
-        self, key: MedRecordAttribute, default: Tuple[DataType, Optional[AttributeType]]
-    ) -> Tuple[DataType, Optional[AttributeType]]: ...
+        self, key: MedRecordAttribute, default: Tuple[DataType, AttributeType]
+    ) -> Tuple[DataType, AttributeType]: ...
 
     def get(
         self,
         key: MedRecordAttribute,
-        default: Optional[Tuple[DataType, Optional[AttributeType]]] = None,
-    ) -> Optional[Tuple[DataType, Optional[AttributeType]]]:
+        default: Optional[Tuple[DataType, AttributeType]] = None,
+    ) -> Optional[Tuple[DataType, AttributeType]]:
         """Gets the data type and optional attribute type for a given attribute.
 
         It returns a default value if the attribute is not present.
@@ -242,13 +251,13 @@ class AttributesSchema:
         Args:
             key (MedRecordAttribute): The attribute for which the data type is
                 requested.
-            default (Optional[Tuple[DataType, Optional[AttributeType]]], optional):
+            default (Optional[Tuple[DataType, AttributeType]], optional):
                 The default data type and attribute type to return if the attribute
                 is not found. Defaults to None.
 
         Returns:
-            Optional[Tuple[DataType, Optional[AttributeType]]]: The data type and
-                optional attribute type of the given attribute or the default value.
+            Optional[Tuple[DataType, AttributeType]]: The data type and attribute type
+                of the given attribute or the default value.
         """
         return self._attributes_schema.get(key, default)
 
@@ -275,9 +284,11 @@ class GroupSchema:
             nodes (Dict[MedRecordAttribute, Union[DataType, Tuple[DataType, AttributeType]]]):
                 A dictionary mapping node attributes to their data
                 types and optional attribute types. Defaults to an empty dictionary.
+                When no attribute type is provided, it is inferred from the data type.
             edges (Dict[MedRecordAttribute, Union[DataType, Tuple[DataType, AttributeType]]]):
                 A dictionary mapping edge attributes to their data types and
                 optional attribute types. Defaults to an empty dictionary.
+                When no attribute type is provided, it is inferred from the data type.
             strict (bool, optional): Indicates whether the schema should be strict.
                 Defaults to False.
         """  # noqa: W505
@@ -293,9 +304,12 @@ class GroupSchema:
                 return PyAttributeDataType(
                     input[0]._inner(), input[1]._into_py_attribute_type()
                 )
-            return PyAttributeDataType(input._inner(), None)
 
-        self._group_schema = PyGroupSchema(
+            return PyAttributeDataType(
+                input._inner(), PyAttributeType.infer_from(input._inner())
+            )
+
+        self._group_schema = PyProvidedGroupSchema(
             nodes={x: _convert_input(nodes[x]) for x in nodes},
             edges={x: _convert_input(edges[x]) for x in edges},
             strict=strict,
@@ -326,12 +340,10 @@ class GroupSchema:
 
         def _convert_node(
             input: PyAttributeDataType,
-        ) -> Tuple[DataType, Optional[AttributeType]]:
+        ) -> Tuple[DataType, AttributeType]:
             return (
                 DataType._from_py_data_type(input.data_type),
-                AttributeType._from_py_attribute_type(input.attribute_type)
-                if input.attribute_type is not None
-                else None,
+                AttributeType._from_py_attribute_type(input.attribute_type),
             )
 
         return AttributesSchema(
@@ -352,12 +364,10 @@ class GroupSchema:
 
         def _convert_edge(
             input: PyAttributeDataType,
-        ) -> Tuple[DataType, Optional[AttributeType]]:
+        ) -> Tuple[DataType, AttributeType]:
             return (
                 DataType._from_py_data_type(input.data_type),
-                AttributeType._from_py_attribute_type(input.attribute_type)
-                if input.attribute_type is not None
-                else None,
+                AttributeType._from_py_attribute_type(input.attribute_type),
             )
 
         return AttributesSchema(
@@ -372,9 +382,14 @@ class GroupSchema:
         """Indicates whether the GroupSchema instance is strict.
 
         Returns:
-            Optional[bool]: True if the schema is strict, False otherwise.
+            Optional[bool]: True if the schema is strict, False otherwise. None if the
+                schema is inferred.
         """
-        return self._group_schema.strict
+        return (
+            self._group_schema.strict
+            if isinstance(self._group_schema, PyProvidedGroupSchema)
+            else None
+        )
 
 
 class Schema:
@@ -394,23 +409,31 @@ class Schema:
             groups (Dict[Group, GroupSchema], optional): A dictionary of group names
                 to their schemas. Defaults to an empty dictionary.
             default (Optional[GroupSchema], optional): The default group schema.
-                Defaults to None.
-            strict (bool, optional): Indicates whether the schema should be strict.
-                Defaults to False.
+                If not provided, an empty group schema is used. Defaults to None.
         """
+        if not default:
+            default = GroupSchema()
+
         if groups is None:
             groups = {}
-        if default is not None:
-            self._schema = PySchema(
-                groups={x: groups[x]._group_schema for x in groups},
-                default=default._group_schema,
-                strict=strict,
-            )
-        else:
-            self._schema = PySchema(
-                groups={x: groups[x]._group_schema for x in groups},
-                strict=strict,
-            )
+
+        group_schemas = {}
+
+        for group in groups:
+            schema = groups[group]._group_schema
+
+            if isinstance(schema, PyInferredGroupSchema):
+                group_schemas[group] = schema._into_py_provided_group_schema()
+                return
+
+            group_schemas[group] = schema
+
+        self._schema = PyProvidedSchema(
+            groups=group_schemas,
+            default=default._group_schema
+            if isinstance(default._group_schema, PyProvidedGroupSchema)
+            else default._group_schema._into_py_provided_group_schema(),
+        )
 
     @classmethod
     def _from_py_schema(cls, schema: PySchema) -> Schema:
@@ -450,23 +473,11 @@ class Schema:
         return GroupSchema._from_pygroupschema(self._schema.group(group))
 
     @property
-    def default(self) -> Optional[GroupSchema]:
+    def default(self) -> GroupSchema:
         """Retrieves the default group schema.
 
         Returns:
             Optional[GroupSchema]: The default group schema if it exists, otherwise
                 None.
         """
-        if self._schema.default is None:
-            return None
-
         return GroupSchema._from_pygroupschema(self._schema.default)
-
-    @property
-    def strict(self) -> Optional[bool]:
-        """Indicates whether the Schema instance is strict.
-
-        Returns:
-            Optional[bool]: True if the schema is strict, False otherwise.
-        """
-        return self._schema.strict

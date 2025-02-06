@@ -1,4 +1,4 @@
-use super::PyAttributeDataType;
+use super::{PyAttributeDataType, PyInferredGroupSchema};
 use crate::medrecord::{
     attribute::PyMedRecordAttribute,
     errors::PyMedRecordError,
@@ -7,7 +7,7 @@ use crate::medrecord::{
 };
 use medmodels_core::{
     errors::MedRecordError,
-    medrecord::{ProvidedGroupSchema, ProvidedSchema},
+    medrecord::{InferredGroupSchema, ProvidedGroupSchema, ProvidedSchema},
 };
 use pyo3::prelude::*;
 use std::collections::HashMap;
@@ -70,6 +70,10 @@ impl PyProvidedGroupSchema {
     #[getter]
     fn strict(&self) -> bool {
         self.0.strict
+    }
+
+    fn _into_py_inferred_group_schema(&self) -> PyInferredGroupSchema {
+        InferredGroupSchema::from(self.0.clone()).into()
     }
 }
 
