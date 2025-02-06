@@ -98,6 +98,17 @@ impl AttributeDataType {
     }
 }
 
+impl From<DataType> for AttributeDataType {
+    fn from(value: DataType) -> Self {
+        let attribute_type = AttributeType::infer_from(&value);
+
+        Self {
+            data_type: value,
+            attribute_type,
+        }
+    }
+}
+
 impl From<(DataType, AttributeType)> for AttributeDataType {
     fn from(value: (DataType, AttributeType)) -> Self {
         Self {

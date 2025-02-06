@@ -23,6 +23,7 @@ class AttributeType(Enum):
     Categorical = auto()
     Continuous = auto()
     Temporal = auto()
+    Unstructured = auto()
 
     @staticmethod
     def _from_py_attribute_type(py_attribute_type: PyAttributeType) -> AttributeType:
@@ -40,6 +41,8 @@ class AttributeType(Enum):
             return AttributeType.Continuous
         if py_attribute_type == PyAttributeType.Temporal:
             return AttributeType.Temporal
+        if py_attribute_type == PyAttributeType.Unstructured:
+            return AttributeType.Unstructured
         return None
 
     def _into_py_attribute_type(self) -> PyAttributeType:
@@ -384,7 +387,6 @@ class Schema:
         *,
         groups: Optional[Dict[Group, GroupSchema]] = None,
         default: Optional[GroupSchema] = None,
-        strict: bool = False,
     ) -> None:
         """Initializes a new instance of Schema.
 

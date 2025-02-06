@@ -770,12 +770,9 @@ mod test {
     use super::{Attributes, DataType, MedRecord, MedRecordAttribute, NodeIndex};
     use crate::{
         errors::MedRecordError,
-        medrecord::{
-            schema::{
-                provided::{ProvidedGroupSchema, ProvidedSchema},
-                Schema,
-            },
-            AttributeType,
+        medrecord::schema::{
+            provided::{ProvidedGroupSchema, ProvidedSchema},
+            Schema,
         },
     };
     use polars::prelude::{DataFrame, NamedFrom, PolarsError, Series};
@@ -852,26 +849,14 @@ mod test {
             groups: HashMap::from([(
                 "group".into(),
                 ProvidedGroupSchema {
-                    nodes: HashMap::from([(
-                        "attribute2".into(),
-                        (DataType::Int, AttributeType::Unstructured).into(),
-                    )]),
-                    edges: HashMap::from([(
-                        "attribute2".into(),
-                        (DataType::Int, AttributeType::Unstructured).into(),
-                    )]),
+                    nodes: HashMap::from([("attribute2".into(), DataType::Int.into())]),
+                    edges: HashMap::from([("attribute2".into(), DataType::Int.into())]),
                     strict: false,
                 },
             )]),
             default: ProvidedGroupSchema {
-                nodes: HashMap::from([(
-                    "attribute".into(),
-                    (DataType::Int, AttributeType::Unstructured).into(),
-                )]),
-                edges: HashMap::from([(
-                    "attribute".into(),
-                    (DataType::Int, AttributeType::Unstructured).into(),
-                )]),
+                nodes: HashMap::from([("attribute".into(), DataType::Int.into())]),
+                edges: HashMap::from([("attribute".into(), DataType::Int.into())]),
                 strict: false,
             },
         };
@@ -1063,14 +1048,8 @@ mod test {
         let schema = ProvidedSchema {
             groups: Default::default(),
             default: ProvidedGroupSchema {
-                nodes: HashMap::from([(
-                    "attribute".into(),
-                    (DataType::Int, AttributeType::Unstructured).into(),
-                )]),
-                edges: HashMap::from([(
-                    "attribute".into(),
-                    (DataType::Int, AttributeType::Unstructured).into(),
-                )]),
+                nodes: HashMap::from([("attribute".into(), DataType::Int.into())]),
+                edges: HashMap::from([("attribute".into(), DataType::Int.into())]),
                 strict: false,
             },
         };
@@ -1091,14 +1070,8 @@ mod test {
         let schema = ProvidedSchema {
             groups: Default::default(),
             default: ProvidedGroupSchema {
-                nodes: HashMap::from([(
-                    "attribute".into(),
-                    (DataType::Int, AttributeType::Unstructured).into(),
-                )]),
-                edges: HashMap::from([(
-                    "attribute".into(),
-                    (DataType::Int, AttributeType::Unstructured).into(),
-                )]),
+                nodes: HashMap::from([("attribute".into(), DataType::Int.into())]),
+                edges: HashMap::from([("attribute".into(), DataType::Int.into())]),
                 strict: false,
             },
         };

@@ -31,6 +31,8 @@ PyDataType: TypeAlias = Union[
     PyOption,
 ]
 
+PySchema: TypeAlias = Union[PyInferredSchema, PyProvidedSchema]
+
 class PyString: ...
 class PyInt: ...
 class PyFloat: ...
@@ -55,41 +57,54 @@ class PyAttributeType(Enum):
     Categorical = ...
     Continuous = ...
     Temporal = ...
+    Unstructured = ...
 
 class PyAttributeDataType:
     data_type: PyDataType
-    attribute_type: Optional[PyAttributeType]
+    attribute_type: PyAttributeType
 
     def __init__(
-        self, data_type: PyDataType, attribute_type: Optional[PyAttributeType]
+        self, data_type: PyDataType, attribute_type: PyAttributeType
     ) -> None: ...
 
-class PyGroupSchema:
+class PyInferredGroupSchema:
     nodes: Dict[MedRecordAttribute, PyAttributeDataType]
     edges: Dict[MedRecordAttribute, PyAttributeDataType]
-    strict: Optional[bool]
 
     def __init__(
         self,
         *,
         nodes: Dict[MedRecordAttribute, PyAttributeDataType],
         edges: Dict[MedRecordAttribute, PyAttributeDataType],
-        strict: Optional[bool] = None,
     ) -> None: ...
 
-class PySchema:
+class PyInferredSchema:
     groups: List[Group]
-    default: Optional[PyGroupSchema]
-    strict: Optional[bool]
+    default: PyInferredGroupSchema
+
+    def group(self, group: Group) -> PyInferredGroupSchema: ...
+
+class PyProvidedGroupSchema:
+    nodes: Dict[MedRecordAttribute, PyAttributeDataType]
+    edges: Dict[MedRecordAttribute, PyAttributeDataType]
+    strict: bool
 
     def __init__(
         self,
         *,
-        groups: Dict[Group, PyGroupSchema],
-        default: Optional[PyGroupSchema] = None,
-        strict: Optional[bool] = None,
+        nodes: Dict[MedRecordAttribute, PyAttributeDataType],
+        edges: Dict[MedRecordAttribute, PyAttributeDataType],
+        strict: bool = True,
     ) -> None: ...
-    def group(self, group: Group) -> PyGroupSchema: ...
+
+class PyProvidedSchema:
+    groups: List[Group]
+    default: PyInferredGroupSchema
+
+    def __init__(
+        self, groups: Dict[Group, PyProvidedGroupSchema], default: PyProvidedGroupSchema
+    ) -> None: ...
+    def group(self, group: Group) -> PyInferredGroupSchema: ...
 
 class PyMedRecord:
     schema: PySchema
