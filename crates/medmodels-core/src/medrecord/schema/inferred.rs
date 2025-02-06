@@ -64,6 +64,12 @@ impl InferredGroupSchema {
                 }
             }
         }
+
+        for (attribute, data_type) in schema {
+            if !attributes.contains_key(attribute) {
+                data_type.data_type = data_type.data_type.merge(&DataType::Null);
+            }
+        }
     }
 }
 

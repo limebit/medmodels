@@ -18,7 +18,7 @@ use medmodels_core::{
 use pyo3::{prelude::*, types::PyFunction};
 use pyo3_polars::PyDataFrame;
 use querying::{edges::PyEdgeOperand, nodes::PyNodeOperand};
-use schema::PySchema;
+use schema::{PyProvidedSchema, PySchema};
 use std::collections::HashMap;
 use traits::DeepInto;
 use value::PyMedRecordValue;
@@ -40,7 +40,7 @@ impl PyMedRecord {
     }
 
     #[staticmethod]
-    pub fn with_schema(schema: PySchema) -> Self {
+    pub fn with_schema(schema: PyProvidedSchema) -> Self {
         Self(MedRecord::with_schema(schema.into()))
     }
 
@@ -96,7 +96,7 @@ impl PyMedRecord {
         Ok(self.0.to_ron(path).map_err(PyMedRecordError::from)?)
     }
 
-    pub fn update_schema(&mut self, schema: PySchema) -> PyResult<()> {
+    pub fn update_schema(&mut self, schema: PyProvidedSchema) -> PyResult<()> {
         Ok(self
             .0
             .update_schema(schema.into())
@@ -105,7 +105,7 @@ impl PyMedRecord {
 
     #[getter]
     pub fn schema(&self) -> PySchema {
-        todo!()
+        self.0.get_schema().clone().into()
     }
 
     #[getter]

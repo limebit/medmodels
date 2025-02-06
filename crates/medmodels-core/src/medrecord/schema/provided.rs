@@ -174,7 +174,7 @@ mod test {
     use super::{ProvidedGroupSchema, ProvidedSchema};
     use crate::{
         errors::GraphError,
-        medrecord::{AttributeType, Attributes, DataType, EdgeIndex, NodeIndex},
+        medrecord::{Attributes, DataType, EdgeIndex, NodeIndex},
     };
     use std::collections::HashMap;
 
@@ -183,10 +183,7 @@ mod test {
         let strict_schema = ProvidedSchema {
             groups: Default::default(),
             default: ProvidedGroupSchema {
-                nodes: HashMap::from([(
-                    "attribute".into(),
-                    (DataType::Int, AttributeType::Unstructured).into(),
-                )]),
+                nodes: HashMap::from([("attribute".into(), DataType::Int.into())]),
                 edges: Default::default(),
                 strict: true,
             },
@@ -194,10 +191,7 @@ mod test {
         let non_strict_schema = ProvidedSchema {
             groups: Default::default(),
             default: ProvidedGroupSchema {
-                nodes: HashMap::from([(
-                    "attribute".into(),
-                    (DataType::Int, AttributeType::Unstructured).into(),
-                )]),
+                nodes: HashMap::from([("attribute".into(), DataType::Int.into())]),
                 edges: Default::default(),
                 strict: false,
             },
@@ -252,10 +246,7 @@ mod test {
             groups: HashMap::from([(
                 "group".into(),
                 ProvidedGroupSchema {
-                    nodes: HashMap::from([(
-                        "attribute".into(),
-                        (DataType::Int, AttributeType::Unstructured).into(),
-                    )]),
+                    nodes: HashMap::from([("attribute".into(), DataType::Int.into())]),
                     edges: Default::default(),
                     strict: true,
                 },
@@ -270,10 +261,7 @@ mod test {
             groups: HashMap::from([(
                 "group".into(),
                 ProvidedGroupSchema {
-                    nodes: HashMap::from([(
-                        "attribute".into(),
-                        (DataType::Int, AttributeType::Unstructured).into(),
-                    )]),
+                    nodes: HashMap::from([("attribute".into(), DataType::Int.into())]),
                     edges: Default::default(),
                     strict: false,
                 },
@@ -320,10 +308,7 @@ mod test {
             groups: Default::default(),
             default: ProvidedGroupSchema {
                 nodes: Default::default(),
-                edges: HashMap::from([(
-                    "attribute".into(),
-                    (DataType::Int, AttributeType::Unstructured).into(),
-                )]),
+                edges: HashMap::from([("attribute".into(), DataType::Int.into())]),
                 strict: true,
             },
         };
@@ -331,10 +316,7 @@ mod test {
             groups: Default::default(),
             default: ProvidedGroupSchema {
                 nodes: Default::default(),
-                edges: HashMap::from([(
-                    "attribute".into(),
-                    (DataType::Int, AttributeType::Unstructured).into(),
-                )]),
+                edges: HashMap::from([("attribute".into(), DataType::Int.into())]),
                 strict: false,
             },
         };
@@ -389,10 +371,7 @@ mod test {
                 "group".into(),
                 ProvidedGroupSchema {
                     nodes: Default::default(),
-                    edges: HashMap::from([(
-                        "attribute".into(),
-                        (DataType::Int, AttributeType::Unstructured).into(),
-                    )]),
+                    edges: HashMap::from([("attribute".into(), DataType::Int.into())]),
                     strict: true,
                 },
             )]),
@@ -407,10 +386,7 @@ mod test {
                 "group".into(),
                 ProvidedGroupSchema {
                     nodes: Default::default(),
-                    edges: HashMap::from([(
-                        "attribute".into(),
-                        (DataType::Int, AttributeType::Unstructured).into(),
-                    )]),
+                    edges: HashMap::from([("attribute".into(), DataType::Int.into())]),
                     strict: false,
                 },
             )]),
