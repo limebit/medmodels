@@ -59,6 +59,9 @@ class PyAttributeType(Enum):
     Temporal = ...
     Unstructured = ...
 
+    @staticmethod
+    def infer_from(data_type: PyDataType) -> PyAttributeType: ...
+
 class PyAttributeDataType:
     data_type: PyDataType
     attribute_type: PyAttributeType
@@ -77,6 +80,7 @@ class PyInferredGroupSchema:
         nodes: Dict[MedRecordAttribute, PyAttributeDataType],
         edges: Dict[MedRecordAttribute, PyAttributeDataType],
     ) -> None: ...
+    def _into_py_provided_group_schema(self) -> PyProvidedGroupSchema: ...
 
 class PyInferredSchema:
     groups: List[Group]
@@ -96,6 +100,7 @@ class PyProvidedGroupSchema:
         edges: Dict[MedRecordAttribute, PyAttributeDataType],
         strict: bool = True,
     ) -> None: ...
+    def _into_py_inferred_group_schema(self) -> PyInferredGroupSchema: ...
 
 class PyProvidedSchema:
     groups: List[Group]

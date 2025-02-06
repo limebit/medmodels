@@ -34,15 +34,6 @@ class TestSchema(unittest.TestCase):
         with pytest.raises(ValueError, match="No schema found for group: nonexistent"):
             self.schema.group("nonexistent")
 
-    def test_default(self) -> None:
-        assert None is self.schema.default
-        schema = Schema(default=GroupSchema(nodes={"description": mr.String()}))
-
-        assert isinstance(schema.default, mr.GroupSchema)
-
-    def test_strict(self) -> None:
-        assert True is self.schema.strict
-
 
 class TestGroupSchema(unittest.TestCase):
     def setUp(self) -> None:
@@ -69,7 +60,6 @@ class TestAttributesSchema(unittest.TestCase):
         self.attributes_schema = (
             Schema(
                 groups={"diagnosis": GroupSchema(nodes={"description": mr.String()})},
-                strict=False,
             )
             .group("diagnosis")
             .nodes
@@ -77,7 +67,8 @@ class TestAttributesSchema(unittest.TestCase):
 
     def test_repr(self) -> None:
         assert (
-            repr(self.attributes_schema) == "{'description': (DataType.String, None)}"
+            repr(self.attributes_schema)
+            == "{'description': (DataType.String, AttributeType.Unstructured)}"
         )
 
         second_attributes_schema = (
@@ -89,7 +80,6 @@ class TestAttributesSchema(unittest.TestCase):
                         }
                     )
                 },
-                strict=False,
             )
             .group("diagnosis")
             .nodes
@@ -101,7 +91,9 @@ class TestAttributesSchema(unittest.TestCase):
         )
 
     def test_getitem(self) -> None:
-        assert (mr.String(), None) == self.attributes_schema["description"]
+        assert (mr.String(), mr.AttributeType.Unstructured) == self.attributes_schema[
+            "description"
+        ]
 
         with pytest.raises(KeyError):
             self.attributes_schema["nonexistent"]
@@ -117,7 +109,6 @@ class TestAttributesSchema(unittest.TestCase):
         comparison_attributes_schema = (
             Schema(
                 groups={"diagnosis": GroupSchema(nodes={"description": mr.String()})},
-                strict=False,
             )
             .group("diagnosis")
             .nodes
@@ -128,7 +119,6 @@ class TestAttributesSchema(unittest.TestCase):
         comparison_attributes_schema = (
             Schema(
                 groups={"diagnosis": GroupSchema(nodes={"description": mr.Int()})},
-                strict=False,
             )
             .group("diagnosis")
             .nodes
@@ -145,7 +135,6 @@ class TestAttributesSchema(unittest.TestCase):
                         }
                     )
                 },
-                strict=False,
             )
             .group("diagnosis")
             .nodes
@@ -162,7 +151,6 @@ class TestAttributesSchema(unittest.TestCase):
                         }
                     )
                 },
-                strict=False,
             )
             .group("diagnosis")
             .nodes
@@ -176,20 +164,13 @@ class TestAttributesSchema(unittest.TestCase):
         assert list(self.attributes_schema.keys()) == ["description"]
 
     def test_values(self) -> None:
-        assert [(mr.String(), None)] == list(self.attributes_schema.values())
-
-    def test_items(self) -> None:
-        assert [("description", (mr.String(), None))] == list(
-            self.attributes_schema.items()
+        assert [(mr.String(), mr.AttributeType.Unstructured)] == list(
+            self.attributes_schema.values()
         )
 
-    def test_get(self) -> None:
-        assert (mr.String(), None) == self.attributes_schema.get("description")
-
-        assert None is self.attributes_schema.get("nonexistent")
-
-        assert (mr.String(), None) == self.attributes_schema.get(
-            "nonexistent", (mr.String(), None)
+    def test_items(self) -> None:
+        assert [("description", (mr.String(), mr.AttributeType.Unstructured))] == list(
+            self.attributes_schema.items()
         )
 
 

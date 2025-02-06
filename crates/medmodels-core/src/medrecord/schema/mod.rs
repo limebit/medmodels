@@ -36,7 +36,7 @@ pub enum AttributeType {
 }
 
 impl AttributeType {
-    fn infer_from(data_type: &DataType) -> Self {
+    pub fn infer_from(data_type: &DataType) -> Self {
         match data_type {
             DataType::String => Self::Unstructured,
             DataType::Int => Self::Continuous,
