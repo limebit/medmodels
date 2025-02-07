@@ -1,16 +1,68 @@
 use super::{inferred::InferredGroupSchema, AttributeSchema, Attributes, EdgeIndex, NodeIndex};
 use crate::{
     errors::GraphError,
-    medrecord::{datatypes::DataType, Group},
+    medrecord::{datatypes::DataType, Group, MedRecordAttribute},
 };
 use serde::{Deserialize, Serialize};
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct ProvidedGroupSchema {
     pub nodes: AttributeSchema,
     pub edges: AttributeSchema,
-    pub strict: bool,
+}
+
+enum AttributeSchemaKind<'a> {
+    Node(&'a NodeIndex),
+    Edge(&'a EdgeIndex),
+}
+
+impl AttributeSchemaKind<'_> {
+    fn error_message(&self, key: &MedRecordAttribute, data_type: &DataType) -> String {
+        match self {
+            Self::Node(index) => format!(
+                "Attribute {} of type {} not found on node with index {}",
+                key, data_type, index
+            ),
+            Self::Edge(index) => format!(
+                "Attribute {} of type {} not found on edge with index {}",
+                key, data_type, index
+            ),
+        }
+    }
+
+    fn error_message_expected(
+        &self,
+        key: &MedRecordAttribute,
+        data_type: &DataType,
+        expected_data_type: &DataType,
+    ) -> String {
+        match self {
+            Self::Node(index) => format!(
+                "Attribute {} of node with index {} is of type {}. Expected {}.",
+                key, index, data_type, expected_data_type
+            ),
+            Self::Edge(index) => format!(
+                "Attribute {} of node with index {} is of type {}. Expected {}.",
+                key, index, data_type, expected_data_type
+            ),
+        }
+    }
+
+    fn error_message_too_many(&self, attributes: Vec<String>) -> String {
+        match self {
+            Self::Node(index) => format!(
+                "Attributes [{}] of node with index {} do not exist in schema.",
+                attributes.join(", "),
+                index
+            ),
+            Self::Edge(index) => format!(
+                "Attributes [{}] of edge with index {} do not exist in schema.",
+                attributes.join(", "),
+                index
+            ),
+        }
+    }
 }
 
 impl From<InferredGroupSchema> for ProvidedGroupSchema {
@@ -18,64 +70,56 @@ impl From<InferredGroupSchema> for ProvidedGroupSchema {
         Self {
             nodes: value.nodes,
             edges: value.edges,
-            strict: false,
         }
     }
 }
 
 impl ProvidedGroupSchema {
+    fn validate_attribute_schema(
+        attributes: &Attributes,
+        attribute_schema: &AttributeSchema,
+        kind: AttributeSchemaKind,
+    ) -> Result<(), GraphError> {
+        for (key, schema) in attribute_schema {
+            let value = attributes.get(key).ok_or(GraphError::SchemaError(
+                kind.error_message(key, &schema.data_type),
+            ))?;
+
+            let data_type = DataType::from(value);
+
+            if !schema.data_type.evaluate(&data_type) {
+                return Err(GraphError::SchemaError(kind.error_message_expected(
+                    key,
+                    &data_type,
+                    &schema.data_type,
+                )));
+            }
+        }
+
+        let attributes_not_in_schema = attributes
+            .keys()
+            .filter(|attribute| !attribute_schema.contains_key(*attribute))
+            .map(|attribute| attribute.to_string())
+            .collect::<Vec<_>>();
+
+        match attributes_not_in_schema.len() {
+            0 => (),
+            _ => {
+                return Err(GraphError::SchemaError(
+                    kind.error_message_too_many(attributes_not_in_schema),
+                ));
+            }
+        }
+
+        Ok(())
+    }
+
     pub fn validate_node<'a>(
         &self,
         index: &'a NodeIndex,
         attributes: &'a Attributes,
     ) -> Result<(), GraphError> {
-        for (key, schema) in &self.nodes {
-            let value = attributes.get(key).ok_or(GraphError::SchemaError(format!(
-                "Attribute {} of type {} not found on node with index {}",
-                key, schema.data_type, index
-            )))?;
-
-            let data_type = DataType::from(value);
-
-            if !schema.data_type.evaluate(&data_type) {
-                return Err(GraphError::SchemaError(format!(
-                    "Attribute {} of node with index {} is of type {}. Expected {}.",
-                    key, index, data_type, schema.data_type
-                )));
-            }
-        }
-
-        if self.strict {
-            let attributes = attributes.keys().collect::<HashSet<_>>();
-            let schema_attributes = self.nodes.keys().collect::<HashSet<_>>();
-            let attributes_not_in_schema = attributes
-                .difference(&schema_attributes)
-                .map(|attribute| attribute.to_string())
-                .collect::<Vec<_>>();
-
-            match attributes_not_in_schema.len() {
-                0 => (),
-                1 => {
-                    let attribute_not_in_schema = attributes_not_in_schema
-                        .first()
-                        .expect("Attribute must exist.");
-
-                    return Err(GraphError::SchemaError(format!(
-                        "Attribute {} of node with index {} does not exist in strict schema.",
-                        attribute_not_in_schema, index
-                    )));
-                }
-                _ => {
-                    return Err(GraphError::SchemaError(format!(
-                        "Attributes {} of node with index {} do not exist in strict schema.",
-                        attributes_not_in_schema.join(", "),
-                        index
-                    )));
-                }
-            }
-        }
-
-        Ok(())
+        Self::validate_attribute_schema(attributes, &self.nodes, AttributeSchemaKind::Node(index))
     }
 
     pub fn validate_edge<'a>(
@@ -83,53 +127,7 @@ impl ProvidedGroupSchema {
         index: &'a EdgeIndex,
         attributes: &'a Attributes,
     ) -> Result<(), GraphError> {
-        for (key, schema) in &self.edges {
-            let value = attributes.get(key).ok_or(GraphError::SchemaError(format!(
-                "Attribute {} of type {} not found on edge with index {}",
-                key, schema.data_type, index
-            )))?;
-
-            let data_type = DataType::from(value);
-
-            if !schema.data_type.evaluate(&data_type) {
-                return Err(GraphError::SchemaError(format!(
-                    "Attribute {} of edge with index {} is of type {}. Expected {}.",
-                    key, index, data_type, schema.data_type
-                )));
-            }
-        }
-
-        if self.strict {
-            let attributes = attributes.keys().collect::<HashSet<_>>();
-            let schema_attributes = self.edges.keys().collect::<HashSet<_>>();
-            let attributes_not_in_schema = attributes
-                .difference(&schema_attributes)
-                .map(|attribute| attribute.to_string())
-                .collect::<Vec<_>>();
-
-            match attributes_not_in_schema.len() {
-                0 => (),
-                1 => {
-                    let attribute_not_in_schema = attributes_not_in_schema
-                        .first()
-                        .expect("Attribute must exist.");
-
-                    return Err(GraphError::SchemaError(format!(
-                        "Attribute {} of edge with index {} does not exist in strict schema.",
-                        attribute_not_in_schema, index
-                    )));
-                }
-                _ => {
-                    return Err(GraphError::SchemaError(format!(
-                        "Attributes {} of edge with index {} do not exist in strict schema.",
-                        attributes_not_in_schema.join(", "),
-                        index
-                    )));
-                }
-            }
-        }
-
-        Ok(())
+        Self::validate_attribute_schema(attributes, &self.edges, AttributeSchemaKind::Edge(index))
     }
 }
 
@@ -185,15 +183,6 @@ mod test {
             default: ProvidedGroupSchema {
                 nodes: HashMap::from([("attribute".into(), DataType::Int.into())]),
                 edges: Default::default(),
-                strict: true,
-            },
-        };
-        let non_strict_schema = ProvidedSchema {
-            groups: Default::default(),
-            default: ProvidedGroupSchema {
-                nodes: HashMap::from([("attribute".into(), DataType::Int.into())]),
-                edges: Default::default(),
-                strict: false,
             },
         };
 
@@ -216,9 +205,6 @@ mod test {
         assert!(strict_schema
             .validate_node(&index, &attributes, None)
             .is_err_and(|e| matches!(e, GraphError::SchemaError(_))));
-        assert!(non_strict_schema
-            .validate_node(&index, &attributes, None)
-            .is_ok());
     }
 
     #[test]
@@ -228,7 +214,6 @@ mod test {
             default: ProvidedGroupSchema {
                 nodes: Default::default(),
                 edges: Default::default(),
-                strict: true,
             },
         };
 
@@ -248,28 +233,11 @@ mod test {
                 ProvidedGroupSchema {
                     nodes: HashMap::from([("attribute".into(), DataType::Int.into())]),
                     edges: Default::default(),
-                    strict: true,
                 },
             )]),
             default: ProvidedGroupSchema {
                 nodes: Default::default(),
                 edges: Default::default(),
-                strict: true,
-            },
-        };
-        let non_strict_schema = ProvidedSchema {
-            groups: HashMap::from([(
-                "group".into(),
-                ProvidedGroupSchema {
-                    nodes: HashMap::from([("attribute".into(), DataType::Int.into())]),
-                    edges: Default::default(),
-                    strict: false,
-                },
-            )]),
-            default: ProvidedGroupSchema {
-                nodes: Default::default(),
-                edges: Default::default(),
-                strict: true,
             },
         };
 
@@ -292,9 +260,6 @@ mod test {
         assert!(strict_schema
             .validate_node(&index, &attributes, Some(&"group".into()))
             .is_err_and(|e| matches!(e, GraphError::SchemaError(_))));
-        assert!(non_strict_schema
-            .validate_node(&index, &attributes, Some(&"group".into()))
-            .is_ok());
 
         // Checking schema of non existing group should fail because no default schema exists
         assert!(strict_schema
@@ -309,15 +274,6 @@ mod test {
             default: ProvidedGroupSchema {
                 nodes: Default::default(),
                 edges: HashMap::from([("attribute".into(), DataType::Int.into())]),
-                strict: true,
-            },
-        };
-        let non_strict_schema = ProvidedSchema {
-            groups: Default::default(),
-            default: ProvidedGroupSchema {
-                nodes: Default::default(),
-                edges: HashMap::from([("attribute".into(), DataType::Int.into())]),
-                strict: false,
             },
         };
 
@@ -340,9 +296,6 @@ mod test {
         assert!(strict_schema
             .validate_edge(&index, &attributes, None)
             .is_err_and(|e| matches!(e, GraphError::SchemaError(_))));
-        assert!(non_strict_schema
-            .validate_edge(&index, &attributes, None)
-            .is_ok());
     }
 
     #[test]
@@ -352,7 +305,6 @@ mod test {
             default: ProvidedGroupSchema {
                 nodes: Default::default(),
                 edges: Default::default(),
-                strict: true,
             },
         };
 
@@ -372,28 +324,11 @@ mod test {
                 ProvidedGroupSchema {
                     nodes: Default::default(),
                     edges: HashMap::from([("attribute".into(), DataType::Int.into())]),
-                    strict: true,
                 },
             )]),
             default: ProvidedGroupSchema {
                 nodes: Default::default(),
                 edges: Default::default(),
-                strict: true,
-            },
-        };
-        let non_strict_schema = ProvidedSchema {
-            groups: HashMap::from([(
-                "group".into(),
-                ProvidedGroupSchema {
-                    nodes: Default::default(),
-                    edges: HashMap::from([("attribute".into(), DataType::Int.into())]),
-                    strict: false,
-                },
-            )]),
-            default: ProvidedGroupSchema {
-                nodes: Default::default(),
-                edges: Default::default(),
-                strict: true,
             },
         };
 
@@ -416,9 +351,6 @@ mod test {
         assert!(strict_schema
             .validate_edge(&index, &attributes, Some(&"group".into()))
             .is_err_and(|e| matches!(e, GraphError::SchemaError(_))));
-        assert!(non_strict_schema
-            .validate_edge(&index, &attributes, Some(&"group".into()))
-            .is_ok());
 
         // Checking schema of non existing group should fail because no default schema exists
         assert!(strict_schema

@@ -44,16 +44,14 @@ impl DeepFrom<ProvidedGroupSchema> for PyProvidedGroupSchema {
 #[pymethods]
 impl PyProvidedGroupSchema {
     #[new]
-    #[pyo3(signature = (nodes, edges, strict=true))]
+    #[pyo3(signature = (nodes, edges))]
     fn new(
         nodes: HashMap<PyMedRecordAttribute, PyAttributeDataType>,
         edges: HashMap<PyMedRecordAttribute, PyAttributeDataType>,
-        strict: bool,
     ) -> Self {
         PyProvidedGroupSchema(ProvidedGroupSchema {
             nodes: nodes.deep_into(),
             edges: edges.deep_into(),
-            strict,
         })
     }
 
@@ -65,11 +63,6 @@ impl PyProvidedGroupSchema {
     #[getter]
     fn edges(&self) -> HashMap<PyMedRecordAttribute, PyAttributeDataType> {
         self.0.edges.clone().deep_into()
-    }
-
-    #[getter]
-    fn strict(&self) -> bool {
-        self.0.strict
     }
 
     fn _into_py_inferred_group_schema(&self) -> PyInferredGroupSchema {

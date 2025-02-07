@@ -51,9 +51,6 @@ class TestGroupSchema(unittest.TestCase):
             "duration_days": (mr.Option(mr.Float()), mr.AttributeType.Continuous),
         }
 
-    def test_strict(self) -> None:
-        assert True is self.schema.group("patient").strict
-
 
 class TestAttributesSchema(unittest.TestCase):
     def setUp(self) -> None:

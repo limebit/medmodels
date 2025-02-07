@@ -6,7 +6,6 @@ import pandas as pd
 import polars as pl
 import pytest
 
-import medmodels.medrecord as mr
 from medmodels import MedRecord
 from medmodels.medrecord.medrecord import EdgesDirected
 from medmodels.medrecord.querying import EdgeOperand, NodeOperand
@@ -267,67 +266,6 @@ class TestMedRecord(unittest.TestCase):
 
         assert medrecord.node_count() == loaded_medrecord.node_count()
         assert medrecord.edge_count() == loaded_medrecord.edge_count()
-
-    def test_schema(self) -> None:
-        schema = mr.Schema(
-            groups={
-                "group": mr.GroupSchema(
-                    nodes={"attribute2": mr.Int()}, edges={"attribute2": mr.Int()}
-                )
-            },
-            default=mr.GroupSchema(
-                nodes={"attribute": mr.Int()}, edges={"attribute": mr.Int()}
-            ),
-        )
-
-        medrecord = MedRecord.with_schema(schema)
-        medrecord.add_group("group")
-
-        medrecord.add_nodes(("0", {"attribute": 1}))
-
-        with pytest.raises(
-            ValueError,
-            match=r"Attribute [^\s]+ of node with index [^\s]+ is of type [^\s]+. Expected [^\s]+.",
-        ):
-            medrecord.add_nodes(("1", {"attribute": "1"}))
-
-        medrecord.add_nodes(("1", {"attribute": 1, "attribute2": 1}))
-
-        medrecord.add_nodes_to_group("group", "1")
-
-        medrecord.add_nodes(("2", {"attribute": 1, "attribute2": "1"}))
-
-        with pytest.raises(
-            ValueError,
-            match=r"Attribute [^\s]+ of node with index [^\s]+ is of type [^\s]+. Expected [^\s]+.",
-        ):
-            medrecord.add_nodes_to_group("group", "2")
-
-        medrecord.add_edges(("0", "1", {"attribute": 1}))
-
-        with pytest.raises(
-            ValueError,
-            match=r"Attribute [^\s]+ of edge with index [^\s]+ is of type [^\s]+. Expected [^\s]+.",
-        ):
-            medrecord.add_edges(("0", "1", {"attribute": "1"}))
-
-        edge_index = medrecord.add_edges(("0", "1", {"attribute": 1, "attribute2": 1}))
-
-        medrecord.add_edges_to_group("group", edge_index)
-
-        edge_index = medrecord.add_edges(
-            (
-                "0",
-                "1",
-                {"attribute": 1, "attribute2": "1"},
-            )
-        )
-
-        with pytest.raises(
-            ValueError,
-            match=r"Attribute [^\s]+ of edge with index [^\s]+ is of type [^\s]+. Expected [^\s]+.",
-        ):
-            medrecord.add_edges_to_group("group", edge_index)
 
     def test_nodes(self) -> None:
         medrecord = create_medrecord()

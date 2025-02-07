@@ -276,7 +276,6 @@ class GroupSchema:
         edges: Optional[
             Dict[MedRecordAttribute, Union[DataType, Tuple[DataType, AttributeType]]]
         ] = None,
-        strict: bool = False,
     ) -> None:
         """Initializes a new instance of GroupSchema.
 
@@ -289,8 +288,6 @@ class GroupSchema:
                 A dictionary mapping edge attributes to their data types and
                 optional attribute types. Defaults to an empty dictionary.
                 When no attribute type is provided, it is inferred from the data type.
-            strict (bool, optional): Indicates whether the schema should be strict.
-                Defaults to False.
         """  # noqa: W505
         if edges is None:
             edges = {}
@@ -312,7 +309,6 @@ class GroupSchema:
         self._group_schema = PyProvidedGroupSchema(
             nodes={x: _convert_input(nodes[x]) for x in nodes},
             edges={x: _convert_input(edges[x]) for x in edges},
-            strict=strict,
         )
 
     @classmethod
@@ -375,20 +371,6 @@ class GroupSchema:
                 x: _convert_edge(self._group_schema.edges[x])
                 for x in self._group_schema.edges
             }
-        )
-
-    @property
-    def strict(self) -> Optional[bool]:
-        """Indicates whether the GroupSchema instance is strict.
-
-        Returns:
-            Optional[bool]: True if the schema is strict, False otherwise. None if the
-                schema is inferred.
-        """
-        return (
-            self._group_schema.strict
-            if isinstance(self._group_schema, PyProvidedGroupSchema)
-            else None
         )
 
 

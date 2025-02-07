@@ -91,14 +91,12 @@ class PyInferredSchema:
 class PyProvidedGroupSchema:
     nodes: Dict[MedRecordAttribute, PyAttributeDataType]
     edges: Dict[MedRecordAttribute, PyAttributeDataType]
-    strict: bool
 
     def __init__(
         self,
         *,
         nodes: Dict[MedRecordAttribute, PyAttributeDataType],
         edges: Dict[MedRecordAttribute, PyAttributeDataType],
-        strict: bool = True,
     ) -> None: ...
     def _into_py_inferred_group_schema(self) -> PyInferredGroupSchema: ...
 
