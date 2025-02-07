@@ -25,7 +25,6 @@ macro_rules! simple_dataset_schema {
                             (DataType::String, AttributeType::Unstructured).into(),
                         )]),
                         edges: HashMap::new(),
-                        strict: true,
                     },
                 ),
                 (
@@ -36,7 +35,6 @@ macro_rules! simple_dataset_schema {
                             (DataType::String, AttributeType::Unstructured).into(),
                         )]),
                         edges: HashMap::new(),
-                        strict: true,
                     },
                 ),
                 (
@@ -53,7 +51,6 @@ macro_rules! simple_dataset_schema {
                             ),
                         ]),
                         edges: HashMap::new(),
-                        strict: true,
                     },
                 ),
                 (
@@ -64,7 +61,6 @@ macro_rules! simple_dataset_schema {
                             (DataType::String, AttributeType::Unstructured).into(),
                         )]),
                         edges: HashMap::new(),
-                        strict: true,
                     },
                 ),
                 (
@@ -85,7 +81,6 @@ macro_rules! simple_dataset_schema {
                                     .into(),
                             ),
                         ]),
-                        strict: true,
                     },
                 ),
                 (
@@ -106,7 +101,6 @@ macro_rules! simple_dataset_schema {
                                 (DataType::Float, AttributeType::Continuous).into(),
                             ),
                         ]),
-                        strict: true,
                     },
                 ),
                 (
@@ -123,14 +117,12 @@ macro_rules! simple_dataset_schema {
                                 (DataType::Float, AttributeType::Continuous).into(),
                             ),
                         ]),
-                        strict: true,
                     },
                 ),
             ]),
             default: ProvidedGroupSchema {
                 nodes: Default::default(),
                 edges: Default::default(),
-                strict: true,
             },
         }
     };
@@ -148,7 +140,6 @@ macro_rules! advanced_dataset_schema {
                             (DataType::String, AttributeType::Unstructured).into(),
                         )]),
                         edges: HashMap::new(),
-                        strict: true,
                     },
                 ),
                 (
@@ -159,7 +150,6 @@ macro_rules! advanced_dataset_schema {
                             (DataType::String, AttributeType::Unstructured).into(),
                         )]),
                         edges: HashMap::new(),
-                        strict: true,
                     },
                 ),
                 (
@@ -176,7 +166,6 @@ macro_rules! advanced_dataset_schema {
                             ),
                         ]),
                         edges: HashMap::new(),
-                        strict: true,
                     },
                 ),
                 (
@@ -187,7 +176,6 @@ macro_rules! advanced_dataset_schema {
                             (DataType::String, AttributeType::Unstructured).into(),
                         )]),
                         edges: HashMap::new(),
-                        strict: true,
                     },
                 ),
                 (
@@ -195,7 +183,6 @@ macro_rules! advanced_dataset_schema {
                     ProvidedGroupSchema {
                         nodes: HashMap::new(),
                         edges: HashMap::new(),
-                        strict: true,
                     },
                 ),
                 (
@@ -216,7 +203,6 @@ macro_rules! advanced_dataset_schema {
                                     .into(),
                             ),
                         ]),
-                        strict: true,
                     },
                 ),
                 (
@@ -237,7 +223,6 @@ macro_rules! advanced_dataset_schema {
                                 (DataType::Float, AttributeType::Continuous).into(),
                             ),
                         ]),
-                        strict: true,
                     },
                 ),
                 (
@@ -254,7 +239,6 @@ macro_rules! advanced_dataset_schema {
                                 (DataType::Float, AttributeType::Continuous).into(),
                             ),
                         ]),
-                        strict: true,
                     },
                 ),
                 (
@@ -265,14 +249,12 @@ macro_rules! advanced_dataset_schema {
                             "time".into(),
                             (DataType::DateTime, AttributeType::Temporal).into(),
                         )]),
-                        strict: true,
                     },
                 ),
             ]),
             default: ProvidedGroupSchema {
                 nodes: Default::default(),
                 edges: Default::default(),
-                strict: true,
             },
         }
     };

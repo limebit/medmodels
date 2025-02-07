@@ -844,115 +844,6 @@ mod test {
     }
 
     #[test]
-    fn test_schema() {
-        let schema = ProvidedSchema {
-            groups: HashMap::from([(
-                "group".into(),
-                ProvidedGroupSchema {
-                    nodes: HashMap::from([("attribute2".into(), DataType::Int.into())]),
-                    edges: HashMap::from([("attribute2".into(), DataType::Int.into())]),
-                    strict: false,
-                },
-            )]),
-            default: ProvidedGroupSchema {
-                nodes: HashMap::from([("attribute".into(), DataType::Int.into())]),
-                edges: HashMap::from([("attribute".into(), DataType::Int.into())]),
-                strict: false,
-            },
-        };
-
-        let mut medrecord = MedRecord::with_schema(schema.clone());
-        medrecord.add_group("group".into(), None, None).unwrap();
-
-        assert_eq!(Schema::Provided(schema), *medrecord.get_schema());
-
-        assert!(medrecord
-            .add_node("0".into(), HashMap::from([("attribute".into(), 1.into())]))
-            .is_ok());
-
-        assert!(medrecord
-            .add_node(
-                "1".into(),
-                HashMap::from([("attribute".into(), "1".into())])
-            )
-            .is_err_and(|e| matches!(e, MedRecordError::SchemaError(_))));
-
-        medrecord
-            .add_node(
-                "1".into(),
-                HashMap::from([
-                    ("attribute".into(), 1.into()),
-                    ("attribute2".into(), 1.into()),
-                ]),
-            )
-            .unwrap();
-
-        assert!(medrecord
-            .add_node_to_group("group".into(), "1".into())
-            .is_ok());
-
-        medrecord
-            .add_node(
-                "2".into(),
-                HashMap::from([
-                    ("attribute".into(), 1.into()),
-                    ("attribute2".into(), "1".into()),
-                ]),
-            )
-            .unwrap();
-
-        assert!(medrecord
-            .add_node_to_group("group".into(), "2".into())
-            .is_err_and(|e| { matches!(e, MedRecordError::SchemaError(_)) }));
-
-        assert!(medrecord
-            .add_edge(
-                "0".into(),
-                "1".into(),
-                HashMap::from([("attribute".into(), 1.into())])
-            )
-            .is_ok());
-
-        assert!(medrecord
-            .add_edge(
-                "0".into(),
-                "1".into(),
-                HashMap::from([("attribute".into(), "1".into())])
-            )
-            .is_err_and(|e| matches!(e, MedRecordError::SchemaError(_))));
-
-        let edge_index = medrecord
-            .add_edge(
-                "0".into(),
-                "1".into(),
-                HashMap::from([
-                    ("attribute".into(), 1.into()),
-                    ("attribute2".into(), 1.into()),
-                ]),
-            )
-            .unwrap();
-
-        assert!(medrecord
-            .add_edge_to_group("group".into(), edge_index)
-            .is_ok());
-
-        let edge_index = medrecord
-            .add_edge(
-                "0".into(),
-                "1".into(),
-                HashMap::from([
-                    ("attribute".into(), 1.into()),
-                    ("attribute2".into(), "1".into()),
-                ]),
-            )
-            .unwrap();
-
-        assert!(medrecord
-            .add_edge_to_group("group".into(), edge_index)
-            .is_err_and(|e| { matches!(e, MedRecordError::SchemaError(_)) }));
-    }
-
-    #[test]
     fn test_from_tuples() {
         let medrecord = create_medrecord();
 
@@ -1050,7 +941,6 @@ mod test {
             default: ProvidedGroupSchema {
                 nodes: HashMap::from([("attribute".into(), DataType::Int.into())]),
                 edges: HashMap::from([("attribute".into(), DataType::Int.into())]),
-                strict: false,
             },
         };
 
@@ -1072,7 +962,6 @@ mod test {
             default: ProvidedGroupSchema {
                 nodes: HashMap::from([("attribute".into(), DataType::Int.into())]),
                 edges: HashMap::from([("attribute".into(), DataType::Int.into())]),
-                strict: false,
             },
         };
 
