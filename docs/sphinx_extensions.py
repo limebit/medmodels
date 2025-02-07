@@ -209,6 +209,7 @@ class ExecErrorLiteralInclude(SphinxDirective):
         "lines": lambda x: x,
         "setup-lines": lambda x: x,
         "language": lambda x: x,
+        "expect-error": lambda x: x,
     }
     has_content = False
 
@@ -238,15 +239,16 @@ class ExecErrorLiteralInclude(SphinxDirective):
         total_lines = len(code_lines)
 
         setup_code = ""
+        assert all(option in self.options for option in ["lines", "expect-error"])
+
         if "setup-lines" in self.options:
             setup_line_numbers = parselinenos(self.options["setup-lines"], total_lines)
             setup_code = "".join([code_lines[i] for i in setup_line_numbers])
 
-        if "lines" in self.options:
-            main_line_numbers = parselinenos(self.options["lines"], total_lines)
-            main_code = "".join([code_lines[i] for i in main_line_numbers])
-        else:
-            main_code = "".join(code_lines)
+        main_line_numbers = parselinenos(self.options["lines"], total_lines)
+        main_code = "".join([code_lines[i] for i in main_line_numbers])
+
+        expected_error = self.options.get("expect-error")
 
         code_node = nodes.literal_block(main_code, main_code)
         code_node["language"] = self.options.get("language", "python")
@@ -280,19 +282,33 @@ class ExecErrorLiteralInclude(SphinxDirective):
                             print(repr(result))  # noqa: T201
                     else:
                         exec(last_line, exec_globals)
+
+            # Place this block here: Check if an error was expected but didn't occur
+            error_msg = (
+                f"Expected an error of type '{expected_error}', but no error occurred."
+            )
+            return [code_node, ErrorMessageNode(error_msg)]
+
         except (KeyboardInterrupt, SystemExit):
             raise
         except BaseException as e:
-            # Create a custom error node:
+            expected_error = self.options.get("expect-error")
+
+            if expected_error:
+                if e.__class__.__name__ == expected_error:
+                    # Expected error occurred, show the traceback
+                    error_msg = f"Expected error occurred: {type(e).__name__} - {e}"
+                    return [code_node, ErrorMessageNode(error_msg)]
+
+                error_msg = (
+                    f"Unexpected error type. Expected '{expected_error}', "
+                    f"but got '{e.__class__.__name__}'."
+                )
+                return [code_node, ErrorMessageNode(error_msg)]
+
+            # No expected error provided, show full traceback
             error_msg = f"Error executing code: {type(e).__name__} - {e}"
-            error_node = ErrorMessageNode(error_msg)  # create the node
-            return [code_node, error_node]  # Return the code block and error node
-
-        output_text = output_io.getvalue()
-        output_node = nodes.literal_block(output_text, output_text)
-        output_node["language"] = "none"
-
-        return [code_node, output_node]
+            return [code_node, ErrorMessageNode(error_msg)]
 
     def _is_expression(self, code_line: str) -> bool:
         try:

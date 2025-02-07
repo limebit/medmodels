@@ -156,6 +156,7 @@ Query methods used for changing the operands cannot be assigned to variables, fo
 language: python
 setup-lines: 1-6
 lines: 61-68
+expect-error: PanicException
 ---
 ```
 
@@ -166,6 +167,7 @@ Nor does the concatenation of querying methods:
 language: python
 setup-lines: 1-6
 lines: 72-78
+expect-error: PanicException
 ---
 ```
 
