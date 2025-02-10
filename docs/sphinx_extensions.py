@@ -1,10 +1,9 @@
 """Sphinx extension to execute included code snippets and display their output.
 
-This module defines two custom Sphinx directives:
-1. `exec-literalinclude` that allows including code from external files,
-   executing it, and displaying both the code and its output. In case the user
-   wants to show an expected error message, they can specify the error message
-    using the `expect-error` option.
+This module defines a custom Sphinx directive `ExecLiteralInclude` that allows
+including code from external files, executing it, and displaying both the code
+and its output in the documentation. In case the user wants to show an expected error
+message, they can specify the error message using the `expect-error` option.
 
 Example:
     ```{exec-literalinclude} path/to/your_script.py
@@ -12,6 +11,7 @@ Example:
     language: python
     setup-lines: 1-4
     lines: 6-10
+    expect-error: ValueError
     ---
     ```
 """
