@@ -151,7 +151,7 @@ lines: 42-57
 :::{note}
 Query methods used for changing the operands cannot be assigned to variables, for further querying, since their _Return_ is `None`. That is, the following code snippet will set `gender_lowercase` as None, and as a result, an `AttributeError` will be thrown:
 
-```{exec_error-literalinclude} scripts/02b_query_engine.py
+```{exec-literalinclude} scripts/02b_query_engine.py
 ---
 language: python
 setup-lines: 1-6
@@ -162,7 +162,7 @@ expect-error: PanicException
 
 Nor does the concatenation of querying methods:
 
-```{exec_error-literalinclude} scripts/02b_query_engine.py
+```{exec-literalinclude} scripts/02b_query_engine.py
 ---
 language: python
 setup-lines: 1-6
