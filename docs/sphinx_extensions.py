@@ -161,10 +161,8 @@ class ExecLiteralInclude(SphinxDirective):
         except (KeyboardInterrupt, SystemExit):
             raise
         except BaseException as e:
-            if expected_error:
-                if e.__class__.__name__ == expected_error:
-                    return [code_node, ErrorMessageNode(f"{expected_error}: {e}")]
-                raise
+            if expected_error and e.__class__.__name__ == expected_error:
+                return [code_node, ErrorMessageNode(f"{expected_error}: {e}")]
             raise
 
         if expected_error:
