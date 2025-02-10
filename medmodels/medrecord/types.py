@@ -132,6 +132,19 @@ class TemporalAttributeInfo(TypedDict):
     type: Literal["Temporal"]
     min: datetime
     max: datetime
+    mean: datetime
+
+
+class TemporalAttributeStatistics(TypedDict):
+    """Dictionary for a temporal attribute and its extended metrics."""
+
+    type: Literal["Temporal"]
+    min: datetime
+    max: datetime
+    mean: datetime
+    median: datetime
+    Q1: datetime
+    Q3: datetime
 
 
 class NumericAttributeInfo(TypedDict):
@@ -143,11 +156,32 @@ class NumericAttributeInfo(TypedDict):
     mean: Union[int, float]
 
 
+class NumericAttributeStatistics(TypedDict):
+    """Dictionary for a numeric attribute and its extended metrics."""
+
+    type: Literal["Continuous"]
+    min: Union[int, float]
+    max: Union[int, float]
+    mean: Union[int, float]
+    median: Union[int, float]
+    Q1: Union[int, float]
+    Q3: Union[int, float]
+
+
 class StringAttributeInfo(TypedDict):
     """Dictionary for a string attribute and its values."""
 
     type: Literal["Categorical"]
     values: str
+
+
+class StringAttributeStatistics(TypedDict):
+    """Dictionary for a string attribute and its values."""
+
+    type: Literal["Categorical"]
+    count: int
+    top: str
+    freq: int
 
 
 class AttributeSummary(TypedDict):

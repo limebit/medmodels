@@ -21,13 +21,16 @@ from typing import (
 
 import polars as pl
 
-from medmodels.medrecord._overview import extract_attribute_summary
 from medmodels.medrecord.medrecord import MedRecord
+from medmodels.statistic_evaluations.statistical_analysis.descriptive_statistics import (
+    extract_attribute_summary,
+)
 
 if TYPE_CHECKING:
     from medmodels.medrecord.medrecord import MedRecord
     from medmodels.medrecord.querying import NodeOperand
     from medmodels.medrecord.types import Group, MedRecordAttribute, NodeIndex
+
 
 MatchingMethod: TypeAlias = Literal["propensity", "nearest_neighbors"]
 

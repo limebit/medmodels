@@ -18,7 +18,6 @@ from typing import Callable, Dict, List, Optional, Sequence, Union, overload
 import polars as pl
 
 from medmodels._medmodels import PyMedRecord
-from medmodels.medrecord._overview import extract_attribute_summary, prettify_table
 from medmodels.medrecord.builder import MedRecordBuilder
 from medmodels.medrecord.indexers import EdgeIndexer, NodeIndexer
 from medmodels.medrecord.querying import EdgeOperand, EdgeQuery, NodeOperand, NodeQuery
@@ -51,6 +50,12 @@ from medmodels.medrecord.types import (
     is_polars_edge_dataframe_input_list,
     is_polars_node_dataframe_input,
     is_polars_node_dataframe_input_list,
+)
+from medmodels.statistic_evaluations.statistical_analysis.descriptive_statistics import (
+    extract_attribute_summary,
+)
+from medmodels.statistic_evaluations.statistical_analysis.statistics_display import (
+    prettify_table,
 )
 
 
