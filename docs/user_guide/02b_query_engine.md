@@ -149,7 +149,7 @@ lines: 42-57
 :::
 
 :::{note}
-Query methods used for changing the operands cannot be assigned to variables for further querying, since their return type is `None`. That can be appreciated in the following code snippet, where the variable `gender_lowercase` in the query takes None as value. An `AttributeError` is thrown as a consequence when trying to further query with the `equal_to` querying method:
+Query methods used for changing the operands cannot be assigned to variables for further querying, since their return type is `None`. The following code snippet shows an example, where the variable `gender_lowercase` evaluates to None. An `AttributeError` is thrown as a consequence when trying to further query with the `equal_to` querying method:
 
 ```{exec-literalinclude} scripts/02b_query_engine.py
 ---

@@ -2,9 +2,9 @@
 
 This module defines two custom Sphinx directives:
 1. `exec-literalinclude` that allows including code from external files,
-   executing it, and displaying both the code and its output.
-2. `exec_error-literalinclude` that executes code and, if an error occurs,
-   prints the full traceback along with the code.
+   executing it, and displaying both the code and its output. In case the user
+   wants to show an expected error message, they can specify the error message
+    using the `expect-error` option.
 
 Example:
     ```{exec-literalinclude} path/to/your_script.py
