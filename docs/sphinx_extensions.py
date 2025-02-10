@@ -41,23 +41,27 @@ class ErrorMessageNode(nodes.General, nodes.Element):
         self.message = message
 
 
-def visit_error_message_node(self: nodes.NodeVisitor, node: ErrorMessageNode) -> None:
+def visit_error_message_node(
+    visitor: nodes.NodeVisitor, node: ErrorMessageNode
+) -> None:
     """Visitor function to generate HTML for ErrorMessageNode.
 
     Args:
-        self (nodes.NodeVisitor): The visitor instance.
+        visitor (nodes.NodeVisitor): The visitor instance.
         node (ErrorMessageNode): The ErrorMessageNode instance.
     """
-    self.body.append(  # pyright: ignore[reportAttributeAccessIssue]
+    visitor.body.append(  # pyright: ignore[reportAttributeAccessIssue]
         f'<div class="admonition error"><p class="admonition-title error-title">Error:</p><p>{node.message}</p></div>'
     )
 
 
-def depart_error_message_node(self: nodes.NodeVisitor, node: ErrorMessageNode) -> None:
-    """Departure function for ErrorMessageNode.
+def depart_error_message_node(
+    visitor: nodes.NodeVisitor, node: ErrorMessageNode
+) -> None:
+    """Departure function for ErrorMessageNode. Placeholder function.
 
     Args:
-        self (nodes.NodeVisitor): The visitor instance.
+        visitor (nodes.NodeVisitor): The visitor instance.
         node (ErrorMessageNode): The ErrorMessageNode instance.
     """
     pass
@@ -86,6 +90,7 @@ class ExecLiteralInclude(SphinxDirective):
         Raises:
             KeyboardInterrupt: If the code raises a KeyboardInterrupt exception.
             SystemExit: If the code raises a SystemExit exception.
+            RuntimeError: If an expected error does not occur.
         """
         environment = self.state.document.settings.env
         _, filename = environment.relfn2path(self.arguments[0])
@@ -158,15 +163,13 @@ class ExecLiteralInclude(SphinxDirective):
         except BaseException as e:
             if expected_error:
                 if e.__class__.__name__ == expected_error:
-                    return [code_node, ErrorMessageNode(f"{e}")]
+                    return [code_node, ErrorMessageNode(f"{expected_error}: {e}")]
                 raise
             raise
 
         if expected_error:
-            return [
-                code_node,
-                ErrorMessageNode(f"Expected error '{expected_error}' did not occur."),
-            ]
+            msg = f"Expected error '{expected_error}' did not occur."
+            raise RuntimeError(msg)
 
         output_text = output_io.getvalue()
 
