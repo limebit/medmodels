@@ -48,8 +48,8 @@ The [`NodeOperand`](medmodels.medrecord.querying.NodeOperand){target="_blank"} q
 ```{exec-literalinclude} scripts/02b_query_engine.py
 ---
 language: python
-setup-lines: 1-5
-lines: 9-13
+setup-lines: 1-6
+lines: 10-14
 ---
 ```
 
@@ -65,8 +65,8 @@ You can get to the same result via different approaches. That makes the query en
 ```{exec-literalinclude} scripts/02b_query_engine.py
 ---
 language: python
-setup-lines: 1-5
-lines: 17-25
+setup-lines: 1-6
+lines: 18-26
 ---
 ```
 
@@ -93,8 +93,8 @@ As you can see, the query engine can prove to be highly useful for finding nodes
 ```{exec-literalinclude} scripts/02b_query_engine.py
 ---
 language: python
-setup-lines: 1-13
-lines: 29-37
+setup-lines: 1-14
+lines: 30-38
 ---
 ```
 
@@ -124,8 +124,8 @@ You can also perform mathematical calculations like [`mean()`](medmodels.medreco
 ```{exec-literalinclude} scripts/02b_query_engine.py
 ---
 language: python
-setup-lines: 1-5
-lines: 41-56
+setup-lines: 1-6
+lines: 42-57
 ---
 ```
 
@@ -149,42 +149,36 @@ lines: 41-56
 :::
 
 :::{note}
-Query methods used for changing the operands cannot be concatenated or assigned to variables, since their Return is None. That is, the following code snippet will set `gender_lowercase` as None, and as a result, an AttributeError will be thrown:
+Query methods used for changing the operands cannot be assigned to variables for further querying, since their return type is `None`. The following code snippet shows an example, where the variable `gender_lowercase` evaluates to None. An `AttributeError` is thrown as a consequence when trying to further query with the `equal_to` querying method:
 
-```python
-# Wrong implementation
-gender_lowercase = node.attribute("gender").lowercase()
-gender_lowercase.equal_to("m")
-
-AttributeError("'NoneType' object has no attribute 'equal_to'")
-
-# Wrong implementation
-gender = node.attribute("gender")
-gender.lowercase().trim()
-gender.equal_to("m")
-
-AttributeError("'NoneType' object has no attribute 'trim'")
-
-# Correct implementation
-gender = node.attribute("gender")
-gender.lowercase()
-gender.trim()
-gender.equal_to("m")
+```{exec-literalinclude} scripts/02b_query_engine.py
+---
+language: python
+setup-lines: 1-6
+lines: 61-68
+expect-error: PanicException
+---
 ```
 
-Nor do the ones that compare operands to other operands, since their Return value is also None.
+Nor does the concatenation of querying methods:
 
-```python
-# Wrong implementation
-gender = node.attribute("gender")
-gender.equal_to("M").not_equal_to("F")
+```{exec-literalinclude} scripts/02b_query_engine.py
+---
+language: python
+setup-lines: 1-6
+lines: 72-78
+expect-error: PanicException
+---
+```
 
-AttributeError("'NoneType' object has no attribute 'not_equal_to'")
+**Correct implementation**:
 
-# Correct implementation
-gender = node.attribute("gender")
-gender.equal_to("M")
-gender.not_equal_to("F")
+```{exec-literalinclude} scripts/02b_query_engine.py
+---
+language: python
+setup-lines: 1-6
+lines: 82-89
+---
 ```
 
 :::
@@ -201,8 +195,8 @@ In this following example we are selecting the nodes that fulfill the following 
 ```{exec-literalinclude} scripts/02b_query_engine.py
 ---
 language: python
-setup-lines: 1-5, 16-25
-lines: 60-68
+setup-lines: 1-6, 17-26
+lines: 93-101
 ---
 ```
 
@@ -223,8 +217,8 @@ The querying class [`EdgeOperand`](medmodels.medrecord.querying.EdgeOperand){tar
 ```{exec-literalinclude} scripts/02b_query_engine.py
 ---
 language: python
-setup-lines: 1-5
-lines: 72-77
+setup-lines: 1-6
+lines: 105-110
 ---
 ```
 
@@ -240,8 +234,8 @@ The edge operand follows the same principles as the node operand, with some extr
 ```{exec-literalinclude} scripts/02b_query_engine.py
 ---
 language: python
-setup-lines: 1-5
-lines: 81-89
+setup-lines: 1-6
+lines: 114-122
 ---
 ```
 
@@ -269,8 +263,8 @@ The full power of the query engine appears once you combine both operands inside
 ```{exec-literalinclude} scripts/02b_query_engine.py
 ---
 language: python
-setup-lines: 1-5
-lines: 93-108
+setup-lines: 1-6
+lines: 126-141
 ---
 ```
 
@@ -294,8 +288,8 @@ The inherent structure of the query engine works with logical **AND** operations
 ```{exec-literalinclude} scripts/02b_query_engine.py
 ---
 language: python
-setup-lines: 1-5
-lines: 112-131
+setup-lines: 1-6
+lines: 145-164
 ---
 ```
 
@@ -317,8 +311,8 @@ This includes also _"pat_3"_, that was not included in the previous section beca
 ```{exec-literalinclude} scripts/02b_query_engine.py
 ---
 language: python
-setup-lines: 1-5, 110-130
-lines: 135-140
+setup-lines: 1-6, 143-163
+lines: 168-173
 ---
 ```
 
@@ -341,8 +335,8 @@ To address this limitation, the [`clone()`](medmodels.medrecord.querying.SingleV
 ```{exec-literalinclude} scripts/02b_query_engine.py
 ---
 language: python
-setup-lines: 1-5
-lines: 144-158
+setup-lines: 1-6
+lines: 177-191
 ---
 ```
 
@@ -370,8 +364,8 @@ In all previous snippets, we have used queries with the method [`select_nodes()`
 ```{exec-literalinclude} scripts/02b_query_engine.py
 ---
 language: python
-setup-lines: 1-154
-lines: 161
+setup-lines: 1-6, 145-187
+lines: 194
 ---
 ```
 
@@ -380,8 +374,8 @@ lines: 161
 ```{exec-literalinclude} scripts/02b_query_engine.py
 ---
 language: python
-setup-lines: 1-154
-lines: 162
+setup-lines: 1-23
+lines: 195
 ---
 ```
 
@@ -390,8 +384,8 @@ lines: 162
 ```{exec-literalinclude} scripts/02b_query_engine.py
 ---
 language: python
-setup-lines: 1-155
-lines: 163
+setup-lines: 1-6, 114-119
+lines: 196
 ---
 ```
 
@@ -410,6 +404,6 @@ The full code examples for this chapter can be found here:
 ```{literalinclude} scripts/02b_query_engine.py
 ---
 language: python
-lines: 2-163
+lines: 3-196
 ---
 ```

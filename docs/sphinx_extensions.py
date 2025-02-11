@@ -2,7 +2,8 @@
 
 This module defines a custom Sphinx directive `ExecLiteralInclude` that allows
 including code from external files, executing it, and displaying both the code
-and its output in the documentation.
+and its output in the documentation. In case the user wants to show an expected error
+message, they can specify the error message using the `expect-error` option.
 
 Example:
     ```{exec-literalinclude} path/to/your_script.py
@@ -10,6 +11,7 @@ Example:
     language: python
     setup-lines: 1-4
     lines: 6-10
+    expect-error: ValueError
     ---
     ```
 """
@@ -26,6 +28,45 @@ from sphinx.util import parselinenos
 from sphinx.util.docutils import SphinxDirective
 
 
+class ErrorMessageNode(nodes.General, nodes.Element):
+    """A custom node to represent a formatted error message."""
+
+    def __init__(self, message: str) -> None:
+        """Initialize the ErrorMessageNode.
+
+        Args:
+            message (str): The error message to display.
+        """
+        super().__init__()
+        self.message = message
+
+
+def visit_error_message_node(
+    visitor: nodes.NodeVisitor, node: ErrorMessageNode
+) -> None:
+    """Visitor function to generate HTML for ErrorMessageNode.
+
+    Args:
+        visitor (nodes.NodeVisitor): The visitor instance.
+        node (ErrorMessageNode): The ErrorMessageNode instance.
+    """
+    visitor.body.append(  # pyright: ignore[reportAttributeAccessIssue]
+        f'<div class="admonition error"><p class="admonition-title error-title">Error:</p><p>{node.message}</p></div>'
+    )
+
+
+def depart_error_message_node(
+    visitor: nodes.NodeVisitor, node: ErrorMessageNode
+) -> None:
+    """Departure function for ErrorMessageNode. Placeholder function.
+
+    Args:
+        visitor (nodes.NodeVisitor): The visitor instance.
+        node (ErrorMessageNode): The ErrorMessageNode instance.
+    """
+    pass
+
+
 class ExecLiteralInclude(SphinxDirective):
     """Directive to include, execute, and display code from external files."""
 
@@ -35,6 +76,7 @@ class ExecLiteralInclude(SphinxDirective):
         "lines": lambda x: x,
         "setup-lines": lambda x: x,
         "language": lambda x: x,
+        "expect-error": lambda x: x,
     }
     has_content = False
 
@@ -46,9 +88,10 @@ class ExecLiteralInclude(SphinxDirective):
                 and its output.
 
         Raises:
-            FileNotFoundError: If the specified file does not exist.
-            Exception: If an error occurs while executing the code.
-        """  # noqa: DOC502
+            KeyboardInterrupt: If the code raises a KeyboardInterrupt exception.
+            SystemExit: If the code raises a SystemExit exception.
+            RuntimeError: If an expected error does not occur.
+        """
         environment = self.state.document.settings.env
         _, filename = environment.relfn2path(self.arguments[0])
 
@@ -59,10 +102,10 @@ class ExecLiteralInclude(SphinxDirective):
             error = self.state_machine.reporter.error(
                 f"File not found: {filename}", line=self.lineno
             )
-
             return [error]
 
         total_lines = len(code_lines)
+        expected_error = self.options.get("expect-error")
 
         # Extract setup code
         setup_code = ""
@@ -71,7 +114,6 @@ class ExecLiteralInclude(SphinxDirective):
             setup_code = "".join([code_lines[i] for i in setup_line_numbers])
 
         # Extract main code
-        main_code = ""
         if "lines" in self.options:
             main_line_numbers = parselinenos(self.options["lines"], total_lines)
             main_code = "".join([code_lines[i] for i in main_line_numbers])
@@ -88,7 +130,6 @@ class ExecLiteralInclude(SphinxDirective):
         # Remove trailing empty lines
         while main_code_lines and not main_code_lines[-1].strip():
             main_code_lines.pop()
-
         if main_code_lines:
             last_line = main_code_lines.pop()
             code_before_last_line = "\n".join(main_code_lines)
@@ -107,10 +148,8 @@ class ExecLiteralInclude(SphinxDirective):
             ):
                 if setup_code:
                     exec(setup_code, exec_globals)
-
                 if code_before_last_line:
                     exec(code_before_last_line, exec_globals)
-
                 if last_line:
                     if self._is_expression(last_line):
                         result = eval(last_line, exec_globals)
@@ -119,10 +158,16 @@ class ExecLiteralInclude(SphinxDirective):
                     else:
                         exec(last_line, exec_globals)
 
-        except Exception as e:
-            error_msg = f"Error executing code: {e}"
-            error_node = nodes.error("", nodes.paragraph(text=error_msg))
-            return [code_node, error_node]
+        except (KeyboardInterrupt, SystemExit):
+            raise
+        except BaseException as e:
+            if expected_error and e.__class__.__name__ == expected_error:
+                return [code_node, ErrorMessageNode(f"{expected_error}: {e}")]
+            raise
+
+        if expected_error:
+            msg = f"Expected error '{expected_error}' did not occur."
+            raise RuntimeError(msg)
 
         output_text = output_io.getvalue()
 
@@ -167,3 +212,7 @@ def setup(app: Sphinx) -> None:
         app (Sphinx): The Sphinx application instance.
     """
     app.add_directive("exec-literalinclude", ExecLiteralInclude)
+    app.add_node(
+        ErrorMessageNode, html=(visit_error_message_node, depart_error_message_node)
+    )
+    app.add_css_file("exec_literalinclude.css")
