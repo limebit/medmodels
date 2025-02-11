@@ -1,3 +1,4 @@
+# pyright: reportAttributeAccessIssue=false
 # ruff: noqa: D100, D103
 from medmodels import MedRecord
 from medmodels.medrecord.querying import EdgeOperand, NodeOperand
@@ -54,6 +55,38 @@ def query_node_male_patient_under_mean(node: NodeOperand) -> None:
 
 
 medrecord.select_nodes(query_node_male_patient_under_mean)
+
+
+# Incorrect implementation because the querying methods are assigned to a variable
+def query_operand_assigned(node: NodeOperand) -> None:
+    gender_lowercase = node.attribute(
+        "gender"
+    ).lowercase()  # Assigning the querying method to a variable
+    gender_lowercase.equal_to("m")
+
+
+medrecord.select_nodes(query_operand_assigned)
+
+
+# Incorrect implementation because the querying methods are concatenated
+def query_operands_concatenated(node: NodeOperand) -> None:
+    gender = node.attribute("gender")
+    gender.lowercase().trim()  # Concatenating the querying methods
+    gender.equal_to("m")
+
+
+medrecord.select_nodes(query_operands_concatenated)
+
+
+# Correct implementation
+def query_correct_implementation(node: NodeOperand) -> None:
+    gender = node.attribute("gender")
+    gender.lowercase()
+    gender.trim()
+    gender.equal_to("m")
+
+
+medrecord.select_nodes(query_correct_implementation)
 
 
 # Node query with neighbors function
