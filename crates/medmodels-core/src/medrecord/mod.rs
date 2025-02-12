@@ -30,7 +30,7 @@ pub use self::{
         },
         wrapper::{CardinalityWrapper, Wrapper},
     },
-    schema::{AttributeDataType, AttributeType, GroupSchema, Schema},
+    schema::{AttributeDataType, AttributeType, GroupSchema, Schema, SchemaType},
 };
 use crate::errors::MedRecordError;
 use ::polars::frame::DataFrame;
@@ -38,7 +38,6 @@ use graph::Graph;
 use group_mapping::GroupMapping;
 use polars::{dataframe_to_edges, dataframe_to_nodes};
 use querying::{edges::EdgeSelection, nodes::NodeSelection};
-use schema::SchemaType;
 use serde::{Deserialize, Serialize};
 use std::{fs, mem, path::Path};
 
@@ -142,7 +141,7 @@ impl MedRecord {
         Self {
             graph: Graph::new(),
             group_mapping: GroupMapping::new(),
-            schema: Schema::default(),
+            schema: Default::default(),
         }
     }
 
@@ -251,7 +250,7 @@ impl MedRecord {
 
             if !groups_of_node.is_empty() {
                 for group in groups_of_node {
-                    match schema.schema_type {
+                    match schema.schema_type() {
                         SchemaType::Inferred => {
                             schema.update_node(&node.attributes, Some(group));
                         }
@@ -261,7 +260,7 @@ impl MedRecord {
                     }
                 }
             } else {
-                match schema.schema_type {
+                match schema.schema_type() {
                     SchemaType::Inferred => {
                         schema.update_node(&node.attributes, None);
                     }
@@ -280,7 +279,7 @@ impl MedRecord {
 
             if !groups_of_edge.is_empty() {
                 for group in groups_of_edge {
-                    match schema.schema_type {
+                    match schema.schema_type() {
                         SchemaType::Inferred => {
                             schema.update_edge(&edge.attributes, Some(group));
                         }
@@ -290,7 +289,7 @@ impl MedRecord {
                     }
                 }
             } else {
-                match schema.schema_type {
+                match schema.schema_type() {
                     SchemaType::Inferred => {
                         schema.update_edge(&edge.attributes, None);
                     }
@@ -410,7 +409,7 @@ impl MedRecord {
         node_index: NodeIndex,
         attributes: Attributes,
     ) -> Result<(), MedRecordError> {
-        match self.schema.schema_type {
+        match self.schema.schema_type() {
             SchemaType::Inferred => {
                 self.schema.update_node(&attributes, None);
             }
@@ -470,7 +469,7 @@ impl MedRecord {
             .add_edge(source_node_index, target_node_index, attributes.to_owned())
             .map_err(MedRecordError::from)?;
 
-        match self.schema.schema_type {
+        match self.schema.schema_type() {
             SchemaType::Inferred => {
                 self.schema.update_edge(&attributes, None);
 
@@ -612,7 +611,7 @@ impl MedRecord {
     ) -> Result<(), MedRecordError> {
         let node_attributes = self.graph.node_attributes(&node_index)?;
 
-        match self.schema.schema_type {
+        match self.schema.schema_type() {
             SchemaType::Inferred => {
                 self.schema.update_node(node_attributes, Some(&group));
             }
@@ -632,7 +631,7 @@ impl MedRecord {
     ) -> Result<(), MedRecordError> {
         let edge_attributes = self.graph.edge_attributes(&edge_index)?;
 
-        match self.schema.schema_type {
+        match self.schema.schema_type() {
             SchemaType::Inferred => {
                 self.schema.update_edge(edge_attributes, Some(&group));
             }

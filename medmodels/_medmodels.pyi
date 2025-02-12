@@ -31,8 +31,6 @@ PyDataType: TypeAlias = Union[
     PyOption,
 ]
 
-PySchema: TypeAlias = Union[PyInferredSchema, PyProvidedSchema]
-
 class PyString: ...
 class PyInt: ...
 class PyFloat: ...
@@ -70,7 +68,7 @@ class PyAttributeDataType:
         self, data_type: PyDataType, attribute_type: PyAttributeType
     ) -> None: ...
 
-class PyInferredGroupSchema:
+class PyGroupSchema:
     nodes: Dict[MedRecordAttribute, PyAttributeDataType]
     edges: Dict[MedRecordAttribute, PyAttributeDataType]
 
@@ -80,34 +78,71 @@ class PyInferredGroupSchema:
         nodes: Dict[MedRecordAttribute, PyAttributeDataType],
         edges: Dict[MedRecordAttribute, PyAttributeDataType],
     ) -> None: ...
-    def _into_py_provided_group_schema(self) -> PyProvidedGroupSchema: ...
+    def validate_node(self, index: NodeIndex, attributes: Attributes) -> None: ...
+    def validate_edge(self, index: EdgeIndex, attributes: Attributes) -> None: ...
 
-class PyInferredSchema:
+class PySchemaType(Enum):
+    Provided = ...
+    Inferred = ...
+
+class PySchema:
     groups: List[Group]
-    default: PyInferredGroupSchema
-
-    def group(self, group: Group) -> PyInferredGroupSchema: ...
-
-class PyProvidedGroupSchema:
-    nodes: Dict[MedRecordAttribute, PyAttributeDataType]
-    edges: Dict[MedRecordAttribute, PyAttributeDataType]
+    default: PyGroupSchema
+    schema_type: PySchemaType
 
     def __init__(
         self,
         *,
-        nodes: Dict[MedRecordAttribute, PyAttributeDataType],
-        edges: Dict[MedRecordAttribute, PyAttributeDataType],
+        groups: Dict[Group, PyGroupSchema],
+        default: PyGroupSchema,
+        schema_type: PySchemaType = ...,
     ) -> None: ...
-    def _into_py_inferred_group_schema(self) -> PyInferredGroupSchema: ...
-
-class PyProvidedSchema:
-    groups: List[Group]
-    default: PyInferredGroupSchema
-
-    def __init__(
-        self, groups: Dict[Group, PyProvidedGroupSchema], default: PyProvidedGroupSchema
+    @staticmethod
+    def infer(medrecord: PyMedRecord) -> PySchema: ...
+    def group(self, group: Group) -> PyGroupSchema: ...
+    def validate_node(
+        self, index: NodeIndex, attributes: Attributes, group: Optional[Group] = None
     ) -> None: ...
-    def group(self, group: Group) -> PyInferredGroupSchema: ...
+    def validate_edge(
+        self, index: EdgeIndex, attributes: Attributes, group: Optional[Group] = None
+    ) -> None: ...
+    def set_node_attribute(
+        self,
+        attribute: MedRecordAttribute,
+        data_type: PyDataType,
+        attribute_type: PyAttributeType,
+        group: Optional[Group] = None,
+    ) -> None: ...
+    def set_edge_attribute(
+        self,
+        attribute: MedRecordAttribute,
+        data_type: PyDataType,
+        attribute_type: PyAttributeType,
+        group: Optional[Group] = None,
+    ) -> None: ...
+    def update_node_attribute(
+        self,
+        attribute: MedRecordAttribute,
+        data_type: PyDataType,
+        attribute_type: PyAttributeType,
+        group: Optional[Group] = None,
+    ) -> None: ...
+    def update_edge_attribute(
+        self,
+        attribute: MedRecordAttribute,
+        data_type: PyDataType,
+        attribute_type: PyAttributeType,
+        group: Optional[Group] = None,
+    ) -> None: ...
+    def remove_node_attribute(
+        self, attribute: MedRecordAttribute, group: Optional[Group] = None
+    ) -> None: ...
+    def remove_edge_attribute(
+        self, attribute: MedRecordAttribute, group: Optional[Group] = None
+    ) -> None: ...
+    def remove_group(self, group: Group) -> None: ...
+    def freeze(self) -> None: ...
+    def unfreeze(self) -> None: ...
 
 class PyMedRecord:
     schema: PySchema
@@ -140,6 +175,8 @@ class PyMedRecord:
     def from_ron(path: str) -> PyMedRecord: ...
     def to_ron(self, path: str) -> None: ...
     def update_schema(self, schema: PySchema) -> None: ...
+    def freeze_schema(self) -> None: ...
+    def unfreeze_schema(self) -> None: ...
     def node(self, node_index: NodeIndexInputList) -> Dict[NodeIndex, Attributes]: ...
     def edge(self, edge_index: EdgeIndexInputList) -> Dict[EdgeIndex, Attributes]: ...
     def outgoing_edges(

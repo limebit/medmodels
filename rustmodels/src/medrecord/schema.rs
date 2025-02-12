@@ -7,7 +7,9 @@ use super::{
     traits::{DeepFrom, DeepInto},
     PyAttributes, PyGroup, PyMedRecord, PyNodeIndex,
 };
-use medmodels_core::medrecord::{AttributeDataType, AttributeType, EdgeIndex, GroupSchema, Schema};
+use medmodels_core::medrecord::{
+    AttributeDataType, AttributeType, EdgeIndex, Group, GroupSchema, Schema, SchemaType,
+};
 use pyo3::prelude::*;
 
 #[pyclass(eq, eq_int)]
@@ -44,8 +46,8 @@ impl From<PyAttributeType> for AttributeType {
 #[pymethods]
 impl PyAttributeType {
     #[staticmethod]
-    fn infer_from(data_type: PyDataType) -> Self {
-        AttributeType::infer_from(&data_type.into()).into()
+    pub fn infer(data_type: PyDataType) -> Self {
+        AttributeType::infer(&data_type.into()).into()
     }
 }
 
@@ -137,7 +139,7 @@ impl DeepFrom<PyGroupSchema> for GroupSchema {
 #[pymethods]
 impl PyGroupSchema {
     #[new]
-    fn new(
+    pub fn new(
         nodes: HashMap<PyMedRecordAttribute, PyAttributeDataType>,
         edges: HashMap<PyMedRecordAttribute, PyAttributeDataType>,
     ) -> Self {
@@ -145,23 +147,23 @@ impl PyGroupSchema {
     }
 
     #[getter]
-    fn nodes(&self) -> HashMap<PyMedRecordAttribute, PyAttributeDataType> {
+    pub fn nodes(&self) -> HashMap<PyMedRecordAttribute, PyAttributeDataType> {
         self.0.nodes().clone().deep_into()
     }
 
     #[getter]
-    fn edges(&self) -> HashMap<PyMedRecordAttribute, PyAttributeDataType> {
+    pub fn edges(&self) -> HashMap<PyMedRecordAttribute, PyAttributeDataType> {
         self.0.edges().clone().deep_into()
     }
 
-    fn validate_node(&self, index: PyNodeIndex, attributes: PyAttributes) -> PyResult<()> {
+    pub fn validate_node(&self, index: PyNodeIndex, attributes: PyAttributes) -> PyResult<()> {
         Ok(self
             .0
             .validate_node(&index.into(), &attributes.deep_into())
             .map_err(PyMedRecordError::from)?)
     }
 
-    fn validate_edge(&self, index: EdgeIndex, attributes: PyAttributes) -> PyResult<()> {
+    pub fn validate_edge(&self, index: EdgeIndex, attributes: PyAttributes) -> PyResult<()> {
         Ok(self
             .0
             .validate_edge(&index, &attributes.deep_into())
@@ -174,6 +176,24 @@ impl PyGroupSchema {
 pub enum PySchemaType {
     Provided = 0,
     Inferred = 1,
+}
+
+impl From<SchemaType> for PySchemaType {
+    fn from(value: SchemaType) -> Self {
+        match value {
+            SchemaType::Provided => Self::Provided,
+            SchemaType::Inferred => Self::Inferred,
+        }
+    }
+}
+
+impl From<PySchemaType> for SchemaType {
+    fn from(value: PySchemaType) -> Self {
+        match value {
+            PySchemaType::Provided => Self::Provided,
+            PySchemaType::Inferred => Self::Inferred,
+        }
+    }
 }
 
 #[pyclass]
@@ -197,7 +217,7 @@ impl From<PySchema> for Schema {
 impl PySchema {
     #[new]
     #[pyo3(signature = (groups, default, schema_type=PySchemaType::Provided))]
-    fn new(
+    pub fn new(
         groups: HashMap<PyGroup, PyGroupSchema>,
         default: PyGroupSchema,
         schema_type: PySchemaType,
@@ -209,12 +229,40 @@ impl PySchema {
     }
 
     #[staticmethod]
-    fn infer(medrecord: PyMedRecord) -> Self {
+    pub fn infer(medrecord: PyMedRecord) -> Self {
         Self(Schema::infer(&medrecord.into()))
     }
 
+    #[getter]
+    pub fn groups(&self) -> Vec<PyGroup> {
+        self.0
+            .groups()
+            .keys()
+            .cloned()
+            .collect::<Vec<Group>>()
+            .deep_into()
+    }
+
+    pub fn group(&self, group: PyGroup) -> PyResult<PyGroupSchema> {
+        Ok(self
+            .0
+            .group(&group.into())
+            .map(|g| g.clone().into())
+            .map_err(PyMedRecordError::from)?)
+    }
+
+    #[getter]
+    pub fn default(&self) -> PyGroupSchema {
+        self.0.default().clone().into()
+    }
+
+    #[getter]
+    pub fn schema_type(&self) -> PySchemaType {
+        self.0.schema_type().clone().into()
+    }
+
     #[pyo3(signature = (index, attributes, group=None))]
-    fn validate_node(
+    pub fn validate_node(
         &self,
         index: PyNodeIndex,
         attributes: PyAttributes,
@@ -231,7 +279,7 @@ impl PySchema {
     }
 
     #[pyo3(signature = (index, attributes, group=None))]
-    fn validate_edge(
+    pub fn validate_edge(
         &self,
         index: EdgeIndex,
         attributes: PyAttributes,
@@ -248,7 +296,7 @@ impl PySchema {
     }
 
     #[pyo3(signature = (attribute, data_type, attribute_type, group=None))]
-    fn set_node_attribute(
+    pub fn set_node_attribute(
         &mut self,
         attribute: PyMedRecordAttribute,
         data_type: PyDataType,
@@ -264,7 +312,7 @@ impl PySchema {
     }
 
     #[pyo3(signature = (attribute, data_type, attribute_type, group=None))]
-    fn set_edge_attribute(
+    pub fn set_edge_attribute(
         &mut self,
         attribute: PyMedRecordAttribute,
         data_type: PyDataType,
@@ -280,7 +328,7 @@ impl PySchema {
     }
 
     #[pyo3(signature = (attribute, data_type, attribute_type, group=None))]
-    fn update_node_attribute(
+    pub fn update_node_attribute(
         &mut self,
         attribute: PyMedRecordAttribute,
         data_type: PyDataType,
@@ -296,7 +344,7 @@ impl PySchema {
     }
 
     #[pyo3(signature = (attribute, data_type, attribute_type, group=None))]
-    fn update_edge_attribute(
+    pub fn update_edge_attribute(
         &mut self,
         attribute: PyMedRecordAttribute,
         data_type: PyDataType,
@@ -312,26 +360,34 @@ impl PySchema {
     }
 
     #[pyo3(signature = (attribute, group=None))]
-    fn remove_node_attribute(&mut self, attribute: PyMedRecordAttribute, group: Option<PyGroup>) {
+    pub fn remove_node_attribute(
+        &mut self,
+        attribute: PyMedRecordAttribute,
+        group: Option<PyGroup>,
+    ) {
         self.0
             .remove_node_attribute(&attribute.into(), group.map(|g| g.into()).as_ref());
     }
 
     #[pyo3(signature = (attribute, group=None))]
-    fn remove_edge_attribute(&mut self, attribute: PyMedRecordAttribute, group: Option<PyGroup>) {
+    pub fn remove_edge_attribute(
+        &mut self,
+        attribute: PyMedRecordAttribute,
+        group: Option<PyGroup>,
+    ) {
         self.0
             .remove_edge_attribute(&attribute.into(), group.map(|g| g.into()).as_ref());
     }
 
-    fn remove_group(&mut self, group: PyGroup) {
+    pub fn remove_group(&mut self, group: PyGroup) {
         self.0.remove_group(&group.into());
     }
 
-    fn freeze(&mut self) {
+    pub fn freeze(&mut self) {
         self.0.freeze();
     }
 
-    fn unfreeze(&mut self) {
+    pub fn unfreeze(&mut self) {
         self.0.unfreeze();
     }
 }
