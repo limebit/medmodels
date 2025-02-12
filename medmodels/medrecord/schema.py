@@ -96,6 +96,14 @@ class AttributeType(Enum):
         """
         return self.name
 
+    def __hash__(self) -> int:
+        """Returns the hash of the AttributeType instance.
+
+        Returns:
+            int: The hash of the AttributeType instance.
+        """
+        return hash(self.name)
+
     def __eq__(self, value: object) -> bool:
         """Compares the AttributeType instance to another object for equality.
 
@@ -117,15 +125,19 @@ CategoricalType: TypeAlias = DataType
 CategoricalPair: TypeAlias = Tuple[CategoricalType, Literal[AttributeType.Categorical]]
 
 ContinuousType: TypeAlias = Union[
-    Int, Float, Option[Int], Option[Float], "ContinuousUnionRecursive"
+    Int,
+    Float,
+    Option["ContinuousType"],
+    DataTypeUnion["ContinuousType", "ContinuousType"],
 ]
-ContinuousUnionRecursive: TypeAlias = DataTypeUnion[ContinuousType, ContinuousType]
 ContinuousPair: TypeAlias = Tuple[ContinuousType, Literal[AttributeType.Continuous]]
 
 TemporalType = Union[
-    DateTime, Duration, Option[DateTime], Option[Duration], "TemporalUnionRecursive"
+    DateTime,
+    Duration,
+    Option["TemporalType"],
+    DataTypeUnion["TemporalType", "TemporalType"],
 ]
-TemporalUnionRecursive: TypeAlias = DataTypeUnion[TemporalType, TemporalType]
 TemporalPair: TypeAlias = Tuple[TemporalType, Literal[AttributeType.Temporal]]
 
 UnstructuredType: TypeAlias = DataType
@@ -187,7 +199,7 @@ class GroupSchema:
                 )
 
             return PyAttributeDataType(
-                input._inner(), PyAttributeType.infer_from(input._inner())
+                input._inner(), PyAttributeType.infer(input._inner())
             )
 
         self._group_schema = PyGroupSchema(

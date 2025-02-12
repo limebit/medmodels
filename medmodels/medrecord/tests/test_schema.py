@@ -31,7 +31,7 @@ class TestSchema(unittest.TestCase):
     def test_group(self) -> None:
         assert isinstance(self.schema.group("patient"), mr.GroupSchema)  # pyright: ignore[reportUnnecessaryIsInstance]
 
-        with pytest.raises(ValueError, match="No schema found for group: nonexistent"):
+        with pytest.raises(ValueError, match=r"Group nonexistent not found in schema."):
             self.schema.group("nonexistent")
 
 
