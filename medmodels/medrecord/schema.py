@@ -6,30 +6,35 @@ from enum import Enum, auto
 from typing import (
     TYPE_CHECKING,
     Dict,
-    Iterator,
     List,
+    Literal,
     Optional,
     Tuple,
     TypeAlias,
     Union,
-    overload,
 )
 
 from medmodels._medmodels import (
     PyAttributeDataType,
     PyAttributeType,
-    PyInferredGroupSchema,
-    PyInferredSchema,
-    PyProvidedGroupSchema,
-    PyProvidedSchema,
+    PyGroupSchema,
+    PySchema,
 )
-from medmodels.medrecord.datatype import DataType
+from medmodels.medrecord.datatype import (
+    DataType,
+    DateTime,
+    Duration,
+    Float,
+    Int,
+    Option,
+)
+from medmodels.medrecord.datatype import (
+    Union as DataTypeUnion,
+)
+from medmodels.medrecord.types import MedRecordAttribute
 
 if TYPE_CHECKING:
-    from medmodels.medrecord.types import Group, MedRecordAttribute
-
-PySchema: TypeAlias = Union[PyInferredSchema, PyProvidedSchema]
-PyGroupSchema: TypeAlias = Union[PyInferredGroupSchema, PyProvidedGroupSchema]
+    from medmodels.medrecord.types import Group
 
 
 class AttributeType(Enum):
@@ -108,158 +113,29 @@ class AttributeType(Enum):
         return False
 
 
-class AttributesSchema:
-    """A schema for a collection of attributes."""
+CategoricalType: TypeAlias = DataType
+CategoricalPair = Tuple[CategoricalType, Literal[AttributeType.Categorical]]
 
-    _attributes_schema: Dict[MedRecordAttribute, Tuple[DataType, AttributeType]]
+ContinuousType: TypeAlias = Union[
+    Int, Float, Option[Int], Option[Float], "ContinuousUnionRecursive"
+]
+ContinuousUnionRecursive: TypeAlias = DataTypeUnion[ContinuousType, ContinuousType]
+ContinuousPair = Tuple[ContinuousType, Literal[AttributeType.Continuous]]
 
-    def __init__(
-        self,
-        attributes_schema: Dict[MedRecordAttribute, Tuple[DataType, AttributeType]],
-    ) -> None:
-        """Initializes a new instance of AttributesSchema.
+TemporalType = Union[
+    DateTime, Duration, Option[DateTime], Option[Duration], "TemporalUnionRecursive"
+]
+TemporalUnionRecursive: TypeAlias = DataTypeUnion[TemporalType, TemporalType]
+TemporalPair = Tuple[TemporalType, Literal[AttributeType.Temporal]]
 
-        Args:
-            attributes_schema (Dict[MedRecordAttribute, Tuple[DataType, AttributeType]]):
-                A dictionary mapping MedRecordAttributes to their data types and
-                attribute types.
-        """  # noqa: W505
-        self._attributes_schema = attributes_schema
+UnstructuredType: TypeAlias = DataType
+UnstructuredPair = Tuple[UnstructuredType, Literal[AttributeType.Unstructured]]
 
-    def __repr__(self) -> str:
-        """Returns a string representation of the AttributesSchema instance.
+AttributeDataType = Union[
+    CategoricalPair, ContinuousPair, TemporalPair, UnstructuredPair
+]
 
-        Returns:
-            str: String representation of the attribute schema.
-        """
-        return self._attributes_schema.__repr__()
-
-    def __getitem__(self, key: MedRecordAttribute) -> Tuple[DataType, AttributeType]:
-        """Gets the type and optional attribute type for a given MedRecordAttribute.
-
-        Args:
-            key (MedRecordAttribute): The attribute for which the data type is
-                requested.
-
-        Returns:
-            Tuple[DataType, AttributeType]: The data type and optional attribute type
-                of the given attribute.
-        """
-        return self._attributes_schema[key]
-
-    def __contains__(self, key: MedRecordAttribute) -> bool:
-        """Checks if a given MedRecordAttribute is in the attributes schema.
-
-        Args:
-            key (MedRecordAttribute): The attribute to check.
-
-        Returns:
-            bool: True if the attribute exists in the schema, False otherwise.
-        """
-        return key in self._attributes_schema
-
-    def __iter__(self) -> Iterator[MedRecordAttribute]:
-        """Returns an iterator over the attributes schema.
-
-        Returns:
-            Iterator: An iterator over the attribute keys.
-        """
-        return self._attributes_schema.__iter__()
-
-    def __len__(self) -> int:
-        """Returns the number of attributes in the schema.
-
-        Returns:
-            int: The number of attributes.
-        """
-        return len(self._attributes_schema)
-
-    def __eq__(self, value: object) -> bool:
-        """Compares the AttributesSchema instance to another object for equality.
-
-        Args:
-            value (object): The object to compare against.
-
-        Returns:
-            bool: True if the objects are equal, False otherwise.
-        """
-        if not (isinstance(value, (AttributesSchema, dict))):
-            return False
-
-        attribute_schema = (
-            value._attributes_schema if isinstance(value, AttributesSchema) else value
-        )
-
-        if not attribute_schema.keys() == self._attributes_schema.keys():
-            return False
-
-        for key in self._attributes_schema:
-            if (
-                not isinstance(attribute_schema[key], tuple)
-                or not isinstance(
-                    attribute_schema[key][0], type(self._attributes_schema[key][0])
-                )
-                or attribute_schema[key][1] != self._attributes_schema[key][1]
-            ):
-                return False
-
-        return True
-
-    def keys(self):  # noqa: ANN201
-        """Returns the attribute keys in the schema.
-
-        Returns:
-            KeysView: A view object displaying a list of dictionary's keys.
-        """
-        return self._attributes_schema.keys()
-
-    def values(self):  # noqa: ANN201
-        """Returns the attribute values in the schema.
-
-        Returns:
-            ValuesView: A view object displaying a list of dictionary's values.
-        """
-        return self._attributes_schema.values()
-
-    def items(self):  # noqa: ANN201
-        """Returns the attribute key-value pairs in the schema.
-
-        Returns:
-            ItemsView: A set-like object providing a view on D's items.
-        """
-        return self._attributes_schema.items()
-
-    @overload
-    def get(
-        self, key: MedRecordAttribute
-    ) -> Optional[Tuple[DataType, AttributeType]]: ...
-
-    @overload
-    def get(
-        self, key: MedRecordAttribute, default: Tuple[DataType, AttributeType]
-    ) -> Tuple[DataType, AttributeType]: ...
-
-    def get(
-        self,
-        key: MedRecordAttribute,
-        default: Optional[Tuple[DataType, AttributeType]] = None,
-    ) -> Optional[Tuple[DataType, AttributeType]]:
-        """Gets the data type and optional attribute type for a given attribute.
-
-        It returns a default value if the attribute is not present.
-
-        Args:
-            key (MedRecordAttribute): The attribute for which the data type is
-                requested.
-            default (Optional[Tuple[DataType, AttributeType]], optional):
-                The default data type and attribute type to return if the attribute
-                is not found. Defaults to None.
-
-        Returns:
-            Optional[Tuple[DataType, AttributeType]]: The data type and attribute type
-                of the given attribute or the default value.
-        """
-        return self._attributes_schema.get(key, default)
+AttributesSchema = Dict[MedRecordAttribute, AttributeDataType]
 
 
 class GroupSchema:
@@ -271,31 +147,37 @@ class GroupSchema:
         self,
         *,
         nodes: Optional[
-            Dict[MedRecordAttribute, Union[DataType, Tuple[DataType, AttributeType]]]
+            Dict[
+                MedRecordAttribute,
+                Union[DataType, AttributeDataType],
+            ],
         ] = None,
         edges: Optional[
-            Dict[MedRecordAttribute, Union[DataType, Tuple[DataType, AttributeType]]]
+            Dict[
+                MedRecordAttribute,
+                Union[DataType, AttributeDataType],
+            ],
         ] = None,
     ) -> None:
         """Initializes a new instance of GroupSchema.
 
         Args:
-            nodes (Dict[MedRecordAttribute, Union[DataType, Tuple[DataType, AttributeType]]]):
+            nodes (Dict[MedRecordAttribute, Union[DataType, AttributeDataType]]):
                 A dictionary mapping node attributes to their data
                 types and optional attribute types. Defaults to an empty dictionary.
                 When no attribute type is provided, it is inferred from the data type.
-            edges (Dict[MedRecordAttribute, Union[DataType, Tuple[DataType, AttributeType]]]):
+            edges (Dict[MedRecordAttribute, Union[DataType, AttributeDataType]]):
                 A dictionary mapping edge attributes to their data types and
                 optional attribute types. Defaults to an empty dictionary.
                 When no attribute type is provided, it is inferred from the data type.
-        """  # noqa: W505
+        """
         if edges is None:
             edges = {}
         if nodes is None:
             nodes = {}
 
         def _convert_input(
-            input: Union[DataType, Tuple[DataType, AttributeType]],
+            input: Union[DataType, AttributeDataType],
         ) -> PyAttributeDataType:
             if isinstance(input, tuple):
                 return PyAttributeDataType(
@@ -306,7 +188,7 @@ class GroupSchema:
                 input._inner(), PyAttributeType.infer_from(input._inner())
             )
 
-        self._group_schema = PyProvidedGroupSchema(
+        self._group_schema = PyGroupSchema(
             nodes={x: _convert_input(nodes[x]) for x in nodes},
             edges={x: _convert_input(edges[x]) for x in edges},
         )
@@ -336,18 +218,17 @@ class GroupSchema:
 
         def _convert_node(
             input: PyAttributeDataType,
-        ) -> Tuple[DataType, AttributeType]:
+        ) -> AttributeDataType:
+            # SAFETY: The typing is guaranteed to be correct
             return (
                 DataType._from_py_data_type(input.data_type),
                 AttributeType._from_py_attribute_type(input.attribute_type),
-            )
+            )  # pyright: ignore[reportReturnType]
 
-        return AttributesSchema(
-            {
-                x: _convert_node(self._group_schema.nodes[x])
-                for x in self._group_schema.nodes
-            }
-        )
+        return {
+            x: _convert_node(self._group_schema.nodes[x])
+            for x in self._group_schema.nodes
+        }
 
     @property
     def edges(self) -> AttributesSchema:
@@ -360,18 +241,17 @@ class GroupSchema:
 
         def _convert_edge(
             input: PyAttributeDataType,
-        ) -> Tuple[DataType, AttributeType]:
+        ) -> AttributeDataType:
+            # SAFETY: The typing is guaranteed to be correct
             return (
                 DataType._from_py_data_type(input.data_type),
                 AttributeType._from_py_attribute_type(input.attribute_type),
-            )
+            )  # pyright: ignore[reportReturnType]
 
-        return AttributesSchema(
-            {
-                x: _convert_edge(self._group_schema.edges[x])
-                for x in self._group_schema.edges
-            }
-        )
+        return {
+            x: _convert_edge(self._group_schema.edges[x])
+            for x in self._group_schema.edges
+        }
 
 
 class Schema:
@@ -399,22 +279,9 @@ class Schema:
         if groups is None:
             groups = {}
 
-        group_schemas = {}
-
-        for group in groups:
-            schema = groups[group]._group_schema
-
-            if isinstance(schema, PyInferredGroupSchema):
-                group_schemas[group] = schema._into_py_provided_group_schema()
-                return
-
-            group_schemas[group] = schema
-
-        self._schema = PyProvidedSchema(
-            groups=group_schemas,
-            default=default._group_schema
-            if isinstance(default._group_schema, PyProvidedGroupSchema)
-            else default._group_schema._into_py_provided_group_schema(),
+        self._schema = PySchema(
+            groups={x: groups[x]._group_schema for x in groups},
+            default=default._group_schema,
         )
 
     @classmethod

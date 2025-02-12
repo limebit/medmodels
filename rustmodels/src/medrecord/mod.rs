@@ -121,6 +121,14 @@ impl PyMedRecord {
         self.0.schema().clone().into()
     }
 
+    pub fn freeze_schema(&mut self) {
+        self.0.freeze_schema()
+    }
+
+    pub fn unfreeze_schema(&mut self) {
+        self.0.unfreeze_schema()
+    }
+
     #[getter]
     pub fn nodes(&self) -> Vec<PyNodeIndex> {
         self.0

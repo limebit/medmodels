@@ -16,7 +16,7 @@ pub enum AttributeType {
 }
 
 impl AttributeType {
-    pub fn infer_from(data_type: &DataType) -> Self {
+    pub fn infer(data_type: &DataType) -> Self {
         match data_type {
             DataType::String => Self::Unstructured,
             DataType::Int => Self::Continuous,
@@ -27,9 +27,9 @@ impl AttributeType {
             DataType::Null => Self::Unstructured,
             DataType::Any => Self::Unstructured,
             DataType::Union((first_dataype, second_dataype)) => {
-                Self::infer_from(first_dataype).merge(&Self::infer_from(second_dataype))
+                Self::infer(first_dataype).merge(&Self::infer(second_dataype))
             }
-            DataType::Option(dataype) => Self::infer_from(dataype),
+            DataType::Option(dataype) => Self::infer(dataype),
         }
     }
 
@@ -88,7 +88,7 @@ impl AttributeDataType {
 
 impl From<DataType> for AttributeDataType {
     fn from(value: DataType) -> Self {
-        let attribute_type = AttributeType::infer_from(&value);
+        let attribute_type = AttributeType::infer(&value);
 
         Self {
             data_type: value,
@@ -263,7 +263,7 @@ impl GroupSchema {
     fn update_attribute_schema(attributes: &Attributes, schema: &mut AttributeSchema) {
         for (attribute, value) in attributes {
             let data_type = DataType::from(value);
-            let attribute_type = AttributeType::infer_from(&data_type);
+            let attribute_type = AttributeType::infer(&data_type);
 
             let attribute_data_type = AttributeDataType::new(data_type, attribute_type);
 
@@ -297,14 +297,12 @@ impl Default for SchemaType {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-#[derive(Default)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Default)]
 pub struct Schema {
     groups: HashMap<Group, GroupSchema>,
     default: GroupSchema,
-    pub(crate) schema_type: SchemaType,
+    schema_type: SchemaType,
 }
-
 
 impl Schema {
     pub fn new_inferred(groups: HashMap<Group, GroupSchema>, default: GroupSchema) -> Self {
@@ -401,6 +399,27 @@ impl Schema {
             default: default_schema,
             schema_type: SchemaType::Inferred,
         }
+    }
+
+    pub fn groups(&self) -> &HashMap<Group, GroupSchema> {
+        &self.groups
+    }
+
+    pub fn group(&self, group: &Group) -> Result<&GroupSchema, GraphError> {
+        self.groups
+            .get(group)
+            .ok_or(GraphError::SchemaError(format!(
+                "Group {} not found in schema.",
+                group
+            )))
+    }
+
+    pub fn default(&self) -> &GroupSchema {
+        &self.default
+    }
+
+    pub fn schema_type(&self) -> &SchemaType {
+        &self.schema_type
     }
 
     pub fn validate_node<'a>(
