@@ -1,4 +1,4 @@
-use medmodels_core::errors::MedRecordError;
+use medmodels_core::errors::{GraphError, MedRecordError};
 use pyo3::{
     exceptions::{PyAssertionError, PyIndexError, PyKeyError, PyRuntimeError, PyValueError},
     PyErr,
@@ -10,6 +10,12 @@ pub(crate) struct PyMedRecordError(MedRecordError);
 impl From<MedRecordError> for PyMedRecordError {
     fn from(error: MedRecordError) -> Self {
         Self(error)
+    }
+}
+
+impl From<GraphError> for PyMedRecordError {
+    fn from(error: GraphError) -> Self {
+        Self(MedRecordError::from(error))
     }
 }
 

@@ -18,7 +18,7 @@ use medmodels_core::{
 use pyo3::{prelude::*, types::PyFunction};
 use pyo3_polars::PyDataFrame;
 use querying::{edges::PyEdgeOperand, nodes::PyNodeOperand};
-use schema::{PyProvidedSchema, PySchema};
+use schema::PySchema;
 use std::collections::HashMap;
 use traits::DeepInto;
 use value::PyMedRecordValue;
@@ -30,7 +30,20 @@ type Lut<T> = GILHashMap<usize, fn(&Bound<'_, PyAny>) -> PyResult<T>>;
 
 #[pyclass]
 #[repr(transparent)]
+#[derive(Debug, Clone)]
 pub struct PyMedRecord(MedRecord);
+
+impl From<MedRecord> for PyMedRecord {
+    fn from(value: MedRecord) -> Self {
+        Self(value)
+    }
+}
+
+impl From<PyMedRecord> for MedRecord {
+    fn from(value: PyMedRecord) -> Self {
+        value.0
+    }
+}
 
 #[pymethods]
 impl PyMedRecord {
@@ -40,7 +53,7 @@ impl PyMedRecord {
     }
 
     #[staticmethod]
-    pub fn with_schema(schema: PyProvidedSchema) -> Self {
+    pub fn with_schema(schema: PySchema) -> Self {
         Self(MedRecord::with_schema(schema.into()))
     }
 
@@ -96,7 +109,7 @@ impl PyMedRecord {
         Ok(self.0.to_ron(path).map_err(PyMedRecordError::from)?)
     }
 
-    pub fn update_schema(&mut self, schema: PyProvidedSchema) -> PyResult<()> {
+    pub fn update_schema(&mut self, schema: PySchema) -> PyResult<()> {
         Ok(self
             .0
             .update_schema(schema.into())
@@ -105,7 +118,7 @@ impl PyMedRecord {
 
     #[getter]
     pub fn schema(&self) -> PySchema {
-        self.0.get_schema().clone().into()
+        self.0.schema().clone().into()
     }
 
     #[getter]

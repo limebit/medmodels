@@ -5,10 +5,7 @@ use crate::{
 };
 use medmodels_utils::aliases::MrHashMap;
 use serde::{Deserialize, Serialize};
-use std::{
-    collections::{hash_map::Entry, HashMap},
-    sync::Arc,
-};
+use std::collections::{hash_map::Entry, HashMap};
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub enum AttributeType {
@@ -73,6 +70,14 @@ impl AttributeDataType {
             data_type,
             attribute_type,
         }
+    }
+
+    pub fn data_type(&self) -> &DataType {
+        &self.data_type
+    }
+
+    pub fn attribute_type(&self) -> &AttributeType {
+        &self.attribute_type
     }
 
     fn merge(&mut self, other: &Self) {
@@ -163,6 +168,18 @@ pub struct GroupSchema {
 }
 
 impl GroupSchema {
+    pub fn new(nodes: AttributeSchema, edges: AttributeSchema) -> Self {
+        Self { nodes, edges }
+    }
+
+    pub fn nodes(&self) -> &AttributeSchema {
+        &self.nodes
+    }
+
+    pub fn edges(&self) -> &AttributeSchema {
+        &self.edges
+    }
+
     fn validate_attribute_schema(
         attributes: &Attributes,
         attribute_schema: &AttributeSchema,
@@ -281,41 +298,27 @@ impl Default for SchemaType {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[derive(Default)]
 pub struct Schema {
-    groups: HashMap<Group, Arc<GroupSchema>>,
-    default: Arc<GroupSchema>,
+    groups: HashMap<Group, GroupSchema>,
+    default: GroupSchema,
     pub(crate) schema_type: SchemaType,
 }
 
-impl Default for Schema {
-    fn default() -> Self {
-        Self {
-            groups: HashMap::new(),
-            default: Arc::new(GroupSchema::default()),
-            schema_type: SchemaType::default(),
-        }
-    }
-}
 
 impl Schema {
     pub fn new_inferred(groups: HashMap<Group, GroupSchema>, default: GroupSchema) -> Self {
         Self {
-            groups: groups
-                .into_iter()
-                .map(|(group, schema)| (group, Arc::new(schema)))
-                .collect(),
-            default: Arc::new(default),
+            groups,
+            default,
             schema_type: SchemaType::Inferred,
         }
     }
 
     pub fn new_provided(groups: HashMap<Group, GroupSchema>, default: GroupSchema) -> Self {
         Self {
-            groups: groups
-                .into_iter()
-                .map(|(group, schema)| (group, Arc::new(schema)))
-                .collect(),
-            default: Arc::new(default),
+            groups,
+            default,
             schema_type: SchemaType::Provided,
         }
     }
@@ -377,7 +380,7 @@ impl Schema {
 
                     let schema = GroupSchema::infer(node_attributes, edge_attributes);
 
-                    (group.clone(), Arc::new(schema))
+                    (group.clone(), schema)
                 });
 
         let default_schema = GroupSchema::infer(
@@ -395,7 +398,7 @@ impl Schema {
 
         Self {
             groups: group_schemas.collect(),
-            default: Arc::new(default_schema),
+            default: default_schema,
             schema_type: SchemaType::Inferred,
         }
     }
@@ -428,23 +431,169 @@ impl Schema {
         }
     }
 
-    pub(crate) fn update_node(&mut self, attributes: &Attributes, groups: Option<&Group>) {
-        match groups {
+    pub(crate) fn update_node(&mut self, attributes: &Attributes, group: Option<&Group>) {
+        match group {
             Some(group) => {
-                Arc::make_mut(&mut self.groups.entry(group.clone()).or_default())
+                self.groups
+                    .entry(group.clone())
+                    .or_default()
                     .update_node(attributes);
             }
-            None => Arc::make_mut(&mut self.default).update_node(attributes),
+            None => self.default.update_node(attributes),
         }
     }
 
-    pub(crate) fn update_edge(&mut self, attributes: &Attributes, groups: Option<&Group>) {
-        match groups {
+    pub(crate) fn update_edge(&mut self, attributes: &Attributes, group: Option<&Group>) {
+        match group {
             Some(group) => {
-                Arc::make_mut(&mut self.groups.entry(group.clone()).or_default())
+                self.groups
+                    .entry(group.clone())
+                    .or_default()
                     .update_edge(attributes);
             }
-            None => Arc::make_mut(&mut self.default).update_edge(attributes),
+            None => self.default.update_edge(attributes),
         }
+    }
+
+    pub fn set_node_attribute(
+        &mut self,
+        attribute: &MedRecordAttribute,
+        data_type: DataType,
+        attribute_type: AttributeType,
+        group: Option<&Group>,
+    ) {
+        let attribute_data_type = AttributeDataType::new(data_type, attribute_type);
+
+        match group {
+            Some(group) => {
+                let group_schema = self.groups.entry(group.clone()).or_default();
+                group_schema
+                    .nodes
+                    .insert(attribute.clone(), attribute_data_type.clone());
+            }
+            None => {
+                self.default
+                    .nodes
+                    .insert(attribute.clone(), attribute_data_type.clone());
+            }
+        }
+    }
+
+    pub fn set_edge_attribute(
+        &mut self,
+        attribute: &MedRecordAttribute,
+        data_type: DataType,
+        attribute_type: AttributeType,
+        group: Option<&Group>,
+    ) {
+        let attribute_data_type = AttributeDataType::new(data_type, attribute_type);
+
+        match group {
+            Some(group) => {
+                let group_schema = self.groups.entry(group.clone()).or_default();
+                group_schema
+                    .edges
+                    .insert(attribute.clone(), attribute_data_type.clone());
+            }
+            None => {
+                self.default
+                    .edges
+                    .insert(attribute.clone(), attribute_data_type.clone());
+            }
+        }
+    }
+
+    pub fn update_node_attribute(
+        &mut self,
+        attribute: &MedRecordAttribute,
+        data_type: DataType,
+        attribute_type: AttributeType,
+        group: Option<&Group>,
+    ) {
+        let attribute_data_type = AttributeDataType::new(data_type, attribute_type);
+
+        match group {
+            Some(group) => {
+                let group_schema = self.groups.entry(group.clone()).or_default();
+                group_schema
+                    .nodes
+                    .entry(attribute.clone())
+                    .and_modify(|value| value.merge(&attribute_data_type))
+                    .or_insert(attribute_data_type);
+            }
+            None => {
+                self.default
+                    .nodes
+                    .entry(attribute.clone())
+                    .and_modify(|value| value.merge(&attribute_data_type))
+                    .or_insert(attribute_data_type);
+            }
+        }
+    }
+
+    pub fn update_edge_attribute(
+        &mut self,
+        attribute: &MedRecordAttribute,
+        data_type: DataType,
+        attribute_type: AttributeType,
+        group: Option<&Group>,
+    ) {
+        let attribute_data_type = AttributeDataType::new(data_type, attribute_type);
+
+        match group {
+            Some(group) => {
+                let group_schema = self.groups.entry(group.clone()).or_default();
+                group_schema
+                    .edges
+                    .entry(attribute.clone())
+                    .and_modify(|value| value.merge(&attribute_data_type))
+                    .or_insert(attribute_data_type);
+            }
+            None => {
+                self.default
+                    .edges
+                    .entry(attribute.clone())
+                    .and_modify(|value| value.merge(&attribute_data_type))
+                    .or_insert(attribute_data_type);
+            }
+        }
+    }
+
+    pub fn remove_node_attribute(&mut self, attribute: &MedRecordAttribute, group: Option<&Group>) {
+        match group {
+            Some(group) => {
+                if let Some(group_schema) = self.groups.get_mut(group) {
+                    group_schema.nodes.remove(attribute);
+                }
+            }
+            None => {
+                self.default.nodes.remove(attribute);
+            }
+        }
+    }
+
+    pub fn remove_edge_attribute(&mut self, attribute: &MedRecordAttribute, group: Option<&Group>) {
+        match group {
+            Some(group) => {
+                if let Some(group_schema) = self.groups.get_mut(group) {
+                    group_schema.edges.remove(attribute);
+                }
+            }
+            None => {
+                self.default.edges.remove(attribute);
+            }
+        }
+    }
+
+    pub fn remove_group(&mut self, group: &Group) {
+        self.groups.remove(group);
+    }
+
+    pub fn freeze(&mut self) {
+        self.schema_type = SchemaType::Provided;
+    }
+
+    pub fn unfreeze(&mut self) {
+        self.schema_type = SchemaType::Inferred;
     }
 }

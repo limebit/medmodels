@@ -150,7 +150,7 @@ impl MedRecord {
         Self {
             graph: Graph::new(),
             group_mapping: GroupMapping::new(),
-            schema: schema,
+            schema,
         }
     }
 
@@ -251,10 +251,24 @@ impl MedRecord {
 
             if !groups_of_node.is_empty() {
                 for group in groups_of_node {
-                    schema.validate_node(node_index, &node.attributes, Some(group))?;
+                    match schema.schema_type {
+                        SchemaType::Inferred => {
+                            schema.update_node(&node.attributes, Some(group));
+                        }
+                        SchemaType::Provided => {
+                            schema.validate_node(node_index, &node.attributes, Some(group))?
+                        }
+                    }
                 }
             } else {
-                schema.validate_node(node_index, &node.attributes, None)?;
+                match schema.schema_type {
+                    SchemaType::Inferred => {
+                        schema.update_node(&node.attributes, None);
+                    }
+                    SchemaType::Provided => {
+                        schema.validate_node(node_index, &node.attributes, None)?;
+                    }
+                }
             }
         }
 
@@ -266,10 +280,24 @@ impl MedRecord {
 
             if !groups_of_edge.is_empty() {
                 for group in groups_of_edge {
-                    schema.validate_edge(edge_index, &edge.attributes, Some(group))?;
+                    match schema.schema_type {
+                        SchemaType::Inferred => {
+                            schema.update_edge(&edge.attributes, Some(group));
+                        }
+                        SchemaType::Provided => {
+                            schema.validate_edge(edge_index, &edge.attributes, Some(group))?;
+                        }
+                    }
                 }
             } else {
-                schema.validate_edge(edge_index, &edge.attributes, None)?;
+                match schema.schema_type {
+                    SchemaType::Inferred => {
+                        schema.update_edge(&edge.attributes, None);
+                    }
+                    SchemaType::Provided => {
+                        schema.validate_edge(edge_index, &edge.attributes, None)?;
+                    }
+                }
             }
         }
 
@@ -278,8 +306,20 @@ impl MedRecord {
         Ok(())
     }
 
-    pub fn get_schema(&self) -> &Schema {
+    pub unsafe fn update_schema_unchecked(&mut self, schema: &mut Schema) {
+        mem::swap(&mut self.schema, schema);
+    }
+
+    pub fn schema(&self) -> &Schema {
         &self.schema
+    }
+
+    pub fn freeze_schema(&mut self) {
+        self.schema.freeze();
+    }
+
+    pub fn unfreeze_schema(&mut self) {
+        self.schema.unfreeze();
     }
 
     pub fn node_indices(&self) -> impl Iterator<Item = &NodeIndex> {
@@ -929,15 +969,15 @@ mod test {
 
         let schema = Schema::new_provided(
             Default::default(),
-            GroupSchema {
-                nodes: HashMap::from([("attribute".into(), DataType::Int.into())]),
-                edges: HashMap::from([("attribute".into(), DataType::Int.into())]),
-            },
+            GroupSchema::new(
+                HashMap::from([("attribute".into(), DataType::Int.into())]),
+                HashMap::from([("attribute".into(), DataType::Int.into())]),
+            ),
         );
 
         assert!(medrecord.update_schema(schema.clone()).is_ok());
 
-        assert_eq!(schema, *medrecord.get_schema());
+        assert_eq!(schema, *medrecord.schema());
     }
 
     #[test]
@@ -950,19 +990,19 @@ mod test {
 
         let schema = Schema::new_provided(
             Default::default(),
-            GroupSchema {
-                nodes: HashMap::from([("attribute".into(), DataType::Int.into())]),
-                edges: HashMap::from([("attribute".into(), DataType::Int.into())]),
-            },
+            GroupSchema::new(
+                HashMap::from([("attribute".into(), DataType::Int.into())]),
+                HashMap::from([("attribute".into(), DataType::Int.into())]),
+            ),
         );
 
-        let previous_schema = medrecord.get_schema().clone();
+        let previous_schema = medrecord.schema().clone();
 
         assert!(medrecord
             .update_schema(schema.clone())
             .is_err_and(|e| { matches!(e, MedRecordError::SchemaError(_)) }));
 
-        assert_eq!(previous_schema, *medrecord.get_schema());
+        assert_eq!(previous_schema, *medrecord.schema());
 
         let mut medrecord = MedRecord::new();
 
@@ -980,13 +1020,13 @@ mod test {
             )
             .unwrap();
 
-        let previous_schema = medrecord.get_schema().clone();
+        let previous_schema = medrecord.schema().clone();
 
         assert!(medrecord
             .update_schema(schema.clone())
             .is_err_and(|e| { matches!(e, MedRecordError::SchemaError(_)) }));
 
-        assert_eq!(previous_schema, *medrecord.get_schema());
+        assert_eq!(previous_schema, *medrecord.schema());
     }
 
     #[test]
