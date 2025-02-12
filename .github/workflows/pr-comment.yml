@@ -1,0 +1,38 @@
+name: Write PR Comment
+
+on:
+  pull_request:
+    types: [opened]
+
+jobs:
+  comment:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Comment on PR
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const message = `
+              Thank you for your pull request! 🎉
+
+              Please make sure to read the ***pull request guidelines*** at: https://www.medmodels.de/docs/latest/developer_guide/pull-request.html
+
+              While you're waiting for a review, please ensure that:
+
+              * All required checks have passed.
+              * Documentation is updated if necessary.
+            `;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: message
+            });
