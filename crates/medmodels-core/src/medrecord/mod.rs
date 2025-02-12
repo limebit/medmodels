@@ -305,6 +305,9 @@ impl MedRecord {
         Ok(())
     }
 
+    /// # Safety
+    ///
+    /// This function should only be used if the data has been validated against the schema.
     pub unsafe fn update_schema_unchecked(&mut self, schema: &mut Schema) {
         mem::swap(&mut self.schema, schema);
     }

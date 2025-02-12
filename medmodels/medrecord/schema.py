@@ -114,28 +114,30 @@ class AttributeType(Enum):
 
 
 CategoricalType: TypeAlias = DataType
-CategoricalPair = Tuple[CategoricalType, Literal[AttributeType.Categorical]]
+CategoricalPair: TypeAlias = Tuple[CategoricalType, Literal[AttributeType.Categorical]]
 
 ContinuousType: TypeAlias = Union[
     Int, Float, Option[Int], Option[Float], "ContinuousUnionRecursive"
 ]
 ContinuousUnionRecursive: TypeAlias = DataTypeUnion[ContinuousType, ContinuousType]
-ContinuousPair = Tuple[ContinuousType, Literal[AttributeType.Continuous]]
+ContinuousPair: TypeAlias = Tuple[ContinuousType, Literal[AttributeType.Continuous]]
 
 TemporalType = Union[
     DateTime, Duration, Option[DateTime], Option[Duration], "TemporalUnionRecursive"
 ]
 TemporalUnionRecursive: TypeAlias = DataTypeUnion[TemporalType, TemporalType]
-TemporalPair = Tuple[TemporalType, Literal[AttributeType.Temporal]]
+TemporalPair: TypeAlias = Tuple[TemporalType, Literal[AttributeType.Temporal]]
 
 UnstructuredType: TypeAlias = DataType
-UnstructuredPair = Tuple[UnstructuredType, Literal[AttributeType.Unstructured]]
+UnstructuredPair: TypeAlias = Tuple[
+    UnstructuredType, Literal[AttributeType.Unstructured]
+]
 
-AttributeDataType = Union[
+AttributeDataType: TypeAlias = Union[
     CategoricalPair, ContinuousPair, TemporalPair, UnstructuredPair
 ]
 
-AttributesSchema = Dict[MedRecordAttribute, AttributeDataType]
+AttributesSchema: TypeAlias = Dict[MedRecordAttribute, AttributeDataType]
 
 
 class GroupSchema:
