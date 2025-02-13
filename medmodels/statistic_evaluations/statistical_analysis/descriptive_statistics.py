@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import TYPE_CHECKING, Dict, List, Literal, Optional, Union
+from typing import TYPE_CHECKING, Dict, List, Literal, Optional, TypedDict, Union
 
 import numpy as np
 
+from medmodels.medrecord.datatype import DateTime, Float, Int
 from medmodels.medrecord.schema import AttributesSchema, AttributeType
 from medmodels.medrecord.types import Attributes, EdgeIndex, NodeIndex
 
@@ -14,20 +15,86 @@ if TYPE_CHECKING:
     from typing import TypeAlias
 
     from medmodels.medrecord.types import (
-        AttributeInfo,
         MedRecordAttribute,
         MedRecordValue,
-        NumericAttributeInfo,
-        NumericAttributeStatistics,
-        StringAttributeInfo,
-        StringAttributeStatistics,
-        TemporalAttributeInfo,
-        TemporalAttributeStatistics,
     )
 
 AttributeDictionary: TypeAlias = Union[
     Dict[EdgeIndex, Attributes], Dict[NodeIndex, Attributes]
 ]
+
+
+AttributeInfo: TypeAlias = Union[
+    "TemporalAttributeInfo",
+    "NumericAttributeInfo",
+    "StringAttributeInfo",
+    "EmptyAttributeInfo",
+]
+
+
+class TemporalAttributeInfo(TypedDict):
+    """Dictionary for a temporal attribute and its metrics."""
+
+    type: Literal["Temporal"]
+    min: datetime
+    max: datetime
+    mean: datetime
+
+
+class TemporalAttributeStatistics(TypedDict):
+    """Dictionary for a temporal attribute and its extended metrics."""
+
+    type: Literal["Temporal"]
+    min: datetime
+    max: datetime
+    mean: datetime
+    median: datetime
+    Q1: datetime
+    Q3: datetime
+
+
+class NumericAttributeInfo(TypedDict):
+    """Dictionary for a numeric attribute and its metrics."""
+
+    type: Literal["Continuous"]
+    min: Union[int, float]
+    max: Union[int, float]
+    mean: Union[int, float]
+
+
+class NumericAttributeStatistics(TypedDict):
+    """Dictionary for a numeric attribute and its extended metrics."""
+
+    type: Literal["Continuous"]
+    min: Union[int, float]
+    max: Union[int, float]
+    mean: Union[int, float]
+    median: Union[int, float]
+    Q1: Union[int, float]
+    Q3: Union[int, float]
+
+
+class StringAttributeInfo(TypedDict):
+    """Dictionary for a string attribute and its values."""
+
+    type: Literal["Categorical"]
+    values: str
+
+
+class StringAttributeStatistics(TypedDict):
+    """Dictionary for a string attribute and its values."""
+
+    type: Literal["Categorical"]
+    count: int
+    top: str
+    freq: int
+
+
+class EmptyAttributeInfo(TypedDict):
+    """Dictionary for the information of an empty attribute."""
+
+    type: Literal["Continuous", "Temporal", "Categorical", "-"]
+    values: Literal["-"]
 
 
 def determine_attribute_type(
@@ -47,6 +114,39 @@ def determine_attribute_type(
 
     if all(isinstance(value, datetime) for value in attribute_values):
         return AttributeType.Temporal
+
+    # TODO @Laura: add new string type after PR #325
+    return None
+
+
+def determine_attribute_type_schema(
+    attribute: MedRecordAttribute, schema: AttributesSchema
+) -> Optional[AttributeType]:
+    """Determine attribute type from a schema.
+
+    Args:
+        attribute (MedRecordAttribute): Attribute to check the type for.
+        schema (AttributesSchema): MedRecord schema.
+
+    Returns:
+        Optional[AttributeType]: Type of attribute if possible to determine.
+    """
+    # check if the attribute is in schema
+    if attribute not in schema:
+        return None
+
+    # check if the attribute has as an attribute type defined in the schema
+    if schema[attribute][1]:
+        return schema[attribute][1]
+
+    # check if attribute has a datatype defined in schema
+    if schema[attribute][0]:
+        data_type = schema[attribute][0]
+
+        if isinstance(data_type, (Int, Float)):
+            return AttributeType.Continuous
+        if isinstance(data_type, DateTime):
+            return AttributeType.Temporal
 
     # TODO @Laura: add new string type after PR #325
     return None
@@ -82,14 +182,20 @@ def extract_attribute_summary(
     for attribute in sorted(data):
         attribute_values = [value for value in data[attribute] if value is not None]
 
+        attribute_type = None
+
+        if schema:
+            attribute_type = determine_attribute_type_schema(attribute, schema)
+
         if len(attribute_values) == 0:
-            attribute_info = {"type": "-", "values": "-"}
+            attribute_info = {
+                "type": attribute_type.name if attribute_type else "-",
+                "values": "-",
+            }
 
         else:
-            # check if the attribute has as an attribute type defined in the schema
-            if schema and attribute in schema and schema[attribute][1]:
-                attribute_type = schema[attribute][1]
-            else:
+            # determine attribute type if it wasn't found in schema
+            if not attribute_type:
                 attribute_type = determine_attribute_type(
                     attribute_values=attribute_values
                 )
