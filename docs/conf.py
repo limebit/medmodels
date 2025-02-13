@@ -1,18 +1,20 @@
+"""Sphinx configuration."""
+
+import importlib.metadata
 import sys
 from datetime import date
 from pathlib import Path
 
-from myst_parser import __version__
 from sphinx.application import Sphinx
 
 # Add parent directory to sys.path for autodoc
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 # Project information
-project = "medmodels"
+project = "MedModels"
 author = "Limebit GmbH"
 copyright = f"{date.today().year}, {author}"
-version = __version__
+version = f"v{importlib.metadata.version(project)}"
 
 # General configuration
 extensions = [
@@ -69,6 +71,7 @@ autodoc_default_options = {
     "private-members": False,
     "inherited-members": True,
     "show-inheritance": True,
+    "ignore-module-all": False,
 }
 
 autosummary_generate = True
@@ -149,6 +152,11 @@ html_theme_options = {
     ],
     "primary_sidebar_end": ["indices.html"],
     "secondary_sidebar_items": ["page-toc"],
+    "switcher": {
+        "json_url": "https://www.medmodels.de/docs/switcher.json",
+        "version_match": version,
+    },
+    "show_version_warning_banner": True,
 }
 
 html_context = {
@@ -170,7 +178,7 @@ latex_engine = "xelatex"
 
 
 # Local Sphinx extensions
-def setup(app: Sphinx):
+def setup(app: Sphinx) -> None:
     """Add custom directives and transformations to Sphinx."""
     from myst_parser._docs import (
         DirectiveDoc,

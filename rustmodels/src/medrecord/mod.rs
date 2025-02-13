@@ -45,6 +45,7 @@ impl PyMedRecord {
     }
 
     #[staticmethod]
+    #[pyo3(signature = (nodes, edges=None))]
     pub fn from_tuples(
         nodes: Vec<(PyNodeIndex, PyAttributes)>,
         edges: Option<Vec<(PyNodeIndex, PyNodeIndex, PyAttributes)>>,
@@ -75,8 +76,13 @@ impl PyMedRecord {
     }
 
     #[staticmethod]
-    pub fn from_example_dataset() -> Self {
-        Self(MedRecord::from_example_dataset())
+    pub fn from_simple_example_dataset() -> Self {
+        Self(MedRecord::from_simple_example_dataset())
+    }
+
+    #[staticmethod]
+    pub fn from_advanced_example_dataset() -> Self {
+        Self(MedRecord::from_advanced_example_dataset())
     }
 
     #[staticmethod]
@@ -446,6 +452,7 @@ impl PyMedRecord {
             .map_err(PyMedRecordError::from)?)
     }
 
+    #[pyo3(signature = (group, node_indices_to_add=None, edge_indices_to_add=None))]
     pub fn add_group(
         &mut self,
         group: PyGroup,

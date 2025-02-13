@@ -40,7 +40,7 @@ impl Deref for PyMedRecordAttribute {
     }
 }
 
-impl<'a> FromPyObject<'a> for PyMedRecordAttribute {
+impl FromPyObject<'_> for PyMedRecordAttribute {
     fn extract_bound(ob: &Bound<'_, PyAny>) -> PyResult<Self> {
         Ok(convert_pyobject_to_medrecordvalue(ob)?
             .try_into()

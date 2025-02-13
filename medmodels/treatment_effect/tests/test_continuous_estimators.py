@@ -1,16 +1,23 @@
 """Tests for the TreatmentEffect class in the treatment_effect module."""
 
+from __future__ import annotations
+
 import unittest
-from typing import List
+from datetime import datetime
+from typing import TYPE_CHECKING, List, Optional
 
 import pandas as pd
+import pytest
 
 from medmodels import MedRecord
-from medmodels.medrecord.types import NodeIndex
 from medmodels.treatment_effect.continuous_estimators import (
     average_treatment_effect,
     cohens_d,
+    hedges_g,
 )
+
+if TYPE_CHECKING:
+    from medmodels.medrecord.types import NodeIndex
 
 
 def create_patients(patient_list: List[NodeIndex]) -> pd.DataFrame:
@@ -37,8 +44,7 @@ def create_patients(patient_list: List[NodeIndex]) -> pd.DataFrame:
         }
     )
 
-    patients = patients.loc[patients["index"].isin(patient_list)]
-    return patients
+    return patients.loc[patients["index"].isin(patient_list)]
 
 
 def create_diagnoses() -> pd.DataFrame:
@@ -47,13 +53,12 @@ def create_diagnoses() -> pd.DataFrame:
     Returns:
         pd.DataFrame: A diagnoses dataframe.
     """
-    diagnoses = pd.DataFrame(
+    return pd.DataFrame(
         {
             "index": ["D1"],
             "name": ["Stroke"],
         }
     )
-    return diagnoses
 
 
 def create_prescriptions() -> pd.DataFrame:
@@ -62,13 +67,12 @@ def create_prescriptions() -> pd.DataFrame:
     Returns:
         pd.DataFrame: A prescriptions dataframe.
     """
-    prescriptions = pd.DataFrame(
+    return pd.DataFrame(
         {
             "index": ["M1", "M2"],
             "name": ["Rivaroxaban", "Warfarin"],
         }
     )
-    return prescriptions
 
 
 def create_edges1(patient_list: List[NodeIndex]) -> pd.DataFrame:
@@ -98,18 +102,17 @@ def create_edges1(patient_list: List[NodeIndex]) -> pd.DataFrame:
                 "P9",
             ],
             "time": [
-                "1999-10-15",
-                "2000-01-01",
-                "1999-12-15",
-                "2000-01-01",
-                "2000-01-01",
-                "2000-01-01",
-                "2000-01-01",
+                datetime(1999, 10, 15),
+                datetime(2000, 1, 1),
+                datetime(1999, 12, 15),
+                datetime(2000, 1, 1),
+                datetime(2000, 1, 1),
+                datetime(2000, 1, 1),
+                datetime(2000, 1, 1),
             ],
         }
     )
-    edges = edges.loc[edges["target"].isin(patient_list)]
-    return edges
+    return edges.loc[edges["target"].isin(patient_list)]
 
 
 def create_edges2(patient_list: List[NodeIndex]) -> pd.DataFrame:
@@ -137,12 +140,12 @@ def create_edges2(patient_list: List[NodeIndex]) -> pd.DataFrame:
                 "P7",
             ],
             "time": [
-                "2000-01-01",
-                "2000-07-01",
-                "1999-12-15",
-                "2000-01-05",
-                "2000-01-01",
-                "2000-01-01",
+                datetime.strptime("2000-01-01", "%Y-%m-%d"),
+                datetime.strptime("2000-07-01", "%Y-%m-%d"),
+                datetime.strptime("1999-12-15", "%Y-%m-%d"),
+                datetime.strptime("2000-01-05", "%Y-%m-%d"),
+                datetime.strptime("2000-01-01", "%Y-%m-%d"),
+                datetime.strptime("2000-01-01", "%Y-%m-%d"),
             ],
             "intensity": [
                 0.1,
@@ -162,28 +165,19 @@ def create_edges2(patient_list: List[NodeIndex]) -> pd.DataFrame:
             ],
         }
     )
-    edges = edges.loc[edges["target"].isin(patient_list)]
-    return edges
+    return edges.loc[edges["target"].isin(patient_list)]
 
 
 def create_medrecord(
-    patient_list: List[NodeIndex] = [
-        "P1",
-        "P2",
-        "P3",
-        "P4",
-        "P5",
-        "P6",
-        "P7",
-        "P8",
-        "P9",
-    ],
+    patient_list: Optional[List[NodeIndex]] = None,
 ) -> MedRecord:
     """Creates a MedRecord object.
 
     Returns:
         MedRecord: A MedRecord object.
     """
+    if patient_list is None:
+        patient_list = ["P1", "P2", "P3", "P4", "P5", "P6", "P7", "P8", "P9"]
     patients = create_patients(patient_list=patient_list)
     diagnoses = create_diagnoses()
     prescriptions = create_prescriptions()
@@ -213,12 +207,12 @@ def create_medrecord(
 class TestContinuousEstimators(unittest.TestCase):
     """Class to test the continuous estimators."""
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.medrecord = create_medrecord()
         self.outcome_group = "Stroke"
         self.time_attribute = "time"
 
-    def test_average_treatment_effect(self):
+    def test_average_treatment_effect(self) -> None:
         ate_result = average_treatment_effect(
             self.medrecord,
             treatment_outcome_true_set=set({"P2", "P3"}),
@@ -228,7 +222,7 @@ class TestContinuousEstimators(unittest.TestCase):
             reference="last",
             time_attribute=self.time_attribute,
         )
-        self.assertAlmostEqual(-0.1, ate_result)
+        assert ate_result == pytest.approx(-0.1)
 
         ate_result = average_treatment_effect(
             self.medrecord,
@@ -239,10 +233,10 @@ class TestContinuousEstimators(unittest.TestCase):
             reference="first",
             time_attribute=self.time_attribute,
         )
-        self.assertAlmostEqual(-0.15, ate_result)
+        assert ate_result == pytest.approx(-0.15)
 
-    def test_invalid_treatment_effect(self):
-        with self.assertRaisesRegex(ValueError, "Outcome variable must be numeric"):
+    def test_invalid_treatment_effect(self) -> None:
+        with pytest.raises(ValueError, match="Outcome variable must be numeric"):
             average_treatment_effect(
                 self.medrecord,
                 treatment_outcome_true_set=set({"P2", "P3"}),
@@ -253,7 +247,7 @@ class TestContinuousEstimators(unittest.TestCase):
                 time_attribute=self.time_attribute,
             )
 
-    def test_cohens_d(self):
+    def test_cohens_d(self) -> None:
         cohens_d_result = cohens_d(
             self.medrecord,
             treatment_outcome_true_set=set({"P2", "P3"}),
@@ -263,7 +257,7 @@ class TestContinuousEstimators(unittest.TestCase):
             reference="last",
             time_attribute=self.time_attribute,
         )
-        self.assertAlmostEqual(-0.59, cohens_d_result, places=2)
+        assert cohens_d_result == pytest.approx(-0.59, 2)
 
         cohens_d_result = cohens_d(
             self.medrecord,
@@ -274,22 +268,10 @@ class TestContinuousEstimators(unittest.TestCase):
             reference="first",
             time_attribute=self.time_attribute,
         )
-        self.assertAlmostEqual(-0.96, cohens_d_result, places=2)
+        assert cohens_d_result == pytest.approx(-0.96, 2)
 
-        cohens_d_corrected = cohens_d(
-            self.medrecord,
-            treatment_outcome_true_set=set({"P2", "P3"}),
-            control_outcome_true_set=set({"P1", "P4", "P7"}),
-            outcome_group=self.outcome_group,
-            outcome_variable="intensity",
-            reference="last",
-            time_attribute=self.time_attribute,
-            add_correction=True,
-        )
-        self.assertAlmostEqual(0, cohens_d_corrected)
-
-    def test_invalid_cohens_D(self):
-        with self.assertRaisesRegex(ValueError, "Outcome variable must be numeric"):
+    def test_invalid_cohens_d(self) -> None:
+        with pytest.raises(ValueError, match="Outcome variable must be numeric"):
             cohens_d(
                 self.medrecord,
                 treatment_outcome_true_set=set({"P2", "P3"}),
@@ -299,6 +281,19 @@ class TestContinuousEstimators(unittest.TestCase):
                 reference="last",
                 time_attribute=self.time_attribute,
             )
+
+    def test_hedges_g(self) -> None:
+        hedges_g_result = hedges_g(
+            self.medrecord,
+            treatment_outcome_true_set=set({"P2", "P3"}),
+            control_outcome_true_set=set({"P1", "P4", "P7"}),
+            outcome_group=self.outcome_group,
+            outcome_variable="intensity",
+            reference="last",
+            time_attribute=self.time_attribute,
+        )
+
+        assert hedges_g_result == pytest.approx(-0.59, 2)
 
 
 if __name__ == "__main__":

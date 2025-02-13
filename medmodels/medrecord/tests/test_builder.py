@@ -1,66 +1,71 @@
 import unittest
 
+import pytest
+
 import medmodels.medrecord as mr
 
 
 class TestMedRecordBuilder(unittest.TestCase):
-    def test_add_nodes(self):
+    def test_add_nodes(self) -> None:
         builder = mr.MedRecord.builder().add_nodes([("node1", {})])
 
-        self.assertEqual(len(builder._nodes), 1)
+        assert len(builder._nodes) == 1
 
         builder.add_nodes([("node2", {})], group="group")
 
-        self.assertEqual(len(builder._nodes), 2)
+        assert len(builder._nodes) == 2
 
         medrecord = builder.build()
 
-        self.assertEqual(2, len(medrecord.nodes))
-        self.assertEqual(1, len(medrecord.groups))
-        self.assertEqual(["group"], medrecord.groups_of_node("node2"))
+        assert len(medrecord.nodes) == 2
+        assert len(medrecord.groups) == 1
+        assert medrecord.groups_of_node("node2") == ["group"]
 
-    def test_add_edges(self):
+    def test_add_edges(self) -> None:
         builder = (
             mr.MedRecord.builder()
             .add_nodes([("node1", {}), ("node2", {})])
             .add_edges([("node1", "node2", {})])
         )
 
-        self.assertEqual(len(builder._edges), 1)
+        assert len(builder._edges) == 1
 
         builder.add_edges([("node2", "node1", {})], group="group")
 
         medrecord = builder.build()
 
-        self.assertEqual(2, len(medrecord.nodes))
-        self.assertEqual(2, len(medrecord.edges))
-        self.assertEqual(1, len(medrecord.groups))
-        self.assertEqual(["node2"], medrecord.neighbors("node1"))
-        self.assertEqual(["group"], medrecord.groups_of_edge(1))
+        assert len(medrecord.nodes) == 2
+        assert len(medrecord.edges) == 2
+        assert len(medrecord.groups) == 1
+        assert medrecord.neighbors("node1") == ["node2"]
+        assert medrecord.groups_of_edge(1) == ["group"]
 
-    def test_add_group(self):
+    def test_add_group(self) -> None:
         builder = (
             mr.MedRecord.builder().add_nodes(("0", {})).add_group("group", nodes=["0"])
         )
 
-        self.assertEqual(len(builder._groups), 1)
+        assert len(builder._groups) == 1
 
         medrecord = builder.build()
 
-        self.assertEqual(1, len(medrecord.nodes))
-        self.assertEqual(0, len(medrecord.edges))
-        self.assertEqual(1, len(medrecord.groups))
-        self.assertEqual("group", medrecord.groups[0])
-        self.assertEqual(["0"], medrecord.nodes_in_group("group"))
+        assert len(medrecord.nodes) == 1
+        assert len(medrecord.edges) == 0
+        assert len(medrecord.groups) == 1
+        assert medrecord.groups[0] == "group"
+        assert medrecord.nodes_in_group("group") == ["0"]
 
-    def test_with_schema(self):
+    def test_with_schema(self) -> None:
         schema = mr.Schema(default=mr.GroupSchema(nodes={"attribute": mr.Int()}))
 
         medrecord = mr.MedRecord.builder().with_schema(schema).build()
 
         medrecord.add_nodes(("node1", {"attribute": 1}))
 
-        with self.assertRaises(ValueError):
+        with pytest.raises(
+            ValueError,
+            match=r"Attribute attribute of node with index node2 is of type String\. Expected Integer\.",
+        ):
             medrecord.add_nodes(("node2", {"attribute": "1"}))
 
 

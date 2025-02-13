@@ -1,28 +1,33 @@
+"""Module for extracting and displaying an overview of the data in a MedRecord."""
+
+from __future__ import annotations
+
 import copy
 from datetime import datetime
-from typing import Dict, List, Optional, Union
-
-import polars as pl
+from typing import TYPE_CHECKING, Dict, List, Literal, Optional, Union
 
 from medmodels.medrecord.schema import AttributesSchema, AttributeType
-from medmodels.medrecord.types import (
-    AttributeInfo,
-    Attributes,
-    AttributeSummary,
-    EdgeIndex,
-    Group,
-    MedRecordAttribute,
-    NodeIndex,
-    NumericAttributeInfo,
-    StringAttributeInfo,
-    TemporalAttributeInfo,
-)
+from medmodels.medrecord.types import Attributes, AttributeSummary, EdgeIndex, NodeIndex
+
+if TYPE_CHECKING:
+    from typing import TypeAlias
+
+    from medmodels.medrecord.types import (
+        AttributeInfo,
+        Group,
+        MedRecordAttribute,
+        NumericAttributeInfo,
+        StringAttributeInfo,
+        TemporalAttributeInfo,
+    )
+
+AttributeDictionary: TypeAlias = Union[
+    Dict[EdgeIndex, Attributes], Dict[NodeIndex, Attributes]
+]
 
 
 def extract_attribute_summary(
-    attribute_dictionary: Union[
-        Dict[EdgeIndex, Attributes], Dict[NodeIndex, Attributes]
-    ],
+    attribute_dictionary: AttributeDictionary,
     schema: Optional[AttributesSchema] = None,
 ) -> Dict[
     MedRecordAttribute,
@@ -31,8 +36,8 @@ def extract_attribute_summary(
     """Extracts a summary from a node or edge attribute dictionary.
 
     Args:
-        attribute_dict (Union[Dict[EdgeIndex, Attributes], Dict[NodeIndex, Attributes]]):
-            Edges or Nodes and their attributes and values.
+        attribute_dictionary (AttributeDictionary): Edges or Nodes and their attributes
+            and values.
         schema (Optional[AttributesSchema], optional): Attribute Schema for the group
             nodes or edges. Defaults to None.
         decimal (int): Decimal points to round the numeric values to. Defaults to 2.
@@ -40,17 +45,20 @@ def extract_attribute_summary(
     Returns:
         Dict[MedRecordAttribute, AttributeInfo]: Summary of node or edge attributes.
     """
-    data = pl.DataFrame(data=[{"id": k, **v} for k, v in attribute_dictionary.items()])
+    data = {}
+
+    for dictionary in attribute_dictionary.values():
+        for key, value in dictionary.items():
+            data.setdefault(key, []).append(value)
 
     data_dict = {}
 
-    attributes = sorted([col for col in data.columns if col != "id"])
-
-    for attribute in attributes:
-        attribute_values = data[attribute].drop_nulls()
+    for attribute in sorted(data):
+        attribute_values = [value for value in data[attribute] if value is not None]
 
         if len(attribute_values) == 0:
-            attribute_info = {"values": "-"}
+            attribute_info = {"type": "-", "values": "-"}
+
         # check if the attribute has as an attribute type defined in the schema
         elif schema and attribute in schema and schema[attribute][1]:
             if schema[attribute][1] == AttributeType.Continuous:
@@ -59,19 +67,20 @@ def extract_attribute_summary(
                 attribute_info = _extract_temporal_attribute_info(attribute_values)
             else:
                 attribute_info = _extract_string_attribute_info(
-                    attribute_series=attribute_values,
+                    attribute_values=attribute_values,
                     long_string_suffix="categories",
                     short_string_prefix="Categories",
                 )
+
         # Without Schema
         else:
-            if attribute_values.dtype.is_numeric():
+            if all(isinstance(value, (int, float)) for value in attribute_values):
                 attribute_info = _extract_numeric_attribute_info(attribute_values)
-            elif attribute_values.dtype.is_temporal():
+            elif all(isinstance(value, datetime) for value in attribute_values):
                 attribute_info = _extract_temporal_attribute_info(attribute_values)
             else:
                 attribute_info = _extract_string_attribute_info(
-                    attribute_series=attribute_values
+                    attribute_values=[str(value) for value in attribute_values]
                 )
 
         data_dict[attribute] = attribute_info
@@ -80,59 +89,55 @@ def extract_attribute_summary(
 
 
 def _extract_numeric_attribute_info(
-    attribute_series: pl.Series,
+    attribute_values: List[Union[int, float]],
 ) -> NumericAttributeInfo:
     """Extracts info about attributes with numeric format.
 
     Args:
-        attribute_series (pl.Series): Series containing attribute values.
+        attribute_values (List[Union[int, float]]): List containing attribute values.
 
     Returns:
         NumericAttributeInfo: Dictionary containg attribute metrics.
     """
-    min = attribute_series.min()
-    max = attribute_series.max()
-    mean = attribute_series.mean()
+    min_value = min(attribute_values)
+    max_value = max(attribute_values)
+    mean_value = sum(attribute_values) / len(attribute_values)
 
     # assertion to ensure correct typing
     # never fails, because the series never contains None values and is always numeric
-    assert isinstance(min, (int, float))
-    assert isinstance(max, (int, float))
-    assert isinstance(mean, (int, float))
+    assert isinstance(min_value, (int, float))
+    assert isinstance(max_value, (int, float))
+    assert isinstance(mean_value, (int, float))
 
     return {
-        "min": min,
-        "max": max,
-        "mean": mean,
+        "type": "Continuous",
+        "min": min_value,
+        "max": max_value,
+        "mean": mean_value,
     }
 
 
 def _extract_temporal_attribute_info(
-    attribute_series: pl.Series,
+    attribute_values: List[datetime],
 ) -> TemporalAttributeInfo:
     """Extracts info about attributes with temporal format.
 
     Args:
-        attribute_series (pl.Series): Series containing attribute values.
+        attribute_values (List[datetime]): List containing temporal attribute values.
 
     Returns:
         TemporalAttributeInfo: Dictionary containg attribute metrics.
     """
-    if not attribute_series.dtype.is_temporal():
-        if attribute_series.dtype.is_numeric():
-            attribute_series = attribute_series.cast(pl.Datetime)
-        else:
-            attribute_series = attribute_series.str.to_datetime()
-
     return {
-        "min": min(attribute_series),
-        "max": max(attribute_series),
+        "type": "Temporal",
+        "min": min(attribute_values),
+        "max": max(attribute_values),
     }
 
 
 def _extract_string_attribute_info(
-    attribute_series: pl.Series,
-    short_string_prefix: str = "Values",
+    attribute_values: List[str],
+    short_string_prefix: Literal["Values", "Categories"] = "Values",
     long_string_suffix: str = "unique values",
     max_number_values: int = 5,
     max_line_length: int = 100,
@@ -140,28 +145,31 @@ def _extract_string_attribute_info(
     """Extracts info about attributes with string format.
 
     Args:
-        attribute_series (pl.Series): Series containing attribute values.
-        short_string_prefix (str, optional): Prefix for Info string in case of listing
-            all the values. Defaults to "Values".
-        long_string_suffix (str, optional): Suffix for attribute info in case of too
-            many values to list. Here only the count will be displayed.
-            Defaults to "unique values".
+        attribute_values (List[str]): List containing attribute values.
+        short_string_prefix (Literal["Values", "Categories"], optional): Prefix for
+            information string in case of listing all the values. Defaults to "Values".
+        long_string_suffix (str, optional): Suffix for attribute information in case of
+            too many values to list. Here only the count will be displayed. Defaults to
+            "unique values".
         max_number_values (int, optional): Maximum values that should be listed in the
-            info string. Defaults to 5.
-        max_line_length (int, optional): Maximum line length for the info string.
+            information string. Defaults to 5.
+        max_line_length (int, optional): Maximum line length for the information string.
             Defaults to 100.
 
     Returns:
         StringAttributeInfo: Dictionary containg attribute metrics.
     """
-    values = attribute_series.unique().sort()
+    values = sorted(set(attribute_values))
 
     values_string = f"{short_string_prefix}: {', '.join(list(values))}"
 
     if (len(values) > max_number_values) | (len(values_string) > max_line_length):
         values_string = f"{len(values)} {long_string_suffix}"
 
-    return {"values": values_string}
+    return {
+        "type": "Categorical",
+        "values": values_string,
+    }
 
 
 def prettify_table(
@@ -170,7 +178,7 @@ def prettify_table(
     """Takes a DataFrame and turns it into a list for displaying a pretty table.
 
     Args:
-        data (Dict[Group, AttributeSummary]): Table info
+        data (Dict[Group, AttributeSummary]): Table information
             stored in a dictionary.
         header (List[str]): Header line consisting of column names for the table.
         decimal (int): Decimal point to round the float values to.
@@ -182,15 +190,15 @@ def prettify_table(
 
     rows = []
 
-    info_order = ["min", "max", "mean", "values"]
+    info_order = ["type", "min", "max", "mean", "values"]
 
-    for group in data.keys():
+    for group in data:
         # determine longest group name and count
         lengths[0] = max(len(str(group)), lengths[0])
 
         lengths[1] = max(len(str(data[group]["count"])), lengths[1])
 
-        row = [str(group), str(data[group]["count"]), "-", "-"]
+        row = [str(group), str(data[group]["count"]), "-", "-", "-"]
 
         # in case of no attribute info, just keep Group name and count
         if not data[group]["attribute"]:
@@ -204,23 +212,29 @@ def prettify_table(
             first_line = True
 
             for key in sorted(info.keys(), key=lambda x: info_order.index(x)):
+                if key == "type":
+                    continue
+
                 if not first_line:
                     row[0], row[1] = "", ""
 
                 row[2] = str(attribute) if first_line else ""
 
-                # displaying info based on the type
-                if "values" in info.keys():
-                    row[3] = info[key]
+                row[3] = info["type"] if first_line else ""
+
+                # displaying information based on the type
+                if "values" in info:
+                    row[4] = info[key]
                 else:
                     if isinstance(info[key], float):
-                        row[3] = f"{key}: {info[key]:.{decimal}f}"
+                        row[4] = f"{key}: {info[key]:.{decimal}f}"
                     elif isinstance(info[key], datetime):
-                        row[3] = info[key].strftime("%Y-%m-%d %H:%M:%S")
+                        row[4] = f"{key}: {info[key].strftime('%Y-%m-%d %H:%M:%S')}"
                     else:
-                        row[3] = f"{key}: {info[key]}"
+                        row[4] = f"{key}: {info[key]}"
 
                 lengths[3] = max(len(row[3]), lengths[3])
+                lengths[4] = max(len(row[4]), lengths[4])
 
                 rows.append(copy.deepcopy(row))
 
