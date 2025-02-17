@@ -110,7 +110,12 @@ class Matching(ABC):
         # If no one-hot covariates provided, use all categorical attributes of patients
         if one_hot_covariates is None:
             attributes = extract_attribute_summary(
-                medrecord.node[medrecord.nodes_in_group(patients_group)]
+                medrecord.node[medrecord.nodes_in_group(patients_group)],
+                schema=(
+                    medrecord.schema.group(patients_group).nodes
+                    if patients_group in medrecord.schema.groups
+                    else None
+                ),
             )
             one_hot_covariates = [
                 covariate
