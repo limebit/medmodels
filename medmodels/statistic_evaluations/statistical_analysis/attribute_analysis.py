@@ -187,13 +187,29 @@ def determine_attribute_type_schema(
     return None
 
 
+@overload
+def extract_attribute_summary(
+    attribute_dictionary: AttributeDictionary,
+    schema: Optional[AttributesSchema],
+    summary_type: Literal["short"],
+) -> Dict[MedRecordAttribute, AttributeInfo]: ...
+
+
+@overload
+def extract_attribute_summary(
+    attribute_dictionary: AttributeDictionary,
+    schema: Optional[AttributesSchema],
+    summary_type: Literal["extended"],
+) -> Dict[MedRecordAttribute, AttributeStatistics]: ...
+
+
 def extract_attribute_summary(
     attribute_dictionary: AttributeDictionary,
     schema: Optional[AttributesSchema] = None,
     summary_type: SummaryType = "short",
-) -> Dict[
-    MedRecordAttribute,
-    AttributeInfo,
+) -> Union[
+    Dict[MedRecordAttribute, AttributeInfo],
+    Dict[MedRecordAttribute, AttributeStatistics],
 ]:
     """Extracts a summary from a node or edge attribute dictionary.
 
@@ -206,8 +222,9 @@ def extract_attribute_summary(
             should be short or more extended statistics. Defaults to "short".
 
     Returns:
-        Dict[MedRecordAttribute, AttributeInfo]: Summary of node or edge attributes.
-    """
+        Union[Dict[MedRecordAttribute, AttributeInfo],Dict[MedRecordAttribute, AttributeStatistics]]:
+            Summary of node or edge attributes.
+    """  # noqa: W505
     data = {}
 
     for dictionary in attribute_dictionary.values():
