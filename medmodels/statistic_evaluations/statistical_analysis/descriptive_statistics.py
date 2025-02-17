@@ -3,7 +3,16 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import TYPE_CHECKING, Dict, List, Literal, Optional, TypedDict, Union
+from typing import (
+    TYPE_CHECKING,
+    Dict,
+    List,
+    Literal,
+    Optional,
+    TypedDict,
+    Union,
+    overload,
+)
 
 import numpy as np
 
@@ -26,10 +35,19 @@ AttributeDictionary: TypeAlias = Union[
 
 AttributeInfo: TypeAlias = Union[
     "TemporalAttributeInfo",
-    "NumericAttributeInfo",
-    "StringAttributeInfo",
+    "ContinuousAttributeInfo",
+    "CategoricalAttributeInfo",
     "EmptyAttributeInfo",
 ]
+
+AttributeStatistics: TypeAlias = Union[
+    "TemporalAttributeStatistics",
+    "ContinuousAttributeStatistics",
+    "CategoricalAttributeStatistics",
+    "StringAttributeStatistics",
+]
+
+SummaryType: TypeAlias = Literal["short", "extended"]
 
 
 class TemporalAttributeInfo(TypedDict):
@@ -53,7 +71,7 @@ class TemporalAttributeStatistics(TypedDict):
     Q3: datetime
 
 
-class NumericAttributeInfo(TypedDict):
+class ContinuousAttributeInfo(TypedDict):
     """Dictionary for a numeric attribute and its metrics."""
 
     type: Literal["Continuous"]
@@ -62,7 +80,7 @@ class NumericAttributeInfo(TypedDict):
     mean: Union[int, float]
 
 
-class NumericAttributeStatistics(TypedDict):
+class ContinuousAttributeStatistics(TypedDict):
     """Dictionary for a numeric attribute and its extended metrics."""
 
     type: Literal["Continuous"]
@@ -74,14 +92,14 @@ class NumericAttributeStatistics(TypedDict):
     Q3: Union[int, float]
 
 
-class StringAttributeInfo(TypedDict):
+class CategoricalAttributeInfo(TypedDict):
     """Dictionary for a string attribute and its values."""
 
     type: Literal["Categorical"]
     values: str
 
 
-class StringAttributeStatistics(TypedDict):
+class CategoricalAttributeStatistics(TypedDict):
     """Dictionary for a string attribute and its values."""
 
     type: Literal["Categorical"]
@@ -90,10 +108,26 @@ class StringAttributeStatistics(TypedDict):
     freq: int
 
 
+class StringAttributeInfo(TypedDict):
+    """Dictionary for a string attribute and its values."""
+
+    type: Literal["Unstructured"]
+    values: str
+
+
+class StringAttributeStatistics(TypedDict):
+    """Dictionary for a string attribute and its values."""
+
+    type: Literal["Unstructured"]
+    count: int
+    top: str
+    freq: int
+
+
 class EmptyAttributeInfo(TypedDict):
     """Dictionary for the information of an empty attribute."""
 
-    type: Literal["Continuous", "Temporal", "Categorical", "-"]
+    type: Literal["Continuous", "Temporal", "Categorical", "Unstructured"]
     values: Literal["-"]
 
 
@@ -120,7 +154,8 @@ def determine_attribute_type(
 
 
 def determine_attribute_type_schema(
-    attribute: MedRecordAttribute, schema: AttributesSchema
+    attribute: MedRecordAttribute,
+    schema: AttributesSchema,
 ) -> Optional[AttributeType]:
     """Determine attribute type from a schema.
 
@@ -155,6 +190,7 @@ def determine_attribute_type_schema(
 def extract_attribute_summary(
     attribute_dictionary: AttributeDictionary,
     schema: Optional[AttributesSchema] = None,
+    summary_type: SummaryType = "short",
 ) -> Dict[
     MedRecordAttribute,
     AttributeInfo,
@@ -166,7 +202,8 @@ def extract_attribute_summary(
             and values.
         schema (Optional[AttributesSchema], optional): Attribute Schema for the group
             nodes or edges. Defaults to None.
-        decimal (int): Decimal points to round the numeric values to. Defaults to 2.
+        summary_type (Literal["short", "extended"]): Indicator if the attribute summary
+            should be short or more extended statistics. Defaults to "short".
 
     Returns:
         Dict[MedRecordAttribute, AttributeInfo]: Summary of node or edge attributes.
@@ -189,7 +226,7 @@ def extract_attribute_summary(
 
         if len(attribute_values) == 0:
             attribute_info = {
-                "type": attribute_type.name if attribute_type else "-",
+                "type": attribute_type.name if attribute_type else "Unstructured",
                 "values": "-",
             }
 
@@ -197,25 +234,28 @@ def extract_attribute_summary(
             # determine attribute type if it wasn't found in schema
             if not attribute_type:
                 attribute_type = determine_attribute_type(
-                    attribute_values=attribute_values
+                    attribute_values=attribute_values,
                 )
 
             # handle different attribute types
             if attribute_type == AttributeType.Continuous:
-                attribute_info = extract_numeric_attribute_info(attribute_values)
+                attribute_info = extract_numeric_attribute_summary(
+                    attribute_values, summary_type=summary_type
+                )
 
             elif attribute_type == AttributeType.Temporal:
-                attribute_info = extract_temporal_attribute_info(attribute_values)
+                attribute_info = extract_temporal_attribute_summary(
+                    attribute_values, summary_type=summary_type
+                )
 
             elif attribute_type == AttributeType.Categorical:
-                attribute_info = extract_string_attribute_info(
-                    attribute_values=attribute_values,
-                    long_string_suffix="categories",
-                    short_string_prefix="Categories",
+                attribute_info = extract_categorical_attribute_summary(
+                    attribute_values=attribute_values, summary_type=summary_type
                 )
             else:
-                attribute_info = extract_string_attribute_info(
+                attribute_info = extract_string_attribute_summary(
                     attribute_values=attribute_values,
+                    summary_type=summary_type,
                 )
 
         data_dict[attribute] = attribute_info
@@ -223,16 +263,34 @@ def extract_attribute_summary(
     return data_dict
 
 
-def extract_numeric_attribute_info(
+@overload
+def extract_numeric_attribute_summary(
     attribute_values: List[Union[int, float]],
-) -> NumericAttributeInfo:
-    """Extracts info about attributes with numeric format.
+    summary_type: Literal["short"],
+) -> ContinuousAttributeInfo: ...
+
+
+@overload
+def extract_numeric_attribute_summary(
+    attribute_values: List[Union[int, float]],
+    summary_type: Literal["extended"],
+) -> ContinuousAttributeStatistics: ...
+
+
+def extract_numeric_attribute_summary(
+    attribute_values: List[Union[int, float]],
+    summary_type: Literal["short", "extended"] = "short",
+) -> Union[ContinuousAttributeInfo, ContinuousAttributeStatistics]:
+    """Extracts summary of attributes with numeric format.
 
     Args:
         attribute_values (List[Union[int, float]]): List containing attribute values.
+        summary_type (Literal["short", "extended"]): Indicator if the attribute summary
+            should be short or more extended statistics. Defaults to "short".
 
     Returns:
-        NumericAttributeInfo: Dictionary containg attribute metrics.
+        Union[ContinuousAttributeInfo, ContinuousAttributeStatistics]: Dictionary
+            containg attribute metrics.
     """
     min_value = min(attribute_values)
     max_value = max(attribute_values)
@@ -244,35 +302,18 @@ def extract_numeric_attribute_info(
     assert isinstance(max_value, (int, float))
     assert isinstance(mean_value, (int, float))
 
-    return {
-        "type": "Continuous",
-        "min": min_value,
-        "max": max_value,
-        "mean": mean_value,
-    }
+    if summary_type == "short":
+        return {
+            "type": "Continuous",
+            "min": min_value,
+            "max": max_value,
+            "mean": mean_value,
+        }
 
-
-def extract_numeric_attribute_statistics(
-    attribute_values: List[Union[int, float]],
-) -> NumericAttributeStatistics:
-    """Extracts full statitics summary for numeric attribute values.
-
-    Args:
-        attribute_values (List[Union[int, float]]): _description_
-
-    Returns:
-        NumericAttributeInfo: _description_
-    """
-    min_value = min(attribute_values)
-    max_value = max(attribute_values)
-    mean_value = sum(attribute_values) / len(attribute_values)
     median = np.quantile(attribute_values, 0.5)
     first_quartile = np.quantile(attribute_values, 0.25)
     third_quartile = np.quantile(attribute_values, 0.75)
 
-    assert isinstance(min_value, (int, float))
-    assert isinstance(max_value, (int, float))
-    assert isinstance(mean_value, (int, float))
     assert isinstance(median, (int, float))
     assert isinstance(first_quartile, (int, float))
     assert isinstance(third_quartile, (int, float))
@@ -302,36 +343,46 @@ def calculate_datetime_mean(attribute_values: List[datetime]) -> datetime:
     return (min_value + np.mean(timedeltas)).astype(datetime)
 
 
-def extract_temporal_attribute_info(
+@overload
+def extract_temporal_attribute_summary(
     attribute_values: List[datetime],
-) -> TemporalAttributeInfo:
+    summary_type: Literal["short"],
+) -> TemporalAttributeInfo: ...
+
+
+@overload
+def extract_temporal_attribute_summary(
+    attribute_values: List[datetime],
+    summary_type: Literal["extended"],
+) -> TemporalAttributeStatistics: ...
+
+
+def extract_temporal_attribute_summary(
+    attribute_values: List[datetime],
+    summary_type: SummaryType = "short",
+) -> Union[TemporalAttributeInfo, TemporalAttributeStatistics]:
     """Extracts info about attributes with temporal format.
 
     Args:
         attribute_values (List[datetime]): List containing temporal attribute values.
+        summary_type (Literal["short", "extended"]): Indicator if the attribute summary
+            should be short or more extended statistics. Defaults to "short".
 
     Returns:
-        TemporalAttributeInfo: Dictionary containg attribute metrics.
+        Union[TemporalAttributeInfo, TemporalAttributeStatistics]: Dictionary containg
+            attribute metrics.
     """
-    return {
-        "type": "Temporal",
-        "min": min(attribute_values),
-        "max": max(attribute_values),
-        "mean": calculate_datetime_mean(attribute_values),
-    }
+    min_value = min(attribute_values)
+    max_value = max(attribute_values)
+    mean_value = calculate_datetime_mean(attribute_values)
+    if summary_type == "short":
+        return {
+            "type": "Temporal",
+            "min": min_value,
+            "max": max_value,
+            "mean": mean_value,
+        }
 
-
-def extract_temporal_attribute_statistics(
-    attribute_values: List[datetime],
-) -> TemporalAttributeStatistics:
-    """Extracts full statistics summary for attributes with temporal format.
-
-    Args:
-        attribute_values (List[datetime]): List of datetime values.
-
-    Returns:
-        TemporalAttributeStatistics: Dictionary containing detailed attribute metrics.
-    """
     median = np.quantile(np.array(attribute_values), 0.5)
     q1 = np.quantile(np.array(attribute_values), 0.25)
     q3 = np.quantile(np.array(attribute_values), 0.75)
@@ -342,26 +393,41 @@ def extract_temporal_attribute_statistics(
 
     return {
         "type": "Temporal",
-        "min": min(attribute_values),
-        "max": max(attribute_values),
-        "mean": calculate_datetime_mean(attribute_values),
+        "min": min_value,
+        "max": max_value,
+        "mean": mean_value,
         "median": median,
         "Q1": q1,
         "Q3": q3,
     }
 
 
-def extract_string_attribute_info(
-    attribute_values: List[MedRecordAttribute],
-    short_string_prefix: Literal["Values", "Categories"] = "Values",
-    long_string_suffix: str = "unique values",
+@overload
+def extract_categorical_attribute_summary(
+    attribute_values: List[Union[int, float, str, datetime]],
+    summary_type: Literal["short"],
+) -> CategoricalAttributeInfo: ...
+
+
+@overload
+def extract_categorical_attribute_summary(
+    attribute_values: List[Union[int, float, str, datetime]],
+    summary_type: Literal["extended"],
+) -> CategoricalAttributeStatistics: ...
+
+
+def extract_categorical_attribute_summary(
+    attribute_values: List[Union[int, float, str, datetime]],
+    summary_type: SummaryType = "short",
     max_number_values: int = 5,
     max_line_length: int = 100,
-) -> StringAttributeInfo:
-    """Extracts info about attributes with string format.
+) -> Union[CategoricalAttributeInfo, CategoricalAttributeStatistics]:
+    """Extracts summary of attributes with string format.
 
     Args:
         attribute_values (List[str]): List containing attribute values.
+        summary_type (Literal["short", "extended"]): Indicator if the attribute summary
+            should be short or more extended statistics. Defaults to "short".
         short_string_prefix (Literal["Values", "Categories"], optional): Prefix for
             information string in case of listing all the values. Defaults to "Values".
         long_string_suffix (str, optional): Suffix for attribute information in case of
@@ -373,39 +439,91 @@ def extract_string_attribute_info(
             Defaults to 100.
 
     Returns:
-        StringAttributeInfo: Dictionary containg attribute metrics.
+        Union[CategoricalAttributeInfo, CategoricalAttributeStatistics]: Dictionary
+            containg attribute metrics.
     """
-    values = sorted({str(value) for value in attribute_values})
+    string_values = [str(value) for value in attribute_values]
+    if summary_type == "short":
+        values = sorted(set(string_values))
 
-    values_string = f"{short_string_prefix}: {', '.join(list(values))}"
+        values_string = f"Categories: {', '.join(list(values))}"
 
-    if (len(values) > max_number_values) | (len(values_string) > max_line_length):
-        values_string = f"{len(values)} {long_string_suffix}"
+        if (len(values) > max_number_values) | (len(values_string) > max_line_length):
+            values_string = f"{len(values)} categories"
+
+        return {
+            "type": "Categorical",
+            "values": values_string,
+        }
+
+    top = max(string_values, key=string_values.count)
+    freq = string_values.count(top)
 
     return {
         "type": "Categorical",
-        "values": values_string,
+        "count": len(set(string_values)),
+        "top": top,
+        "freq": freq,
     }
 
 
-def extract_categorical_attribute_statistics(
-    attribute_values: List[MedRecordAttribute],
-) -> StringAttributeStatistics:
-    """Extract detailed statistics about categorical attribute values.
+@overload
+def extract_string_attribute_summary(
+    attribute_values: List[Union[int, float, str, datetime]],
+    summary_type: Literal["short"],
+) -> StringAttributeInfo: ...
+
+
+@overload
+def extract_string_attribute_summary(
+    attribute_values: List[Union[int, float, str, datetime]],
+    summary_type: Literal["extended"],
+) -> StringAttributeStatistics: ...
+
+
+def extract_string_attribute_summary(
+    attribute_values: List[Union[int, float, str, datetime]],
+    summary_type: SummaryType = "short",
+    max_number_values: int = 5,
+    max_line_length: int = 100,
+) -> Union[StringAttributeInfo, StringAttributeStatistics]:
+    """Extracts summary of attributes with string format.
 
     Args:
-        attribute_values (List[MedRecordAttribute]): List containing attribute values.
+        attribute_values (List[str]): List containing attribute values.
+        summary_type (Literal["short", "extended"]): Indicator if the attribute summary
+            should be short or more extended statistics. Defaults to "short".
+        short_string_prefix (Literal["Values", "Categories"], optional): Prefix for
+            information string in case of listing all the values. Defaults to "Values".
+        long_string_suffix (str, optional): Suffix for attribute information in case of
+            too many values to list. Here only the count will be displayed. Defaults to
+            "unique values".
+        max_number_values (int, optional): Maximum values that should be listed in the
+            information string. Defaults to 5.
+        max_line_length (int, optional): Maximum line length for the information string.
+            Defaults to 100.
 
     Returns:
-        StringAttributeStatistics: Dictionary with detailed information.
+        Union[StringAttributeInfo, StringAttributeStatistics]: Dictionary containg
+            attribute metrics.
     """
-    values = [str(value) for value in attribute_values]
-    top = max(values, key=attribute_values.count)
-    freq = values.count(top)
+    string_values = [str(value) for value in attribute_values]
+    if summary_type == "short":
+        values = sorted(set(string_values))
+
+        values_string = f"Values: {', '.join(list(values))}"
+
+        if (len(values) > max_number_values) | (len(values_string) > max_line_length):
+            values_string = f"{len(values)} unique values"
+
+        return {"type": "Unstructured", "values": values_string}
+
+    top = max(string_values, key=string_values.count)
+    freq = string_values.count(top)
 
     return {
-        "type": "Categorical",
-        "count": len(set(values)),
+        "type": "Unstructured",
+        "count": len(set(string_values)),
         "top": top,
         "freq": freq,
     }

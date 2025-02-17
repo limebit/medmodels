@@ -88,17 +88,17 @@ class TestStatisticsDisplay(unittest.TestCase):
         header = ["group nodes", "count", "attribute", "type", "data"]
 
         expected_nodes = [
-            "---------------------------------------------------------------------",
-            "Group Nodes     Count Attribute Type        Data                     ",
-            "---------------------------------------------------------------------",
-            "Aspirin         1     ATC       -           -                        ",
-            "Medications     3     ATC       Categorical Values: B01AA03, B01AF01 ",
-            "Patients        3     age       Continuous  min: 20                  ",
-            "                                            max: 70                  ",
-            "                                            mean: 40.00              ",
-            "Stroke          1     -         -           -                        ",
-            "Ungrouped Nodes 1     -         -           -                        ",
-            "---------------------------------------------------------------------",
+            "----------------------------------------------------------------------",
+            "Group Nodes     Count Attribute Type         Data                     ",
+            "----------------------------------------------------------------------",
+            "Aspirin         1     ATC       Unstructured -                        ",
+            "Medications     3     ATC       Unstructured Values: B01AA03, B01AF01 ",
+            "Patients        3     age       Continuous   min: 20                  ",
+            "                                             max: 70                  ",
+            "                                             mean: 40.00              ",
+            "Stroke          1     -         -            -                        ",
+            "Ungrouped Nodes 1     -         -            -                        ",
+            "----------------------------------------------------------------------",
         ]
 
         assert (

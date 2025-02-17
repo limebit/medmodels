@@ -12,9 +12,10 @@ from medmodels.statistic_evaluations.statistical_analysis.descriptive_statistics
     calculate_datetime_mean,
     determine_attribute_type,
     extract_attribute_summary,
-    extract_categorical_attribute_statistics,
-    extract_numeric_attribute_statistics,
-    extract_temporal_attribute_statistics,
+    extract_categorical_attribute_summary,
+    extract_numeric_attribute_summary,
+    extract_string_attribute_summary,
+    extract_temporal_attribute_summary,
 )
 
 
@@ -135,7 +136,7 @@ class TestDescriptiveStatistics(unittest.TestCase):
         str_attributes = extract_attribute_summary(medrecord.node[query3])
 
         assert str_attributes == {
-            "ATC": {"type": "Categorical", "values": "Values: B01AA03, B01AF01"}
+            "ATC": {"type": "Unstructured", "values": "Values: B01AA03, B01AF01"}
         }
 
         def query4(node: NodeOperand) -> None:
@@ -144,7 +145,7 @@ class TestDescriptiveStatistics(unittest.TestCase):
         # nan attribute
         nan_attributes = extract_attribute_summary(medrecord.node[query4])
 
-        assert nan_attributes == {"ATC": {"type": "-", "values": "-"}}
+        assert nan_attributes == {"ATC": {"type": "Unstructured", "values": "-"}}
 
         def query5(edge: EdgeOperand) -> None:
             edge.source_node().in_group("Medications")
@@ -177,7 +178,7 @@ class TestDescriptiveStatistics(unittest.TestCase):
                 "max": datetime(2000, 1, 1, 0, 0),
                 "mean": datetime(1999, 12, 23, 12, 0),
             },
-            "intensity": {"type": "Categorical", "values": "Values: 1, low"},
+            "intensity": {"type": "Unstructured", "values": "Values: 1, low"},
         }
 
         # with schema
@@ -218,10 +219,12 @@ class TestDescriptiveStatistics(unittest.TestCase):
             },
         }
 
-    def test_extract_numeric_attribute_statistics(self) -> None:
+    def test_extract_numeric_attribute_summary(self) -> None:
         # mix of intand float
         attribute_values = [1, 2, 3.5, 4, 5.5]
-        result = extract_numeric_attribute_statistics(attribute_values)
+        result = extract_numeric_attribute_summary(
+            attribute_values, summary_type="extended"
+        )
 
         assert result["type"] == "Continuous"
         assert result["min"] == 1
@@ -242,7 +245,7 @@ class TestDescriptiveStatistics(unittest.TestCase):
 
         assert mean == datetime(2021, 1, 27, 0, 0, 0)
 
-    def test_extract_temporal_attribute_statistics(self) -> None:
+    def test_extract_temporal_attribute_summary(self) -> None:
         attribute_values = [
             datetime(2021, 1, 1),
             datetime(2021, 1, 15),
@@ -250,7 +253,9 @@ class TestDescriptiveStatistics(unittest.TestCase):
             datetime(2021, 3, 1),
         ]
 
-        result = extract_temporal_attribute_statistics(attribute_values)
+        result = extract_temporal_attribute_summary(
+            attribute_values, summary_type="extended"
+        )
 
         assert result["type"] == "Temporal"
 
@@ -261,20 +266,33 @@ class TestDescriptiveStatistics(unittest.TestCase):
         assert result["Q1"] == datetime(2021, 1, 11, 12)
         assert result["Q3"] == datetime(2021, 2, 8)
 
-    def test_extract_categorical_attribute_statistics(self) -> None:
+    def test_extract_categorical_attribute_summary(self) -> None:
         attribute_values = [
             1.5,
             "A",
             "B",
             1,
             "A",
+            "C",
             datetime(1999, 10, 15),
         ]
 
-        result = extract_categorical_attribute_statistics(attribute_values)  # pyright: ignore[reportArgumentType]
-        assert result["count"] == 5
+        result = extract_categorical_attribute_summary(
+            attribute_values,
+            summary_type="extended",
+        )
+        assert result["type"] == "Categorical"
+        assert result["count"] == 6
         assert result["top"] == "A"
         assert result["freq"] == 2
+
+        result_string = extract_string_attribute_summary(
+            attribute_values,
+            summary_type="short",
+        )
+
+        assert result_string["type"] == "Unstructured"
+        assert result_string["values"] == "6 unique values"
 
 
 if __name__ == "__main__":
