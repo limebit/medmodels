@@ -8,7 +8,7 @@ import polars as pl
 import medmodels as mm
 from medmodels.medrecord.querying import EdgeOperand, NodeOperand
 from medmodels.medrecord.schema import AttributeType
-from medmodels.statistic_evaluations.statistical_analysis.descriptive_statistics import (
+from medmodels.statistic_evaluations.statistical_analysis.attribute_analysis import (
     calculate_datetime_mean,
     determine_attribute_type,
     extract_attribute_summary,
@@ -90,7 +90,7 @@ def create_medrecord() -> mm.MedRecord:
     return medrecord
 
 
-class TestDescriptiveStatistics(unittest.TestCase):
+class TestAttributeAnalysis(unittest.TestCase):
     def test_determine_attribute_type(self) -> None:
         assert determine_attribute_type([1, 0.5, 6, 8]) == AttributeType.Continuous
 
@@ -113,7 +113,9 @@ class TestDescriptiveStatistics(unittest.TestCase):
             node.in_group("Stroke")
 
         # No attributes
-        no_attributes = extract_attribute_summary(medrecord.node[query1])
+        no_attributes = extract_attribute_summary(
+            medrecord.node[query1], summary_type="short", schema=None
+        )
 
         assert no_attributes == {}
 
@@ -121,7 +123,9 @@ class TestDescriptiveStatistics(unittest.TestCase):
             node.in_group("Patients")
 
         # numeric type
-        numeric_attribute = extract_attribute_summary(medrecord.node[query2])
+        numeric_attribute = extract_attribute_summary(
+            medrecord.node[query2], schema=None, summary_type="short"
+        )
 
         numeric_expected = {
             "age": {"type": "Continuous", "min": 20, "max": 70, "mean": 40.0}
@@ -133,7 +137,9 @@ class TestDescriptiveStatistics(unittest.TestCase):
             node.in_group("Medications")
 
         # string attributes
-        str_attributes = extract_attribute_summary(medrecord.node[query3])
+        str_attributes = extract_attribute_summary(
+            medrecord.node[query3], schema=None, summary_type="short"
+        )
 
         assert str_attributes == {
             "ATC": {"type": "Unstructured", "values": "Values: B01AA03, B01AF01"}
@@ -143,7 +149,9 @@ class TestDescriptiveStatistics(unittest.TestCase):
             node.in_group("Aspirin")
 
         # nan attribute
-        nan_attributes = extract_attribute_summary(medrecord.node[query4])
+        nan_attributes = extract_attribute_summary(
+            medrecord.node[query4], schema=None, summary_type="short"
+        )
 
         assert nan_attributes == {"ATC": {"type": "Unstructured", "values": "-"}}
 
@@ -152,7 +160,9 @@ class TestDescriptiveStatistics(unittest.TestCase):
             edge.target_node().in_group("Patients")
 
         # temporal attributes
-        temp_attributes = extract_attribute_summary(medrecord.edge[query5])
+        temp_attributes = extract_attribute_summary(
+            medrecord.edge[query5], schema=None, summary_type="short"
+        )
 
         assert temp_attributes == {
             "time": {
@@ -169,7 +179,9 @@ class TestDescriptiveStatistics(unittest.TestCase):
 
         # mixed attributes
         mixed_attributes = extract_attribute_summary(
-            medrecord.edge[medrecord.select_edges(query6)]
+            medrecord.edge[medrecord.select_edges(query6)],
+            schema=None,
+            summary_type="short",
         )
         assert mixed_attributes == {
             "time": {
@@ -188,6 +200,7 @@ class TestDescriptiveStatistics(unittest.TestCase):
         node_info = extract_attribute_summary(
             mr_schema.node[nodes_schema],
             schema=mr_schema.schema.group("patient").nodes,
+            summary_type="short",
         )
 
         assert node_info == {
@@ -202,6 +215,7 @@ class TestDescriptiveStatistics(unittest.TestCase):
         patient_diagnosis = extract_attribute_summary(
             mr_schema.edge[query7],
             schema=mr_schema.schema.group("patient_diagnosis").edges,
+            summary_type="short",
         )
 
         assert patient_diagnosis == {
@@ -296,5 +310,5 @@ class TestDescriptiveStatistics(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    run_test = unittest.TestLoader().loadTestsFromTestCase(TestDescriptiveStatistics)
+    run_test = unittest.TestLoader().loadTestsFromTestCase(TestAttributeAnalysis)
     unittest.TextTestRunner(verbosity=2).run(run_test)

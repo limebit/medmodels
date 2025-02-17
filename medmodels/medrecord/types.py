@@ -21,7 +21,7 @@ import polars as pl
 if TYPE_CHECKING:
     from typing_extensions import TypeIs
 
-    from medmodels.statistic_evaluations.statistical_analysis.descriptive_statistics import (
+    from medmodels.statistic_evaluations.statistical_analysis.attribute_analysis import (
         AttributeInfo,
     )
 

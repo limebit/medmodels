@@ -51,7 +51,7 @@ from medmodels.medrecord.types import (
     is_polars_node_dataframe_input,
     is_polars_node_dataframe_input_list,
 )
-from medmodels.statistic_evaluations.statistical_analysis.descriptive_statistics import (
+from medmodels.statistic_evaluations.statistical_analysis.attribute_analysis import (
     extract_attribute_summary,
 )
 from medmodels.statistic_evaluations.statistical_analysis.statistics_display import (

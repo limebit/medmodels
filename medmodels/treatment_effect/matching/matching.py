@@ -22,7 +22,7 @@ from typing import (
 import polars as pl
 
 from medmodels.medrecord.medrecord import MedRecord
-from medmodels.statistic_evaluations.statistical_analysis.descriptive_statistics import (
+from medmodels.statistic_evaluations.statistical_analysis.attribute_analysis import (
     extract_attribute_summary,
 )
 
@@ -116,6 +116,7 @@ class Matching(ABC):
                     if patients_group in medrecord.schema.groups
                     else None
                 ),
+                summary_type="short",
             )
             one_hot_covariates = [
                 covariate
