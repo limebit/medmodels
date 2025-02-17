@@ -1,54 +1,87 @@
+"""Cohort Evaluator for analyzing attribuite statistics and connected concepts."""
+
 from __future__ import annotations
 
-from typing import Dict, List, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Dict, List, Optional
 
-from medmodels.medrecord.medrecord import EdgesDirected, MedRecord
-from medmodels.medrecord.querying import NodeQuery, EdgeOperand
-from medmodels.medrecord.schema import AttributeType
-from medmodels.medrecord.types import (
-    AttributeSummary,
-    Group,
-    GroupInputList,
-    MedRecordAttribute,
-    NodeIndex,
+# from medmodels.medrecord.medrecord import EdgesDirected, MedRecord
+from medmodels.medrecord.querying import NodeQuery
+from medmodels.statistic_evaluations.statistical_analysis.attribute_analysis import (
+    AttributeStatistics,
+    extract_attribute_summary,
 )
-from medmodels.statistic_evaluations.statistical_analysis.descriptive_statistics import (
+from medmodels.statistic_evaluations.statistical_analysis.concepts_analysis import (
     count_concept_connections,
     extract_top_k_concepts,
 )
 
+if TYPE_CHECKING:
+    from medmodels.medrecord.medrecord import MedRecord
+    from medmodels.medrecord.querying import NodeOperand, NodeQuery
+    from medmodels.medrecord.types import (
+        Group,
+        GroupInputList,
+        MedRecordAttribute,
+        NodeIndex,
+    )
+
 
 class CohortEvaluator:
+    """Class for evaluating a cohort. Needed as Input for the comparer class."""
+
     medrecord: MedRecord
     name: str
+    patient_group: Group
     cohort_group: Group
     time_attribute: MedRecordAttribute
     attributes: Optional[Dict[str, MedRecordAttribute]]
     concepts_groups: GroupInputList
-    attribute_summary: Dict[Group, AttributeSummary]
-    attribute_types: Dict[MedRecordAttribute, AttributeType]
+    attribute_summary: Dict[MedRecordAttribute, AttributeStatistics]
     concepts_counts: Dict[Group, Dict[NodeIndex, int]]
 
     def __init__(
         self,
         medrecord: MedRecord,
         name: str,
-        cohort_group: Union[Group, NodeQuery] = "patients",
+        patient_group: Group = "patients",
+        cohort_query: Optional[NodeQuery] = None,
         time_attribute: MedRecordAttribute = "time",
         attributes: Optional[Dict[str, MedRecordAttribute]] = None,
         concepts_groups: Optional[GroupInputList] = None,
     ) -> None:
+        """Initializes the Evaluator class.
+
+        Args:
+            medrecord (MedRecord): MedRecord containing a cohort that needs evaluation.
+            name (str): Name of the cohort.
+            patient_group (Group): Group of patients in the MedRecord.
+            cohort_query (Optional[NodeQuery], optional): NodeQuery limiting the patient
+                group to a cohort group. If no cohort query is given, all patients will
+                be in the cohort. Defaults to "patients".
+            time_attribute (MedRecordAttribute, optional): Name of the time attribute
+                used in the MedRecord. Defaults to "time".
+            attributes (Optional[Dict[str, MedRecordAttribute]], optional): Mapping of
+                names of attributes and their naming in the MedRecord. Defaults to None.
+            concepts_groups (Optional[GroupInputList], optional): List of concepts to
+                evaluate. If none are given, it will select all Groups that have
+                connecting edges to the cohort group. Defaults to None.
+        """
         self.medrecord = medrecord.clone()
         self.name = name
         self.time_attribute = time_attribute
-        self.concepts_groups = concepts_groups
         self.attributes = attributes
 
         # set patient cohort group
-        if isinstance(cohort_group, Group):
-            self.cohort_group = cohort_group
+        self.patient_group = patient_group
+        if not cohort_query:
+            self.cohort_group = self.patient_group
         else:
-            cohort_nodes = self.medrecord.select_nodes(cohort_group)
+
+            def query_cohort(node: NodeOperand) -> None:
+                cohort_query(node)
+                node.in_group(self.patient_group)
+
+            cohort_nodes = self.medrecord.select_nodes(query_cohort)
 
             if "cohort" not in self.medrecord.groups:
                 cohort_name = "cohort"
@@ -65,67 +98,14 @@ class CohortEvaluator:
 
             self.cohort_group = cohort_name
 
-        if not concepts_groups:
-            self.concepts_groups = self.get_concepts_groups()
+        if concepts_groups:
+            self.concepts_groups = concepts_groups
+        else:
+            self.concepts_groups = self._get_concepts_groups()
 
-        # determine attribute types
-        self.attribute_types = {}
+        self.concepts_counts = self._get_concept_counts()
 
-        attribute_dictionary = self.medrecord._describe_group_nodes()[
-            self.cohort_group
-        ]["attribute"]
-
-        for attribute in attribute_dictionary.keys():
-            self.attribute_types[attribute] = attribute_dictionary[attribute]["type"]
-
-        # self.concept_counts = None
-
-    def get_concepts_groups(
-        self,
-    ) -> GroupInputList:
-        """Get concepts groups that have connecting edges to the cohort.
-
-        Returns:
-            GroupInputList: List of concept groups.
-        """
-        if self.concepts_groups:
-            return self.concepts_groups
-
-        concepts_groups = []
-
-        cohort_nodes = self.medrecord.group(self.cohort_group)["nodes"]
-
-        for group in self.medrecord.groups:
-            group_nodes = self.medrecord.group(group)["nodes"]
-
-            if group == self.cohort_group or len(group_nodes) == 0:
-                continue
-
-            self.medrecord.group(group)["nodes"]
-
-            count_group = len(
-                self.medrecord.edges_connecting(
-                    group_nodes, cohort_nodes, directed=EdgesDirected.UNDIRECTED
-                )
-            )
-            if count_group > 0:
-                concepts_groups.append(group)
-
-        return concepts_groups
-
-    def get_concept_counts(self) -> Dict[Group, Dict[NodeIndex, int]]:
-        """Get a concept count summary for all concepts.
-
-        Returns:
-            Dict[Group, Dict[NodeIndex, int]]: Dictionary with concepts, their node
-                indices and counts.
-        """
-        for concept in self.concepts_groups:
-            self.concepts_counts[concept] = count_concept_connections(
-                medrecord=self.medrecord, concept=concept, cohort=self.cohort_group
-            )
-
-        return self.concepts_counts
+        self.attribute_summary = self._get_attribute_summary()
 
     def get_top_k_concepts(
         self, top_k: int, concept: Optional[Group] = None
@@ -160,9 +140,93 @@ class CohortEvaluator:
 
         return extract_top_k_concepts(concepts_counts, top_k)
 
-    def get_attribute_summary(
+    def _get_concepts_groups(
         self,
-    ) -> Dict[Group, AttributeSummary]:
-        ...
+    ) -> GroupInputList:
+        """Get concepts groups that have connecting edges to the cohort.
 
-        # self.medrecord._describe_group_nodes()
+        Returns:
+            GroupInputList: List of concept groups.
+        """
+        concepts_groups = []
+
+        patient_nodes = self.medrecord.group(self.patient_group)["nodes"]
+
+        for group in self.medrecord.groups:
+            group_nodes = self.medrecord.group(group)["nodes"]
+
+            if group == self.cohort_group or len(group_nodes) == 0:
+                continue
+
+            self.medrecord.group(group)["nodes"]
+
+            count_group = len(
+                self.medrecord.edges_connecting(
+                    patient_nodes,
+                    group_nodes,
+                    # directed=EdgesDirected.UNDIRECTED
+                )
+            )
+            if count_group > 0:
+                concepts_groups.append(group)
+
+        return concepts_groups
+
+    def _get_concept_counts(self) -> Dict[Group, Dict[NodeIndex, int]]:
+        """Get a concept count summary for all concepts.
+
+        Returns:
+            Dict[Group, Dict[NodeIndex, int]]: Dictionary with concepts, their node
+                indices and counts.
+        """
+        concepts_counts = {}
+
+        for concept in self.concepts_groups:
+            concepts_counts[concept] = count_concept_connections(
+                medrecord=self.medrecord, concept=concept, cohort=self.cohort_group
+            )
+
+        return concepts_counts
+
+    def _get_attribute_summary(
+        self,
+    ) -> Dict[MedRecordAttribute, AttributeStatistics]:
+        """Describe the attributes of the cohort.
+
+        Returns:
+            Dict[str, AttributeStatistics]:
+
+        Raises:
+            ValueError: If not all attributes are found for the cohort.
+        """
+        schema = (
+            self.medrecord.schema.group(self.patient_group).nodes
+            if self.patient_group in self.medrecord.schema.groups
+            else None
+        )
+        all_attribute_summary = extract_attribute_summary(
+            self.medrecord.node[self.medrecord.group(self.cohort_group)["nodes"]],
+            schema=schema,
+            summary_type="extended",
+        )
+
+        if not self.attributes:
+            return all_attribute_summary
+
+        # check if any attributes are not actually found in the cohort group
+        missing_attributes = set(self.attributes.values()) - set(
+            all_attribute_summary.keys()
+        )
+
+        if len(missing_attributes) > 0:
+            msg = f"""{"Attribute " if len(missing_attributes) == 1 else "Attributes "}
+                    {", ".join([str(attr) for attr in missing_attributes])} not found for the
+                    cohort."""
+            raise ValueError(msg)
+
+        attribute_summary = {}
+
+        for attribute_name, attribute in self.attributes.items():
+            attribute_summary[attribute_name] = all_attribute_summary[attribute]
+
+        return attribute_summary

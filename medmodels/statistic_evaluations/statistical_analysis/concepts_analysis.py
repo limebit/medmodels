@@ -2,7 +2,8 @@
 
 from typing import Dict, List
 
-from medmodels.medrecord import EdgesDirected, MedRecord
+# from medmodels.medrecord import EdgesDirected, MedRecord
+from medmodels.medrecord import MedRecord
 from medmodels.medrecord.types import Group, NodeIndex
 
 
@@ -28,9 +29,9 @@ def count_concept_connections(
     for concept_node in concept_nodes:
         concept_counts[concept_node] = len(
             medrecord.edges_connecting(
-                concept_node,
                 medrecord.group(cohort)["nodes"],
-                directed=EdgesDirected.UNDIRECTED,
+                concept_node,
+                # directed=EdgesDirected.UNDIRECTED,
             )
         )
 

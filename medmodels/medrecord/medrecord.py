@@ -1350,7 +1350,9 @@ class MedRecord:
 
             nodes_info[group] = {
                 "count": len(nodes),
-                "attribute": extract_attribute_summary(self.node[nodes], schema=schema),
+                "attribute": extract_attribute_summary(
+                    self.node[nodes], schema=schema, summary_type="short"
+                ),
             }
 
         if not add_ungrouped:
@@ -1402,7 +1404,9 @@ class MedRecord:
 
             edges_info[group] = {
                 "count": len(edges),
-                "attribute": extract_attribute_summary(self.edge[edges], schema=schema),
+                "attribute": extract_attribute_summary(
+                    self.edge[edges], schema=schema, summary_type="short"
+                ),
             }
 
         if not add_ungrouped:
