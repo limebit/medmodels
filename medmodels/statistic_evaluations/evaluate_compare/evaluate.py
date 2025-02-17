@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Dict, List, Optional, Tuple, Union
 
-from medmodels.medrecord.medrecord import MedRecord
+from medmodels.medrecord.medrecord import EdgesDirected, MedRecord
 from medmodels.medrecord.querying import NodeQuery, EdgeOperand
 from medmodels.medrecord.schema import AttributeType
 from medmodels.medrecord.types import (
@@ -12,6 +12,10 @@ from medmodels.medrecord.types import (
     MedRecordAttribute,
     NodeIndex,
 )
+from medmodels.statistic_evaluations.statistical_analysis.descriptive_statistics import (
+    count_concept_connections,
+    extract_top_k_concepts,
+)
 
 
 class CohortEvaluator:
@@ -20,10 +24,10 @@ class CohortEvaluator:
     cohort_group: Group
     time_attribute: MedRecordAttribute
     attributes: Optional[Dict[str, MedRecordAttribute]]
-    concepts_groups: Optional[GroupInputList]
+    concepts_groups: GroupInputList
     attribute_summary: Dict[Group, AttributeSummary]
     attribute_types: Dict[MedRecordAttribute, AttributeType]
-    concept_counts: Dict[Group, Dict[NodeIndex, int]]
+    concepts_counts: Dict[Group, Dict[NodeIndex, int]]
 
     def __init__(
         self,
@@ -61,6 +65,9 @@ class CohortEvaluator:
 
             self.cohort_group = cohort_name
 
+        if not concepts_groups:
+            self.concepts_groups = self.get_concepts_groups()
+
         # determine attribute types
         self.attribute_types = {}
 
@@ -73,72 +80,85 @@ class CohortEvaluator:
 
         # self.concept_counts = None
 
-    def get_concept_counts(
+    def get_concepts_groups(
         self,
-    ) -> Dict[Group, Dict[NodeIndex, int]]:
-        self.concept_counts = {}
+    ) -> GroupInputList:
+        """Get concepts groups that have connecting edges to the cohort.
+
+        Returns:
+            GroupInputList: List of concept groups.
+        """
+        if self.concepts_groups:
+            return self.concepts_groups
+
+        concepts_groups = []
+
         cohort_nodes = self.medrecord.group(self.cohort_group)["nodes"]
 
-        # use all groups that are connected to the cohort group
-        if not self.concepts_groups:
-            self.concepts_groups = []
+        for group in self.medrecord.groups:
+            group_nodes = self.medrecord.group(group)["nodes"]
 
-            for group in self.medrecord.groups:
-                group_nodes = self.medrecord.group(group)["nodes"]
+            if group == self.cohort_group or len(group_nodes) == 0:
+                continue
 
-                if group == self.cohort_group or len(group_nodes) == 0:
-                    continue
+            self.medrecord.group(group)["nodes"]
 
-                self.medrecord.group(group)["nodes"]
-
-                count_group = len(
-                    self.medrecord.edges_connecting(
-                        group_nodes, cohort_nodes, directed=False
-                    )
+            count_group = len(
+                self.medrecord.edges_connecting(
+                    group_nodes, cohort_nodes, directed=EdgesDirected.UNDIRECTED
                 )
-                if count_group > 0:
-                    self.concepts_groups.append(group)
+            )
+            if count_group > 0:
+                concepts_groups.append(group)
 
+        return concepts_groups
+
+    def get_concept_counts(self) -> Dict[Group, Dict[NodeIndex, int]]:
+        """Get a concept count summary for all concepts.
+
+        Returns:
+            Dict[Group, Dict[NodeIndex, int]]: Dictionary with concepts, their node
+                indices and counts.
+        """
         for concept in self.concepts_groups:
-            self.concept_counts[concept] = {}
+            self.concepts_counts[concept] = count_concept_connections(
+                medrecord=self.medrecord, concept=concept, cohort=self.cohort_group
+            )
 
-            concept_nodes = self.medrecord.group(concept)["nodes"]
+        return self.concepts_counts
 
-            for concept_node in concept_nodes:
-                self.concept_counts[concept][concept_node] = len(
-                    self.medrecord.edges_connecting(
-                        concept_node, cohort_nodes, directed=False
-                    )
-                )
+    def get_top_k_concepts(
+        self, top_k: int, concept: Optional[Group] = None
+    ) -> List[NodeIndex]:
+        """Get top k entries for a specific concept group or all concepts.
 
-        return self.concept_counts
+        Args:
+            top_k (int): Number of top concepts.
+            concept (Optional[Group]): Concept group. Defaults to None.
 
-    def get_top_k_concepts(self, top_k: int, concept: Group) -> List[NodeIndex]:
-        if not self.concept_counts:
-            self.get_concept_counts()
+        Raises:
+            ValueError: If concept not in concepts groups.
+            ValueError: If less than topk concepts in the concept counts.
 
+        Returns:
+            List[NodeIndex]: _description_
+        """
         if concept:
-            if concept not in self.concept_counts.keys():
+            if concept not in self.concepts_counts:
                 msg = f"Concept {concept} not in the list of concepts for this cohort."
                 raise ValueError(msg)
-            else:
-                concept_counts = self.concept_counts[concept]
+
+            concepts_counts = self.concepts_counts[concept]
 
         else:
             # get the most common for all concepts
-            concept_counts = {
+            concepts_counts = {
                 k: v
-                for inner_dict in self.concept_counts.values()
+                for inner_dict in self.concepts_counts.values()
                 for k, v in inner_dict.items()
             }
 
-        sorted_concepts = sorted(
-            concept_counts.keys(), key=lambda item: item[1], reverse=True
-        )
-
-        # how to cut off top k?
-
-        return sorted_concepts[:top_k]
+        return extract_top_k_concepts(concepts_counts, top_k)
 
     def get_attribute_summary(
         self,
