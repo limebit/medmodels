@@ -6,8 +6,16 @@ import pandas as pd
 import polars as pl
 
 import medmodels as mm
-from medmodels.medrecord._overview import extract_attribute_summary, prettify_table
 from medmodels.medrecord.querying import EdgeOperand, NodeOperand
+from medmodels.medrecord.schema import AttributeType
+from medmodels.statistic_evaluations.statistical_analysis.descriptive_statistics import (
+    calculate_datetime_mean,
+    determine_attribute_type,
+    extract_attribute_summary,
+    extract_categorical_attribute_statistics,
+    extract_numeric_attribute_statistics,
+    extract_temporal_attribute_statistics,
+)
 
 
 def create_medrecord() -> mm.MedRecord:
@@ -81,7 +89,21 @@ def create_medrecord() -> mm.MedRecord:
     return medrecord
 
 
-class TestOverview(unittest.TestCase):
+class TestDescriptiveStatistics(unittest.TestCase):
+    def test_determine_attribute_type(self) -> None:
+        assert determine_attribute_type([1, 0.5, 6, 8]) == AttributeType.Continuous
+
+        assert (
+            determine_attribute_type([datetime(1995, 4, 17), datetime(2022, 2, 25)])
+            == AttributeType.Temporal
+        )
+
+        assert determine_attribute_type(["F", "M"]) is None
+
+        assert determine_attribute_type([1, "2", 3]) is None
+
+        assert determine_attribute_type([1, datetime(1999, 1, 1)]) is None
+
     def test_extract_attribute_summary(self) -> None:
         # medrecord without schema
         medrecord = create_medrecord()
@@ -136,6 +158,7 @@ class TestOverview(unittest.TestCase):
                 "type": "Temporal",
                 "max": datetime(2000, 1, 1, 0, 0),
                 "min": datetime(1999, 10, 15, 0, 0),
+                "mean": datetime(1999, 11, 18, 18, 0),
             }
         }
 
@@ -152,6 +175,7 @@ class TestOverview(unittest.TestCase):
                 "type": "Temporal",
                 "min": datetime(1999, 12, 15, 0, 0),
                 "max": datetime(2000, 1, 1, 0, 0),
+                "mean": datetime(1999, 12, 23, 12, 0),
             },
             "intensity": {"type": "Categorical", "values": "Values: 1, low"},
         }
@@ -184,6 +208,7 @@ class TestOverview(unittest.TestCase):
                 "type": "Temporal",
                 "min": datetime(1962, 10, 21, 0, 0),
                 "max": datetime(2024, 4, 12, 0, 0),
+                "mean": datetime(2012, 1, 25, 11, 12),
             },
             "duration_days": {
                 "type": "Continuous",
@@ -193,48 +218,65 @@ class TestOverview(unittest.TestCase):
             },
         }
 
-    def test_prettify_table(self) -> None:
-        medrecord = create_medrecord()
+    def test_extract_numeric_attribute_statistics(self) -> None:
+        # mix of intand float
+        attribute_values = [1, 2, 3.5, 4, 5.5]
+        result = extract_numeric_attribute_statistics(attribute_values)
 
-        header = ["group nodes", "count", "attribute", "type", "info"]
+        assert result["type"] == "Continuous"
+        assert result["min"] == 1
+        assert result["max"] == 5.5
+        assert result["mean"] == 3.2
+        assert result["median"] == 3.5
+        assert result["Q1"] == 2
+        assert result["Q3"] == 4
 
-        expected_nodes = [
-            "---------------------------------------------------------------------",
-            "Group Nodes     Count Attribute Type        Info                     ",
-            "---------------------------------------------------------------------",
-            "Aspirin         1     ATC       -           -                        ",
-            "Medications     3     ATC       Categorical Values: B01AA03, B01AF01 ",
-            "Patients        3     age       Continuous  min: 20                  ",
-            "                                            max: 70                  ",
-            "                                            mean: 40.00              ",
-            "Stroke          1     -         -           -                        ",
-            "Ungrouped Nodes 1     -         -           -                        ",
-            "---------------------------------------------------------------------",
+    def test_calculate_datetime_mean(self) -> None:
+        attribute_values = [
+            datetime(2021, 1, 1),
+            datetime(2021, 1, 15),
+            datetime(2021, 2, 1),
+            datetime(2021, 3, 1),
+        ]
+        mean = calculate_datetime_mean(attribute_values)
+
+        assert mean == datetime(2021, 1, 27, 0, 0, 0)
+
+    def test_extract_temporal_attribute_statistics(self) -> None:
+        attribute_values = [
+            datetime(2021, 1, 1),
+            datetime(2021, 1, 15),
+            datetime(2021, 2, 1),
+            datetime(2021, 3, 1),
         ]
 
-        assert (
-            prettify_table(medrecord._describe_group_nodes(), header, decimal=2)
-            == expected_nodes
-        )
+        result = extract_temporal_attribute_statistics(attribute_values)
 
-        header = ["group edges", "count", "attribute", "type", "info"]
+        assert result["type"] == "Temporal"
 
-        expected_edges = [
-            "----------------------------------------------------------------------",
-            "Group Edges         Count Attribute Type     Info                     ",
-            "----------------------------------------------------------------------",
-            "patient-medications 3     time      Temporal min: 1999-10-15 00:00:00 ",
-            "                                             max: 2000-01-01 00:00:00 ",
-            "Ungrouped Edges     6     -         -        -                        ",
-            "----------------------------------------------------------------------",
+        assert result["min"] == datetime(2021, 1, 1)
+        assert result["max"] == datetime(2021, 3, 1)
+        assert result["mean"] == datetime(2021, 1, 27)
+        assert result["median"] == datetime(2021, 1, 23, 12)
+        assert result["Q1"] == datetime(2021, 1, 11, 12)
+        assert result["Q3"] == datetime(2021, 2, 8)
+
+    def test_extract_categorical_attribute_statistics(self) -> None:
+        attribute_values = [
+            1.5,
+            "A",
+            "B",
+            1,
+            "A",
+            datetime(1999, 10, 15),
         ]
 
-        assert (
-            prettify_table(medrecord._describe_group_edges(), header, decimal=2)
-            == expected_edges
-        )
+        result = extract_categorical_attribute_statistics(attribute_values)  # pyright: ignore[reportArgumentType]
+        assert result["count"] == 5
+        assert result["top"] == "A"
+        assert result["freq"] == 2
 
 
 if __name__ == "__main__":
-    run_test = unittest.TestLoader().loadTestsFromTestCase(TestOverview)
+    run_test = unittest.TestLoader().loadTestsFromTestCase(TestDescriptiveStatistics)
     unittest.TextTestRunner(verbosity=2).run(run_test)

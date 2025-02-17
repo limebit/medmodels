@@ -7,7 +7,6 @@ from typing import (
     TYPE_CHECKING,
     Dict,
     List,
-    Literal,
     Mapping,
     Sequence,
     Tuple,
@@ -21,6 +20,10 @@ import polars as pl
 
 if TYPE_CHECKING:
     from typing_extensions import TypeIs
+
+    from medmodels.statistic_evaluations.statistical_analysis.descriptive_statistics import (
+        AttributeInfo,
+    )
 
 #: A type alias for attributes of a medical record.
 MedRecordAttribute: TypeAlias = Union[str, int]
@@ -94,10 +97,6 @@ PandasNodeDataFrameInput: TypeAlias = Tuple[pd.DataFrame, str]
 #: A type alias for input to a Pandas DataFrame for edges.
 PandasEdgeDataFrameInput: TypeAlias = Tuple[pd.DataFrame, str, str]
 
-AttributeInfo: TypeAlias = Union[
-    "TemporalAttributeInfo", "NumericAttributeInfo", "StringAttributeInfo"
-]
-
 #: A type alias for input to a node.
 NodeInput = Union[
     NodeTuple,
@@ -124,30 +123,6 @@ class GroupInfo(TypedDict):
 
     nodes: List[NodeIndex]
     edges: List[EdgeIndex]
-
-
-class TemporalAttributeInfo(TypedDict):
-    """Dictionary for a temporal attribute and its metrics."""
-
-    type: Literal["Temporal"]
-    min: datetime
-    max: datetime
-
-
-class NumericAttributeInfo(TypedDict):
-    """Dictionary for a numeric attribute and its metrics."""
-
-    type: Literal["Continuous"]
-    min: Union[int, float]
-    max: Union[int, float]
-    mean: Union[int, float]
-
-
-class StringAttributeInfo(TypedDict):
-    """Dictionary for a string attribute and its values."""
-
-    type: Literal["Categorical"]
-    values: str
 
 
 class AttributeSummary(TypedDict):
