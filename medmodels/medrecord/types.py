@@ -1,3 +1,5 @@
+"""Type aliases and type checking functions for medical record data."""
+
 from __future__ import annotations
 
 from datetime import datetime, timedelta
@@ -9,6 +11,7 @@ from typing import (
     Mapping,
     Sequence,
     Tuple,
+    TypeAlias,
     TypedDict,
     Union,
 )
@@ -17,14 +20,7 @@ import pandas as pd
 import polars as pl
 
 if TYPE_CHECKING:
-    import sys
-
-    if sys.version_info >= (3, 10):
-        from typing import TypeAlias
-
-        from typing_extensions import TypeIs
-    else:
-        from typing_extensions import TypeAlias, TypeIs
+    from typing_extensions import TypeIs
 
 #: A type alias for attributes of a medical record.
 MedRecordAttribute: TypeAlias = Union[str, int]
@@ -171,7 +167,8 @@ def is_medrecord_attribute(value: object) -> TypeIs[MedRecordAttribute]:
         value (object): The value to check.
 
     Returns:
-        TypeIs[MedRecordAttribute]: True if the value is a MedRecord attribute, otherwise False.
+        TypeIs[MedRecordAttribute]: True if the value is a MedRecord attribute,
+            otherwise False.
     """
     return isinstance(value, (str, int))
 
@@ -183,7 +180,8 @@ def is_medrecord_value(value: object) -> TypeIs[MedRecordValue]:
         value (object): The value to check.
 
     Returns:
-        TypeIs[MedRecordValue]: True if the value is a valid MedRecord value, otherwise False.
+        TypeIs[MedRecordValue]: True if the value is a valid MedRecord value, otherwise
+            False.
     """
     return isinstance(value, (str, int, float, bool, datetime)) or value is None
 
@@ -231,7 +229,8 @@ def is_attributes(value: object) -> TypeIs[Attributes]:
         value (object): The value to check.
 
     Returns:
-        TypeIs[Attributes]: True if the value is a valid attributes dictionary, otherwise False.
+        TypeIs[Attributes]: True if the value is a valid attributes dictionary,
+            otherwise False.
     """
     return isinstance(value, dict)
 
@@ -260,7 +259,8 @@ def is_node_tuple_list(value: object) -> TypeIs[List[NodeTuple]]:
         value (object): The value to check.
 
     Returns:
-        TypeIs[List[NodeTuple]]: True if the value is a list of valid node tuples, otherwise False.
+        TypeIs[List[NodeTuple]]: True if the value is a list of valid node tuples,
+            otherwise False.
     """
     return isinstance(value, list) and all(is_node_tuple(input) for input in value)
 
@@ -290,7 +290,8 @@ def is_edge_tuple_list(value: object) -> TypeIs[List[EdgeTuple]]:
         value (object): The value to check.
 
     Returns:
-        TypeIs[List[EdgeTuple]]: True if the value is a list of valid edge tuples, otherwise False.
+        TypeIs[List[EdgeTuple]]: True if the value is a list of valid edge tuples,
+            otherwise False.
     """
     return isinstance(value, list) and all(is_edge_tuple(input) for input in value)
 
@@ -304,7 +305,8 @@ def is_polars_node_dataframe_input(
         value (object): The value to check.
 
     Returns:
-        TypeIs[PolarsNodeDataFrameInput]: True if the value is a valid Polars DataFrame input for nodes, otherwise False.
+        TypeIs[PolarsNodeDataFrameInput]: True if the value is a valid Polars DataFrame
+            input for nodes, otherwise False.
     """
     return (
         isinstance(value, tuple)
@@ -323,7 +325,8 @@ def is_polars_node_dataframe_input_list(
         value (object): The value to check.
 
     Returns:
-        TypeIs[List[PolarsNodeDataFrameInput]]: True if the value is a list of valid Polars DataFrame inputs for nodes, otherwise False.
+        TypeIs[List[PolarsNodeDataFrameInput]]: True if the value is a list of valid
+            Polars DataFrame inputs for nodes, otherwise False.
     """
     return isinstance(value, list) and all(
         is_polars_node_dataframe_input(input) for input in value
@@ -339,7 +342,8 @@ def is_polars_edge_dataframe_input(
         value (object): The value to check.
 
     Returns:
-        TypeIs[PolarsEdgeDataFrameInput]: True if the value is a valid Polars DataFrame input for edges, otherwise False.
+        TypeIs[PolarsEdgeDataFrameInput]: True if the value is a valid Polars DataFrame
+            input for edges, otherwise False.
     """
     return (
         isinstance(value, tuple)
@@ -359,7 +363,8 @@ def is_polars_edge_dataframe_input_list(
         value (object): The value to check.
 
     Returns:
-        TypeIs[List[PolarsEdgeDataFrameInput]]: True if the value is a list of valid Polars DataFrame inputs for edges, otherwise False.
+        TypeIs[List[PolarsEdgeDataFrameInput]]: True if the value is a list of valid
+            Polars DataFrame inputs for edges, otherwise False.
     """
     return isinstance(value, list) and all(
         is_polars_edge_dataframe_input(input) for input in value
@@ -375,7 +380,8 @@ def is_pandas_node_dataframe_input(
         value (object): The value to check.
 
     Returns:
-        TypeIs[PandasNodeDataFrameInput]: True if the value is a valid Pandas DataFrame input for nodes, otherwise False.
+        TypeIs[PandasNodeDataFrameInput]: True if the value is a valid Pandas DataFrame
+            input for nodes, otherwise False.
     """
     return (
         isinstance(value, tuple)
@@ -394,7 +400,8 @@ def is_pandas_node_dataframe_input_list(
         value (object): The value to check.
 
     Returns:
-        TypeIs[List[PandasNodeDataFrameInput]]: True if the value is a list of valid Pandas DataFrame inputs for nodes, otherwise False.
+        TypeIs[List[PandasNodeDataFrameInput]]: True if the value is a list of valid
+            Pandas DataFrame inputs for nodes, otherwise False.
     """
     return isinstance(value, list) and all(
         is_pandas_node_dataframe_input(input) for input in value
@@ -410,7 +417,8 @@ def is_pandas_edge_dataframe_input(
         value (object): The value to check.
 
     Returns:
-        TypeIs[PandasEdgeDataFrameInput]: True if the value is a valid Pandas DataFrame input for edges, otherwise False.
+        TypeIs[PandasEdgeDataFrameInput]: True if the value is a valid Pandas DataFrame
+            input for edges, otherwise False.
     """
     return (
         isinstance(value, tuple)
@@ -430,7 +438,8 @@ def is_pandas_edge_dataframe_input_list(
         value (object): The value to check.
 
     Returns:
-        TypeIs[List[PandasEdgeDataFrameInput]]: True if the value is a list of valid Pandas DataFrame inputs for edges, otherwise False.
+        TypeIs[List[PandasEdgeDataFrameInput]]: True if the value is a list of valid
+            Pandas DataFrame inputs for edges, otherwise False.
     """
     return isinstance(value, list) and all(
         is_pandas_edge_dataframe_input(input) for input in value

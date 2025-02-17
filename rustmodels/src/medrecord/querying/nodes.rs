@@ -16,8 +16,8 @@ use pyo3::{
     Bound, FromPyObject, PyAny, PyResult,
 };
 
-#[pyclass]
-#[derive(Clone)]
+#[pyclass(eq, eq_int)]
+#[derive(Clone, PartialEq)]
 pub enum PyEdgeDirection {
     Incoming = 0,
     Outgoing = 1,

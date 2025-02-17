@@ -1,4 +1,4 @@
-patient_id,drug_code,start_time,quantity,cost
+patient_id,drug_code,time,quantity,cost
 pat_1,drug_856987,2014-04-08T12:54:59Z,3,215.58
 pat_1,drug_856987,2015-04-14T12:54:59Z,3,281.4
 pat_1,drug_856987,2017-04-25T12:54:59Z,3,105.15

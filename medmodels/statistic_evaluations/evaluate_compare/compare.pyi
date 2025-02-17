@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from typing import Dict, List, Tuple, TypedDict
 
 from medmodels.medrecord.types import (
@@ -12,28 +10,19 @@ from medmodels.medrecord.types import (
 from medmodels.statistic_evaluations.evaluate_compare.evaluate import CohortEvaluator
 
 class CohortSummary(TypedDict):
-    """Dictionary for the cohort summary."""
-
     attribute_info: Dict[Group, AttributeSummary]
     top_k_concepts: Dict[Group, List[NodeIndex]]
 
 class DistanceSummary(TypedDict):
-    """Dictonary for the Jensen-Shannon-Divergence and normalized distance between
-    distributions."""
-
     js_divergence: float
     distance: float
 
 class ComparerSummary(TypedDict):
-    """Dictionary for comparing results."""
-
     attribute_tests: Dict[MedRecordAttribute, List[TestSummary]]
     concepts_tests: Dict[Group, List[TestSummary]]
     concepts_distance: Dict[Group, DistanceSummary]
 
 class TestSummary(TypedDict):
-    """Dictionary for hypothesis test results."""
-
     test: str
     Hypothesis: str
     not_reject: bool

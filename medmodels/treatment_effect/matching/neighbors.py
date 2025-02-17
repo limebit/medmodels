@@ -1,13 +1,17 @@
+"""Module for the nearest neighbor matching."""
+
 from __future__ import annotations
 
-from typing import Set
+from typing import TYPE_CHECKING, Optional, Sequence, Set
 
-from medmodels import MedRecord
-from medmodels.medrecord.types import MedRecordAttributeInputList, NodeIndex
 from medmodels.treatment_effect.matching.algorithms.classic_distance_models import (
     nearest_neighbor,
 )
 from medmodels.treatment_effect.matching.matching import Matching
+
+if TYPE_CHECKING:
+    from medmodels import MedRecord
+    from medmodels.medrecord.types import Group, MedRecordAttribute, NodeIndex
 
 
 class NeighborsMatching(Matching):
@@ -25,14 +29,14 @@ class NeighborsMatching(Matching):
         self,
         *,
         number_of_neighbors: int = 1,
-    ):
+    ) -> None:
         """Initializes the nearest neighbors class.
 
         Args:
             number_of_neighbors (int, optional): Number of nearest neighbors to find for
                 each treated unit. Defaults to 1.
         """
-        self.number_of_neighbors = number_of_neighbors
+        super().__init__(number_of_neighbors)
 
     def match_controls(
         self,
@@ -40,19 +44,23 @@ class NeighborsMatching(Matching):
         medrecord: MedRecord,
         control_set: Set[NodeIndex],
         treated_set: Set[NodeIndex],
-        essential_covariates: MedRecordAttributeInputList = ["gender", "age"],
-        one_hot_covariates: MedRecordAttributeInputList = ["gender"],
+        patients_group: Group,
+        essential_covariates: Optional[Sequence[MedRecordAttribute]] = None,
+        one_hot_covariates: Optional[Sequence[MedRecordAttribute]] = None,
     ) -> Set[NodeIndex]:
         """Matches the controls based on the nearest neighbor algorithm.
 
         Args:
             medrecord (MedRecord): MedRecord object containing the data.
-            treated_set (Set[NodeIndex]): Set of treated subjects.
             control_set (Set[NodeIndex]): Set of control subjects.
-            essential_covariates (MedRecordAttributeInputList, optional): Covariates
-                that are essential for matching
-            one_hot_covariates (MedRecordAttributeInputList, optional): Covariates that
-                are one-hot encoded for matching
+            treated_set (Set[NodeIndex]): Set of treated subjects.
+            patients_group (Group): Group of patients in the MedRecord.
+            essential_covariates (Optional[Sequence[MedRecordAttribute]], optional):
+                Covariates that are essential for matching. Defaults to None, meaning
+                all the attributes of the patients are used.
+            one_hot_covariates (Optional[Sequence[MedRecordAttribute]], optional):
+                Covariates that are one-hot encoded for matching. Defaults to None,
+                meaning all the categorical attributes of the patients are used.
 
         Returns:
             Set[NodeIndex]: Node Ids of the matched controls.
@@ -61,8 +69,11 @@ class NeighborsMatching(Matching):
             medrecord=medrecord,
             control_set=control_set,
             treated_set=treated_set,
-            essential_covariates=essential_covariates,
-            one_hot_covariates=one_hot_covariates,
+            patients_group=patients_group,
+            essential_covariates=list(essential_covariates)
+            if essential_covariates
+            else None,
+            one_hot_covariates=list(one_hot_covariates) if one_hot_covariates else None,
         )
 
         # Run the algorithm to find the matched controls
