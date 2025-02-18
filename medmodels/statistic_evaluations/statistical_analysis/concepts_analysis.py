@@ -2,8 +2,8 @@
 
 from typing import Dict, List
 
-# from medmodels.medrecord import EdgesDirected, MedRecord
 from medmodels.medrecord import MedRecord
+from medmodels.medrecord.medrecord import EdgesDirected
 from medmodels.medrecord.types import Group, NodeIndex
 
 
@@ -31,7 +31,7 @@ def count_concept_connections(
             medrecord.edges_connecting(
                 medrecord.group(cohort)["nodes"],
                 concept_node,
-                # directed=EdgesDirected.UNDIRECTED,
+                directed=EdgesDirected.UNDIRECTED,
             )
         )
 
@@ -54,10 +54,7 @@ def extract_top_k_concepts(
     Returns:
         List[NodeIndex]: List of top k concepts.
     """
-    # sorted_concepts = sorted(
-    #     concept_counts.keys(), key=lambda item: item[1], reverse=True
-    # )
-    sorted_concepts = sorted(concept_counts.keys(), key=lambda item: item, reverse=True)
+    sorted_concepts = sorted(concept_counts, key=lambda k: -concept_counts[k])
 
     if top_k > len(sorted_concepts):
         msg = f"Less than {top_k} concept connections, can not extract top {top_k}"

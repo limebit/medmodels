@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Dict, List, Optional
 
-# from medmodels.medrecord.medrecord import EdgesDirected, MedRecord
+from medmodels.medrecord.medrecord import EdgesDirected
 from medmodels.medrecord.querying import NodeQuery
 from medmodels.statistic_evaluations.statistical_analysis.attribute_analysis import (
     AttributeStatistics,
@@ -162,9 +162,7 @@ class CohortEvaluator:
 
             count_group = len(
                 self.medrecord.edges_connecting(
-                    patient_nodes,
-                    group_nodes,
-                    # directed=EdgesDirected.UNDIRECTED
+                    patient_nodes, group_nodes, directed=EdgesDirected.UNDIRECTED
                 )
             )
             if count_group > 0:
