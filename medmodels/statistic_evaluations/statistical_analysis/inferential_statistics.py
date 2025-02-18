@@ -1,6 +1,6 @@
 """Inferential stastics functions for analyzing data distributions."""
 
-from typing import List, Optional
+from typing import List, Optional, TypedDict
 
 import numpy as np
 import scipy
@@ -8,7 +8,15 @@ import scipy.stats
 
 from medmodels.medrecord.schema import AttributeType
 from medmodels.medrecord.types import MedRecordValue
-from medmodels.statistic_evaluations.evaluate_compare.compare import TestSummary
+
+
+class TestSummary(TypedDict):
+    """Result of a hypothesis test."""
+
+    test: str
+    Hypothesis: str
+    not_reject: bool
+    p_value: float
 
 
 def decide_hypothesis_test(
@@ -226,3 +234,22 @@ def kolmogorov_smirnov_test(
 
 
 # def measure_effect_size(samples: List[MedRecordValue]) -> Tuple[str, float]: ...
+
+
+def calculate_relative_difference(control_mean: float, case_mean: float) -> float:
+    """Calculates the absolute relative difference.
+
+    Calculates the absolute relative difference for a single feature, expressed as a
+    percentage of the control's mean. Handles division by zero by returning the
+    absolute difference when the control mean is zero.
+
+    Args:
+        control_mean (float): Mean of the feature for the control group.
+        case_mean (float): Mean of the feature for the treated group.
+
+    Returns:
+        float: Absolute relative difference.
+    """
+    if control_mean == 0:
+        return abs(case_mean - control_mean) * 100
+    return abs((case_mean - control_mean) / control_mean) * 100
