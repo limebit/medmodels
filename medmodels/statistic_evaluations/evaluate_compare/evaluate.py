@@ -65,7 +65,7 @@ class CohortEvaluator:
             concepts_groups (Optional[GroupInputList], optional): List of concepts to
                 evaluate. If none are given, it will select all Groups that have
                 connecting edges to the cohort group. Defaults to None.
-        """
+        """  # noqa: W505
         self.medrecord = medrecord.clone()
         self.name = name
         self.time_attribute = time_attribute
@@ -94,7 +94,7 @@ class CohortEvaluator:
             self.attributes = attributes
         else:
             self.attributes = {
-                attribute: attribute for attribute in self.attribute_summary.keys()
+                attribute: attribute for attribute in self.attribute_summary
             }
 
     def get_top_k_concepts(
