@@ -18,13 +18,15 @@ import numpy as np
 
 from medmodels.medrecord.datatype import DateTime, Float, Int
 from medmodels.medrecord.schema import AttributesSchema, AttributeType
-from medmodels.medrecord.types import Attributes, EdgeIndex, NodeIndex
+from medmodels.medrecord.types import Attributes, EdgeIndex, Group, NodeIndex
 
 if TYPE_CHECKING:
     from typing import TypeAlias
 
+    from medmodels.medrecord import MedRecord
     from medmodels.medrecord.types import (
         MedRecordAttribute,
+        MedRecordAttributeInputList,
         MedRecordValue,
     )
 
@@ -185,6 +187,54 @@ def determine_attribute_type_schema(
 
     # TODO @Laura: add new string type after PR #325
     return None
+
+
+def extract_attribute_values(
+    medrecord: MedRecord,
+    group: Group,
+    attributes: Optional[MedRecordAttributeInputList] = None,
+    nodes_or_edges: Literal["nodes", "edges"] = "nodes",
+) -> Dict[MedRecordAttribute, List[MedRecordValue]]:
+    """Extract a list of attribute values.
+
+    Args:
+        medrecord (MedRecord): MedRecord containing a group with attributes.
+        group (Group): Group to ectract attribute values from.
+        attributes (Optional[MedRecordAttributeInputList]): Attributes to extract. If
+            none are given, it will extract all possible attributes from the group.
+            Defaults to None.
+        nodes_or_edges (Literal['nodes', 'edges']): If node or edge attributes should
+            be extracted. Defaults to 'nodes'.
+
+    Returns:
+        Dict[MedRecordAttribute, List[MedRecordValue]]: Dictionary containing the name
+            of the attribute and a list of it's values.
+
+    Raises:
+        ValueError: If not all attributes are attributes of the group.
+    """
+    if nodes_or_edges == "nodes":
+        attribute_dictionary = medrecord.node[medrecord.group(group)[nodes_or_edges]]
+    else:
+        attribute_dictionary = medrecord.edge[medrecord.group(group)[nodes_or_edges]]
+
+    data = {}
+
+    for dictionary in attribute_dictionary.values():
+        for key, value in dictionary.items():
+            data.setdefault(key, []).append(value)
+
+    if not attributes:
+        return data
+
+    missing_attributes = set(attributes) - set(data.keys())
+
+    if len(missing_attributes) > 0:
+        msg = f"""{"Attribute " if len(missing_attributes) == 1 else "Attributes "}
+                {", ".join([str(attr) for attr in missing_attributes])} not found for group {group}."""
+        raise ValueError(msg)
+
+    return {attribute: data[attribute] for attribute in attributes}
 
 
 @overload

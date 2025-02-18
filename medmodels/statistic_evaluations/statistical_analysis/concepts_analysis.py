@@ -1,6 +1,7 @@
 """Module for analyzing concepts and their distribution."""
 
-from typing import Dict, List
+import operator
+from typing import Dict, List, Tuple
 
 from medmodels.medrecord import MedRecord
 from medmodels.medrecord.medrecord import EdgesDirected
@@ -40,7 +41,7 @@ def count_concept_connections(
 
 def extract_top_k_concepts(
     concept_counts: Dict[NodeIndex, int], top_k: int
-) -> List[NodeIndex]:
+) -> List[Tuple[NodeIndex, int]]:
     """Extract the topk concepts from a concept count dictionary.
 
     Args:
@@ -52,9 +53,11 @@ def extract_top_k_concepts(
         ValueError: If less than topk concepts in the concept counts
 
     Returns:
-        List[NodeIndex]: List of top k concepts.
+        List[Tuple[NodeIndex, int]]: List of top k concepts and their count.
     """
-    sorted_concepts = sorted(concept_counts, key=lambda k: -concept_counts[k])
+    sorted_concepts = sorted(
+        concept_counts.items(), key=operator.itemgetter(1), reverse=True
+    )
 
     if top_k > len(sorted_concepts):
         msg = f"Less than {top_k} concept connections, can not extract top {top_k}"
