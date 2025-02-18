@@ -12,6 +12,7 @@ from typing import (
     Tuple,
     TypeAlias,
     Union,
+    overload,
 )
 
 from medmodels._medmodels import (
@@ -426,6 +427,35 @@ class Schema:
         """
         self._schema.validate_edge(index, attributes, group)
 
+    @overload
+    def set_node_attribute(
+        self,
+        attribute: MedRecordAttribute,
+        data_type: DataType,
+        attribute_type: Optional[
+            Literal[AttributeType.Categorical, AttributeType.Unstructured]
+        ],
+        group: Optional[Group] = None,
+    ) -> None: ...
+
+    @overload
+    def set_node_attribute(
+        self,
+        attribute: MedRecordAttribute,
+        data_type: ContinuousType,
+        attribute_type: Literal[AttributeType.Continuous],
+        group: Optional[Group] = None,
+    ) -> None: ...
+
+    @overload
+    def set_node_attribute(
+        self,
+        attribute: MedRecordAttribute,
+        data_type: TemporalType,
+        attribute_type: Literal[AttributeType.Temporal],
+        group: Optional[Group] = None,
+    ) -> None: ...
+
     def set_node_attribute(
         self,
         attribute: MedRecordAttribute,
@@ -456,6 +486,35 @@ class Schema:
             attribute_type._into_py_attribute_type(),
             group,
         )
+
+    @overload
+    def set_edge_attribute(
+        self,
+        attribute: MedRecordAttribute,
+        data_type: DataType,
+        attribute_type: Optional[
+            Literal[AttributeType.Categorical, AttributeType.Unstructured]
+        ],
+        group: Optional[Group] = None,
+    ) -> None: ...
+
+    @overload
+    def set_edge_attribute(
+        self,
+        attribute: MedRecordAttribute,
+        data_type: ContinuousType,
+        attribute_type: Literal[AttributeType.Continuous],
+        group: Optional[Group] = None,
+    ) -> None: ...
+
+    @overload
+    def set_edge_attribute(
+        self,
+        attribute: MedRecordAttribute,
+        data_type: TemporalType,
+        attribute_type: Literal[AttributeType.Temporal],
+        group: Optional[Group] = None,
+    ) -> None: ...
 
     def set_edge_attribute(
         self,
@@ -488,6 +547,35 @@ class Schema:
             group,
         )
 
+    @overload
+    def update_node_attribute(
+        self,
+        attribute: MedRecordAttribute,
+        data_type: DataType,
+        attribute_type: Optional[
+            Literal[AttributeType.Categorical, AttributeType.Unstructured]
+        ],
+        group: Optional[Group] = None,
+    ) -> None: ...
+
+    @overload
+    def update_node_attribute(
+        self,
+        attribute: MedRecordAttribute,
+        data_type: ContinuousType,
+        attribute_type: Literal[AttributeType.Continuous],
+        group: Optional[Group] = None,
+    ) -> None: ...
+
+    @overload
+    def update_node_attribute(
+        self,
+        attribute: MedRecordAttribute,
+        data_type: TemporalType,
+        attribute_type: Literal[AttributeType.Temporal],
+        group: Optional[Group] = None,
+    ) -> None: ...
+
     def update_node_attribute(
         self,
         attribute: MedRecordAttribute,
@@ -519,6 +607,35 @@ class Schema:
             attribute_type._into_py_attribute_type(),
             group,
         )
+
+    @overload
+    def update_edge_attribute(
+        self,
+        attribute: MedRecordAttribute,
+        data_type: DataType,
+        attribute_type: Optional[
+            Literal[AttributeType.Categorical, AttributeType.Unstructured]
+        ],
+        group: Optional[Group] = None,
+    ) -> None: ...
+
+    @overload
+    def update_edge_attribute(
+        self,
+        attribute: MedRecordAttribute,
+        data_type: ContinuousType,
+        attribute_type: Literal[AttributeType.Continuous],
+        group: Optional[Group] = None,
+    ) -> None: ...
+
+    @overload
+    def update_edge_attribute(
+        self,
+        attribute: MedRecordAttribute,
+        data_type: TemporalType,
+        attribute_type: Literal[AttributeType.Temporal],
+        group: Optional[Group] = None,
+    ) -> None: ...
 
     def update_edge_attribute(
         self,
