@@ -1,5 +1,6 @@
-# ruff: noqa: D100, D103, T201
-from typing import List, Optional, Tuple
+"""Inferential stastics functions for analyzing data distributions."""
+
+from typing import List, Optional
 
 import numpy as np
 import scipy
@@ -7,7 +8,7 @@ import scipy.stats
 
 from medmodels.medrecord.schema import AttributeType
 from medmodels.medrecord.types import MedRecordValue
-from medmodels.statistic_evaluations.comparer.data_comparer import TestSummary
+from medmodels.statistic_evaluations.evaluate_compare.compare import TestSummary
 
 
 def decide_hypothesis_test(
@@ -17,13 +18,20 @@ def decide_hypothesis_test(
 
     Args:
         samples (List[List[MedRecordValue]]): List of samples.
-        alpha (float): Significance level for the tests.
+        alpha (float): Significance level for the tests. Has to be between 0 and 1.
         attribute_type (AttributeType): Type of attribute that should be compared.
 
     Returns:
         Optional[TestSummary]: Test Summary if possible for the amount of samples and
             the attribute type.
+
+    Raises:
+        ValueError: If significance level is not between 0 and 1.
     """
+    if alpha < 0 or alpha > 1:
+        msg = f"Sigificance level should be between 0 and 1, not {alpha}."
+        raise ValueError(msg)
+
     if attribute_type == AttributeType.Continuous:
         # check for normal distribution
         if all(normal_distribution_test(sample) for sample in samples):
@@ -49,7 +57,7 @@ def normal_distribution_test(sample: List[MedRecordValue], alpha: float = 0.05) 
     Returns:
         bool: True if null hypothesis can not be rejected
     """
-    result = scipy.stats.normaltest(sample, nan_policy="omit")
+    result = scipy.stats.normaltest(np.array(sample), nan_policy="omit")
 
     not_reject = True
 
@@ -75,12 +83,14 @@ def two_tailed_t_test(
 
     not_reject = True
 
+    assert isinstance(result.pvalue, float)
+
     return {
         "test": "t-Test",
         "Hypothesis": """There is no significant difference between the means of the
          two populations.""",
         "p_value": result.pvalue,
-        "not_reject": not_reject if result.p_value > alpha else not not_reject,
+        "not_reject": not_reject if result.pvalue > alpha else not not_reject,
     }
 
 
@@ -97,9 +107,13 @@ def mann_whitney_u_test(
     Returns:
         TestSummary: Summary of the test and its null hypothesis.
     """
-    result = scipy.stats.mannwhitneyu(sample1, sample2, nan_policy="omit")
+    result = scipy.stats.mannwhitneyu(
+        np.array(sample1), np.array(sample2), nan_policy="omit"
+    )
 
     not_reject = True
+
+    assert isinstance(result.pvalue, float)
 
     return {
         "test": "Mann-Whitney U Test",
@@ -127,9 +141,12 @@ def analysis_of_variance(
     if len(samples) < 2:
         msg = "Need minimum two populations to test."
         raise ValueError(msg)
-    result = scipy.stats.f_oneway(*samples, nan_policy="omit")
+    sample_arrays = [np.array(sample) for sample in samples]
+    result = scipy.stats.f_oneway(*sample_arrays, nan_policy="omit")
 
     not_reject = True
+
+    assert isinstance(result.pvalue, float)
 
     return {
         "test": "ANOVA",
@@ -151,6 +168,9 @@ def chi_square_independece_test(
 
     Returns:
         TestSummary: Summary of the test and its null hypothesis.
+
+    Raises:
+        ValueError: If categories are different in the samples.
     """
     if (set(sample1) - set(sample2)) or (set(sample2) - set(sample1)):
         msg = "Different categories are found for the samples."
@@ -163,9 +183,11 @@ def chi_square_independece_test(
     freq1 = {x: sample_set.count(x) for x in sample_set}
     freq2 = {x: sample_compare.count(x) for x in sample_compare}
 
-    result = scipy.stats.chisquare(freq1.values(), freq2.values())
+    result = scipy.stats.chisquare(np.array(freq1.values()), np.array(freq2.values()))
 
     not_reject = True
+
+    assert isinstance(result.pvalue, float)
 
     return {
         "test": "Pearson's chi-squared Test",
@@ -178,10 +200,22 @@ def chi_square_independece_test(
 def kolmogorov_smirnov_test(
     sample1: List[MedRecordValue], sample2: List[MedRecordValue], alpha: float
 ) -> TestSummary:
+    """Compares two samples without prior assumption of their distribution.
+
+    Args:
+        sample1 (List[MedRecordValue]): First sample to compare.
+        sample2 (List[MedRecordValue]): Second sample to compare.
+        alpha (float): Significance level.
+
+    Returns:
+        TestSummary: Summary of the test and its null hypothesis.
+    """
     # assume null hypothesis can not be rejected
     not_reject = True
 
-    result = scipy.stats.ks_2samp(sample1, sample2, nan_policy="omit")
+    result = scipy.stats.ks_2samp(
+        np.array(sample1), np.array(sample2), nan_policy="omit"
+    )
 
     return {
         "test": "Kolmogorov-Smirnov Test",
@@ -191,4 +225,4 @@ def kolmogorov_smirnov_test(
     }
 
 
-def measure_effect_size(samples: List[MedRecordValue]) -> Tuple[str, float]: ...
+# def measure_effect_size(samples: List[MedRecordValue]) -> Tuple[str, float]: ...
