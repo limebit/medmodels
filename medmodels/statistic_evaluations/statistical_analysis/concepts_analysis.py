@@ -2,7 +2,8 @@
 
 from typing import Dict, List
 
-from medmodels.medrecord import EdgesDirected, MedRecord
+from medmodels.medrecord import MedRecord
+from medmodels.medrecord.medrecord import EdgesDirected
 from medmodels.medrecord.types import Group, NodeIndex
 
 
