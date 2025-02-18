@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, List, Optional, Set
 import pandas as pd
 import pytest
 
+import medmodels.medrecord as mr
 from medmodels import MedRecord
 from medmodels.treatment_effect.matching.neighbors import NeighborsMatching
 
@@ -15,7 +16,9 @@ if TYPE_CHECKING:
     from medmodels.medrecord.types import NodeIndex
 
 
-def create_patients(patients_list: List[NodeIndex]) -> pd.DataFrame:
+def create_patients(
+    patients_list: List[NodeIndex],
+) -> pd.DataFrame:
     """Creates a patients dataframe.
 
     Args:
@@ -74,11 +77,51 @@ def create_medrecord(patients_list: Optional[List[NodeIndex]] = None) -> MedReco
     return medrecord
 
 
+def create_medrecord_with_schema(
+    patients_list: Optional[List[NodeIndex]] = None,
+) -> MedRecord:
+    """Creates a MedRecord object.
+
+    Args:
+        patients_list (Optional[List[NodeIndex]], optional): List of patients to include
+            in the MedRecord. Defaults to None.
+
+    Returns:
+        MedRecord: A MedRecord object.
+    """
+    if patients_list is None:
+        patients_list = [
+            "P1",
+            "P2",
+            "P3",
+            "P4",
+            "P5",
+            "P6",
+            "P7",
+            "P8",
+            "P9",
+        ]
+    patients = create_patients(patients_list=patients_list)
+    schema = mr.Schema(
+        groups={
+            "patients": mr.GroupSchema(
+                nodes={
+                    "age": (mr.Int(), mr.AttributeType.Continuous),
+                    "gender": (mr.String(), mr.AttributeType.Categorical),
+                }
+            )
+        }
+    )
+    medrecord = MedRecord.with_schema(schema)
+    medrecord.add_nodes_pandas(nodes=(patients, "index"), group="patients")
+    return medrecord
+
+
 class TestNeighborsMatching(unittest.TestCase):
     """Class to test the NeighborsMatching class in the matching module."""
 
     def setUp(self) -> None:
-        self.medrecord = create_medrecord()
+        self.medrecord = create_medrecord_with_schema()
 
     def test_preprocess_data(self) -> None:
         neighbors_matching = NeighborsMatching(number_of_neighbors=1)
@@ -217,13 +260,15 @@ class TestNeighborsMatching(unittest.TestCase):
                 essential_covariates=["age", "gender"],
             )
 
+        medrecord_missing = create_medrecord()
+
         # Test missing essential covariates in treated set
         with pytest.raises(
             ValueError,
             match="Some treated nodes do not have all the essential covariates",
         ):
             neighbors_matching._check_nodes(
-                medrecord=self.medrecord,
+                medrecord=medrecord_missing,
                 treated_set={"P2", "P10"},
                 control_set=control_set,
                 essential_covariates=["age", "gender"],

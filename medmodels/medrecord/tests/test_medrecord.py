@@ -1683,9 +1683,9 @@ class TestMedRecord(unittest.TestCase):
             1: {
                 "count": 2,
                 "attribute": {
-                    "adipiscing": {"type": "Categorical", "values": "Values: elit"},
-                    "dolor": {"type": "Categorical", "values": "Values: sit"},
-                    "lorem": {"type": "Categorical", "values": "Values: ipsum"},
+                    "adipiscing": {"type": "Unstructured", "values": "Values: elit"},
+                    "dolor": {"type": "Unstructured", "values": "Values: sit"},
+                    "lorem": {"type": "Unstructured", "values": "Values: ipsum"},
                 },
             },
             "Float": {"count": 0, "attribute": {}},
@@ -1703,7 +1703,7 @@ class TestMedRecord(unittest.TestCase):
             "Odd": {
                 "count": 2,
                 "attribute": {
-                    "amet": {"type": "Categorical", "values": "Values: consectetur"}
+                    "amet": {"type": "Unstructured", "values": "Values: consectetur"}
                 },
             },
         }
@@ -1717,9 +1717,9 @@ class TestMedRecord(unittest.TestCase):
             "Even": {
                 "count": 2,
                 "attribute": {
-                    "eiusmod": {"type": "Categorical", "values": "Values: tempor"},
-                    "incididunt": {"type": "Categorical", "values": "Values: ut"},
-                    "sed": {"type": "Categorical", "values": "Values: do"},
+                    "eiusmod": {"type": "Unstructured", "values": "Values: tempor"},
+                    "incididunt": {"type": "Unstructured", "values": "Values: ut"},
+                    "sed": {"type": "Unstructured", "values": "Values: do"},
                 },
             },
             "Ungrouped Edges": {"count": 2, "attribute": {}},
@@ -1730,9 +1730,9 @@ class TestMedRecord(unittest.TestCase):
             "Even": {
                 "count": 2,
                 "attribute": {
-                    "eiusmod": {"type": "Categorical", "values": "Values: tempor"},
-                    "incididunt": {"type": "Categorical", "values": "Values: ut"},
-                    "sed": {"type": "Categorical", "values": "Values: do"},
+                    "eiusmod": {"type": "Unstructured", "values": "Values: tempor"},
+                    "incididunt": {"type": "Unstructured", "values": "Values: ut"},
+                    "sed": {"type": "Unstructured", "values": "Values: do"},
                 },
             },
         }
@@ -1742,15 +1742,16 @@ class TestMedRecord(unittest.TestCase):
 
         assert "\n".join(
             [
-                "--------------------------------------------------------------------------",
-                "Edges Group       Count Attribute     Type       Data                     ",
-                "--------------------------------------------------------------------------",
-                "patient_diagnosis 60    duration_days Continuous min: 0.00                ",
-                "                                                 max: 3416.00             ",
-                "                                                 mean: 405.02             ",
-                "                        time          Temporal   min: 1962-10-21 00:00:00 ",
-                "                                                 max: 2024-04-12 00:00:00 ",
-                "--------------------------------------------------------------------------",
+                "---------------------------------------------------------------------------",
+                "Edges Group       Count Attribute     Type       Data                      ",
+                "---------------------------------------------------------------------------",
+                "patient_diagnosis 60    duration_days Continuous min: 0.00                 ",
+                "                                                 max: 3416.00              ",
+                "                                                 mean: 405.02              ",
+                "                        time          Temporal   min: 1962-10-21 00:00:00  ",
+                "                                                 max: 2024-04-12 00:00:00  ",
+                "                                                 mean: 2012-01-25 11:12:00 ",
+                "---------------------------------------------------------------------------",
             ]
         ) == str(medrecord.overview_edges("patient_diagnosis"))
 
