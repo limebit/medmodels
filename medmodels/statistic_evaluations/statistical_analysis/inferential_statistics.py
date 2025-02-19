@@ -191,7 +191,10 @@ def chi_square_independece_test(
     freq1 = {x: sample_set.count(x) for x in sample_set}
     freq2 = {x: sample_compare.count(x) for x in sample_compare}
 
-    result = scipy.stats.chisquare(np.array(freq1.values()), np.array(freq2.values()))
+    proportions1 = [freq / sum(freq1.values()) for freq in freq1.values()]
+    proportions2 = [freq / sum(freq2.values()) for freq in freq2.values()]
+
+    result = scipy.stats.chisquare(np.array(proportions1), np.array(proportions2))
 
     not_reject = True
 
