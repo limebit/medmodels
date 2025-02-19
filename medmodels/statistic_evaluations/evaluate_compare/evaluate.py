@@ -34,8 +34,8 @@ class CohortEvaluator:
     patient_group: Group
     time_attribute: MedRecordAttribute
     attributes: Dict[MedRecordAttribute, MedRecordAttribute]
-    concepts_groups: GroupInputList
-    attribute_summary: Dict[MedRecordAttribute, AttributeStatistics]
+    concepts_groups: Dict[Group, Group]
+    attribute_summary: Dict[Group, Dict[MedRecordAttribute, AttributeStatistics]]
     concepts_counts: Dict[Group, Dict[NodeIndex, int]]
 
     def __init__(
@@ -56,7 +56,7 @@ class CohortEvaluator:
             patient_group (Group): Group of patients in the MedRecord.
             cohort_query (Optional[NodeQuery], optional): NodeQuery limiting the patient
                 group to a cohort group. If no cohort query is given, all patients will
-                be in the cohort. Defaults to "patients".
+                be in the cohort. Defaults to None.
             time_attribute (MedRecordAttribute, optional): Name of the time attribute
                 used in the MedRecord. Defaults to "time".
             attributes (Optional[Dict[MedRecordAttribute, MedRecordAttribute]], optional):
@@ -64,17 +64,16 @@ class CohortEvaluator:
                 Defaults to None.
             concepts_groups (Optional[GroupInputList], optional): List of concepts to
                 evaluate. If none are given, it will select all Groups that have
-                connecting edges to the cohort group. Defaults to None.
+                connecting edges to the patient group. Defaults to None.
         """  # noqa: W505
         self.medrecord = medrecord.clone()
         self.name = name
         self.time_attribute = time_attribute
         self.patient_group = patient_group
 
-        if concepts_groups:
-            self.concepts_groups = concepts_groups
-        else:
-            self.concepts_groups = self._get_concepts_groups(patient_group)
+        self.concepts_groups = self._add_patient_concept_edges(
+            patient_group, concepts_groups
+        )
 
         # determine cohort subgroup from patients
         if cohort_query:
@@ -130,36 +129,63 @@ class CohortEvaluator:
 
         return extract_top_k_concepts(concepts_counts, top_k)
 
-    def _get_concepts_groups(self, patient_group: Group) -> GroupInputList:
+    def _add_patient_concept_edges(
+        self, patient_group: Group, concepts_groups: Optional[GroupInputList] = None
+    ) -> Dict[Group, Group]:
         """Get concepts groups that have connecting edges to the patients.
+
+        Check the given concepts groups or all medrecord groups for connected edges to
+        the patients. Save the edges in a new group for easier retrival later. The name
+        of the concept edge group is given in the mapping dictionary.
 
         Args:
             patient_group (Group): Group of patients.
+            concepts_groups (Optional[GroupInputList], optional): Defined list of
+                concepts. Defaults to None.
 
         Returns:
-            GroupInputList: List of concept groups.
+            Dict[Group, Group]: Mapping dict from concept group name to connected edges
+                group name.
         """
-        concepts_groups = []
+        if not concepts_groups:
+            concepts_groups = [
+                group for group in self.medrecord.groups if group != patient_group
+            ]
+        concepts_connecting = {}
 
         patient_nodes = self.medrecord.group(patient_group)["nodes"]
 
-        for group in self.medrecord.groups:
+        # save edge indices already in groups
+        edges_in_groups = {
+            group: self.medrecord.edges_in_group(group)
+            for group in self.medrecord.groups
+        }
+
+        for group in concepts_groups:
             group_nodes = self.medrecord.group(group)["nodes"]
 
-            if group == patient_group or len(group_nodes) == 0:
-                continue
-
-            self.medrecord.group(group)["nodes"]
-
-            count_group = len(
-                self.medrecord.edges_connecting(
-                    patient_nodes, group_nodes, directed=EdgesDirected.UNDIRECTED
-                )
+            group_patient_edges = self.medrecord.edges_connecting(
+                patient_nodes, group_nodes, directed=EdgesDirected.UNDIRECTED
             )
-            if count_group > 0:
-                concepts_groups.append(group)
+            if not group_patient_edges:
+                continue
+            # check if edge group exists already
+            connected_group = [
+                group
+                for group, edges in edges_in_groups.items()
+                if set(group_patient_edges) == set(edges)
+            ]
 
-        return concepts_groups
+            if connected_group:
+                concepts_connecting[group] = connected_group[0]
+            # add group for easier retrievallater if it doesn't exist
+            else:
+                self.medrecord.add_group(
+                    group=f"{group}-{patient_group}", edges=group_patient_edges
+                )
+                concepts_connecting[group] = f"{group}-{patient_group}"
+
+        return concepts_connecting
 
     def _get_concept_counts(self) -> Dict[Group, Dict[NodeIndex, int]]:
         """Get a concept count summary for all concepts.
@@ -180,7 +206,7 @@ class CohortEvaluator:
     def _get_attribute_summary(
         self,
         attributes: Optional[Dict[MedRecordAttribute, MedRecordAttribute]],
-    ) -> Dict[MedRecordAttribute, AttributeStatistics]:
+    ) -> Dict[Group, Dict[MedRecordAttribute, AttributeStatistics]]:
         """Describe the attributes of the cohort.
 
         Args:
@@ -188,39 +214,70 @@ class CohortEvaluator:
                 Attribute mapping with a chosen name and their name in the MedRecord.
 
         Returns:
-            Dict[str, AttributeStatistics]:
+            Dict[Group, Dict[MedRecordAttribute, AttributeStatistics]]: Dictionary
+                sorted by the patient anc concept groups. Each group has a statistics
+                summary of their chosen attributes.
 
         Raises:
             ValueError: If not all attributes are found for the cohort.
         """
+        attribute_summary = {}
+        attributes_found = []
+
+        # patient node attribute summary
         schema = (
             self.medrecord.schema.group(self.patient_group).nodes
             if self.patient_group in self.medrecord.schema.groups
             else None
         )
-        all_attribute_summary = extract_attribute_summary(
+        attribute_summary[self.patient_group] = extract_attribute_summary(
             self.medrecord.node[self.medrecord.group(self.patient_group)["nodes"]],
             schema=schema,
             summary_type="extended",
         )
 
+        # selecting and remapping of the attributes
+        if attributes:
+            for attribute_name, attribute in attributes.items():
+                if attribute in attribute_summary[self.patient_group]:
+                    attribute_summary[self.patient_group][attribute_name] = (
+                        attribute_summary[self.patient_group][attribute]
+                    )
+                    attributes_found.append(attribute_name)
+
+        # concepts edge attribute summary
+        for concept in self.concepts_groups:
+            schema_edges = (
+                self.medrecord.schema.group(self.concepts_groups[concept]).edges
+                if self.concepts_groups[concept] in self.medrecord.schema.groups
+                else None
+            )
+            attribute_summary[concept] = extract_attribute_summary(
+                self.medrecord.edge[
+                    self.medrecord.group(self.concepts_groups[concept])["edges"]
+                ],
+                schema=schema_edges,
+                summary_type="extended",
+            )
+
+            if attributes:
+                for attribute_name, attribute in attributes.items():
+                    if attribute in attribute_summary[concept]:
+                        attribute_summary[concept][attribute_name] = attribute_summary[
+                            concept
+                        ][attribute]
+                        attributes_found.append(attribute_name)
+
         if not attributes:
-            return all_attribute_summary
+            return attribute_summary
 
         # check if any attributes are not actually found in the cohort group
-        missing_attributes = set(attributes.values()) - set(
-            all_attribute_summary.keys()
-        )
+        missing_attributes = set(attributes) - set(attributes_found)
 
         if len(missing_attributes) > 0:
             msg = f"""{"Attribute " if len(missing_attributes) == 1 else "Attributes "}
-                    {", ".join([str(attr) for attr in missing_attributes])} not found for the
-                    cohort."""
+                    {", ".join([str(attr) for attr in missing_attributes])} not found
+                    for the cohort."""
             raise ValueError(msg)
-
-        attribute_summary = {}
-
-        for attribute_name, attribute in attributes.items():
-            attribute_summary[attribute_name] = all_attribute_summary[attribute]
 
         return attribute_summary
