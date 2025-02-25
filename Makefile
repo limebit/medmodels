@@ -3,7 +3,8 @@ VENV_NAME?=.venv
 USER_PYTHON ?= python3
 VENV_PYTHON=${VENV_NAME}/bin/python
 VENV_UV=${VENV_NAME}/bin/uv
-UV_LOC := $(shell $(USER_PYTHON) -c "import importlib.util; print('uv' if importlib.util.find_spec('uv') else '.venv/bin/uv')")
+GLOBAL_PYTHON := $(shell $(USER_PYTHON) -c "import sys, os; print(os.path.join(sys.base_prefix, 'bin', 'python3') if sys.base_prefix != sys.prefix else sys.executable)")
+UV_LOC := $(shell $(GLOBAL_PYTHON) -c "import importlib.util; print('uv' if importlib.util.find_spec('uv') else '.venv/bin/uv')")
 
 .PHONY = prepare-venv install install-dev install-tests test lint format clean
 
@@ -24,26 +25,26 @@ else
 endif
 
 install: prepare-venv
-	${UV_LOC} pip install -U pip
+	${UV_LOC} sync
 	${UV_LOC} pip install -e .
 
 install-dev: prepare-venv
-	${UV_LOC} pip install -U pip
-	${UV_LOC} pip install -e .\[dev\]
+	${UV_LOC} sync  --extra dev
+	${UV_LOC} pip install -e .
 
 install-tests: prepare-venv
-	${UV_LOC} pip install -U pip
-	${UV_LOC} pip install -e .\[tests\]
+	${UV_LOC} sync --extra tests
+	${UV_LOC} pip install -e .
 
 install-docs: prepare-venv
-	${UV_LOC} pip install -U pip
-	${UV_LOC} pip install -e .\[docs\]
+	${UV_LOC} sync --extra docs
+	${UV_LOC} pip install -e .
 
 build-dev: install-dev
 	${UV_LOC} tool run maturin develop
 
 test: install-tests
-	${UV_LOC} tool run pytest -W error
+	${UV_LOC} run pytest -W error
 	cargo test
 
 docs: install-docs
@@ -58,12 +59,12 @@ docs-clean:
 lint: install-dev
 	${UV_LOC} tool run ruff check
 	${UV_LOC} tool run ruff check --select I
-	${UV_LOC} tool run pyright
+	${UV_LOC} run python -m pyright
 	cargo clippy --all-targets --all-features
 
 format: install-dev
-	${UV_LOC} ruff check --select I --fix
-	${UV_LOC} ruff format
+	${UV_LOC} tool run ruff check --select I --fix
+	${UV_LOC} tool run ruff format
 	cargo fmt
 	cargo clippy --all-features --fix --allow-staged
 

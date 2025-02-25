@@ -170,3 +170,10 @@ enableTypeIgnoreComments = false
 
 [tool.pytest]
 python_files = "test_*.py"
+
+[tool.uv]
+cache-keys = [
+    { file = "pyproject.toml" },
+    { file = "rust/Cargo.toml" },
+    { file = "**/*.rs" },
+]
