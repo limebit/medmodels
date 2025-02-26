@@ -4,7 +4,7 @@ use chrono::NaiveDateTime;
 use medmodels_core::{errors::MedRecordError, medrecord::MedRecordValue};
 use pyo3::{
     types::{PyAnyMethods, PyBool, PyDateTime, PyDelta, PyFloat, PyInt, PyString},
-    Bound, FromPyObject, IntoPy, PyAny, PyObject, PyResult, Python,
+    Bound, FromPyObject, IntoPyObject, IntoPyObjectExt, PyAny, PyErr, PyResult, Python,
 };
 use std::{ops::Deref, time::Duration};
 
@@ -122,16 +122,20 @@ impl FromPyObject<'_> for PyMedRecordValue {
     }
 }
 
-impl IntoPy<PyObject> for PyMedRecordValue {
-    fn into_py(self, py: Python<'_>) -> PyObject {
+impl<'py> IntoPyObject<'py> for PyMedRecordValue {
+    type Target = PyAny;
+    type Output = Bound<'py, Self::Target>;
+    type Error = PyErr;
+
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
         match self.0 {
-            MedRecordValue::String(value) => value.into_py(py),
-            MedRecordValue::Int(value) => value.into_py(py),
-            MedRecordValue::Float(value) => value.into_py(py),
-            MedRecordValue::Bool(value) => value.into_py(py),
-            MedRecordValue::DateTime(value) => value.into_py(py),
-            MedRecordValue::Duration(value) => value.into_py(py),
-            MedRecordValue::Null => py.None(),
+            MedRecordValue::String(value) => value.into_bound_py_any(py),
+            MedRecordValue::Int(value) => value.into_bound_py_any(py),
+            MedRecordValue::Float(value) => value.into_bound_py_any(py),
+            MedRecordValue::Bool(value) => value.into_bound_py_any(py),
+            MedRecordValue::DateTime(value) => value.into_bound_py_any(py),
+            MedRecordValue::Duration(value) => value.into_bound_py_any(py),
+            MedRecordValue::Null => py.None().into_bound_py_any(py),
         }
     }
 }
