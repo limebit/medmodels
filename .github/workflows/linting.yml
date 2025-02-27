@@ -16,24 +16,26 @@ jobs:
         uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
+          cache-dependency-glob: pyproject.toml
 
       - name: Set up Python 3.10
         uses: actions/setup-python@v5
         with:
           python-version: "3.10"
 
-      - name: Cache pip wheels
+      # Cache Cargo registry to avoid re-downloading dependencies
+      - name: Cache Cargo registry
         uses: actions/cache@v3
         with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Cargo.toml') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
+          path: ~/.cargo/registry
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
 
-      - name: Set up Rust
-        uses: dtolnay/rust-toolchain@stable
+      # Cache Cargo build artifacts to speed up compilation
+      - name: Cache Cargo build artifacts
+        uses: actions/cache@v3
         with:
-          components: clippy
+          path: target
+          key: ${{ runner.os }}-cargo-target-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Install dependencies
         run: |

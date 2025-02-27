@@ -1,9 +1,8 @@
 name: Format Pull Request
 
 on:
-  push:
-      branches:
-        - 251-implement-pypi-and-crates-caches-for-the-github-actions
+  pull_request:
+    types: [opened]
 
 jobs:
   format:
@@ -16,6 +15,7 @@ jobs:
         uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
+          cache-dependency-glob: pyproject.toml
 
       - name: Set up Python 3.10
         uses: actions/setup-python@v5
