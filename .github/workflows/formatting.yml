@@ -1,0 +1,31 @@
+name: Format Pull Request
+
+on:
+  push:
+      branches:
+        - 251-implement-pypi-and-crates-caches-for-the-github-actions
+
+jobs:
+  format:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Install dependencies
+        run: uv sync --extra dev
+      - name: Format with ruff
+        run: uv tool run ruff format --check
+      - name: Format with rustfmt
+        run: cargo fmt -- --check
