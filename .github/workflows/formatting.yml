@@ -11,20 +11,35 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
       - name: Install uv
         uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
+
       - name: Set up Python 3.10
         uses: actions/setup-python@v5
         with:
           python-version: "3.10"
+
+      - name: Cache pip wheels
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Cargo.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@stable
         with:
-          components: rustfmt
+          components: clippy
+
       - name: Install dependencies
-        run: uv sync --extra dev
+        run: |
+          uv sync --extra dev
+          uv pip install .
+
       - name: Format with ruff
         run: uv tool run ruff format --check
       - name: Format with rustfmt
