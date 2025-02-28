@@ -2,9 +2,8 @@ name: Tests
 
 on:
   push:
-    branches:
-        - 251-implement-pypi-and-crates-caches-for-the-github-actions
-
+    branches: [main]
+  pull_request:
 
 jobs:
   test:
@@ -23,14 +22,12 @@ jobs:
           cache-dependency-glob: pyproject.toml
           python-version: ${{ matrix.python-version }}
 
-      # Cache Cargo registry to avoid re-downloading dependencies
       - name: Cache Cargo registry
         uses: actions/cache@v3
         with:
           path: ~/.cargo/registry
           key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
 
-      # Cache Cargo build artifacts to speed up compilation
       - name: Cache Cargo build artifacts
         uses: actions/cache@v3
         with:
