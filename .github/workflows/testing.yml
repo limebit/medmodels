@@ -1,13 +1,17 @@
-name: Format Pull Request
+name: Tests
 
 on:
   push:
-      branches:
+    branches:
         - 251-implement-pypi-and-crates-caches-for-the-github-actions
 
+
 jobs:
-  format:
+  test:
     runs-on: ubuntu-22.04
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
 
     steps:
       - uses: actions/checkout@v4
@@ -17,11 +21,7 @@ jobs:
         with:
           enable-cache: true
           cache-dependency-glob: pyproject.toml
-
-      - name: Set up Python 3.10
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.10"
+          python-version: ${{ matrix.python-version }}
 
       # Cache Cargo registry to avoid re-downloading dependencies
       - name: Cache Cargo registry
@@ -37,17 +37,18 @@ jobs:
           path: target
           key: ${{ runner.os }}-cargo-target-${{ hashFiles('**/Cargo.lock') }}
 
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@stable
-        with:
-          components: clippy
-
       - name: Install dependencies
         run: |
-          uv sync --extra dev
+          uv sync --extra tests
           uv pip install .
 
-      - name: Format with ruff
-        run: uv tool run ruff format --check
-      - name: Format with rustfmt
-        run: cargo fmt -- --check
+      - name: Run tests
+        run: |
+          uv run pytest
+          cargo test
