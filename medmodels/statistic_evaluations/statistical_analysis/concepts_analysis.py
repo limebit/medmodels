@@ -1,10 +1,11 @@
 """Module for analyzing concepts and their distribution."""
 
 import operator
+from tqdm import tqdm
 from typing import Dict, List, Tuple
 
 from medmodels.medrecord import MedRecord
-from medmodels.medrecord.medrecord import EdgesDirected
+from medmodels.medrecord.querying import EdgeOperand
 from medmodels.medrecord.types import Group, NodeIndex
 
 
@@ -27,13 +28,17 @@ def count_concept_connections(
 
     concept_nodes = medrecord.group(concept)["nodes"]
 
-    for concept_node in concept_nodes:
+    def test_one(edge: EdgeOperand):
+        edge.source_node().in_group(cohort)
+        edge.target_node().index().equal_to(concept_node)
+
+    def test_two(edge: EdgeOperand):
+        edge.target_node().in_group(cohort)
+        edge.source_node().index().equal_to(concept_node)
+
+    for concept_node in tqdm(concept_nodes, desc="Getting concept counts"):
         concept_counts[concept_node] = len(
-            medrecord.edges_connecting(
-                medrecord.group(cohort)["nodes"],
-                concept_node,
-                directed=EdgesDirected.UNDIRECTED,
-            )
+            medrecord.select_edges(lambda edge: edge.either_or(test_one, test_two))
         )
 
     return concept_counts

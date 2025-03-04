@@ -1,6 +1,11 @@
 # ruff: noqa: D100, D103, T201
 from typing import Dict, List, Optional, Tuple, TypedDict
 
+import matplotlib.pyplot as plt
+import numpy as np
+from matplotlib.axes import Axes
+from matplotlib.figure import Figure
+
 from medmodels.medrecord.schema import AttributeType
 from medmodels.medrecord.types import (
     AttributeSummary,
@@ -25,7 +30,7 @@ class CohortSummary(TypedDict):
 
     attribute_info: Dict[Group, AttributeSummary]
     concept_attribute_info: Dict[Group, AttributeSummary]
-    top_k_concepts: Dict[Group, List[NodeIndex]]
+    top_k_concepts: List[Tuple[NodeIndex, int]]
 
 
 class DistanceSummary(TypedDict):
@@ -249,6 +254,71 @@ class CohortComparer:
             )
 
         return None
+
+    @staticmethod
+    def plot_top_k_concepts(
+        cohorts: List[CohortEvaluator],
+        top_k: int = 10,
+    ) -> Tuple[Figure, Axes]:
+        """Plot the top k concepts for each cohort and return the figure and axis.
+
+        Args:
+            cohorts (List[CohortEvaluator]): List of cohorts to compare.
+            top_k (int): Number of top concepts to show.
+
+        Returns:
+            Tuple[Figure, Axes]: Figure and axis of the plot.
+        """
+        # Get all concept ids of first cohort
+        top_k_tuple = cohorts[0].get_top_k_concepts(top_k=top_k)
+        top_k_ids = [concept[0] for concept in top_k_tuple]
+
+        top_k_all = {
+            cohort.name: {
+                concept_id: freq / len(cohort.medrecord.edges) * 100
+                for concept_id, freq in cohort.get_top_k_concepts(top_k=top_k * 10)
+            }
+            for cohort in cohorts
+        }
+
+        # Filter to only the top_k_ids from the first cohort
+        cohort_frequencies = {
+            cohort.name: {
+                concept_id: top_k_all[cohort.name].get(concept_id, 0)
+                for concept_id in top_k_ids
+            }
+            for cohort in cohorts
+        }
+
+        # Define bar width
+        num_cohorts = len(cohorts)
+        width = 0.8 / max(num_cohorts, 1)  # Prevent division by zero
+
+        # Generate x-axis positions
+        x = np.arange(len(top_k_ids))
+        fig, ax = plt.subplots(figsize=(20, 6))
+
+        for i, (name, frequencies) in enumerate(cohort_frequencies.items()):
+            ax.bar(
+                x + (i - num_cohorts / 2) * width,
+                list(frequencies.values()),
+                width=width,
+                label=name,
+                alpha=0.7,
+            )
+
+        # Set categorical labels
+        ax.set_xticks(x)
+        ax.set_xticklabels(top_k_ids, rotation=45, ha="right")  # pyright: ignore[reportArgumentType]
+
+        # Labels and legend
+        ax.set_xlabel("Concept")
+        ax.set_ylabel("Frequency")
+        ax.set_title(f"Comparison of Top {top_k} Concepts Across Cohorts")
+        ax.legend()
+
+        # Return figure and axis for further customization
+        return fig, ax
 
     @staticmethod
     def compare_cohorts(

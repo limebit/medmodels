@@ -405,9 +405,10 @@ def calculate_datetime_mean(attribute_values: List[datetime]) -> datetime:
     Returns:
         datetime: Mean of the datetime list.
     """
-    min_value = np.datetime64(min(attribute_values))
-    timedeltas = [(np.datetime64(value) - min_value) for value in attribute_values]
-    return (min_value + np.mean(timedeltas)).astype(datetime)
+    timestamps = [dt.timestamp() for dt in attribute_values]
+    mean_timestamp = sum(timestamps) / len(timestamps)
+
+    return datetime.fromtimestamp(mean_timestamp)
 
 
 @overload

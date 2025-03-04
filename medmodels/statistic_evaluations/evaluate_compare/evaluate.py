@@ -211,7 +211,7 @@ class CohortEvaluator:
             if connected_group:
                 concepts_connecting[group_name] = connected_group[0]
 
-            # add group for easier retrievallater if it doesn't exist
+            # add group for easier retrieval later if it doesn't exist
             else:
                 self.medrecord.add_group(
                     group=f"{group}-{patient_group}", edges=group_patient_edges
