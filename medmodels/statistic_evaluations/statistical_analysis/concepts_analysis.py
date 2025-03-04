@@ -1,6 +1,7 @@
 """Module for analyzing concepts and their distribution."""
 
 import operator
+from tqdm import tqdm
 from typing import Dict, List, Tuple
 
 from medmodels.medrecord import MedRecord
@@ -27,7 +28,7 @@ def count_concept_connections(
 
     concept_nodes = medrecord.group(concept)["nodes"]
 
-    for concept_node in concept_nodes:
+    for concept_node in tqdm(concept_nodes, desc="Getting concept counts"):
         concept_counts[concept_node] = len(
             medrecord.edges_connecting(
                 medrecord.group(cohort)["nodes"],
