@@ -104,9 +104,9 @@ impl Display for DataType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             DataType::String => write!(f, "String"),
-            DataType::Int => write!(f, "Integer"),
+            DataType::Int => write!(f, "Int"),
             DataType::Float => write!(f, "Float"),
-            DataType::Bool => write!(f, "Boolean"),
+            DataType::Bool => write!(f, "Bool"),
             DataType::DateTime => write!(f, "DateTime"),
             DataType::Duration => write!(f, "Duration"),
             DataType::Null => write!(f, "Null"),
@@ -376,14 +376,14 @@ mod test {
     #[test]
     fn test_display() {
         assert_eq!("String", format!("{}", DataType::String));
-        assert_eq!("Integer", format!("{}", DataType::Int));
+        assert_eq!("Int", format!("{}", DataType::Int));
         assert_eq!("Float", format!("{}", DataType::Float));
-        assert_eq!("Boolean", format!("{}", DataType::Bool));
+        assert_eq!("Bool", format!("{}", DataType::Bool));
         assert_eq!("DateTime", format!("{}", DataType::DateTime));
         assert_eq!("Null", format!("{}", DataType::Null));
         assert_eq!("Any", format!("{}", DataType::Any));
         assert_eq!(
-            "Union[String, Integer]",
+            "Union[String, Int]",
             format!(
                 "{}",
                 DataType::Union((Box::new(DataType::String), Box::new(DataType::Int)))
