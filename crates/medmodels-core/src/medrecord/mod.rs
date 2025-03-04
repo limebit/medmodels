@@ -30,7 +30,7 @@ pub use self::{
         },
         wrapper::{CardinalityWrapper, Wrapper},
     },
-    schema::{AttributeDataType, AttributeType, GroupSchema, Schema, SchemaType},
+    schema::{AttributeDataType, AttributeSchema, AttributeType, GroupSchema, Schema, SchemaType},
 };
 use crate::errors::MedRecordError;
 use ::polars::frame::DataFrame;
@@ -806,7 +806,7 @@ mod test {
     use super::{Attributes, DataType, MedRecord, MedRecordAttribute, NodeIndex};
     use crate::{
         errors::MedRecordError,
-        medrecord::schema::{GroupSchema, Schema},
+        medrecord::schema::{AttributeSchema, GroupSchema, Schema},
     };
     use polars::prelude::{DataFrame, NamedFrom, PolarsError, Series};
     use std::{collections::HashMap, fs};
@@ -972,8 +972,8 @@ mod test {
         let schema = Schema::new_provided(
             Default::default(),
             GroupSchema::new(
-                HashMap::from([("attribute".into(), DataType::Int.into())]),
-                HashMap::from([("attribute".into(), DataType::Int.into())]),
+                AttributeSchema::from([("attribute".into(), DataType::Int.into())]),
+                AttributeSchema::from([("attribute".into(), DataType::Int.into())]),
             ),
         );
 
@@ -993,8 +993,8 @@ mod test {
         let schema = Schema::new_provided(
             Default::default(),
             GroupSchema::new(
-                HashMap::from([("attribute".into(), DataType::Int.into())]),
-                HashMap::from([("attribute".into(), DataType::Int.into())]),
+                AttributeSchema::from([("attribute".into(), DataType::Int.into())]),
+                AttributeSchema::from([("attribute".into(), DataType::Int.into())]),
             ),
         );
 

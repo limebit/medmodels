@@ -146,12 +146,14 @@ impl PyGroupSchema {
             .into_iter()
             .map(|(k, v)| Ok((k.into(), v.try_into()?)))
             .collect::<Result<HashMap<_, _>, GraphError>>()
-            .map_err(PyMedRecordError::from)?;
+            .map_err(PyMedRecordError::from)?
+            .into();
         let edges = edges
             .into_iter()
             .map(|(k, v)| Ok((k.into(), v.try_into()?)))
             .collect::<Result<HashMap<_, _>, GraphError>>()
-            .map_err(PyMedRecordError::from)?;
+            .map_err(PyMedRecordError::from)?
+            .into();
 
         Ok(Self(GroupSchema::new(nodes, edges)))
     }
