@@ -27,6 +27,7 @@ from medmodels.medrecord.datatype import (
     Duration,
     Float,
     Int,
+    Null,
     Option,
 )
 from medmodels.medrecord.datatype import (
@@ -151,6 +152,7 @@ CategoricalPair: TypeAlias = Tuple[CategoricalType, Literal[AttributeType.Catego
 ContinuousType: TypeAlias = Union[
     Int,
     Float,
+    Null,
     Option["ContinuousType"],
     DataTypeUnion["ContinuousType", "ContinuousType"],
 ]
@@ -159,6 +161,7 @@ ContinuousPair: TypeAlias = Tuple[ContinuousType, Literal[AttributeType.Continuo
 TemporalType = Union[
     DateTime,
     Duration,
+    Null,
     Option["TemporalType"],
     DataTypeUnion["TemporalType", "TemporalType"],
 ]

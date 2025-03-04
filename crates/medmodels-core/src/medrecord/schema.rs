@@ -76,12 +76,14 @@ impl AttributeDataType {
                 Self::validate(second_datatype, attribute_type)
             }
 
-            (AttributeType::Continuous, DataType::Int | DataType::Float) => Ok(()),
+            (AttributeType::Continuous, DataType::Int | DataType::Float | DataType::Null) => Ok(()),
             (AttributeType::Continuous, _) => Err(GraphError::SchemaError(
                 "Continuous attribute must be of (sub-)type Int or Float.".to_string(),
             )),
 
-            (AttributeType::Temporal, DataType::DateTime | DataType::Duration) => Ok(()),
+            (AttributeType::Temporal, DataType::DateTime | DataType::Duration | DataType::Null) => {
+                Ok(())
+            }
             (AttributeType::Temporal, _) => Err(GraphError::SchemaError(
                 "Temporal attribute must be of (sub-)type DateTime or Duration.".to_string(),
             )),
@@ -260,31 +262,6 @@ impl GroupSchema {
         Self::validate_attribute_schema(attributes, &self.edges, AttributeSchemaKind::Edge(index))
     }
 
-    pub(crate) fn infer(nodes: Vec<&Attributes>, edges: Vec<&Attributes>) -> Self {
-        Self {
-            nodes: Self::infer_attribute_schema(nodes),
-            edges: Self::infer_attribute_schema(edges),
-        }
-    }
-
-    pub(crate) fn update_node(&mut self, attributes: &Attributes) {
-        Self::update_attribute_schema(attributes, &mut self.nodes);
-    }
-
-    pub(crate) fn update_edge(&mut self, attributes: &Attributes) {
-        Self::update_attribute_schema(attributes, &mut self.edges);
-    }
-
-    fn infer_attribute_schema(attributes: Vec<&Attributes>) -> AttributeSchema {
-        let mut schema = AttributeSchema::new();
-
-        for attributes in attributes {
-            Self::update_attribute_schema(attributes, &mut schema);
-        }
-
-        schema
-    }
-
     fn update_attribute_schema(attributes: &Attributes, schema: &mut AttributeSchema) {
         for (attribute, value) in attributes {
             let data_type = DataType::from(value);
@@ -308,6 +285,31 @@ impl GroupSchema {
                 data_type.data_type = data_type.data_type.merge(&DataType::Null);
             }
         }
+    }
+
+    fn infer_attribute_schema(attributes: Vec<&Attributes>) -> AttributeSchema {
+        let mut schema = AttributeSchema::new();
+
+        for attributes in attributes {
+            Self::update_attribute_schema(attributes, &mut schema);
+        }
+
+        schema
+    }
+
+    pub(crate) fn infer(nodes: Vec<&Attributes>, edges: Vec<&Attributes>) -> Self {
+        Self {
+            nodes: Self::infer_attribute_schema(nodes),
+            edges: Self::infer_attribute_schema(edges),
+        }
+    }
+
+    pub(crate) fn update_node(&mut self, attributes: &Attributes) {
+        Self::update_attribute_schema(attributes, &mut self.nodes);
+    }
+
+    pub(crate) fn update_edge(&mut self, attributes: &Attributes) {
+        Self::update_attribute_schema(attributes, &mut self.edges);
     }
 }
 
@@ -648,5 +650,466 @@ impl Schema {
 
     pub fn unfreeze(&mut self) {
         self.schema_type = SchemaType::Inferred;
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::{AttributeDataType, GroupSchema};
+    use crate::medrecord::{
+        schema::{AttributeSchema, AttributeSchemaKind},
+        AttributeType, Attributes, DataType,
+    };
+    use std::collections::HashMap;
+
+    #[test]
+    fn test_attribute_type_infer() {
+        assert_eq!(
+            AttributeType::infer(&DataType::String),
+            AttributeType::Unstructured
+        );
+        assert_eq!(
+            AttributeType::infer(&DataType::Int),
+            AttributeType::Continuous
+        );
+        assert_eq!(
+            AttributeType::infer(&DataType::Float),
+            AttributeType::Continuous
+        );
+        assert_eq!(
+            AttributeType::infer(&DataType::Bool),
+            AttributeType::Categorical
+        );
+        assert_eq!(
+            AttributeType::infer(&DataType::DateTime),
+            AttributeType::Temporal
+        );
+        assert_eq!(
+            AttributeType::infer(&DataType::Duration),
+            AttributeType::Continuous
+        );
+        assert_eq!(
+            AttributeType::infer(&DataType::Null),
+            AttributeType::Unstructured
+        );
+        assert_eq!(
+            AttributeType::infer(&DataType::Any),
+            AttributeType::Unstructured
+        );
+        assert_eq!(
+            AttributeType::infer(&DataType::Union((
+                Box::new(DataType::Int),
+                Box::new(DataType::Float)
+            ))),
+            AttributeType::Continuous
+        );
+        assert_eq!(
+            AttributeType::infer(&DataType::Option(Box::new(DataType::Int))),
+            AttributeType::Continuous
+        );
+    }
+
+    #[test]
+    fn test_attribute_type_merge() {
+        assert_eq!(
+            AttributeType::Categorical.merge(&AttributeType::Categorical),
+            AttributeType::Categorical
+        );
+        assert_eq!(
+            AttributeType::Continuous.merge(&AttributeType::Continuous),
+            AttributeType::Continuous
+        );
+        assert_eq!(
+            AttributeType::Temporal.merge(&AttributeType::Temporal),
+            AttributeType::Temporal
+        );
+        assert_eq!(
+            AttributeType::Categorical.merge(&AttributeType::Continuous),
+            AttributeType::Unstructured
+        );
+        assert_eq!(
+            AttributeType::Categorical.merge(&AttributeType::Temporal),
+            AttributeType::Unstructured
+        );
+        assert_eq!(
+            AttributeType::Continuous.merge(&AttributeType::Temporal),
+            AttributeType::Unstructured
+        );
+    }
+
+    #[test]
+    fn test_data_type_merge() {
+        assert_eq!(DataType::Int.merge(&DataType::Int), DataType::Int);
+        assert_eq!(
+            DataType::Int.merge(&DataType::Float),
+            DataType::Union((Box::new(DataType::Int), Box::new(DataType::Float)))
+        );
+        assert_eq!(
+            DataType::Int.merge(&DataType::Null),
+            DataType::Option(Box::new(DataType::Int))
+        );
+        assert_eq!(
+            DataType::Null.merge(&DataType::Int),
+            DataType::Option(Box::new(DataType::Int))
+        );
+        assert_eq!(DataType::Null.merge(&DataType::Null), DataType::Null);
+        assert_eq!(DataType::Int.merge(&DataType::Any), DataType::Any);
+        assert_eq!(DataType::Any.merge(&DataType::Int), DataType::Any);
+    }
+
+    #[test]
+    fn test_attribute_data_type_new() {
+        assert!(AttributeDataType::new(DataType::String, AttributeType::Categorical).is_ok());
+        assert!(AttributeDataType::new(DataType::String, AttributeType::Continuous).is_err());
+        assert!(AttributeDataType::new(DataType::String, AttributeType::Temporal).is_err());
+        assert!(AttributeDataType::new(DataType::String, AttributeType::Unstructured).is_ok());
+
+        assert!(AttributeDataType::new(DataType::Int, AttributeType::Categorical).is_ok());
+        assert!(AttributeDataType::new(DataType::Int, AttributeType::Continuous).is_ok());
+        assert!(AttributeDataType::new(DataType::Int, AttributeType::Temporal).is_err());
+        assert!(AttributeDataType::new(DataType::Int, AttributeType::Unstructured).is_ok());
+
+        assert!(AttributeDataType::new(DataType::Float, AttributeType::Categorical).is_ok());
+        assert!(AttributeDataType::new(DataType::Float, AttributeType::Continuous).is_ok());
+        assert!(AttributeDataType::new(DataType::Float, AttributeType::Temporal).is_err());
+        assert!(AttributeDataType::new(DataType::Float, AttributeType::Unstructured).is_ok());
+
+        assert!(AttributeDataType::new(DataType::Bool, AttributeType::Categorical).is_ok());
+        assert!(AttributeDataType::new(DataType::Bool, AttributeType::Continuous).is_err());
+        assert!(AttributeDataType::new(DataType::Bool, AttributeType::Temporal).is_err());
+        assert!(AttributeDataType::new(DataType::Bool, AttributeType::Unstructured).is_ok());
+
+        assert!(AttributeDataType::new(DataType::DateTime, AttributeType::Categorical).is_ok());
+        assert!(AttributeDataType::new(DataType::DateTime, AttributeType::Continuous).is_err());
+        assert!(AttributeDataType::new(DataType::DateTime, AttributeType::Temporal).is_ok());
+        assert!(AttributeDataType::new(DataType::DateTime, AttributeType::Unstructured).is_ok());
+
+        assert!(AttributeDataType::new(DataType::Duration, AttributeType::Categorical).is_ok());
+        assert!(AttributeDataType::new(DataType::Duration, AttributeType::Continuous).is_err());
+        assert!(AttributeDataType::new(DataType::Duration, AttributeType::Temporal).is_ok());
+        assert!(AttributeDataType::new(DataType::Duration, AttributeType::Unstructured).is_ok());
+
+        assert!(AttributeDataType::new(DataType::Null, AttributeType::Categorical).is_ok());
+        assert!(AttributeDataType::new(DataType::Null, AttributeType::Continuous).is_ok());
+        assert!(AttributeDataType::new(DataType::Null, AttributeType::Temporal).is_ok());
+        assert!(AttributeDataType::new(DataType::Null, AttributeType::Unstructured).is_ok());
+
+        assert!(AttributeDataType::new(DataType::Any, AttributeType::Categorical).is_ok());
+        assert!(AttributeDataType::new(DataType::Any, AttributeType::Continuous).is_err());
+        assert!(AttributeDataType::new(DataType::Any, AttributeType::Temporal).is_err());
+        assert!(AttributeDataType::new(DataType::Any, AttributeType::Unstructured).is_ok());
+
+        assert!(AttributeDataType::new(
+            DataType::Option(Box::new(DataType::Int)),
+            AttributeType::Categorical
+        )
+        .is_ok());
+        assert!(AttributeDataType::new(
+            DataType::Option(Box::new(DataType::Int)),
+            AttributeType::Continuous
+        )
+        .is_ok());
+        assert!(AttributeDataType::new(
+            DataType::Option(Box::new(DataType::Int)),
+            AttributeType::Temporal
+        )
+        .is_err());
+        assert!(AttributeDataType::new(
+            DataType::Option(Box::new(DataType::Int)),
+            AttributeType::Unstructured
+        )
+        .is_ok());
+
+        assert!(AttributeDataType::new(
+            DataType::Union((Box::new(DataType::Int), Box::new(DataType::Float))),
+            AttributeType::Categorical
+        )
+        .is_ok());
+        assert!(AttributeDataType::new(
+            DataType::Union((Box::new(DataType::Int), Box::new(DataType::Float))),
+            AttributeType::Continuous
+        )
+        .is_ok());
+        assert!(AttributeDataType::new(
+            DataType::Union((Box::new(DataType::Int), Box::new(DataType::Float))),
+            AttributeType::Temporal
+        )
+        .is_err());
+        assert!(AttributeDataType::new(
+            DataType::Union((Box::new(DataType::Int), Box::new(DataType::Float))),
+            AttributeType::Unstructured
+        )
+        .is_ok());
+    }
+
+    #[test]
+    fn test_attribute_data_type_data_type() {
+        let attribute_data_type = AttributeDataType::new(DataType::Int, AttributeType::Categorical)
+            .expect("AttributeType was infered from DataType.");
+
+        assert_eq!(attribute_data_type.data_type(), &DataType::Int);
+    }
+
+    #[test]
+    fn test_attribute_data_type_attribute_type() {
+        let attribute_data_type = AttributeDataType::new(DataType::Int, AttributeType::Categorical)
+            .expect("AttributeType was infered from DataType.");
+
+        assert_eq!(
+            attribute_data_type.attribute_type(),
+            &AttributeType::Categorical
+        );
+    }
+
+    #[test]
+    fn test_attribute_data_type_merge() {
+        let mut attribute_data_type =
+            AttributeDataType::new(DataType::Int, AttributeType::Categorical)
+                .expect("AttributeType was infered from DataType.");
+
+        attribute_data_type.merge(
+            &AttributeDataType::new(DataType::Float, AttributeType::Continuous)
+                .expect("AttributeType was infered from DataType."),
+        );
+
+        assert_eq!(
+            attribute_data_type.data_type(),
+            &DataType::Union((Box::new(DataType::Int), Box::new(DataType::Float)))
+        );
+        assert_eq!(
+            attribute_data_type.attribute_type(),
+            &AttributeType::Unstructured
+        );
+    }
+
+    #[test]
+    fn test_attribute_data_type_from_data_type() {
+        let attribute_data_type: AttributeDataType = DataType::Int.into();
+
+        assert_eq!(attribute_data_type.data_type(), &DataType::Int);
+        assert_eq!(
+            attribute_data_type.attribute_type(),
+            &AttributeType::Continuous
+        );
+    }
+
+    #[test]
+    fn test_attribute_data_type_from_tuple() {
+        let attribute_data_type: AttributeDataType =
+            (DataType::Int, AttributeType::Categorical).into();
+
+        assert_eq!(attribute_data_type.data_type(), &DataType::Int);
+        assert_eq!(
+            attribute_data_type.attribute_type(),
+            &AttributeType::Categorical
+        );
+    }
+
+    #[test]
+    fn test_attribute_schema_kind_error_message() {
+        let index = 0;
+        let key = "key";
+        let data_type = DataType::Int;
+
+        assert_eq!(
+            AttributeSchemaKind::Node(&(index.into())).error_message(&(key.into()), &data_type),
+            "Attribute key of type Int not found on node with index 0"
+        );
+        assert_eq!(
+            AttributeSchemaKind::Edge(&(index as u32)).error_message(&(key.into()), &data_type),
+            "Attribute key of type Int not found on edge with index 0"
+        );
+    }
+
+    #[test]
+    fn test_attribute_schema_kind_error_message_expected() {
+        let index = 0;
+        let key = "key";
+        let data_type = DataType::Int;
+        let expected_data_type = DataType::Float;
+
+        assert_eq!(
+            AttributeSchemaKind::Node(&(index.into())).error_message_expected(
+                &(key.into()),
+                &data_type,
+                &expected_data_type
+            ),
+            "Attribute key of node with index 0 is of type Int. Expected Float."
+        );
+        assert_eq!(
+            AttributeSchemaKind::Edge(&(index as u32)).error_message_expected(
+                &(key.into()),
+                &data_type,
+                &expected_data_type
+            ),
+            "Attribute key of node with index 0 is of type Int. Expected Float."
+        );
+    }
+
+    #[test]
+    fn test_attribute_schema_kind_error_message_too_many() {
+        let index = 0;
+        let attributes = vec!["key1".to_string(), "key2".to_string()];
+
+        assert_eq!(
+            AttributeSchemaKind::Node(&(index.into())).error_message_too_many(attributes.clone()),
+            "Attributes [key1, key2] of node with index 0 do not exist in schema."
+        );
+        assert_eq!(
+            AttributeSchemaKind::Edge(&(index as u32)).error_message_too_many(attributes),
+            "Attributes [key1, key2] of edge with index 0 do not exist in schema."
+        );
+    }
+
+    #[test]
+    fn test_group_schema_nodes() {
+        let nodes: AttributeSchema = vec![
+            (
+                "key1".into(),
+                AttributeDataType::new(DataType::Int, AttributeType::Categorical)
+                    .expect("AttributeType was infered from DataType."),
+            ),
+            (
+                "key2".into(),
+                AttributeDataType::new(DataType::Float, AttributeType::Continuous)
+                    .expect("AttributeType was infered from DataType."),
+            ),
+        ]
+        .into_iter()
+        .collect();
+
+        let group_schema = GroupSchema::new(nodes.clone(), HashMap::new());
+
+        assert_eq!(group_schema.nodes(), &nodes);
+    }
+
+    #[test]
+    fn test_group_schema_edges() {
+        let edges: AttributeSchema = vec![
+            (
+                "key1".into(),
+                AttributeDataType::new(DataType::Int, AttributeType::Categorical)
+                    .expect("AttributeType was infered from DataType."),
+            ),
+            (
+                "key2".into(),
+                AttributeDataType::new(DataType::Float, AttributeType::Continuous)
+                    .expect("AttributeType was infered from DataType."),
+            ),
+        ]
+        .into_iter()
+        .collect();
+
+        let group_schema = GroupSchema::new(HashMap::new(), edges.clone());
+
+        assert_eq!(group_schema.edges(), &edges);
+    }
+
+    #[test]
+    fn test_group_schema_validate_attribute_schema() {
+        let attributes: Attributes = vec![("key1".into(), 0.into()), ("key2".into(), 0.0.into())]
+            .into_iter()
+            .collect();
+
+        let attribute_schema = vec![
+            (
+                "key1".into(),
+                AttributeDataType::new(DataType::Int, AttributeType::Categorical)
+                    .expect("AttributeType was infered from DataType."),
+            ),
+            (
+                "key2".into(),
+                AttributeDataType::new(DataType::Float, AttributeType::Continuous)
+                    .expect("AttributeType was infered from DataType."),
+            ),
+        ]
+        .into_iter()
+        .collect();
+
+        assert!(GroupSchema::validate_attribute_schema(
+            &attributes,
+            &attribute_schema,
+            AttributeSchemaKind::Node(&0.into()),
+        )
+        .is_ok());
+
+        let attributes: Attributes = vec![("key1".into(), 0.0.into()), ("key2".into(), 0.into())]
+            .into_iter()
+            .collect();
+
+        assert!(GroupSchema::validate_attribute_schema(
+            &attributes,
+            &attribute_schema,
+            AttributeSchemaKind::Node(&0.into()),
+        )
+        .is_err_and(|error| matches!(error, crate::errors::GraphError::SchemaError(_))));
+    }
+
+    #[test]
+    fn test_group_schema_validate_node() {
+        let nodes: AttributeSchema = vec![
+            (
+                "key1".into(),
+                AttributeDataType::new(DataType::Int, AttributeType::Categorical)
+                    .expect("AttributeType was infered from DataType."),
+            ),
+            (
+                "key2".into(),
+                AttributeDataType::new(DataType::Float, AttributeType::Continuous)
+                    .expect("AttributeType was infered from DataType."),
+            ),
+        ]
+        .into_iter()
+        .collect();
+
+        let group_schema = GroupSchema::new(nodes, HashMap::new());
+
+        let attributes: Attributes = vec![("key1".into(), 0.into()), ("key2".into(), 0.0.into())]
+            .into_iter()
+            .collect();
+
+        assert!(group_schema.validate_node(&0.into(), &attributes).is_ok());
+
+        let attributes: Attributes = vec![("key1".into(), 0.0.into()), ("key2".into(), 0.into())]
+            .into_iter()
+            .collect();
+
+        assert!(group_schema
+            .validate_node(&0.into(), &attributes)
+            .is_err_and(|error| { matches!(error, crate::errors::GraphError::SchemaError(_)) }));
+    }
+
+    #[test]
+    fn test_group_schema_validate_edge() {
+        let edges: AttributeSchema = vec![
+            (
+                "key1".into(),
+                AttributeDataType::new(DataType::Int, AttributeType::Categorical)
+                    .expect("AttributeType was infered from DataType."),
+            ),
+            (
+                "key2".into(),
+                AttributeDataType::new(DataType::Float, AttributeType::Continuous)
+                    .expect("AttributeType was infered from DataType."),
+            ),
+        ]
+        .into_iter()
+        .collect();
+
+        let group_schema = GroupSchema::new(HashMap::new(), edges);
+
+        let attributes: Attributes = vec![("key1".into(), 0.into()), ("key2".into(), 0.0.into())]
+            .into_iter()
+            .collect();
+
+        assert!(group_schema.validate_edge(&0, &attributes).is_ok());
+
+        let attributes: Attributes = vec![("key1".into(), 0.0.into()), ("key2".into(), 0.into())]
+            .into_iter()
+            .collect();
+
+        assert!(group_schema
+            .validate_edge(&0, &attributes)
+            .is_err_and(|error| { matches!(error, crate::errors::GraphError::SchemaError(_)) }));
     }
 }
