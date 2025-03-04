@@ -7,8 +7,11 @@ use super::{
     traits::{DeepFrom, DeepInto},
     PyAttributes, PyGroup, PyMedRecord, PyNodeIndex,
 };
-use medmodels_core::medrecord::{
-    AttributeDataType, AttributeType, EdgeIndex, Group, GroupSchema, Schema, SchemaType,
+use medmodels_core::{
+    errors::GraphError,
+    medrecord::{
+        AttributeDataType, AttributeType, EdgeIndex, Group, GroupSchema, Schema, SchemaType,
+    },
 };
 use pyo3::prelude::*;
 
@@ -67,20 +70,16 @@ impl From<AttributeDataType> for PyAttributeDataType {
     }
 }
 
-impl From<PyAttributeDataType> for AttributeDataType {
-    fn from(value: PyAttributeDataType) -> Self {
+impl TryFrom<PyAttributeDataType> for AttributeDataType {
+    type Error = GraphError;
+
+    fn try_from(value: PyAttributeDataType) -> Result<Self, Self::Error> {
         Self::new(value.data_type.into(), value.attribute_type.into())
     }
 }
 
 impl DeepFrom<AttributeDataType> for PyAttributeDataType {
     fn deep_from(value: AttributeDataType) -> Self {
-        value.into()
-    }
-}
-
-impl DeepFrom<PyAttributeDataType> for AttributeDataType {
-    fn deep_from(value: PyAttributeDataType) -> Self {
         value.into()
     }
 }
@@ -142,8 +141,19 @@ impl PyGroupSchema {
     pub fn new(
         nodes: HashMap<PyMedRecordAttribute, PyAttributeDataType>,
         edges: HashMap<PyMedRecordAttribute, PyAttributeDataType>,
-    ) -> Self {
-        Self(GroupSchema::new(nodes.deep_into(), edges.deep_into()))
+    ) -> PyResult<Self> {
+        let nodes = nodes
+            .into_iter()
+            .map(|(k, v)| Ok((k.into(), v.try_into()?)))
+            .collect::<Result<HashMap<_, _>, GraphError>>()
+            .map_err(PyMedRecordError::from)?;
+        let edges = edges
+            .into_iter()
+            .map(|(k, v)| Ok((k.into(), v.try_into()?)))
+            .collect::<Result<HashMap<_, _>, GraphError>>()
+            .map_err(PyMedRecordError::from)?;
+
+        Ok(Self(GroupSchema::new(nodes, edges)))
     }
 
     #[getter]
@@ -302,13 +312,16 @@ impl PySchema {
         data_type: PyDataType,
         attribute_type: PyAttributeType,
         group: Option<PyGroup>,
-    ) {
-        self.0.set_node_attribute(
-            &attribute.into(),
-            data_type.into(),
-            attribute_type.into(),
-            group.map(|g| g.into()).as_ref(),
-        );
+    ) -> PyResult<()> {
+        Ok(self
+            .0
+            .set_node_attribute(
+                &attribute.into(),
+                data_type.into(),
+                attribute_type.into(),
+                group.map(|g| g.into()).as_ref(),
+            )
+            .map_err(PyMedRecordError::from)?)
     }
 
     #[pyo3(signature = (attribute, data_type, attribute_type, group=None))]
@@ -318,13 +331,16 @@ impl PySchema {
         data_type: PyDataType,
         attribute_type: PyAttributeType,
         group: Option<PyGroup>,
-    ) {
-        self.0.set_edge_attribute(
-            &attribute.into(),
-            data_type.into(),
-            attribute_type.into(),
-            group.map(|g| g.into()).as_ref(),
-        );
+    ) -> PyResult<()> {
+        Ok(self
+            .0
+            .set_edge_attribute(
+                &attribute.into(),
+                data_type.into(),
+                attribute_type.into(),
+                group.map(|g| g.into()).as_ref(),
+            )
+            .map_err(PyMedRecordError::from)?)
     }
 
     #[pyo3(signature = (attribute, data_type, attribute_type, group=None))]
@@ -334,13 +350,16 @@ impl PySchema {
         data_type: PyDataType,
         attribute_type: PyAttributeType,
         group: Option<PyGroup>,
-    ) {
-        self.0.update_node_attribute(
-            &attribute.into(),
-            data_type.into(),
-            attribute_type.into(),
-            group.map(|g| g.into()).as_ref(),
-        );
+    ) -> PyResult<()> {
+        Ok(self
+            .0
+            .update_node_attribute(
+                &attribute.into(),
+                data_type.into(),
+                attribute_type.into(),
+                group.map(|g| g.into()).as_ref(),
+            )
+            .map_err(PyMedRecordError::from)?)
     }
 
     #[pyo3(signature = (attribute, data_type, attribute_type, group=None))]
@@ -350,13 +369,16 @@ impl PySchema {
         data_type: PyDataType,
         attribute_type: PyAttributeType,
         group: Option<PyGroup>,
-    ) {
-        self.0.update_edge_attribute(
-            &attribute.into(),
-            data_type.into(),
-            attribute_type.into(),
-            group.map(|g| g.into()).as_ref(),
-        );
+    ) -> PyResult<()> {
+        Ok(self
+            .0
+            .update_edge_attribute(
+                &attribute.into(),
+                data_type.into(),
+                attribute_type.into(),
+                group.map(|g| g.into()).as_ref(),
+            )
+            .map_err(PyMedRecordError::from)?)
     }
 
     #[pyo3(signature = (attribute, group=None))]

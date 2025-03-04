@@ -65,11 +65,36 @@ pub struct AttributeDataType {
 }
 
 impl AttributeDataType {
-    pub fn new(data_type: DataType, attribute_type: AttributeType) -> Self {
-        Self {
+    fn validate(data_type: &DataType, attribute_type: &AttributeType) -> Result<(), GraphError> {
+        match (attribute_type, data_type) {
+            (AttributeType::Categorical, _) => Ok(()),
+            (AttributeType::Unstructured, _) => Ok(()),
+
+            (_, DataType::Option(option)) => Self::validate(option, attribute_type),
+            (_, DataType::Union((first_datatype, second_datatype))) => {
+                Self::validate(first_datatype, attribute_type)?;
+                Self::validate(second_datatype, attribute_type)
+            }
+
+            (AttributeType::Continuous, DataType::Int | DataType::Float) => Ok(()),
+            (AttributeType::Continuous, _) => Err(GraphError::SchemaError(
+                "Continuous attribute must be of (sub-)type Int or Float.".to_string(),
+            )),
+
+            (AttributeType::Temporal, DataType::DateTime | DataType::Duration) => Ok(()),
+            (AttributeType::Temporal, _) => Err(GraphError::SchemaError(
+                "Temporal attribute must be of (sub-)type DateTime or Duration.".to_string(),
+            )),
+        }
+    }
+
+    pub fn new(data_type: DataType, attribute_type: AttributeType) -> Result<Self, GraphError> {
+        Self::validate(&data_type, &attribute_type)?;
+
+        Ok(Self {
             data_type,
             attribute_type,
-        }
+        })
     }
 
     pub fn data_type(&self) -> &DataType {
@@ -265,7 +290,8 @@ impl GroupSchema {
             let data_type = DataType::from(value);
             let attribute_type = AttributeType::infer(&data_type);
 
-            let attribute_data_type = AttributeDataType::new(data_type, attribute_type);
+            let attribute_data_type = AttributeDataType::new(data_type, attribute_type)
+                .expect("AttributeType was infered from DataType.");
 
             match schema.entry(attribute.clone()) {
                 Entry::Occupied(entry) => {
@@ -480,8 +506,8 @@ impl Schema {
         data_type: DataType,
         attribute_type: AttributeType,
         group: Option<&Group>,
-    ) {
-        let attribute_data_type = AttributeDataType::new(data_type, attribute_type);
+    ) -> Result<(), GraphError> {
+        let attribute_data_type = AttributeDataType::new(data_type, attribute_type)?;
 
         match group {
             Some(group) => {
@@ -496,6 +522,8 @@ impl Schema {
                     .insert(attribute.clone(), attribute_data_type.clone());
             }
         }
+
+        Ok(())
     }
 
     pub fn set_edge_attribute(
@@ -504,8 +532,8 @@ impl Schema {
         data_type: DataType,
         attribute_type: AttributeType,
         group: Option<&Group>,
-    ) {
-        let attribute_data_type = AttributeDataType::new(data_type, attribute_type);
+    ) -> Result<(), GraphError> {
+        let attribute_data_type = AttributeDataType::new(data_type, attribute_type)?;
 
         match group {
             Some(group) => {
@@ -520,6 +548,8 @@ impl Schema {
                     .insert(attribute.clone(), attribute_data_type.clone());
             }
         }
+
+        Ok(())
     }
 
     pub fn update_node_attribute(
@@ -528,8 +558,8 @@ impl Schema {
         data_type: DataType,
         attribute_type: AttributeType,
         group: Option<&Group>,
-    ) {
-        let attribute_data_type = AttributeDataType::new(data_type, attribute_type);
+    ) -> Result<(), GraphError> {
+        let attribute_data_type = AttributeDataType::new(data_type, attribute_type)?;
 
         match group {
             Some(group) => {
@@ -548,6 +578,8 @@ impl Schema {
                     .or_insert(attribute_data_type);
             }
         }
+
+        Ok(())
     }
 
     pub fn update_edge_attribute(
@@ -556,8 +588,8 @@ impl Schema {
         data_type: DataType,
         attribute_type: AttributeType,
         group: Option<&Group>,
-    ) {
-        let attribute_data_type = AttributeDataType::new(data_type, attribute_type);
+    ) -> Result<(), GraphError> {
+        let attribute_data_type = AttributeDataType::new(data_type, attribute_type)?;
 
         match group {
             Some(group) => {
@@ -576,6 +608,8 @@ impl Schema {
                     .or_insert(attribute_data_type);
             }
         }
+
+        Ok(())
     }
 
     pub fn remove_node_attribute(&mut self, attribute: &MedRecordAttribute, group: Option<&Group>) {
