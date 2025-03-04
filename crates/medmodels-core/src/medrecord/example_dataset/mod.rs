@@ -1,7 +1,7 @@
 use super::{
     datatypes::DataType,
     schema::{GroupSchema, Schema},
-    AttributeType, MedRecordAttribute,
+    AttributeSchema, AttributeType, MedRecordAttribute,
 };
 use crate::MedRecord;
 use polars::{
@@ -17,27 +17,27 @@ macro_rules! simple_dataset_schema {
                 (
                     "diagnosis".into(),
                     GroupSchema::new(
-                        HashMap::from([(
+                        AttributeSchema::from([(
                             "description".into(),
                             (DataType::String, AttributeType::Unstructured).into(),
                         )]),
-                        HashMap::new(),
+                        AttributeSchema::default(),
                     ),
                 ),
                 (
                     "drug".into(),
                     GroupSchema::new(
-                        HashMap::from([(
+                        AttributeSchema::from([(
                             "description".into(),
                             (DataType::String, AttributeType::Unstructured).into(),
                         )]),
-                        HashMap::new(),
+                        AttributeSchema::default(),
                     ),
                 ),
                 (
                     "patient".into(),
                     GroupSchema::new(
-                        HashMap::from([
+                        AttributeSchema::from([
                             (
                                 "gender".into(),
                                 (DataType::String, AttributeType::Categorical).into(),
@@ -47,24 +47,24 @@ macro_rules! simple_dataset_schema {
                                 (DataType::Int, AttributeType::Continuous).into(),
                             ),
                         ]),
-                        HashMap::new(),
+                        AttributeSchema::default(),
                     ),
                 ),
                 (
                     "procedure".into(),
                     GroupSchema::new(
-                        HashMap::from([(
+                        AttributeSchema::from([(
                             "description".into(),
                             (DataType::String, AttributeType::Unstructured).into(),
                         )]),
-                        HashMap::new(),
+                        AttributeSchema::default(),
                     ),
                 ),
                 (
                     "patient_diagnosis".into(),
                     GroupSchema::new(
-                        HashMap::new(),
-                        HashMap::from([
+                        AttributeSchema::default(),
+                        AttributeSchema::from([
                             (
                                 "time".into(),
                                 (DataType::DateTime, AttributeType::Temporal).into(),
@@ -83,8 +83,8 @@ macro_rules! simple_dataset_schema {
                 (
                     "patient_drug".into(),
                     GroupSchema::new(
-                        HashMap::new(),
-                        HashMap::from([
+                        AttributeSchema::default(),
+                        AttributeSchema::from([
                             (
                                 "time".into(),
                                 (DataType::DateTime, AttributeType::Temporal).into(),
@@ -103,8 +103,8 @@ macro_rules! simple_dataset_schema {
                 (
                     "patient_procedure".into(),
                     GroupSchema::new(
-                        HashMap::new(),
-                        HashMap::from([
+                        AttributeSchema::default(),
+                        AttributeSchema::from([
                             (
                                 "time".into(),
                                 (DataType::DateTime, AttributeType::Temporal).into(),
@@ -129,27 +129,27 @@ macro_rules! advanced_dataset_schema {
                 (
                     "diagnosis".into(),
                     GroupSchema::new(
-                        HashMap::from([(
+                        AttributeSchema::from([(
                             "description".into(),
                             (DataType::String, AttributeType::Unstructured).into(),
                         )]),
-                        HashMap::new(),
+                        AttributeSchema::default(),
                     ),
                 ),
                 (
                     "drug".into(),
                     GroupSchema::new(
-                        HashMap::from([(
+                        AttributeSchema::from([(
                             "description".into(),
                             (DataType::String, AttributeType::Unstructured).into(),
                         )]),
-                        HashMap::new(),
+                        AttributeSchema::default(),
                     ),
                 ),
                 (
                     "patient".into(),
                     GroupSchema::new(
-                        HashMap::from([
+                        AttributeSchema::from([
                             (
                                 "gender".into(),
                                 (DataType::String, AttributeType::Categorical).into(),
@@ -159,28 +159,28 @@ macro_rules! advanced_dataset_schema {
                                 (DataType::Int, AttributeType::Continuous).into(),
                             ),
                         ]),
-                        HashMap::new(),
+                        AttributeSchema::default(),
                     ),
                 ),
                 (
                     "procedure".into(),
                     GroupSchema::new(
-                        HashMap::from([(
+                        AttributeSchema::from([(
                             "description".into(),
                             (DataType::String, AttributeType::Unstructured).into(),
                         )]),
-                        HashMap::new(),
+                        AttributeSchema::default(),
                     ),
                 ),
                 (
                     "event".into(),
-                    GroupSchema::new(HashMap::new(), HashMap::new()),
+                    GroupSchema::new(AttributeSchema::default(), AttributeSchema::default()),
                 ),
                 (
                     "patient_diagnosis".into(),
                     GroupSchema::new(
-                        HashMap::new(),
-                        HashMap::from([
+                        AttributeSchema::default(),
+                        AttributeSchema::from([
                             (
                                 "time".into(),
                                 (DataType::DateTime, AttributeType::Temporal).into(),
@@ -199,8 +199,8 @@ macro_rules! advanced_dataset_schema {
                 (
                     "patient_drug".into(),
                     GroupSchema::new(
-                        HashMap::new(),
-                        HashMap::from([
+                        AttributeSchema::default(),
+                        AttributeSchema::from([
                             (
                                 "time".into(),
                                 (DataType::DateTime, AttributeType::Temporal).into(),
@@ -219,8 +219,8 @@ macro_rules! advanced_dataset_schema {
                 (
                     "patient_procedure".into(),
                     GroupSchema::new(
-                        HashMap::new(),
-                        HashMap::from([
+                        AttributeSchema::default(),
+                        AttributeSchema::from([
                             (
                                 "time".into(),
                                 (DataType::DateTime, AttributeType::Temporal).into(),
@@ -235,8 +235,8 @@ macro_rules! advanced_dataset_schema {
                 (
                     "patient_event".into(),
                     GroupSchema::new(
-                        HashMap::new(),
-                        HashMap::from([(
+                        AttributeSchema::default(),
+                        AttributeSchema::from([(
                             "time".into(),
                             (DataType::DateTime, AttributeType::Temporal).into(),
                         )]),
@@ -706,7 +706,10 @@ impl MedRecord {
 mod test {
     use super::{AttributeType, DataType};
     use crate::{
-        medrecord::schema::{GroupSchema, Schema},
+        medrecord::{
+            schema::{GroupSchema, Schema},
+            AttributeSchema,
+        },
         MedRecord,
     };
     use std::collections::HashMap;
