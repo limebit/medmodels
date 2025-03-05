@@ -226,6 +226,14 @@ impl MedRecord {
             MedRecordError::ConversionError("Failed to convert MedRecord to ron".to_string())
         })?;
 
+        if let Some(parent) = path.as_ref().parent() {
+            fs::create_dir_all(parent).map_err(|_| {
+                MedRecordError::ConversionError(
+                    "Failed to create folders to MedRecord save path".to_string(),
+                )
+            })?;
+        }
+
         fs::write(&path, ron_string).map_err(|_| {
             MedRecordError::ConversionError(
                 "Failed to save MedRecord due to file error".to_string(),
