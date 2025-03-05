@@ -191,19 +191,10 @@ impl AttributeSchemaKind<'_> {
 
 type AttributeSchemaMapping = HashMap<MedRecordAttribute, AttributeDataType>;
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Default)]
 pub struct AttributeSchema {
     mapping: AttributeSchemaMapping,
     was_updated: bool,
-}
-
-impl Default for AttributeSchema {
-    fn default() -> Self {
-        Self {
-            mapping: HashMap::new(),
-            was_updated: false,
-        }
-    }
 }
 
 impl Deref for AttributeSchema {
