@@ -10,7 +10,7 @@ use std::{
     ops::Deref,
 };
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq)]
 pub enum AttributeType {
     Categorical,
     Continuous,
@@ -55,6 +55,12 @@ impl DataType {
                 (Self::Null, _) => Self::Option(Box::new(other.clone())),
                 (_, Self::Null) => Self::Option(Box::new(self.clone())),
                 (_, Self::Any) => Self::Any,
+                (Self::Any, _) => Self::Any,
+                (Self::Option(option1), Self::Option(option2)) => {
+                    Self::Option(Box::new(option1.merge(option2)))
+                }
+                (Self::Option(option), _) => Self::Option(Box::new(option.merge(other))),
+                (_, Self::Option(option)) => Self::Option(Box::new(self.merge(option))),
                 _ => Self::Union((Box::new(self.clone()), Box::new(other.clone()))),
             }
         }
@@ -111,8 +117,19 @@ impl AttributeDataType {
     }
 
     fn merge(&mut self, other: &Self) {
-        self.data_type = self.data_type.merge(&other.data_type);
-        self.attribute_type = self.attribute_type.merge(&other.attribute_type);
+        match (self.data_type.clone(), other.data_type.clone()) {
+            (DataType::Null, _) => {
+                self.data_type = self.data_type.merge(&other.data_type);
+                self.attribute_type = other.attribute_type;
+            }
+            (_, DataType::Null) => {
+                self.data_type = self.data_type.merge(&other.data_type);
+            }
+            _ => {
+                self.data_type = self.data_type.merge(&other.data_type);
+                self.attribute_type = self.attribute_type.merge(&other.attribute_type);
+            }
+        }
     }
 }
 
@@ -192,16 +209,13 @@ impl AttributeSchemaKind<'_> {
 type AttributeSchemaMapping = HashMap<MedRecordAttribute, AttributeDataType>;
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Default)]
-pub struct AttributeSchema {
-    mapping: AttributeSchemaMapping,
-    was_updated: bool,
-}
+pub struct AttributeSchema(AttributeSchemaMapping);
 
 impl Deref for AttributeSchema {
     type Target = AttributeSchemaMapping;
 
     fn deref(&self) -> &Self::Target {
-        &self.mapping
+        &self.0
     }
 }
 
@@ -210,19 +224,13 @@ where
     T: Into<AttributeSchemaMapping>,
 {
     fn from(value: T) -> Self {
-        Self {
-            mapping: value.into(),
-            was_updated: false,
-        }
+        Self(value.into())
     }
 }
 
 impl AttributeSchema {
     pub fn new(mapping: HashMap<MedRecordAttribute, AttributeDataType>) -> Self {
-        Self {
-            mapping,
-            ..Self::default()
-        }
+        Self(mapping)
     }
 
     fn validate(
@@ -230,7 +238,7 @@ impl AttributeSchema {
         attributes: &Attributes,
         kind: AttributeSchemaKind,
     ) -> Result<(), GraphError> {
-        for (key, schema) in &self.mapping {
+        for (key, schema) in &self.0 {
             let value = attributes.get(key).ok_or(GraphError::SchemaError(
                 kind.error_message(key, &schema.data_type),
             ))?;
@@ -248,7 +256,7 @@ impl AttributeSchema {
 
         let attributes_not_in_schema = attributes
             .keys()
-            .filter(|attribute| !self.mapping.contains_key(*attribute))
+            .filter(|attribute| !self.0.contains_key(*attribute))
             .map(|attribute| attribute.to_string())
             .collect::<Vec<_>>();
 
@@ -264,10 +272,8 @@ impl AttributeSchema {
         Ok(())
     }
 
-    fn update(&mut self, attributes: &Attributes) {
-        let was_updated_cache = self.was_updated;
-
-        for (attribute, data_type) in self.mapping.iter_mut() {
+    fn update(&mut self, attributes: &Attributes, empty: bool) {
+        for (attribute, data_type) in self.0.iter_mut() {
             if !attributes.contains_key(attribute) {
                 data_type.data_type = data_type.data_type.merge(&DataType::Null);
             }
@@ -280,20 +286,17 @@ impl AttributeSchema {
             let mut attribute_data_type = AttributeDataType::new(data_type, attribute_type)
                 .expect("AttributeType was infered from DataType.");
 
-            match self.mapping.entry(attribute.clone()) {
+            match self.0.entry(attribute.clone()) {
                 Entry::Occupied(entry) => {
                     entry.into_mut().merge(&attribute_data_type);
                 }
                 Entry::Vacant(entry) => {
-                    if was_updated_cache {
-                        attribute_data_type.merge(&AttributeDataType::from(DataType::Null));
-
-                        entry.insert(attribute_data_type);
-                    } else {
-                        entry.insert(attribute_data_type);
-
-                        self.was_updated = true;
+                    if !empty {
+                        attribute_data_type.data_type =
+                            attribute_data_type.data_type.merge(&DataType::Null);
                     }
+
+                    entry.insert(attribute_data_type);
                 }
             }
         }
@@ -302,8 +305,12 @@ impl AttributeSchema {
     fn infer(attributes: Vec<&Attributes>) -> Self {
         let mut schema = Self::default();
 
+        let mut empty = true;
+
         for attributes in attributes {
-            schema.update(attributes);
+            schema.update(attributes, empty);
+
+            empty = false;
         }
 
         schema
@@ -322,11 +329,11 @@ impl GroupSchema {
     }
 
     pub fn nodes(&self) -> &AttributeSchemaMapping {
-        &self.nodes.mapping
+        &self.nodes.0
     }
 
     pub fn edges(&self) -> &AttributeSchemaMapping {
-        &self.edges.mapping
+        &self.edges.0
     }
 
     pub fn validate_node<'a>(
@@ -354,12 +361,12 @@ impl GroupSchema {
         }
     }
 
-    pub(crate) fn update_node(&mut self, attributes: &Attributes) {
-        self.nodes.update(attributes);
+    pub(crate) fn update_node(&mut self, attributes: &Attributes, empty: bool) {
+        self.nodes.update(attributes, empty);
     }
 
-    pub(crate) fn update_edge(&mut self, attributes: &Attributes) {
-        self.edges.update(attributes);
+    pub(crate) fn update_edge(&mut self, attributes: &Attributes, empty: bool) {
+        self.edges.update(attributes, empty);
     }
 }
 
@@ -415,6 +422,7 @@ impl Schema {
 
             if groups_of_node.peek().is_none() {
                 default_group.0.push(node_index);
+                continue;
             }
 
             for group in groups_of_node {
@@ -432,6 +440,7 @@ impl Schema {
 
             if groups_of_edge.peek().is_none() {
                 default_group.1.push(edge_index);
+                continue;
             }
 
             for group in groups_of_edge {
@@ -528,27 +537,37 @@ impl Schema {
         }
     }
 
-    pub(crate) fn update_node(&mut self, attributes: &Attributes, group: Option<&Group>) {
+    pub(crate) fn update_node(
+        &mut self,
+        attributes: &Attributes,
+        group: Option<&Group>,
+        empty: bool,
+    ) {
         match group {
             Some(group) => {
                 self.groups
                     .entry(group.clone())
                     .or_default()
-                    .update_node(attributes);
+                    .update_node(attributes, empty);
             }
-            None => self.default.update_node(attributes),
+            None => self.default.update_node(attributes, empty),
         }
     }
 
-    pub(crate) fn update_edge(&mut self, attributes: &Attributes, group: Option<&Group>) {
+    pub(crate) fn update_edge(
+        &mut self,
+        attributes: &Attributes,
+        group: Option<&Group>,
+        empty: bool,
+    ) {
         match group {
             Some(group) => {
                 self.groups
                     .entry(group.clone())
                     .or_default()
-                    .update_edge(attributes);
+                    .update_edge(attributes, empty);
             }
-            None => self.default.update_edge(attributes),
+            None => self.default.update_edge(attributes, empty),
         }
     }
 
@@ -566,13 +585,13 @@ impl Schema {
                 let group_schema = self.groups.entry(group.clone()).or_default();
                 group_schema
                     .nodes
-                    .mapping
+                    .0
                     .insert(attribute.clone(), attribute_data_type.clone());
             }
             None => {
                 self.default
                     .nodes
-                    .mapping
+                    .0
                     .insert(attribute.clone(), attribute_data_type.clone());
             }
         }
@@ -594,13 +613,13 @@ impl Schema {
                 let group_schema = self.groups.entry(group.clone()).or_default();
                 group_schema
                     .edges
-                    .mapping
+                    .0
                     .insert(attribute.clone(), attribute_data_type.clone());
             }
             None => {
                 self.default
                     .edges
-                    .mapping
+                    .0
                     .insert(attribute.clone(), attribute_data_type.clone());
             }
         }
@@ -622,7 +641,7 @@ impl Schema {
                 let group_schema = self.groups.entry(group.clone()).or_default();
                 group_schema
                     .nodes
-                    .mapping
+                    .0
                     .entry(attribute.clone())
                     .and_modify(|value| value.merge(&attribute_data_type))
                     .or_insert(attribute_data_type);
@@ -630,7 +649,7 @@ impl Schema {
             None => {
                 self.default
                     .nodes
-                    .mapping
+                    .0
                     .entry(attribute.clone())
                     .and_modify(|value| value.merge(&attribute_data_type))
                     .or_insert(attribute_data_type);
@@ -654,7 +673,7 @@ impl Schema {
                 let group_schema = self.groups.entry(group.clone()).or_default();
                 group_schema
                     .edges
-                    .mapping
+                    .0
                     .entry(attribute.clone())
                     .and_modify(|value| value.merge(&attribute_data_type))
                     .or_insert(attribute_data_type);
@@ -662,7 +681,7 @@ impl Schema {
             None => {
                 self.default
                     .edges
-                    .mapping
+                    .0
                     .entry(attribute.clone())
                     .and_modify(|value| value.merge(&attribute_data_type))
                     .or_insert(attribute_data_type);
@@ -676,11 +695,11 @@ impl Schema {
         match group {
             Some(group) => {
                 if let Some(group_schema) = self.groups.get_mut(group) {
-                    group_schema.nodes.mapping.remove(attribute);
+                    group_schema.nodes.0.remove(attribute);
                 }
             }
             None => {
-                self.default.nodes.mapping.remove(attribute);
+                self.default.nodes.0.remove(attribute);
             }
         }
     }
@@ -689,11 +708,11 @@ impl Schema {
         match group {
             Some(group) => {
                 if let Some(group_schema) = self.groups.get_mut(group) {
-                    group_schema.edges.mapping.remove(attribute);
+                    group_schema.edges.0.remove(attribute);
                 }
             }
             None => {
-                self.default.edges.mapping.remove(attribute);
+                self.default.edges.0.remove(attribute);
             }
         }
     }
@@ -1043,7 +1062,7 @@ mod test {
 
         let group_schema = GroupSchema::new(nodes.clone(), AttributeSchema::default());
 
-        assert_eq!(group_schema.nodes(), &nodes.mapping);
+        assert_eq!(group_schema.nodes(), &nodes.0);
     }
 
     #[test]
@@ -1067,7 +1086,7 @@ mod test {
 
         let group_schema = GroupSchema::new(AttributeSchema::default(), edges.clone());
 
-        assert_eq!(group_schema.edges(), &edges.mapping);
+        assert_eq!(group_schema.edges(), &edges.0);
     }
 
     #[test]
@@ -1186,37 +1205,36 @@ mod test {
                 .into_iter()
                 .collect();
 
-        schema.update(&attributes);
+        schema.update(&attributes, true);
 
-        assert_eq!(schema.mapping.len(), 2);
+        assert_eq!(schema.0.len(), 2);
         assert_eq!(
-            schema.mapping.get(&"key1".into()).unwrap().data_type(),
+            schema.0.get(&"key1".into()).unwrap().data_type(),
             &DataType::Int
         );
         assert_eq!(
-            schema.mapping.get(&"key2".into()).unwrap().data_type(),
+            schema.0.get(&"key2".into()).unwrap().data_type(),
             &DataType::String
         );
 
-        // Test updating with new type
         let new_attributes: Attributes =
             vec![("key1".into(), 0.5.into()), ("key3".into(), true.into())]
                 .into_iter()
                 .collect();
 
-        schema.update(&new_attributes);
+        schema.update(&new_attributes, false);
 
-        assert_eq!(schema.mapping.len(), 3);
+        assert_eq!(schema.0.len(), 3);
         assert_eq!(
-            schema.mapping.get(&"key1".into()).unwrap().data_type(),
+            schema.0.get(&"key1".into()).unwrap().data_type(),
             &DataType::Union((Box::new(DataType::Int), Box::new(DataType::Float)))
         );
         assert_eq!(
-            schema.mapping.get(&"key2".into()).unwrap().data_type(),
+            schema.0.get(&"key2".into()).unwrap().data_type(),
             &DataType::Option(Box::new(DataType::String))
         );
         assert_eq!(
-            schema.mapping.get(&"key3".into()).unwrap().data_type(),
+            schema.0.get(&"key3".into()).unwrap().data_type(),
             &DataType::Option(Box::new(DataType::Bool))
         );
     }
@@ -1234,17 +1252,17 @@ mod test {
 
         let schema = AttributeSchema::infer(vec![&attributes1, &attributes2]);
 
-        assert_eq!(schema.mapping.len(), 3);
+        assert_eq!(schema.0.len(), 3);
         assert_eq!(
-            schema.mapping.get(&"key1".into()).unwrap().data_type(),
+            schema.0.get(&"key1".into()).unwrap().data_type(),
             &DataType::Int
         );
         assert_eq!(
-            schema.mapping.get(&"key2".into()).unwrap().data_type(),
+            schema.0.get(&"key2".into()).unwrap().data_type(),
             &DataType::Option(Box::new(DataType::String))
         );
         assert_eq!(
-            schema.mapping.get(&"key3".into()).unwrap().data_type(),
+            schema.0.get(&"key3".into()).unwrap().data_type(),
             &DataType::Option(Box::new(DataType::Bool))
         );
     }
@@ -1322,7 +1340,7 @@ mod test {
         let mut group_schema = GroupSchema::default();
         let attributes = Attributes::from([("key1".into(), 0.into()), ("key2".into(), 0.0.into())]);
 
-        group_schema.update_node(&attributes);
+        group_schema.update_node(&attributes, true);
 
         assert_eq!(group_schema.nodes().len(), 2);
         assert_eq!(
@@ -1349,7 +1367,7 @@ mod test {
         let attributes =
             Attributes::from([("key3".into(), true.into()), ("key4".into(), "test".into())]);
 
-        group_schema.update_edge(&attributes);
+        group_schema.update_edge(&attributes, true);
 
         assert_eq!(group_schema.edges().len(), 2);
         assert_eq!(
@@ -1484,7 +1502,7 @@ mod test {
         );
         let attributes = Attributes::from([("key1".into(), 0.into()), ("key2".into(), 0.0.into())]);
 
-        schema.update_node(&attributes, None);
+        schema.update_node(&attributes, None, true);
 
         assert_eq!(schema.default().nodes().len(), 2);
         assert_eq!(
@@ -1516,7 +1534,7 @@ mod test {
         let attributes =
             Attributes::from([("key3".into(), true.into()), ("key4".into(), "test".into())]);
 
-        schema.update_edge(&attributes, None);
+        schema.update_edge(&attributes, None, true);
 
         assert_eq!(schema.default().edges().len(), 2);
         assert_eq!(

@@ -65,7 +65,7 @@ impl From<AttributeDataType> for PyAttributeDataType {
     fn from(value: AttributeDataType) -> Self {
         Self {
             data_type: value.data_type().clone().into(),
-            attribute_type: value.attribute_type().clone().into(),
+            attribute_type: (*value.attribute_type()).into(),
         }
     }
 }
