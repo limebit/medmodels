@@ -1372,6 +1372,21 @@ mod test {
             0,
             medrecord.edges_in_group(&("group".into())).unwrap().count()
         );
+
+        let mut medrecord = MedRecord::new();
+
+        medrecord.add_node(0.into(), HashMap::new()).unwrap();
+        medrecord
+            .add_edge(0.into(), 0.into(), HashMap::new())
+            .unwrap();
+
+        assert_eq!(1, medrecord.node_count());
+        assert_eq!(1, medrecord.edge_count());
+
+        assert!(medrecord.remove_node(&0.into()).is_ok());
+
+        assert_eq!(0, medrecord.node_count());
+        assert_eq!(0, medrecord.edge_count());
     }
 
     #[test]
