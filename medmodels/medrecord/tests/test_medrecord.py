@@ -548,6 +548,16 @@ class TestMedRecord(unittest.TestCase):
         assert medrecord.node_count() == 2
         assert attributes == {"0": create_nodes()[0][1], "1": create_nodes()[1][1]}
 
+        medrecord = MedRecord.from_tuples(nodes=[(0, {})], edges=[(0, 0, {})])
+
+        assert medrecord.node_count() == 1
+        assert medrecord.edge_count() == 1
+
+        medrecord.remove_nodes(0)
+
+        assert medrecord.node_count() == 0
+        assert medrecord.edge_count() == 0
+
     def test_invalid_remove_nodes(self) -> None:
         medrecord = create_medrecord()
 

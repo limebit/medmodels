@@ -107,28 +107,38 @@ impl Graph {
                 node_index
             )))?;
 
-        for edge_index in node.outgoing_edge_indices {
-            group_mapping.remove_edge(&edge_index);
+        let edge_indices = node
+            .outgoing_edge_indices
+            .union(&node.incoming_edge_indices);
 
-            let edge = self.edges.remove(&edge_index).expect("Edge must exist");
+        for edge_index in edge_indices {
+            group_mapping.remove_edge(edge_index);
 
-            self.nodes
-                .get_mut(&edge.target_node_index)
-                .expect("Node must exist")
-                .incoming_edge_indices
-                .remove(&edge_index);
-        }
+            let edge = self.edges.remove(edge_index).expect("Edge must exist");
 
-        for edge_index in node.incoming_edge_indices {
-            group_mapping.remove_edge(&edge_index);
-
-            let edge = self.edges.remove(&edge_index).expect("Edge must exist");
-
-            self.nodes
-                .get_mut(&edge.source_node_index)
-                .expect("Node must exist")
-                .outgoing_edge_indices
-                .remove(&edge_index);
+            match (
+                edge.source_node_index == *node_index,
+                edge.target_node_index == *node_index,
+            ) {
+                (true, true) => {
+                    // Do nothing
+                }
+                (true, false) => {
+                    self.nodes
+                        .get_mut(&edge.target_node_index)
+                        .expect("Node must exist")
+                        .incoming_edge_indices
+                        .remove(edge_index);
+                }
+                (false, true) => {
+                    self.nodes
+                        .get_mut(&edge.source_node_index)
+                        .expect("Node must exist")
+                        .outgoing_edge_indices
+                        .remove(edge_index);
+                }
+                (false, false) => unreachable!(),
+            }
         }
 
         Ok(node.attributes)
@@ -591,6 +601,21 @@ mod test {
         assert_eq!(3, graph.node_count());
 
         assert_eq!(create_nodes()[0].1, attributes);
+
+        let mut graph = Graph::new();
+
+        graph.add_node(0.into(), HashMap::new()).unwrap();
+        graph.add_edge(0.into(), 0.into(), HashMap::new()).unwrap();
+
+        assert_eq!(1, graph.node_count());
+        assert_eq!(1, graph.edge_count());
+
+        assert!(graph
+            .remove_node(&0.into(), &mut GroupMapping::new())
+            .is_ok());
+
+        assert_eq!(0, graph.node_count());
+        assert_eq!(0, graph.edge_count());
     }
 
     #[test]
