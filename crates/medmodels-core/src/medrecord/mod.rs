@@ -30,7 +30,7 @@ pub use self::{
         },
         wrapper::{CardinalityWrapper, Wrapper},
     },
-    schema::{AttributeDataType, AttributeType, GroupSchema, Schema},
+    schema::{AttributeDataType, AttributeSchema, AttributeType, GroupSchema, Schema, SchemaType},
 };
 use crate::errors::MedRecordError;
 use ::polars::frame::DataFrame;
@@ -39,7 +39,11 @@ use group_mapping::GroupMapping;
 use polars::{dataframe_to_edges, dataframe_to_nodes};
 use querying::{edges::EdgeSelection, nodes::NodeSelection};
 use serde::{Deserialize, Serialize};
-use std::{fs, mem, path::Path};
+use std::{
+    collections::{hash_map::Entry, HashMap},
+    fs, mem,
+    path::Path,
+};
 
 pub struct NodeDataFrameInput {
     dataframe: DataFrame,
@@ -141,7 +145,7 @@ impl MedRecord {
         Self {
             graph: Graph::new(),
             group_mapping: GroupMapping::new(),
-            schema: Schema::default(),
+            schema: Default::default(),
         }
     }
 
@@ -241,76 +245,142 @@ impl MedRecord {
         })
     }
 
-    pub fn update_schema(&mut self, schema: Schema) -> Result<(), MedRecordError> {
-        let mut old_schema = schema;
+    pub fn update_schema(&mut self, mut schema: Schema) -> Result<(), MedRecordError> {
+        let mut nodes_group_cache = HashMap::<&Group, usize>::new();
+        let mut nodes_default_visited = false;
+        let mut edges_group_cache = HashMap::<&Group, usize>::new();
+        let mut edges_default_visited = false;
 
-        mem::swap(&mut self.schema, &mut old_schema);
+        for (node_index, node) in self.graph.nodes.iter() {
+            let groups_of_node = self
+                .groups_of_node(node_index)
+                .expect("groups of node must exist")
+                .collect::<Vec<_>>();
 
-        let result = self
-            .graph
-            .nodes
-            .iter()
-            .map(|(node_index, node)| {
-                let groups_of_node = self
-                    .groups_of_node(node_index)
-                    .expect("groups of node must exist")
-                    .collect::<Vec<_>>();
-
-                if !groups_of_node.is_empty() {
-                    for group in groups_of_node {
-                        self.schema
-                            .validate_node(node_index, &node.attributes, Some(group))?;
+            if !groups_of_node.is_empty() {
+                for group in groups_of_node {
+                    match schema.schema_type() {
+                        SchemaType::Inferred => match nodes_group_cache.entry(group) {
+                            Entry::Occupied(entry) => {
+                                schema.update_node(
+                                    &node.attributes,
+                                    Some(group),
+                                    *entry.get() == 0,
+                                );
+                            }
+                            Entry::Vacant(entry) => {
+                                entry.insert(
+                                    self.group_mapping
+                                        .nodes_in_group
+                                        .get(group)
+                                        .map(|nodes| nodes.len())
+                                        .unwrap_or(0),
+                                );
+                            }
+                        },
+                        SchemaType::Provided => {
+                            schema.validate_node(node_index, &node.attributes, Some(group))?
+                        }
                     }
-                } else {
-                    self.schema
-                        .validate_node(node_index, &node.attributes, None)?;
                 }
+            } else {
+                match schema.schema_type() {
+                    SchemaType::Inferred => {
+                        let nodes_in_groups = self.group_mapping.nodes_in_group.len();
 
-                Ok(())
-            })
-            .collect::<Result<Vec<_>, MedRecordError>>();
+                        let nodes_not_in_groups = self.graph.node_count() - nodes_in_groups;
 
-        if let Err(error) = result {
-            self.schema = old_schema;
+                        schema.update_node(
+                            &node.attributes,
+                            None,
+                            nodes_not_in_groups == 0 || !nodes_default_visited,
+                        );
 
-            return Err(error);
+                        nodes_default_visited = true;
+                    }
+                    SchemaType::Provided => {
+                        schema.validate_node(node_index, &node.attributes, None)?;
+                    }
+                }
+            }
         }
 
-        let result = self
-            .graph
-            .edges
-            .iter()
-            .map(|(edge_index, edge)| {
-                let groups_of_edge = self
-                    .groups_of_edge(edge_index)
-                    .expect("groups of edge must exist")
-                    .collect::<Vec<_>>();
+        for (edge_index, edge) in self.graph.edges.iter() {
+            let groups_of_edge = self
+                .groups_of_edge(edge_index)
+                .expect("groups of edge must exist")
+                .collect::<Vec<_>>();
 
-                if !groups_of_edge.is_empty() {
-                    for group in groups_of_edge {
-                        self.schema
-                            .validate_edge(edge_index, &edge.attributes, Some(group))?;
+            if !groups_of_edge.is_empty() {
+                for group in groups_of_edge {
+                    match schema.schema_type() {
+                        SchemaType::Inferred => match edges_group_cache.entry(group) {
+                            Entry::Occupied(entry) => {
+                                schema.update_edge(
+                                    &edge.attributes,
+                                    Some(group),
+                                    *entry.get() == 0,
+                                );
+                            }
+                            Entry::Vacant(entry) => {
+                                entry.insert(
+                                    self.group_mapping
+                                        .edges_in_group
+                                        .get(group)
+                                        .map(|edges| edges.len())
+                                        .unwrap_or(0),
+                                );
+                            }
+                        },
+                        SchemaType::Provided => {
+                            schema.validate_edge(edge_index, &edge.attributes, Some(group))?;
+                        }
                     }
-                } else {
-                    self.schema
-                        .validate_edge(edge_index, &edge.attributes, None)?;
                 }
+            } else {
+                match schema.schema_type() {
+                    SchemaType::Inferred => {
+                        let edges_in_groups = self.group_mapping.edges_in_group.len();
 
-                Ok(())
-            })
-            .collect::<Result<Vec<_>, MedRecordError>>();
+                        let edges_not_in_groups = self.graph.edge_count() - edges_in_groups;
 
-        if let Err(error) = result {
-            self.schema = old_schema;
+                        schema.update_edge(
+                            &edge.attributes,
+                            None,
+                            edges_not_in_groups == 0 || !edges_default_visited,
+                        );
 
-            return Err(error);
+                        edges_default_visited = true;
+                    }
+                    SchemaType::Provided => {
+                        schema.validate_edge(edge_index, &edge.attributes, None)?;
+                    }
+                }
+            }
         }
+
+        mem::swap(&mut self.schema, &mut schema);
 
         Ok(())
     }
 
-    pub fn get_schema(&self) -> &Schema {
+    /// # Safety
+    ///
+    /// This function should only be used if the data has been validated against the schema.
+    pub unsafe fn update_schema_unchecked(&mut self, schema: &mut Schema) {
+        mem::swap(&mut self.schema, schema);
+    }
+
+    pub fn schema(&self) -> &Schema {
         &self.schema
+    }
+
+    pub fn freeze_schema(&mut self) {
+        self.schema.freeze();
+    }
+
+    pub fn unfreeze_schema(&mut self) {
+        self.schema.unfreeze();
     }
 
     pub fn node_indices(&self) -> impl Iterator<Item = &NodeIndex> {
@@ -401,7 +471,19 @@ impl MedRecord {
         node_index: NodeIndex,
         attributes: Attributes,
     ) -> Result<(), MedRecordError> {
-        self.schema.validate_node(&node_index, &attributes, None)?;
+        match self.schema.schema_type() {
+            SchemaType::Inferred => {
+                let nodes_in_groups = self.group_mapping.nodes_in_group.len();
+
+                let nodes_not_in_groups = self.graph.node_count() - nodes_in_groups;
+
+                self.schema
+                    .update_node(&attributes, None, nodes_not_in_groups == 0);
+            }
+            SchemaType::Provided => {
+                self.schema.validate_node(&node_index, &attributes, None)?;
+            }
+        }
 
         self.graph
             .add_node(node_index, attributes)
@@ -454,14 +536,28 @@ impl MedRecord {
             .add_edge(source_node_index, target_node_index, attributes.to_owned())
             .map_err(MedRecordError::from)?;
 
-        match self.schema.validate_edge(&edge_index, &attributes, None) {
-            Ok(()) => Ok(edge_index),
-            Err(e) => {
-                self.graph
-                    .remove_edge(&edge_index)
-                    .expect("Edge must exist");
+        match self.schema.schema_type() {
+            SchemaType::Inferred => {
+                let edges_in_groups = self.group_mapping.edges_in_group.len();
 
-                Err(e.into())
+                let edges_not_in_groups = self.graph.edge_count() - edges_in_groups;
+
+                self.schema
+                    .update_edge(&attributes, None, edges_not_in_groups == 0);
+
+                Ok(edge_index)
+            }
+            SchemaType::Provided => {
+                match self.schema.validate_edge(&edge_index, &attributes, None) {
+                    Ok(()) => Ok(edge_index),
+                    Err(e) => {
+                        self.graph
+                            .remove_edge(&edge_index)
+                            .expect("Edge must exist");
+
+                        Err(e.into())
+                    }
+                }
             }
         }
     }
@@ -587,8 +683,23 @@ impl MedRecord {
     ) -> Result<(), MedRecordError> {
         let node_attributes = self.graph.node_attributes(&node_index)?;
 
-        self.schema
-            .validate_node(&node_index, node_attributes, Some(&group))?;
+        match self.schema.schema_type() {
+            SchemaType::Inferred => {
+                let nodes_in_group = self
+                    .group_mapping
+                    .nodes_in_group
+                    .get(&group)
+                    .map(|nodes| nodes.len())
+                    .unwrap_or(0);
+
+                self.schema
+                    .update_node(node_attributes, Some(&group), nodes_in_group == 0);
+            }
+            SchemaType::Provided => {
+                self.schema
+                    .validate_node(&node_index, node_attributes, Some(&group))?;
+            }
+        }
 
         self.group_mapping.add_node_to_group(group, node_index)
     }
@@ -600,8 +711,23 @@ impl MedRecord {
     ) -> Result<(), MedRecordError> {
         let edge_attributes = self.graph.edge_attributes(&edge_index)?;
 
-        self.schema
-            .validate_edge(&edge_index, edge_attributes, Some(&group))?;
+        match self.schema.schema_type() {
+            SchemaType::Inferred => {
+                let edges_in_group = self
+                    .group_mapping
+                    .edges_in_group
+                    .get(&group)
+                    .map(|edges| edges.len())
+                    .unwrap_or(0);
+
+                self.schema
+                    .update_edge(edge_attributes, Some(&group), edges_in_group == 0);
+            }
+            SchemaType::Provided => {
+                self.schema
+                    .validate_edge(&edge_index, edge_attributes, Some(&group))?;
+            }
+        }
 
         self.group_mapping.add_edge_to_group(group, edge_index)
     }
@@ -762,10 +888,11 @@ impl Default for MedRecord {
 
 #[cfg(test)]
 mod test {
-    use super::{
-        Attributes, DataType, GroupSchema, MedRecord, MedRecordAttribute, NodeIndex, Schema,
+    use super::{Attributes, DataType, MedRecord, MedRecordAttribute, NodeIndex};
+    use crate::{
+        errors::MedRecordError,
+        medrecord::schema::{AttributeSchema, GroupSchema, Schema},
     };
-    use crate::errors::MedRecordError;
     use polars::prelude::{DataFrame, NamedFrom, PolarsError, Series};
     use std::{collections::HashMap, fs};
 
@@ -832,116 +959,6 @@ mod test {
         let edges = create_edges();
 
         MedRecord::from_tuples(nodes, Some(edges), None).unwrap()
-    }
-
-    #[test]
-    fn test_schema() {
-        let schema = Schema {
-            groups: HashMap::from([(
-                "group".into(),
-                GroupSchema {
-                    nodes: HashMap::from([("attribute2".into(), DataType::Int.into())]),
-                    edges: HashMap::from([("attribute2".into(), DataType::Int.into())]),
-                    strict: None,
-                },
-            )]),
-            default: Some(GroupSchema {
-                nodes: HashMap::from([("attribute".into(), DataType::Int.into())]),
-                edges: HashMap::from([("attribute".into(), DataType::Int.into())]),
-                strict: None,
-            }),
-            strict: None,
-        };
-
-        let mut medrecord = MedRecord::with_schema(schema.clone());
-        medrecord.add_group("group".into(), None, None).unwrap();
-
-        assert_eq!(schema, *medrecord.get_schema());
-
-        assert!(medrecord
-            .add_node("0".into(), HashMap::from([("attribute".into(), 1.into())]))
-            .is_ok());
-
-        assert!(medrecord
-            .add_node(
-                "1".into(),
-                HashMap::from([("attribute".into(), "1".into())])
-            )
-            .is_err_and(|e| matches!(e, MedRecordError::SchemaError(_))));
-
-        medrecord
-            .add_node(
-                "1".into(),
-                HashMap::from([
-                    ("attribute".into(), 1.into()),
-                    ("attribute2".into(), 1.into()),
-                ]),
-            )
-            .unwrap();
-
-        assert!(medrecord
-            .add_node_to_group("group".into(), "1".into())
-            .is_ok());
-
-        medrecord
-            .add_node(
-                "2".into(),
-                HashMap::from([
-                    ("attribute".into(), 1.into()),
-                    ("attribute2".into(), "1".into()),
-                ]),
-            )
-            .unwrap();
-
-        assert!(medrecord
-            .add_node_to_group("group".into(), "2".into())
-            .is_err_and(|e| { matches!(e, MedRecordError::SchemaError(_)) }));
-
-        assert!(medrecord
-            .add_edge(
-                "0".into(),
-                "1".into(),
-                HashMap::from([("attribute".into(), 1.into())])
-            )
-            .is_ok());
-
-        assert!(medrecord
-            .add_edge(
-                "0".into(),
-                "1".into(),
-                HashMap::from([("attribute".into(), "1".into())])
-            )
-            .is_err_and(|e| matches!(e, MedRecordError::SchemaError(_))));
-
-        let edge_index = medrecord
-            .add_edge(
-                "0".into(),
-                "1".into(),
-                HashMap::from([
-                    ("attribute".into(), 1.into()),
-                    ("attribute2".into(), 1.into()),
-                ]),
-            )
-            .unwrap();
-
-        assert!(medrecord
-            .add_edge_to_group("group".into(), edge_index)
-            .is_ok());
-
-        let edge_index = medrecord
-            .add_edge(
-                "0".into(),
-                "1".into(),
-                HashMap::from([
-                    ("attribute".into(), 1.into()),
-                    ("attribute2".into(), "1".into()),
-                ]),
-            )
-            .unwrap();
-
-        assert!(medrecord
-            .add_edge_to_group("group".into(), edge_index)
-            .is_err_and(|e| { matches!(e, MedRecordError::SchemaError(_)) }));
     }
 
     #[test]
@@ -1037,19 +1054,17 @@ mod test {
             )
             .unwrap();
 
-        let schema = Schema {
-            groups: Default::default(),
-            default: Some(GroupSchema {
-                nodes: HashMap::from([("attribute".into(), DataType::Int.into())]),
-                edges: HashMap::from([("attribute".into(), DataType::Int.into())]),
-                strict: None,
-            }),
-            strict: None,
-        };
+        let schema = Schema::new_provided(
+            Default::default(),
+            GroupSchema::new(
+                AttributeSchema::from([("attribute".into(), DataType::Int.into())]),
+                AttributeSchema::from([("attribute".into(), DataType::Int.into())]),
+            ),
+        );
 
         assert!(medrecord.update_schema(schema.clone()).is_ok());
 
-        assert_eq!(schema, *medrecord.get_schema());
+        assert_eq!(schema, *medrecord.schema());
     }
 
     #[test]
@@ -1060,21 +1075,21 @@ mod test {
             .add_node("0".into(), HashMap::from([("attribute2".into(), 1.into())]))
             .unwrap();
 
-        let schema = Schema {
-            groups: Default::default(),
-            default: Some(GroupSchema {
-                nodes: HashMap::from([("attribute".into(), DataType::Int.into())]),
-                edges: HashMap::from([("attribute".into(), DataType::Int.into())]),
-                strict: None,
-            }),
-            strict: None,
-        };
+        let schema = Schema::new_provided(
+            Default::default(),
+            GroupSchema::new(
+                AttributeSchema::from([("attribute".into(), DataType::Int.into())]),
+                AttributeSchema::from([("attribute".into(), DataType::Int.into())]),
+            ),
+        );
+
+        let previous_schema = medrecord.schema().clone();
 
         assert!(medrecord
             .update_schema(schema.clone())
             .is_err_and(|e| { matches!(e, MedRecordError::SchemaError(_)) }));
 
-        assert_eq!(Schema::default(), *medrecord.get_schema());
+        assert_eq!(previous_schema, *medrecord.schema());
 
         let mut medrecord = MedRecord::new();
 
@@ -1092,11 +1107,13 @@ mod test {
             )
             .unwrap();
 
+        let previous_schema = medrecord.schema().clone();
+
         assert!(medrecord
             .update_schema(schema.clone())
             .is_err_and(|e| { matches!(e, MedRecordError::SchemaError(_)) }));
 
-        assert_eq!(Schema::default(), *medrecord.get_schema());
+        assert_eq!(previous_schema, *medrecord.schema());
     }
 
     #[test]

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import typing
 from abc import ABC, abstractmethod
-from typing import TypeAlias
+from typing import Generic, TypeAlias, TypeVar
 
 from medmodels._medmodels import (
     PyAny,
@@ -344,28 +344,23 @@ class Any(DataType):
         return isinstance(value, Any)
 
 
-class Union(DataType):
+U1 = TypeVar("U1", bound=DataType)
+U2 = TypeVar("U2", bound=DataType)
+
+
+class Union(DataType, Generic[U1, U2]):
     """Data type for unions of data types."""
 
     _union: PyUnion
 
-    def __init__(self, *dtypes: DataType) -> None:
+    def __init__(self, dtype1: U1, dtype2: U2) -> None:
         """Initializes the Union data type.
 
         Args:
-            *dtypes (DataType): The data types to include in the union.
-
-        Raises:
-            ValueError: If the union does not have at least two arguments.
+            dtype1 (U1): The first data type of the union.
+            dtype2 (U2): The second data type of the union.
         """
-        if len(dtypes) < 2:
-            msg = "Union must have at least two arguments"
-            raise ValueError(msg)
-
-        if len(dtypes) == 2:
-            self._union = PyUnion(dtypes[0]._inner(), dtypes[1]._inner())
-        else:
-            self._union = PyUnion(dtypes[0]._inner(), Union(*dtypes[1:])._inner())
+        self._union = PyUnion(dtype1._inner(), dtype2._inner())
 
     def _inner(self) -> PyDataType:
         return self._union
@@ -397,16 +392,19 @@ class Union(DataType):
         )
 
 
-class Option(DataType):
+T = TypeVar("T", bound=DataType)
+
+
+class Option(DataType, Generic[T]):
     """Data type for optional values."""
 
     _option: PyOption
 
-    def __init__(self, dtype: DataType) -> None:
+    def __init__(self, dtype: T) -> None:
         """Initializes the Option data type.
 
         Args:
-            dtype (DataType): The data type of the optional value.
+            dtype (T): The data type of the optional value.
         """
         self._option = PyOption(dtype._inner())
 

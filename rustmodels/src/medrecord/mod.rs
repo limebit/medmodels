@@ -30,7 +30,20 @@ type Lut<T> = GILHashMap<usize, fn(&Bound<'_, PyAny>) -> PyResult<T>>;
 
 #[pyclass]
 #[repr(transparent)]
+#[derive(Debug, Clone)]
 pub struct PyMedRecord(MedRecord);
+
+impl From<MedRecord> for PyMedRecord {
+    fn from(value: MedRecord) -> Self {
+        Self(value)
+    }
+}
+
+impl From<PyMedRecord> for MedRecord {
+    fn from(value: PyMedRecord) -> Self {
+        value.0
+    }
+}
 
 #[pymethods]
 impl PyMedRecord {
@@ -105,7 +118,15 @@ impl PyMedRecord {
 
     #[getter]
     pub fn schema(&self) -> PySchema {
-        self.0.get_schema().clone().into()
+        self.0.schema().clone().into()
+    }
+
+    pub fn freeze_schema(&mut self) {
+        self.0.freeze_schema()
+    }
+
+    pub fn unfreeze_schema(&mut self) {
+        self.0.unfreeze_schema()
     }
 
     #[getter]

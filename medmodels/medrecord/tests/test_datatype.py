@@ -1,7 +1,5 @@
 import unittest
 
-import pytest
-
 import medmodels.medrecord as mr
 from medmodels._medmodels import (
     PyAny,
@@ -102,7 +100,7 @@ class TestDataType(unittest.TestCase):
 
         assert union.__repr__() == "DataType.Union(DataType.String, DataType.Int)"
 
-        union = mr.Union(mr.String(), mr.Int(), mr.Bool())
+        union = mr.Union(mr.String(), mr.Union(mr.Int(), mr.Bool()))
         assert isinstance(union._inner(), PyUnion)
 
         assert str(union) == "Union(String, Union(Int, Bool))"
@@ -114,10 +112,6 @@ class TestDataType(unittest.TestCase):
 
         assert mr.Union(mr.String(), mr.Int()) == mr.Union(mr.String(), mr.Int())
         assert mr.Union(mr.String(), mr.Int()) != mr.Union(mr.Int(), mr.String())
-
-    def test_invalid_union(self) -> None:
-        with pytest.raises(ValueError, match="Union must have at least two arguments"):
-            mr.Union(mr.String())
 
     def test_option(self) -> None:
         option = mr.Option(mr.String())

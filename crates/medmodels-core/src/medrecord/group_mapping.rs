@@ -7,10 +7,10 @@ pub type Group = MedRecordAttribute;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub(super) struct GroupMapping {
-    nodes_in_group: MrHashMap<Group, MrHashSet<NodeIndex>>,
-    edges_in_group: MrHashMap<Group, MrHashSet<EdgeIndex>>,
-    groups_of_node: MrHashMap<NodeIndex, MrHashSet<Group>>,
-    groups_of_edge: MrHashMap<EdgeIndex, MrHashSet<Group>>,
+    pub(super) nodes_in_group: MrHashMap<Group, MrHashSet<NodeIndex>>,
+    pub(super) edges_in_group: MrHashMap<Group, MrHashSet<EdgeIndex>>,
+    pub(super) groups_of_node: MrHashMap<NodeIndex, MrHashSet<Group>>,
+    pub(super) groups_of_edge: MrHashMap<EdgeIndex, MrHashSet<Group>>,
 }
 
 impl GroupMapping {
