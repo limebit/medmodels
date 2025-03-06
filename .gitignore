@@ -13,3 +13,4 @@ target
 .python-version
 docs/api/_autosummary/*
 .coverage
+uv.lock
