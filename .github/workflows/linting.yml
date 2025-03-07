@@ -39,13 +39,17 @@ jobs:
 
       - name: Lint with ruff
         run: uv run ruff check --output-format=github .
+
       - name: Lint imports with ruff
         run: uv run ruff check --select I --output-format=github .
+
       - name: Activate venv for Pyright
         run: echo "$PWD/.venv/bin" >> $GITHUB_PATH
+
       - name: Check typing with pyright
         uses: jakebailey/pyright-action@v2
         with:
           version: PATH
+
       - name: Lint with clippy
         run: cargo clippy --all-targets --all-features -- -D warnings

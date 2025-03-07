@@ -44,5 +44,6 @@ jobs:
 
       - name: Format with ruff
         run: uv run ruff format --check
+
       - name: Format with rustfmt
         run: cargo fmt -- --check
