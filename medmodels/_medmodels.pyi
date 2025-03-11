@@ -1,7 +1,5 @@
-from __future__ import annotations
-
 from enum import Enum
-from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Sequence, Union
+from typing import Callable, Dict, List, Optional, Sequence, TypeAlias, Union
 
 from medmodels.medrecord.types import (
     Attributes,
@@ -19,14 +17,6 @@ from medmodels.medrecord.types import (
     PolarsEdgeDataFrameInput,
     PolarsNodeDataFrameInput,
 )
-
-if TYPE_CHECKING:
-    import sys
-
-    if sys.version_info >= (3, 10):
-        from typing import TypeAlias
-    else:
-        from typing_extensions import TypeAlias
 
 PyDataType: TypeAlias = Union[
     PyString,
@@ -125,7 +115,9 @@ class PyMedRecord:
         nodes_dataframes: List[PolarsNodeDataFrameInput],
     ) -> PyMedRecord: ...
     @staticmethod
-    def from_example_dataset() -> PyMedRecord: ...
+    def from_simple_example_dataset() -> PyMedRecord: ...
+    @staticmethod
+    def from_advanced_example_dataset() -> PyMedRecord: ...
     @staticmethod
     def from_ron(path: str) -> PyMedRecord: ...
     def to_ron(self, path: str) -> None: ...

@@ -2,13 +2,14 @@ import unittest
 
 import numpy as np
 import polars as pl
+import pytest
 from sklearn.datasets import load_iris
 
 from medmodels.treatment_effect.matching.algorithms import propensity_score as ps
 
 
 class TestPropensityScore(unittest.TestCase):
-    def test_calculate_propensity(self):
+    def test_calculate_propensity(self) -> None:
         x, y = load_iris(return_X_y=True)
 
         # Set random state by each propensity estimator:
@@ -25,8 +26,8 @@ class TestPropensityScore(unittest.TestCase):
             np.array([x[1, :]]),
             hyperparameters=hyperparameters_logit,
         )
-        self.assertAlmostEqual(result_1[0], 1.43580537e-08, places=9)
-        self.assertAlmostEqual(result_2[0], 3.00353141e-08, places=9)
+        assert result_1[0] == pytest.approx(1.4e-08, 9)
+        assert result_2[0] == pytest.approx(3e-08, 9)
 
         # Decision Tree Classifier model:
         result_1, result_2 = ps.calculate_propensity(
@@ -37,8 +38,8 @@ class TestPropensityScore(unittest.TestCase):
             model="dec_tree",
             hyperparameters=hyperparameters,
         )
-        self.assertAlmostEqual(result_1[0], 0, places=2)
-        self.assertAlmostEqual(result_2[0], 0, places=2)
+        assert result_1[0] == pytest.approx(0, 2)
+        assert result_2[0] == pytest.approx(0, 2)
 
         # Random Forest Classifier model:
         result_1, result_2 = ps.calculate_propensity(
@@ -49,10 +50,10 @@ class TestPropensityScore(unittest.TestCase):
             model="forest",
             hyperparameters=hyperparameters,
         )
-        self.assertAlmostEqual(result_1[0], 0, places=2)
-        self.assertAlmostEqual(result_2[0], 0, places=2)
+        assert result_1[0] == pytest.approx(0, 2)
+        assert result_2[0] == pytest.approx(0, 2)
 
-    def test_run_propensity_score(self):
+    def test_run_propensity_score(self) -> None:
         # Set random state by each propensity estimator:
         hyperparameters = {"random_state": 1}
         hyperparameters_logit = {"random_state": 1, "max_iter": 200}
@@ -67,21 +68,21 @@ class TestPropensityScore(unittest.TestCase):
         result_logit = ps.run_propensity_score(
             treated_set, control_set, hyperparameters=hyperparameters_logit
         )
-        self.assertTrue(result_logit.equals(expected_logit))
+        assert result_logit.equals(expected_logit)
 
         # dec_tree metric
         expected_logit = pl.DataFrame({"a": [1.0, 1.0]})
         result_logit = ps.run_propensity_score(
             treated_set, control_set, model="dec_tree", hyperparameters=hyperparameters
         )
-        self.assertTrue(result_logit.equals(expected_logit))
+        assert result_logit.equals(expected_logit)
 
         # forest model
         expected_logit = pl.DataFrame({"a": [1.0, 1.0]})
         result_logit = ps.run_propensity_score(
             treated_set, control_set, model="forest", hyperparameters=hyperparameters
         )
-        self.assertTrue(result_logit.equals(expected_logit))
+        assert result_logit.equals(expected_logit)
 
         ###########################################
         # 3D example with covariates
@@ -99,7 +100,7 @@ class TestPropensityScore(unittest.TestCase):
             covariates=covs,
             hyperparameters=hyperparameters_logit,
         )
-        self.assertTrue(result_logit.equals(expected_logit))
+        assert result_logit.equals(expected_logit)
 
         # dec_tree model
         expected_logit = pl.DataFrame({"a": [1.0], "b": [3.0], "c": [5.0]})
@@ -110,7 +111,7 @@ class TestPropensityScore(unittest.TestCase):
             covariates=covs,
             hyperparameters=hyperparameters,
         )
-        self.assertTrue(result_logit.equals(expected_logit))
+        assert result_logit.equals(expected_logit)
 
         # forest model
         expected_logit = pl.DataFrame({"a": [1.0], "b": [3.0], "c": [5.0]})
@@ -121,18 +122,22 @@ class TestPropensityScore(unittest.TestCase):
             covariates=covs,
             hyperparameters=hyperparameters,
         )
-        self.assertTrue(result_logit.equals(expected_logit))
+        assert result_logit.equals(expected_logit)
 
         # using 2 nearest neighbors
         expected_logit = pl.DataFrame(
-            {"a": [1.0, 5.0], "b": [3.0, 2.0], "c": [5.0, 1.0]}
+            {
+                "a": [1.0, 5.0],
+                "b": [3.0, 2.0],
+                "c": [5.0, 1.0],
+            }
         )
         result_logit = ps.run_propensity_score(
             treated_set,
             control_set,
             number_of_neighbors=2,
         )
-        self.assertTrue(result_logit.equals(expected_logit))
+        assert result_logit.equals(expected_logit)
 
 
 if __name__ == "__main__":

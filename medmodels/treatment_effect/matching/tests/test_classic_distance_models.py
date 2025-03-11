@@ -2,6 +2,7 @@ import unittest
 
 import numpy as np
 import polars as pl
+import pytest
 
 from medmodels.treatment_effect.matching.algorithms import (
     classic_distance_models as cdm,
@@ -9,7 +10,7 @@ from medmodels.treatment_effect.matching.algorithms import (
 
 
 class TestClassicDistanceModels(unittest.TestCase):
-    def test_nearest_neighbor(self):
+    def test_nearest_neighbor(self) -> None:
         ###########################################
         # 1D example
         c_set = pl.DataFrame({"a": [1, 5, 1, 3]})
@@ -17,7 +18,7 @@ class TestClassicDistanceModels(unittest.TestCase):
 
         expected_result = pl.DataFrame({"a": [1.0, 5.0]})
         result = cdm.nearest_neighbor(t_set, c_set)
-        self.assertTrue(result.equals(expected_result))
+        assert result.equals(expected_result)
 
         ###########################################
         # 3D example with covariates
@@ -29,7 +30,7 @@ class TestClassicDistanceModels(unittest.TestCase):
 
         expected_result = pl.DataFrame([[1.0, 3.0, 5.0]], schema=cols, orient="row")
         result = cdm.nearest_neighbor(t_set, c_set, covariates=covs)
-        self.assertTrue(result.equals(expected_result))
+        assert result.equals(expected_result)
 
         # 2 nearest neighbors
         expected_abs_2nn = pl.DataFrame(
@@ -38,20 +39,18 @@ class TestClassicDistanceModels(unittest.TestCase):
         result_abs_2nn = cdm.nearest_neighbor(
             t_set, c_set, covariates=covs, number_of_neighbors=2
         )
-        self.assertTrue(result_abs_2nn.equals(expected_abs_2nn))
+        assert result_abs_2nn.equals(expected_abs_2nn)
 
-    def test_nearest_neighbor_value_error(self):
-        # Test case for checking the ValueError when all control units have been matched
+    def test_nearest_neighbor_value_error(self) -> None:
+        """Checking the ValueError when all control units have been matched."""
         c_set = pl.DataFrame({"a": [1, 2]})
         t_set = pl.DataFrame({"a": [1, 2, 3]})
 
-        with self.assertRaises(ValueError) as context:
+        with pytest.raises(
+            ValueError,
+            match="The treated set is too large for the given number of neighbors",
+        ):
             cdm.nearest_neighbor(t_set, c_set, number_of_neighbors=2)
-
-        self.assertEqual(
-            str(context.exception),
-            "The treated set is too large for the given number of neighbors.",
-        )
 
 
 if __name__ == "__main__":

@@ -1,27 +1,30 @@
+"""Propensity Score Matching.
+
+This module provides functions for calculating propensity scores and executing
+propensity score matching. The propensity score is the probability of being in the
+treatment group given a set of covariates. Propensity score matching is a method for
+matching treated and control units based on their propensity scores, ensuring that the
+two groups are comparable.
+"""
+
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Dict, Literal, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Any, Dict, Literal, Optional, Tuple, TypeAlias, Union
 
 import numpy as np
 import polars as pl
-from numpy.typing import NDArray
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.tree import DecisionTreeClassifier
 
-from medmodels.medrecord.types import MedRecordAttributeInputList
 from medmodels.treatment_effect.matching.algorithms.classic_distance_models import (
     nearest_neighbor,
 )
 
 if TYPE_CHECKING:
-    import sys
+    from numpy.typing import NDArray
 
-    if sys.version_info >= (3, 10):
-        from typing import TypeAlias
-    else:
-        from typing_extensions import TypeAlias
-
+    from medmodels.medrecord.types import MedRecordAttributeInputList
 
 Model: TypeAlias = Literal["logit", "dec_tree", "forest"]
 
@@ -34,7 +37,10 @@ def calculate_propensity(
     model: Model = "logit",
     hyperparameters: Optional[Dict[str, Any]] = None,
 ) -> Tuple[NDArray[np.float64], NDArray[np.float64]]:
-    """Trains a classification algorithm on training data, predicts the probability of being in the last class for treated and control test datasets, and returns these probabilities.
+    """Calculates the propensity/probabilities of a subject being in the treated group.
+
+    A classification algorithm is trained, and it is used to predict the probability of
+    a subject of being either in the treated or in the control set of patients.
 
     This function supports multiple classification algorithms and allows specifying
     hyperparameters. It is designed for binary classification tasks, focusing on the

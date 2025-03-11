@@ -1,9 +1,9 @@
 [project]
 name = "medmodels"
-version = "0.1.2"
+version = "0.2.1"
 description = "Limebit Medmodels Package"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 classifiers = [
     'Development Status :: 3 - Alpha',
     'Intended Audience :: Developers',
@@ -16,10 +16,10 @@ classifiers = [
     'Operating System :: Unix',
     'Programming Language :: Python',
     'Programming Language :: Python :: 3',
-    'Programming Language :: Python :: 3.9',
     'Programming Language :: Python :: 3.10',
     'Programming Language :: Python :: 3.11',
     'Programming Language :: Python :: 3.12',
+    'Programming Language :: Python :: 3.13',
     'Programming Language :: Python :: 3 :: Only',
     'Programming Language :: Rust',
     'Topic :: Scientific/Engineering',
@@ -27,10 +27,13 @@ classifiers = [
     'Typing :: Typed',
 ]
 dependencies = [
+    "matplotlib>=3.10.1",
     "numpy>=2.0.0",
     "pandas>=2.2.2",
     "polars[pandas]>=1.6.0",
     "scikit-learn>=1.5.0",
+    "scipy>=1.6.1",
+    "tqdm>=4.67.1",
 ]
 
 [project.optional-dependencies]
@@ -64,6 +67,7 @@ dev = [
     "py-spy",
     "pyright>=1.1.370,<1.1.374",
     "pandas-stubs>=2.2.2.240603",
+    "scipy-stubs>=1.15.1.0",
 ]
 
 [build-system]
@@ -86,6 +90,74 @@ exclude = [
     ".venv",
 ]
 line-length = 88
+
+[tool.ruff.lint]
+select = [
+    "E",    # PEP 8 codestyle errors
+    "F",    # pyflakes
+    "I",    # isort
+    "N",    # PEP 8 naming
+    "DOC",  # Pydoc Linting (preview); complementary to "D"
+    "D",    # Pydoc Style; PEP 257
+    "FA",   # future annotations linting; PEP 563
+    "W",    # pycodestyle warnings; PEP 8
+    "SIM",  # flake8 simplify; simplify code
+    "ANN",  # flake8 function annotations; PEP 3107
+    "B",    # bugbear extension for flake8; opinionated, not based on any PEP
+    "C4",   # list/set/dict comprehensions
+    "T10",  # Check for debugging leftovers: pdb;idbp imports and set traces
+    "EM",   # error messages
+    "LOG",  # logging module usage linting
+    "G",    # logging format strings
+    "T20",  # print statements
+    "PYI",  # lint stub files .pyi
+    "PT",   # pytest linting
+    "RET",  # return values
+    "TCH",  # type checking
+    "PTH",  # pathlib usage
+    "PERF", # performance linting
+    "FURB", # modern python code patterns
+    "RUF",  # ruff specific rules
+    "FBT",  # no bool as function param
+    "TD",   # todo linting
+    "C90",  # mccabe complexity
+]
+preview = true
+ignore = [
+    "E501", # Line length managed by formatter
+    # indentation linters conflicting with formatter:
+    "W191",
+    "E111",
+    "E114",
+    "E117",
+    "D206",
+    # quotation linters conflicting with formatter:
+    "D300",
+    "Q000",
+    "Q001",
+    "Q002",
+    "Q003",
+    # comma linters conflicting with formatter:
+    "COM812",
+    "COM819",
+    # string concatenation linters conflicting with formatter:
+    "ISC001",
+    "ISC002",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"*/tests/*" = ["D", "DOC"]
+"*/__init__.py" = ["D", "DOC"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.pycodestyle]
+max-doc-length = 88
+
+[tool.ruff.format]
+docstring-code-format = true
+docstring-code-line-length = 88
 
 [tool.pyright]
 typeCheckingMode = "strict"

@@ -1,17 +1,28 @@
 """Tests for the NeighborsMatching class in the matching module."""
 
+from __future__ import annotations
+
 import unittest
-from typing import List, Set
+from typing import TYPE_CHECKING, List, Optional, Set
 
 import pandas as pd
+import pytest
 
+import medmodels.medrecord as mr
 from medmodels import MedRecord
-from medmodels.medrecord.types import NodeIndex
 from medmodels.treatment_effect.matching.neighbors import NeighborsMatching
 
+if TYPE_CHECKING:
+    from medmodels.medrecord.types import NodeIndex
 
-def create_patients(patient_list: List[NodeIndex]) -> pd.DataFrame:
+
+def create_patients(
+    patients_list: List[NodeIndex],
+) -> pd.DataFrame:
     """Creates a patients dataframe.
+
+    Args:
+        patients_list (List[NodeIndex]): List of patients to include in the dataframe.
 
     Returns:
         pd.DataFrame: A patients dataframe.
@@ -22,53 +33,97 @@ def create_patients(patient_list: List[NodeIndex]) -> pd.DataFrame:
             "age": [20, 30, 40, 30, 40, 50, 60, 70, 80],
             "gender": [
                 "male",
-                "female",
                 "male",
                 "female",
-                "male",
                 "female",
                 "male",
+                "male",
+                "female",
                 "female",
                 "male",
             ],
         }
     )
 
-    patients = patients.loc[patients["index"].isin(patient_list)]
-    return patients
+    return patients.loc[patients["index"].isin(patients_list)]
 
 
-def create_medrecord(
-    patient_list: List[NodeIndex] = [
-        "P1",
-        "P2",
-        "P3",
-        "P4",
-        "P5",
-        "P6",
-        "P7",
-        "P8",
-        "P9",
-    ],
-) -> MedRecord:
+def create_medrecord(patients_list: Optional[List[NodeIndex]] = None) -> MedRecord:
     """Creates a MedRecord object.
+
+    Args:
+        patients_list (Optional[List[NodeIndex]], optional): List of patients to include
+            in the MedRecord. Defaults to None.
 
     Returns:
         MedRecord: A MedRecord object.
     """
-    patients = create_patients(patient_list=patient_list)
+    if patients_list is None:
+        patients_list = [
+            "P1",
+            "P2",
+            "P3",
+            "P4",
+            "P5",
+            "P6",
+            "P7",
+            "P8",
+            "P9",
+        ]
+    patients = create_patients(patients_list=patients_list)
     medrecord = MedRecord.from_pandas(nodes=[(patients, "index")])
     medrecord.add_group(group="patients", nodes=patients["index"].to_list())
+    medrecord.add_nodes(("P10", {}), "patients")
+    return medrecord
+
+
+def create_medrecord_with_schema(
+    patients_list: Optional[List[NodeIndex]] = None,
+) -> MedRecord:
+    """Creates a MedRecord object.
+
+    Args:
+        patients_list (Optional[List[NodeIndex]], optional): List of patients to include
+            in the MedRecord. Defaults to None.
+
+    Returns:
+        MedRecord: A MedRecord object.
+    """
+    if patients_list is None:
+        patients_list = [
+            "P1",
+            "P2",
+            "P3",
+            "P4",
+            "P5",
+            "P6",
+            "P7",
+            "P8",
+            "P9",
+        ]
+    patients = create_patients(patients_list=patients_list)
+    schema = mr.Schema(
+        groups={
+            "patients": mr.GroupSchema(
+                nodes={
+                    "age": (mr.Int(), mr.AttributeType.Continuous),
+                    "gender": (mr.String(), mr.AttributeType.Categorical),
+                }
+            )
+        }
+    )
+    medrecord = MedRecord.with_schema(schema)
+    medrecord.add_nodes_pandas(nodes=(patients, "index"), group="patients")
     return medrecord
 
 
 class TestNeighborsMatching(unittest.TestCase):
     """Class to test the NeighborsMatching class in the matching module."""
 
-    def setUp(self):
-        self.medrecord = create_medrecord()
+    def setUp(self) -> None:
+        self.medrecord = create_medrecord_with_schema()
 
-    def test_preprocess_data(self):
+    def test_preprocess_data(self) -> None:
         neighbors_matching = NeighborsMatching(number_of_neighbors=1)
 
         control_set: Set[NodeIndex] = {"P1", "P3", "P5", "P7", "P9"}
@@ -84,20 +139,20 @@ class TestNeighborsMatching(unittest.TestCase):
         )
 
         # Assert that the treated and control dataframes have the correct columns
-        self.assertIn("age", data_treated.columns)
-        self.assertIn("age", data_control.columns)
-        self.assertTrue(
+        assert "age" in data_treated.columns
+        assert "age" in data_control.columns
+        assert (
             "gender_female" in data_treated.columns
             or "gender_male" in data_treated.columns
         )
-        self.assertTrue(
+        assert (
             "gender_female" in data_control.columns
             or "gender_male" in data_control.columns
         )
 
         # Assert that the treated and control dataframes have the correct number of rows
-        self.assertEqual(len(data_treated), len(treated_set))
-        self.assertEqual(len(data_control), len(control_set))
+        assert len(data_treated) == len(treated_set)
+        assert len(data_control) == len(control_set)
 
         # Try automatic detection of attributes
         data_treated, data_control = neighbors_matching._preprocess_data(
@@ -108,22 +163,22 @@ class TestNeighborsMatching(unittest.TestCase):
         )
 
         # Assert that the treated and control dataframes have the correct columns
-        self.assertIn("age", data_treated.columns)
-        self.assertIn("age", data_control.columns)
-        self.assertTrue(
+        assert "age" in data_treated.columns
+        assert "age" in data_control.columns
+        assert (
             "gender_female" in data_treated.columns
             or "gender_male" in data_treated.columns
         )
-        self.assertTrue(
+        assert (
             "gender_female" in data_control.columns
             or "gender_male" in data_control.columns
         )
 
         # Assert that the treated and control dataframes have the correct number of rows
-        self.assertEqual(len(data_treated), len(treated_set))
-        self.assertEqual(len(data_control), len(control_set))
+        assert len(data_treated) == len(treated_set)
+        assert len(data_control) == len(control_set)
 
-    def test_match_controls(self):
+    def test_match_controls(self) -> None:
         neighbors_matching = NeighborsMatching(number_of_neighbors=1)
 
         control_set: Set[NodeIndex] = {"P1", "P3", "P5", "P7", "P9"}
@@ -139,12 +194,12 @@ class TestNeighborsMatching(unittest.TestCase):
         )
 
         # Assert that the matched controls are a subset of the control set
-        self.assertTrue(matched_controls.issubset(control_set))
+        assert matched_controls.issubset(control_set)
 
         # Assert that the correct number of controls were matched
-        self.assertEqual(len(matched_controls), len(treated_set))
+        assert len(matched_controls) == len(treated_set)
 
-        # Assert it works equally if no covariates are given (automatically assigned)
+        # It should do the same if no covariates are given (all attributes assigned)
         matched_controls_no_covariates_specified = neighbors_matching.match_controls(
             medrecord=self.medrecord,
             control_set=control_set,
@@ -152,12 +207,9 @@ class TestNeighborsMatching(unittest.TestCase):
             patients_group="patients",
         )
 
-        self.assertTrue(matched_controls_no_covariates_specified.issubset(control_set))
-        self.assertEqual(
-            len(matched_controls_no_covariates_specified), len(treated_set)
-        )
+        assert matched_controls_no_covariates_specified == matched_controls
 
-    def test_check_nodes(self):
+    def test_check_nodes(self) -> None:
         neighbors_matching = NeighborsMatching(number_of_neighbors=1)
 
         control_set: Set[NodeIndex] = {"P1", "P3", "P5", "P7", "P9"}
@@ -170,61 +222,67 @@ class TestNeighborsMatching(unittest.TestCase):
             control_set=control_set,
             essential_covariates=["age", "gender"],
         )
-        self.assertEqual(valid_control_set, control_set)
+        assert valid_control_set == control_set
 
-    def test_invalid_check_nodes(self):
+    def test_invalid_check_nodes(self) -> None:
         neighbors_matching = NeighborsMatching(number_of_neighbors=1)
 
         control_set: Set[NodeIndex] = {"P1", "P3", "P5", "P7", "P9"}
         treated_set: Set[NodeIndex] = {"P2", "P4", "P6"}
 
         # Test insufficient control subjects
-        with self.assertRaises(ValueError) as context:
+        with pytest.raises(
+            ValueError,
+            match="Not enough control subjects to match the treated subjects. "
+            + "Number of controls: 1, Number of treated subjects: 3, "
+            + "Number of neighbors required per treated subject: 1, "
+            + "Total controls needed: 3.",
+        ):
             neighbors_matching._check_nodes(
                 medrecord=self.medrecord,
                 treated_set=treated_set,
                 control_set={"P1"},
                 essential_covariates=["age", "gender"],
             )
-        self.assertEqual(
-            str(context.exception),
-            "Not enough control subjects to match the treated subjects",
-        )
 
-        with self.assertRaises(ValueError) as context:
-            neighbors_matching = NeighborsMatching(number_of_neighbors=2)
-            neighbors_matching._check_nodes(
+        neighbors_matching_two_neighbors = NeighborsMatching(number_of_neighbors=2)
+        with pytest.raises(
+            ValueError,
+            match="Not enough control subjects to match the treated subjects. "
+            + "Number of controls: 5, Number of treated subjects: 3, "
+            + "Number of neighbors required per treated subject: 2, "
+            + "Total controls needed: 6.",
+        ):
+            neighbors_matching_two_neighbors._check_nodes(
                 medrecord=self.medrecord,
                 treated_set=treated_set,
                 control_set=control_set,
                 essential_covariates=["age", "gender"],
             )
-        self.assertEqual(
-            str(context.exception),
-            "Not enough control subjects to match the treated subjects",
-        )
+
+        medrecord_missing = create_medrecord()
 
         # Test missing essential covariates in treated set
-        with self.assertRaises(ValueError) as context:
+        with pytest.raises(
+            ValueError,
+            match="Some treated nodes do not have all the essential covariates",
+        ):
             neighbors_matching._check_nodes(
-                medrecord=self.medrecord,
+                medrecord=medrecord_missing,
                 treated_set={"P2", "P10"},
                 control_set=control_set,
                 essential_covariates=["age", "gender"],
             )
-        self.assertEqual(
-            str(context.exception),
-            "Some treated nodes do not have all the essential covariates",
-        )
 
-    def test_invalid_match_controls(self):
+    def test_invalid_match_controls(self) -> None:
         neighbors_matching = NeighborsMatching(number_of_neighbors=1)
 
         control_set: Set[NodeIndex] = {"P1", "P3", "P5", "P7", "P9"}
         treated_set: Set[NodeIndex] = {"P2", "P4", "P6"}
 
-        with self.assertRaisesRegex(
-            AssertionError, "One-hot covariates must be in the essential covariates"
+        with pytest.raises(
+            AssertionError,
+            match="One-hot covariates must be in the essential covariates",
         ):
             neighbors_matching.match_controls(
                 medrecord=self.medrecord,
@@ -237,5 +295,4 @@ class TestNeighborsMatching(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    run_test = unittest.TestLoader().loadTestsFromTestCase(TestNeighborsMatching)
-    unittest.TextTestRunner(verbosity=2).run(run_test)
+    pytest.main([__file__])

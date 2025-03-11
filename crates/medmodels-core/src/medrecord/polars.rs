@@ -12,7 +12,7 @@ impl<'a> TryFrom<AnyValue<'a>> for MedRecordValue {
     fn try_from(value: AnyValue<'a>) -> Result<Self, Self::Error> {
         match value {
             AnyValue::String(value) => Ok(MedRecordValue::String(value.into())),
-            AnyValue::StringOwned(value) => Ok(MedRecordValue::String(value.into())),
+            AnyValue::StringOwned(value) => Ok(MedRecordValue::String((*value).into())),
             AnyValue::Int8(value) => Ok(MedRecordValue::Int(value.into())),
             AnyValue::Int16(value) => Ok(MedRecordValue::Int(value.into())),
             AnyValue::Int32(value) => Ok(MedRecordValue::Int(value.into())),
@@ -88,7 +88,7 @@ impl<'a> TryFrom<AnyValue<'a>> for MedRecordAttribute {
     fn try_from(value: AnyValue<'a>) -> Result<Self, Self::Error> {
         match value {
             AnyValue::String(value) => Ok(MedRecordAttribute::String(value.into())),
-            AnyValue::StringOwned(value) => Ok(MedRecordAttribute::String(value.into())),
+            AnyValue::StringOwned(value) => Ok(MedRecordAttribute::String((*value).into())),
             AnyValue::Int8(value) => Ok(MedRecordAttribute::Int(value.into())),
             AnyValue::Int16(value) => Ok(MedRecordAttribute::Int(value.into())),
             AnyValue::Int32(value) => Ok(MedRecordAttribute::Int(value.into())),
@@ -105,9 +105,13 @@ impl<'a> TryFrom<AnyValue<'a>> for MedRecordAttribute {
 }
 
 pub(crate) fn dataframe_to_nodes(
-    nodes: DataFrame,
+    mut nodes: DataFrame,
     index_column_name: &str,
 ) -> Result<Vec<(NodeIndex, Attributes)>, MedRecordError> {
+    if nodes.max_n_chunks() > 1 {
+        nodes.rechunk_mut();
+    }
+
     let attribute_column_names = nodes
         .get_column_names()
         .into_iter()
@@ -122,13 +126,14 @@ pub(crate) fn dataframe_to_nodes(
                 index_column_name
             ))
         })?
+        .as_materialized_series()
         .iter();
 
     let mut columns = nodes
         .columns(&attribute_column_names)
         .expect("Attribute columns must exist")
         .iter()
-        .map(|s| s.iter())
+        .map(|s| s.as_materialized_series().iter())
         .zip(attribute_column_names)
         .collect::<Vec<_>>();
 
@@ -140,7 +145,7 @@ pub(crate) fn dataframe_to_nodes(
                     .iter_mut()
                     .map(|(column, column_name)| {
                         Ok((
-                            (*column_name).into(),
+                            (***column_name).into(),
                             column.next().expect("msg").try_into()?,
                         ))
                     })
@@ -151,10 +156,14 @@ pub(crate) fn dataframe_to_nodes(
 }
 
 pub(crate) fn dataframe_to_edges(
-    edges: DataFrame,
+    mut edges: DataFrame,
     source_index_column_name: &str,
     target_index_column_name: &str,
 ) -> Result<Vec<(NodeIndex, NodeIndex, Attributes)>, MedRecordError> {
+    if edges.max_n_chunks() > 1 {
+        edges.rechunk_mut();
+    }
+
     let attribute_column_names = edges
         .get_column_names()
         .into_iter()
@@ -169,6 +178,7 @@ pub(crate) fn dataframe_to_edges(
                 source_index_column_name
             ))
         })?
+        .as_materialized_series()
         .iter();
     let target_index = edges
         .column(target_index_column_name)
@@ -178,13 +188,14 @@ pub(crate) fn dataframe_to_edges(
                 target_index_column_name
             ))
         })?
+        .as_materialized_series()
         .iter();
 
     let mut columns = edges
         .columns(&attribute_column_names)
         .expect("Attribute columns must exist")
         .iter()
-        .map(|s| s.iter())
+        .map(|s| s.as_materialized_series().iter())
         .zip(attribute_column_names)
         .collect::<Vec<_>>();
 
@@ -198,7 +209,7 @@ pub(crate) fn dataframe_to_edges(
                     .iter_mut()
                     .map(|(column, column_name)| {
                         Ok((
-                            (*column_name).into(),
+                            (***column_name).into(),
                             column
                                 .next()
                                 .expect("Should have as many iterations as rows")
@@ -293,7 +304,7 @@ mod test {
 
     #[test]
     fn test_from_anyvalue_datetime() {
-        let any_value = AnyValue::Datetime(0, polars::prelude::TimeUnit::Microseconds, &None);
+        let any_value = AnyValue::Datetime(0, polars::prelude::TimeUnit::Microseconds, None);
 
         let value = MedRecordValue::try_from(any_value).unwrap();
 
@@ -304,7 +315,7 @@ mod test {
             value
         );
 
-        let any_value = AnyValue::Datetime(0, polars::prelude::TimeUnit::Milliseconds, &None);
+        let any_value = AnyValue::Datetime(0, polars::prelude::TimeUnit::Milliseconds, None);
 
         let value = MedRecordValue::try_from(any_value).unwrap();
 
@@ -315,7 +326,7 @@ mod test {
             value
         );
 
-        let any_value = AnyValue::Datetime(0, polars::prelude::TimeUnit::Nanoseconds, &None);
+        let any_value = AnyValue::Datetime(0, polars::prelude::TimeUnit::Nanoseconds, None);
 
         let value = MedRecordValue::try_from(any_value).unwrap();
 
@@ -338,9 +349,9 @@ mod test {
 
     #[test]
     fn test_dataframe_to_nodes() {
-        let s0 = Series::new("index", &["0", "1"]);
-        let s1 = Series::new("attribute", &[1, 2]);
-        let nodes_dataframe = DataFrame::new(vec![s0, s1]).unwrap();
+        let s0 = Series::new("index".into(), &["0", "1"]);
+        let s1 = Series::new("attribute".into(), &[1, 2]);
+        let nodes_dataframe = DataFrame::new(vec![s0.into(), s1.into()]).unwrap();
 
         let nodes = dataframe_to_nodes(nodes_dataframe, "index").unwrap();
 
@@ -355,9 +366,9 @@ mod test {
 
     #[test]
     fn test_invalid_dataframe_to_nodes() {
-        let s0 = Series::new("index", &["0", "1"]);
-        let s1 = Series::new("attribute", &[1, 2]);
-        let nodes_dataframe = DataFrame::new(vec![s0, s1]).unwrap();
+        let s0 = Series::new("index".into(), &["0", "1"]);
+        let s1 = Series::new("attribute".into(), &[1, 2]);
+        let nodes_dataframe = DataFrame::new(vec![s0.into(), s1.into()]).unwrap();
 
         // Providing the wrong index column name should fail
         assert!(dataframe_to_nodes(nodes_dataframe, "wrong_column")
@@ -366,10 +377,10 @@ mod test {
 
     #[test]
     fn test_dataframe_to_edges() {
-        let s0 = Series::new("source", &["0", "1"]);
-        let s1 = Series::new("target", &["1", "0"]);
-        let s2 = Series::new("attribute", &[1, 2]);
-        let edges_dataframe = DataFrame::new(vec![s0, s1, s2]).unwrap();
+        let s0 = Series::new("source".into(), &["0", "1"]);
+        let s1 = Series::new("target".into(), &["1", "0"]);
+        let s2 = Series::new("attribute".into(), &[1, 2]);
+        let edges_dataframe = DataFrame::new(vec![s0.into(), s1.into(), s2.into()]).unwrap();
 
         let edges = dataframe_to_edges(edges_dataframe, "source", "target").unwrap();
 
@@ -392,10 +403,10 @@ mod test {
 
     #[test]
     fn test_invalid_dataframe_to_edges() {
-        let s0 = Series::new("source", &["0", "1"]);
-        let s1 = Series::new("target", &["1", "0"]);
-        let s2 = Series::new("attribute", &[1, 2]);
-        let edges_dataframe = DataFrame::new(vec![s0, s1, s2]).unwrap();
+        let s0 = Series::new("source".into(), &["0", "1"]);
+        let s1 = Series::new("target".into(), &["1", "0"]);
+        let s2 = Series::new("attribute".into(), &[1, 2]);
+        let edges_dataframe = DataFrame::new(vec![s0.into(), s1.into(), s2.into()]).unwrap();
 
         // Providing the wrong source index column name should fail
         assert!(

@@ -1,19 +1,33 @@
+"""This module contains the TreatmentEffectBuilder class."""
+
 from __future__ import annotations
 
-from typing import Any, Dict, Literal, Optional
+from typing import TYPE_CHECKING, Any, Dict, Literal, Optional
 
 import medmodels.treatment_effect.treatment_effect as tee
-from medmodels.medrecord.querying import NodeQuery
-from medmodels.medrecord.types import (
-    Group,
-    MedRecordAttribute,
-    MedRecordAttributeInputList,
-)
-from medmodels.treatment_effect.matching.algorithms.propensity_score import Model
-from medmodels.treatment_effect.matching.matching import MatchingMethod
+
+if TYPE_CHECKING:
+    from medmodels.medrecord.querying import NodeQuery
+    from medmodels.medrecord.types import (
+        Group,
+        MedRecordAttribute,
+        MedRecordAttributeInputList,
+    )
+    from medmodels.treatment_effect.matching.algorithms.propensity_score import Model
+    from medmodels.treatment_effect.matching.matching import MatchingMethod
 
 
 class TreatmentEffectBuilder:
+    """Builder class for the TreatmentEffect object.
+
+    The TreatmentEffectBuilder class is used to build a TreatmentEffect object with
+    the desired configurations for the treatment effect estimation using a builder
+    pattern.
+
+    By default, it configures a static treatment effect estimation. To configure a
+    time-dependent treatment effect estimation, the time_attribute must be set.
+    """
+
     treatment: Group
     outcome: Group
 
@@ -86,6 +100,9 @@ class TreatmentEffectBuilder:
     ) -> TreatmentEffectBuilder:
         """Sets the time attribute to be used in the treatment effect estimation.
 
+        It turs the treatment effect estimation from a static to a time-dependent
+        analysis.
+
         Args:
             attribute (Optional[MedRecordAttribute]): The time attribute. If None,
                 there is no temporal analysis, but only static one.
@@ -105,8 +122,8 @@ class TreatmentEffectBuilder:
     ) -> TreatmentEffectBuilder:
         """Sets the washout period for the treatment effect estimation.
 
-        The washout period is the period of time before the treatment that is not considered in the
-        estimation.
+        The washout period is the period of time before the treatment that is not
+        considered in the estimation.
 
         Args:
             days (Optional[Dict[str, int]], optional): The duration of the washout
@@ -134,8 +151,8 @@ class TreatmentEffectBuilder:
     ) -> TreatmentEffectBuilder:
         """Sets the grace period for the treatment effect estimation.
 
-        The grace period is the period of time after the treatment that is not considered in the
-        estimation.
+        The grace period is the period of time after the treatment that is not
+        considered in the estimation.
 
         Args:
             days (Optional[int], optional): The duration of the grace period in days.
@@ -228,10 +245,12 @@ class TreatmentEffectBuilder:
         """Adjust the treatment effect estimate using propensity score matching.
 
         Args:
-            essential_covariates (Optional[MedRecordAttributeInputList]):
-                Covariates that are essential for matching. Defaults to None.
-            one_hot_covariates (Optional[MedRecordAttributeInputList]):
-                Covariates that are one-hot encoded for matching. Defaults to None.
+            essential_covariates (Optional[MedRecordAttributeInputList], optional):
+                Covariates that are essential for matching. Defaults to
+                ["gender", "age"].
+            one_hot_covariates (Optional[MedRecordAttributeInputList], optional):
+                Covariates that are one-hot encoded for matching. Defaults to
+                ["gender"].
             model (Model, optional): Model to choose for the matching. Defaults to
                 "logit".
             number_of_neighbors (int, optional): Number of neighbors to consider
@@ -243,6 +262,11 @@ class TreatmentEffectBuilder:
             TreatmentEffectBuilder: The current instance of the TreatmentEffectBuilder
                 with updated matching configurations.
         """
+        if essential_covariates is None:
+            essential_covariates = ["gender", "age"]
+        if one_hot_covariates is None:
+            one_hot_covariates = ["gender"]
+
         self.matching_method = "propensity"
         self.matching_essential_covariates = essential_covariates
         self.matching_one_hot_covariates = one_hot_covariates
@@ -261,17 +285,24 @@ class TreatmentEffectBuilder:
         """Adjust the treatment effect estimate using nearest neighbors matching.
 
         Args:
-            essential_covariates (Optional[MedRecordAttributeInputList]):
-                Covariates that are essential for matching. Defaults to None.
-            one_hot_covariates (Optional[MedRecordAttributeInputList]):
-                Covariates that are one-hot encoded for matching. Defaults to None.
-            number_of_neighbors (int, optional): Number of neighbors to consider for
-                the matching. Defaults to 1.
+            essential_covariates (Optional[MedRecordAttributeInputList], optional):
+                Covariates that are essential for matching. Defaults to
+                ["gender", "age"].
+            one_hot_covariates (Optional[MedRecordAttributeInputList], optional):
+                Covariates that are one-hot encoded for matching. Defaults to
+                ["gender"].
+            number_of_neighbors (int, optional): Number of neighbors to consider for the
+                matching. Defaults to 1.
 
         Returns:
             TreatmentEffectBuilder: The current instance of the TreatmentEffectBuilder
                 with updated matching configurations.
         """
+        if essential_covariates is None:
+            essential_covariates = ["gender", "age"]
+        if one_hot_covariates is None:
+            one_hot_covariates = ["gender"]
+
         self.matching_method = "nearest_neighbors"
         self.matching_essential_covariates = essential_covariates
         self.matching_one_hot_covariates = one_hot_covariates

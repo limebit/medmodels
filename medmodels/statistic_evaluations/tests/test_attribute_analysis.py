@@ -1,0 +1,314 @@
+import unittest
+from datetime import datetime
+
+import numpy as np
+import pandas as pd
+import polars as pl
+
+import medmodels as mm
+from medmodels.medrecord.querying import EdgeOperand, NodeOperand
+from medmodels.medrecord.schema import AttributeType
+from medmodels.statistic_evaluations.statistical_analysis.attribute_analysis import (
+    calculate_datetime_mean,
+    determine_attribute_type,
+    extract_attribute_summary,
+    extract_categorical_attribute_summary,
+    extract_numeric_attribute_summary,
+    extract_string_attribute_summary,
+    extract_temporal_attribute_summary,
+)
+
+
+def create_medrecord() -> mm.MedRecord:
+    patients = pd.DataFrame(
+        {
+            "index": ["P1", "P2", "P3"],
+            "age": [20, 30, 70],
+        }
+    )
+
+    diagnosis = pd.DataFrame({"index": ["D1", "D2"]})
+
+    prescriptions = pd.DataFrame(
+        {
+            "index": ["M1", "M2", "M3"],
+            "ATC": ["B01AF01", "B01AA03", np.nan],
+        }
+    )
+
+    nodes = [patients, diagnosis, prescriptions]
+
+    edges = pd.DataFrame(
+        {
+            "source": ["D1", "M1", "D1"],
+            "target": ["P1", "P2", "P3"],
+            "time": ["2000-01-01", "1999-10-15", "1999-12-15"],
+        }
+    )
+
+    edges.time = pd.to_datetime(edges.time)
+
+    edges_disease = pl.DataFrame(
+        {
+            "source": ["D1", "D1", "D1"],
+            "target": ["P1", "P2", "P3"],
+            "intensity": [1, "low", None],
+        },
+        strict=False,
+    )
+
+    groups = [
+        ("Patients", patients["index"].to_list()),
+        ("Stroke", ["D1"]),
+        ("Medications", ["M1", "M2", "M3"]),
+        ("Aspirin", ["M3"]),
+    ]
+
+    medrecord = mm.MedRecord.from_pandas(
+        nodes=[(node, "index") for node in nodes],
+        edges=(edges, "source", "target"),
+    )
+
+    medrecord.add_edges_polars(edges=(edges_disease, "source", "target"))
+
+    edges_meds = pd.DataFrame(
+        {
+            "source": ["M1", "M2", "M3"],
+            "target": ["P1", "P2", "P3"],
+            "time": ["2000-01-01", "1999-10-15", "1999-12-15"],
+        }
+    )
+    edges_meds["time"] = pd.to_datetime(edges_meds["time"])
+
+    medrecord.add_edges_pandas(
+        edges=(edges_meds, "source", "target"), group="patient-medications"
+    )
+
+    for group, group_list in groups:
+        medrecord.add_group(group, group_list)
+
+    return medrecord
+
+
+class TestAttributeAnalysis(unittest.TestCase):
+    def test_determine_attribute_type(self) -> None:
+        assert determine_attribute_type([1, 0.5, 6, 8]) == AttributeType.Continuous
+
+        assert (
+            determine_attribute_type([datetime(1995, 4, 17), datetime(2022, 2, 25)])
+            == AttributeType.Temporal
+        )
+
+        assert determine_attribute_type(["F", "M"]) is None
+
+        assert determine_attribute_type([1, "2", 3]) is None
+
+        assert determine_attribute_type([1, datetime(1999, 1, 1)]) is None
+
+    def test_extract_attribute_summary(self) -> None:
+        # medrecord without schema
+        medrecord = create_medrecord()
+
+        def query1(node: NodeOperand) -> None:
+            node.in_group("Stroke")
+
+        # No attributes
+        no_attributes = extract_attribute_summary(
+            medrecord.node[query1], summary_type="short", schema=None
+        )
+
+        assert no_attributes == {}
+
+        def query2(node: NodeOperand) -> None:
+            node.in_group("Patients")
+
+        # numeric type
+        numeric_attribute = extract_attribute_summary(
+            medrecord.node[query2], schema=None, summary_type="short"
+        )
+
+        numeric_expected = {
+            "age": {"type": "Continuous", "min": 20, "max": 70, "mean": 40.0}
+        }
+
+        assert numeric_attribute == numeric_expected
+
+        def query3(node: NodeOperand) -> None:
+            node.in_group("Medications")
+
+        # string attributes
+        str_attributes = extract_attribute_summary(
+            medrecord.node[query3], schema=None, summary_type="short"
+        )
+
+        assert str_attributes == {
+            "ATC": {"type": "Unstructured", "values": "Values: B01AA03, B01AF01"}
+        }
+
+        def query4(node: NodeOperand) -> None:
+            node.in_group("Aspirin")
+
+        # nan attribute
+        nan_attributes = extract_attribute_summary(
+            medrecord.node[query4], schema=None, summary_type="short"
+        )
+
+        assert nan_attributes == {"ATC": {"type": "Unstructured", "values": "-"}}
+
+        def query5(edge: EdgeOperand) -> None:
+            edge.source_node().in_group("Medications")
+            edge.target_node().in_group("Patients")
+
+        # temporal attributes
+        temp_attributes = extract_attribute_summary(
+            medrecord.edge[query5], schema=None, summary_type="short"
+        )
+
+        assert temp_attributes == {
+            "time": {
+                "type": "Temporal",
+                "max": datetime(2000, 1, 1, 0, 0),
+                "min": datetime(1999, 10, 15, 0, 0),
+                "mean": datetime(1999, 11, 18, 17, 30),
+            }
+        }
+
+        def query6(edge: EdgeOperand) -> None:
+            edge.source_node().in_group("Stroke")
+            edge.target_node().in_group("Patients")
+
+        # mixed attributes
+        mixed_attributes = extract_attribute_summary(
+            medrecord.edge[medrecord.select_edges(query6)],
+            schema=None,
+            summary_type="short",
+        )
+        assert mixed_attributes == {
+            "time": {
+                "type": "Temporal",
+                "min": datetime(1999, 12, 15, 0, 0),
+                "max": datetime(2000, 1, 1, 0, 0),
+                "mean": datetime(1999, 12, 23, 12, 0),
+            },
+            "intensity": {"type": "Unstructured", "values": "Values: 1, low"},
+        }
+
+        # with schema
+        mr_schema = mm.MedRecord.from_simple_example_dataset()
+        nodes_schema = mr_schema.group("patient")["nodes"]
+
+        node_info = extract_attribute_summary(
+            mr_schema.node[nodes_schema],
+            schema=mr_schema.schema.group("patient").nodes,
+            summary_type="short",
+        )
+
+        assert node_info == {
+            "age": {"type": "Continuous", "min": 19, "max": 96, "mean": 43.20},
+            "gender": {"type": "Categorical", "values": "Categories: F, M"},
+        }
+
+        def query7(edge: EdgeOperand) -> None:
+            edge.in_group("patient_diagnosis")
+
+        # compare schema and not schema
+        patient_diagnosis = extract_attribute_summary(
+            mr_schema.edge[query7],
+            schema=mr_schema.schema.group("patient_diagnosis").edges,
+            summary_type="short",
+        )
+
+        assert patient_diagnosis == {
+            "time": {
+                "type": "Temporal",
+                "min": datetime(1962, 10, 21, 0, 0),
+                "max": datetime(2024, 4, 12, 0, 0),
+                "mean": datetime(2012, 1, 25, 10, 45),
+            },
+            "duration_days": {
+                "type": "Continuous",
+                "min": 0.0,
+                "max": 3416.0,
+                "mean": 405.0232558139535,
+            },
+        }
+
+    def test_extract_numeric_attribute_summary(self) -> None:
+        # mix of intand float
+        attribute_values = [1, 2, 3.5, 4, 5.5]
+        result = extract_numeric_attribute_summary(
+            attribute_values, summary_type="extended"
+        )
+
+        assert result["type"] == "Continuous"
+        assert result["min"] == 1
+        assert result["max"] == 5.5
+        assert result["mean"] == 3.2
+        assert result["median"] == 3.5
+        assert result["Q1"] == 2
+        assert result["Q3"] == 4
+
+    def test_calculate_datetime_mean(self) -> None:
+        attribute_values = [
+            datetime(2021, 1, 1),
+            datetime(2021, 1, 15),
+            datetime(2021, 2, 1),
+            datetime(2021, 3, 1),
+        ]
+        mean = calculate_datetime_mean(attribute_values)
+
+        assert mean == datetime(2021, 1, 27, 0, 0, 0)
+
+    def test_extract_temporal_attribute_summary(self) -> None:
+        attribute_values = [
+            datetime(2021, 1, 1),
+            datetime(2021, 1, 15),
+            datetime(2021, 2, 1),
+            datetime(2021, 3, 1),
+        ]
+
+        result = extract_temporal_attribute_summary(
+            attribute_values, summary_type="extended"
+        )
+
+        assert result["type"] == "Temporal"
+
+        assert result["min"] == datetime(2021, 1, 1)
+        assert result["max"] == datetime(2021, 3, 1)
+        assert result["mean"] == datetime(2021, 1, 27)
+        assert result["median"] == datetime(2021, 1, 23, 12)
+        assert result["Q1"] == datetime(2021, 1, 11, 12)
+        assert result["Q3"] == datetime(2021, 2, 8)
+
+    def test_extract_categorical_attribute_summary(self) -> None:
+        attribute_values = [
+            1.5,
+            "A",
+            "B",
+            1,
+            "A",
+            "C",
+            datetime(1999, 10, 15),
+        ]
+
+        result = extract_categorical_attribute_summary(
+            attribute_values,
+            summary_type="extended",
+        )
+        assert result["type"] == "Categorical"
+        assert result["count"] == 6
+        assert result["top"] == "A"
+        assert result["freq"] == 2
+
+        result_string = extract_string_attribute_summary(
+            attribute_values,
+            summary_type="short",
+        )
+
+        assert result_string["type"] == "Unstructured"
+        assert result_string["values"] == "6 unique values"
+
+
+if __name__ == "__main__":
+    run_test = unittest.TestLoader().loadTestsFromTestCase(TestAttributeAnalysis)
+    unittest.TextTestRunner(verbosity=2).run(run_test)

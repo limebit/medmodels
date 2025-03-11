@@ -1,14 +1,17 @@
+from __future__ import annotations
+
 import unittest
 from datetime import datetime
-from typing import List
+from typing import TYPE_CHECKING, List, Optional
 
 import pandas as pd
+import pytest
 
 from medmodels.medrecord.medrecord import MedRecord
-from medmodels.medrecord.types import NodeIndex
-from medmodels.treatment_effect.temporal_analysis import (
-    find_reference_edge,
-)
+from medmodels.treatment_effect.temporal_analysis import find_reference_edge
+
+if TYPE_CHECKING:
+    from medmodels.medrecord.types import NodeIndex
 
 
 def create_patients(patient_list: List[NodeIndex]) -> pd.DataFrame:
@@ -29,8 +32,7 @@ def create_patients(patient_list: List[NodeIndex]) -> pd.DataFrame:
         }
     )
 
-    patients = patients.loc[patients["index"].isin(patient_list)]
-    return patients
+    return patients.loc[patients["index"].isin(patient_list)]
 
 
 def create_diagnoses() -> pd.DataFrame:
@@ -39,13 +41,12 @@ def create_diagnoses() -> pd.DataFrame:
     Returns:
         pd.DataFrame: A diagnoses dataframe.
     """
-    diagnoses = pd.DataFrame(
+    return pd.DataFrame(
         {
             "index": ["D1"],
             "name": ["Stroke"],
         }
     )
-    return diagnoses
 
 
 def create_prescriptions() -> pd.DataFrame:
@@ -54,13 +55,12 @@ def create_prescriptions() -> pd.DataFrame:
     Returns:
         pd.DataFrame: A prescriptions dataframe.
     """
-    prescriptions = pd.DataFrame(
+    return pd.DataFrame(
         {
             "index": ["M1", "M2"],
             "name": ["Rivaroxaban", "Warfarin"],
         }
     )
-    return prescriptions
 
 
 def create_edges(patient_list: List[NodeIndex]) -> pd.DataFrame:
@@ -94,22 +94,19 @@ def create_edges(patient_list: List[NodeIndex]) -> pd.DataFrame:
             ],
         }
     )
-    edges = edges.loc[edges["target"].isin(patient_list)]
-    return edges
+    return edges.loc[edges["target"].isin(patient_list)]
 
 
 def create_medrecord(
-    patient_list: List[NodeIndex] = [
-        "P1",
-        "P2",
-        "P3",
-    ],
+    patient_list: Optional[List[NodeIndex]] = None,
 ) -> MedRecord:
     """Creates a MedRecord object.
 
     Returns:
         MedRecord: A MedRecord object.
     """
+    if patient_list is None:
+        patient_list = ["P1", "P2", "P3"]
     patients = create_patients(patient_list=patient_list)
     diagnoses = create_diagnoses()
     prescriptions = create_prescriptions()
@@ -137,17 +134,17 @@ def create_medrecord(
 class TestTemporalAnalysis(unittest.TestCase):
     """"""
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.medrecord = create_medrecord()
 
-    def test_find_reference_time(self):
+    def test_find_reference_time(self) -> None:
         edge = find_reference_edge(
             self.medrecord,
             node_index="P1",
             reference="last",
             connected_group="Rivaroxaban",
         )
-        self.assertEqual(0, edge)
+        assert edge == 0
 
         # adding medication time
         self.medrecord.add_edges(("M1", "P1", {"time": datetime(2000, 1, 15)}))
@@ -158,7 +155,7 @@ class TestTemporalAnalysis(unittest.TestCase):
             reference="last",
             connected_group="Rivaroxaban",
         )
-        self.assertEqual(5, edge)
+        assert edge == 5
 
         edge = find_reference_edge(
             self.medrecord,
@@ -166,12 +163,12 @@ class TestTemporalAnalysis(unittest.TestCase):
             reference="first",
             connected_group="Rivaroxaban",
         )
-        self.assertEqual(0, edge)
+        assert edge == 0
 
-    def test_invalid_find_reference_time(self):
-        with self.assertRaisesRegex(
+    def test_invalid_find_reference_time(self) -> None:
+        with pytest.raises(
             ValueError,
-            "No edge with that time attribute or with a datetime data type was found for node P1 in this MedRecord",
+            match="No edge with that time attribute or with a datetime data type was found for node P1 in this MedRecord",
         ):
             find_reference_edge(
                 self.medrecord,
@@ -182,9 +179,9 @@ class TestTemporalAnalysis(unittest.TestCase):
             )
 
         node_index = "P2"
-        with self.assertRaisesRegex(
+        with pytest.raises(
             ValueError,
-            "No edge with that time attribute or with a datetime data type was found for node P2 in this MedRecord",
+            match="No edge with that time attribute or with a datetime data type was found for node P2 in this MedRecord",
         ):
             find_reference_edge(
                 self.medrecord,

@@ -2,7 +2,7 @@
 
 This dataset was created using the [Synthea™ Patient Generator](https://github.com/synthetichealth/synthea).
 
-# Dataset Description
+## Dataset Description
 
 The dataset is a synthetic dataset created to simulate a small-scale medical record system containing comprehensive patient data. The dataset encompasses details for five hypothetical patients, capturing key medical attributes including patient demographics, diagnosis, medical procedures undertaken, and medications prescribed.
 
@@ -10,10 +10,10 @@ The dataset is a synthetic dataset created to simulate a small-scale medical rec
 
 ### 1. `patient.csv`
 
-The patient data consists of five hypothetical patients.
+The patient data consists of 5 hypothetical patients.
 
-- **patient_id:** A unique identifier assigned each patient
-- **gender:** Recorded as Male, Female, or Non-Binary
+- **patient_id:** Unique identifier assigned to each patient
+- **gender:** Recorded as Male or Female
 - **age:** Patient's age in years
 
 ### 2. `diagnosis.csv`
@@ -41,28 +41,28 @@ The drug data has 19 different prescribed medications.
 
 ### 1. `patient_diagnosis.csv`
 
-There are 60 diagnosis instances for the five patients.
+There are 60 diagnosis instances for the 5 patients.
 
-- **patient_id:** Linked to the Patient Demographics
+- **patient_id:** Unique identifier assigned to each patient
 - **diagnosis_code:** Unique code identifiying a specific diagnosis
-- **diagnosis_time:** Date of the diagnosis
+- **time:** Date of the diagnosis
 - **duration_days** Duration in days in which the diagnosis held true
 
 ### 2. `patient_procedure.csv`
 
-For all five patients there are 50 procedures in the dataset.
+For all 5 patients there are 50 procedures in the dataset.
 
-- **patient_id:** Linked to the Patient Demographics
+- **patient_id:** Unique identifier assigned to each patient
 - **procedure_code:** Unique identifier for each procedure
-- **procedure_time:** Exact time and date for the procedure
+- **time:** Exact time and date for the procedure
 - **duration_minutes:** How long the procedure needed in minutes
 
 ### 3. `patient_drug.csv`
 
-There are also 50 prescribed medications for the five patients combined.
+There are also 50 prescribed medications for the 5 patients combined.
 
-- **patient_id:** Linked to the Patient Demographics
+- **patient_id:** Unique identifier assigned to each patient
 - **drug_code:** Unique identifier for the medication prescribed
-- **start_time:** Time and date when the medication was prescribed
-- **quantity:** how many doses were prescribed
-- **cost:** Cost of the medication order in Dollar
+- **time:** Time and date when the medication was prescribed
+- **quantity:** The number of doses prescribed
+- **cost:** Cost of the medication order in dollars
