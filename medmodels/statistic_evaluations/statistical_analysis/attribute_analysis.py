@@ -107,7 +107,7 @@ class CategoricalAttributeStatistics(TypedDict):
     type: Literal["Categorical"]
     count: int
     top: str
-    freq: int
+    freq: str
 
 
 class StringAttributeInfo(TypedDict):
@@ -525,13 +525,13 @@ def extract_categorical_attribute_summary(
         }
 
     top = max(string_values, key=string_values.count)
-    freq = string_values.count(top)
+    freq = string_values.count(top)/len(string_values)
 
     return {
         "type": "Categorical",
         "count": len(set(string_values)),
         "top": top,
-        "freq": freq,
+        "freq": f"{freq*100:.2f} %",
     }
 
 

@@ -10,7 +10,7 @@ from medmodels.medrecord.types import Group, NodeIndex
 
 
 def count_concept_connections(
-    medrecord: MedRecord, concept: Group, cohort: Group
+    medrecord: MedRecord, concept: Group, cohort: Group, verbose: bool = False
 ) -> Dict[NodeIndex, int]:
     """Count for each concept node how often it is connected to the cohort group.
 
@@ -19,6 +19,7 @@ def count_concept_connections(
             nodes and also edges connecting these to groups.
         concept (Group): Concept, for example 'Diagnoses', 'Procedure' or 'Medication'.
         cohort (Group): Cohort group, for example 'Patients'.
+        verbose (bool, optional): If True, print progress. Defaults to False.
 
     Returns:
         Dict[NodeIndex, int]: Dictionary with the node index for the concept and the
@@ -36,7 +37,12 @@ def count_concept_connections(
         edge.target_node().in_group(cohort)
         edge.source_node().index().equal_to(concept_node)
 
-    for concept_node in tqdm(concept_nodes, desc="Getting concept counts"):
+    if verbose:
+        concept_nodes = tqdm(concept_nodes, desc="Getting concept counts")
+    else:
+        concept_nodes = concept_nodes
+    
+    for concept_node in concept_nodes:
         concept_counts[concept_node] = len(
             medrecord.select_edges(lambda edge: edge.either_or(test_one, test_two))
         )

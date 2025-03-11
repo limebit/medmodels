@@ -54,6 +54,7 @@ class CohortEvaluator:
     concepts_edges: Dict[Group, Group]
     attribute_summary: Dict[Group, Dict[MedRecordAttribute, AttributeStatistics]]
     concepts_counts: Dict[Group, Dict[NodeIndex, int]]
+    _verbose: bool
 
     def __init__(
         self,
@@ -64,6 +65,7 @@ class CohortEvaluator:
         time_attribute: MedRecordAttribute = "time",
         attributes: Optional[Dict[MedRecordAttribute, MedRecordAttribute]] = None,
         concepts_groups: Optional[Dict[Group, Group]] = None,
+        verbose: bool = False,
     ) -> None:
         """Initializes the Evaluator class.
 
@@ -83,11 +85,13 @@ class CohortEvaluator:
             concepts_groups (Optional[Dict[Group, Group]], optional): Mapping of the
                 concepts to evaluate. If none are given, it will select all Groups that
                 have connecting edges to the patient group. Defaults to None.
+            verbose (bool, optional): If True, print progress. Defaults to False.
         """  # noqa: W505
         self.medrecord = medrecord.clone()
         self.name = name
         self.time_attribute = time_attribute
         self.patient_group = patient_group
+        self._verbose = verbose
 
         self.concepts_groups, self.concepts_edges = self._add_patient_concept_edges(
             patient_group, concepts_groups
@@ -234,6 +238,7 @@ class CohortEvaluator:
                 medrecord=self.medrecord,
                 concept=concept,
                 cohort=self.patient_group,
+                verbose=self._verbose,
             )
 
         return concepts_counts
