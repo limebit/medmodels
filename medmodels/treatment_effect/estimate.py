@@ -676,6 +676,22 @@ class Estimate:
         outcome_variable: MedRecordAttribute,
         reference: Literal["first", "last"] = "last",
     ) -> Tuple[float, float]:
+        """Performs a t-test to compare the means of two groups.
+
+        Args:
+            medrecord (MedRecord): An instance of the MedRecord class containing medical
+                data.
+            outcome_variable (MedRecordAttribute): The attribute in the edge that
+                contains the outcome variable. It must be numeric and continuous.
+            reference (Literal["first", "last"], optional): The reference point for the
+                exposure time. Options include "first" and "last". If "first", the
+                function returns the earliest exposure edge. If "last", the function
+                returns the latest exposure edge. Defaults to "last".
+        
+        Returns:
+            Tuple[float, float]: The t-statistic and p-value of the t-test.""
+        """           
+        
         subjects = self.subject_indices(medrecord=medrecord)
 
         return t_test(

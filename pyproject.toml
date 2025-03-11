@@ -27,7 +27,7 @@ classifiers = [
     'Typing :: Typed',
 ]
 dependencies = [
-    "matplotlib>=3.10.1",
+    "matplotlib>=3.9.4",
     "numpy>=2.0.0",
     "pandas>=2.2.2",
     "polars[pandas]>=1.6.0",
