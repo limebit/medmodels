@@ -1322,25 +1322,39 @@ class MedRecord:
         return medrecord
 
     def _describe_group_nodes(
-        self, groups: Optional[GroupInputList] = None
+        self, node: Optional[NodeIndexInputList] = None, groups: Optional[GroupInputList] = None
     ) -> Dict[Group, AttributeInfo]:
-        """Creates a summary of group nodes and their attributes.
+        """Creates a summary of the specified node(s) in the MedRecord.
+
+        Args:
+            node (Optional[NodeIndexInputList], optional):
+                List of node indices or a node query to get an overview of.
+                If no nodes are given, all nodes in the MedRecord are shown. Defaults
+                to None.
+            groups (Optional[GroupInputList], optional): List of groups that should be
+                considered. If no groups are given, all groups containing the specified
+                nodes are shown. Defaults to None.
 
         Returns:
-            pl.DataFrame: Dataframe with all nodes in medrecord groups and their
+            pl.DataFrame: Dataframe with the nodes in their MedRecord groups and their
                 attributes.
         """
         nodes_info = {}
         grouped_nodes = []
+        add_ungrouped = False
+
+        if not node:
+            node = self.nodes
 
         if not groups:
-            groups = sorted(self.groups, key=lambda x: str(x))
             add_ungrouped = True
-        else:
-            add_ungrouped = False
+            groups = self.groups
 
-        for group in groups:
-            nodes = self.group(group)["nodes"]
+        groups = sorted(groups, key=lambda x: str(x))
+
+        for group in groups or []:
+            all_nodes_in_group = self.group(group)["nodes"]
+            nodes = list(set(all_nodes_in_group).intersection(set(node)))
             grouped_nodes.extend(nodes)
 
             if (len(nodes) == 0) and (self.group(group)["edges"]):
@@ -1436,14 +1450,30 @@ class MedRecord:
         return "\n".join([str(self.overview_nodes()), "", str(self.overview_edges())])
 
     def overview_nodes(
-        self, groups: Optional[Union[Group, GroupInputList]] = None, decimal: int = 2
+        self,
+        *,
+        node: Optional[Union[NodeIndex, NodeIndexInputList, NodeQuery]] = None,
+        group: Optional[Union[Group, GroupInputList]] = None,
+        decimal: int = 2
     ) -> OverviewTable:
-        """Gets a summary for all nodes in groups and their attributes.
+        """Gets a summary of the specified node(s) in the MedRecord.
+
+        - In case only nodes are provided, the method returns a summary of those nodes
+            with respect to the groups they belong to. If one node belongs to multiple
+            groups, it is counted in each group.
+        - If only groups are provided, the method returns a summary of all nodes in the
+            specified groups.
+        - In case both nodes and groups are provided, the method returns a summary of
+            the nodes in the specified groups.
 
         Args:
-            groups (Optional[Union[Group, GroupInputList]], optional): Group or list of
-                node groups to display. If no groups are given, all groups containing
-                nodes are shown. Defaults to None.
+            node (Optional[Union[NodeIndex, NodeIndexInputList, NodeQuery]], optional):
+                One or more node indices or a node query to get an overview of.
+                If no nodes are given, all nodes in the MedRecord are used. Defaults
+                to None.
+            group (Optional[Union[Group, GroupInputList]], optional): Group or list of
+                groups to display. If no groups are given, all groups containing the
+                specified nodes are shown. Defaults to None.
             decimal (int, optional): Decimal point to round the float values to.
                 Defaults to 2.
 
@@ -1464,12 +1494,15 @@ class MedRecord:
                 Ungrouped Nodes 10    -           -           -
                 --------------------------------------------------------------
         """
-        if groups:
-            nodes_data = self._describe_group_nodes(
-                groups if isinstance(groups, list) else [groups]
-            )
-        else:
-            nodes_data = self._describe_group_nodes()
+        if isinstance(group, Group):
+            group = [group]
+
+        if isinstance(node, NodeIndex):
+            node = [node]
+        elif isinstance(node, Callable):
+            node = self.select_nodes(node)
+
+        nodes_data = self._describe_group_nodes(node, group)
 
         return OverviewTable(
             data=nodes_data, group_header="Nodes Group", decimal=decimal
