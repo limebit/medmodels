@@ -245,7 +245,7 @@ impl MedRecord {
         })
     }
 
-    pub fn update_schema(&mut self, mut schema: Schema) -> Result<(), MedRecordError> {
+    pub fn set_schema(&mut self, mut schema: Schema) -> Result<(), MedRecordError> {
         let mut nodes_group_cache = HashMap::<&Group, usize>::new();
         let mut nodes_default_visited = false;
         let mut edges_group_cache = HashMap::<&Group, usize>::new();
@@ -371,11 +371,11 @@ impl MedRecord {
     /// # Safety
     ///
     /// This function should only be used if the data has been validated against the schema.
-    pub unsafe fn update_schema_unchecked(&mut self, schema: &mut Schema) {
+    pub unsafe fn set_schema_unchecked(&mut self, schema: &mut Schema) {
         mem::swap(&mut self.schema, schema);
     }
 
-    pub fn schema(&self) -> &Schema {
+    pub fn get_schema(&self) -> &Schema {
         &self.schema
     }
 
@@ -1080,7 +1080,7 @@ mod test {
     }
 
     #[test]
-    fn test_update_schema() {
+    fn test_set_schema() {
         let mut medrecord = MedRecord::new();
 
         let group_schema = GroupSchema::new(
@@ -1104,9 +1104,9 @@ mod test {
 
         let schema = Schema::new_provided(Default::default(), group_schema.clone());
 
-        assert!(medrecord.update_schema(schema.clone()).is_ok());
+        assert!(medrecord.set_schema(schema.clone()).is_ok());
 
-        assert_eq!(schema, *medrecord.schema());
+        assert_eq!(schema, *medrecord.get_schema());
 
         let mut medrecord = MedRecord::new();
 
@@ -1166,13 +1166,13 @@ mod test {
 
         let inferred_schema = Schema::new_inferred(Default::default(), Default::default());
 
-        assert!(medrecord.update_schema(inferred_schema).is_ok());
+        assert!(medrecord.set_schema(inferred_schema).is_ok());
 
-        assert_eq!(schema, *medrecord.schema());
+        assert_eq!(schema, *medrecord.get_schema());
     }
 
     #[test]
-    fn test_invalid_update_schema() {
+    fn test_invalid_set_schema() {
         let mut medrecord = MedRecord::new();
 
         medrecord
@@ -1187,13 +1187,13 @@ mod test {
             ),
         );
 
-        let previous_schema = medrecord.schema().clone();
+        let previous_schema = medrecord.get_schema().clone();
 
         assert!(medrecord
-            .update_schema(schema.clone())
+            .set_schema(schema.clone())
             .is_err_and(|e| { matches!(e, MedRecordError::SchemaError(_)) }));
 
-        assert_eq!(previous_schema, *medrecord.schema());
+        assert_eq!(previous_schema, *medrecord.get_schema());
 
         let mut medrecord = MedRecord::new();
 
@@ -1211,24 +1211,24 @@ mod test {
             )
             .unwrap();
 
-        let previous_schema = medrecord.schema().clone();
+        let previous_schema = medrecord.get_schema().clone();
 
         assert!(medrecord
-            .update_schema(schema.clone())
+            .set_schema(schema.clone())
             .is_err_and(|e| { matches!(e, MedRecordError::SchemaError(_)) }));
 
-        assert_eq!(previous_schema, *medrecord.schema());
+        assert_eq!(previous_schema, *medrecord.get_schema());
     }
 
     #[test]
     fn test_freeze_schema() {
         let mut medrecord = MedRecord::new();
 
-        assert_eq!(SchemaType::Inferred, *medrecord.schema().schema_type());
+        assert_eq!(SchemaType::Inferred, *medrecord.get_schema().schema_type());
 
         medrecord.freeze_schema();
 
-        assert_eq!(SchemaType::Provided, *medrecord.schema().schema_type());
+        assert_eq!(SchemaType::Provided, *medrecord.get_schema().schema_type());
     }
 
     #[test]
@@ -1236,11 +1236,11 @@ mod test {
         let schema = Schema::new_provided(Default::default(), Default::default());
         let mut medrecord = MedRecord::with_schema(schema);
 
-        assert_eq!(*medrecord.schema().schema_type(), SchemaType::Provided);
+        assert_eq!(*medrecord.get_schema().schema_type(), SchemaType::Provided);
 
         medrecord.unfreeze_schema();
 
-        assert_eq!(*medrecord.schema().schema_type(), SchemaType::Inferred);
+        assert_eq!(*medrecord.get_schema().schema_type(), SchemaType::Inferred);
     }
 
     #[test]

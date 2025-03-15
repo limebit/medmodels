@@ -281,12 +281,12 @@ class TestMedRecord(unittest.TestCase):
 
         schema = Schema(default=group_schema, schema_type=SchemaType.Provided)
 
-        medrecord.schema = schema
+        medrecord.set_schema(schema)
 
-        assert medrecord.schema.default.nodes == {
+        assert medrecord.get_schema().default.nodes == {
             "attribute": (Int(), AttributeType.Continuous)
         }
-        assert medrecord.schema.default.edges == {
+        assert medrecord.get_schema().default.edges == {
             "attribute": (Int(), AttributeType.Continuous)
         }
 
@@ -314,27 +314,25 @@ class TestMedRecord(unittest.TestCase):
 
         inferred_schema = Schema()
 
-        medrecord.schema = inferred_schema
+        medrecord.set_schema(inferred_schema)
 
-        assert medrecord.schema.group("0").nodes == {
+        schema = medrecord.get_schema()
+
+        assert schema.group("0").nodes == {
             "attribute": (Int(), AttributeType.Continuous)
         }
-        assert medrecord.schema.group("0").edges == {
+        assert schema.group("0").edges == {
             "attribute": (Int(), AttributeType.Continuous)
         }
-        assert medrecord.schema.group("1").nodes == {
+        assert schema.group("1").nodes == {
             "attribute": (Int(), AttributeType.Continuous)
         }
-        assert medrecord.schema.group("1").edges == {
+        assert schema.group("1").edges == {
             "attribute": (Int(), AttributeType.Continuous)
         }
-        assert medrecord.schema.default.nodes == {
-            "attribute": (Int(), AttributeType.Continuous)
-        }
-        assert medrecord.schema.default.edges == {
-            "attribute": (Int(), AttributeType.Continuous)
-        }
-        assert medrecord.schema.schema_type == inferred_schema.schema_type
+        assert schema.default.nodes == {"attribute": (Int(), AttributeType.Continuous)}
+        assert schema.default.edges == {"attribute": (Int(), AttributeType.Continuous)}
+        assert schema.schema_type == inferred_schema.schema_type
 
     def test_invalid_schema(self) -> None:
         medrecord = MedRecord()
@@ -350,14 +348,14 @@ class TestMedRecord(unittest.TestCase):
             ValueError,
             match=r"Attribute [^\s]+ of type [^\s]+ not found on node with index [^\s]+",
         ):
-            medrecord.schema = schema
+            medrecord.set_schema(schema)
 
-        assert medrecord.schema.default.nodes == {
+        assert medrecord.get_schema().default.nodes == {
             "attribute2": (Int(), AttributeType.Continuous)
         }
-        assert medrecord.schema.default.edges == {}
-        assert len(medrecord.schema.groups) == 0
-        assert medrecord.schema.schema_type == SchemaType.Inferred
+        assert medrecord.get_schema().default.edges == {}
+        assert len(medrecord.get_schema().groups) == 0
+        assert medrecord.get_schema().schema_type == SchemaType.Inferred
 
         medrecord = MedRecord()
 
@@ -368,34 +366,32 @@ class TestMedRecord(unittest.TestCase):
             ValueError,
             match=r"Attribute [^\s]+ of type [^\s]+ not found on edge with index [^\s]+",
         ):
-            medrecord.schema = schema
+            medrecord.set_schema(schema)
 
-        assert medrecord.schema.default.nodes == {
-            "attribute": (Int(), AttributeType.Continuous)
-        }
-        assert medrecord.schema.default.edges == {
-            "attribute2": (Int(), AttributeType.Continuous)
-        }
-        assert len(medrecord.schema.groups) == 0
-        assert medrecord.schema.schema_type == SchemaType.Inferred
+        schema = medrecord.get_schema()
+
+        assert schema.default.nodes == {"attribute": (Int(), AttributeType.Continuous)}
+        assert schema.default.edges == {"attribute2": (Int(), AttributeType.Continuous)}
+        assert len(schema.groups) == 0
+        assert schema.schema_type == SchemaType.Inferred
 
     def test_freeze_schema(self) -> None:
         medrecord = MedRecord()
 
-        assert medrecord.schema.schema_type == SchemaType.Inferred
+        assert medrecord.get_schema().schema_type == SchemaType.Inferred
 
         medrecord.freeze_schema()
 
-        assert medrecord.schema.schema_type == SchemaType.Provided
+        assert medrecord.get_schema().schema_type == SchemaType.Provided
 
     def test_unfreeze_schema(self) -> None:
         medrecord = MedRecord.with_schema(Schema(schema_type=SchemaType.Provided))
 
-        assert medrecord.schema.schema_type == SchemaType.Provided
+        assert medrecord.get_schema().schema_type == SchemaType.Provided
 
         medrecord.unfreeze_schema()
 
-        assert medrecord.schema.schema_type == SchemaType.Inferred
+        assert medrecord.get_schema().schema_type == SchemaType.Inferred
 
     def test_nodes(self) -> None:
         medrecord = create_medrecord()

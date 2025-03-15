@@ -327,23 +327,21 @@ class MedRecord:
         """
         self._medrecord.to_ron(path)
 
-    @property
-    def schema(self) -> Schema:
+    def get_schema(self) -> Schema:
         """Returns a copy of the MedRecords schema.
 
         Returns:
             Schema: The schema of the MedRecord.
         """
-        return Schema._from_py_schema(self._medrecord.schema)
+        return Schema._from_py_schema(self._medrecord.get_schema())
 
-    @schema.setter
-    def schema(self, schema: Schema) -> None:
+    def set_schema(self, schema: Schema) -> None:
         """Sets the schema of the MedRecord instance.
 
         Args:
             schema (Schema): The new schema to apply.
         """
-        self._medrecord.update_schema(schema._schema)
+        self._medrecord.set_schema(schema._schema)
 
     def freeze_schema(self) -> None:
         """Freezes the schema. No changes are automatically inferred."""
@@ -1348,13 +1346,17 @@ class MedRecord:
             if (len(nodes) == 0) and (self.group(group)["edges"]):
                 continue
 
-            schema = (
-                self.schema.group(group).nodes if group in self.schema.groups else None
+            schema = self.get_schema()
+
+            attributes_schema = (
+                schema.group(group).nodes if group in schema.groups else None
             )
 
             nodes_info[group] = {
                 "count": len(nodes),
-                "attribute": extract_attribute_summary(self.node[nodes], schema=schema),
+                "attribute": extract_attribute_summary(
+                    self.node[nodes], schema=attributes_schema
+                ),
             }
 
         if not add_ungrouped:
@@ -1399,13 +1401,17 @@ class MedRecord:
             if not edges:
                 continue
 
-            schema = (
-                self.schema.group(group).edges if group in self.schema.groups else None
+            schema = self.get_schema()
+
+            attributes_schema = (
+                schema.group(group).edges if group in schema.groups else None
             )
 
             edges_info[group] = {
                 "count": len(edges),
-                "attribute": extract_attribute_summary(self.edge[edges], schema=schema),
+                "attribute": extract_attribute_summary(
+                    self.edge[edges], schema=attributes_schema
+                ),
             }
 
         if not add_ungrouped:

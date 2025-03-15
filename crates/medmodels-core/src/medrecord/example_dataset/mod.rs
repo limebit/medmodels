@@ -461,7 +461,7 @@ impl MedRecord {
             )
             .expect("Group can be added");
 
-        unsafe { medrecord.update_schema_unchecked(&mut simple_dataset_schema!()) };
+        unsafe { medrecord.set_schema_unchecked(&mut simple_dataset_schema!()) };
 
         medrecord
     }
@@ -696,7 +696,7 @@ impl MedRecord {
             .add_group("patient_event".into(), None, Some(patient_event_ids))
             .expect("Group can be added");
 
-        unsafe { medrecord.update_schema_unchecked(&mut advanced_dataset_schema!()) };
+        unsafe { medrecord.set_schema_unchecked(&mut advanced_dataset_schema!()) };
 
         medrecord
     }
@@ -718,7 +718,7 @@ mod test {
     fn test_from_simple_example_dataset() {
         let mut medrecord = MedRecord::from_simple_example_dataset();
 
-        assert!(medrecord.update_schema(simple_dataset_schema!()).is_ok());
+        assert!(medrecord.set_schema(simple_dataset_schema!()).is_ok());
 
         assert_eq!(73, medrecord.node_count());
         assert_eq!(160, medrecord.edge_count());
@@ -772,7 +772,7 @@ mod test {
     fn test_from_advanced_example_dataset() {
         let mut medrecord = MedRecord::from_advanced_example_dataset();
 
-        assert!(medrecord.update_schema(advanced_dataset_schema!()).is_ok());
+        assert!(medrecord.set_schema(advanced_dataset_schema!()).is_ok());
 
         assert_eq!(1088, medrecord.node_count());
         assert_eq!(16883, medrecord.edge_count());

@@ -109,16 +109,15 @@ impl PyMedRecord {
         Ok(self.0.to_ron(path).map_err(PyMedRecordError::from)?)
     }
 
-    pub fn update_schema(&mut self, schema: PySchema) -> PyResult<()> {
-        Ok(self
-            .0
-            .update_schema(schema.into())
-            .map_err(PyMedRecordError::from)?)
+    pub fn get_schema(&self) -> PySchema {
+        self.0.get_schema().clone().into()
     }
 
-    #[getter]
-    pub fn schema(&self) -> PySchema {
-        self.0.schema().clone().into()
+    pub fn set_schema(&mut self, schema: PySchema) -> PyResult<()> {
+        Ok(self
+            .0
+            .set_schema(schema.into())
+            .map_err(PyMedRecordError::from)?)
     }
 
     pub fn freeze_schema(&mut self) {
