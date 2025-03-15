@@ -276,10 +276,12 @@ impl MedRecord {
                                         .map(|nodes| nodes.len())
                                         .unwrap_or(0),
                                 );
+
+                                schema.update_node(&node.attributes, Some(group), true);
                             }
                         },
                         SchemaType::Provided => {
-                            schema.validate_node(node_index, &node.attributes, Some(group))?
+                            schema.validate_node(node_index, &node.attributes, Some(group))?;
                         }
                     }
                 }
@@ -330,6 +332,8 @@ impl MedRecord {
                                         .map(|edges| edges.len())
                                         .unwrap_or(0),
                                 );
+
+                                schema.update_edge(&edge.attributes, Some(group), true);
                             }
                         },
                         SchemaType::Provided => {
@@ -611,65 +615,101 @@ impl MedRecord {
         node_indices: Option<Vec<NodeIndex>>,
         edge_indices: Option<Vec<EdgeIndex>>,
     ) -> Result<(), MedRecordError> {
-        match (node_indices, edge_indices) {
-            (None, None) => {
-                self.group_mapping.add_group(group.clone(), None, None)?;
+        if self.group_mapping.contains_group(&group) {
+            return Err(MedRecordError::AssertionError(format!(
+                "Group {} already exists",
+                group
+            )));
+        }
 
-                Ok(())
+        if let Some(ref node_indices) = node_indices {
+            for node_index in node_indices {
+                if !self.graph.contains_node(node_index) {
+                    return Err(MedRecordError::IndexError(format!(
+                        "Cannot find node with index {}",
+                        node_index,
+                    )));
+                }
             }
-            (None, Some(edge_indices)) => {
-                // Check that the edge_indices that are about to be added are actually in the graph
-                for edge_index in &edge_indices {
-                    if !self.graph.contains_edge(edge_index) {
-                        return Err(MedRecordError::IndexError(format!(
-                            "Cannot find edge with index {}",
-                            edge_index,
-                        )));
-                    }
-                }
+        };
 
-                self.group_mapping
-                    .add_group(group, None, Some(edge_indices))
+        if let Some(ref edge_indices) = edge_indices {
+            for edge_index in edge_indices {
+                if !self.graph.contains_edge(edge_index) {
+                    return Err(MedRecordError::IndexError(format!(
+                        "Cannot find edge with index {}",
+                        edge_index,
+                    )));
+                }
             }
-            (Some(node_indices), None) => {
-                // Check that the node_indices that are about to be added are actually in the graph
-                for node_index in &node_indices {
-                    if !self.graph.contains_node(node_index) {
-                        return Err(MedRecordError::IndexError(format!(
-                            "Cannot find node with index {}",
-                            node_index,
-                        )));
+        };
+
+        match self.schema.schema_type() {
+            SchemaType::Inferred => {
+                if !self.schema.groups().contains_key(&group) {
+                    self.schema
+                        .add_group(group.clone(), GroupSchema::default())?;
+                }
+
+                if let Some(ref node_indices) = node_indices {
+                    let mut empty = true;
+
+                    for node_index in node_indices {
+                        let node_attributes = self.graph.node_attributes(node_index)?;
+
+                        self.schema
+                            .update_node(node_attributes, Some(&group), empty);
+
+                        empty = false;
                     }
                 }
 
-                self.group_mapping
-                    .add_group(group, Some(node_indices), None)
+                if let Some(ref edge_indices) = edge_indices {
+                    let mut empty = true;
+
+                    for edge_index in edge_indices {
+                        let edge_attributes = self.graph.edge_attributes(edge_index)?;
+
+                        self.schema
+                            .update_edge(edge_attributes, Some(&group), empty);
+
+                        empty = false;
+                    }
+                }
             }
-            (Some(node_indices), Some(edge_indices)) => {
-                // Check that the node_indices that are about to be added are actually in the graph
-                for node_index in &node_indices {
-                    if !self.graph.contains_node(node_index) {
-                        return Err(MedRecordError::IndexError(format!(
-                            "Cannot find node with index {}",
-                            node_index,
-                        )));
+            SchemaType::Provided => {
+                if !self.schema.groups().contains_key(&group) {
+                    return Err(MedRecordError::SchemaError(format!(
+                        "Group {} is not defined in the schema",
+                        group
+                    )));
+                }
+
+                if let Some(ref node_indices) = node_indices {
+                    for node_index in node_indices {
+                        let node_attributes = self.graph.node_attributes(node_index)?;
+
+                        self.schema
+                            .validate_node(node_index, node_attributes, Some(&group))?;
                     }
                 }
 
-                // Check that the edge_indices that are about to be added are actually in the graph
-                for edge_index in &edge_indices {
-                    if !self.graph.contains_edge(edge_index) {
-                        return Err(MedRecordError::IndexError(format!(
-                            "Cannot find edge with index {}",
-                            edge_index,
-                        )));
+                if let Some(ref edge_indices) = edge_indices {
+                    for edge_index in edge_indices {
+                        let edge_attributes = self.graph.edge_attributes(edge_index)?;
+
+                        self.schema
+                            .validate_edge(edge_index, edge_attributes, Some(&group))?;
                     }
                 }
-
-                self.group_mapping
-                    .add_group(group, Some(node_indices), Some(edge_indices))
             }
         }
+
+        self.group_mapping
+            .add_group(group, node_indices, edge_indices)
+            .expect("Group must not exist");
+
+        Ok(())
     }
 
     pub fn remove_group(&mut self, group: &Group) -> Result<(), MedRecordError> {
@@ -891,7 +931,10 @@ mod test {
     use super::{Attributes, DataType, MedRecord, MedRecordAttribute, NodeIndex};
     use crate::{
         errors::MedRecordError,
-        medrecord::schema::{AttributeSchema, GroupSchema, Schema},
+        medrecord::{
+            schema::{AttributeSchema, GroupSchema, Schema},
+            SchemaType,
+        },
     };
     use polars::prelude::{DataFrame, NamedFrom, PolarsError, Series};
     use std::{collections::HashMap, fs};
@@ -1040,6 +1083,11 @@ mod test {
     fn test_update_schema() {
         let mut medrecord = MedRecord::new();
 
+        let group_schema = GroupSchema::new(
+            AttributeSchema::from([("attribute".into(), DataType::Int.into())]),
+            AttributeSchema::from([("attribute".into(), DataType::Int.into())]),
+        );
+
         medrecord
             .add_node("0".into(), HashMap::from([("attribute".into(), 1.into())]))
             .unwrap();
@@ -1054,15 +1102,71 @@ mod test {
             )
             .unwrap();
 
-        let schema = Schema::new_provided(
-            Default::default(),
-            GroupSchema::new(
-                AttributeSchema::from([("attribute".into(), DataType::Int.into())]),
-                AttributeSchema::from([("attribute".into(), DataType::Int.into())]),
-            ),
-        );
+        let schema = Schema::new_provided(Default::default(), group_schema.clone());
 
         assert!(medrecord.update_schema(schema.clone()).is_ok());
+
+        assert_eq!(schema, *medrecord.schema());
+
+        let mut medrecord = MedRecord::new();
+
+        medrecord
+            .add_node("0".into(), HashMap::from([("attribute".into(), 1.into())]))
+            .unwrap();
+        medrecord
+            .add_node("1".into(), HashMap::from([("attribute".into(), 1.into())]))
+            .unwrap();
+        medrecord
+            .add_node("2".into(), HashMap::from([("attribute".into(), 1.into())]))
+            .unwrap();
+        medrecord
+            .add_edge(
+                "0".into(),
+                "1".into(),
+                HashMap::from([("attribute".into(), 1.into())]),
+            )
+            .unwrap();
+        medrecord
+            .add_edge(
+                "0".into(),
+                "1".into(),
+                HashMap::from([("attribute".into(), 1.into())]),
+            )
+            .unwrap();
+        medrecord
+            .add_edge(
+                "0".into(),
+                "1".into(),
+                HashMap::from([("attribute".into(), 1.into())]),
+            )
+            .unwrap();
+
+        let schema = Schema::new_inferred(
+            HashMap::from([
+                ("0".into(), group_schema.clone()),
+                ("1".into(), group_schema.clone()),
+            ]),
+            group_schema,
+        );
+
+        medrecord
+            .add_group(
+                "0".into(),
+                Some(vec!["0".into(), "1".into()]),
+                Some(vec![0, 1]),
+            )
+            .unwrap();
+        medrecord
+            .add_group(
+                "1".into(),
+                Some(vec!["0".into(), "1".into()]),
+                Some(vec![0, 1]),
+            )
+            .unwrap();
+
+        let inferred_schema = Schema::new_inferred(Default::default(), Default::default());
+
+        assert!(medrecord.update_schema(inferred_schema).is_ok());
 
         assert_eq!(schema, *medrecord.schema());
     }
@@ -1114,6 +1218,29 @@ mod test {
             .is_err_and(|e| { matches!(e, MedRecordError::SchemaError(_)) }));
 
         assert_eq!(previous_schema, *medrecord.schema());
+    }
+
+    #[test]
+    fn test_freeze_schema() {
+        let mut medrecord = MedRecord::new();
+
+        assert_eq!(SchemaType::Inferred, *medrecord.schema().schema_type());
+
+        medrecord.freeze_schema();
+
+        assert_eq!(SchemaType::Provided, *medrecord.schema().schema_type());
+    }
+
+    #[test]
+    fn test_unfreeze_schema() {
+        let schema = Schema::new_provided(Default::default(), Default::default());
+        let mut medrecord = MedRecord::with_schema(schema);
+
+        assert_eq!(*medrecord.schema().schema_type(), SchemaType::Provided);
+
+        medrecord.unfreeze_schema();
+
+        assert_eq!(*medrecord.schema().schema_type(), SchemaType::Inferred);
     }
 
     #[test]
@@ -1354,14 +1481,27 @@ mod test {
         medrecord.add_node("0".into(), HashMap::new()).unwrap();
 
         assert_eq!(1, medrecord.node_count());
+
+        medrecord.freeze_schema();
+
+        medrecord.add_node("1".into(), HashMap::new()).unwrap();
+
+        assert_eq!(2, medrecord.node_count());
     }
+
     #[test]
     fn test_invalid_add_node() {
-        let mut graph = create_medrecord();
+        let mut medrecord = create_medrecord();
 
-        assert!(graph
+        assert!(medrecord
             .add_node("0".into(), HashMap::new())
             .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
+
+        medrecord.freeze_schema();
+
+        assert!(medrecord
+            .add_node("0".into(), HashMap::from([("attribute".into(), 1.into())]))
+            .is_err_and(|e| matches!(e, MedRecordError::SchemaError(_))));
     }
 
     #[test]
@@ -1474,6 +1614,14 @@ mod test {
             .unwrap();
 
         assert_eq!(5, medrecord.edge_count());
+
+        medrecord.freeze_schema();
+
+        medrecord
+            .add_edge("0".into(), "3".into(), HashMap::new())
+            .unwrap();
+
+        assert_eq!(6, medrecord.edge_count());
     }
 
     #[test]
@@ -1493,6 +1641,16 @@ mod test {
         assert!(medrecord
             .add_edge("50".into(), "0".into(), HashMap::new())
             .is_err_and(|e| matches!(e, MedRecordError::IndexError(_))));
+
+        medrecord.freeze_schema();
+
+        assert!(medrecord
+            .add_edge(
+                "0".into(),
+                "3".into(),
+                HashMap::from([("attribute".into(), 1.into())])
+            )
+            .is_err_and(|e| matches!(e, MedRecordError::SchemaError(_))));
     }
 
     #[test]
@@ -1566,7 +1724,7 @@ mod test {
 
         assert_eq!(2, medrecord.group_count());
 
-        assert_eq!(2, medrecord.nodes_in_group(&"1".into()).unwrap().count())
+        assert_eq!(2, medrecord.nodes_in_group(&"1".into()).unwrap().count());
     }
 
     #[test]
@@ -1578,12 +1736,32 @@ mod test {
             .add_group("0".into(), Some(vec!["50".into()]), None)
             .is_err_and(|e| matches!(e, MedRecordError::IndexError(_))));
 
+        // Adding a group with a non-existing edge should fail
+        assert!(medrecord
+            .add_group("0".into(), None, Some(vec![50]))
+            .is_err_and(|e| matches!(e, MedRecordError::IndexError(_))));
+
         medrecord.add_group("0".into(), None, None).unwrap();
 
         // Adding an already existing group should fail
         assert!(medrecord
             .add_group("0".into(), None, None)
             .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
+
+        medrecord.freeze_schema();
+
+        assert!(medrecord
+            .add_group("2".into(), None, None)
+            .is_err_and(|e| matches!(e, MedRecordError::SchemaError(_))));
+
+        medrecord.remove_group(&"0".into()).unwrap();
+
+        assert!(medrecord
+            .add_group("0".into(), Some(vec!["0".into()]), None)
+            .is_err_and(|e| matches!(e, MedRecordError::SchemaError(_))));
+        assert!(medrecord
+            .add_group("0".into(), None, Some(vec![0]))
+            .is_err_and(|e| matches!(e, MedRecordError::SchemaError(_))));
     }
 
     #[test]
@@ -1622,6 +1800,22 @@ mod test {
         medrecord.add_node_to_group("0".into(), "2".into()).unwrap();
 
         assert_eq!(3, medrecord.nodes_in_group(&"0".into()).unwrap().count());
+
+        medrecord
+            .add_node("4".into(), HashMap::from([("test".into(), "test".into())]))
+            .unwrap();
+
+        medrecord
+            .add_group("1".into(), Some(vec!["4".into()]), None)
+            .unwrap();
+
+        medrecord.freeze_schema();
+
+        medrecord
+            .add_node("5".into(), HashMap::from([("test".into(), "test".into())]))
+            .unwrap();
+
+        assert_eq!(1, medrecord.nodes_in_group(&"1".into()).unwrap().count());
     }
 
     #[test]
@@ -1646,6 +1840,19 @@ mod test {
         assert!(medrecord
             .add_node_to_group("0".into(), "0".into())
             .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
+
+        let mut medrecord = MedRecord::new();
+
+        medrecord
+            .add_node("0".into(), HashMap::from([("test".into(), "test".into())]))
+            .unwrap();
+        medrecord.add_group("group".into(), None, None).unwrap();
+
+        medrecord.freeze_schema();
+
+        assert!(medrecord
+            .add_node_to_group("group".into(), "0".into())
+            .is_err_and(|e| matches!(e, MedRecordError::SchemaError(_))));
     }
 
     #[test]
@@ -1661,6 +1868,22 @@ mod test {
         medrecord.add_edge_to_group("0".into(), 2).unwrap();
 
         assert_eq!(3, medrecord.edges_in_group(&"0".into()).unwrap().count());
+
+        medrecord
+            .add_edge("0".into(), "1".into(), HashMap::new())
+            .unwrap();
+
+        medrecord
+            .add_group("1".into(), None, Some(vec![3]))
+            .unwrap();
+
+        medrecord.freeze_schema();
+
+        medrecord
+            .add_edge("0".into(), "1".into(), HashMap::new())
+            .unwrap();
+
+        assert_eq!(1, medrecord.edges_in_group(&"1".into()).unwrap().count());
     }
 
     #[test]
@@ -1685,6 +1908,24 @@ mod test {
         assert!(medrecord
             .add_edge_to_group("0".into(), 0)
             .is_err_and(|e| matches!(e, MedRecordError::AssertionError(_))));
+
+        let mut medrecord = MedRecord::new();
+
+        medrecord.add_node("0".into(), HashMap::new()).unwrap();
+        medrecord
+            .add_edge(
+                "0".into(),
+                "0".into(),
+                HashMap::from([("test".into(), "test".into())]),
+            )
+            .unwrap();
+        medrecord.add_group("group".into(), None, None).unwrap();
+
+        medrecord.freeze_schema();
+
+        assert!(medrecord
+            .add_edge_to_group("group".into(), 0)
+            .is_err_and(|e| matches!(e, MedRecordError::SchemaError(_))));
     }
 
     #[test]

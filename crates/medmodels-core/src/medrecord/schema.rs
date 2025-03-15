@@ -55,7 +55,6 @@ impl DataType {
                 (Self::Null, _) => Self::Option(Box::new(other.clone())),
                 (_, Self::Null) => Self::Option(Box::new(self.clone())),
                 (_, Self::Any) => Self::Any,
-                (Self::Any, _) => Self::Any,
                 (Self::Option(option1), Self::Option(option2)) => {
                     Self::Option(Box::new(option1.merge(option2)))
                 }
@@ -239,9 +238,15 @@ impl AttributeSchema {
         kind: AttributeSchemaKind,
     ) -> Result<(), GraphError> {
         for (key, schema) in &self.0 {
-            let value = attributes.get(key).ok_or(GraphError::SchemaError(
-                kind.error_message(key, &schema.data_type),
-            ))?;
+            let value = match (attributes.get(key), &schema.data_type) {
+                (Some(value), _) => value,
+                (None, DataType::Option(_)) => continue,
+                (None, _) => {
+                    return Err(GraphError::SchemaError(
+                        kind.error_message(key, &schema.data_type),
+                    ));
+                }
+            };
 
             let data_type = DataType::from(value);
 
@@ -260,13 +265,10 @@ impl AttributeSchema {
             .map(|attribute| attribute.to_string())
             .collect::<Vec<_>>();
 
-        match attributes_not_in_schema.len() {
-            0 => (),
-            _ => {
-                return Err(GraphError::SchemaError(
-                    kind.error_message_too_many(attributes_not_in_schema),
-                ));
-            }
+        if !attributes_not_in_schema.is_empty() {
+            return Err(GraphError::SchemaError(
+                kind.error_message_too_many(attributes_not_in_schema),
+            ));
         }
 
         Ok(())
@@ -328,12 +330,12 @@ impl GroupSchema {
         Self { nodes, edges }
     }
 
-    pub fn nodes(&self) -> &AttributeSchemaMapping {
-        &self.nodes.0
+    pub fn nodes(&self) -> &AttributeSchema {
+        &self.nodes
     }
 
     pub fn edges(&self) -> &AttributeSchemaMapping {
-        &self.edges.0
+        &self.edges
     }
 
     pub fn validate_node<'a>(
@@ -370,7 +372,7 @@ impl GroupSchema {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub enum SchemaType {
     Inferred,
     Provided,
@@ -515,10 +517,18 @@ impl Schema {
         attributes: &'a Attributes,
         group: Option<&'a Group>,
     ) -> Result<(), GraphError> {
-        let group_schema = group.and_then(|group| self.groups.get(group));
+        match group {
+            Some(group) => {
+                let schema = self
+                    .groups
+                    .get(group)
+                    .ok_or(GraphError::SchemaError(format!(
+                        "Group {} not found in schema.",
+                        group
+                    )))?;
 
-        match group_schema {
-            Some(group_schema) => group_schema.validate_node(index, attributes),
+                schema.validate_node(index, attributes)
+            }
             None => self.default.validate_node(index, attributes),
         }
     }
@@ -529,10 +539,18 @@ impl Schema {
         attributes: &'a Attributes,
         group: Option<&'a Group>,
     ) -> Result<(), GraphError> {
-        let group_schema = group.and_then(|group| self.groups.get(group));
+        match group {
+            Some(group) => {
+                let schema = self
+                    .groups
+                    .get(group)
+                    .ok_or(GraphError::SchemaError(format!(
+                        "Group {} not found in schema.",
+                        group
+                    )))?;
 
-        match group_schema {
-            Some(group_schema) => group_schema.validate_edge(index, attributes),
+                schema.validate_edge(index, attributes)
+            }
             None => self.default.validate_edge(index, attributes),
         }
     }
@@ -717,6 +735,19 @@ impl Schema {
         }
     }
 
+    pub fn add_group(&mut self, group: Group, schema: GroupSchema) -> Result<(), GraphError> {
+        if self.groups.contains_key(&group) {
+            return Err(GraphError::SchemaError(format!(
+                "Group {} already exists in schema.",
+                group
+            )));
+        }
+
+        self.groups.insert(group, schema);
+
+        Ok(())
+    }
+
     pub fn remove_group(&mut self, group: &Group) {
         self.groups.remove(group);
     }
@@ -835,6 +866,25 @@ mod test {
         assert_eq!(DataType::Null.merge(&DataType::Null), DataType::Null);
         assert_eq!(DataType::Int.merge(&DataType::Any), DataType::Any);
         assert_eq!(DataType::Any.merge(&DataType::Int), DataType::Any);
+        assert_eq!(
+            DataType::Option(Box::new(DataType::Int)).merge(&DataType::String),
+            DataType::Option(Box::new(DataType::Union((
+                Box::new(DataType::Int),
+                Box::new(DataType::String)
+            ))))
+        );
+        assert_eq!(
+            DataType::Int.merge(&DataType::Option(Box::new(DataType::Int))),
+            DataType::Option(Box::new(DataType::Int))
+        );
+        assert_eq!(
+            DataType::Option(Box::new(DataType::Int))
+                .merge(&DataType::Option(Box::new(DataType::String))),
+            DataType::Option(Box::new(DataType::Union((
+                Box::new(DataType::Int),
+                Box::new(DataType::String)
+            ))))
+        );
     }
 
     #[test]
@@ -1042,6 +1092,153 @@ mod test {
     }
 
     #[test]
+    fn test_attribute_schema_deref() {
+        let schema = AttributeSchema::new(
+            vec![
+                (
+                    "key1".into(),
+                    AttributeDataType::new(DataType::Int, AttributeType::Categorical)
+                        .expect("AttributeType was infered from DataType."),
+                ),
+                (
+                    "key2".into(),
+                    AttributeDataType::new(DataType::Float, AttributeType::Continuous)
+                        .expect("AttributeType was infered from DataType."),
+                ),
+            ]
+            .into_iter()
+            .collect(),
+        );
+
+        assert_eq!(
+            schema.get(&"key1".into()).unwrap().data_type(),
+            &DataType::Int
+        );
+        assert_eq!(
+            schema.get(&"key2".into()).unwrap().data_type(),
+            &DataType::Float
+        );
+    }
+
+    #[test]
+    fn test_attribute_schema_validate() {
+        let attribute_schema = AttributeSchema::new(
+            vec![
+                (
+                    "key1".into(),
+                    AttributeDataType::new(DataType::Int, AttributeType::Categorical)
+                        .expect("AttributeType was infered from DataType."),
+                ),
+                (
+                    "key2".into(),
+                    AttributeDataType::new(DataType::Float, AttributeType::Continuous)
+                        .expect("AttributeType was infered from DataType."),
+                ),
+            ]
+            .into_iter()
+            .collect(),
+        );
+
+        let attributes: Attributes = vec![("key1".into(), 0.into()), ("key2".into(), 0.0.into())]
+            .into_iter()
+            .collect();
+
+        assert!(attribute_schema
+            .validate(&attributes, AttributeSchemaKind::Node(&0.into()))
+            .is_ok());
+
+        let attributes: Attributes = vec![("key1".into(), 0.0.into()), ("key2".into(), 0.into())]
+            .into_iter()
+            .collect();
+
+        assert!(attribute_schema
+            .validate(&attributes, AttributeSchemaKind::Node(&0.into()))
+            .is_err_and(|error| { matches!(error, crate::errors::GraphError::SchemaError(_)) }));
+
+        let attributes: Attributes = vec![
+            ("key1".into(), 0.into()),
+            ("key2".into(), 0.0.into()),
+            ("key3".into(), 0.0.into()),
+        ]
+        .into_iter()
+        .collect();
+
+        assert!(attribute_schema
+            .validate(&attributes, AttributeSchemaKind::Node(&0.into()))
+            .is_err_and(|error| { matches!(error, crate::errors::GraphError::SchemaError(_)) }));
+    }
+
+    #[test]
+    fn test_attribute_schema_update() {
+        let mut schema = AttributeSchema::default();
+        let attributes: Attributes =
+            vec![("key1".into(), 0.into()), ("key2".into(), "test".into())]
+                .into_iter()
+                .collect();
+
+        schema.update(&attributes, true);
+
+        assert_eq!(schema.0.len(), 2);
+        assert_eq!(
+            schema.0.get(&"key1".into()).unwrap().data_type(),
+            &DataType::Int
+        );
+        assert_eq!(
+            schema.0.get(&"key2".into()).unwrap().data_type(),
+            &DataType::String
+        );
+
+        let new_attributes: Attributes =
+            vec![("key1".into(), 0.5.into()), ("key3".into(), true.into())]
+                .into_iter()
+                .collect();
+
+        schema.update(&new_attributes, false);
+
+        assert_eq!(schema.0.len(), 3);
+        assert_eq!(
+            schema.0.get(&"key1".into()).unwrap().data_type(),
+            &DataType::Union((Box::new(DataType::Int), Box::new(DataType::Float)))
+        );
+        assert_eq!(
+            schema.0.get(&"key2".into()).unwrap().data_type(),
+            &DataType::Option(Box::new(DataType::String))
+        );
+        assert_eq!(
+            schema.0.get(&"key3".into()).unwrap().data_type(),
+            &DataType::Option(Box::new(DataType::Bool))
+        );
+    }
+
+    #[test]
+    fn test_attribute_schema_infer() {
+        let attributes1: Attributes =
+            vec![("key1".into(), 0.into()), ("key2".into(), "test".into())]
+                .into_iter()
+                .collect();
+
+        let attributes2: Attributes = vec![("key1".into(), 1.into()), ("key3".into(), true.into())]
+            .into_iter()
+            .collect();
+
+        let schema = AttributeSchema::infer(vec![&attributes1, &attributes2]);
+
+        assert_eq!(schema.0.len(), 3);
+        assert_eq!(
+            schema.0.get(&"key1".into()).unwrap().data_type(),
+            &DataType::Int
+        );
+        assert_eq!(
+            schema.0.get(&"key2".into()).unwrap().data_type(),
+            &DataType::Option(Box::new(DataType::String))
+        );
+        assert_eq!(
+            schema.0.get(&"key3".into()).unwrap().data_type(),
+            &DataType::Option(Box::new(DataType::Bool))
+        );
+    }
+
+    #[test]
     fn test_group_schema_nodes() {
         let nodes = AttributeSchema::new(
             vec![
@@ -1062,7 +1259,7 @@ mod test {
 
         let group_schema = GroupSchema::new(nodes.clone(), AttributeSchema::default());
 
-        assert_eq!(group_schema.nodes(), &nodes.0);
+        assert_eq!(group_schema.nodes(), &nodes);
     }
 
     #[test]
@@ -1087,42 +1284,6 @@ mod test {
         let group_schema = GroupSchema::new(AttributeSchema::default(), edges.clone());
 
         assert_eq!(group_schema.edges(), &edges.0);
-    }
-
-    #[test]
-    fn test_group_schema_validate_attribute_schema() {
-        let attributes: Attributes = vec![("key1".into(), 0.into()), ("key2".into(), 0.0.into())]
-            .into_iter()
-            .collect();
-
-        let attribute_schema = AttributeSchema::new(
-            vec![
-                (
-                    "key1".into(),
-                    AttributeDataType::new(DataType::Int, AttributeType::Categorical)
-                        .expect("AttributeType was infered from DataType."),
-                ),
-                (
-                    "key2".into(),
-                    AttributeDataType::new(DataType::Float, AttributeType::Continuous)
-                        .expect("AttributeType was infered from DataType."),
-                ),
-            ]
-            .into_iter()
-            .collect(),
-        );
-
-        assert!(attribute_schema
-            .validate(&attributes, AttributeSchemaKind::Node(&0.into()))
-            .is_ok());
-
-        let attributes: Attributes = vec![("key1".into(), 0.0.into()), ("key2".into(), 0.into())]
-            .into_iter()
-            .collect();
-
-        assert!(attribute_schema
-            .validate(&attributes, AttributeSchemaKind::Node(&0.into()))
-            .is_err_and(|error| { matches!(error, crate::errors::GraphError::SchemaError(_)) }));
     }
 
     #[test]
@@ -1195,76 +1356,6 @@ mod test {
         assert!(group_schema
             .validate_edge(&0, &attributes)
             .is_err_and(|error| { matches!(error, crate::errors::GraphError::SchemaError(_)) }));
-    }
-
-    #[test]
-    fn test_update_attribute_schema() {
-        let mut schema = AttributeSchema::default();
-        let attributes: Attributes =
-            vec![("key1".into(), 0.into()), ("key2".into(), "test".into())]
-                .into_iter()
-                .collect();
-
-        schema.update(&attributes, true);
-
-        assert_eq!(schema.0.len(), 2);
-        assert_eq!(
-            schema.0.get(&"key1".into()).unwrap().data_type(),
-            &DataType::Int
-        );
-        assert_eq!(
-            schema.0.get(&"key2".into()).unwrap().data_type(),
-            &DataType::String
-        );
-
-        let new_attributes: Attributes =
-            vec![("key1".into(), 0.5.into()), ("key3".into(), true.into())]
-                .into_iter()
-                .collect();
-
-        schema.update(&new_attributes, false);
-
-        assert_eq!(schema.0.len(), 3);
-        assert_eq!(
-            schema.0.get(&"key1".into()).unwrap().data_type(),
-            &DataType::Union((Box::new(DataType::Int), Box::new(DataType::Float)))
-        );
-        assert_eq!(
-            schema.0.get(&"key2".into()).unwrap().data_type(),
-            &DataType::Option(Box::new(DataType::String))
-        );
-        assert_eq!(
-            schema.0.get(&"key3".into()).unwrap().data_type(),
-            &DataType::Option(Box::new(DataType::Bool))
-        );
-    }
-
-    #[test]
-    fn test_infer_attribute_schema() {
-        let attributes1: Attributes =
-            vec![("key1".into(), 0.into()), ("key2".into(), "test".into())]
-                .into_iter()
-                .collect();
-
-        let attributes2: Attributes = vec![("key1".into(), 1.into()), ("key3".into(), true.into())]
-            .into_iter()
-            .collect();
-
-        let schema = AttributeSchema::infer(vec![&attributes1, &attributes2]);
-
-        assert_eq!(schema.0.len(), 3);
-        assert_eq!(
-            schema.0.get(&"key1".into()).unwrap().data_type(),
-            &DataType::Int
-        );
-        assert_eq!(
-            schema.0.get(&"key2".into()).unwrap().data_type(),
-            &DataType::Option(Box::new(DataType::String))
-        );
-        assert_eq!(
-            schema.0.get(&"key3".into()).unwrap().data_type(),
-            &DataType::Option(Box::new(DataType::Bool))
-        );
     }
 
     #[test]
@@ -1409,6 +1500,16 @@ mod test {
 
         assert_eq!(schema.default().nodes().len(), 2);
         assert_eq!(schema.default().edges().len(), 1);
+
+        medrecord
+            .add_group("test".into(), Some(vec![0.into(), 1.into()]), Some(vec![0]))
+            .unwrap();
+
+        let schema = Schema::infer(&medrecord);
+
+        assert_eq!(schema.groups().len(), 1);
+        assert_eq!(schema.group(&"test".into()).unwrap().nodes().len(), 2);
+        assert_eq!(schema.group(&"test".into()).unwrap().edges().len(), 1);
     }
 
     #[test]
@@ -1594,6 +1695,25 @@ mod test {
                 .data_type(),
             &DataType::Float
         );
+
+        assert!(schema
+            .set_node_attribute(
+                &"key1".into(),
+                DataType::Float,
+                AttributeType::Continuous,
+                Some(&"group1".into())
+            )
+            .is_ok());
+        assert_eq!(
+            schema
+                .group(&"group1".into())
+                .unwrap()
+                .nodes()
+                .get(&"key1".into())
+                .unwrap()
+                .data_type(),
+            &DataType::Float
+        );
     }
 
     #[test]
@@ -1633,6 +1753,25 @@ mod test {
                 .data_type(),
             &DataType::Float
         );
+
+        assert!(schema
+            .set_edge_attribute(
+                &"key1".into(),
+                DataType::Float,
+                AttributeType::Continuous,
+                Some(&"group1".into())
+            )
+            .is_ok());
+        assert_eq!(
+            schema
+                .group(&"group1".into())
+                .unwrap()
+                .edges()
+                .get(&"key1".into())
+                .unwrap()
+                .data_type(),
+            &DataType::Float
+        );
     }
 
     #[test]
@@ -1657,6 +1796,33 @@ mod test {
         assert_eq!(
             schema
                 .default()
+                .nodes()
+                .get(&"key1".into())
+                .unwrap()
+                .data_type(),
+            &DataType::Union((Box::new(DataType::Int), Box::new(DataType::Float)))
+        );
+
+        schema
+            .set_node_attribute(
+                &"key1".into(),
+                DataType::Int,
+                AttributeType::Continuous,
+                Some(&"group1".into()),
+            )
+            .unwrap();
+        assert!(schema
+            .update_node_attribute(
+                &"key1".into(),
+                DataType::Float,
+                AttributeType::Continuous,
+                Some(&"group1".into())
+            )
+            .is_ok());
+        assert_eq!(
+            schema
+                .group(&"group1".into())
+                .unwrap()
                 .nodes()
                 .get(&"key1".into())
                 .unwrap()
@@ -1693,6 +1859,33 @@ mod test {
                 .data_type(),
             &DataType::Union((Box::new(DataType::Bool), Box::new(DataType::String)))
         );
+
+        schema
+            .set_edge_attribute(
+                &"key1".into(),
+                DataType::Bool,
+                AttributeType::Categorical,
+                Some(&"group1".into()),
+            )
+            .unwrap();
+        assert!(schema
+            .update_edge_attribute(
+                &"key1".into(),
+                DataType::String,
+                AttributeType::Unstructured,
+                Some(&"group1".into())
+            )
+            .is_ok());
+        assert_eq!(
+            schema
+                .group(&"group1".into())
+                .unwrap()
+                .edges()
+                .get(&"key1".into())
+                .unwrap()
+                .data_type(),
+            &DataType::Union((Box::new(DataType::Bool), Box::new(DataType::String)))
+        );
     }
 
     #[test]
@@ -1708,6 +1901,21 @@ mod test {
             .unwrap();
         schema.remove_node_attribute(&"key1".into(), None);
         assert!(!schema.default().nodes().contains_key(&"key1".into()));
+
+        schema
+            .set_node_attribute(
+                &"key1".into(),
+                DataType::Int,
+                AttributeType::Continuous,
+                Some(&"group1".into()),
+            )
+            .unwrap();
+        schema.remove_node_attribute(&"key1".into(), Some(&"group1".into()));
+        assert!(!schema
+            .group(&"group1".into())
+            .unwrap()
+            .nodes()
+            .contains_key(&"key1".into()));
     }
 
     #[test]
@@ -1723,6 +1931,57 @@ mod test {
             .unwrap();
         schema.remove_edge_attribute(&"key1".into(), None);
         assert!(!schema.default().edges().contains_key(&"key1".into()));
+
+        schema
+            .set_edge_attribute(
+                &"key1".into(),
+                DataType::Bool,
+                AttributeType::Categorical,
+                Some(&"group1".into()),
+            )
+            .unwrap();
+        schema.remove_edge_attribute(&"key1".into(), Some(&"group1".into()));
+        assert!(!schema
+            .group(&"group1".into())
+            .unwrap()
+            .edges()
+            .contains_key(&"key1".into()));
+    }
+
+    #[test]
+    fn test_schema_add_group() {
+        let attribute_schema = AttributeSchema::new(
+            vec![
+                (
+                    "key1".into(),
+                    AttributeDataType::new(DataType::Int, AttributeType::Categorical)
+                        .expect("AttributeType was infered from DataType."),
+                ),
+                (
+                    "key2".into(),
+                    AttributeDataType::new(DataType::Float, AttributeType::Continuous)
+                        .expect("AttributeType was infered from DataType."),
+                ),
+            ]
+            .into_iter()
+            .collect(),
+        );
+
+        let mut schema = Schema::new_inferred(HashMap::new(), GroupSchema::default());
+        schema
+            .add_group(
+                "group1".into(),
+                GroupSchema::new(attribute_schema.clone(), AttributeSchema::default()),
+            )
+            .unwrap();
+        assert_eq!(
+            attribute_schema,
+            schema.group(&"group1".into()).unwrap().nodes
+        );
+
+        assert!(schema
+            .add_group("group1".into(), GroupSchema::default())
+            .is_err_and(|error| { matches!(error, crate::errors::GraphError::SchemaError(_)) }));
     }
 
     #[test]

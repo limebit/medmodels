@@ -89,6 +89,7 @@ impl GroupMapping {
                 }
             }
         };
+
         Ok(())
     }
 

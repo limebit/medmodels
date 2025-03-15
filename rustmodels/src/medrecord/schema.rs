@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use super::{
     attribute::PyMedRecordAttribute,
     datatype::PyDataType,
@@ -14,6 +12,7 @@ use medmodels_core::{
     },
 };
 use pyo3::prelude::*;
+use std::collections::HashMap;
 
 #[pyclass(eq, eq_int)]
 #[derive(Debug, Clone, PartialEq)]
@@ -160,7 +159,7 @@ impl PyGroupSchema {
 
     #[getter]
     pub fn nodes(&self) -> HashMap<PyMedRecordAttribute, PyAttributeDataType> {
-        self.0.nodes().clone().deep_into()
+        (**self.0.nodes()).clone().deep_into()
     }
 
     #[getter]
