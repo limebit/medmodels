@@ -1631,9 +1631,9 @@ class TestMedRecord(unittest.TestCase):
             1: {
                 "count": 2,
                 "attribute": {
-                    "adipiscing": {"type": "Categorical", "values": "Values: elit"},
-                    "dolor": {"type": "Categorical", "values": "Values: sit"},
-                    "lorem": {"type": "Categorical", "values": "Values: ipsum"},
+                    "adipiscing": {"type": "Categorical", "values": "Categories: elit"},
+                    "dolor": {"type": "Categorical", "values": "Categories: sit"},
+                    "lorem": {"type": "Categorical", "values": "Categories: ipsum"},
                 },
             },
             "Float": {"count": 0, "attribute": {}},
@@ -1651,7 +1651,7 @@ class TestMedRecord(unittest.TestCase):
             "Odd": {
                 "count": 2,
                 "attribute": {
-                    "amet": {"type": "Categorical", "values": "Values: consectetur"}
+                    "amet": {"type": "Categorical", "values": "Categories: consectetur"}
                 },
             },
         }
@@ -1665,9 +1665,9 @@ class TestMedRecord(unittest.TestCase):
             "Even": {
                 "count": 2,
                 "attribute": {
-                    "eiusmod": {"type": "Categorical", "values": "Values: tempor"},
-                    "incididunt": {"type": "Categorical", "values": "Values: ut"},
-                    "sed": {"type": "Categorical", "values": "Values: do"},
+                    "eiusmod": {"type": "Categorical", "values": "Categories: tempor"},
+                    "incididunt": {"type": "Categorical", "values": "Categories: ut"},
+                    "sed": {"type": "Categorical", "values": "Categories: do"},
                 },
             },
             "Ungrouped Edges": {"count": 2, "attribute": {}},
@@ -1678,9 +1678,9 @@ class TestMedRecord(unittest.TestCase):
             "Even": {
                 "count": 2,
                 "attribute": {
-                    "eiusmod": {"type": "Categorical", "values": "Values: tempor"},
-                    "incididunt": {"type": "Categorical", "values": "Values: ut"},
-                    "sed": {"type": "Categorical", "values": "Values: do"},
+                    "eiusmod": {"type": "Categorical", "values": "Categories: tempor"},
+                    "incididunt": {"type": "Categorical", "values": "Categories: ut"},
+                    "sed": {"type": "Categorical", "values": "Categories: do"},
                 },
             },
         }

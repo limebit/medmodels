@@ -32,7 +32,7 @@ build-dev: install-dev
 	${VENV_PYTHON} -m maturin develop
 
 test: install-tests
-	${VENV_PYTHON} -m pytest -W error
+	${VENV_PYTHON} -m pytest -vv -W error
 	cargo test
 
 docs: install-docs
