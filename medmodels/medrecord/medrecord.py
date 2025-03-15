@@ -329,7 +329,7 @@ class MedRecord:
 
     @property
     def schema(self) -> Schema:
-        """Returns the schema of the MedRecord instance.
+        """Returns a copy of the MedRecords schema.
 
         Returns:
             Schema: The schema of the MedRecord.
@@ -344,6 +344,14 @@ class MedRecord:
             schema (Schema): The new schema to apply.
         """
         self._medrecord.update_schema(schema._schema)
+
+    def freeze_schema(self) -> None:
+        """Freezes the schema. No changes are automatically inferred."""
+        self._medrecord.freeze_schema()
+
+    def unfreeze_schema(self) -> None:
+        """Unfreezes the schema. Changes are automatically inferred."""
+        self._medrecord.unfreeze_schema()
 
     @property
     def nodes(self) -> List[NodeIndex]:

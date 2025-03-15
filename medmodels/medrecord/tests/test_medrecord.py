@@ -7,8 +7,10 @@ import polars as pl
 import pytest
 
 from medmodels import MedRecord
+from medmodels.medrecord.datatype import Int
 from medmodels.medrecord.medrecord import EdgesDirected
 from medmodels.medrecord.querying import EdgeOperand, NodeOperand
+from medmodels.medrecord.schema import AttributeType, GroupSchema, Schema, SchemaType
 from medmodels.medrecord.types import Attributes, NodeIndex
 
 
@@ -266,6 +268,134 @@ class TestMedRecord(unittest.TestCase):
 
         assert medrecord.node_count() == loaded_medrecord.node_count()
         assert medrecord.edge_count() == loaded_medrecord.edge_count()
+
+    def test_schema(self) -> None:
+        medrecord = MedRecord()
+
+        group_schema = GroupSchema(
+            nodes={"attribute": Int()}, edges={"attribute": Int()}
+        )
+
+        medrecord.add_nodes([("0", {"attribute": 1}), ("1", {"attribute": 1})])
+        medrecord.add_edges(("0", "1", {"attribute": 1}))
+
+        schema = Schema(default=group_schema, schema_type=SchemaType.Provided)
+
+        medrecord.schema = schema
+
+        assert medrecord.schema.default.nodes == {
+            "attribute": (Int(), AttributeType.Continuous)
+        }
+        assert medrecord.schema.default.edges == {
+            "attribute": (Int(), AttributeType.Continuous)
+        }
+
+        medrecord = MedRecord()
+
+        medrecord.add_nodes(
+            [("0", {"attribute": 1}), ("1", {"attribute": 1}), ("2", {"attribute": 1})]
+        )
+        medrecord.add_edges(
+            [
+                ("0", "1", {"attribute": 1}),
+                ("0", "1", {"attribute": 1}),
+                ("0", "1", {"attribute": 1}),
+            ]
+        )
+
+        schema = Schema(
+            groups={"0": group_schema, "1": group_schema},
+            default=group_schema,
+            schema_type=SchemaType.Inferred,
+        )
+
+        medrecord.add_group("0", ["0", "1"], [0, 1])
+        medrecord.add_group("1", ["0", "1"], [0, 1])
+
+        inferred_schema = Schema()
+
+        medrecord.schema = inferred_schema
+
+        assert medrecord.schema.group("0").nodes == {
+            "attribute": (Int(), AttributeType.Continuous)
+        }
+        assert medrecord.schema.group("0").edges == {
+            "attribute": (Int(), AttributeType.Continuous)
+        }
+        assert medrecord.schema.group("1").nodes == {
+            "attribute": (Int(), AttributeType.Continuous)
+        }
+        assert medrecord.schema.group("1").edges == {
+            "attribute": (Int(), AttributeType.Continuous)
+        }
+        assert medrecord.schema.default.nodes == {
+            "attribute": (Int(), AttributeType.Continuous)
+        }
+        assert medrecord.schema.default.edges == {
+            "attribute": (Int(), AttributeType.Continuous)
+        }
+        assert medrecord.schema.schema_type == inferred_schema.schema_type
+
+    def test_invalid_schema(self) -> None:
+        medrecord = MedRecord()
+
+        medrecord.add_nodes(("0", {"attribute2": 1}))
+
+        schema = Schema(
+            default=GroupSchema(nodes={"attribute": Int()}, edges={"attribute": Int()}),
+            schema_type=SchemaType.Provided,
+        )
+
+        with pytest.raises(
+            ValueError,
+            match=r"Attribute [^\s]+ of type [^\s]+ not found on node with index [^\s]+",
+        ):
+            medrecord.schema = schema
+
+        assert medrecord.schema.default.nodes == {
+            "attribute2": (Int(), AttributeType.Continuous)
+        }
+        assert medrecord.schema.default.edges == {}
+        assert len(medrecord.schema.groups) == 0
+        assert medrecord.schema.schema_type == SchemaType.Inferred
+
+        medrecord = MedRecord()
+
+        medrecord.add_nodes([("0", {"attribute": 1}), ("1", {"attribute": 1})])
+        medrecord.add_edges(("0", "1", {"attribute2": 1}))
+
+        with pytest.raises(
+            ValueError,
+            match=r"Attribute [^\s]+ of type [^\s]+ not found on edge with index [^\s]+",
+        ):
+            medrecord.schema = schema
+
+        assert medrecord.schema.default.nodes == {
+            "attribute": (Int(), AttributeType.Continuous)
+        }
+        assert medrecord.schema.default.edges == {
+            "attribute2": (Int(), AttributeType.Continuous)
+        }
+        assert len(medrecord.schema.groups) == 0
+        assert medrecord.schema.schema_type == SchemaType.Inferred
+
+    def test_freeze_schema(self) -> None:
+        medrecord = MedRecord()
+
+        assert medrecord.schema.schema_type == SchemaType.Inferred
+
+        medrecord.freeze_schema()
+
+        assert medrecord.schema.schema_type == SchemaType.Provided
+
+    def test_unfreeze_schema(self) -> None:
+        medrecord = MedRecord.with_schema(Schema(schema_type=SchemaType.Provided))
+
+        assert medrecord.schema.schema_type == SchemaType.Provided
+
+        medrecord.unfreeze_schema()
+
+        assert medrecord.schema.schema_type == SchemaType.Inferred
 
     def test_nodes(self) -> None:
         medrecord = create_medrecord()
@@ -667,11 +797,31 @@ class TestMedRecord(unittest.TestCase):
         assert "2" in medrecord.nodes_in_group("0")
         assert "3" in medrecord.nodes_in_group("0")
 
+        medrecord = MedRecord()
+
+        medrecord.add_nodes(("0", {}))
+
+        assert medrecord.node_count() == 1
+
+        medrecord.freeze_schema()
+
+        medrecord.add_nodes(("1", {}))
+
+        assert medrecord.node_count() == 2
+
     def test_invalid_add_nodes(self) -> None:
         medrecord = create_medrecord()
 
         with pytest.raises(AssertionError):
             medrecord.add_nodes(create_nodes())
+
+        medrecord.freeze_schema()
+
+        with pytest.raises(
+            ValueError,
+            match=r"Attributes \[[^\]]+\] of node with index [^\s]+ do not exist in schema\.",
+        ):
+            medrecord.add_nodes([("4", {"attribute": 1})])
 
     def test_add_nodes_pandas(self) -> None:
         medrecord = MedRecord()
@@ -966,6 +1116,18 @@ class TestMedRecord(unittest.TestCase):
         assert 2 in medrecord.edges_in_group("0")
         assert 3 in medrecord.edges_in_group("0")
 
+        medrecord = MedRecord()
+
+        medrecord.add_nodes(nodes)
+
+        medrecord.add_edges([("0", "1", {"attribute": 1})])
+
+        medrecord.freeze_schema()
+
+        medrecord.add_edges([("1", "2", {"attribute": 1})])
+
+        assert medrecord.edge_count() == 2
+
     def test_invalid_add_edges(self) -> None:
         medrecord = MedRecord()
 
@@ -980,6 +1142,14 @@ class TestMedRecord(unittest.TestCase):
         # Adding an edge from a non-existing node should fail
         with pytest.raises(IndexError):
             medrecord.add_edges(("50", "0", {}))
+
+        medrecord.freeze_schema()
+
+        with pytest.raises(
+            ValueError,
+            match=r"Attributes \[[^\]]+\] of edge with index [^\s]+ do not exist in schema\.",
+        ):
+            medrecord.add_edges([("0", "1", {"attribute": 1})])
 
     def test_add_edges_pandas(self) -> None:
         medrecord = MedRecord()
@@ -1121,6 +1291,10 @@ class TestMedRecord(unittest.TestCase):
         with pytest.raises(IndexError):
             medrecord.add_group("0", "50")
 
+        # Adding a group with a non-existing edge should fail
+        with pytest.raises(IndexError):
+            medrecord.add_group("0", edges=[50])
+
         # Adding an already existing group should fail
         with pytest.raises(IndexError):
             medrecord.add_group("0", ["0", "50"])
@@ -1145,6 +1319,28 @@ class TestMedRecord(unittest.TestCase):
         # Adding a node to a group that already is in the group should fail
         with pytest.raises(AssertionError):
             medrecord.add_group("0", query)
+
+        medrecord.add_nodes(("4", {"test": "test"}))
+        edge_index = medrecord.add_edges(("4", "4", {"test": "test"}))[0]
+
+        medrecord.freeze_schema()
+
+        with pytest.raises(ValueError, match="Group 2 is not defined in the schema"):
+            medrecord.add_group("2")
+
+        medrecord.remove_groups("0")
+
+        with pytest.raises(
+            ValueError,
+            match=r"Attribute [^\s]+ of type [^\s]+ not found on node with index [^\s]+",
+        ):
+            medrecord.add_group("0", "4")
+
+        with pytest.raises(
+            ValueError,
+            match=r"Attributes \[[^\]]+\] of edge with index [^\s]+ do not exist in schema\.",
+        ):
+            medrecord.add_group("0", edges=edge_index)
 
     def test_remove_groups(self) -> None:
         medrecord = create_medrecord()
@@ -1186,6 +1382,14 @@ class TestMedRecord(unittest.TestCase):
 
         assert sorted(["0", "1", "2", "3"]) == sorted(medrecord.nodes_in_group("0"))
 
+        medrecord.add_nodes(("4", {"test": "test"}), "1")
+
+        medrecord.freeze_schema()
+
+        medrecord.add_nodes(("5", {"test": "test"}), "1")
+
+        assert len(medrecord.nodes_in_group("1")) == 2
+
     def test_invalid_add_nodes_to_group(self) -> None:
         medrecord = create_medrecord()
 
@@ -1222,6 +1426,19 @@ class TestMedRecord(unittest.TestCase):
         with pytest.raises(AssertionError):
             medrecord.add_nodes_to_group("0", query)
 
+        medrecord = MedRecord()
+
+        medrecord.add_nodes(("0", {"test": "test"}))
+        medrecord.add_group("0")
+
+        medrecord.freeze_schema()
+
+        with pytest.raises(
+            ValueError,
+            match=r"Attributes \[[^\]]+\] of node with index [^\s]+ do not exist in schema\.",
+        ):
+            medrecord.add_nodes_to_group("0", "0")
+
     def test_add_edges_to_group(self) -> None:
         medrecord = create_medrecord()
 
@@ -1243,6 +1460,17 @@ class TestMedRecord(unittest.TestCase):
         medrecord.add_edges_to_group("0", query)
 
         assert sorted([0, 1, 2, 3]) == sorted(medrecord.edges_in_group("0"))
+
+        medrecord = MedRecord()
+        medrecord.add_nodes(create_nodes())
+
+        medrecord.add_edges(("0", "1", {"test": "test"}), group="0")
+
+        medrecord.freeze_schema()
+
+        medrecord.add_edges(("0", "1", {"test": "test"}), group="0")
+
+        assert len(medrecord.edges_in_group("0")) == 2
 
     def test_invalid_add_edges_to_group(self) -> None:
         medrecord = create_medrecord()
@@ -1279,6 +1507,17 @@ class TestMedRecord(unittest.TestCase):
         # Adding an edge to a group that already is in the group should fail
         with pytest.raises(AssertionError):
             medrecord.add_edges_to_group("0", query)
+
+        medrecord = MedRecord()
+
+        medrecord.add_nodes(("0", {}))
+
+        medrecord.add_edges(("0", "0", {"test": "test"}), group="0")
+
+        medrecord.freeze_schema()
+
+        with pytest.raises(AssertionError):
+            medrecord.add_edges_to_group("0", 0)
 
     def test_remove_nodes_from_group(self) -> None:
         medrecord = create_medrecord()

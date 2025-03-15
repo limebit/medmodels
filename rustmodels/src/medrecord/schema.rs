@@ -159,7 +159,7 @@ impl PyGroupSchema {
 
     #[getter]
     pub fn nodes(&self) -> HashMap<PyMedRecordAttribute, PyAttributeDataType> {
-        (**self.0.nodes()).clone().deep_into()
+        self.0.nodes().clone().deep_into()
     }
 
     #[getter]
@@ -400,6 +400,13 @@ impl PySchema {
     ) {
         self.0
             .remove_edge_attribute(&attribute.into(), group.map(|g| g.into()).as_ref());
+    }
+
+    pub fn add_group(&mut self, group: PyGroup, schema: PyGroupSchema) -> PyResult<()> {
+        Ok(self
+            .0
+            .add_group(group.into(), schema.into())
+            .map_err(PyMedRecordError::from)?)
     }
 
     pub fn remove_group(&mut self, group: PyGroup) {

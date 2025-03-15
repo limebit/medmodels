@@ -547,7 +547,7 @@ impl MedRecord {
                 let edges_not_in_groups = self.graph.edge_count() - edges_in_groups;
 
                 self.schema
-                    .update_edge(&attributes, None, edges_not_in_groups == 0);
+                    .update_edge(&attributes, None, edges_not_in_groups <= 1);
 
                 Ok(edge_index)
             }
@@ -1500,7 +1500,7 @@ mod test {
         medrecord.freeze_schema();
 
         assert!(medrecord
-            .add_node("0".into(), HashMap::from([("attribute".into(), 1.into())]))
+            .add_node("4".into(), HashMap::from([("attribute".into(), 1.into())]))
             .is_err_and(|e| matches!(e, MedRecordError::SchemaError(_))));
     }
 
@@ -1815,7 +1815,9 @@ mod test {
             .add_node("5".into(), HashMap::from([("test".into(), "test".into())]))
             .unwrap();
 
-        assert_eq!(1, medrecord.nodes_in_group(&"1".into()).unwrap().count());
+        assert!(medrecord.add_node_to_group("1".into(), "5".into()).is_ok());
+
+        assert_eq!(2, medrecord.nodes_in_group(&"1".into()).unwrap().count());
     }
 
     #[test]
@@ -1879,11 +1881,13 @@ mod test {
 
         medrecord.freeze_schema();
 
-        medrecord
+        let edge_index = medrecord
             .add_edge("0".into(), "1".into(), HashMap::new())
             .unwrap();
 
-        assert_eq!(1, medrecord.edges_in_group(&"1".into()).unwrap().count());
+        assert!(medrecord.add_edge_to_group("1".into(), edge_index).is_ok());
+
+        assert_eq!(2, medrecord.edges_in_group(&"1".into()).unwrap().count());
     }
 
     #[test]

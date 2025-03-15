@@ -26,7 +26,7 @@ impl AttributeType {
             DataType::Float => Self::Continuous,
             DataType::Bool => Self::Categorical,
             DataType::DateTime => Self::Temporal,
-            DataType::Duration => Self::Continuous,
+            DataType::Duration => Self::Temporal,
             DataType::Null => Self::Unstructured,
             DataType::Any => Self::Unstructured,
             DataType::Union((first_dataype, second_dataype)) => {
@@ -183,7 +183,7 @@ impl AttributeSchemaKind<'_> {
                 key, index, data_type, expected_data_type
             ),
             Self::Edge(index) => format!(
-                "Attribute {} of node with index {} is of type {}. Expected {}.",
+                "Attribute {} of edge with index {} is of type {}. Expected {}.",
                 key, index, data_type, expected_data_type
             ),
         }
@@ -330,7 +330,7 @@ impl GroupSchema {
         Self { nodes, edges }
     }
 
-    pub fn nodes(&self) -> &AttributeSchema {
+    pub fn nodes(&self) -> &AttributeSchemaMapping {
         &self.nodes
     }
 
@@ -797,7 +797,7 @@ mod test {
         );
         assert_eq!(
             AttributeType::infer(&DataType::Duration),
-            AttributeType::Continuous
+            AttributeType::Temporal
         );
         assert_eq!(
             AttributeType::infer(&DataType::Null),
@@ -1072,7 +1072,7 @@ mod test {
                 &data_type,
                 &expected_data_type
             ),
-            "Attribute key of node with index 0 is of type Int. Expected Float."
+            "Attribute key of edge with index 0 is of type Int. Expected Float."
         );
     }
 
@@ -1259,7 +1259,7 @@ mod test {
 
         let group_schema = GroupSchema::new(nodes.clone(), AttributeSchema::default());
 
-        assert_eq!(group_schema.nodes(), &nodes);
+        assert_eq!(group_schema.nodes(), &nodes.0);
     }
 
     #[test]

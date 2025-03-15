@@ -165,6 +165,21 @@ impl GroupMapping {
                 .remove(group);
         }
 
+        let edges_in_group =
+            self.edges_in_group
+                .remove(group)
+                .ok_or(MedRecordError::IndexError(format!(
+                    "Cannot find group {}",
+                    group
+                )))?;
+
+        for edge in edges_in_group {
+            self.groups_of_edge
+                .get_mut(&edge)
+                .expect("Edge must exist")
+                .remove(group);
+        }
+
         Ok(())
     }
 

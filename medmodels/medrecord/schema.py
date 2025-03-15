@@ -20,6 +20,7 @@ from medmodels._medmodels import (
     PyAttributeType,
     PyGroupSchema,
     PySchema,
+    PySchemaType,
 )
 from medmodels.medrecord.datatype import (
     DataType,
@@ -235,7 +236,7 @@ class GroupSchema:
         )
 
     @classmethod
-    def _from_pygroupschema(cls, group_schema: PyGroupSchema) -> GroupSchema:
+    def _from_py_group_schema(cls, group_schema: PyGroupSchema) -> GroupSchema:
         """Creates a GroupSchema instance from an existing PyGroupSchema.
 
         Args:
@@ -313,6 +314,45 @@ class GroupSchema:
         self._group_schema.validate_edge(index, attributes)
 
 
+class SchemaType(Enum):
+    """Enumeration of schema types."""
+
+    Provided = auto()
+    Inferred = auto()
+
+    @staticmethod
+    def _from_py_schema_type(py_schema_type: PySchemaType) -> SchemaType:
+        """Converts a PySchemaType to a SchemaType.
+
+        Args:
+            py_schema_type (PySchemaType): The PySchemaType to convert.
+
+        Returns:
+            SchemaType: The converted SchemaType.
+        """
+        if py_schema_type == PySchemaType.Provided:
+            return SchemaType.Provided
+        if py_schema_type == PySchemaType.Inferred:
+            return SchemaType.Inferred
+
+        msg = "Should never be reached"
+        raise NotImplementedError(msg)
+
+    def _into_py_schema_type(self) -> PySchemaType:
+        """Converts a SchemaType to a PySchemaType.
+
+        Returns:
+            PySchemaType: The converted PySchemaType.
+        """
+        if self == SchemaType.Provided:
+            return PySchemaType.Provided
+        if self == SchemaType.Inferred:
+            return PySchemaType.Inferred
+
+        msg = "Should never be reached"
+        raise NotImplementedError(msg)
+
+
 class Schema:
     """A schema for a collection of groups."""
 
@@ -323,6 +363,7 @@ class Schema:
         *,
         groups: Optional[Dict[Group, GroupSchema]] = None,
         default: Optional[GroupSchema] = None,
+        schema_type: Optional[SchemaType] = None,
     ) -> None:
         """Initializes a new instance of Schema.
 
@@ -331,6 +372,8 @@ class Schema:
                 to their schemas. Defaults to an empty dictionary.
             default (Optional[GroupSchema], optional): The default group schema.
                 If not provided, an empty group schema is used. Defaults to None.
+            schema_type (Optional[SchemaType], optional): The type of the schema.
+                If not provided, the schema type is inferred. Defaults to None.
         """
         if not default:
             default = GroupSchema()
@@ -341,6 +384,11 @@ class Schema:
         self._schema = PySchema(
             groups={x: groups[x]._group_schema for x in groups},
             default=default._group_schema,
+            schema_type=(
+                schema_type._into_py_schema_type()
+                if schema_type
+                else PySchemaType.Inferred
+            ),
         )
 
     @classmethod
@@ -392,7 +440,7 @@ class Schema:
         Raises:
             ValueError: If the group does not exist in the schema.
         """  # noqa: DOC502
-        return GroupSchema._from_pygroupschema(self._schema.group(group))
+        return GroupSchema._from_py_group_schema(self._schema.group(group))
 
     @property
     def default(self) -> GroupSchema:
@@ -402,7 +450,16 @@ class Schema:
             Optional[GroupSchema]: The default group schema if it exists, otherwise
                 None.
         """
-        return GroupSchema._from_pygroupschema(self._schema.default)
+        return GroupSchema._from_py_group_schema(self._schema.default)
+
+    @property
+    def schema_type(self) -> SchemaType:
+        """Lists all the groups in the Schema instance.
+
+        Returns:
+            List[Group]: A list of groups.
+        """
+        return SchemaType._from_py_schema_type(self._schema.schema_type)
 
     def validate_node(
         self, index: NodeIndex, attributes: Attributes, group: Optional[Group] = None
@@ -437,7 +494,7 @@ class Schema:
         data_type: DataType,
         attribute_type: Optional[
             Literal[AttributeType.Categorical, AttributeType.Unstructured]
-        ],
+        ] = None,
         group: Optional[Group] = None,
     ) -> None: ...
 
@@ -497,7 +554,7 @@ class Schema:
         data_type: DataType,
         attribute_type: Optional[
             Literal[AttributeType.Categorical, AttributeType.Unstructured]
-        ],
+        ] = None,
         group: Optional[Group] = None,
     ) -> None: ...
 
@@ -557,7 +614,7 @@ class Schema:
         data_type: DataType,
         attribute_type: Optional[
             Literal[AttributeType.Categorical, AttributeType.Unstructured]
-        ],
+        ] = None,
         group: Optional[Group] = None,
     ) -> None: ...
 
@@ -618,7 +675,7 @@ class Schema:
         data_type: DataType,
         attribute_type: Optional[
             Literal[AttributeType.Categorical, AttributeType.Unstructured]
-        ],
+        ] = None,
         group: Optional[Group] = None,
     ) -> None: ...
 
@@ -671,3 +728,52 @@ class Schema:
             attribute_type._into_py_attribute_type(),
             group,
         )
+
+    def remove_node_attribute(
+        self, attribute: MedRecordAttribute, group: Optional[Group] = None
+    ) -> None:
+        """Removes a node attribute from the schema.
+
+        Args:
+            attribute (MedRecordAttribute): The name of the attribute to remove.
+            group (Optional[Group], optional): The group to remove the attribute from.
+                If not provided, the default group is used. Defaults to None.
+        """
+        self._schema.remove_node_attribute(attribute, group)
+
+    def remove_edge_attribute(
+        self, attribute: MedRecordAttribute, group: Optional[Group] = None
+    ) -> None:
+        """Removes an edge attribute from the schema.
+
+        Args:
+            attribute (MedRecordAttribute): The name of the attribute to remove.
+            group (Optional[Group], optional): The group to remove the attribute from.
+                If not provided, the default group is used. Defaults to None.
+        """
+        self._schema.remove_edge_attribute(attribute, group)
+
+    def add_group(self, group: Group, group_schema: GroupSchema) -> None:
+        """Adds a new group to the schema.
+
+        Args:
+            group (Group): The name of the group.
+            group_schema (GroupSchema): The schema for the group.
+        """
+        self._schema.add_group(group, group_schema._group_schema)
+
+    def remove_group(self, group: Group) -> None:
+        """Removes a group from the schema.
+
+        Args:
+            group (Group): The name of the group to remove.
+        """
+        self._schema.remove_group(group)
+
+    def freeze(self) -> None:
+        """Freezes the schema. No changes are automatically inferred."""
+        self._schema.freeze()
+
+    def unfreeze(self) -> None:
+        """Unfreezes the schema. Changes are automatically inferred."""
+        self._schema.unfreeze()

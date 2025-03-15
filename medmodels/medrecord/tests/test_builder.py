@@ -56,7 +56,10 @@ class TestMedRecordBuilder(unittest.TestCase):
         assert medrecord.nodes_in_group("group") == ["0"]
 
     def test_with_schema(self) -> None:
-        schema = mr.Schema(default=mr.GroupSchema(nodes={"attribute": mr.Int()}))
+        schema = mr.Schema(
+            default=mr.GroupSchema(nodes={"attribute": mr.Int()}),
+            schema_type=mr.SchemaType.Provided,
+        )
 
         medrecord = mr.MedRecord.builder().with_schema(schema).build()
 
