@@ -312,7 +312,7 @@ class TestMedRecord(unittest.TestCase):
         medrecord.add_group("0", ["0", "1"], [0, 1])
         medrecord.add_group("1", ["0", "1"], [0, 1])
 
-        inferred_schema = Schema()
+        inferred_schema = Schema(schema_type=SchemaType.Inferred)
 
         medrecord.set_schema(inferred_schema)
 

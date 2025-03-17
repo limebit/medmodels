@@ -373,7 +373,7 @@ class Schema:
             default (Optional[GroupSchema], optional): The default group schema.
                 If not provided, an empty group schema is used. Defaults to None.
             schema_type (Optional[SchemaType], optional): The type of the schema.
-                If not provided, the schema type is inferred. Defaults to None.
+                If not provided, the schema type is provided. Defaults to None.
         """
         if not default:
             default = GroupSchema()
@@ -381,15 +381,17 @@ class Schema:
         if groups is None:
             groups = {}
 
-        self._schema = PySchema(
-            groups={x: groups[x]._group_schema for x in groups},
-            default=default._group_schema,
-            schema_type=(
-                schema_type._into_py_schema_type()
-                if schema_type
-                else PySchemaType.Inferred
-            ),
-        )
+        if schema_type:
+            self._schema = PySchema(
+                groups={x: groups[x]._group_schema for x in groups},
+                default=default._group_schema,
+                schema_type=schema_type._into_py_schema_type(),
+            )
+        else:
+            self._schema = PySchema(
+                groups={x: groups[x]._group_schema for x in groups},
+                default=default._group_schema,
+            )
 
     @classmethod
     def infer(cls, medrecord: MedRecord) -> Schema:

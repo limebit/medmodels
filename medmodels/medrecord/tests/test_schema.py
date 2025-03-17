@@ -253,15 +253,15 @@ class TestSchema(unittest.TestCase):
     def test_schema_type(self) -> None:
         schema = mr.Schema(groups={}, default=mr.GroupSchema())
 
-        assert schema.schema_type == mr.SchemaType.Inferred
+        assert schema.schema_type == mr.SchemaType.Provided
 
         schema = mr.Schema(
             groups={"test": mr.GroupSchema()},
             default=mr.GroupSchema(),
-            schema_type=mr.SchemaType.Provided,
+            schema_type=mr.SchemaType.Inferred,
         )
 
-        assert schema.schema_type == mr.SchemaType.Provided
+        assert schema.schema_type == mr.SchemaType.Inferred
 
     def test_validate_node(self) -> None:
         schema = mr.Schema(groups={}, default=mr.GroupSchema())
