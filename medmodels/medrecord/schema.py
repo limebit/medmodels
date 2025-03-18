@@ -296,7 +296,7 @@ class GroupSchema:
         }
 
     def validate_node(self, index: NodeIndex, attributes: Attributes) -> None:
-        """Validates the attributes of a node.
+        """Validates the attributes of a node against the schema.
 
         Args:
             index (NodeIndex): The index of the node.
@@ -305,7 +305,7 @@ class GroupSchema:
         self._group_schema.validate_node(index, attributes)
 
     def validate_edge(self, index: EdgeIndex, attributes: Attributes) -> None:
-        """Validates the attributes of an edge.
+        """Validates the attributes of an edge against the schema.
 
         Args:
             index (EdgeIndex): The index of the edge.
@@ -369,7 +369,7 @@ class Schema:
 
         Args:
             groups (Dict[Group, GroupSchema], optional): A dictionary of group names
-                to their schemas. Defaults to an empty dictionary.
+                to their schemas. Defaults to None.
             ungrouped (Optional[GroupSchema], optional): The group schema for all nodes
                 not in a group. If not provided, an empty group schema is used.
                 Defaults to None.
@@ -466,7 +466,7 @@ class Schema:
     def validate_node(
         self, index: NodeIndex, attributes: Attributes, group: Optional[Group] = None
     ) -> None:
-        """Validates the attributes of a node.
+        """Validates the attributes of a node against the schema.
 
         Args:
             index (NodeIndex): The index of the node.
@@ -479,7 +479,7 @@ class Schema:
     def validate_edge(
         self, index: EdgeIndex, attributes: Attributes, group: Optional[Group] = None
     ) -> None:
-        """Validates the attributes of an edge.
+        """Validates the attributes of an edge against the schema.
 
         Args:
             index (EdgeIndex): The index of the edge.
