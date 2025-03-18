@@ -227,15 +227,19 @@ impl From<PySchema> for Schema {
 #[pymethods]
 impl PySchema {
     #[new]
-    #[pyo3(signature = (groups, default, schema_type=PySchemaType::Provided))]
+    #[pyo3(signature = (groups, ungrouped, schema_type=PySchemaType::Provided))]
     pub fn new(
         groups: HashMap<PyGroup, PyGroupSchema>,
-        default: PyGroupSchema,
+        ungrouped: PyGroupSchema,
         schema_type: PySchemaType,
     ) -> Self {
         Self(match schema_type {
-            PySchemaType::Provided => Schema::new_provided(groups.deep_into(), default.deep_into()),
-            PySchemaType::Inferred => Schema::new_inferred(groups.deep_into(), default.deep_into()),
+            PySchemaType::Provided => {
+                Schema::new_provided(groups.deep_into(), ungrouped.deep_into())
+            }
+            PySchemaType::Inferred => {
+                Schema::new_inferred(groups.deep_into(), ungrouped.deep_into())
+            }
         })
     }
 
@@ -263,8 +267,8 @@ impl PySchema {
     }
 
     #[getter]
-    pub fn default(&self) -> PyGroupSchema {
-        self.0.default().clone().into()
+    pub fn ungrouped(&self) -> PyGroupSchema {
+        self.0.ungrouped().clone().into()
     }
 
     #[getter]

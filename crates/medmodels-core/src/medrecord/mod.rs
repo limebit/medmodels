@@ -247,9 +247,9 @@ impl MedRecord {
 
     pub fn set_schema(&mut self, mut schema: Schema) -> Result<(), MedRecordError> {
         let mut nodes_group_cache = HashMap::<&Group, usize>::new();
-        let mut nodes_default_visited = false;
+        let mut nodes_ungrouped_visited = false;
         let mut edges_group_cache = HashMap::<&Group, usize>::new();
-        let mut edges_default_visited = false;
+        let mut edges_ungrouped_visited = false;
 
         for (node_index, node) in self.graph.nodes.iter() {
             let groups_of_node = self
@@ -295,10 +295,10 @@ impl MedRecord {
                         schema.update_node(
                             &node.attributes,
                             None,
-                            nodes_not_in_groups == 0 || !nodes_default_visited,
+                            nodes_not_in_groups == 0 || !nodes_ungrouped_visited,
                         );
 
-                        nodes_default_visited = true;
+                        nodes_ungrouped_visited = true;
                     }
                     SchemaType::Provided => {
                         schema.validate_node(node_index, &node.attributes, None)?;
@@ -351,10 +351,10 @@ impl MedRecord {
                         schema.update_edge(
                             &edge.attributes,
                             None,
-                            edges_not_in_groups == 0 || !edges_default_visited,
+                            edges_not_in_groups == 0 || !edges_ungrouped_visited,
                         );
 
-                        edges_default_visited = true;
+                        edges_ungrouped_visited = true;
                     }
                     SchemaType::Provided => {
                         schema.validate_edge(edge_index, &edge.attributes, None)?;

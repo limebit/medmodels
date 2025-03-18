@@ -387,23 +387,23 @@ impl Default for SchemaType {
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Default)]
 pub struct Schema {
     groups: HashMap<Group, GroupSchema>,
-    default: GroupSchema,
+    ungrouped: GroupSchema,
     schema_type: SchemaType,
 }
 
 impl Schema {
-    pub fn new_inferred(groups: HashMap<Group, GroupSchema>, default: GroupSchema) -> Self {
+    pub fn new_inferred(groups: HashMap<Group, GroupSchema>, ungrouped: GroupSchema) -> Self {
         Self {
             groups,
-            default,
+            ungrouped,
             schema_type: SchemaType::Inferred,
         }
     }
 
-    pub fn new_provided(groups: HashMap<Group, GroupSchema>, default: GroupSchema) -> Self {
+    pub fn new_provided(groups: HashMap<Group, GroupSchema>, ungrouped: GroupSchema) -> Self {
         Self {
             groups,
-            default,
+            ungrouped,
             schema_type: SchemaType::Provided,
         }
     }
@@ -414,7 +414,7 @@ impl Schema {
             .map(|group| (group, (Vec::new(), Vec::new())))
             .collect::<MrHashMap<_, _>>();
 
-        let mut default_group = (Vec::new(), Vec::new());
+        let mut ungrouped = (Vec::new(), Vec::new());
 
         for node_index in medrecord.node_indices() {
             let mut groups_of_node = medrecord
@@ -423,7 +423,7 @@ impl Schema {
                 .peekable();
 
             if groups_of_node.peek().is_none() {
-                default_group.0.push(node_index);
+                ungrouped.0.push(node_index);
                 continue;
             }
 
@@ -441,7 +441,7 @@ impl Schema {
                 .peekable();
 
             if groups_of_edge.peek().is_none() {
-                default_group.1.push(edge_index);
+                ungrouped.1.push(edge_index);
                 continue;
             }
 
@@ -470,13 +470,13 @@ impl Schema {
                     (group.clone(), schema)
                 });
 
-        let default_schema = GroupSchema::infer(
-            default_group
+        let ungrouped_schema = GroupSchema::infer(
+            ungrouped
                 .0
                 .into_iter()
                 .map(|node| medrecord.node_attributes(node).expect("Node must exist."))
                 .collect::<Vec<_>>(),
-            default_group
+            ungrouped
                 .1
                 .into_iter()
                 .map(|edge| medrecord.edge_attributes(edge).expect("Edge must exist."))
@@ -485,7 +485,7 @@ impl Schema {
 
         Self {
             groups: group_schemas.collect(),
-            default: default_schema,
+            ungrouped: ungrouped_schema,
             schema_type: SchemaType::Inferred,
         }
     }
@@ -503,8 +503,8 @@ impl Schema {
             )))
     }
 
-    pub fn default(&self) -> &GroupSchema {
-        &self.default
+    pub fn ungrouped(&self) -> &GroupSchema {
+        &self.ungrouped
     }
 
     pub fn schema_type(&self) -> &SchemaType {
@@ -529,7 +529,7 @@ impl Schema {
 
                 schema.validate_node(index, attributes)
             }
-            None => self.default.validate_node(index, attributes),
+            None => self.ungrouped.validate_node(index, attributes),
         }
     }
 
@@ -551,7 +551,7 @@ impl Schema {
 
                 schema.validate_edge(index, attributes)
             }
-            None => self.default.validate_edge(index, attributes),
+            None => self.ungrouped.validate_edge(index, attributes),
         }
     }
 
@@ -568,7 +568,7 @@ impl Schema {
                     .or_default()
                     .update_node(attributes, empty);
             }
-            None => self.default.update_node(attributes, empty),
+            None => self.ungrouped.update_node(attributes, empty),
         }
     }
 
@@ -585,7 +585,7 @@ impl Schema {
                     .or_default()
                     .update_edge(attributes, empty);
             }
-            None => self.default.update_edge(attributes, empty),
+            None => self.ungrouped.update_edge(attributes, empty),
         }
     }
 
@@ -607,7 +607,7 @@ impl Schema {
                     .insert(attribute.clone(), attribute_data_type.clone());
             }
             None => {
-                self.default
+                self.ungrouped
                     .nodes
                     .0
                     .insert(attribute.clone(), attribute_data_type.clone());
@@ -635,7 +635,7 @@ impl Schema {
                     .insert(attribute.clone(), attribute_data_type.clone());
             }
             None => {
-                self.default
+                self.ungrouped
                     .edges
                     .0
                     .insert(attribute.clone(), attribute_data_type.clone());
@@ -665,7 +665,7 @@ impl Schema {
                     .or_insert(attribute_data_type);
             }
             None => {
-                self.default
+                self.ungrouped
                     .nodes
                     .0
                     .entry(attribute.clone())
@@ -697,7 +697,7 @@ impl Schema {
                     .or_insert(attribute_data_type);
             }
             None => {
-                self.default
+                self.ungrouped
                     .edges
                     .0
                     .entry(attribute.clone())
@@ -717,7 +717,7 @@ impl Schema {
                 }
             }
             None => {
-                self.default.nodes.0.remove(attribute);
+                self.ungrouped.nodes.0.remove(attribute);
             }
         }
     }
@@ -730,7 +730,7 @@ impl Schema {
                 }
             }
             None => {
-                self.default.edges.0.remove(attribute);
+                self.ungrouped.edges.0.remove(attribute);
             }
         }
     }
@@ -1498,8 +1498,8 @@ mod test {
 
         let schema = Schema::infer(&medrecord);
 
-        assert_eq!(schema.default().nodes().len(), 2);
-        assert_eq!(schema.default().edges().len(), 1);
+        assert_eq!(schema.ungrouped().nodes().len(), 2);
+        assert_eq!(schema.ungrouped().edges().len(), 1);
 
         medrecord
             .add_group("test".into(), Some(vec![0.into(), 1.into()]), Some(vec![0]))
@@ -1540,7 +1540,7 @@ mod test {
     fn test_schema_default() {
         let default_schema = GroupSchema::default();
         let schema = Schema::new_inferred(HashMap::new(), default_schema.clone());
-        assert_eq!(schema.default(), &default_schema);
+        assert_eq!(schema.ungrouped(), &default_schema);
     }
 
     #[test]
@@ -1605,10 +1605,10 @@ mod test {
 
         schema.update_node(&attributes, None, true);
 
-        assert_eq!(schema.default().nodes().len(), 2);
+        assert_eq!(schema.ungrouped().nodes().len(), 2);
         assert_eq!(
             schema
-                .default()
+                .ungrouped()
                 .nodes()
                 .get(&"key1".into())
                 .unwrap()
@@ -1617,7 +1617,7 @@ mod test {
         );
         assert_eq!(
             schema
-                .default()
+                .ungrouped()
                 .nodes()
                 .get(&"key2".into())
                 .unwrap()
@@ -1637,10 +1637,10 @@ mod test {
 
         schema.update_edge(&attributes, None, true);
 
-        assert_eq!(schema.default().edges().len(), 2);
+        assert_eq!(schema.ungrouped().edges().len(), 2);
         assert_eq!(
             schema
-                .default()
+                .ungrouped()
                 .edges()
                 .get(&"key3".into())
                 .unwrap()
@@ -1649,7 +1649,7 @@ mod test {
         );
         assert_eq!(
             schema
-                .default()
+                .ungrouped()
                 .edges()
                 .get(&"key4".into())
                 .unwrap()
@@ -1671,7 +1671,7 @@ mod test {
             .is_ok());
         assert_eq!(
             schema
-                .default()
+                .ungrouped()
                 .nodes()
                 .get(&"key1".into())
                 .unwrap()
@@ -1688,7 +1688,7 @@ mod test {
             .is_ok());
         assert_eq!(
             schema
-                .default()
+                .ungrouped()
                 .nodes()
                 .get(&"key1".into())
                 .unwrap()
@@ -1729,7 +1729,7 @@ mod test {
             .is_ok());
         assert_eq!(
             schema
-                .default()
+                .ungrouped()
                 .edges()
                 .get(&"key1".into())
                 .unwrap()
@@ -1746,7 +1746,7 @@ mod test {
             .is_ok());
         assert_eq!(
             schema
-                .default()
+                .ungrouped()
                 .edges()
                 .get(&"key1".into())
                 .unwrap()
@@ -1795,7 +1795,7 @@ mod test {
             .is_ok());
         assert_eq!(
             schema
-                .default()
+                .ungrouped()
                 .nodes()
                 .get(&"key1".into())
                 .unwrap()
@@ -1852,7 +1852,7 @@ mod test {
             .is_ok());
         assert_eq!(
             schema
-                .default()
+                .ungrouped()
                 .edges()
                 .get(&"key1".into())
                 .unwrap()
@@ -1900,7 +1900,7 @@ mod test {
             )
             .unwrap();
         schema.remove_node_attribute(&"key1".into(), None);
-        assert!(!schema.default().nodes().contains_key(&"key1".into()));
+        assert!(!schema.ungrouped().nodes().contains_key(&"key1".into()));
 
         schema
             .set_node_attribute(
@@ -1930,7 +1930,7 @@ mod test {
             )
             .unwrap();
         schema.remove_edge_attribute(&"key1".into(), None);
-        assert!(!schema.default().edges().contains_key(&"key1".into()));
+        assert!(!schema.ungrouped().edges().contains_key(&"key1".into()));
 
         schema
             .set_edge_attribute(

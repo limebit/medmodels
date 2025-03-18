@@ -57,7 +57,7 @@ class TestMedRecordBuilder(unittest.TestCase):
 
     def test_with_schema(self) -> None:
         schema = mr.Schema(
-            default=mr.GroupSchema(nodes={"attribute": mr.Int()}),
+            ungrouped=mr.GroupSchema(nodes={"attribute": mr.Int()}),
             schema_type=mr.SchemaType.Provided,
         )
 

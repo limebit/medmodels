@@ -87,14 +87,14 @@ class PySchemaType(Enum):
 
 class PySchema:
     groups: List[Group]
-    default: PyGroupSchema
+    ungrouped: PyGroupSchema
     schema_type: PySchemaType
 
     def __init__(
         self,
         *,
         groups: Dict[Group, PyGroupSchema],
-        default: PyGroupSchema,
+        ungrouped: PyGroupSchema,
         schema_type: PySchemaType = ...,
     ) -> None: ...
     @staticmethod

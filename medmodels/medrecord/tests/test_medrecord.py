@@ -279,14 +279,14 @@ class TestMedRecord(unittest.TestCase):
         medrecord.add_nodes([("0", {"attribute": 1}), ("1", {"attribute": 1})])
         medrecord.add_edges(("0", "1", {"attribute": 1}))
 
-        schema = Schema(default=group_schema, schema_type=SchemaType.Provided)
+        schema = Schema(ungrouped=group_schema, schema_type=SchemaType.Provided)
 
         medrecord.set_schema(schema)
 
-        assert medrecord.get_schema().default.nodes == {
+        assert medrecord.get_schema().ungrouped.nodes == {
             "attribute": (Int(), AttributeType.Continuous)
         }
-        assert medrecord.get_schema().default.edges == {
+        assert medrecord.get_schema().ungrouped.edges == {
             "attribute": (Int(), AttributeType.Continuous)
         }
 
@@ -305,7 +305,7 @@ class TestMedRecord(unittest.TestCase):
 
         schema = Schema(
             groups={"0": group_schema, "1": group_schema},
-            default=group_schema,
+            ungrouped=group_schema,
             schema_type=SchemaType.Inferred,
         )
 
@@ -330,8 +330,12 @@ class TestMedRecord(unittest.TestCase):
         assert schema.group("1").edges == {
             "attribute": (Int(), AttributeType.Continuous)
         }
-        assert schema.default.nodes == {"attribute": (Int(), AttributeType.Continuous)}
-        assert schema.default.edges == {"attribute": (Int(), AttributeType.Continuous)}
+        assert schema.ungrouped.nodes == {
+            "attribute": (Int(), AttributeType.Continuous)
+        }
+        assert schema.ungrouped.edges == {
+            "attribute": (Int(), AttributeType.Continuous)
+        }
         assert schema.schema_type == inferred_schema.schema_type
 
     def test_invalid_schema(self) -> None:
@@ -340,7 +344,9 @@ class TestMedRecord(unittest.TestCase):
         medrecord.add_nodes(("0", {"attribute2": 1}))
 
         schema = Schema(
-            default=GroupSchema(nodes={"attribute": Int()}, edges={"attribute": Int()}),
+            ungrouped=GroupSchema(
+                nodes={"attribute": Int()}, edges={"attribute": Int()}
+            ),
             schema_type=SchemaType.Provided,
         )
 
@@ -350,10 +356,10 @@ class TestMedRecord(unittest.TestCase):
         ):
             medrecord.set_schema(schema)
 
-        assert medrecord.get_schema().default.nodes == {
+        assert medrecord.get_schema().ungrouped.nodes == {
             "attribute2": (Int(), AttributeType.Continuous)
         }
-        assert medrecord.get_schema().default.edges == {}
+        assert medrecord.get_schema().ungrouped.edges == {}
         assert len(medrecord.get_schema().groups) == 0
         assert medrecord.get_schema().schema_type == SchemaType.Inferred
 
@@ -370,8 +376,12 @@ class TestMedRecord(unittest.TestCase):
 
         schema = medrecord.get_schema()
 
-        assert schema.default.nodes == {"attribute": (Int(), AttributeType.Continuous)}
-        assert schema.default.edges == {"attribute2": (Int(), AttributeType.Continuous)}
+        assert schema.ungrouped.nodes == {
+            "attribute": (Int(), AttributeType.Continuous)
+        }
+        assert schema.ungrouped.edges == {
+            "attribute2": (Int(), AttributeType.Continuous)
+        }
         assert len(schema.groups) == 0
         assert schema.schema_type == SchemaType.Inferred
 

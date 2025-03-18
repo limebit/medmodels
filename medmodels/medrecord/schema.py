@@ -362,7 +362,7 @@ class Schema:
         self,
         *,
         groups: Optional[Dict[Group, GroupSchema]] = None,
-        default: Optional[GroupSchema] = None,
+        ungrouped: Optional[GroupSchema] = None,
         schema_type: Optional[SchemaType] = None,
     ) -> None:
         """Initializes a new instance of Schema.
@@ -370,13 +370,14 @@ class Schema:
         Args:
             groups (Dict[Group, GroupSchema], optional): A dictionary of group names
                 to their schemas. Defaults to an empty dictionary.
-            default (Optional[GroupSchema], optional): The default group schema.
-                If not provided, an empty group schema is used. Defaults to None.
+            ungrouped (Optional[GroupSchema], optional): The group schema for all nodes
+                not in a group. If not provided, an empty group schema is used.
+                Defaults to None.
             schema_type (Optional[SchemaType], optional): The type of the schema.
                 If not provided, the schema type is provided. Defaults to None.
         """
-        if not default:
-            default = GroupSchema()
+        if not ungrouped:
+            ungrouped = GroupSchema()
 
         if groups is None:
             groups = {}
@@ -384,13 +385,13 @@ class Schema:
         if schema_type:
             self._schema = PySchema(
                 groups={x: groups[x]._group_schema for x in groups},
-                default=default._group_schema,
+                ungrouped=ungrouped._group_schema,
                 schema_type=schema_type._into_py_schema_type(),
             )
         else:
             self._schema = PySchema(
                 groups={x: groups[x]._group_schema for x in groups},
-                default=default._group_schema,
+                ungrouped=ungrouped._group_schema,
             )
 
     @classmethod
@@ -445,14 +446,13 @@ class Schema:
         return GroupSchema._from_py_group_schema(self._schema.group(group))
 
     @property
-    def default(self) -> GroupSchema:
-        """Retrieves the default group schema.
+    def ungrouped(self) -> GroupSchema:
+        """Retrieves the group schema for all ungrouped nodes and edges.
 
         Returns:
-            Optional[GroupSchema]: The default group schema if it exists, otherwise
-                None.
+            GroupSchema: The ungrouped group schema.
         """
-        return GroupSchema._from_py_group_schema(self._schema.default)
+        return GroupSchema._from_py_group_schema(self._schema.ungrouped)
 
     @property
     def schema_type(self) -> SchemaType:
@@ -472,7 +472,7 @@ class Schema:
             index (NodeIndex): The index of the node.
             attributes (Attributes): The attributes of the node.
             group (Optional[Group], optional): The group to validate the node against.
-                If not provided, the default group is used. Defaults to None.
+                If not provided, the ungrouped schema is used. Defaults to None.
         """
         self._schema.validate_node(index, attributes, group)
 
@@ -485,7 +485,7 @@ class Schema:
             index (EdgeIndex): The index of the edge.
             attributes (Attributes): The attributes of the edge.
             group (Optional[Group], optional): The group to validate the edge against.
-                If not provided, the default group is used. Defaults to None.
+                If not provided, the ungrouped schema is used. Defaults to None.
         """
         self._schema.validate_edge(index, attributes, group)
 
@@ -537,7 +537,7 @@ class Schema:
                 from the data type. Defaults to None.
             group (Optional[Group], optional): The group to set the attribute for.
                 If no schema for the group exists, a new schema is created.
-                If not provided, the default group is used. Defaults to None.
+                If not provided, the ungrouped schema is used. Defaults to None.
         """
         if not attribute_type:
             attribute_type = AttributeType.infer(data_type)
@@ -597,7 +597,7 @@ class Schema:
                 from the data type. Defaults to None.
             group (Optional[Group], optional): The group to set the attribute for.
                 If no schema for this group exists, a new schema is created.
-                If not provided, the default group is used. Defaults to None.
+                If not provided, the ungrouped schema is used. Defaults to None.
         """
         if not attribute_type:
             attribute_type = AttributeType.infer(data_type)
@@ -658,7 +658,7 @@ class Schema:
                 from the data type. Defaults to None.
             group (Optional[Group], optional): The group to update the attribute for.
                 If no schema for this group exists, a new schema is created.
-                If not provided, the default group is used. Defaults to None.
+                If not provided, the ungrouped schema is used. Defaults to None.
         """
         if not attribute_type:
             attribute_type = AttributeType.infer(data_type)
@@ -719,7 +719,7 @@ class Schema:
                 from the data type. Defaults to None.
             group (Optional[Group], optional): The group to update the attribute for.
                 If no schema for this group exists, a new schema is created.
-                If not provided, the default group is used. Defaults to None.
+                If not provided, the ungrouped schema is used. Defaults to None.
         """
         if not attribute_type:
             attribute_type = AttributeType.infer(data_type)
@@ -739,7 +739,7 @@ class Schema:
         Args:
             attribute (MedRecordAttribute): The name of the attribute to remove.
             group (Optional[Group], optional): The group to remove the attribute from.
-                If not provided, the default group is used. Defaults to None.
+                If not provided, the ungrouped schema is used. Defaults to None.
         """
         self._schema.remove_node_attribute(attribute, group)
 
@@ -751,7 +751,7 @@ class Schema:
         Args:
             attribute (MedRecordAttribute): The name of the attribute to remove.
             group (Optional[Group], optional): The group to remove the attribute from.
-                If not provided, the default group is used. Defaults to None.
+                If not provided, the ungrouped schema is used. Defaults to None.
         """
         self._schema.remove_edge_attribute(attribute, group)
 
