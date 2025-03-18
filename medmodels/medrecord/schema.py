@@ -374,7 +374,7 @@ class Schema:
                 not in a group. If not provided, an empty group schema is used.
                 Defaults to None.
             schema_type (Optional[SchemaType], optional): The type of the schema.
-                If not provided, the schema type is provided. Defaults to None.
+                If not provided, the schema is of type provided. Defaults to None.
         """
         if not ungrouped:
             ungrouped = GroupSchema()
@@ -456,10 +456,10 @@ class Schema:
 
     @property
     def schema_type(self) -> SchemaType:
-        """Lists all the groups in the Schema instance.
+        """Retrieves the schema type.
 
         Returns:
-            List[Group]: A list of groups.
+            SchemaType: The schema type.
         """
         return SchemaType._from_py_schema_type(self._schema.schema_type)
 

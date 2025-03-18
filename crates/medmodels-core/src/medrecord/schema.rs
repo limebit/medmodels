@@ -286,7 +286,7 @@ impl AttributeSchema {
             let attribute_type = AttributeType::infer(&data_type);
 
             let mut attribute_data_type = AttributeDataType::new(data_type, attribute_type)
-                .expect("AttributeType was infered from DataType.");
+                .expect("AttributeType was inferred from DataType.");
 
             match self.0.entry(attribute.clone()) {
                 Entry::Occupied(entry) => {
@@ -975,7 +975,7 @@ mod test {
     #[test]
     fn test_attribute_data_type_data_type() {
         let attribute_data_type = AttributeDataType::new(DataType::Int, AttributeType::Categorical)
-            .expect("AttributeType was infered from DataType.");
+            .expect("AttributeType was inferred from DataType.");
 
         assert_eq!(attribute_data_type.data_type(), &DataType::Int);
     }
@@ -983,7 +983,7 @@ mod test {
     #[test]
     fn test_attribute_data_type_attribute_type() {
         let attribute_data_type = AttributeDataType::new(DataType::Int, AttributeType::Categorical)
-            .expect("AttributeType was infered from DataType.");
+            .expect("AttributeType was inferred from DataType.");
 
         assert_eq!(
             attribute_data_type.attribute_type(),
@@ -995,11 +995,11 @@ mod test {
     fn test_attribute_data_type_merge() {
         let mut attribute_data_type =
             AttributeDataType::new(DataType::Int, AttributeType::Categorical)
-                .expect("AttributeType was infered from DataType.");
+                .expect("AttributeType was inferred from DataType.");
 
         attribute_data_type.merge(
             &AttributeDataType::new(DataType::Float, AttributeType::Continuous)
-                .expect("AttributeType was infered from DataType."),
+                .expect("AttributeType was inferred from DataType."),
         );
 
         assert_eq!(
@@ -1098,12 +1098,12 @@ mod test {
                 (
                     "key1".into(),
                     AttributeDataType::new(DataType::Int, AttributeType::Categorical)
-                        .expect("AttributeType was infered from DataType."),
+                        .expect("AttributeType was inferred from DataType."),
                 ),
                 (
                     "key2".into(),
                     AttributeDataType::new(DataType::Float, AttributeType::Continuous)
-                        .expect("AttributeType was infered from DataType."),
+                        .expect("AttributeType was inferred from DataType."),
                 ),
             ]
             .into_iter()
@@ -1127,12 +1127,12 @@ mod test {
                 (
                     "key1".into(),
                     AttributeDataType::new(DataType::Int, AttributeType::Categorical)
-                        .expect("AttributeType was infered from DataType."),
+                        .expect("AttributeType was inferred from DataType."),
                 ),
                 (
                     "key2".into(),
                     AttributeDataType::new(DataType::Float, AttributeType::Continuous)
-                        .expect("AttributeType was infered from DataType."),
+                        .expect("AttributeType was inferred from DataType."),
                 ),
             ]
             .into_iter()
@@ -1245,12 +1245,12 @@ mod test {
                 (
                     "key1".into(),
                     AttributeDataType::new(DataType::Int, AttributeType::Categorical)
-                        .expect("AttributeType was infered from DataType."),
+                        .expect("AttributeType was inferred from DataType."),
                 ),
                 (
                     "key2".into(),
                     AttributeDataType::new(DataType::Float, AttributeType::Continuous)
-                        .expect("AttributeType was infered from DataType."),
+                        .expect("AttributeType was inferred from DataType."),
                 ),
             ]
             .into_iter()
@@ -1269,12 +1269,12 @@ mod test {
                 (
                     "key1".into(),
                     AttributeDataType::new(DataType::Int, AttributeType::Categorical)
-                        .expect("AttributeType was infered from DataType."),
+                        .expect("AttributeType was inferred from DataType."),
                 ),
                 (
                     "key2".into(),
                     AttributeDataType::new(DataType::Float, AttributeType::Continuous)
-                        .expect("AttributeType was infered from DataType."),
+                        .expect("AttributeType was inferred from DataType."),
                 ),
             ]
             .into_iter()
@@ -1293,12 +1293,12 @@ mod test {
                 (
                     "key1".into(),
                     AttributeDataType::new(DataType::Int, AttributeType::Categorical)
-                        .expect("AttributeType was infered from DataType."),
+                        .expect("AttributeType was inferred from DataType."),
                 ),
                 (
                     "key2".into(),
                     AttributeDataType::new(DataType::Float, AttributeType::Continuous)
-                        .expect("AttributeType was infered from DataType."),
+                        .expect("AttributeType was inferred from DataType."),
                 ),
             ]
             .into_iter()
@@ -1329,12 +1329,12 @@ mod test {
                 (
                     "key1".into(),
                     AttributeDataType::new(DataType::Int, AttributeType::Categorical)
-                        .expect("AttributeType was infered from DataType."),
+                        .expect("AttributeType was inferred from DataType."),
                 ),
                 (
                     "key2".into(),
                     AttributeDataType::new(DataType::Float, AttributeType::Continuous)
-                        .expect("AttributeType was infered from DataType."),
+                        .expect("AttributeType was inferred from DataType."),
                 ),
             ]
             .into_iter()
@@ -1955,12 +1955,12 @@ mod test {
                 (
                     "key1".into(),
                     AttributeDataType::new(DataType::Int, AttributeType::Categorical)
-                        .expect("AttributeType was infered from DataType."),
+                        .expect("AttributeType was inferred from DataType."),
                 ),
                 (
                     "key2".into(),
                     AttributeDataType::new(DataType::Float, AttributeType::Continuous)
-                        .expect("AttributeType was infered from DataType."),
+                        .expect("AttributeType was inferred from DataType."),
                 ),
             ]
             .into_iter()
