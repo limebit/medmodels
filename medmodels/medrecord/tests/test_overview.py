@@ -162,7 +162,7 @@ class TestOverview(unittest.TestCase):
 
         node_info = extract_attribute_summary(
             mr_schema.node[nodes_schema],
-            schema=mr_schema.schema.group("patient").nodes,
+            schema=mr_schema.get_schema().group("patient").nodes,
         )
 
         assert node_info == {
@@ -176,7 +176,7 @@ class TestOverview(unittest.TestCase):
         # compare schema and not schema
         patient_diagnosis = extract_attribute_summary(
             mr_schema.edge[query7],
-            schema=mr_schema.schema.group("patient_diagnosis").edges,
+            schema=mr_schema.get_schema().group("patient_diagnosis").edges,
         )
 
         assert patient_diagnosis == {
@@ -199,17 +199,17 @@ class TestOverview(unittest.TestCase):
         header = ["group nodes", "count", "attribute", "type", "info"]
 
         expected_nodes = [
-            "---------------------------------------------------------------------",
-            "Group Nodes     Count Attribute Type        Info                     ",
-            "---------------------------------------------------------------------",
-            "Aspirin         1     ATC       -           -                        ",
-            "Medications     3     ATC       Categorical Values: B01AA03, B01AF01 ",
-            "Patients        3     age       Continuous  min: 20                  ",
-            "                                            max: 70                  ",
-            "                                            mean: 40.00              ",
-            "Stroke          1     -         -           -                        ",
-            "Ungrouped Nodes 1     -         -           -                        ",
-            "---------------------------------------------------------------------",
+            "-------------------------------------------------------------------------",
+            "Group Nodes     Count Attribute Type        Info                         ",
+            "-------------------------------------------------------------------------",
+            "Aspirin         1     ATC       -           -                            ",
+            "Medications     3     ATC       Categorical Categories: B01AA03, B01AF01 ",
+            "Patients        3     age       Continuous  min: 20                      ",
+            "                                            max: 70                      ",
+            "                                            mean: 40.00                  ",
+            "Stroke          1     -         -           -                            ",
+            "Ungrouped Nodes 1     -         -           -                            ",
+            "-------------------------------------------------------------------------",
         ]
 
         assert (

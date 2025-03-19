@@ -226,6 +226,6 @@ class MedRecordBuilder:
                 )
 
         if self._schema is not None:
-            medrecord.schema = self._schema
+            medrecord.set_schema(self._schema)
 
         return medrecord
