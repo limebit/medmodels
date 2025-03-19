@@ -12,6 +12,7 @@ simplified management and efficient querying.
 
 from __future__ import annotations
 
+import sys
 from enum import Enum, auto
 from typing import Callable, Dict, List, Optional, Sequence, Union, overload
 
@@ -1413,7 +1414,11 @@ class MedRecord:
         return edges_info
 
     def __repr__(self) -> str:
-        """Returns an official string representation of the MedRecord instance."""
+        """Returns a string representation of the MedRecord instance."""
+        # If in debugging mode, avoid computing the whole representation
+        if sys.gettrace() is not None:
+            return f"<MedRecord: {self.node_count()} nodes, {self.edge_count()} edges>"
+
         return "\n".join([str(self.overview_nodes()), "", str(self.overview_edges())])
 
     def overview_nodes(
