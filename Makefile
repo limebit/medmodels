@@ -1,38 +1,55 @@
 VENV_NAME?=.venv
 
-USER_PYTHON ?= python3
-VENV_PYTHON=${VENV_NAME}/bin/python
+ifeq ($(OS),Windows_NT)
+	VENV_BIN:=$(VENV_NAME)/Scripts
+else
+	VENV_BIN:=$(VENV_NAME)/bin
+endif
+
+USER_PYTHON?=python3
+VENV_PYTHON:=$(VENV_BIN)/python
+VENV_UV=${VENV_BIN}/uv
+UV_LOC:=$(shell $(USER_PYTHON) -c 'import shutil; print(shutil.which("uv") if shutil.which("uv") else "$(VENV_UV)")')
 
 .PHONY = prepare-venv install install-dev install-tests test lint format clean
 
 .DEFAULT_GOAL = install-dev
 
-prepare-venv: $(VENV_NAME)/bin/python
+prepare-venv: $(VENV_NAME)
 
-$(VENV_NAME)/bin/python:
-	make clean && ${USER_PYTHON} -m venv $(VENV_NAME)
+$(VENV_NAME):
+ifeq ($(UV_LOC), $(VENV_UV))
+	@echo "Using .venv installed uv: ${UV_LOC}"
+	$(MAKE) clean && ${USER_PYTHON} -m venv $(VENV_NAME)
+	${VENV_PYTHON} -m pip install -U pip
+	${VENV_PYTHON} -m pip install uv
+else
+	@echo "Using global uv: ${UV_LOC}"
+	$(MAKE) clean && ${UV_LOC} venv $(VENV_NAME)
+	${UV_LOC} pip install -U pip
+endif
 
 install: prepare-venv
-	${VENV_PYTHON} -m pip install -U pip
-	${VENV_PYTHON} -m pip install -e .
+	${UV_LOC} sync
+	${UV_LOC} pip install -e .
 
 install-dev: prepare-venv
-	${VENV_PYTHON} -m pip install -U pip
-	${VENV_PYTHON} -m pip install -e .\[dev\]
+	${UV_LOC} sync  --extra dev
+	${UV_LOC} pip install -e .
 
 install-tests: prepare-venv
-	${VENV_PYTHON} -m pip install -U pip
-	${VENV_PYTHON} -m pip install -e .\[tests\]
+	${UV_LOC} sync --extra tests
+	${UV_LOC} pip install -e .
 
 install-docs: prepare-venv
-	${VENV_PYTHON} -m pip install -U pip
-	${VENV_PYTHON} -m pip install -e .\[docs\]
+	${UV_LOC} sync --extra docs
+	${UV_LOC} pip install -e .
 
 build-dev: install-dev
-	${VENV_PYTHON} -m maturin develop
+	${UV_LOC} run maturin develop
 
 test: install-tests
-	${VENV_PYTHON} -m pytest -W error
+	${UV_LOC} run pytest -W error
 	cargo test
 
 docs: install-docs
@@ -45,14 +62,14 @@ docs-clean:
 	$(MAKE) -C docs clean
 
 lint: install-dev
-	${VENV_PYTHON} -m ruff check
-	${VENV_PYTHON} -m ruff check --select I
-	${VENV_PYTHON} -m pyright
+	${UV_LOC} run ruff check
+	${UV_LOC} run ruff check --select I
+	${UV_LOC} run python -m pyright
 	cargo clippy --all-targets --all-features
 
 format: install-dev
-	${VENV_PYTHON} -m ruff check --select I --fix
-	${VENV_PYTHON} -m ruff format
+	${UV_LOC} run ruff check --select I --fix
+	${UV_LOC} run ruff format
 	cargo fmt
 	cargo clippy --all-features --fix --allow-staged
 
