@@ -38,7 +38,10 @@ impl AttributeType {
 
     fn merge(&self, other: &Self) -> Self {
         match (self, other) {
-            (Self::Categorical, Self::Categorical) => Self::Categorical,
+            (Self::Categorical, Self::Unstructured) | (Self::Unstructured, Self::Categorical) => {
+                Self::Unstructured
+            }
+            (Self::Categorical, _) | (_, Self::Categorical) => Self::Categorical,
             (Self::Continuous, Self::Continuous) => Self::Continuous,
             (Self::Temporal, Self::Temporal) => Self::Temporal,
             _ => Self::Unstructured,
@@ -823,27 +826,74 @@ mod test {
     #[test]
     fn test_attribute_type_merge() {
         assert_eq!(
+            AttributeType::Categorical.merge(&AttributeType::Unstructured),
+            AttributeType::Unstructured
+        );
+        assert_eq!(
+            AttributeType::Unstructured.merge(&AttributeType::Categorical),
+            AttributeType::Unstructured
+        );
+
+        assert_eq!(
             AttributeType::Categorical.merge(&AttributeType::Categorical),
             AttributeType::Categorical
         );
         assert_eq!(
+            AttributeType::Categorical.merge(&AttributeType::Continuous),
+            AttributeType::Categorical
+        );
+        assert_eq!(
+            AttributeType::Categorical.merge(&AttributeType::Temporal),
+            AttributeType::Categorical
+        );
+
+        assert_eq!(
+            AttributeType::Continuous.merge(&AttributeType::Categorical),
+            AttributeType::Categorical
+        );
+        assert_eq!(
+            AttributeType::Temporal.merge(&AttributeType::Categorical),
+            AttributeType::Categorical
+        );
+
+        assert_eq!(
             AttributeType::Continuous.merge(&AttributeType::Continuous),
             AttributeType::Continuous
         );
+
         assert_eq!(
             AttributeType::Temporal.merge(&AttributeType::Temporal),
             AttributeType::Temporal
         );
-        assert_eq!(
-            AttributeType::Categorical.merge(&AttributeType::Continuous),
-            AttributeType::Unstructured
-        );
-        assert_eq!(
-            AttributeType::Categorical.merge(&AttributeType::Temporal),
-            AttributeType::Unstructured
-        );
+
         assert_eq!(
             AttributeType::Continuous.merge(&AttributeType::Temporal),
+            AttributeType::Unstructured
+        );
+        assert_eq!(
+            AttributeType::Continuous.merge(&AttributeType::Unstructured),
+            AttributeType::Unstructured
+        );
+
+        assert_eq!(
+            AttributeType::Temporal.merge(&AttributeType::Continuous),
+            AttributeType::Unstructured
+        );
+        assert_eq!(
+            AttributeType::Temporal.merge(&AttributeType::Unstructured),
+            AttributeType::Unstructured
+        );
+
+        assert_eq!(
+            AttributeType::Unstructured.merge(&AttributeType::Continuous),
+            AttributeType::Unstructured
+        );
+        assert_eq!(
+            AttributeType::Unstructured.merge(&AttributeType::Temporal),
+            AttributeType::Unstructured
+        );
+        assert_eq!(
+            AttributeType::Unstructured.merge(&AttributeType::Unstructured),
             AttributeType::Unstructured
         );
     }
@@ -1008,7 +1058,7 @@ mod test {
         );
         assert_eq!(
             attribute_data_type.attribute_type(),
-            &AttributeType::Unstructured
+            &AttributeType::Categorical
         );
     }
 
