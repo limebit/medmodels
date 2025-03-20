@@ -1897,7 +1897,6 @@ class TestMedRecord(unittest.TestCase):
                     "lorem": {"type": "Categorical", "values": "Categories: ipsum"},
                 },
             },
-            "Float": {"count": 0, "attribute": {}},
             "Ungrouped Nodes": {
                 "count": 1,
                 "attribute": {},
@@ -1994,7 +1993,7 @@ class TestMedRecord(unittest.TestCase):
                 "                                                 max: 2024-04-12 00:00:00 ",
                 "--------------------------------------------------------------------------",
             ]
-        ) == str(medrecord.overview_edges(group="patient_diagnosis"))
+        ) == str(medrecord.overview_edges(groups="patient_diagnosis"))
 
 
 if __name__ == "__main__":
