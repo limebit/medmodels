@@ -1888,6 +1888,22 @@ class TestMedRecord(unittest.TestCase):
             },
         }
 
+        # test node input list
+        assert medrecord._describe_group_nodes(nodes=["0", "1"]) == {
+            1: {
+                "count": 1,
+                "attribute": {
+                    "dolor": {"type": "Categorical", "values": "Categories: sit"},
+                    "lorem": {"type": "Categorical", "values": "Categories: ipsum"},
+                },
+            },
+            "Float": {"count": 0, "attribute": {}},
+            "Ungrouped Nodes": {
+                "count": 1,
+                "attribute": {},
+            },
+        }
+
         # test group input list
         medrecord.add_group("Odd", nodes=["1", "3"])
 
@@ -1895,6 +1911,16 @@ class TestMedRecord(unittest.TestCase):
             "Float": {"count": 0, "attribute": {}},
             "Odd": {
                 "count": 2,
+                "attribute": {
+                    "amet": {"type": "Categorical", "values": "Categories: consectetur"}
+                },
+            },
+        }
+
+        # test both node and group input list
+        assert medrecord._describe_group_nodes(nodes=["0", "1"], groups=["Odd"]) == {
+            "Odd": {
+                "count": 1,
                 "attribute": {
                     "amet": {"type": "Categorical", "values": "Categories: consectetur"}
                 },
@@ -1918,6 +1944,18 @@ class TestMedRecord(unittest.TestCase):
             "Ungrouped Edges": {"count": 2, "attribute": {}},
         }
 
+        # test edge input list
+        assert medrecord._describe_group_edges(edges=[0, 1]) == {
+            "Even": {
+                "count": 1,
+                "attribute": {
+                    "eiusmod": {"type": "Categorical", "values": "Categories: tempor"},
+                    "sed": {"type": "Categorical", "values": "Categories: do"},
+                },
+            },
+            "Ungrouped Edges": {"count": 1, "attribute": {}},
+        }
+
         # test the specified group list
         assert medrecord._describe_group_edges(groups=["Even"]) == {
             "Even": {
@@ -1925,6 +1963,17 @@ class TestMedRecord(unittest.TestCase):
                 "attribute": {
                     "eiusmod": {"type": "Categorical", "values": "Categories: tempor"},
                     "incididunt": {"type": "Categorical", "values": "Categories: ut"},
+                    "sed": {"type": "Categorical", "values": "Categories: do"},
+                },
+            },
+        }
+
+        # test both edge and group input list
+        assert medrecord._describe_group_edges(edges=[0, 1], groups=["Even"]) == {
+            "Even": {
+                "count": 1,
+                "attribute": {
+                    "eiusmod": {"type": "Categorical", "values": "Categories: tempor"},
                     "sed": {"type": "Categorical", "values": "Categories: do"},
                 },
             },
@@ -1945,7 +1994,7 @@ class TestMedRecord(unittest.TestCase):
                 "                                                 max: 2024-04-12 00:00:00 ",
                 "--------------------------------------------------------------------------",
             ]
-        ) == str(medrecord.overview_edges("patient_diagnosis"))
+        ) == str(medrecord.overview_edges(group="patient_diagnosis"))
 
 
 if __name__ == "__main__":

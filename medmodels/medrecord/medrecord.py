@@ -1322,12 +1322,15 @@ class MedRecord:
         return medrecord
 
     def _describe_group_nodes(
-        self, node: Optional[NodeIndexInputList] = None, groups: Optional[GroupInputList] = None
+        self,
+        *,
+        nodes: Optional[NodeIndexInputList] = None,
+        groups: Optional[GroupInputList] = None,
     ) -> Dict[Group, AttributeInfo]:
-        """Creates a summary of the specified node(s) in the MedRecord.
+        """Describes the specified node(s) in the specified group(s).
 
         Args:
-            node (Optional[NodeIndexInputList], optional):
+            nodes (Optional[NodeIndexInputList], optional):
                 List of node indices or a node query to get an overview of.
                 If no nodes are given, all nodes in the MedRecord are shown. Defaults
                 to None.
@@ -1343,8 +1346,8 @@ class MedRecord:
         grouped_nodes = []
         add_ungrouped = False
 
-        if not node:
-            node = self.nodes
+        if not nodes:
+            nodes = self.nodes
 
         if not groups:
             add_ungrouped = True
@@ -1352,12 +1355,12 @@ class MedRecord:
 
         groups = sorted(groups, key=lambda x: str(x))
 
-        for group in groups or []:
+        for group in groups:
             all_nodes_in_group = self.group(group)["nodes"]
-            nodes = list(set(all_nodes_in_group).intersection(set(node)))
-            grouped_nodes.extend(nodes)
+            nodes_in_group = list(set(all_nodes_in_group).intersection(set(nodes)))
+            grouped_nodes.extend(nodes_in_group)
 
-            if (len(nodes) == 0) and (self.group(group)["edges"]):
+            if (len(nodes_in_group) == 0) and (self.group(group)["edges"]):
                 continue
 
             schema = self.get_schema()
@@ -1367,16 +1370,16 @@ class MedRecord:
             )
 
             nodes_info[group] = {
-                "count": len(nodes),
+                "count": len(nodes_in_group),
                 "attribute": extract_attribute_summary(
-                    self.node[nodes], schema=attributes_schema
+                    self.node[nodes_in_group], schema=attributes_schema
                 ),
             }
 
         if not add_ungrouped:
             return nodes_info
 
-        ungrouped_count = self.node_count() - len(set(grouped_nodes))
+        ungrouped_count = len(nodes) - len(set(grouped_nodes))
 
         if ungrouped_count > 0:
             nodes_info["Ungrouped Nodes"] = {
@@ -1387,11 +1390,17 @@ class MedRecord:
         return nodes_info
 
     def _describe_group_edges(
-        self, groups: Optional[GroupInputList] = None
+        self,
+        *,
+        edges: Optional[EdgeIndexInputList] = None,
+        groups: Optional[GroupInputList] = None,
     ) -> Dict[Group, AttributeInfo]:
-        """Creates a summary of group edges and their attributes.
+        """Describes the specified edge(s) in the specified group(s).
 
         Args:
+            edges (Optional[EdgeIndexInputList], optional): List of edge indices or an
+                edge query to get an overview of. If no edges are given, all edges in
+                the MedRecord are used. Defaults to None.
             groups (Optional[GroupInputList], optional): List of groups that should be
                 considered. If no groups are given, all groups containing edges will be
                 summarized. Defaults to None.
@@ -1401,18 +1410,23 @@ class MedRecord:
         """
         edges_info = {}
         grouped_edges = []
+        add_ungrouped = False
+
+        if not edges:
+            edges = self.edges
 
         if not groups:
-            groups = sorted(self.groups, key=lambda x: str(x))
             add_ungrouped = True
-        else:
-            add_ungrouped = False
+            groups = self.groups
+
+        groups = sorted(groups, key=lambda x: str(x))
 
         for group in groups:
-            edges = self.group(group)["edges"]
-            grouped_edges.extend(edges)
+            all_edges_in_group = self.group(group)["edges"]
+            edges_in_group = list(set(all_edges_in_group).intersection(set(edges)))
+            grouped_edges.extend(edges_in_group)
 
-            if not edges:
+            if not edges_in_group:
                 continue
 
             schema = self.get_schema()
@@ -1422,16 +1436,16 @@ class MedRecord:
             )
 
             edges_info[group] = {
-                "count": len(edges),
+                "count": len(edges_in_group),
                 "attribute": extract_attribute_summary(
-                    self.edge[edges], schema=attributes_schema
+                    self.edge[edges_in_group], schema=attributes_schema
                 ),
             }
 
         if not add_ungrouped:
             return edges_info
 
-        ungrouped_count = self.edge_count() - len(set(grouped_edges))
+        ungrouped_count = len(edges) - len(set(grouped_edges))
 
         if ungrouped_count > 0:
             edges_info["Ungrouped Edges"] = {
@@ -1454,9 +1468,9 @@ class MedRecord:
         *,
         node: Optional[Union[NodeIndex, NodeIndexInputList, NodeQuery]] = None,
         group: Optional[Union[Group, GroupInputList]] = None,
-        decimal: int = 2
+        decimal: int = 2,
     ) -> OverviewTable:
-        """Gets a summary of the specified node(s) in the MedRecord.
+        """Gets a summary of the specified node(s) in the specified group(s).
 
         - In case only nodes are provided, the method returns a summary of those nodes
             with respect to the groups they belong to. If one node belongs to multiple
@@ -1502,19 +1516,35 @@ class MedRecord:
         elif isinstance(node, Callable):
             node = self.select_nodes(node)
 
-        nodes_data = self._describe_group_nodes(node, group)
+        nodes_data = self._describe_group_nodes(nodes=node, groups=group)
 
         return OverviewTable(
             data=nodes_data, group_header="Nodes Group", decimal=decimal
         )
 
     def overview_edges(
-        self, groups: Optional[Union[Group, GroupInputList]] = None, decimal: int = 2
+        self,
+        *,
+        edge: Optional[Union[EdgeIndex, EdgeIndexInputList, EdgeQuery]] = None,
+        group: Optional[Union[Group, GroupInputList]] = None,
+        decimal: int = 2,
     ) -> OverviewTable:
-        """Gets a summary for all edges in groups and their attributes.
+        """Gets a summary of the specified edge(s) in the specified group(s).
+
+        - In case only edges are provided, the method returns a summary of those edges
+            with respect to the groups they belong to. If one edge belongs to multiple
+            groups, it is counted in each group.
+        - If only groups are provided, the method returns a summary of all edges in the
+            specified groups.
+        - In case both edges and groups are provided, the method returns a summary of
+            the edges in the specified groups.
 
         Args:
-            groups (Optional[Union[Group, GroupInputList]], optional): Group or list of
+            edge (Optional[Union[EdgeIndex, EdgeIndexInputList, EdgeQuery]], optional):
+                One or more edge indices or an edge query to get an overview of.
+                If no edges are given, all edges in the MedRecord are used. Defaults
+                to None
+            group (Optional[Union[Group, GroupInputList]], optional): Group or list of
                 edge groups to display. If no groups are given, all groups containing
                 nodes are shown. Defaults to None.
             decimal (int, optional): Decimal point to round the float values to.
@@ -1537,12 +1567,15 @@ class MedRecord:
                 --------------------------------------------------------------------------
 
         """  # noqa: W505
-        if groups:
-            edges_data = self._describe_group_edges(
-                groups if isinstance(groups, list) else [groups]
-            )
-        else:
-            edges_data = self._describe_group_edges()
+        if isinstance(group, Group):
+            group = [group]
+
+        if isinstance(edge, EdgeIndex):
+            edge = [edge]
+        elif isinstance(edge, Callable):
+            edge = self.select_edges(edge)
+
+        edges_data = self._describe_group_edges(edges=edge, groups=group)
 
         return OverviewTable(
             data=edges_data, group_header="Edges Group", decimal=decimal
