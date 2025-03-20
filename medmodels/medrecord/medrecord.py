@@ -1344,10 +1344,13 @@ class MedRecord:
         """
         nodes_info = {}
         grouped_nodes = []
+
         add_ungrouped = False
+        return_empty = False
 
         if not nodes:
             nodes = self.nodes
+            return_empty = True
 
         if not groups:
             add_ungrouped = True
@@ -1360,7 +1363,9 @@ class MedRecord:
             nodes_in_group = list(set(all_nodes_in_group).intersection(set(nodes)))
             grouped_nodes.extend(nodes_in_group)
 
-            if (len(nodes_in_group) == 0) and (self.group(group)["edges"]):
+            if (len(nodes_in_group) == 0) and (
+                (self.group(group)["edges"]) or not return_empty
+            ):
                 continue
 
             schema = self.get_schema()
@@ -1466,8 +1471,8 @@ class MedRecord:
     def overview_nodes(
         self,
         *,
-        node: Optional[Union[NodeIndex, NodeIndexInputList, NodeQuery]] = None,
-        group: Optional[Union[Group, GroupInputList]] = None,
+        nodes: Optional[Union[NodeIndex, NodeIndexInputList, NodeQuery]] = None,
+        groups: Optional[Union[Group, GroupInputList]] = None,
         decimal: int = 2,
     ) -> OverviewTable:
         """Gets a summary of the specified node(s) in the specified group(s).
@@ -1479,20 +1484,22 @@ class MedRecord:
             specified groups.
         - In case both nodes and groups are provided, the method returns a summary of
             the nodes in the specified groups.
+        - In case no nodes or groups are provided, the method returns a summary of all
+            nodes in the MedRecord and all groups which contain nodes or are empty.
 
         Args:
-            node (Optional[Union[NodeIndex, NodeIndexInputList, NodeQuery]], optional):
+            nodes (Optional[Union[NodeIndex, NodeIndexInputList, NodeQuery]], optional):
                 One or more node indices or a node query to get an overview of.
                 If no nodes are given, all nodes in the MedRecord are used. Defaults
                 to None.
-            group (Optional[Union[Group, GroupInputList]], optional): Group or list of
+            groups (Optional[Union[Group, GroupInputList]], optional): Group or list of
                 groups to display. If no groups are given, all groups containing the
                 specified nodes are shown. Defaults to None.
             decimal (int, optional): Decimal point to round the float values to.
                 Defaults to 2.
 
         Returns:
-            OverviewTable: Display of edge groups and their attributes.
+            OverviewTable: Display of node groups and their attributes.
 
         Example:
             .. code-block:: text
@@ -1508,15 +1515,15 @@ class MedRecord:
                 Ungrouped Nodes 10    -           -           -
                 --------------------------------------------------------------
         """
-        if isinstance(group, Group):
-            group = [group]
+        if isinstance(groups, Group):
+            groups = [groups]
 
-        if isinstance(node, NodeIndex):
-            node = [node]
-        elif isinstance(node, Callable):
-            node = self.select_nodes(node)
+        if isinstance(nodes, NodeIndex):
+            nodes = [nodes]
+        elif isinstance(nodes, Callable):
+            nodes = self.select_nodes(nodes)
 
-        nodes_data = self._describe_group_nodes(nodes=node, groups=group)
+        nodes_data = self._describe_group_nodes(nodes=nodes, groups=groups)
 
         return OverviewTable(
             data=nodes_data, group_header="Nodes Group", decimal=decimal
@@ -1525,8 +1532,8 @@ class MedRecord:
     def overview_edges(
         self,
         *,
-        edge: Optional[Union[EdgeIndex, EdgeIndexInputList, EdgeQuery]] = None,
-        group: Optional[Union[Group, GroupInputList]] = None,
+        edges: Optional[Union[EdgeIndex, EdgeIndexInputList, EdgeQuery]] = None,
+        groups: Optional[Union[Group, GroupInputList]] = None,
         decimal: int = 2,
     ) -> OverviewTable:
         """Gets a summary of the specified edge(s) in the specified group(s).
@@ -1538,13 +1545,15 @@ class MedRecord:
             specified groups.
         - In case both edges and groups are provided, the method returns a summary of
             the edges in the specified groups.
+        - In case no edges or groups are provided, the method returns a summary of all
+            edges in the MedRecord and all groups which contain edges.
 
         Args:
-            edge (Optional[Union[EdgeIndex, EdgeIndexInputList, EdgeQuery]], optional):
+            edges (Optional[Union[EdgeIndex, EdgeIndexInputList, EdgeQuery]], optional):
                 One or more edge indices or an edge query to get an overview of.
                 If no edges are given, all edges in the MedRecord are used. Defaults
                 to None
-            group (Optional[Union[Group, GroupInputList]], optional): Group or list of
+            groups (Optional[Union[Group, GroupInputList]], optional): Group or list of
                 edge groups to display. If no groups are given, all groups containing
                 nodes are shown. Defaults to None.
             decimal (int, optional): Decimal point to round the float values to.
@@ -1567,15 +1576,15 @@ class MedRecord:
                 --------------------------------------------------------------------------
 
         """  # noqa: W505
-        if isinstance(group, Group):
-            group = [group]
+        if isinstance(groups, Group):
+            groups = [groups]
 
-        if isinstance(edge, EdgeIndex):
-            edge = [edge]
-        elif isinstance(edge, Callable):
-            edge = self.select_edges(edge)
+        if isinstance(edges, EdgeIndex):
+            edges = [edges]
+        elif isinstance(edges, Callable):
+            edges = self.select_edges(edges)
 
-        edges_data = self._describe_group_edges(edges=edge, groups=group)
+        edges_data = self._describe_group_edges(edges=edges, groups=groups)
 
         return OverviewTable(
             data=edges_data, group_header="Edges Group", decimal=decimal
