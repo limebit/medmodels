@@ -1345,12 +1345,12 @@ class MedRecord:
         nodes_info = {}
         grouped_nodes = []
 
-        set_nodes = self.nodes if not nodes else set(nodes)
+        nodes_set = self.nodes if not nodes else set(nodes)
         groups_sorted = sorted(groups or self.groups, key=lambda x: str(x))
 
         for group in groups_sorted:
             all_nodes_in_group = self.group(group)["nodes"]
-            nodes_in_group = list(set(all_nodes_in_group).intersection(set_nodes))
+            nodes_in_group = list(set(all_nodes_in_group).intersection(nodes_set))
             grouped_nodes.extend(nodes_in_group)
 
             if (len(nodes_in_group) == 0) and (
@@ -1374,8 +1374,7 @@ class MedRecord:
         if groups:
             return nodes_info
 
-        # If no groups were specified, add ungrouped nodes
-        ungrouped_count = len(set_nodes) - len(set(grouped_nodes))
+        ungrouped_count = len(nodes_set) - len(set(grouped_nodes))
 
         if ungrouped_count > 0:
             nodes_info["Ungrouped Nodes"] = {
@@ -1407,12 +1406,12 @@ class MedRecord:
         edges_info = {}
         grouped_edges = []
 
+        edges_set = set(edges or self.edges)
         groups_sorted = sorted(groups or self.groups, key=lambda x: str(x))
-        set_edges = set(edges or self.edges)
 
         for group in groups_sorted:
             all_edges_in_group = self.group(group)["edges"]
-            edges_in_group = list(set(all_edges_in_group).intersection(set_edges))
+            edges_in_group = list(set(all_edges_in_group).intersection(edges_set))
             grouped_edges.extend(edges_in_group)
 
             if not edges_in_group:
@@ -1434,7 +1433,7 @@ class MedRecord:
         if groups:
             return edges_info
 
-        ungrouped_count = len(set_edges) - len(set(grouped_edges))
+        ungrouped_count = len(edges_set) - len(set(grouped_edges))
 
         if ungrouped_count > 0:
             edges_info["Ungrouped Edges"] = {
