@@ -1978,8 +1978,95 @@ class TestMedRecord(unittest.TestCase):
             },
         }
 
+    def test_overview_nodes(self) -> None:
+        medrecord = MedRecord.from_simple_example_dataset()
+
+        assert "\n".join(
+            [
+                "------------------------------------------------------",
+                "Nodes Group Count Attribute Type        Data          ",
+                "------------------------------------------------------",
+                "patient     1     age       Continuous  min: 42       ",
+                "                                        max: 42       ",
+                "                                        mean: 42.00   ",
+                "                  gender    Categorical Categories: M ",
+                "------------------------------------------------------",
+            ]
+        ) == str(medrecord.overview_nodes(nodes="pat_1"))
+
+        def query(node: NodeOperand) -> None:
+            node.has_attribute("age")
+
+        assert "\n".join(
+            [
+                "---------------------------------------------------------",
+                "Nodes Group Count Attribute Type        Data             ",
+                "---------------------------------------------------------",
+                "patient     5     age       Continuous  min: 19          ",
+                "                                        max: 96          ",
+                "                                        mean: 43.20      ",
+                "                  gender    Categorical Categories: F, M ",
+                "---------------------------------------------------------",
+            ]
+        ) == str(medrecord.overview_nodes(nodes=query))
+
+        assert "\n".join(
+            [
+                "---------------------------------------------------------",
+                "Nodes Group Count Attribute Type        Data             ",
+                "---------------------------------------------------------",
+                "patient     5     age       Continuous  min: 19          ",
+                "                                        max: 96          ",
+                "                                        mean: 43.20      ",
+                "                  gender    Categorical Categories: F, M ",
+                "---------------------------------------------------------",
+            ]
+        ) == str(medrecord.overview_nodes(groups="patient"))
+
     def test_overview_edges(self) -> None:
         medrecord = MedRecord.from_simple_example_dataset()
+
+        assert "\n".join(
+            [
+                "--------------------------------------------------------------------------",
+                "Edges Group       Count Attribute     Type       Data                     ",
+                "--------------------------------------------------------------------------",
+                "patient_diagnosis 1     duration_days Continuous min: 1113.00             ",
+                "                                                 max: 1113.00             ",
+                "                                                 mean: 1113.00            ",
+                "                        time          Temporal   min: 2014-04-08 00:00:00 ",
+                "                                                 max: 2014-04-08 00:00:00 ",
+                "--------------------------------------------------------------------------",
+            ]
+        ) == str(medrecord.overview_edges(edges=1))
+
+        def query(edge: EdgeOperand) -> None:
+            edge.either_or(
+                lambda edge: edge.has_attribute("cost"),
+                lambda edge: edge.has_attribute("duration_minutes"),
+            )
+
+        assert "\n".join(
+            [
+                "-----------------------------------------------------------------------------",
+                "Edges Group       Count Attribute        Type       Data                     ",
+                "-----------------------------------------------------------------------------",
+                "patient_drug      50    cost             Continuous min: 0.10                ",
+                "                                                    max: 7822.20             ",
+                "                                                    mean: 412.10             ",
+                "                        quantity         Continuous min: 1                   ",
+                "                                                    max: 12                  ",
+                "                                                    mean: 2.96               ",
+                "                        time             Temporal   min: 1995-03-26 02:00:40 ",
+                "                                                    max: 2024-04-12 11:59:55 ",
+                "patient_procedure 50    duration_minutes Continuous min: 4.00                ",
+                "                                                    max: 59.00               ",
+                "                                                    mean: 19.44              ",
+                "                        time             Temporal   min: 1993-03-14 02:42:31 ",
+                "                                                    max: 2024-04-24 03:38:35 ",
+                "-----------------------------------------------------------------------------",
+            ]
+        ) == str(medrecord.overview_edges(edges=query))
 
         assert "\n".join(
             [
