@@ -56,7 +56,10 @@ class TestMedRecordBuilder(unittest.TestCase):
         assert medrecord.nodes_in_group("group") == ["0"]
 
     def test_with_schema(self) -> None:
-        schema = mr.Schema(default=mr.GroupSchema(nodes={"attribute": mr.Int()}))
+        schema = mr.Schema(
+            ungrouped=mr.GroupSchema(nodes={"attribute": mr.Int()}),
+            schema_type=mr.SchemaType.Provided,
+        )
 
         medrecord = mr.MedRecord.builder().with_schema(schema).build()
 
@@ -64,7 +67,7 @@ class TestMedRecordBuilder(unittest.TestCase):
 
         with pytest.raises(
             ValueError,
-            match=r"Attribute attribute of node with index node2 is of type String\. Expected Integer\.",
+            match=r"Attribute attribute of node with index node2 is of type String\. Expected Int\.",
         ):
             medrecord.add_nodes(("node2", {"attribute": "1"}))
 

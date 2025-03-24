@@ -49,7 +49,7 @@ build-dev: install-dev
 	$(UV_LOC) run maturin develop
 
 test: install-tests
-	$(UV_LOC) run pytest -W error
+	$(UV_LOC) run pytest -vv -W error
 	cargo test
 
 docs: install-docs

@@ -3,18 +3,47 @@
 from __future__ import annotations
 
 from enum import Enum, auto
-from typing import TYPE_CHECKING, Dict, Iterator, List, Optional, Tuple, Union, overload
+from typing import (
+    TYPE_CHECKING,
+    Dict,
+    List,
+    Literal,
+    Optional,
+    Tuple,
+    TypeAlias,
+    Union,
+    overload,
+)
 
 from medmodels._medmodels import (
     PyAttributeDataType,
     PyAttributeType,
     PyGroupSchema,
     PySchema,
+    PySchemaType,
 )
-from medmodels.medrecord.datatype import DataType
+from medmodels.medrecord.datatype import (
+    DataType,
+    DateTime,
+    Duration,
+    Float,
+    Int,
+    Null,
+    Option,
+)
+from medmodels.medrecord.datatype import (
+    Union as DataTypeUnion,
+)
+from medmodels.medrecord.types import (
+    Attributes,
+    EdgeIndex,
+    MedRecordAttribute,
+    NodeIndex,
+)
 
 if TYPE_CHECKING:
-    from medmodels.medrecord.types import Group, MedRecordAttribute
+    from medmodels.medrecord.medrecord import MedRecord
+    from medmodels.medrecord.types import Group
 
 
 class AttributeType(Enum):
@@ -23,6 +52,7 @@ class AttributeType(Enum):
     Categorical = auto()
     Continuous = auto()
     Temporal = auto()
+    Unstructured = auto()
 
     @staticmethod
     def _from_py_attribute_type(py_attribute_type: PyAttributeType) -> AttributeType:
@@ -40,7 +70,24 @@ class AttributeType(Enum):
             return AttributeType.Continuous
         if py_attribute_type == PyAttributeType.Temporal:
             return AttributeType.Temporal
-        return None
+        if py_attribute_type == PyAttributeType.Unstructured:
+            return AttributeType.Unstructured
+        msg = "Should never be reached"
+        raise NotImplementedError(msg)
+
+    @staticmethod
+    def infer(data_type: DataType) -> AttributeType:
+        """Infers the attribute type from the data type.
+
+        Args:
+            data_type (DataType): The data type to infer the attribute type from.
+
+        Returns:
+            AttributeType: The inferred attribute type.
+        """
+        return AttributeType._from_py_attribute_type(
+            PyAttributeType.infer(data_type._inner())
+        )
 
     def _into_py_attribute_type(self) -> PyAttributeType:
         """Converts an AttributeType to a PyAttributeType.
@@ -54,6 +101,8 @@ class AttributeType(Enum):
             return PyAttributeType.Continuous
         if self == AttributeType.Temporal:
             return PyAttributeType.Temporal
+        if self == AttributeType.Unstructured:
+            return PyAttributeType.Unstructured
         msg = "Should never be reached"
         raise NotImplementedError(msg)
 
@@ -73,6 +122,14 @@ class AttributeType(Enum):
         """
         return self.name
 
+    def __hash__(self) -> int:
+        """Returns the hash of the AttributeType instance.
+
+        Returns:
+            int: The hash of the AttributeType instance.
+        """
+        return hash(self.name)
+
     def __eq__(self, value: object) -> bool:
         """Compares the AttributeType instance to another object for equality.
 
@@ -90,164 +147,37 @@ class AttributeType(Enum):
         return False
 
 
-class AttributesSchema:
-    """A schema for a collection of attributes."""
+CategoricalType: TypeAlias = DataType
+CategoricalPair: TypeAlias = Tuple[CategoricalType, Literal[AttributeType.Categorical]]
 
-    _attributes_schema: Dict[
-        MedRecordAttribute, Tuple[DataType, Optional[AttributeType]]
-    ]
+ContinuousType: TypeAlias = Union[
+    Int,
+    Float,
+    Null,
+    Option["ContinuousType"],
+    DataTypeUnion["ContinuousType", "ContinuousType"],
+]
+ContinuousPair: TypeAlias = Tuple[ContinuousType, Literal[AttributeType.Continuous]]
 
-    def __init__(
-        self,
-        attributes_schema: Dict[
-            MedRecordAttribute, Tuple[DataType, Optional[AttributeType]]
-        ],
-    ) -> None:
-        """Initializes a new instance of AttributesSchema.
+TemporalType = Union[
+    DateTime,
+    Duration,
+    Null,
+    Option["TemporalType"],
+    DataTypeUnion["TemporalType", "TemporalType"],
+]
+TemporalPair: TypeAlias = Tuple[TemporalType, Literal[AttributeType.Temporal]]
 
-        Args:
-            attributes_schema (Dict[MedRecordAttribute, Tuple[DataType, Optional[AttributeType]]]):
-                A dictionary mapping MedRecordAttributes to their data types and
-                optional attribute types.
-        """  # noqa: W505
-        self._attributes_schema = attributes_schema
+UnstructuredType: TypeAlias = DataType
+UnstructuredPair: TypeAlias = Tuple[
+    UnstructuredType, Literal[AttributeType.Unstructured]
+]
 
-    def __repr__(self) -> str:
-        """Returns a string representation of the AttributesSchema instance.
+AttributeDataType: TypeAlias = Union[
+    CategoricalPair, ContinuousPair, TemporalPair, UnstructuredPair
+]
 
-        Returns:
-            str: String representation of the attribute schema.
-        """
-        return self._attributes_schema.__repr__()
-
-    def __getitem__(
-        self, key: MedRecordAttribute
-    ) -> Tuple[DataType, Optional[AttributeType]]:
-        """Gets the type and optional attribute type for a given MedRecordAttribute.
-
-        Args:
-            key (MedRecordAttribute): The attribute for which the data type is
-                requested.
-
-        Returns:
-            Tuple[DataType, Optional[AttributeType]]: The data type and optional
-                attribute type of the given attribute.
-        """
-        return self._attributes_schema[key]
-
-    def __contains__(self, key: MedRecordAttribute) -> bool:
-        """Checks if a given MedRecordAttribute is in the attributes schema.
-
-        Args:
-            key (MedRecordAttribute): The attribute to check.
-
-        Returns:
-            bool: True if the attribute exists in the schema, False otherwise.
-        """
-        return key in self._attributes_schema
-
-    def __iter__(self) -> Iterator[MedRecordAttribute]:
-        """Returns an iterator over the attributes schema.
-
-        Returns:
-            Iterator: An iterator over the attribute keys.
-        """
-        return self._attributes_schema.__iter__()
-
-    def __len__(self) -> int:
-        """Returns the number of attributes in the schema.
-
-        Returns:
-            int: The number of attributes.
-        """
-        return len(self._attributes_schema)
-
-    def __eq__(self, value: object) -> bool:
-        """Compares the AttributesSchema instance to another object for equality.
-
-        Args:
-            value (object): The object to compare against.
-
-        Returns:
-            bool: True if the objects are equal, False otherwise.
-        """
-        if not (isinstance(value, (AttributesSchema, dict))):
-            return False
-
-        attribute_schema = (
-            value._attributes_schema if isinstance(value, AttributesSchema) else value
-        )
-
-        if not attribute_schema.keys() == self._attributes_schema.keys():
-            return False
-
-        for key in self._attributes_schema:
-            if (
-                not isinstance(attribute_schema[key], tuple)
-                or not isinstance(
-                    attribute_schema[key][0], type(self._attributes_schema[key][0])
-                )
-                or attribute_schema[key][1] != self._attributes_schema[key][1]
-            ):
-                return False
-
-        return True
-
-    def keys(self):  # noqa: ANN201
-        """Returns the attribute keys in the schema.
-
-        Returns:
-            KeysView: A view object displaying a list of dictionary's keys.
-        """
-        return self._attributes_schema.keys()
-
-    def values(self):  # noqa: ANN201
-        """Returns the attribute values in the schema.
-
-        Returns:
-            ValuesView: A view object displaying a list of dictionary's values.
-        """
-        return self._attributes_schema.values()
-
-    def items(self):  # noqa: ANN201
-        """Returns the attribute key-value pairs in the schema.
-
-        Returns:
-            ItemsView: A set-like object providing a view on D's items.
-        """
-        return self._attributes_schema.items()
-
-    @overload
-    def get(
-        self, key: MedRecordAttribute
-    ) -> Optional[Tuple[DataType, Optional[AttributeType]]]: ...
-
-    @overload
-    def get(
-        self, key: MedRecordAttribute, default: Tuple[DataType, Optional[AttributeType]]
-    ) -> Tuple[DataType, Optional[AttributeType]]: ...
-
-    def get(
-        self,
-        key: MedRecordAttribute,
-        default: Optional[Tuple[DataType, Optional[AttributeType]]] = None,
-    ) -> Optional[Tuple[DataType, Optional[AttributeType]]]:
-        """Gets the data type and optional attribute type for a given attribute.
-
-        It returns a default value if the attribute is not present.
-
-        Args:
-            key (MedRecordAttribute): The attribute for which the data type is
-                requested.
-            default (Optional[Tuple[DataType, Optional[AttributeType]]], optional):
-                The default data type and attribute type to return if the attribute
-                is not found. Defaults to None.
-
-        Returns:
-            Optional[Tuple[DataType, Optional[AttributeType]]]: The data type and
-                optional attribute type of the given attribute or the default value.
-        """
-        return self._attributes_schema.get(key, default)
+AttributesSchema: TypeAlias = Dict[MedRecordAttribute, AttributeDataType]
 
 
 class GroupSchema:
@@ -259,47 +189,54 @@ class GroupSchema:
         self,
         *,
         nodes: Optional[
-            Dict[MedRecordAttribute, Union[DataType, Tuple[DataType, AttributeType]]]
+            Dict[
+                MedRecordAttribute,
+                Union[DataType, AttributeDataType],
+            ],
         ] = None,
         edges: Optional[
-            Dict[MedRecordAttribute, Union[DataType, Tuple[DataType, AttributeType]]]
+            Dict[
+                MedRecordAttribute,
+                Union[DataType, AttributeDataType],
+            ],
         ] = None,
-        strict: bool = False,
     ) -> None:
         """Initializes a new instance of GroupSchema.
 
         Args:
-            nodes (Dict[MedRecordAttribute, Union[DataType, Tuple[DataType, AttributeType]]]):
+            nodes (Dict[MedRecordAttribute, Union[DataType, AttributeDataType]]):
                 A dictionary mapping node attributes to their data
                 types and optional attribute types. Defaults to an empty dictionary.
-            edges (Dict[MedRecordAttribute, Union[DataType, Tuple[DataType, AttributeType]]]):
+                When no attribute type is provided, it is inferred from the data type.
+            edges (Dict[MedRecordAttribute, Union[DataType, AttributeDataType]]):
                 A dictionary mapping edge attributes to their data types and
                 optional attribute types. Defaults to an empty dictionary.
-            strict (bool, optional): Indicates whether the schema should be strict.
-                Defaults to False.
-        """  # noqa: W505
+                When no attribute type is provided, it is inferred from the data type.
+        """
         if edges is None:
             edges = {}
         if nodes is None:
             nodes = {}
 
         def _convert_input(
-            input: Union[DataType, Tuple[DataType, AttributeType]],
+            input: Union[DataType, AttributeDataType],
         ) -> PyAttributeDataType:
             if isinstance(input, tuple):
                 return PyAttributeDataType(
                     input[0]._inner(), input[1]._into_py_attribute_type()
                 )
-            return PyAttributeDataType(input._inner(), None)
+
+            return PyAttributeDataType(
+                input._inner(), PyAttributeType.infer(input._inner())
+            )
 
         self._group_schema = PyGroupSchema(
             nodes={x: _convert_input(nodes[x]) for x in nodes},
             edges={x: _convert_input(edges[x]) for x in edges},
-            strict=strict,
         )
 
     @classmethod
-    def _from_pygroupschema(cls, group_schema: PyGroupSchema) -> GroupSchema:
+    def _from_py_group_schema(cls, group_schema: PyGroupSchema) -> GroupSchema:
         """Creates a GroupSchema instance from an existing PyGroupSchema.
 
         Args:
@@ -323,20 +260,17 @@ class GroupSchema:
 
         def _convert_node(
             input: PyAttributeDataType,
-        ) -> Tuple[DataType, Optional[AttributeType]]:
+        ) -> AttributeDataType:
+            # SAFETY: The typing is guaranteed to be correct
             return (
                 DataType._from_py_data_type(input.data_type),
-                AttributeType._from_py_attribute_type(input.attribute_type)
-                if input.attribute_type is not None
-                else None,
-            )
+                AttributeType._from_py_attribute_type(input.attribute_type),
+            )  # pyright: ignore[reportReturnType]
 
-        return AttributesSchema(
-            {
-                x: _convert_node(self._group_schema.nodes[x])
-                for x in self._group_schema.nodes
-            }
-        )
+        return {
+            x: _convert_node(self._group_schema.nodes[x])
+            for x in self._group_schema.nodes
+        }
 
     @property
     def edges(self) -> AttributesSchema:
@@ -349,29 +283,74 @@ class GroupSchema:
 
         def _convert_edge(
             input: PyAttributeDataType,
-        ) -> Tuple[DataType, Optional[AttributeType]]:
+        ) -> AttributeDataType:
+            # SAFETY: The typing is guaranteed to be correct
             return (
                 DataType._from_py_data_type(input.data_type),
-                AttributeType._from_py_attribute_type(input.attribute_type)
-                if input.attribute_type is not None
-                else None,
-            )
+                AttributeType._from_py_attribute_type(input.attribute_type),
+            )  # pyright: ignore[reportReturnType]
 
-        return AttributesSchema(
-            {
-                x: _convert_edge(self._group_schema.edges[x])
-                for x in self._group_schema.edges
-            }
-        )
+        return {
+            x: _convert_edge(self._group_schema.edges[x])
+            for x in self._group_schema.edges
+        }
 
-    @property
-    def strict(self) -> Optional[bool]:
-        """Indicates whether the GroupSchema instance is strict.
+    def validate_node(self, index: NodeIndex, attributes: Attributes) -> None:
+        """Validates the attributes of a node against the schema.
+
+        Args:
+            index (NodeIndex): The index of the node.
+            attributes (Attributes): The attributes of the node.
+        """
+        self._group_schema.validate_node(index, attributes)
+
+    def validate_edge(self, index: EdgeIndex, attributes: Attributes) -> None:
+        """Validates the attributes of an edge against the schema.
+
+        Args:
+            index (EdgeIndex): The index of the edge.
+            attributes (Attributes): The attributes of the edge.
+        """
+        self._group_schema.validate_edge(index, attributes)
+
+
+class SchemaType(Enum):
+    """Enumeration of schema types."""
+
+    Provided = auto()
+    Inferred = auto()
+
+    @staticmethod
+    def _from_py_schema_type(py_schema_type: PySchemaType) -> SchemaType:
+        """Converts a PySchemaType to a SchemaType.
+
+        Args:
+            py_schema_type (PySchemaType): The PySchemaType to convert.
 
         Returns:
-            Optional[bool]: True if the schema is strict, False otherwise.
+            SchemaType: The converted SchemaType.
         """
-        return self._group_schema.strict
+        if py_schema_type == PySchemaType.Provided:
+            return SchemaType.Provided
+        if py_schema_type == PySchemaType.Inferred:
+            return SchemaType.Inferred
+
+        msg = "Should never be reached"
+        raise NotImplementedError(msg)
+
+    def _into_py_schema_type(self) -> PySchemaType:
+        """Converts a SchemaType to a PySchemaType.
+
+        Returns:
+            PySchemaType: The converted PySchemaType.
+        """
+        if self == SchemaType.Provided:
+            return PySchemaType.Provided
+        if self == SchemaType.Inferred:
+            return PySchemaType.Inferred
+
+        msg = "Should never be reached"
+        raise NotImplementedError(msg)
 
 
 class Schema:
@@ -383,32 +362,51 @@ class Schema:
         self,
         *,
         groups: Optional[Dict[Group, GroupSchema]] = None,
-        default: Optional[GroupSchema] = None,
-        strict: bool = False,
+        ungrouped: Optional[GroupSchema] = None,
+        schema_type: Optional[SchemaType] = None,
     ) -> None:
         """Initializes a new instance of Schema.
 
         Args:
             groups (Dict[Group, GroupSchema], optional): A dictionary of group names
-                to their schemas. Defaults to an empty dictionary.
-            default (Optional[GroupSchema], optional): The default group schema.
+                to their schemas. Defaults to None.
+            ungrouped (Optional[GroupSchema], optional): The group schema for all nodes
+                not in a group. If not provided, an empty group schema is used.
                 Defaults to None.
-            strict (bool, optional): Indicates whether the schema should be strict.
-                Defaults to False.
+            schema_type (Optional[SchemaType], optional): The type of the schema.
+                If not provided, the schema is of type provided. Defaults to None.
         """
+        if not ungrouped:
+            ungrouped = GroupSchema()
+
         if groups is None:
             groups = {}
-        if default is not None:
+
+        if schema_type:
             self._schema = PySchema(
                 groups={x: groups[x]._group_schema for x in groups},
-                default=default._group_schema,
-                strict=strict,
+                ungrouped=ungrouped._group_schema,
+                schema_type=schema_type._into_py_schema_type(),
             )
         else:
             self._schema = PySchema(
                 groups={x: groups[x]._group_schema for x in groups},
-                strict=strict,
+                ungrouped=ungrouped._group_schema,
             )
+
+    @classmethod
+    def infer(cls, medrecord: MedRecord) -> Schema:
+        """Infers a schema from a MedRecord instance.
+
+        Args:
+            medrecord (MedRecord): The MedRecord instance to infer the schema from.
+
+        Returns:
+            Schema: The inferred schema.
+        """
+        new_schema = cls()
+        new_schema._schema = PySchema.infer(medrecord._medrecord)
+        return new_schema
 
     @classmethod
     def _from_py_schema(cls, schema: PySchema) -> Schema:
@@ -445,26 +443,339 @@ class Schema:
         Raises:
             ValueError: If the group does not exist in the schema.
         """  # noqa: DOC502
-        return GroupSchema._from_pygroupschema(self._schema.group(group))
+        return GroupSchema._from_py_group_schema(self._schema.group(group))
 
     @property
-    def default(self) -> Optional[GroupSchema]:
-        """Retrieves the default group schema.
+    def ungrouped(self) -> GroupSchema:
+        """Retrieves the group schema for all ungrouped nodes and edges.
 
         Returns:
-            Optional[GroupSchema]: The default group schema if it exists, otherwise
-                None.
+            GroupSchema: The ungrouped group schema.
         """
-        if self._schema.default is None:
-            return None
-
-        return GroupSchema._from_pygroupschema(self._schema.default)
+        return GroupSchema._from_py_group_schema(self._schema.ungrouped)
 
     @property
-    def strict(self) -> Optional[bool]:
-        """Indicates whether the Schema instance is strict.
+    def schema_type(self) -> SchemaType:
+        """Retrieves the schema type.
 
         Returns:
-            Optional[bool]: True if the schema is strict, False otherwise.
+            SchemaType: The schema type.
         """
-        return self._schema.strict
+        return SchemaType._from_py_schema_type(self._schema.schema_type)
+
+    def validate_node(
+        self, index: NodeIndex, attributes: Attributes, group: Optional[Group] = None
+    ) -> None:
+        """Validates the attributes of a node against the schema.
+
+        Args:
+            index (NodeIndex): The index of the node.
+            attributes (Attributes): The attributes of the node.
+            group (Optional[Group], optional): The group to validate the node against.
+                If not provided, the ungrouped schema is used. Defaults to None.
+        """
+        self._schema.validate_node(index, attributes, group)
+
+    def validate_edge(
+        self, index: EdgeIndex, attributes: Attributes, group: Optional[Group] = None
+    ) -> None:
+        """Validates the attributes of an edge against the schema.
+
+        Args:
+            index (EdgeIndex): The index of the edge.
+            attributes (Attributes): The attributes of the edge.
+            group (Optional[Group], optional): The group to validate the edge against.
+                If not provided, the ungrouped schema is used. Defaults to None.
+        """
+        self._schema.validate_edge(index, attributes, group)
+
+    @overload
+    def set_node_attribute(
+        self,
+        attribute: MedRecordAttribute,
+        data_type: DataType,
+        attribute_type: Optional[
+            Literal[AttributeType.Categorical, AttributeType.Unstructured]
+        ] = None,
+        group: Optional[Group] = None,
+    ) -> None: ...
+
+    @overload
+    def set_node_attribute(
+        self,
+        attribute: MedRecordAttribute,
+        data_type: ContinuousType,
+        attribute_type: Literal[AttributeType.Continuous],
+        group: Optional[Group] = None,
+    ) -> None: ...
+
+    @overload
+    def set_node_attribute(
+        self,
+        attribute: MedRecordAttribute,
+        data_type: TemporalType,
+        attribute_type: Literal[AttributeType.Temporal],
+        group: Optional[Group] = None,
+    ) -> None: ...
+
+    def set_node_attribute(
+        self,
+        attribute: MedRecordAttribute,
+        data_type: DataType,
+        attribute_type: Optional[AttributeType] = None,
+        group: Optional[Group] = None,
+    ) -> None:
+        """Sets the data type and attribute type of a node attribute.
+
+        If a data type for the attribute already exists, it is overwritten.
+
+        Args:
+            attribute (MedRecordAttribute): The name of the attribute.
+            data_type (DataType): The data type of the attribute.
+            attribute_type (Optional[AttributeType], optional): The attribute type of
+                the attribute. If not provided, the attribute type is inferred
+                from the data type. Defaults to None.
+            group (Optional[Group], optional): The group to set the attribute for.
+                If no schema for the group exists, a new schema is created.
+                If not provided, the ungrouped schema is used. Defaults to None.
+        """
+        if not attribute_type:
+            attribute_type = AttributeType.infer(data_type)
+
+        self._schema.set_node_attribute(
+            attribute,
+            data_type._inner(),
+            attribute_type._into_py_attribute_type(),
+            group,
+        )
+
+    @overload
+    def set_edge_attribute(
+        self,
+        attribute: MedRecordAttribute,
+        data_type: DataType,
+        attribute_type: Optional[
+            Literal[AttributeType.Categorical, AttributeType.Unstructured]
+        ] = None,
+        group: Optional[Group] = None,
+    ) -> None: ...
+
+    @overload
+    def set_edge_attribute(
+        self,
+        attribute: MedRecordAttribute,
+        data_type: ContinuousType,
+        attribute_type: Literal[AttributeType.Continuous],
+        group: Optional[Group] = None,
+    ) -> None: ...
+
+    @overload
+    def set_edge_attribute(
+        self,
+        attribute: MedRecordAttribute,
+        data_type: TemporalType,
+        attribute_type: Literal[AttributeType.Temporal],
+        group: Optional[Group] = None,
+    ) -> None: ...
+
+    def set_edge_attribute(
+        self,
+        attribute: MedRecordAttribute,
+        data_type: DataType,
+        attribute_type: Optional[AttributeType] = None,
+        group: Optional[Group] = None,
+    ) -> None:
+        """Sets the data type and attribute type of an edge attribute.
+
+        If a data type for the attribute already exists, it is overwritten.
+
+        Args:
+            attribute (MedRecordAttribute): The name of the attribute.
+            data_type (DataType): The data type of the attribute.
+            attribute_type (Optional[AttributeType], optional): The attribute type of
+                the attribute. If not provided, the attribute type is inferred
+                from the data type. Defaults to None.
+            group (Optional[Group], optional): The group to set the attribute for.
+                If no schema for this group exists, a new schema is created.
+                If not provided, the ungrouped schema is used. Defaults to None.
+        """
+        if not attribute_type:
+            attribute_type = AttributeType.infer(data_type)
+
+        self._schema.set_edge_attribute(
+            attribute,
+            data_type._inner(),
+            attribute_type._into_py_attribute_type(),
+            group,
+        )
+
+    @overload
+    def update_node_attribute(
+        self,
+        attribute: MedRecordAttribute,
+        data_type: DataType,
+        attribute_type: Optional[
+            Literal[AttributeType.Categorical, AttributeType.Unstructured]
+        ] = None,
+        group: Optional[Group] = None,
+    ) -> None: ...
+
+    @overload
+    def update_node_attribute(
+        self,
+        attribute: MedRecordAttribute,
+        data_type: ContinuousType,
+        attribute_type: Literal[AttributeType.Continuous],
+        group: Optional[Group] = None,
+    ) -> None: ...
+
+    @overload
+    def update_node_attribute(
+        self,
+        attribute: MedRecordAttribute,
+        data_type: TemporalType,
+        attribute_type: Literal[AttributeType.Temporal],
+        group: Optional[Group] = None,
+    ) -> None: ...
+
+    def update_node_attribute(
+        self,
+        attribute: MedRecordAttribute,
+        data_type: DataType,
+        attribute_type: Optional[AttributeType] = None,
+        group: Optional[Group] = None,
+    ) -> None:
+        """Updates the data type and attribute type of a node attribute.
+
+        If a data type for the attribute already exists, it is merged
+        with the new data type.
+
+        Args:
+            attribute (MedRecordAttribute): The name of the attribute.
+            data_type (DataType): The data type of the attribute.
+            attribute_type (Optional[AttributeType], optional): The attribute type of
+                the attribute. If not provided, the attribute type is inferred
+                from the data type. Defaults to None.
+            group (Optional[Group], optional): The group to update the attribute for.
+                If no schema for this group exists, a new schema is created.
+                If not provided, the ungrouped schema is used. Defaults to None.
+        """
+        if not attribute_type:
+            attribute_type = AttributeType.infer(data_type)
+
+        self._schema.update_node_attribute(
+            attribute,
+            data_type._inner(),
+            attribute_type._into_py_attribute_type(),
+            group,
+        )
+
+    @overload
+    def update_edge_attribute(
+        self,
+        attribute: MedRecordAttribute,
+        data_type: DataType,
+        attribute_type: Optional[
+            Literal[AttributeType.Categorical, AttributeType.Unstructured]
+        ] = None,
+        group: Optional[Group] = None,
+    ) -> None: ...
+
+    @overload
+    def update_edge_attribute(
+        self,
+        attribute: MedRecordAttribute,
+        data_type: ContinuousType,
+        attribute_type: Literal[AttributeType.Continuous],
+        group: Optional[Group] = None,
+    ) -> None: ...
+
+    @overload
+    def update_edge_attribute(
+        self,
+        attribute: MedRecordAttribute,
+        data_type: TemporalType,
+        attribute_type: Literal[AttributeType.Temporal],
+        group: Optional[Group] = None,
+    ) -> None: ...
+
+    def update_edge_attribute(
+        self,
+        attribute: MedRecordAttribute,
+        data_type: DataType,
+        attribute_type: Optional[AttributeType] = None,
+        group: Optional[Group] = None,
+    ) -> None:
+        """Updates the data type and attribute type of an edge attribute.
+
+        If a data type for the attribute already exists, it is merged
+        with the new data type.
+
+        Args:
+            attribute (MedRecordAttribute): The name of the attribute.
+            data_type (DataType): The data type of the attribute.
+            attribute_type (Optional[AttributeType], optional): The attribute type of
+                the attribute. If not provided, the attribute type is inferred
+                from the data type. Defaults to None.
+            group (Optional[Group], optional): The group to update the attribute for.
+                If no schema for this group exists, a new schema is created.
+                If not provided, the ungrouped schema is used. Defaults to None.
+        """
+        if not attribute_type:
+            attribute_type = AttributeType.infer(data_type)
+
+        self._schema.update_edge_attribute(
+            attribute,
+            data_type._inner(),
+            attribute_type._into_py_attribute_type(),
+            group,
+        )
+
+    def remove_node_attribute(
+        self, attribute: MedRecordAttribute, group: Optional[Group] = None
+    ) -> None:
+        """Removes a node attribute from the schema.
+
+        Args:
+            attribute (MedRecordAttribute): The name of the attribute to remove.
+            group (Optional[Group], optional): The group to remove the attribute from.
+                If not provided, the ungrouped schema is used. Defaults to None.
+        """
+        self._schema.remove_node_attribute(attribute, group)
+
+    def remove_edge_attribute(
+        self, attribute: MedRecordAttribute, group: Optional[Group] = None
+    ) -> None:
+        """Removes an edge attribute from the schema.
+
+        Args:
+            attribute (MedRecordAttribute): The name of the attribute to remove.
+            group (Optional[Group], optional): The group to remove the attribute from.
+                If not provided, the ungrouped schema is used. Defaults to None.
+        """
+        self._schema.remove_edge_attribute(attribute, group)
+
+    def add_group(self, group: Group, group_schema: GroupSchema) -> None:
+        """Adds a new group to the schema.
+
+        Args:
+            group (Group): The name of the group.
+            group_schema (GroupSchema): The schema for the group.
+        """
+        self._schema.add_group(group, group_schema._group_schema)
+
+    def remove_group(self, group: Group) -> None:
+        """Removes a group from the schema.
+
+        Args:
+            group (Group): The name of the group to remove.
+        """
+        self._schema.remove_group(group)
+
+    def freeze(self) -> None:
+        """Freezes the schema. No changes are automatically inferred."""
+        self._schema.freeze()
+
+    def unfreeze(self) -> None:
+        """Unfreezes the schema. Changes are automatically inferred."""
+        self._schema.unfreeze()

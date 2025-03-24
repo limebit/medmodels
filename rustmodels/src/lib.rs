@@ -13,7 +13,7 @@ use medrecord::{
         nodes::{PyEdgeDirection, PyNodeIndexOperand, PyNodeIndicesOperand, PyNodeOperand},
         values::{PyMultipleValuesOperand, PySingleValueOperand},
     },
-    schema::{PyAttributeDataType, PyAttributeType, PyGroupSchema, PySchema},
+    schema::{PyAttributeDataType, PyAttributeType, PyGroupSchema, PySchema, PySchemaType},
     PyMedRecord,
 };
 use pyo3::prelude::*;
@@ -36,6 +36,7 @@ fn _medmodels(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyAttributeDataType>()?;
     m.add_class::<PyAttributeType>()?;
     m.add_class::<PyGroupSchema>()?;
+    m.add_class::<PySchemaType>()?;
     m.add_class::<PySchema>()?;
 
     m.add_class::<PyEdgeDirection>()?;
