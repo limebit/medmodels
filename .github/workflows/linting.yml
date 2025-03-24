@@ -35,7 +35,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          uv sync --extra dev
+          uv sync --group dev
 
       - name: Lint with ruff
         run: uv run ruff check --output-format=github .

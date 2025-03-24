@@ -1,27 +1,32 @@
-# Sphinx documentation Makefile
+ifeq ($(OS),Windows_NT)
+	VENV_BIN := ../.venv/Scripts
+	rmrf = rmdir /s /q
+else
+	VENV_BIN := ../.venv/bin
+	rmrf = rm -rf
+endif
 
-# Command-line overridable variables
-VENV_PYTHON 	?= ../.venv/bin/python
-SPHINXOPTS    	?=
-SPHINXBUILD   	?= ../.venv/bin/sphinx-build
-SOURCEDIR    	= .
-BUILDDIR      	= _build
+VENV_PYTHON ?= $(VENV_BIN)/python
+SPHINXOPTS  ?=
+SPHINXBUILD ?= $(VENV_BIN)/sphinx-build
+SOURCEDIR    = .
+BUILDDIR     = _build
 
-
-# Default target: show help
+.PHONY: help clean serve
 help:
 	@$(SPHINXBUILD) -M help "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
 
-.PHONY: help Makefile clean serve
-
-# Clean build and autosummary directories
 clean:
-	@rm -rf "$(BUILDDIR)" "api/_autosummary"
+ifeq ($(OS),Windows_NT)
+	@if exist "$(BUILDDIR)" $(rmrf) "$(BUILDDIR)"
+	@if exist "api/_autosummary" $(rmrf) "api/_autosummary"
+else
+	@$(rmrf) "$(BUILDDIR)"
+	@$(rmrf) "api/_autosummary"
+endif
 
-# Serve docs using live reload server
 serve:
 	@$(VENV_PYTHON) serve_docs.py
 
-# Catch-all target for Sphinx build
-%: Makefile
+%:
 	@$(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)

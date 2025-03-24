@@ -34,7 +34,7 @@ dependencies = [
     "scipy>=1.6.1",
 ]
 
-[project.optional-dependencies]
+[dependency-groups]
 tests = ["pytest>=8.2.2", "coverage>=7.6.1"]
 docs = [
     "sphinx>=7",
@@ -176,4 +176,5 @@ cache-keys = [
     { file = "pyproject.toml" },
     { file = "rust/Cargo.toml" },
     { file = "**/*.rs" },
+    { file = "medmodels/*.{so,pyd}" },
 ]
