@@ -176,6 +176,6 @@ python_files = "test_*.py"
 cache-keys = [
     { file = "pyproject.toml" },
     { file = "rust/Cargo.toml" },
-    { file = "**/*.rs" },
-    { file = "medmodels/*.{so,pyd}" },
+    { file = "crates/**/*.rs" },
+    { file = "rustmodels/**/*.rs" },
 ]

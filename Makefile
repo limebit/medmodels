@@ -35,15 +35,19 @@ endif
 
 install: prepare-venv
 	$(UV_LOC) sync
+	$(UV_LOC) pip install -e .
 
 install-dev: prepare-venv
 	$(UV_LOC) sync --group dev
+	$(UV_LOC) pip install -e .
 
 install-tests: prepare-venv
 	$(UV_LOC) sync --group tests
+	$(UV_LOC) pip install -e .
 
 install-docs: prepare-venv
 	$(UV_LOC) sync --group docs
+	$(UV_LOC) pip install -e .
 
 build-dev: install-dev
 	$(UV_LOC) run maturin develop
