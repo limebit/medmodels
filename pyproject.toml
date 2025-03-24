@@ -34,7 +34,7 @@ dependencies = [
     "scipy>=1.6.1",
 ]
 
-[project.optional-dependencies]
+[dependency-groups]
 tests = ["pytest>=8.2.2", "coverage>=7.6.1"]
 docs = [
     "sphinx>=7",
@@ -59,11 +59,12 @@ docs = [
     "sphinx-multiversion==0.2.4",
 ]
 dev = [
-    "medmodels[docs, tests]",
+    { include-group = "docs" },
+    { include-group = "tests" },
     "maturin>=1.6.0",
     "ruff>=0.4.9",
     "py-spy",
-    "pyright>=1.1.370,<1.1.374",
+    "pyright>=1.1.397",
     "pandas-stubs>=2.2.2.240603",
     "scipy-stubs>=1.15.1.0",
 ]
@@ -170,3 +171,11 @@ enableTypeIgnoreComments = false
 
 [tool.pytest]
 python_files = "test_*.py"
+
+[tool.uv]
+cache-keys = [
+    { file = "pyproject.toml" },
+    { file = "rust/Cargo.toml" },
+    { file = "crates/**/*.rs" },
+    { file = "rustmodels/**/*.rs" },
+]
