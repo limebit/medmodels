@@ -526,13 +526,32 @@ dependencies = [
 
 [package.dev-dependencies]
 dev = [
+    { name = "autodocsumm" },
+    { name = "coverage" },
+    { name = "linkify-it-py" },
+    { name = "livereload" },
     { name = "maturin" },
-    { name = "medmodels" },
+    { name = "myst-parser" },
     { name = "pandas-stubs" },
     { name = "py-spy" },
+    { name = "pydata-sphinx-theme" },
     { name = "pyright" },
+    { name = "pytest" },
     { name = "ruff" },
     { name = "scipy-stubs" },
+    { name = "sphinx" },
+    { name = "sphinx-autodoc-typehints" },
+    { name = "sphinx-autosummary-accessors" },
+    { name = "sphinx-copybutton" },
+    { name = "sphinx-design" },
+    { name = "sphinx-favicon" },
+    { name = "sphinx-multiversion" },
+    { name = "sphinx-pyscript" },
+    { name = "sphinx-reredirects" },
+    { name = "sphinx-tippy" },
+    { name = "sphinx-togglebutton" },
+    { name = "sphinx-toolbox" },
+    { name = "sphinxext-opengraph" },
 ]
 docs = [
     { name = "autodocsumm" },
@@ -570,13 +589,33 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "autodocsumm", specifier = "==0.2.12" },
+    { name = "coverage", specifier = ">=7.6.1" },
+    { name = "linkify-it-py", specifier = ">=2.0.0" },
+    { name = "livereload", specifier = "==2.7.0" },
     { name = "maturin", specifier = ">=1.6.0" },
-    { name = "medmodels", extras = ["docs", "tests"] },
+    { name = "myst-parser", specifier = "==3.0.1" },
     { name = "pandas-stubs", specifier = ">=2.2.2.240603" },
     { name = "py-spy" },
-    { name = "pyright", specifier = ">=1.1.370,<1.1.374" },
+    { name = "pydata-sphinx-theme", specifier = "==0.15.4" },
+    { name = "pyright", specifier = ">=1.1.397" },
+    { name = "pytest", specifier = ">=8.2.2" },
     { name = "ruff", specifier = ">=0.4.9" },
     { name = "scipy-stubs", specifier = ">=1.15.1.0" },
+    { name = "sphinx", specifier = ">=7" },
+    { name = "sphinx-autodoc-typehints", specifier = "==2.2.3" },
+    { name = "sphinx-autosummary-accessors", specifier = "==2023.4.0" },
+    { name = "sphinx-copybutton" },
+    { name = "sphinx-copybutton", specifier = "==0.5.2" },
+    { name = "sphinx-design", specifier = "==0.6.0" },
+    { name = "sphinx-favicon", specifier = "==1.0.1" },
+    { name = "sphinx-multiversion", specifier = "==0.2.4" },
+    { name = "sphinx-pyscript", specifier = "==0.1.0" },
+    { name = "sphinx-reredirects", specifier = "==0.1.4" },
+    { name = "sphinx-tippy", specifier = ">=0.4.3" },
+    { name = "sphinx-togglebutton", specifier = "==0.3.2" },
+    { name = "sphinx-toolbox", specifier = "==3.6.0" },
+    { name = "sphinxext-opengraph", specifier = "~=0.9.0" },
 ]
 docs = [
     { name = "autodocsumm", specifier = "==0.2.12" },
@@ -969,14 +1008,15 @@ wheels = [
 
 [[package]]
 name = "pyright"
-version = "1.1.373"
+version = "1.1.397"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "nodeenv" },
+    { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/3b/3a/80b92c0a7e8e44de32d76607383a27ec61a157cc86b3ffc486f2d2180810/pyright-1.1.373.tar.gz", hash = "sha256:f41bcfc8b9d1802b09921a394d6ae1ce19694957b628bc657629688daf8a83ff", size = 17480 }
+sdist = { url = "https://files.pythonhosted.org/packages/92/23/cefa10c9cb198e0858ed0b9233371d62bca880337f628e58f50dfdfb12f0/pyright-1.1.397.tar.gz", hash = "sha256:07530fd65a449e4b0b28dceef14be0d8e0995a7a5b1bb2f3f897c3e548451ce3", size = 3818998 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/f4/20/2dde33b6171ac7d7d1a018ac49f899c5ad10ad1d66e7127cca0beab65813/pyright-1.1.373-py3-none-any.whl", hash = "sha256:b805413227f2c209f27b14b55da27fe5e9fb84129c9f1eb27708a5d12f6f000e", size = 18226 },
+    { url = "https://files.pythonhosted.org/packages/01/b5/98ec41e1e0ad5576ecd42c90ec363560f7b389a441722ea3c7207682dec7/pyright-1.1.397-py3-none-any.whl", hash = "sha256:2e93fba776e714a82b085d68f8345b01f91ba43e1ab9d513e79b70fc85906257", size = 5693631 },
 ]
 
 [[package]]
