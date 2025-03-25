@@ -352,9 +352,9 @@ class TreatmentEffect:
                         node,
                         treated_set,
                         self._outcomes_group,
-                        -outcome_before_treatment_days,
-                        0,
-                        "first",
+                        start_days=-outcome_before_treatment_days,
+                        end_days=0,
+                        reference="first",
                     )
                 )
             )
@@ -374,9 +374,9 @@ class TreatmentEffect:
                         node,
                         treated_set,
                         self._outcomes_group,
-                        self._grace_period_days,
-                        self._follow_up_period_days,
-                        self._follow_up_period_reference,
+                        start_days=self._grace_period_days,
+                        end_days=self._follow_up_period_days,
+                        reference=self._follow_up_period_reference,
                     )
                 )
             )
@@ -421,9 +421,9 @@ class TreatmentEffect:
                         node,
                         treated,
                         group_id,
-                        -days,
-                        0,
-                        self._washout_period_reference,
+                        start_days=-days,
+                        end_days=0,
+                        reference=self._washout_period_reference,
                     )
                 )
             )
@@ -553,14 +553,11 @@ class TreatmentEffect:
                 event.
             reference (Literal["first", "last"]): The reference point for the time
                 window.
-
-        Raises:
-            ValueError: If the time attribute is not set.
         """
         node.index().is_in(list(treated_set))
-        if self._time_attribute is None:
-            msg = "Time attribute is not set."
-            raise ValueError(msg)
+        if self._time_attribute is None:  # pragma: no cover
+            msg = "Should never be reached"
+            raise NotImplementedError(msg)
 
         edges_to_treatment = node.edges()
         edges_to_treatment.attribute(self._time_attribute).is_datetime()
@@ -584,16 +581,19 @@ class TreatmentEffect:
         time_of_outcome = edges_to_outcome.attribute(self._time_attribute)
 
         min_time_window = time_of_treatment.clone()
+
         if start_days < 0:
             min_time_window.subtract(timedelta(-start_days))
         else:
             min_time_window.add(timedelta(start_days))
 
         max_time_window = time_of_treatment.clone()
-        if end_days < 0:
-            max_time_window.subtract(timedelta(-end_days))
-        else:
-            max_time_window.add(timedelta(end_days))
+
+        if end_days < 0:  # pragma: no cover
+            msg = "Should never be reached"
+            raise NotImplementedError(msg)
+
+        max_time_window.add(timedelta(end_days))
 
         time_of_outcome.greater_than_or_equal_to(min_time_window)
         time_of_outcome.less_than_or_equal_to(max_time_window)

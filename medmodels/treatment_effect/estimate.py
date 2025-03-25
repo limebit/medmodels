@@ -96,6 +96,10 @@ class ContingencyTable:
         )
         return f"{line}\n{upper_header_line}\n{lower_header_line}\n{line}\n{treated}\n{control}\n{line}"
 
+    def __repr__(self) -> str:
+        """Returns a string representation of the ContingencyTable object."""
+        return self.__str__()
+
     def __getitem__(
         self,
         key: Literal[
@@ -493,7 +497,7 @@ class Estimate:
         """
         absolute_risk_reduction = self.absolute_risk_reduction(medrecord)
         if absolute_risk_reduction == 0:
-            msg = "Absolute Risk Reduction is zero, cannot calculate NNT."
+            msg = "Absolute Risk Reduction is zero, cannot calculate NNT"
             raise ValueError(msg)
 
         return 1 / absolute_risk_reduction
@@ -508,15 +512,6 @@ class Estimate:
 
         Returns:
             float: The calculated hazard ratio between the treatment and control groups.
-
-        Raises:
-            ValueError: Raises Error if the required groups are not present in the
-                MedRecord (patients, treatments, outcomes).
-            ValueError: If there are no subjects in the group of treated with no
-                outcome, in the one of controls with outcome or in the one of controls
-                with no outcome, an error is raised. This would result in division by
-                zero errors.
-            ValueError: If the control hazard rate is zero, cannot calculate HR.
         """
         (
             number_treated_outcome_true,
@@ -532,9 +527,9 @@ class Estimate:
             number_control_outcome_true + number_control_outcome_false
         )
 
-        if hazard_control == 0:
-            msg = "Control hazard rate is zero, cannot calculate hazard ratio."
-            raise ValueError(msg)
+        if hazard_control == 0:  # pragma: no cover
+            msg = "Should not be reached"
+            raise NotImplementedError(msg)
 
         return hazard_treat / hazard_control
 
