@@ -13,4 +13,5 @@ target
 .python-version
 docs/api/_autosummary/*
 .coverage
+coverage.xml
 supply-chain
