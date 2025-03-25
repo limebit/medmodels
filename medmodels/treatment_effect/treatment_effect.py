@@ -589,10 +589,7 @@ class TreatmentEffect:
 
         max_time_window = time_of_treatment.clone()
 
-        if end_days < 0:  # pragma: no cover
-            msg = "Should never be reached"
-            raise NotImplementedError(msg)
-
+        # end_days should always be positive
         max_time_window.add(timedelta(end_days))
 
         time_of_outcome.greater_than_or_equal_to(min_time_window)

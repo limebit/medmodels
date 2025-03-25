@@ -527,10 +527,7 @@ class Estimate:
             number_control_outcome_true + number_control_outcome_false
         )
 
-        if hazard_control == 0:  # pragma: no cover
-            msg = "Should not be reached"
-            raise NotImplementedError(msg)
-
+        # hazard_control cannot be 0
         return hazard_treat / hazard_control
 
     def average_treatment_effect(
