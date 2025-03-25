@@ -16,7 +16,7 @@ VENV_PYTHON := $(VENV_BIN)/python
 VENV_UV := $(VENV_BIN)/uv
 UV_LOC := $(shell $(USER_PYTHON) -c "import shutil; print(shutil.which('uv') if shutil.which('uv') else '$(VENV_UV)')")
 
-.PHONY: prepare-venv install install-dev install-tests test lint format clean docs docs-serve docs-clean
+.PHONY: prepare-venv install install-dev install-tests test test-python-coverage lint format clean docs docs-serve docs-clean
 
 .DEFAULT_GOAL := install-dev
 
@@ -55,6 +55,10 @@ build-dev: install-dev
 test: install-tests
 	$(UV_LOC) run pytest -vv -W error
 	cargo test
+
+test-python-coverage: install-tests
+	$(UV_LOC) run coverage run -m pytest -vv -W error
+	$(UV_LOC) run coverage report -m
 
 docs: install-docs
 	$(MAKE) -C docs html
