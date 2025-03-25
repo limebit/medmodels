@@ -1,0 +1,49 @@
+name: Check Python Coverage
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  lint:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust artifacts
+        uses: Swatinem/rust-cache@v2
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: pyproject.toml
+          python-version: "3.10"
+
+      - name: Install dependencies
+        run: |
+          uv sync --group tests
+
+      - name: Create coverage report
+        run: |
+          uv run coverage run -m pytest
+          uv run coverage xml
+
+      - name: Create coverage comment
+        if: github.event.pull_request.base.ref == 'main'
+        uses: orgoro/coverage@v3.2
+        with:
+          coverageFile: coverage.xml
+          token: ${{ secrets.GITHUB_TOKEN }}
+          thresholdAll: 1
+          thresholdNew: 1
+          thresholdModified: 1
+
+      - name: Check coverage
+        run: |
+          uv run coverage report -m --fail-under=100
