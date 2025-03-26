@@ -21,8 +21,8 @@ from typing import (
 
 import polars as pl
 
-from medmodels.medrecord._overview import extract_attribute_summary
 from medmodels.medrecord.medrecord import MedRecord
+from medmodels.medrecord.schema import AttributeType
 
 if TYPE_CHECKING:
     from medmodels.medrecord.medrecord import MedRecord
@@ -77,6 +77,7 @@ class Matching(ABC):
         Raises:
             AssertionError: If the one-hot covariates are not in the essential
                 covariates.
+            ValueError: If all covariates are not numeric.
         """
         if essential_covariates is None:
             # If no essential covariates provided, use all attributes of patients group
@@ -106,13 +107,18 @@ class Matching(ABC):
 
         # If no one-hot covariates provided, use all categorical attributes of patients
         if one_hot_covariates is None:
-            attributes = extract_attribute_summary(
-                medrecord.node[medrecord.nodes_in_group(patients_group)]
+            patients_schema = medrecord.get_schema().group(patients_group).nodes
+
+            def in_group_query(node: NodeOperand) -> None:
+                return node.in_group(patients_group)
+
+            attributes = medrecord._extract_attribute_summary(
+                schema=patients_schema, type="nodes", group_query=in_group_query
             )
             one_hot_covariates = [
                 covariate
                 for covariate, values in attributes.items()
-                if "Categorical" in values["type"]
+                if AttributeType.Categorical.value in values["type"]
             ]
 
             one_hot_covariates = [
@@ -143,6 +149,11 @@ class Matching(ABC):
         essential_covariates.extend(new_columns)
         [essential_covariates.remove(col) for col in one_hot_covariates]
         data = data.select(essential_covariates)
+
+        # assert all columns but "id" are numeric
+        if not all(data[col].dtype.is_numeric() for col in data.columns if col != "id"):
+            msg = "All covariates must be numeric"
+            raise ValueError(msg)
 
         # Select the sets of treated and control subjects
         data_treated = data.filter(pl.col("id").is_in(treated_set))
