@@ -1,3 +1,4 @@
+import re
 import tempfile
 import unittest
 from typing import List, Tuple
@@ -17,6 +18,10 @@ from medmodels.medrecord.querying import (
 )
 from medmodels.medrecord.schema import AttributeType, GroupSchema, Schema, SchemaType
 from medmodels.medrecord.types import Attributes, NodeIndex
+
+
+def strip_ansi(text: str) -> str:
+    return re.sub(r"\x1b\[[0-9;]*m", "", text)
 
 
 def create_nodes() -> List[Tuple[NodeIndex, Attributes]]:
@@ -1922,6 +1927,34 @@ class TestMedRecord(unittest.TestCase):
     def test_describe_group_nodes(self) -> None:
         medrecord = create_medrecord()
 
+        assert medrecord._describe_group_nodes() == {
+            "Ungrouped Nodes": {
+                "count": 4,
+                "attribute": {
+                    "adipiscing": {
+                        "type": "Unstructured",
+                        "datatype": "Option(String)",
+                        "values": "-",
+                    },
+                    "dolor": {
+                        "type": "Unstructured",
+                        "datatype": "Option(String)",
+                        "values": "-",
+                    },
+                    "lorem": {
+                        "type": "Unstructured",
+                        "datatype": "Option(String)",
+                        "values": "-",
+                    },
+                    "amet": {
+                        "type": "Unstructured",
+                        "datatype": "Option(String)",
+                        "values": "-",
+                    },
+                },
+            },
+        }
+
         medrecord.add_group("Float")
         medrecord.add_group(1, nodes=["2", "0"])
 
@@ -1929,15 +1962,48 @@ class TestMedRecord(unittest.TestCase):
             1: {
                 "count": 2,
                 "attribute": {
-                    "adipiscing": {"type": "Categorical", "values": "Categories: elit"},
-                    "dolor": {"type": "Categorical", "values": "Categories: sit"},
-                    "lorem": {"type": "Categorical", "values": "Categories: ipsum"},
+                    "adipiscing": {
+                        "type": "Unstructured",
+                        "datatype": "Option(String)",
+                        "values": "-",
+                    },
+                    "dolor": {
+                        "type": "Unstructured",
+                        "datatype": "Option(String)",
+                        "values": "-",
+                    },
+                    "lorem": {
+                        "type": "Unstructured",
+                        "datatype": "Option(String)",
+                        "values": "-",
+                    },
                 },
             },
             "Float": {"count": 0, "attribute": {}},
             "Ungrouped Nodes": {
                 "count": 2,
-                "attribute": {},
+                "attribute": {
+                    "adipiscing": {
+                        "type": "Unstructured",
+                        "datatype": "Option(String)",
+                        "values": "-",
+                    },
+                    "dolor": {
+                        "type": "Unstructured",
+                        "datatype": "Option(String)",
+                        "values": "-",
+                    },
+                    "lorem": {
+                        "type": "Unstructured",
+                        "datatype": "Option(String)",
+                        "values": "-",
+                    },
+                    "amet": {
+                        "type": "Unstructured",
+                        "datatype": "Option(String)",
+                        "values": "-",
+                    },
+                },
             },
         }
 
@@ -1949,7 +2015,11 @@ class TestMedRecord(unittest.TestCase):
             "Odd": {
                 "count": 2,
                 "attribute": {
-                    "amet": {"type": "Categorical", "values": "Categories: consectetur"}
+                    "amet": {
+                        "type": "Unstructured",
+                        "datatype": "Option(String)",
+                        "values": "-",
+                    },
                 },
             },
         }
@@ -1963,12 +2033,43 @@ class TestMedRecord(unittest.TestCase):
             "Even": {
                 "count": 2,
                 "attribute": {
-                    "eiusmod": {"type": "Categorical", "values": "Categories: tempor"},
-                    "incididunt": {"type": "Categorical", "values": "Categories: ut"},
-                    "sed": {"type": "Categorical", "values": "Categories: do"},
+                    "eiusmod": {
+                        "type": "Unstructured",
+                        "datatype": "Option(String)",
+                        "values": "-",
+                    },
+                    "incididunt": {
+                        "type": "Unstructured",
+                        "datatype": "Option(String)",
+                        "values": "-",
+                    },
+                    "sed": {
+                        "type": "Unstructured",
+                        "datatype": "Option(String)",
+                        "values": "-",
+                    },
                 },
             },
-            "Ungrouped Edges": {"count": 2, "attribute": {}},
+            "Ungrouped Edges": {
+                "count": 2,
+                "attribute": {
+                    "eiusmod": {
+                        "type": "Unstructured",
+                        "datatype": "Option(String)",
+                        "values": "-",
+                    },
+                    "incididunt": {
+                        "type": "Unstructured",
+                        "datatype": "Option(String)",
+                        "values": "-",
+                    },
+                    "sed": {
+                        "type": "Unstructured",
+                        "datatype": "Option(String)",
+                        "values": "-",
+                    },
+                },
+            },
         }
 
         # test the specified group list
@@ -1976,29 +2077,63 @@ class TestMedRecord(unittest.TestCase):
             "Even": {
                 "count": 2,
                 "attribute": {
-                    "eiusmod": {"type": "Categorical", "values": "Categories: tempor"},
-                    "incididunt": {"type": "Categorical", "values": "Categories: ut"},
-                    "sed": {"type": "Categorical", "values": "Categories: do"},
+                    "eiusmod": {
+                        "type": "Unstructured",
+                        "datatype": "Option(String)",
+                        "values": "-",
+                    },
+                    "incididunt": {
+                        "type": "Unstructured",
+                        "datatype": "Option(String)",
+                        "values": "-",
+                    },
+                    "sed": {
+                        "type": "Unstructured",
+                        "datatype": "Option(String)",
+                        "values": "-",
+                    },
                 },
             },
         }
 
+    def test_overview_nodes(self) -> None:
+        medrecord = MedRecord.from_simple_example_dataset()
+
+        output = strip_ansi(str(medrecord.overview_nodes("patient")))
+
+        expected = "\n".join(
+            [
+                "┏━━━━━━━━━━━━━┳━━━━━━━┳━━━━━━━━━━━┳━━━━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━┓",
+                "┃ Nodes Group ┃ count ┃ attribute ┃ type        ┃ datatype ┃ data             ┃",
+                "┡━━━━━━━━━━━━━╇━━━━━━━╇━━━━━━━━━━━╇━━━━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━┩",
+                "│ patient     │ 5     │ age       │ Continuous  │ Int      │ min: 19          │",
+                "│             │       │           │             │          │ max: 96          │",
+                "│             │       │ gender    │ Categorical │ String   │ Categories: F, M │",
+                "└─────────────┴───────┴───────────┴─────────────┴──────────┴──────────────────┘",
+            ]
+        )
+
+        assert output.strip() == expected.strip()
+
     def test_overview_edges(self) -> None:
         medrecord = MedRecord.from_simple_example_dataset()
 
-        assert "\n".join(
+        output = strip_ansi(str(medrecord.overview_edges("patient_diagnosis")))
+
+        expected = "\n".join(
             [
-                "--------------------------------------------------------------------------",
-                "Edges Group       Count Attribute     Type       Data                     ",
-                "--------------------------------------------------------------------------",
-                "patient_diagnosis 60    duration_days Continuous min: 0.00                ",
-                "                                                 max: 3416.00             ",
-                "                                                 mean: 405.02             ",
-                "                        time          Temporal   min: 1962-10-21 00:00:00 ",
-                "                                                 max: 2024-04-12 00:00:00 ",
-                "--------------------------------------------------------------------------",
+                "┏━━━━━━━━━━━━━━━━━━━┳━━━━━━━┳━━━━━━━━━━━━━━━┳━━━━━━━━━━━━┳━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━┓",
+                "┃ Edges Group       ┃ count ┃ attribute     ┃ type       ┃ datatype      ┃ data                     ┃",
+                "┡━━━━━━━━━━━━━━━━━━━╇━━━━━━━╇━━━━━━━━━━━━━━━╇━━━━━━━━━━━━╇━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━┩",
+                "│ patient_diagnosis │ 60    │ duration_days │ Continuous │ Option(Float) │ min: 0.0                 │",
+                "│                   │       │               │            │               │ max: 3416.0              │",
+                "│                   │       │ time          │ Temporal   │ DateTime      │ min: 1962-10-21 00:00:00 │",
+                "│                   │       │               │            │               │ max: 2024-04-12 00:00:00 │",
+                "└───────────────────┴───────┴───────────────┴────────────┴───────────────┴──────────────────────────┘",
             ]
-        ) == str(medrecord.overview_edges("patient_diagnosis"))
+        )
+
+        assert output.strip() == expected.strip()
 
 
 if __name__ == "__main__":

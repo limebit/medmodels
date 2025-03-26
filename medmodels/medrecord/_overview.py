@@ -2,262 +2,305 @@
 
 from __future__ import annotations
 
-import copy
-from datetime import datetime
-from typing import TYPE_CHECKING, Dict, List, Literal, Optional, Union
+import re
+from enum import Enum, auto
+from io import StringIO
+from typing import TYPE_CHECKING, Dict, List, Literal, Set, Union
 
-from medmodels.medrecord.schema import AttributesSchema, AttributeType
+from rich.console import Console
+from rich.table import Table
+from rich.text import Text
+
 from medmodels.medrecord.types import (
+    AnyAttributeInfo,
     Attributes,
     EdgeIndex,
+    MedRecordAttribute,
+    MedRecordValue,
     NodeIndex,
 )
 
 if TYPE_CHECKING:
     from typing import TypeAlias
 
-    from medmodels.medrecord.types import (
-        AttributeInfo,
-        Group,
-        MedRecordAttribute,
-        NumericAttributeInfo,
-        StringAttributeInfo,
-        TemporalAttributeInfo,
+    from medmodels.medrecord import MedRecord
+    from medmodels.medrecord.querying import (
+        EdgeOperand,
+        EdgeQuery,
+        NodeOperand,
+        NodeQuery,
     )
+    from medmodels.medrecord.types import AttributeInfo, Group, MedRecordAttribute
+
 
 AttributeDictionary: TypeAlias = Union[
     Dict[EdgeIndex, Attributes], Dict[NodeIndex, Attributes]
 ]
 
 
-def extract_attribute_summary(
-    attribute_dictionary: AttributeDictionary,
-    schema: Optional[AttributesSchema] = None,
-) -> Dict[
-    MedRecordAttribute,
-    Union[TemporalAttributeInfo, NumericAttributeInfo, StringAttributeInfo],
-]:
-    """Extracts a summary from a node or edge attribute dictionary.
+class Metric(Enum):
+    """Enumeration of possible metrics."""
+
+    min = "is_min"
+    max = "is_max"
+
+
+class TypeTable(Enum):
+    """Enumeration of possible types for the table."""
+
+    MedRecord = auto()
+    Schema = auto()
+
+
+def style_datatype(raw: str) -> Text:
+    """Style the datatype string.
+
+    In case the datatype is "Option", we show it in yellow.
+    Otherwise, we return the raw datatype string.
 
     Args:
-        attribute_dictionary (AttributeDictionary): Edges or Nodes and their attributes
-            and values.
-        schema (Optional[AttributesSchema], optional): Attribute Schema for the group
-            nodes or edges. Defaults to None.
-        decimal (int): Decimal points to round the numeric values to. Defaults to 2.
+        raw (str): The raw datatype string.
 
     Returns:
-        Dict[MedRecordAttribute, Union[TemporalAttributeInfo, NumericAttributeInfo,
-            StringAttributeInfo]: Summary of node or edge attributes.
+        Text: The styled datatype string.
     """
-    data = {}
-
-    for dictionary in attribute_dictionary.values():
-        for key, value in dictionary.items():
-            data.setdefault(key, []).append(value)
-
-    data_dict = {}
-
-    for attribute in sorted(data):
-        attribute_values = [value for value in data[attribute] if value is not None]
-
-        if len(attribute_values) == 0:
-            attribute_info = {"type": "-", "values": "-"}
-
-        # check if the attribute has as an attribute type defined in the schema
-        elif schema and attribute in schema and schema[attribute][1]:
-            if schema[attribute][1] == AttributeType.Continuous:
-                attribute_info = _extract_numeric_attribute_info(attribute_values)
-            elif schema[attribute][1] == AttributeType.Temporal:
-                attribute_info = _extract_temporal_attribute_info(attribute_values)
-            else:
-                attribute_info = _extract_string_attribute_info(
-                    attribute_values=attribute_values,
-                    long_string_suffix="categories",
-                    short_string_prefix="Categories",
-                )
-
-        # Without Schema
-        else:
-            if all(isinstance(value, (int, float)) for value in attribute_values):
-                attribute_info = _extract_numeric_attribute_info(attribute_values)
-            elif all(isinstance(value, datetime) for value in attribute_values):
-                attribute_info = _extract_temporal_attribute_info(attribute_values)
-            else:
-                attribute_info = _extract_string_attribute_info(
-                    attribute_values=[str(value) for value in attribute_values]
-                )
-
-        data_dict[attribute] = attribute_info
-
-    return data_dict
+    match = re.match(r"(Option\()(.+)(\))", raw)
+    if match:
+        styled = Text()
+        styled.append(match.group(1), style="yellow")
+        styled.append(match.group(2))
+        styled.append(match.group(3), style="yellow")
+        return styled
+    return Text(raw)
 
 
-def _extract_numeric_attribute_info(
-    attribute_values: List[Union[int, float]],
-) -> NumericAttributeInfo:
-    """Extracts info about attributes with numeric format.
-
-    Args:
-        attribute_values (List[Union[int, float]]): List containing attribute values.
-
-    Returns:
-        NumericAttributeInfo: Dictionary containg attribute metrics.
-    """
-    min_value = min(attribute_values)
-    max_value = max(attribute_values)
-    mean_value = sum(attribute_values) / len(attribute_values)
-
-    # assertion to ensure correct typing
-    # never fails, because the series never contains None values and is always numeric
-    assert isinstance(min_value, (int, float))
-    assert isinstance(max_value, (int, float))
-    assert isinstance(mean_value, (int, float))
-
-    return {
-        "type": "Continuous",
-        "min": min_value,
-        "max": max_value,
-        "mean": mean_value,
-    }
-
-
-def _extract_temporal_attribute_info(
-    attribute_values: List[datetime],
-) -> TemporalAttributeInfo:
-    """Extracts info about attributes with temporal format.
-
-    Args:
-        attribute_values (List[datetime]): List containing temporal attribute values.
-
-    Returns:
-        TemporalAttributeInfo: Dictionary containg attribute metrics.
-    """
-    return {
-        "type": "Temporal",
-        "min": min(attribute_values),
-        "max": max(attribute_values),
-    }
-
-
-def _extract_string_attribute_info(
-    attribute_values: List[str],
-    short_string_prefix: Literal["Values", "Categories"] = "Values",
-    long_string_suffix: str = "unique values",
-    max_number_values: int = 5,
-    max_line_length: int = 100,
-) -> StringAttributeInfo:
-    """Extracts info about attributes with string format.
-
-    Args:
-        attribute_values (List[str]): List containing attribute values.
-        short_string_prefix (Literal["Values", "Categories"], optional): Prefix for
-            information string in case of listing all the values. Defaults to "Values".
-        long_string_suffix (str, optional): Suffix for attribute information in case of
-            too many values to list. Here only the count will be displayed. Defaults to
-            "unique values".
-        max_number_values (int, optional): Maximum values that should be listed in the
-            information string. Defaults to 5.
-        max_line_length (int, optional): Maximum line length for the information string.
-            Defaults to 100.
-
-    Returns:
-        StringAttributeInfo: Dictionary containg attribute metrics.
-    """
-    values = sorted(set(attribute_values))
-
-    values_string = f"{short_string_prefix}: {', '.join(list(values))}"
-
-    if (len(values) > max_number_values) | (len(values_string) > max_line_length):
-        values_string = f"{len(values)} {long_string_suffix}"
-
-    return {
-        "type": "Categorical",
-        "values": values_string,
-    }
-
-
-def prettify_table(
-    data: Dict[Group, AttributeInfo], header: List[str], decimal: int
-) -> List[str]:
+def prettify_table(  # noqa: C901
+    data: Dict[Group, AttributeInfo],
+    headers: List[str],
+    decimal: int,
+    type_table: TypeTable,
+) -> Table:
     """Takes a DataFrame and turns it into a list for displaying a pretty table.
 
     Args:
         data (Dict[Group, AttributeInfo]): Table information
             stored in a dictionary.
-        header (List[str]): Header line consisting of column names for the table.
+        headers (List[str]): Header line consisting of column names for the table.
         decimal (int): Decimal point to round the float values to.
+        type_table (TypeTable): Type of the table to be displayed.
+            It can be either MedRecord or Schema.
 
     Returns:
-        List[str]: List of lines for printing the table.
+        Table: The formatted table.
     """
-    lengths = [len(title) for title in header]
 
-    rows = []
+    def format_detail(label: str, value: str) -> str:
+        """Format the detail for the table.
 
-    info_order = ["type", "min", "max", "mean", "values"]
+        In case the label is "values", return the value as is.
+        If the value is a float (or float-like), round it.
+        Otherwise, return the label and value as a string.
 
-    for group in data:
-        # determine longest group name and count
-        lengths[0] = max(len(str(group)), lengths[0])
+        Args:
+            label (str): The label of the detail.
+            value (str|float|int): The value of the detail.
 
-        lengths[1] = max(len(str(data[group]["count"])), lengths[1])
+        Returns:
+            str: The formatted detail.
+        """
+        if isinstance(value, float):
+            rounded_val = round(value, decimal)
+            value_str = str(rounded_val)
+        else:
+            value_str = str(value)
 
-        row = [str(group), str(data[group]["count"]), "-", "-", "-"]
+        return value_str if label == "values" else f"{label}: {value_str}"
 
-        # in case of no attribute info, just keep Group name and count
-        if not data[group]["attribute"]:
-            rows.append(row)
-            continue
+    def get_detailed_rows(attribute_info: AnyAttributeInfo) -> List[str]:
+        """Returns formatted value rows for MedRecord table.
 
-        for attribute, info in data[group]["attribute"].items():
-            lengths[2] = max(len(str(attribute)), lengths[2])
+        Args:
+            attribute_info (AnyAttributeInfo]): The attribute information.
 
-            # display attribute name only once
-            first_line = True
-
-            for key in sorted(info.keys(), key=lambda x: info_order.index(x)):
-                if key == "type":
-                    continue
-
-                if not first_line:
-                    row[0], row[1] = "", ""
-
-                row[2] = str(attribute) if first_line else ""
-
-                row[3] = info["type"] if first_line else ""
-
-                # displaying information based on the type
-                if "values" in info:
-                    row[4] = info[key]
-                else:
-                    if isinstance(info[key], float):
-                        row[4] = f"{key}: {info[key]:.{decimal}f}"
-                    elif isinstance(info[key], datetime):
-                        row[4] = f"{key}: {info[key].strftime('%Y-%m-%d %H:%M:%S')}"
-                    else:
-                        row[4] = f"{key}: {info[key]}"
-
-                lengths[3] = max(len(row[3]), lengths[3])
-                lengths[4] = max(len(row[4]), lengths[4])
-
-                rows.append(copy.deepcopy(row))
-
-                first_line = False
-
-    table = [
-        "-" * (sum(lengths) + len(lengths)),
-        "".join([f"{head.title():<{lengths[i]}} " for i, head in enumerate(header)]),
-        "-" * (sum(lengths) + len(lengths)),
-    ]
-
-    table.extend(
-        [
-            "".join(f"{row[x]: <{lengths[x]}} " for x in range(len(lengths)))
-            for row in rows
+        Returns:
+            List[str]: The formatted rows.
+        """
+        rows = []
+        detailed_values = [
+            (label, attribute_info[label])
+            for label in info_order
+            if label in attribute_info
         ]
-    )
 
-    table.append("-" * (sum(lengths) + len(lengths)))
+        if not detailed_values:
+            rows.append("-")
+        else:
+            rows.append(format_detail(*detailed_values[0]))
+            for label, value in detailed_values[1:]:
+                rows.append(format_detail(label, value))
+        return rows
+
+    table = Table(show_lines=False)
+    for header in headers:
+        table.add_column(header, no_wrap=(header.strip().lower() == "data"))
+
+    if not data:
+        table.add_row("No data")
+        return table
+
+    info_order = ["min", "max", "values"]
+    type_colors = {
+        "Continuous": "cyan",
+        "Temporal": "magenta",
+        "Categorical": "green",
+        "Unstructured": "red",
+    }
+
+    for group_idx, (group, attributes) in enumerate(sorted(data.items())):
+        group = str(group)
+        count = str(attributes.get("count", ""))
+        attribute_dictionary = attributes.get("attribute", {})
+
+        for i, (attribute_name, attribute_info) in enumerate(
+            sorted(attribute_dictionary.items())
+        ):
+            attribute_name = str(attribute_name)
+            attribute_type = attribute_info.get("type", "")
+            attribute_type = Text(
+                attribute_type, style=type_colors.get(attribute_type, "white")
+            )
+            group = group if i == 0 else ""
+            count = count if i == 0 else ""
+
+            datatype = style_datatype(attribute_info.get("datatype", ""))
+
+            if type_table == TypeTable.MedRecord:
+                rows = get_detailed_rows(attribute_info)
+                table.add_row(
+                    group, count, attribute_name, attribute_type, datatype, rows[0]
+                )
+                for row in rows[1:]:
+                    table.add_row("", "", "", "", "", row)
+            else:
+                table.add_row(group, attribute_name, attribute_type, datatype)
+
+        if group_idx < len(data) - 1:
+            table.add_row(*([""] * len(headers)))
 
     return table
+
+
+def join_tables_with_titles(
+    title1: str, table1: Table, title2: str, table2: Table
+) -> str:
+    """Render two rich tables into a single string with section titles.
+
+    Args:
+        title1 (str): Title for the first table.
+        table1 (Table): First rich Table.
+        title2 (str): Title for the second table.
+        table2 (Table): Second rich Table.
+
+    Returns:
+        str: The combined string representation of the two tables.
+    """
+
+    def table_width(table: Table) -> int:
+        """Calculate the width of a table.
+
+        Args:
+            table (Table): The rich Table.
+
+        Returns:
+            int: The width of the table.
+        """
+        padding = 12
+        return (
+            sum(len(col.header) for col in table.columns) + len(table.columns) * padding  # pyright: ignore[reportArgumentType]
+        )
+
+    # Calculate needed width for both tables
+    width1 = table_width(table1)
+    width2 = table_width(table2)
+    width = max(width1, width2, 80)
+
+    buffer = StringIO()
+    console = Console(file=buffer, force_terminal=True, width=width)
+
+    console.rule(f"[bold green]{title1}")
+    console.print(table1)
+    console.rule(f"[bold green]{title2}")
+    console.print(table2)
+
+    return buffer.getvalue()
+
+
+def get_values_from_attribute(
+    medrecord: MedRecord,
+    query: Union[NodeQuery, EdgeQuery],
+    attribute: MedRecordAttribute,
+    type: Literal["nodes", "edges"],
+) -> Set[MedRecordValue]:
+    """Returns all values of a specific attribute from nodes or edges.
+
+    Args:
+        medrecord (MedRecord): The MedRecord object.
+        query (Union[NodeQuery, EdgeQuery]): The query to get the
+            nodes or edges from.
+        attribute (MedRecordAttribute): The attribute to search for.
+        type (Literal["nodes", "edges"]): The type of the attribute.
+
+    Returns:
+        Set[MedRecordValue]: The values of the attribute in the group.
+    """
+
+    def query_node(node: NodeOperand) -> None:
+        query(node)  # pyright: ignore[reportArgumentType]
+        node.has_attribute(attribute)
+
+    def query_edge(edge: EdgeOperand) -> None:
+        query(edge)  # pyright: ignore[reportArgumentType]
+        edge.has_attribute(attribute)
+
+    return (
+        set(medrecord.node[query_node, attribute].values())
+        if type == "nodes"
+        else set(medrecord.edge[query_edge, attribute].values())
+    )
+
+
+def get_attribute_metric(
+    medrecord: MedRecord,
+    group_query: Union[NodeQuery, EdgeQuery],
+    attribute: MedRecordAttribute,
+    metric: Metric,
+    type: Literal["nodes", "edges"],
+) -> MedRecordValue:
+    """Get the attribute metrics for a group.
+
+    Args:
+        medrecord (MedRecord): The MedRecord object.
+        group_query (Union[NodeQuery, EdgeQuery]): The query to search for the group.
+        attribute (MedRecordAttribute): The attribute to search for.
+        metric (Metric): The metric to get.
+        type (Literal["nodes", "edges"]): The type of the attribute.
+
+    Returns:
+        AttributeInfo: The attribute metrics.
+    """
+
+    def query_node(node: NodeOperand) -> None:
+        group_query(node)  # pyright: ignore[reportArgumentType]
+        node.exclude(lambda node: node.attribute(attribute).is_null())
+        getattr(node.attribute(attribute), metric.value)()
+
+    def query_edge(edge: EdgeOperand) -> None:
+        group_query(edge)  # pyright: ignore[reportArgumentType]
+        edge.exclude(lambda edge: edge.attribute(attribute).is_null())
+        getattr(edge.attribute(attribute), metric.value)()
+
+    return (
+        next(iter(medrecord.node[query_node, attribute].values()))
+        if type == "nodes"
+        else next(iter(medrecord.edge[query_edge, attribute].values()))
+    )

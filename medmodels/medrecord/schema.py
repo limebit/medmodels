@@ -22,6 +22,7 @@ from medmodels._medmodels import (
     PySchema,
     PySchemaType,
 )
+from medmodels.medrecord._overview import TypeTable, join_tables_with_titles
 from medmodels.medrecord.datatype import (
     DataType,
     DateTime,
@@ -31,10 +32,9 @@ from medmodels.medrecord.datatype import (
     Null,
     Option,
 )
-from medmodels.medrecord.datatype import (
-    Union as DataTypeUnion,
-)
+from medmodels.medrecord.datatype import Union as DataTypeUnion
 from medmodels.medrecord.types import (
+    AttributeInfo,
     Attributes,
     EdgeIndex,
     MedRecordAttribute,
@@ -49,10 +49,10 @@ if TYPE_CHECKING:
 class AttributeType(Enum):
     """Enumeration of attribute types."""
 
-    Categorical = auto()
-    Continuous = auto()
-    Temporal = auto()
-    Unstructured = auto()
+    Categorical = "Categorical"
+    Continuous = "Continuous"
+    Temporal = "Temporal"
+    Unstructured = "Unstructured"
 
     @staticmethod
     def _from_py_attribute_type(py_attribute_type: PyAttributeType) -> AttributeType:
@@ -779,3 +779,86 @@ class Schema:
     def unfreeze(self) -> None:
         """Unfreezes the schema. Changes are automatically inferred."""
         self._schema.unfreeze()
+
+    def _describe_nodes_schema(self) -> Dict[Group, AttributeInfo]:
+        """Describes the nodes schema.
+
+        Returns:
+            Dict[Group, AttributteInfo]: A dictionary containing the nodes schema.
+        """
+        nodes_info = {}
+        for group in self.groups:
+            group_schema = self.group(group).nodes
+
+            if not group_schema:
+                continue
+
+            attribute_summary = {
+                attribute: {"type": attribute_type.value, "datatype": str(data_type)}
+                for attribute, (data_type, attribute_type) in group_schema.items()
+            }
+            nodes_info[group] = {"attribute": attribute_summary}
+
+        if self.ungrouped.nodes:
+            ungrouped_schema = self.ungrouped.nodes
+            attribute_summary = {
+                attribute: {"type": attribute_type.value, "datatype": str(data_type)}
+                for attribute, (data_type, attribute_type) in ungrouped_schema.items()
+            }
+            nodes_info["Ungrouped nodes"] = {"attribute": attribute_summary}
+
+        return nodes_info
+
+    def _describe_edges_schema(self) -> Dict[Group, AttributeInfo]:
+        """Describes the edges schema.
+
+        Returns:
+            Dict[Group, AttributteInfo]: A dictionary containing the edges schema.
+        """
+        edges_info = {}
+        for group in self.groups:
+            group_schema = self.group(group).edges
+
+            if not group_schema:
+                continue
+
+            attribute_summary = {
+                attribute: {"type": attribute_type.value, "datatype": str(data_type)}
+                for attribute, (data_type, attribute_type) in group_schema.items()
+            }
+            edges_info[group] = {"attribute": attribute_summary}
+
+        if self.ungrouped.edges:
+            ungrouped_schema = self.ungrouped.edges
+            attribute_summary = {
+                attribute: {"type": attribute_type.value, "datatype": str(data_type)}
+                for attribute, (data_type, attribute_type) in ungrouped_schema.items()
+            }
+            edges_info["Ungrouped edges"] = {"attribute": attribute_summary}
+
+        return edges_info
+
+    def __repr__(self) -> str:
+        """Returns a string representation of the Schema instance.
+
+        Returns:
+            str: String representation of the schema.
+        """
+        from medmodels.medrecord.medrecord import OverviewTable
+
+        nodes_info = self._describe_nodes_schema()
+        edges_info = self._describe_edges_schema()
+
+        nodes_table = OverviewTable(
+            data=nodes_info, group_header="Nodes", type_table=TypeTable.Schema
+        )
+        edges_table = OverviewTable(
+            data=edges_info, group_header="Edges", type_table=TypeTable.Schema
+        )
+
+        return join_tables_with_titles(
+            title1="Nodes",
+            table1=nodes_table.table,
+            title2="Edges",
+            table2=edges_table.table,
+        )

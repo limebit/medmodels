@@ -1,18 +1,38 @@
 import unittest
 from datetime import datetime
+from io import StringIO
 
 import numpy as np
 import pandas as pd
 import polars as pl
+from rich.console import Console
+from rich.table import Table
 
 import medmodels as mm
-from medmodels.medrecord._overview import extract_attribute_summary, prettify_table
+from medmodels import MedRecord
+from medmodels.medrecord._overview import (
+    Metric,
+    TypeTable,
+    get_attribute_metric,
+    get_values_from_attribute,
+    join_tables_with_titles,
+    prettify_table,
+)
 from medmodels.medrecord.querying import (
     EdgeIndicesOperand,
     EdgeOperand,
     NodeIndicesOperand,
     NodeOperand,
 )
+from medmodels.medrecord.tests.test_medrecord import strip_ansi
+
+
+def repr_table(table: Table) -> str:
+    buffer = StringIO()
+    console = Console(file=buffer, force_terminal=True, width=120)
+    console.print(table)
+
+    return strip_ansi(buffer.getvalue())
 
 
 def create_medrecord() -> mm.MedRecord:
@@ -87,171 +107,225 @@ def create_medrecord() -> mm.MedRecord:
 
 
 class TestOverview(unittest.TestCase):
-    def test_extract_attribute_summary(self) -> None:
-        # medrecord without schema
-        medrecord = create_medrecord()
+    def test_prettify_table(self) -> None:
+        medrecord = MedRecord.from_simple_example_dataset()
 
-        def query1(node: NodeOperand) -> NodeIndicesOperand:
-            node.in_group("Stroke")
+        header = ["Group Nodes", "count", "attribute", "type", "datatype", "data"]
 
-            return node.index()
+        table = prettify_table({}, header, decimal=2, type_table=TypeTable.MedRecord)
 
-        # No attributes
-        no_attributes = extract_attribute_summary(medrecord.node[query1])
-
-        assert no_attributes == {}
-
-        def query2(node: NodeOperand) -> NodeIndicesOperand:
-            node.in_group("Patients")
-
-            return node.index()
-
-        # numeric type
-        numeric_attribute = extract_attribute_summary(medrecord.node[query2])
-
-        numeric_expected = {
-            "age": {"type": "Continuous", "min": 20, "max": 70, "mean": 40.0}
-        }
-
-        assert numeric_attribute == numeric_expected
-
-        def query3(node: NodeOperand) -> NodeIndicesOperand:
-            node.in_group("Medications")
-
-            return node.index()
-
-        # string attributes
-        str_attributes = extract_attribute_summary(medrecord.node[query3])
-
-        assert str_attributes == {
-            "ATC": {"type": "Categorical", "values": "Values: B01AA03, B01AF01"}
-        }
-
-        def query4(node: NodeOperand) -> NodeIndicesOperand:
-            node.in_group("Aspirin")
-
-            return node.index()
-
-        # nan attribute
-        nan_attributes = extract_attribute_summary(medrecord.node[query4])
-
-        assert nan_attributes == {"ATC": {"type": "-", "values": "-"}}
-
-        def query5(edge: EdgeOperand) -> EdgeIndicesOperand:
-            edge.source_node().in_group("Medications")
-            edge.target_node().in_group("Patients")
-
-            return edge.index()
-
-        # temporal attributes
-        temp_attributes = extract_attribute_summary(medrecord.edge[query5])
-
-        assert temp_attributes == {
-            "time": {
-                "type": "Temporal",
-                "max": datetime(2000, 1, 1, 0, 0),
-                "min": datetime(1999, 10, 15, 0, 0),
-            }
-        }
-
-        def query6(edge: EdgeOperand) -> EdgeIndicesOperand:
-            edge.source_node().in_group("Stroke")
-            edge.target_node().in_group("Patients")
-
-            return edge.index()
-
-        # mixed attributes
-        mixed_attributes = extract_attribute_summary(
-            medrecord.edge[medrecord.query_edges(query6)]
-        )
-        assert mixed_attributes == {
-            "time": {
-                "type": "Temporal",
-                "min": datetime(1999, 12, 15, 0, 0),
-                "max": datetime(2000, 1, 1, 0, 0),
-            },
-            "intensity": {"type": "Categorical", "values": "Values: 1, low"},
-        }
-
-        # with schema
-        mr_schema = mm.MedRecord.from_simple_example_dataset()
-        nodes_schema = mr_schema.group("patient")["nodes"]
-
-        node_info = extract_attribute_summary(
-            mr_schema.node[nodes_schema],
-            schema=mr_schema.get_schema().group("patient").nodes,
+        expected = "\n".join(
+            [
+                "┏━━━━━━━━━━━━━┳━━━━━━━┳━━━━━━━━━━━┳━━━━━━┳━━━━━━━━━━┳━━━━━━┓",
+                "┃ Group Nodes ┃ count ┃ attribute ┃ type ┃ datatype ┃ data ┃",
+                "┡━━━━━━━━━━━━━╇━━━━━━━╇━━━━━━━━━━━╇━━━━━━╇━━━━━━━━━━╇━━━━━━┩",
+                "│ No data     │       │           │      │          │      │",
+                "└─────────────┴───────┴───────────┴──────┴──────────┴──────┘",
+            ]
         )
 
-        assert node_info == {
-            "age": {"type": "Continuous", "min": 19, "max": 96, "mean": 43.20},
-            "gender": {"type": "Categorical", "values": "Categories: F, M"},
-        }
+        assert repr_table(table).strip() == expected.strip()
 
-        def query7(edge: EdgeOperand) -> EdgeIndicesOperand:
+        expected = "\n".join(
+            [
+                "┏━━━━━━━━━━━━━┳━━━━━━━┳━━━━━━━━━━━━━┳━━━━━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━┓",
+                "┃ Group Nodes ┃ count ┃ attribute   ┃ type         ┃ datatype ┃ data             ┃",
+                "┡━━━━━━━━━━━━━╇━━━━━━━╇━━━━━━━━━━━━━╇━━━━━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━┩",
+                "│ diagnosis   │ 25    │ description │ Unstructured │ String   │ -                │",
+                "│             │       │             │              │          │                  │",
+                "│ drug        │ 19    │ description │ Unstructured │ String   │ -                │",
+                "│             │       │             │              │          │                  │",
+                "│ patient     │ 5     │ age         │ Continuous   │ Int      │ min: 19          │",
+                "│             │       │             │              │          │ max: 96          │",
+                "│             │       │ gender      │ Categorical  │ String   │ Categories: F, M │",
+                "│             │       │             │              │          │                  │",
+                "│ procedure   │ 24    │ description │ Unstructured │ String   │ -                │",
+                "└─────────────┴───────┴─────────────┴──────────────┴──────────┴──────────────────┘",
+            ]
+        )
+        table = prettify_table(
+            medrecord._describe_group_nodes(),
+            header,
+            decimal=2,
+            type_table=TypeTable.MedRecord,
+        )
+
+        assert repr_table(table).strip() == expected.strip()
+
+        header = ["Group Edges", "count", "attribute", "type", "datatype", "data"]
+
+        expected = "\n".join(
+            [
+                "┏━━━━━━━━━━━━━━━━━━━┳━━━━━━━┳━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━┳━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━┓",
+                "┃ Group Edges       ┃ count ┃ attribute        ┃ type       ┃ datatype      ┃ data                     ┃",
+                "┡━━━━━━━━━━━━━━━━━━━╇━━━━━━━╇━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━╇━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━┩",
+                "│ patient_diagnosis │ 60    │ duration_days    │ Continuous │ Option(Float) │ min: 0.0                 │",
+                "│                   │       │                  │            │               │ max: 3416.0              │",
+                "│                   │       │ time             │ Temporal   │ DateTime      │ min: 1962-10-21 00:00:00 │",
+                "│                   │       │                  │            │               │ max: 2024-04-12 00:00:00 │",
+                "│                   │       │                  │            │               │                          │",
+                "│ patient_drug      │ 50    │ cost             │ Continuous │ Float         │ min: 0.1                 │",
+                "│                   │       │                  │            │               │ max: 7822.2              │",
+                "│                   │       │ quantity         │ Continuous │ Int           │ min: 1                   │",
+                "│                   │       │                  │            │               │ max: 12                  │",
+                "│                   │       │ time             │ Temporal   │ DateTime      │ min: 1995-03-26 02:00:40 │",
+                "│                   │       │                  │            │               │ max: 2024-04-12 11:59:55 │",
+                "│                   │       │                  │            │               │                          │",
+                "│ patient_procedure │ 50    │ duration_minutes │ Continuous │ Float         │ min: 4.0                 │",
+                "│                   │       │                  │            │               │ max: 59.0                │",
+                "│                   │       │ time             │ Temporal   │ DateTime      │ min: 1993-03-14 02:42:31 │",
+                "│                   │       │                  │            │               │ max: 2024-04-24 03:38:35 │",
+                "└───────────────────┴───────┴──────────────────┴────────────┴───────────────┴──────────────────────────┘",
+            ]
+        )
+
+        table = prettify_table(
+            medrecord._describe_group_edges(),
+            header,
+            decimal=2,
+            type_table=TypeTable.MedRecord,
+        )
+
+        assert repr_table(table).strip() == expected.strip()
+
+        header = ["Group Edges", "attribute", "type", "datatype"]
+
+        expected = "\n".join(
+            [
+                "┏━━━━━━━━━━━━━┳━━━━━━━━━━━━━┳━━━━━━━━━━━━━━┳━━━━━━━━━━┓",
+                "┃ Group Edges ┃ attribute   ┃ type         ┃ datatype ┃",
+                "┡━━━━━━━━━━━━━╇━━━━━━━━━━━━━╇━━━━━━━━━━━━━━╇━━━━━━━━━━┩",
+                "│ diagnosis   │ description │ Unstructured │ String   │",
+                "│             │             │              │          │",
+                "│ drug        │ description │ Unstructured │ String   │",
+                "│             │             │              │          │",
+                "│ patient     │ age         │ Continuous   │ Int      │",
+                "│             │ gender      │ Categorical  │ String   │",
+                "│             │             │              │          │",
+                "│ procedure   │ description │ Unstructured │ String   │",
+                "└─────────────┴─────────────┴──────────────┴──────────┘",
+            ]
+        )
+
+        table = prettify_table(
+            medrecord.get_schema()._describe_nodes_schema(),
+            header,
+            decimal=1,
+            type_table=TypeTable.Schema,
+        )
+
+        assert repr_table(table).strip() == expected.strip()
+
+    def test_join_tables_with_titles(self) -> None:
+        """Tests joining two simple tables with titles."""
+        table1 = Table(show_lines=True)
+        table1.add_column("ID", style="dim", width=6)
+        table1.add_column("Value")
+        table1.add_row("A", "Apple")
+
+        table2 = Table(show_lines=True)
+        table2.add_column("Key")
+        table2.add_column("Data")
+        table2.add_column("Flag")
+        table2.add_row("X1", "TestData", "True")
+        table2.add_row("Y2", "MoreData", "False")
+
+        title1 = "First Section"
+        title2 = "Second Section"
+
+        joined_output = join_tables_with_titles(title1, table1, title2, table2)
+        joined_output = strip_ansi(joined_output)
+
+        expected = "\n".join(
+            [
+                "──────────────────────────────── First Section ─────────────────────────────────",
+                "┏━━━━━━━━┳━━━━━━━┓",
+                "┃ ID     ┃ Value ┃",
+                "┡━━━━━━━━╇━━━━━━━┩",
+                "│ A      │ Apple │",
+                "└────────┴───────┘",
+                "──────────────────────────────── Second Section ────────────────────────────────",
+                "┏━━━━━┳━━━━━━━━━━┳━━━━━━━┓",
+                "┃ Key ┃ Data     ┃ Flag  ┃",
+                "┡━━━━━╇━━━━━━━━━━╇━━━━━━━┩",
+                "│ X1  │ TestData │ True  │",
+                "├─────┼──────────┼───────┤",
+                "│ Y2  │ MoreData │ False │",
+                "└─────┴──────────┴───────┘",
+            ]
+        )
+
+        assert joined_output.strip() == expected.strip()
+
+    def test_get_attribute_metric(self) -> None:
+        # Test with a MedRecord object
+        medrecord = MedRecord.from_simple_example_dataset()
+
+        def query_males(node: NodeOperand) -> None:
+            node.attribute("gender").equal_to("M")
+
+        result = get_attribute_metric(
+            medrecord,
+            group_query=query_males,
+            attribute="age",
+            metric=Metric.min,
+            type="nodes",
+        )
+        assert result == 19
+
+        result = get_attribute_metric(
+            medrecord,
+            group_query=query_males,
+            attribute="age",
+            metric=Metric.max,
+            type="nodes",
+        )
+        assert result == 42
+
+        def query_edges(edge: EdgeOperand) -> None:
             edge.in_group("patient_diagnosis")
 
-            return edge.index()
-
-        # compare schema and not schema
-        patient_diagnosis = extract_attribute_summary(
-            mr_schema.edge[query7],
-            schema=mr_schema.get_schema().group("patient_diagnosis").edges,
+        result = get_attribute_metric(
+            medrecord,
+            group_query=query_edges,
+            attribute="duration_days",
+            metric=Metric.min,
+            type="edges",
         )
+        assert result == 0
 
-        assert patient_diagnosis == {
-            "time": {
-                "type": "Temporal",
-                "min": datetime(1962, 10, 21, 0, 0),
-                "max": datetime(2024, 4, 12, 0, 0),
-            },
-            "duration_days": {
-                "type": "Continuous",
-                "min": 0.0,
-                "max": 3416.0,
-                "mean": 405.0232558139535,
-            },
-        }
+        result = get_attribute_metric(
+            medrecord,
+            group_query=query_edges,
+            attribute="time",
+            metric=Metric.max,
+            type="edges",
+        )
+        assert result == datetime(2024, 4, 12, 0, 0)
 
-    def test_prettify_table(self) -> None:
+    def test_get_values_from_attribute(self) -> None:
+        # Test with a MedRecord object
         medrecord = create_medrecord()
 
-        header = ["group nodes", "count", "attribute", "type", "info"]
+        def query_edges(edge: EdgeOperand) -> None:
+            edge.in_group("patient-medications")
 
-        expected_nodes = [
-            "-------------------------------------------------------------------------",
-            "Group Nodes     Count Attribute Type        Info                         ",
-            "-------------------------------------------------------------------------",
-            "Aspirin         1     ATC       -           -                            ",
-            "Medications     3     ATC       Categorical Categories: B01AA03, B01AF01 ",
-            "Patients        3     age       Continuous  min: 20                      ",
-            "                                            max: 70                      ",
-            "                                            mean: 40.00                  ",
-            "Stroke          1     -         -           -                            ",
-            "Ungrouped Nodes 1     -         -           -                            ",
-            "-------------------------------------------------------------------------",
-        ]
-
-        assert (
-            prettify_table(medrecord._describe_group_nodes(), header, decimal=2)
-            == expected_nodes
+        result = get_values_from_attribute(
+            medrecord, query=query_edges, attribute="time", type="edges"
         )
+        assert result == {
+            datetime(2000, 1, 1, 0, 0),
+            datetime(1999, 10, 15, 0, 0),
+            datetime(1999, 12, 15, 0, 0),
+        }
 
-        header = ["group edges", "count", "attribute", "type", "info"]
+        def query_nodes(node: NodeOperand) -> None:
+            node.in_group("Patients")
 
-        expected_edges = [
-            "----------------------------------------------------------------------",
-            "Group Edges         Count Attribute Type     Info                     ",
-            "----------------------------------------------------------------------",
-            "patient-medications 3     time      Temporal min: 1999-10-15 00:00:00 ",
-            "                                             max: 2000-01-01 00:00:00 ",
-            "Ungrouped Edges     6     -         -        -                        ",
-            "----------------------------------------------------------------------",
-        ]
-
-        assert (
-            prettify_table(medrecord._describe_group_edges(), header, decimal=2)
-            == expected_edges
+        result = get_values_from_attribute(
+            medrecord, query=query_nodes, attribute="age", type="nodes"
         )
+        assert result == {20, 30, 70}
 
 
 if __name__ == "__main__":

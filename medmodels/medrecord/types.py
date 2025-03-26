@@ -121,20 +121,11 @@ class GroupInfo(TypedDict):
     edges: List[EdgeIndex]
 
 
-class AttributeInfo(TypedDict):
-    """A dictionary containing info about nodes/edges and their attributes."""
-
-    count: int
-    attribute: Dict[
-        MedRecordAttribute,
-        Union[TemporalAttributeInfo, NumericAttributeInfo, StringAttributeInfo],
-    ]
-
-
 class TemporalAttributeInfo(TypedDict):
     """Dictionary for a temporal attribute and its metrics."""
 
     type: Literal["Temporal"]
+    datatype: str
     min: datetime
     max: datetime
 
@@ -143,16 +134,43 @@ class NumericAttributeInfo(TypedDict):
     """Dictionary for a numeric attribute and its metrics."""
 
     type: Literal["Continuous"]
+    datatype: str
     min: Union[int, float]
     max: Union[int, float]
-    mean: Union[int, float]
 
 
-class StringAttributeInfo(TypedDict):
-    """Dictionary for a string attribute and its values."""
+class CategoricalAttributeInfo(TypedDict):
+    """Dictionary for a categorical attribute and its values."""
 
     type: Literal["Categorical"]
+    datatype: str
     values: str
+
+
+class UnstructuredAttributeInfo(TypedDict):
+    """Dictionary for an unstructured attribute."""
+
+    type: Literal["Unstructured"]
+    datatype: str
+    values: str
+
+
+AnyAttributeInfo: TypeAlias = Union[
+    TemporalAttributeInfo,
+    NumericAttributeInfo,
+    CategoricalAttributeInfo,
+    UnstructuredAttributeInfo,
+]
+
+
+class AttributeInfo(TypedDict):
+    """A dictionary containing info about nodes/edges and their attributes."""
+
+    count: int
+    attribute: Dict[
+        MedRecordAttribute,
+        AnyAttributeInfo,
+    ]
 
 
 def is_medrecord_attribute(value: object) -> TypeIs[MedRecordAttribute]:
