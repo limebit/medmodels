@@ -21,7 +21,6 @@ from typing import (
 
 import polars as pl
 
-from medmodels.medrecord._overview import extract_attribute_summary
 from medmodels.medrecord.medrecord import MedRecord
 
 if TYPE_CHECKING:
@@ -106,8 +105,13 @@ class Matching(ABC):
 
         # If no one-hot covariates provided, use all categorical attributes of patients
         if one_hot_covariates is None:
-            attributes = extract_attribute_summary(
-                medrecord.node[medrecord.nodes_in_group(patients_group)]
+            patients_schema = medrecord.get_schema().group(patients_group).nodes
+
+            def in_group_query(node: NodeOperand) -> None:
+                return node.in_group(patients_group)
+
+            attributes = medrecord._extract_attribute_summary(
+                schema=patients_schema, type="nodes", group_query=in_group_query
             )
             one_hot_covariates = [
                 covariate

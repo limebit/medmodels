@@ -14,17 +14,36 @@ from __future__ import annotations
 
 import sys
 from enum import Enum, auto
-from typing import Callable, Dict, List, Optional, Sequence, Union, overload
+from io import StringIO
+from typing import (
+    TYPE_CHECKING,
+    Callable,
+    Dict,
+    List,
+    Literal,
+    Optional,
+    Sequence,
+    Union,
+    overload,
+)
 
 import polars as pl
+from rich.console import Console
 
 from medmodels._medmodels import PyMedRecord
-from medmodels.medrecord._overview import extract_attribute_summary, prettify_table
+from medmodels.medrecord._overview import (
+    Metric,
+    get_attribute_metric,
+    join_tables_with_titles,
+    prettify_table,
+    values_in_group_attribute,
+)
 from medmodels.medrecord.builder import MedRecordBuilder
 from medmodels.medrecord.indexers import EdgeIndexer, NodeIndexer
 from medmodels.medrecord.querying import EdgeOperand, EdgeQuery, NodeOperand, NodeQuery
-from medmodels.medrecord.schema import Schema
+from medmodels.medrecord.schema import AttributesSchema, AttributeType, Schema
 from medmodels.medrecord.types import (
+    AnyAttributeInfo,
     AttributeInfo,
     Attributes,
     EdgeIndex,
@@ -34,6 +53,7 @@ from medmodels.medrecord.types import (
     Group,
     GroupInfo,
     GroupInputList,
+    MedRecordAttribute,
     NodeIndex,
     NodeIndexInputList,
     NodeInput,
@@ -53,6 +73,9 @@ from medmodels.medrecord.types import (
     is_polars_node_dataframe_input,
     is_polars_node_dataframe_input_list,
 )
+
+if TYPE_CHECKING:
+    from rich.table import Table
 
 
 def process_nodes_dataframe(
@@ -94,6 +117,7 @@ class OverviewTable:
     data: Dict[Group, AttributeInfo]
     group_header: str
     decimal: int
+    table: Table
 
     def __init__(
         self,
@@ -113,11 +137,20 @@ class OverviewTable:
         self.group_header = group_header
         self.decimal = decimal
 
-    def __repr__(self) -> str:
-        """Returns a string representation of the group nodes/ edges overview."""
-        header = [self.group_header, "count", "attribute", "type", "data"]
+        headers = [self.group_header, "count", "attribute", "type", "datatype", "data"]
+        self.table = prettify_table(self.data, headers=headers, decimal=self.decimal)
 
-        return "\n".join(prettify_table(self.data, header=header, decimal=self.decimal))
+    def __repr__(self) -> str:
+        """Returns a string representation of the group nodes/ edges overview.
+
+        Returns:
+            str: The formatted table.
+        """
+        buffer = StringIO()
+        console = Console(file=buffer, width=120)
+        console.print(self.table)
+
+        return buffer.getvalue()
 
 
 class EdgesDirected(Enum):
@@ -1321,6 +1354,76 @@ class MedRecord:
 
         return medrecord
 
+    def _extract_attribute_summary(
+        self,
+        schema: AttributesSchema,
+        type: Literal["nodes", "edges"],
+        group_query: Union[NodeQuery, EdgeQuery],
+    ) -> Dict[
+        MedRecordAttribute,
+        AnyAttributeInfo,
+    ]:
+        """Creates a summary of the attributes in the MedRecord.
+
+        Args:
+            schema (AttributesSchema): Schema of the attributes.
+            type (Literal["nodes", "edges"]): Type of the attribute.
+            group_query (Union[NodeQuery, EdgeQuery]): Query to filter the group.
+
+        Returns:
+            Dict[MedRecordAttribute, AnyAttributeInfo]: Summary of the attributes.
+        """
+        attribute_summary = {}
+
+        for attribute, (data_type, attribute_type) in schema.items():
+            if attribute_type == AttributeType.Categorical:
+                categories = values_in_group_attribute(
+                    self, group_query, attribute, type=type
+                )
+                string_categories = (
+                    ", ".join([str(category) for category in categories])
+                    if len(categories) < 5
+                    else f"{len(categories)} unique values"
+                )
+                attribute_summary[attribute] = {
+                    "type": "Categorical",
+                    "datatype": str(data_type),
+                    "values": f"Categories: {string_categories}",
+                }
+
+            elif attribute_type == AttributeType.Continuous:
+                attribute_summary[attribute] = {
+                    "type": "Continuous",
+                    "datatype": str(data_type),
+                    "min": get_attribute_metric(
+                        self, group_query, attribute, Metric.min, type=type
+                    ),
+                    "max": get_attribute_metric(
+                        self, group_query, attribute, Metric.max, type=type
+                    ),
+                }
+
+            elif attribute_type == AttributeType.Temporal:
+                attribute_summary[attribute] = {
+                    "type": "Temporal",
+                    "datatype": str(data_type),
+                    "min": get_attribute_metric(
+                        self, group_query, attribute, Metric.min, type=type
+                    ).strftime("%Y-%m-%d %H:%M:%S"),  # pyright: ignore[reportAttributeAccessIssue, reportOptionalMemberAccess]
+                    "max": get_attribute_metric(
+                        self, group_query, attribute, Metric.max, type=type
+                    ).strftime("%Y-%m-%d %H:%M:%S"),  # pyright: ignore[reportAttributeAccessIssue, reportOptionalMemberAccess]
+                }
+
+            else:
+                attribute_summary[attribute] = {
+                    "type": "Unstructured",
+                    "datatype": str(data_type),
+                    "values": "-",
+                }
+
+        return attribute_summary
+
     def _describe_group_nodes(
         self, groups: Optional[GroupInputList] = None
     ) -> Dict[Group, AttributeInfo]:
@@ -1330,45 +1433,47 @@ class MedRecord:
             pl.DataFrame: Dataframe with all nodes in medrecord groups and their
                 attributes.
         """
+        schema = self.get_schema()
         nodes_info = {}
-        grouped_nodes = []
 
-        if not groups:
-            groups = sorted(self.groups, key=lambda x: str(x))
-            add_ungrouped = True
-        else:
-            add_ungrouped = False
+        groups_sorted = sorted(groups or self.groups, key=lambda x: str(x))
 
-        for group in groups:
-            nodes = self.group(group)["nodes"]
-            grouped_nodes.extend(nodes)
+        for group in groups_sorted:
+            group_schema = schema.group(group).nodes
 
-            if (len(nodes) == 0) and (self.group(group)["edges"]):
+            if not group_schema and schema.group(group).edges:
                 continue
 
-            schema = self.get_schema()
-
-            attributes_schema = (
-                schema.group(group).nodes if group in schema.groups else None
-            )
+            def in_group_query(node: NodeOperand) -> None:
+                return node.in_group(group)  # noqa: B023
 
             nodes_info[group] = {
-                "count": len(nodes),
-                "attribute": extract_attribute_summary(
-                    self.node[nodes], schema=attributes_schema
+                "count": len(self.group(group)["nodes"]),
+                "attribute": self._extract_attribute_summary(
+                    group_schema,
+                    type="nodes",
+                    group_query=in_group_query,
                 ),
             }
 
-        if not add_ungrouped:
-            return nodes_info
-
-        ungrouped_count = self.node_count() - len(set(grouped_nodes))
-
-        if ungrouped_count > 0:
-            nodes_info["Ungrouped Nodes"] = {
-                "count": ungrouped_count,
-                "attribute": {},
+        if not groups:
+            ungrouped_nodes = set(self.nodes) - {
+                node for group in groups_sorted for node in self.group(group)["nodes"]
             }
+            if ungrouped_nodes:
+                group_schema = schema.ungrouped.nodes
+
+                def ungrouped_nodes_query(node: NodeOperand) -> None:
+                    node.index().is_in(list(ungrouped_nodes))
+
+                nodes_info["Ungrouped Nodes"] = {
+                    "count": len(ungrouped_nodes),
+                    "attribute": self._extract_attribute_summary(
+                        group_schema,
+                        type="nodes",
+                        group_query=ungrouped_nodes_query,
+                    ),
+                }
 
         return nodes_info
 
@@ -1385,44 +1490,45 @@ class MedRecord:
         Returns:
             pl.DataFrame: DataFrame with an overview of edges connecting group nodes.
         """
+        schema = self.get_schema()
         edges_info = {}
-        grouped_edges = []
 
-        if not groups:
-            groups = sorted(self.groups, key=lambda x: str(x))
-            add_ungrouped = True
-        else:
-            add_ungrouped = False
+        groups_sorted = sorted(groups or self.groups, key=lambda x: str(x))
 
-        for group in groups:
-            edges = self.group(group)["edges"]
-            grouped_edges.extend(edges)
+        for group in groups_sorted:
+            group_schema = schema.group(group).edges
 
-            if not edges:
+            if not group_schema:
                 continue
 
-            schema = self.get_schema()
-
-            attributes_schema = (
-                schema.group(group).edges if group in schema.groups else None
-            )
+            def in_group_query(edge: EdgeOperand) -> None:
+                return edge.in_group(group)  # noqa: B023
 
             edges_info[group] = {
-                "count": len(edges),
-                "attribute": extract_attribute_summary(
-                    self.edge[edges], schema=attributes_schema
+                "count": len(self.group(group)["edges"]),
+                "attribute": self._extract_attribute_summary(
+                    group_schema,
+                    type="edges",
+                    group_query=in_group_query,
                 ),
             }
 
-        if not add_ungrouped:
-            return edges_info
+        if not groups:
+            ungrouped_edges = set(self.edges) - {
+                edge for group in groups_sorted for edge in self.group(group)["edges"]
+            }
+            group_schema = schema.ungrouped.edges
 
-        ungrouped_count = self.edge_count() - len(set(grouped_edges))
+            def ungrouped_edges_query(edge: EdgeOperand) -> None:
+                edge.index().is_in(list(ungrouped_edges))
 
-        if ungrouped_count > 0:
-            edges_info["Ungrouped Edges"] = {
-                "count": ungrouped_count,
-                "attribute": {},
+            edges_info["Ungrouped Nodes"] = {
+                "count": len(ungrouped_edges),
+                "attribute": self._extract_attribute_summary(
+                    group_schema,
+                    type="nodes",
+                    group_query=ungrouped_edges_query,
+                ),
             }
 
         return edges_info
@@ -1433,7 +1539,12 @@ class MedRecord:
         if sys.gettrace() is not None:
             return f"<MedRecord: {self.node_count()} nodes, {self.edge_count()} edges>"
 
-        return "\n".join([str(self.overview_nodes()), "", str(self.overview_edges())])
+        return join_tables_with_titles(
+            title1="Nodes",
+            table1=self.overview_nodes().table,
+            title2="Edges",
+            table2=self.overview_edges().table,
+        )
 
     def overview_nodes(
         self, groups: Optional[Union[Group, GroupInputList]] = None, decimal: int = 2
