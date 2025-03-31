@@ -64,7 +64,7 @@ def edge_less_than_two(edge: EdgeOperand) -> EdgeIndicesOperand:
     return edge.index()
 
 
-class TestMedRecord(unittest.TestCase):
+class TestIndexers(unittest.TestCase):
     def test_node_getitem(self) -> None:
         medrecord = create_medrecord()
 
@@ -1546,3 +1546,8 @@ class TestMedRecord(unittest.TestCase):
             del medrecord.edge[:, :1]
         with pytest.raises(ValueError, match="Invalid slice, only ':' is allowed"):
             del medrecord.edge[:, ::1]
+
+
+if __name__ == "__main__":
+    run_test = unittest.TestLoader().loadTestsFromTestCase(TestIndexers)
+    unittest.TextTestRunner(verbosity=2).run(run_test)
