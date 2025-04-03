@@ -9,24 +9,39 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - name: Set up Python 3.10
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.10"
+
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy
+
+      - name: Cache Rust artifacts
+        uses: Swatinem/rust-cache@v2
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: pyproject.toml
+          python-version: "3.10"
+
       - name: Install dependencies
-        run: make install-dev
+        run: |
+          uv sync --group dev
+
       - name: Lint with ruff
-        run: .venv/bin/python -m ruff check --output-format=github .
+        run: uv run ruff check --output-format=github .
+
       - name: Lint imports with ruff
-        run: .venv/bin/python -m ruff check --select I --output-format=github .
+        run: uv run ruff check --select I --output-format=github .
+
+      - name: Activate venv for Pyright
+        run: echo "$PWD/.venv/bin" >> $GITHUB_PATH
+
       - name: Check typing with pyright
         uses: jakebailey/pyright-action@v2
         with:
-          python-path: .venv/bin/python
-          version: 1.1.373
+          version: PATH
+
       - name: Lint with clippy
         run: cargo clippy --all-targets --all-features -- -D warnings

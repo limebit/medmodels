@@ -7,10 +7,10 @@ pub type Group = MedRecordAttribute;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub(super) struct GroupMapping {
-    nodes_in_group: MrHashMap<Group, MrHashSet<NodeIndex>>,
-    edges_in_group: MrHashMap<Group, MrHashSet<EdgeIndex>>,
-    groups_of_node: MrHashMap<NodeIndex, MrHashSet<Group>>,
-    groups_of_edge: MrHashMap<EdgeIndex, MrHashSet<Group>>,
+    pub(super) nodes_in_group: MrHashMap<Group, MrHashSet<NodeIndex>>,
+    pub(super) edges_in_group: MrHashMap<Group, MrHashSet<EdgeIndex>>,
+    pub(super) groups_of_node: MrHashMap<NodeIndex, MrHashSet<Group>>,
+    pub(super) groups_of_edge: MrHashMap<EdgeIndex, MrHashSet<Group>>,
 }
 
 impl GroupMapping {
@@ -89,6 +89,7 @@ impl GroupMapping {
                 }
             }
         };
+
         Ok(())
     }
 
@@ -161,6 +162,21 @@ impl GroupMapping {
             self.groups_of_node
                 .get_mut(&node)
                 .expect("Node must exist")
+                .remove(group);
+        }
+
+        let edges_in_group =
+            self.edges_in_group
+                .remove(group)
+                .ok_or(MedRecordError::IndexError(format!(
+                    "Cannot find group {}",
+                    group
+                )))?;
+
+        for edge in edges_in_group {
+            self.groups_of_edge
+                .get_mut(&edge)
+                .expect("Edge must exist")
                 .remove(group);
         }
 

@@ -1,38 +1,59 @@
-VENV_NAME?=.venv
+VENV_NAME ?= .venv
 
-USER_PYTHON ?= python3
-VENV_PYTHON=${VENV_NAME}/bin/python
+ifeq ($(OS),Windows_NT)
+	USER_PYTHON ?= python
+	VENV_BIN := $(VENV_NAME)/Scripts
+	rmrf = rmdir /s /q
+	rmf = del /q
+else
+	USER_PYTHON ?= python3
+	VENV_BIN := $(VENV_NAME)/bin
+	rmrf = rm -rf
+	rmf = rm -f
+endif
 
-.PHONY = prepare-venv install install-dev install-tests test lint format clean
+VENV_PYTHON := $(VENV_BIN)/python
+VENV_UV := $(VENV_BIN)/uv
+UV_LOC := $(shell $(USER_PYTHON) -c "import shutil; print(shutil.which('uv') if shutil.which('uv') else '$(VENV_UV)')")
 
-.DEFAULT_GOAL = install-dev
+.PHONY: prepare-venv install install-dev install-tests test lint format clean docs docs-serve docs-clean
 
-prepare-venv: $(VENV_NAME)/bin/python
+.DEFAULT_GOAL := install-dev
 
-$(VENV_NAME)/bin/python:
-	make clean && ${USER_PYTHON} -m venv $(VENV_NAME)
+prepare-venv: $(VENV_NAME)
+
+$(VENV_NAME):
+ifeq ($(UV_LOC),$(VENV_UV))
+	@echo "Using .venv installed uv: $(UV_LOC)"
+	$(MAKE) clean && $(USER_PYTHON) -m venv $(VENV_NAME)
+	$(VENV_PYTHON) -m pip install -U pip
+	$(VENV_PYTHON) -m pip install uv
+else
+	@echo "Using global uv: $(UV_LOC)"
+	$(MAKE) clean && $(UV_LOC) venv $(VENV_NAME)
+endif
 
 install: prepare-venv
-	${VENV_PYTHON} -m pip install -U pip
-	${VENV_PYTHON} -m pip install -e .
+	$(UV_LOC) sync
+	$(UV_LOC) pip install -e .
 
 install-dev: prepare-venv
-	${VENV_PYTHON} -m pip install -U pip
-	${VENV_PYTHON} -m pip install -e .\[dev\]
+	$(UV_LOC) sync --group dev
+	$(UV_LOC) pip install -e .
 
 install-tests: prepare-venv
-	${VENV_PYTHON} -m pip install -U pip
-	${VENV_PYTHON} -m pip install -e .\[tests\]
+	$(UV_LOC) sync --group tests
+	$(UV_LOC) pip install -e .
 
 install-docs: prepare-venv
-	${VENV_PYTHON} -m pip install -U pip
-	${VENV_PYTHON} -m pip install -e .\[docs\]
+	$(UV_LOC) sync --group docs
+	$(UV_LOC) pip install -e .
 
 build-dev: install-dev
-	${VENV_PYTHON} -m maturin develop
+	$(UV_LOC) run maturin develop
 
 test: install-tests
-	${VENV_PYTHON} -m pytest -W error
+	$(UV_LOC) run pytest -vv -W error
 	cargo test
 
 docs: install-docs
@@ -45,24 +66,29 @@ docs-clean:
 	$(MAKE) -C docs clean
 
 lint: install-dev
-	${VENV_PYTHON} -m ruff check
-	${VENV_PYTHON} -m ruff check --select I
-	${VENV_PYTHON} -m pyright
+	$(UV_LOC) run ruff check
+	$(UV_LOC) run ruff check --select I
+	$(UV_LOC) run python -m pyright
 	cargo clippy --all-targets --all-features
 
 format: install-dev
-	${VENV_PYTHON} -m ruff check --select I --fix
-	${VENV_PYTHON} -m ruff format
+	$(UV_LOC) run ruff check --select I --fix
+	$(UV_LOC) run ruff format
 	cargo fmt
 	cargo clippy --all-features --fix --allow-staged
 
 clean: docs-clean
-	rm -rf $(VENV_NAME)
-	rm -rf .pytest_cache
-	rm -rf .ruff_cache
-	rm -rf medmodels.egg-info
-	rm -rf target
-	rm -rf dist
-	rm -f medmodels/*.so
-	rm -f .vscode/*.log
-	find . -name __pycache__ -type d -exec rm -r {} +
+ifeq ($(OS),Windows_NT)
+	@if exist $(VENV_NAME) $(rmrf) $(VENV_NAME)
+	@for %%d in (target dist medmodels.egg-info .ruff_cache .pytest_cache) do @if exist %%d $(rmrf) %%d
+	@if exist medmodels\*.pyd $(rmf) medmodels\*.pyd
+	@if exist .vscode\*.log $(rmf) .vscode\*.log
+	@if exist .coverage $(rmf) .coverage
+	@for /d /r %%i in (__pycache__) do @if exist "%%i" $(rmrf) "%%i"
+else
+	$(rmrf) $(VENV_NAME) target dist medmodels.egg-info .ruff_cache .pytest_cache
+	$(rmf) medmodels/*.so
+	$(rmf) .vscode/*.log
+	$(rmf) .coverage
+	find . -type d -name "__pycache__" -exec rm -rf {} +
+endif

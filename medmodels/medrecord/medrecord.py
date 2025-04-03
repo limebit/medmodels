@@ -12,6 +12,7 @@ simplified management and efficient querying.
 
 from __future__ import annotations
 
+import sys
 from enum import Enum, auto
 from typing import Callable, Dict, List, Optional, Sequence, Union, overload
 
@@ -326,23 +327,29 @@ class MedRecord:
         """
         self._medrecord.to_ron(path)
 
-    @property
-    def schema(self) -> Schema:
-        """Returns the schema of the MedRecord instance.
+    def get_schema(self) -> Schema:
+        """Returns a copy of the MedRecords schema.
 
         Returns:
             Schema: The schema of the MedRecord.
         """
-        return Schema._from_py_schema(self._medrecord.schema)
+        return Schema._from_py_schema(self._medrecord.get_schema())
 
-    @schema.setter
-    def schema(self, schema: Schema) -> None:
+    def set_schema(self, schema: Schema) -> None:
         """Sets the schema of the MedRecord instance.
 
         Args:
             schema (Schema): The new schema to apply.
         """
-        self._medrecord.update_schema(schema._schema)
+        self._medrecord.set_schema(schema._schema)
+
+    def freeze_schema(self) -> None:
+        """Freezes the schema. No changes are automatically inferred."""
+        self._medrecord.freeze_schema()
+
+    def unfreeze_schema(self) -> None:
+        """Unfreezes the schema. Changes are automatically inferred."""
+        self._medrecord.unfreeze_schema()
 
     @property
     def nodes(self) -> List[NodeIndex]:
@@ -1339,13 +1346,17 @@ class MedRecord:
             if (len(nodes) == 0) and (self.group(group)["edges"]):
                 continue
 
-            schema = (
-                self.schema.group(group).nodes if group in self.schema.groups else None
+            schema = self.get_schema()
+
+            attributes_schema = (
+                schema.group(group).nodes if group in schema.groups else None
             )
 
             nodes_info[group] = {
                 "count": len(nodes),
-                "attribute": extract_attribute_summary(self.node[nodes], schema=schema),
+                "attribute": extract_attribute_summary(
+                    self.node[nodes], schema=attributes_schema
+                ),
             }
 
         if not add_ungrouped:
@@ -1391,13 +1402,17 @@ class MedRecord:
             if not edges:
                 continue
 
-            schema = (
-                self.schema.group(group).edges if group in self.schema.groups else None
+            schema = self.get_schema()
+
+            attributes_schema = (
+                schema.group(group).edges if group in schema.groups else None
             )
 
             edges_info[group] = {
                 "count": len(edges),
-                "attribute": extract_attribute_summary(self.edge[edges], schema=schema),
+                "attribute": extract_attribute_summary(
+                    self.edge[edges], schema=attributes_schema
+                ),
             }
 
         if not add_ungrouped:
@@ -1414,7 +1429,11 @@ class MedRecord:
         return edges_info
 
     def __repr__(self) -> str:
-        """Returns an official string representation of the MedRecord instance."""
+        """Returns a string representation of the MedRecord instance."""
+        # If in debugging mode, avoid computing the whole representation
+        if sys.gettrace() is not None:
+            return f"<MedRecord: {self.node_count()} nodes, {self.edge_count()} edges>"
+
         return "\n".join([str(self.overview_nodes()), "", str(self.overview_edges())])
 
     def overview_nodes(

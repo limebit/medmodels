@@ -3,7 +3,7 @@
 use super::{traits::DeepFrom, Lut};
 use crate::{gil_hash_map::GILHashMap, medrecord::errors::PyMedRecordError};
 use medmodels_core::{errors::MedRecordError, medrecord::DataType};
-use pyo3::prelude::*;
+use pyo3::{prelude::*, IntoPyObjectExt};
 
 macro_rules! implement_pymethods {
     ($struct:ty) => {
@@ -148,21 +148,25 @@ impl FromPyObject<'_> for PyDataType {
     }
 }
 
-impl IntoPy<PyObject> for PyDataType {
-    fn into_py(self, py: Python) -> PyObject {
+impl<'py> IntoPyObject<'py> for PyDataType {
+    type Target = pyo3::PyAny;
+    type Output = Bound<'py, Self::Target>;
+    type Error = PyErr;
+
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
         match self.0 {
-            DataType::String => PyString {}.into_py(py),
-            DataType::Int => PyInt {}.into_py(py),
-            DataType::Float => PyFloat {}.into_py(py),
-            DataType::Bool => PyBool {}.into_py(py),
-            DataType::DateTime => PyDateTime {}.into_py(py),
-            DataType::Duration => PyDuration {}.into_py(py),
-            DataType::Null => PyNull {}.into_py(py),
-            DataType::Any => PyAny {}.into_py(py),
+            DataType::String => PyString {}.into_bound_py_any(py),
+            DataType::Int => PyInt {}.into_bound_py_any(py),
+            DataType::Float => PyFloat {}.into_bound_py_any(py),
+            DataType::Bool => PyBool {}.into_bound_py_any(py),
+            DataType::DateTime => PyDateTime {}.into_bound_py_any(py),
+            DataType::Duration => PyDuration {}.into_bound_py_any(py),
+            DataType::Null => PyNull {}.into_bound_py_any(py),
+            DataType::Any => PyAny {}.into_bound_py_any(py),
             DataType::Union((dtype1, dtype2)) => {
-                PyUnion(((*dtype1).into(), (*dtype2).into())).into_py(py)
+                PyUnion(((*dtype1).into(), (*dtype2).into())).into_bound_py_any(py)
             }
-            DataType::Option(dtype) => PyOption((*dtype).into()).into_py(py),
+            DataType::Option(dtype) => PyOption((*dtype).into()).into_bound_py_any(py),
         }
     }
 }

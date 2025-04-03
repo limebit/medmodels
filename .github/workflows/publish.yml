@@ -22,9 +22,11 @@ jobs:
         target: [x86_64, x86, aarch64, armv7, ppc64le]
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSIONS_SHORT }}
+
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         with:
@@ -32,6 +34,7 @@ jobs:
           args: --release --out dist -i ${{ env.PYTHON_VERSIONS_LONG }}
           sccache: "true"
           manylinux: auto
+
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
@@ -45,9 +48,11 @@ jobs:
         target: [x86_64, x86, aarch64, armv7]
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSIONS_SHORT }}
+
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         with:
@@ -55,6 +60,7 @@ jobs:
           args: --release --out dist -i ${{ env.PYTHON_VERSIONS_LONG }}
           sccache: "true"
           manylinux: musllinux_1_2
+
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
@@ -68,16 +74,19 @@ jobs:
         target: [x64, x86]
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSIONS_SHORT }}
           architecture: ${{ matrix.target }}
+
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.target }}
           args: --release --out dist -i ${{ env.PYTHON_VERSIONS_LONG }}
           sccache: "true"
+
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
@@ -91,15 +100,18 @@ jobs:
         target: [x86_64, aarch64]
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSIONS_SHORT }}
+
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.target }}
           args: --release --out dist -i ${{ env.PYTHON_VERSIONS_LONG }}
           sccache: "true"
+
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
@@ -110,11 +122,13 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
+
       - name: Build sdist
         uses: PyO3/maturin-action@v1
         with:
           command: sdist
           args: --out dist
+
       - name: Upload sdist
         uses: actions/upload-artifact@v4
         with:
@@ -127,6 +141,7 @@ jobs:
     needs: [linux, musllinux, windows, macos, sdist]
     steps:
       - uses: actions/download-artifact@v4
+
       - name: Publish to PyPI
         uses: PyO3/maturin-action@v1
         env:

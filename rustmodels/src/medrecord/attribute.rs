@@ -1,7 +1,7 @@
 use super::{traits::DeepFrom, value::convert_pyobject_to_medrecordvalue};
 use crate::medrecord::errors::PyMedRecordError;
 use medmodels_core::medrecord::MedRecordAttribute;
-use pyo3::{Bound, FromPyObject, IntoPy, PyAny, PyObject, PyResult, Python};
+use pyo3::{Bound, FromPyObject, IntoPyObject, IntoPyObjectExt, PyAny, PyErr, PyResult, Python};
 use std::{hash::Hash, ops::Deref};
 
 #[repr(transparent)]
@@ -49,11 +49,15 @@ impl FromPyObject<'_> for PyMedRecordAttribute {
     }
 }
 
-impl IntoPy<PyObject> for PyMedRecordAttribute {
-    fn into_py(self, py: Python<'_>) -> PyObject {
+impl<'py> IntoPyObject<'py> for PyMedRecordAttribute {
+    type Target = PyAny;
+    type Output = Bound<'py, Self::Target>;
+    type Error = PyErr;
+
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
         match self.0 {
-            MedRecordAttribute::String(value) => value.into_py(py),
-            MedRecordAttribute::Int(value) => value.into_py(py),
+            MedRecordAttribute::String(value) => value.into_bound_py_any(py),
+            MedRecordAttribute::Int(value) => value.into_bound_py_any(py),
         }
     }
 }
