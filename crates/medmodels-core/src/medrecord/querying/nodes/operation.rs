@@ -32,7 +32,7 @@ use std::{
     ops::{Add, Mul, Range, Sub},
 };
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub enum EdgeDirection {
     Incoming,
     Outgoing,
@@ -97,14 +97,14 @@ impl DeepClone for NodeOperation {
             },
             Self::Edges { operand, direction } => Self::Edges {
                 operand: operand.deep_clone(),
-                direction: direction.clone(),
+                direction: *direction,
             },
             Self::Neighbors {
                 operand,
                 direction: drection,
             } => Self::Neighbors {
                 operand: operand.deep_clone(),
-                direction: drection.clone(),
+                direction: *drection,
             },
             Self::EitherOr { either, or } => Self::EitherOr {
                 either: either.deep_clone(),
@@ -153,7 +153,7 @@ impl NodeOperation {
                 medrecord,
                 node_indices,
                 operand.clone(),
-                direction.clone(),
+                *direction,
             )?),
             Self::Neighbors {
                 operand,
@@ -162,19 +162,19 @@ impl NodeOperation {
                 medrecord,
                 node_indices,
                 operand.clone(),
-                drection.clone(),
+                *drection,
             )?),
             Self::EitherOr { either, or } => {
                 // TODO: This is a temporary solution. It should be optimized.
-                let either_result = either.evaluate(medrecord)?.collect::<HashSet<_>>();
-                let or_result = or.evaluate(medrecord)?.collect::<HashSet<_>>();
+                let either_result = either.evaluate(medrecord, None)?.collect::<HashSet<_>>();
+                let or_result = or.evaluate(medrecord, None)?.collect::<HashSet<_>>();
 
                 Box::new(node_indices.filter(move |node_index| {
                     either_result.contains(node_index) || or_result.contains(node_index)
                 }))
             }
             Self::Exclude { operand } => {
-                let result = operand.evaluate(medrecord)?.collect::<HashSet<_>>();
+                let result = operand.evaluate(medrecord, None)?.collect::<HashSet<_>>();
 
                 Box::new(node_indices.filter(move |node_index| !result.contains(node_index)))
             }
@@ -313,9 +313,35 @@ impl NodeOperation {
         operand: Wrapper<EdgeOperand>,
         direction: EdgeDirection,
     ) -> MedRecordResult<impl Iterator<Item = &'a NodeIndex>> {
-        let edge_indices = operand.evaluate(medrecord)?.collect::<RoaringBitmap>();
+        let (node_indices_1, node_indices_2) = node_indices.tee();
 
-        Ok(node_indices.filter(move |node_index| {
+        let edge_indices = Box::new(node_indices_1.flat_map(move |node_index| {
+            match direction {
+                EdgeDirection::Incoming => medrecord
+                    .incoming_edges(node_index)
+                    .expect("Node must exist")
+                    .collect::<Vec<_>>(),
+                EdgeDirection::Outgoing => medrecord
+                    .outgoing_edges(node_index)
+                    .expect("Node must exist")
+                    .collect::<Vec<_>>(),
+                EdgeDirection::Both => medrecord
+                    .incoming_edges(node_index)
+                    .expect("Node must exist")
+                    .chain(
+                        medrecord
+                            .outgoing_edges(node_index)
+                            .expect("Node must exist"),
+                    )
+                    .collect::<Vec<_>>(),
+            }
+        }));
+
+        let edge_indices = operand
+            .evaluate(medrecord, Some(edge_indices))?
+            .collect::<RoaringBitmap>();
+
+        Ok(node_indices_2.filter(move |node_index| {
             let connected_indices = match direction {
                 EdgeDirection::Incoming => medrecord
                     .outgoing_edges(node_index)
@@ -347,7 +373,7 @@ impl NodeOperation {
         operand: Wrapper<NodeOperand>,
         direction: EdgeDirection,
     ) -> MedRecordResult<impl Iterator<Item = &'a NodeIndex>> {
-        let result = operand.evaluate(medrecord)?.collect::<HashSet<_>>();
+        let result = operand.evaluate(medrecord, None)?.collect::<HashSet<_>>();
 
         Ok(node_indices.filter(move |node_index| {
             let mut neighbors: Box<dyn Iterator<Item = &MedRecordAttribute>> = match direction {
@@ -394,7 +420,7 @@ macro_rules! get_node_index_comparison_operand {
                 let kind = &operand.kind;
 
                 // TODO: This is a temporary solution. It should be optimized.
-                let comparison_indices = context.evaluate($medrecord)?.cloned();
+                let comparison_indices = context.evaluate($medrecord, None)?.cloned();
 
                 let comparison_index = get_node_index!(kind, comparison_indices);
 
@@ -715,7 +741,7 @@ impl NodeIndicesOperation {
             NodeIndicesComparisonOperand::Operand(operand) => {
                 let context = &operand.context;
 
-                let comparison_indices = context.evaluate(medrecord)?.cloned();
+                let comparison_indices = context.evaluate(medrecord, None)?.cloned();
 
                 operand
                     .evaluate(medrecord, comparison_indices)?
@@ -954,7 +980,7 @@ impl NodeIndexOperation {
             NodeIndicesComparisonOperand::Operand(operand) => {
                 let context = &operand.context;
 
-                let comparison_indices = context.evaluate(medrecord)?.cloned();
+                let comparison_indices = context.evaluate(medrecord, None)?.cloned();
 
                 operand
                     .evaluate(medrecord, comparison_indices)?

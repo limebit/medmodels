@@ -46,8 +46,11 @@ impl EdgeOperand {
     pub(crate) fn evaluate<'a>(
         &self,
         medrecord: &'a MedRecord,
+        edge_indices: Option<BoxedIterator<'a, &'a EdgeIndex>>,
     ) -> MedRecordResult<impl Iterator<Item = &'a EdgeIndex>> {
-        let edge_indices = Box::new(medrecord.edge_indices()) as BoxedIterator<&'a EdgeIndex>;
+        let edge_indices = edge_indices.unwrap_or_else(|| {
+            Box::new(medrecord.edge_indices()) as Box<dyn Iterator<Item = &'a EdgeIndex>>
+        });
 
         self.operations
             .iter()
@@ -166,8 +169,9 @@ impl Wrapper<EdgeOperand> {
     pub(crate) fn evaluate<'a>(
         &self,
         medrecord: &'a MedRecord,
+        edge_indices: Option<BoxedIterator<'a, &'a EdgeIndex>>,
     ) -> MedRecordResult<impl Iterator<Item = &'a EdgeIndex>> {
-        self.0.read_or_panic().evaluate(medrecord)
+        self.0.read_or_panic().evaluate(medrecord, edge_indices)
     }
 
     pub fn attribute<A>(&self, attribute: A) -> Wrapper<MultipleValuesOperand>

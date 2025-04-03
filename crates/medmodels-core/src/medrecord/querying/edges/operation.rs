@@ -142,15 +142,15 @@ impl EdgeOperation {
             )?),
             Self::EitherOr { either, or } => {
                 // TODO: This is a temporary solution. It should be optimized.
-                let either_result = either.evaluate(medrecord)?.collect::<HashSet<_>>();
-                let or_result = or.evaluate(medrecord)?.collect::<HashSet<_>>();
+                let either_result = either.evaluate(medrecord, None)?.collect::<HashSet<_>>();
+                let or_result = or.evaluate(medrecord, None)?.collect::<HashSet<_>>();
 
                 Box::new(edge_indices.filter(move |node_index| {
                     either_result.contains(node_index) || or_result.contains(node_index)
                 }))
             }
             Self::Exclude { operand } => {
-                let result = operand.evaluate(medrecord)?.collect::<HashSet<_>>();
+                let result = operand.evaluate(medrecord, None)?.collect::<HashSet<_>>();
 
                 Box::new(edge_indices.filter(move |node_index| !result.contains(node_index)))
             }
@@ -288,7 +288,7 @@ impl EdgeOperation {
         edge_indices: impl Iterator<Item = &'a EdgeIndex>,
         operand: &Wrapper<NodeOperand>,
     ) -> MedRecordResult<impl Iterator<Item = &'a EdgeIndex>> {
-        let node_indices = operand.evaluate(medrecord)?.collect::<HashSet<_>>();
+        let node_indices = operand.evaluate(medrecord, None)?.collect::<HashSet<_>>();
 
         Ok(edge_indices.filter(move |edge_index| {
             let edge_endpoints = medrecord
@@ -305,7 +305,7 @@ impl EdgeOperation {
         edge_indices: impl Iterator<Item = &'a EdgeIndex>,
         operand: &Wrapper<NodeOperand>,
     ) -> MedRecordResult<impl Iterator<Item = &'a EdgeIndex>> {
-        let node_indices = operand.evaluate(medrecord)?.collect::<HashSet<_>>();
+        let node_indices = operand.evaluate(medrecord, None)?.collect::<HashSet<_>>();
 
         Ok(edge_indices.filter(move |edge_index| {
             let edge_endpoints = medrecord
@@ -338,7 +338,7 @@ macro_rules! get_edge_index_comparison_operand_index {
                 let kind = &operand.kind;
 
                 // TODO: This is a temporary solution. It should be optimized.
-                let comparison_indices = context.evaluate($medrecord)?.cloned();
+                let comparison_indices = context.evaluate($medrecord, None)?.cloned();
 
                 let comparison_index = get_edge_index!(kind, comparison_indices);
 
@@ -578,7 +578,7 @@ impl EdgeIndicesOperation {
             EdgeIndicesComparisonOperand::Operand(operand) => {
                 let context = &operand.context;
 
-                let comparison_indices = context.evaluate(medrecord)?.cloned();
+                let comparison_indices = context.evaluate(medrecord, None)?.cloned();
 
                 operand
                     .evaluate(medrecord, comparison_indices)?
@@ -749,7 +749,7 @@ impl EdgeIndexOperation {
             EdgeIndicesComparisonOperand::Operand(operand) => {
                 let context = &operand.context;
 
-                let comparison_indices = context.evaluate(medrecord)?.cloned();
+                let comparison_indices = context.evaluate(medrecord, None)?.cloned();
 
                 operand
                     .evaluate(medrecord, comparison_indices)?

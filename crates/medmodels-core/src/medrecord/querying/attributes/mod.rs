@@ -117,14 +117,14 @@ impl Context {
     ) -> MedRecordResult<BoxedIterator<'a, Vec<MedRecordAttribute>>> {
         Ok(match self {
             Self::NodeOperand(node_operand) => {
-                let node_indices = node_operand.evaluate(medrecord)?;
+                let node_indices = node_operand.evaluate(medrecord, None)?;
 
                 Box::new(
                     NodeOperation::get_attributes(medrecord, node_indices).map(|(_, value)| value),
                 )
             }
             Self::EdgeOperand(edge_operand) => {
-                let edge_indices = edge_operand.evaluate(medrecord)?;
+                let edge_indices = edge_operand.evaluate(medrecord, None)?;
 
                 Box::new(
                     EdgeOperation::get_attributes(medrecord, edge_indices).map(|(_, value)| value),

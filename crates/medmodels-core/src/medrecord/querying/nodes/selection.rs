@@ -23,7 +23,7 @@ impl<'a> NodeSelection<'a> {
     }
 
     pub fn iter(self) -> MedRecordResult<impl Iterator<Item = &'a NodeIndex>> {
-        self.operand.evaluate(self.medrecord)
+        self.operand.evaluate(self.medrecord, None)
     }
 
     pub fn collect<B>(self) -> MedRecordResult<B>

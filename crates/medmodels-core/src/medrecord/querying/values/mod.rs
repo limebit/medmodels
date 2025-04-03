@@ -22,7 +22,7 @@ use std::fmt::Display;
 
 macro_rules! get_attributes {
     ($operand:ident, $medrecord:ident, $operation:ident, $multiple_attributes_operand:ident) => {{
-        let indices = $operand.evaluate($medrecord)?;
+        let indices = $operand.evaluate($medrecord, None)?;
 
         let attributes = $operation::get_attributes($medrecord, indices);
 
@@ -148,7 +148,7 @@ impl Context {
     ) -> MedRecordResult<BoxedIterator<'a, MedRecordValue>> {
         Ok(match self {
             Self::NodeOperand(node_operand) => {
-                let node_indices = node_operand.evaluate(medrecord)?;
+                let node_indices = node_operand.evaluate(medrecord, None)?;
 
                 Box::new(
                     NodeOperation::get_values(medrecord, node_indices, attribute)
@@ -156,7 +156,7 @@ impl Context {
                 )
             }
             Self::EdgeOperand(edge_operand) => {
-                let edge_indices = edge_operand.evaluate(medrecord)?;
+                let edge_indices = edge_operand.evaluate(medrecord, None)?;
 
                 Box::new(
                     EdgeOperation::get_values(medrecord, edge_indices, attribute)

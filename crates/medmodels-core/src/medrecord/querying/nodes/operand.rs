@@ -47,8 +47,11 @@ impl NodeOperand {
     pub(crate) fn evaluate<'a>(
         &self,
         medrecord: &'a MedRecord,
+        node_indices: Option<BoxedIterator<'a, &'a NodeIndex>>,
     ) -> MedRecordResult<BoxedIterator<'a, &'a NodeIndex>> {
-        let node_indices = Box::new(medrecord.node_indices()) as BoxedIterator<'a, &'a NodeIndex>;
+        let node_indices = node_indices.unwrap_or_else(|| {
+            Box::new(medrecord.node_indices()) as BoxedIterator<'a, &'a NodeIndex>
+        });
 
         self.operations
             .iter()
@@ -169,8 +172,9 @@ impl Wrapper<NodeOperand> {
     pub(crate) fn evaluate<'a>(
         &self,
         medrecord: &'a MedRecord,
+        node_indices: Option<BoxedIterator<'a, &'a NodeIndex>>,
     ) -> MedRecordResult<BoxedIterator<'a, &'a NodeIndex>> {
-        self.0.read_or_panic().evaluate(medrecord)
+        self.0.read_or_panic().evaluate(medrecord, node_indices)
     }
 
     pub fn attribute<A>(&mut self, attribute: A) -> Wrapper<MultipleValuesOperand>
