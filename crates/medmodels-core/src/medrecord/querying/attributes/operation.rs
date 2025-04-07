@@ -357,7 +357,7 @@ impl AttributesTreeOperation {
                 let first_attribute =
                     attributes
                         .into_iter()
-                        .last()
+                        .next_back()
                         .ok_or(MedRecordError::QueryError(
                             "No attributes to compare".to_string(),
                         ))?;

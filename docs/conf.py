@@ -1,3 +1,5 @@
+# pyright: reportPrivateImportUsage=false
+
 """Sphinx configuration."""
 
 import importlib.metadata
