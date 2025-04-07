@@ -166,7 +166,7 @@ class OverviewTable:
             data (Dict[Group, AttributeInfo]): Dictionary containing attribute info for
                 edges/nodes.
             group_header (str): Header for group column, i.e. 'Group Nodes'.
-            decimal (int): Decimal point to round the float values to.
+            decimal (int): Decimal point to round the float values to. Defaults to 1.
             type_table (TypeTable): Type of the table to be displayed.
                 It can be either MedRecord or Schema.
         """
@@ -1708,9 +1708,14 @@ class MedRecord:
     ) -> Dict[Group, AttributeInfo]:
         """Creates a summary of group nodes and their attributes.
 
+        Args:
+            groups (Optional[GroupInputList], optional): List of groups that should be
+                considered. If no groups are given, all groups containing nodes will be
+                summarized. Defaults to None.
+
         Returns:
-            pl.DataFrame: Dataframe with all nodes in medrecord groups and their
-                attributes.
+            Dict[Group, AttributeInfo]: Dictionary with an overview of nodes in each
+                group and their attributes.
         """
         schema = self.get_schema()
         nodes_info = {}
@@ -1767,7 +1772,8 @@ class MedRecord:
                 summarized. Defaults to None.
 
         Returns:
-            pl.DataFrame: DataFrame with an overview of edges connecting group nodes.
+            Dict[Group, AttributeInfo]: Dictionary with an overview of edges in each
+                group and their attributes.
         """
         schema = self.get_schema()
         edges_info = {}

@@ -135,8 +135,7 @@ def prettify_table(  # noqa: C901
         if not detailed_values:
             rows.append("-")
         else:
-            rows.append(format_detail(*detailed_values[0]))
-            for label, value in detailed_values[1:]:
+            for label, value in detailed_values:
                 rows.append(format_detail(label, value))
         return rows
 
