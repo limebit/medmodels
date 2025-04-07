@@ -109,22 +109,11 @@ class Matching(ABC):
         if one_hot_covariates is None:
             patients_schema = medrecord.get_schema().group(patients_group).nodes
 
-            def in_group_query(node: NodeOperand) -> None:
-                return node.in_group(patients_group)
-
-            attributes = medrecord._extract_attribute_summary(
-                schema=patients_schema, type="nodes", group_query=in_group_query
-            )
             one_hot_covariates = [
                 covariate
-                for covariate, values in attributes.items()
-                if AttributeType.Categorical.value in values["type"]
-            ]
-
-            one_hot_covariates = [
-                covariate
-                for covariate in one_hot_covariates
-                if covariate in essential_covariates
+                for covariate, (_, attribute_type) in patients_schema.items()
+                if attribute_type == AttributeType.Categorical
+                and covariate in essential_covariates
             ]
 
         # If there are one-hot covariates, check if all are in the essential covariates
