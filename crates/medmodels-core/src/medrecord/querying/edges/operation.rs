@@ -141,11 +141,18 @@ impl EdgeOperation {
                 operand,
             )?),
             Self::EitherOr { either, or } => {
-                // TODO: This is a temporary solution. It should be optimized.
-                let either_result = either.evaluate(medrecord, None)?.collect::<HashSet<_>>();
-                let or_result = or.evaluate(medrecord, None)?.collect::<HashSet<_>>();
+                let (edge_indices_1, temp_edge_indices) = edge_indices.tee();
+                let (edge_indices_2, edge_indices_3) = temp_edge_indices.tee();
 
-                Box::new(edge_indices.filter(move |node_index| {
+                // TODO: This is a temporary solution. It should be optimized.
+                let either_result = either
+                    .evaluate(medrecord, Some(Box::new(edge_indices_1)))?
+                    .collect::<HashSet<_>>();
+                let or_result = or
+                    .evaluate(medrecord, Some(Box::new(edge_indices_2)))?
+                    .collect::<HashSet<_>>();
+
+                Box::new(edge_indices_3.filter(move |node_index| {
                     either_result.contains(node_index) || or_result.contains(node_index)
                 }))
             }
@@ -285,12 +292,24 @@ impl EdgeOperation {
     #[inline]
     fn evaluate_source_node<'a>(
         medrecord: &'a MedRecord,
-        edge_indices: impl Iterator<Item = &'a EdgeIndex>,
+        edge_indices: impl Iterator<Item = &'a EdgeIndex> + 'a,
         operand: &Wrapper<NodeOperand>,
     ) -> MedRecordResult<impl Iterator<Item = &'a EdgeIndex>> {
-        let node_indices = operand.evaluate(medrecord, None)?.collect::<HashSet<_>>();
+        let (edge_indices_1, edge_indices_2) = edge_indices.tee();
 
-        Ok(edge_indices.filter(move |edge_index| {
+        let node_indices = edge_indices_1.map(move |edge_index| {
+            let edge_endpoints = medrecord
+                .edge_endpoints(edge_index)
+                .expect("Edge must exist");
+
+            edge_endpoints.0
+        });
+
+        let node_indices = operand
+            .evaluate(medrecord, Some(Box::new(node_indices)))?
+            .collect::<HashSet<_>>();
+
+        Ok(edge_indices_2.filter(move |edge_index| {
             let edge_endpoints = medrecord
                 .edge_endpoints(edge_index)
                 .expect("Edge must exist");
@@ -302,12 +321,24 @@ impl EdgeOperation {
     #[inline]
     fn evaluate_target_node<'a>(
         medrecord: &'a MedRecord,
-        edge_indices: impl Iterator<Item = &'a EdgeIndex>,
+        edge_indices: impl Iterator<Item = &'a EdgeIndex> + 'a,
         operand: &Wrapper<NodeOperand>,
     ) -> MedRecordResult<impl Iterator<Item = &'a EdgeIndex>> {
-        let node_indices = operand.evaluate(medrecord, None)?.collect::<HashSet<_>>();
+        let (edge_indices_1, edge_indices_2) = edge_indices.tee();
 
-        Ok(edge_indices.filter(move |edge_index| {
+        let node_indices = edge_indices_1.map(move |edge_index| {
+            let edge_endpoints = medrecord
+                .edge_endpoints(edge_index)
+                .expect("Edge must exist");
+
+            edge_endpoints.1
+        });
+
+        let node_indices = operand
+            .evaluate(medrecord, Some(Box::new(node_indices)))?
+            .collect::<HashSet<_>>();
+
+        Ok(edge_indices_2.filter(move |edge_index| {
             let edge_endpoints = medrecord
                 .edge_endpoints(edge_index)
                 .expect("Edge must exist");

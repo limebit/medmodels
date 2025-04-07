@@ -337,6 +337,12 @@ impl NodeOperation {
             }
         }));
 
+        let edge_indices = edge_indices.collect::<Vec<_>>();
+
+        println!("edge_indices: {:?}", edge_indices);
+
+        let edge_indices = Box::new(edge_indices.into_iter());
+
         let edge_indices = operand
             .evaluate(medrecord, Some(edge_indices))?
             .collect::<RoaringBitmap>();
@@ -369,13 +375,34 @@ impl NodeOperation {
     #[inline]
     fn evaluate_neighbors<'a>(
         medrecord: &'a MedRecord,
-        node_indices: impl Iterator<Item = &'a NodeIndex>,
+        node_indices: impl Iterator<Item = &'a NodeIndex> + 'a,
         operand: Wrapper<NodeOperand>,
         direction: EdgeDirection,
     ) -> MedRecordResult<impl Iterator<Item = &'a NodeIndex>> {
-        let result = operand.evaluate(medrecord, None)?.collect::<HashSet<_>>();
+        let (node_indices_1, node_indices_2) = node_indices.tee();
 
-        Ok(node_indices.filter(move |node_index| {
+        let neighbors = Box::new(node_indices_1.flat_map(move |node_index| {
+            match direction {
+                EdgeDirection::Incoming => medrecord
+                    .neighbors_incoming(node_index)
+                    .expect("Node must exist")
+                    .collect::<Vec<_>>(),
+                EdgeDirection::Outgoing => medrecord
+                    .neighbors_outgoing(node_index)
+                    .expect("Node must exist")
+                    .collect::<Vec<_>>(),
+                EdgeDirection::Both => medrecord
+                    .neighbors_undirected(node_index)
+                    .expect("Node must exist")
+                    .collect::<Vec<_>>(),
+            }
+        }));
+
+        let result = operand
+            .evaluate(medrecord, Some(neighbors))?
+            .collect::<HashSet<_>>();
+
+        Ok(node_indices_2.filter(move |node_index| {
             let mut neighbors: Box<dyn Iterator<Item = &MedRecordAttribute>> = match direction {
                 EdgeDirection::Incoming => Box::new(
                     medrecord
