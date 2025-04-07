@@ -9,10 +9,7 @@ from medmodels._medmodels import (
     PyGroupSchema,
     PySchema,
 )
-
-
-def create_medrecord() -> mr.MedRecord:
-    return mr.MedRecord.from_simple_example_dataset()
+from medmodels.medrecord.tests.test_medrecord import strip_ansi
 
 
 class TestAttributeType(unittest.TestCase):
@@ -446,6 +443,45 @@ class TestSchema(unittest.TestCase):
         schema.unfreeze()
 
         assert schema.schema_type == mr.SchemaType.Inferred
+
+    def test_repr(self) -> None:
+        medrecord = mr.MedRecord.from_simple_example_dataset()
+        schema = medrecord.get_schema()
+        schema_representation = strip_ansi(str(schema))
+
+        expected = "\n".join(
+            [
+                "──────────────────────────────────── Nodes ─────────────────────────────────────",
+                "┏━━━━━━━━━━━┳━━━━━━━━━━━━━┳━━━━━━━━━━━━━━┳━━━━━━━━━━┓",
+                "┃ Nodes     ┃ attribute   ┃ type         ┃ datatype ┃",
+                "┡━━━━━━━━━━━╇━━━━━━━━━━━━━╇━━━━━━━━━━━━━━╇━━━━━━━━━━┩",
+                "│ diagnosis │ description │ Unstructured │ String   │",
+                "│           │             │              │          │",
+                "│ drug      │ description │ Unstructured │ String   │",
+                "│           │             │              │          │",
+                "│ patient   │ age         │ Continuous   │ Int      │",
+                "│           │ gender      │ Categorical  │ String   │",
+                "│           │             │              │          │",
+                "│ procedure │ description │ Unstructured │ String   │",
+                "└───────────┴─────────────┴──────────────┴──────────┘",
+                "──────────────────────────────────── Edges ─────────────────────────────────────",
+                "┏━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━┳━━━━━━━━━━━━━━━┓",
+                "┃ Edges             ┃ attribute        ┃ type       ┃ datatype      ┃",
+                "┡━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━╇━━━━━━━━━━━━━━━┩",
+                "│ patient_diagnosis │ duration_days    │ Continuous │ Option(Float) │",
+                "│                   │ time             │ Temporal   │ DateTime      │",
+                "│                   │                  │            │               │",
+                "│ patient_drug      │ cost             │ Continuous │ Float         │",
+                "│                   │ quantity         │ Continuous │ Int           │",
+                "│                   │ time             │ Temporal   │ DateTime      │",
+                "│                   │                  │            │               │",
+                "│ patient_procedure │ duration_minutes │ Continuous │ Float         │",
+                "│                   │ time             │ Temporal   │ DateTime      │",
+                "└───────────────────┴──────────────────┴────────────┴───────────────┘",
+            ]
+        )
+
+        assert schema_representation.strip() == expected.strip()
 
 
 if __name__ == "__main__":
