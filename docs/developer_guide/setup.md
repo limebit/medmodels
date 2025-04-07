@@ -17,6 +17,7 @@ MedModels utilizes a `Makefile` to manage development tasks. Here's a breakdown 
 - **install-docs:** Similar to install, but additionally installs development dependencies needed for building the docs.
 - **build-dev:** Builds the Rust crate and installs it as a python module (using `maturin develop`).
 - **test:** Runs both Python (using `pytest`) and Rust unit tests (using `cargo test`).
+- **test-python-coverage:** Runs Python tests with detailed output and generates a line-by-line coverage report.
 - **docs** Builds the docs using `sphinx`.
 - **docs-serve** Builds docs and live serves them to the localhost.
 - **docs-clean** Removes all locally generated documentation files.
