@@ -197,12 +197,12 @@ impl MultipleValuesOperand {
         }
     }
 
-    pub(crate) fn evaluate<'a, T: 'a + Eq + Hash>(
+    pub(crate) fn evaluate<'a, T: 'a + Eq + Hash + Clone>(
         &self,
         medrecord: &'a MedRecord,
-        values: impl Iterator<Item = (&'a T, MedRecordValue)> + 'a,
-    ) -> MedRecordResult<impl Iterator<Item = (&'a T, MedRecordValue)>> {
-        let values = Box::new(values) as BoxedIterator<(&'a T, MedRecordValue)>;
+        values: impl Iterator<Item = (T, MedRecordValue)> + 'a,
+    ) -> MedRecordResult<impl Iterator<Item = (T, MedRecordValue)> + 'a> {
+        let values = Box::new(values) as BoxedIterator<(T, MedRecordValue)>;
 
         self.operations
             .iter()
@@ -332,11 +332,11 @@ impl Wrapper<MultipleValuesOperand> {
         MultipleValuesOperand::new(context, attribute).into()
     }
 
-    pub(crate) fn evaluate<'a, T: 'a + Eq + Hash>(
+    pub(crate) fn evaluate<'a, T: 'a + Eq + Hash + Clone>(
         &self,
         medrecord: &'a MedRecord,
-        values: impl Iterator<Item = (&'a T, MedRecordValue)> + 'a,
-    ) -> MedRecordResult<impl Iterator<Item = (&'a T, MedRecordValue)>> {
+        values: impl Iterator<Item = (T, MedRecordValue)> + 'a,
+    ) -> MedRecordResult<impl Iterator<Item = (T, MedRecordValue)> + 'a> {
         self.0.read_or_panic().evaluate(medrecord, values)
     }
 

@@ -52,8 +52,8 @@ macro_rules! get_single_operand_attribute {
             SingleKind::Min => MultipleAttributesOperation::get_min($attributes)?.1,
             SingleKind::Count => MultipleAttributesOperation::get_count($attributes),
             SingleKind::Sum => MultipleAttributesOperation::get_sum($attributes)?,
-            SingleKind::First => MultipleAttributesOperation::get_first($attributes)?,
-            SingleKind::Last => MultipleAttributesOperation::get_last($attributes)?,
+            SingleKind::First => MultipleAttributesOperation::get_first($attributes)?.1,
+            SingleKind::Last => MultipleAttributesOperation::get_last($attributes)?.1,
         }
     };
 }
@@ -65,9 +65,7 @@ macro_rules! get_single_attribute_comparison_operand_attribute {
                 let context = &operand.context.context.context;
                 let kind = &operand.context.kind;
 
-                let comparison_attributes = context
-                    .get_attributes($medrecord)?
-                    .map(|attribute| (&0, attribute));
+                let comparison_attributes = context.get_attributes($medrecord)?;
 
                 let comparison_attributes: Box<dyn Iterator<Item = (_, MedRecordAttribute)>> =
                     get_multiple_operand_attributes!(kind, comparison_attributes);
@@ -166,11 +164,11 @@ impl DeepClone for AttributesTreeOperation {
 }
 
 impl AttributesTreeOperation {
-    pub(crate) fn evaluate<'a, T: Eq + Hash + GetAttributes + Display>(
+    pub(crate) fn evaluate<'a, T: 'a + Eq + Clone + Hash + GetAttributes + Display>(
         &self,
         medrecord: &'a MedRecord,
-        attributes: impl Iterator<Item = (&'a T, Vec<MedRecordAttribute>)> + 'a,
-    ) -> MedRecordResult<BoxedIterator<'a, (&'a T, Vec<MedRecordAttribute>)>> {
+        attributes: impl Iterator<Item = (T, Vec<MedRecordAttribute>)> + 'a,
+    ) -> MedRecordResult<BoxedIterator<'a, (T, Vec<MedRecordAttribute>)>> {
         match self {
             Self::AttributesOperation { operand } => Ok(Box::new(
                 Self::evaluate_attributes_operation(medrecord, attributes, operand)?,
@@ -232,9 +230,9 @@ impl AttributesTreeOperation {
     }
 
     #[inline]
-    pub(crate) fn get_max<'a, T: 'a>(
-        attributes: impl Iterator<Item = (&'a T, Vec<MedRecordAttribute>)>,
-    ) -> MedRecordResult<impl Iterator<Item = (&'a T, MedRecordAttribute)>> {
+    pub(crate) fn get_max<T>(
+        attributes: impl Iterator<Item = (T, Vec<MedRecordAttribute>)>,
+    ) -> MedRecordResult<impl Iterator<Item = (T, MedRecordAttribute)>> {
         Ok(attributes.map(|(index, attributes)| {
             let mut attributes = attributes.into_iter();
 
@@ -263,9 +261,9 @@ impl AttributesTreeOperation {
     }
 
     #[inline]
-    pub(crate) fn get_min<'a, T: 'a>(
-        attributes: impl Iterator<Item = (&'a T, Vec<MedRecordAttribute>)>,
-    ) -> MedRecordResult<impl Iterator<Item = (&'a T, MedRecordAttribute)>> {
+    pub(crate) fn get_min<T>(
+        attributes: impl Iterator<Item = (T, Vec<MedRecordAttribute>)>,
+    ) -> MedRecordResult<impl Iterator<Item = (T, MedRecordAttribute)>> {
         Ok(attributes.map(|(index, attributes)| {
             let mut attributes = attributes.into_iter();
 
@@ -294,17 +292,17 @@ impl AttributesTreeOperation {
     }
 
     #[inline]
-    pub(crate) fn get_count<'a, T: 'a>(
-        attributes: impl Iterator<Item = (&'a T, Vec<MedRecordAttribute>)>,
-    ) -> MedRecordResult<impl Iterator<Item = (&'a T, MedRecordAttribute)>> {
+    pub(crate) fn get_count<T>(
+        attributes: impl Iterator<Item = (T, Vec<MedRecordAttribute>)>,
+    ) -> MedRecordResult<impl Iterator<Item = (T, MedRecordAttribute)>> {
         Ok(attributes
             .map(|(index, attribute)| (index, MedRecordAttribute::Int(attribute.len() as i64))))
     }
 
     #[inline]
-    pub(crate) fn get_sum<'a, T: 'a>(
-        attributes: impl Iterator<Item = (&'a T, Vec<MedRecordAttribute>)>,
-    ) -> MedRecordResult<impl Iterator<Item = (&'a T, MedRecordAttribute)>> {
+    pub(crate) fn get_sum<T>(
+        attributes: impl Iterator<Item = (T, Vec<MedRecordAttribute>)>,
+    ) -> MedRecordResult<impl Iterator<Item = (T, MedRecordAttribute)>> {
         Ok(attributes.map(|(index, attributes)| {
             let mut attributes = attributes.into_iter();
 
@@ -329,9 +327,9 @@ impl AttributesTreeOperation {
     }
 
     #[inline]
-    pub(crate) fn get_first<'a, T: 'a>(
-        attributes: impl Iterator<Item = (&'a T, Vec<MedRecordAttribute>)>,
-    ) -> MedRecordResult<impl Iterator<Item = (&'a T, MedRecordAttribute)>> {
+    pub(crate) fn get_first<T>(
+        attributes: impl Iterator<Item = (T, Vec<MedRecordAttribute>)>,
+    ) -> MedRecordResult<impl Iterator<Item = (T, MedRecordAttribute)>> {
         Ok(attributes
             .map(|(index, attributes)| {
                 let first_attribute =
@@ -349,9 +347,9 @@ impl AttributesTreeOperation {
     }
 
     #[inline]
-    pub(crate) fn get_last<'a, T: 'a>(
-        attributes: impl Iterator<Item = (&'a T, Vec<MedRecordAttribute>)>,
-    ) -> MedRecordResult<impl Iterator<Item = (&'a T, MedRecordAttribute)>> {
+    pub(crate) fn get_last<T>(
+        attributes: impl Iterator<Item = (T, Vec<MedRecordAttribute>)>,
+    ) -> MedRecordResult<impl Iterator<Item = (T, MedRecordAttribute)>> {
         Ok(attributes
             .map(|(index, attributes)| {
                 let first_attribute =
@@ -369,11 +367,11 @@ impl AttributesTreeOperation {
     }
 
     #[inline]
-    fn evaluate_attributes_operation<'a, T: 'a + Eq + Hash + GetAttributes + Display>(
+    fn evaluate_attributes_operation<'a, T: 'a + Clone + Eq + Hash + GetAttributes + Display>(
         medrecord: &'a MedRecord,
-        attributes: impl Iterator<Item = (&'a T, Vec<MedRecordAttribute>)>,
+        attributes: impl Iterator<Item = (T, Vec<MedRecordAttribute>)> + 'a,
         operand: &Wrapper<MultipleAttributesOperand>,
-    ) -> MedRecordResult<impl Iterator<Item = (&'a T, Vec<MedRecordAttribute>)>> {
+    ) -> MedRecordResult<impl Iterator<Item = (T, Vec<MedRecordAttribute>)> + 'a> {
         let kind = &operand.0.read_or_panic().kind;
 
         let attributes = attributes.collect::<Vec<_>>();
@@ -385,17 +383,21 @@ impl AttributesTreeOperation {
 
         let mut attributes = attributes.into_iter().collect::<HashMap<_, _>>();
 
-        Ok(result
-            .map(move |(index, _)| (index, attributes.remove(&index).expect("Index must exist"))))
+        Ok(result.map(move |(index, _)| {
+            (
+                index.clone(),
+                attributes.remove(&index).expect("Index must exist"),
+            )
+        }))
     }
 
     #[inline]
     fn evaluate_single_attribute_comparison_operation<'a, T>(
         medrecord: &'a MedRecord,
-        attributes: impl Iterator<Item = (&'a T, Vec<MedRecordAttribute>)> + 'a,
+        attributes: impl Iterator<Item = (T, Vec<MedRecordAttribute>)> + 'a,
         comparison_operand: &SingleAttributeComparisonOperand,
         kind: &SingleComparisonKind,
-    ) -> MedRecordResult<BoxedIterator<'a, (&'a T, Vec<MedRecordAttribute>)>> {
+    ) -> MedRecordResult<BoxedIterator<'a, (T, Vec<MedRecordAttribute>)>> {
         let comparison_attribute =
             get_single_attribute_comparison_operand_attribute!(comparison_operand, medrecord);
 
@@ -505,18 +507,18 @@ impl AttributesTreeOperation {
     #[inline]
     fn evaluate_multiple_attributes_comparison_operation<'a, T>(
         medrecord: &'a MedRecord,
-        attributes: impl Iterator<Item = (&'a T, Vec<MedRecordAttribute>)> + 'a,
+        attributes: impl Iterator<Item = (T, Vec<MedRecordAttribute>)> + 'a,
         comparison_operand: &MultipleAttributesComparisonOperand,
         kind: &MultipleComparisonKind,
-    ) -> MedRecordResult<BoxedIterator<'a, (&'a T, Vec<MedRecordAttribute>)>> {
+    ) -> MedRecordResult<BoxedIterator<'a, (T, Vec<MedRecordAttribute>)>> {
         let comparison_attributes = match comparison_operand {
             MultipleAttributesComparisonOperand::Operand(operand) => {
                 let context = &operand.context.context;
                 let kind = &operand.kind;
 
-                let comparison_attributes = context
-                    .get_attributes(medrecord)?
-                    .map(|attribute| (&0, attribute));
+                let comparison_attributes = context.get_attributes(medrecord)?;
+
+                // TODO: Does this need to be passed through operand.context.evaluate as well?
 
                 let comparison_attributes: Box<dyn Iterator<Item = (_, MedRecordAttribute)>> =
                     get_multiple_operand_attributes!(kind, comparison_attributes);
@@ -557,63 +559,72 @@ impl AttributesTreeOperation {
 
     #[inline]
     fn evaluate_binary_arithmetic_operation<'a, T: 'a>(
-        medrecord: &'a MedRecord,
-        attributes: impl Iterator<Item = (&'a T, Vec<MedRecordAttribute>)> + 'a,
+        medrecord: &MedRecord,
+        attributes: impl Iterator<Item = (T, Vec<MedRecordAttribute>)>,
         operand: &SingleAttributeComparisonOperand,
         kind: &BinaryArithmeticKind,
-    ) -> MedRecordResult<BoxedIterator<'a, (&'a T, Vec<MedRecordAttribute>)>> {
+    ) -> MedRecordResult<BoxedIterator<'a, (T, Vec<MedRecordAttribute>)>> {
         let arithmetic_attribute =
             get_single_attribute_comparison_operand_attribute!(operand, medrecord);
 
-        let attributes: Box<
-            dyn Iterator<Item = MedRecordResult<(&'a T, Vec<MedRecordAttribute>)>>,
-        > = match kind {
-            BinaryArithmeticKind::Add => Box::new(attributes.map(move |(index, attributes)| {
-                Ok((
-                    index,
-                    attributes
-                        .into_iter()
-                        .map(|attribute| attribute.add(arithmetic_attribute.clone()))
-                        .collect::<MedRecordResult<Vec<_>>>()?,
-                ))
-            })),
-            BinaryArithmeticKind::Sub => Box::new(attributes.map(move |(index, attributes)| {
-                Ok((
-                    index,
-                    attributes
-                        .into_iter()
-                        .map(|attribute| attribute.sub(arithmetic_attribute.clone()))
-                        .collect::<MedRecordResult<Vec<_>>>()?,
-                ))
-            })),
-            BinaryArithmeticKind::Mul => Box::new(attributes.map(move |(index, attributes)| {
-                Ok((
-                    index,
-                    attributes
-                        .into_iter()
-                        .map(|attribute| attribute.mul(arithmetic_attribute.clone()))
-                        .collect::<MedRecordResult<Vec<_>>>()?,
-                ))
-            })),
-            BinaryArithmeticKind::Pow => Box::new(attributes.map(move |(index, attributes)| {
-                Ok((
-                    index,
-                    attributes
-                        .into_iter()
-                        .map(|attribute| attribute.pow(arithmetic_attribute.clone()))
-                        .collect::<MedRecordResult<Vec<_>>>()?,
-                ))
-            })),
-            BinaryArithmeticKind::Mod => Box::new(attributes.map(move |(index, attributes)| {
-                Ok((
-                    index,
-                    attributes
-                        .into_iter()
-                        .map(|attribute| attribute.r#mod(arithmetic_attribute.clone()))
-                        .collect::<MedRecordResult<Vec<_>>>()?,
-                ))
-            })),
-        };
+        let attributes: Box<dyn Iterator<Item = MedRecordResult<(T, Vec<MedRecordAttribute>)>>> =
+            match kind {
+                BinaryArithmeticKind::Add => {
+                    Box::new(attributes.map(move |(index, attributes)| {
+                        Ok((
+                            index,
+                            attributes
+                                .into_iter()
+                                .map(|attribute| attribute.add(arithmetic_attribute.clone()))
+                                .collect::<MedRecordResult<Vec<_>>>()?,
+                        ))
+                    }))
+                }
+                BinaryArithmeticKind::Sub => {
+                    Box::new(attributes.map(move |(index, attributes)| {
+                        Ok((
+                            index,
+                            attributes
+                                .into_iter()
+                                .map(|attribute| attribute.sub(arithmetic_attribute.clone()))
+                                .collect::<MedRecordResult<Vec<_>>>()?,
+                        ))
+                    }))
+                }
+                BinaryArithmeticKind::Mul => {
+                    Box::new(attributes.map(move |(index, attributes)| {
+                        Ok((
+                            index,
+                            attributes
+                                .into_iter()
+                                .map(|attribute| attribute.mul(arithmetic_attribute.clone()))
+                                .collect::<MedRecordResult<Vec<_>>>()?,
+                        ))
+                    }))
+                }
+                BinaryArithmeticKind::Pow => {
+                    Box::new(attributes.map(move |(index, attributes)| {
+                        Ok((
+                            index,
+                            attributes
+                                .into_iter()
+                                .map(|attribute| attribute.pow(arithmetic_attribute.clone()))
+                                .collect::<MedRecordResult<Vec<_>>>()?,
+                        ))
+                    }))
+                }
+                BinaryArithmeticKind::Mod => {
+                    Box::new(attributes.map(move |(index, attributes)| {
+                        Ok((
+                            index,
+                            attributes
+                                .into_iter()
+                                .map(|attribute| attribute.r#mod(arithmetic_attribute.clone()))
+                                .collect::<MedRecordResult<Vec<_>>>()?,
+                        ))
+                    }))
+                }
+            };
 
         Ok(Box::new(
             attributes.collect::<MedRecordResult<Vec<_>>>()?.into_iter(),
@@ -621,10 +632,10 @@ impl AttributesTreeOperation {
     }
 
     #[inline]
-    fn evaluate_unary_arithmetic_operation<'a, T: 'a>(
-        attributes: impl Iterator<Item = (&'a T, Vec<MedRecordAttribute>)>,
+    fn evaluate_unary_arithmetic_operation<T>(
+        attributes: impl Iterator<Item = (T, Vec<MedRecordAttribute>)>,
         kind: UnaryArithmeticKind,
-    ) -> impl Iterator<Item = (&'a T, Vec<MedRecordAttribute>)> {
+    ) -> impl Iterator<Item = (T, Vec<MedRecordAttribute>)> {
         attributes.map(move |(index, attributes)| {
             (
                 index,
@@ -644,10 +655,10 @@ impl AttributesTreeOperation {
     }
 
     #[inline]
-    fn evaluate_slice<'a, T: 'a>(
-        attributes: impl Iterator<Item = (&'a T, Vec<MedRecordAttribute>)>,
+    fn evaluate_slice<T>(
+        attributes: impl Iterator<Item = (T, Vec<MedRecordAttribute>)>,
         range: Range<usize>,
-    ) -> impl Iterator<Item = (&'a T, Vec<MedRecordAttribute>)> {
+    ) -> impl Iterator<Item = (T, Vec<MedRecordAttribute>)> {
         attributes.map(move |(index, attributes)| {
             (
                 index,
@@ -660,12 +671,12 @@ impl AttributesTreeOperation {
     }
 
     #[inline]
-    fn evaluate_either_or<'a, T: 'a + Eq + Hash + GetAttributes + Display>(
+    fn evaluate_either_or<'a, T: 'a + Eq + Clone + Hash + GetAttributes + Display>(
         medrecord: &'a MedRecord,
-        attributes: impl Iterator<Item = (&'a T, Vec<MedRecordAttribute>)>,
+        attributes: impl Iterator<Item = (T, Vec<MedRecordAttribute>)>,
         either: &Wrapper<AttributesTreeOperand>,
         or: &Wrapper<AttributesTreeOperand>,
-    ) -> MedRecordResult<BoxedIterator<'a, (&'a T, Vec<MedRecordAttribute>)>> {
+    ) -> MedRecordResult<BoxedIterator<'a, (T, Vec<MedRecordAttribute>)>> {
         let attributes = attributes.collect::<Vec<_>>();
 
         let either_attributes = either.evaluate(medrecord, attributes.clone().into_iter())?;
@@ -674,16 +685,16 @@ impl AttributesTreeOperation {
         Ok(Box::new(
             either_attributes
                 .chain(or_attributes)
-                .unique_by(|attribute| attribute.0),
+                .unique_by(|attribute| attribute.0.clone()),
         ))
     }
 
     #[inline]
-    fn evaluate_exclude<'a, T: 'a + Eq + Hash + GetAttributes + Display>(
+    fn evaluate_exclude<'a, T: 'a + Eq + Clone + Hash + GetAttributes + Display>(
         medrecord: &'a MedRecord,
-        attributes: impl Iterator<Item = (&'a T, Vec<MedRecordAttribute>)>,
+        attributes: impl Iterator<Item = (T, Vec<MedRecordAttribute>)>,
         operand: &Wrapper<AttributesTreeOperand>,
-    ) -> MedRecordResult<BoxedIterator<'a, (&'a T, Vec<MedRecordAttribute>)>> {
+    ) -> MedRecordResult<BoxedIterator<'a, (T, Vec<MedRecordAttribute>)>> {
         let attributes = attributes.collect::<Vec<_>>();
 
         let result = operand
@@ -786,11 +797,11 @@ impl DeepClone for MultipleAttributesOperation {
 }
 
 impl MultipleAttributesOperation {
-    pub(crate) fn evaluate<'a, T: Eq + Hash + GetAttributes + Display>(
+    pub(crate) fn evaluate<'a, T: 'a + Eq + Clone + Hash + GetAttributes + Display>(
         &self,
         medrecord: &'a MedRecord,
-        attributes: impl Iterator<Item = (&'a T, MedRecordAttribute)> + 'a,
-    ) -> MedRecordResult<BoxedIterator<'a, (&'a T, MedRecordAttribute)>> {
+        attributes: impl Iterator<Item = (T, MedRecordAttribute)> + 'a,
+    ) -> MedRecordResult<BoxedIterator<'a, (T, MedRecordAttribute)>> {
         match self {
             Self::AttributeOperation { operand } => {
                 Self::evaluate_attribute_operation(medrecord, attributes, operand)
@@ -843,9 +854,9 @@ impl MultipleAttributesOperation {
     }
 
     #[inline]
-    pub(crate) fn get_max<'a, T>(
-        mut attributes: impl Iterator<Item = (&'a T, MedRecordAttribute)>,
-    ) -> MedRecordResult<(&'a T, MedRecordAttribute)> {
+    pub(crate) fn get_max<T>(
+        mut attributes: impl Iterator<Item = (T, MedRecordAttribute)>,
+    ) -> MedRecordResult<(T, MedRecordAttribute)> {
         let max_attribute = attributes.next().ok_or(MedRecordError::QueryError(
             "No attributes to compare".to_string(),
         ))?;
@@ -868,9 +879,9 @@ impl MultipleAttributesOperation {
     }
 
     #[inline]
-    pub(crate) fn get_min<'a, T>(
-        mut attributes: impl Iterator<Item = (&'a T, MedRecordAttribute)>,
-    ) -> MedRecordResult<(&'a T, MedRecordAttribute)> {
+    pub(crate) fn get_min<T>(
+        mut attributes: impl Iterator<Item = (T, MedRecordAttribute)>,
+    ) -> MedRecordResult<(T, MedRecordAttribute)> {
         let min_attribute = attributes.next().ok_or(MedRecordError::QueryError(
             "No attributes to compare".to_string(),
         ))?;
@@ -893,16 +904,16 @@ impl MultipleAttributesOperation {
     }
 
     #[inline]
-    pub(crate) fn get_count<'a, T: 'a>(
-        attributes: impl Iterator<Item = (&'a T, MedRecordAttribute)>,
+    pub(crate) fn get_count<T>(
+        attributes: impl Iterator<Item = (T, MedRecordAttribute)>,
     ) -> MedRecordAttribute {
         MedRecordAttribute::Int(attributes.count() as i64)
     }
 
     #[inline]
     // 🥊💥
-    pub(crate) fn get_sum<'a, T: 'a>(
-        mut attributes: impl Iterator<Item = (&'a T, MedRecordAttribute)>,
+    pub(crate) fn get_sum<T>(
+        mut attributes: impl Iterator<Item = (T, MedRecordAttribute)>,
     ) -> MedRecordResult<MedRecordAttribute> {
         let first_attribute = attributes.next().ok_or(MedRecordError::QueryError(
             "No attributes to compare".to_string(),
@@ -922,35 +933,29 @@ impl MultipleAttributesOperation {
     }
 
     #[inline]
-    pub(crate) fn get_first<'a, T: 'a>(
-        mut attributes: impl Iterator<Item = (&'a T, MedRecordAttribute)>,
-    ) -> MedRecordResult<MedRecordAttribute> {
-        attributes
-            .next()
-            .ok_or(MedRecordError::QueryError(
-                "No attributes to get the first".to_string(),
-            ))
-            .map(|(_, attribute)| attribute)
+    pub(crate) fn get_first<T>(
+        mut attributes: impl Iterator<Item = (T, MedRecordAttribute)>,
+    ) -> MedRecordResult<(T, MedRecordAttribute)> {
+        attributes.next().ok_or(MedRecordError::QueryError(
+            "No attributes to get the first".to_string(),
+        ))
     }
 
     #[inline]
-    pub(crate) fn get_last<'a, T: 'a>(
-        attributes: impl Iterator<Item = (&'a T, MedRecordAttribute)>,
-    ) -> MedRecordResult<MedRecordAttribute> {
-        attributes
-            .last()
-            .ok_or(MedRecordError::QueryError(
-                "No attributes to get the first".to_string(),
-            ))
-            .map(|(_, attribute)| attribute)
+    pub(crate) fn get_last<T>(
+        attributes: impl Iterator<Item = (T, MedRecordAttribute)>,
+    ) -> MedRecordResult<(T, MedRecordAttribute)> {
+        attributes.last().ok_or(MedRecordError::QueryError(
+            "No attributes to get the first".to_string(),
+        ))
     }
 
     #[inline]
-    fn evaluate_attribute_operation<'a, T>(
+    fn evaluate_attribute_operation<'a, T: 'a + Clone>(
         medrecord: &'a MedRecord,
-        attribtues: impl Iterator<Item = (&'a T, MedRecordAttribute)>,
+        attribtues: impl Iterator<Item = (T, MedRecordAttribute)>,
         operand: &Wrapper<SingleAttributeOperand>,
-    ) -> MedRecordResult<BoxedIterator<'a, (&'a T, MedRecordAttribute)>> {
+    ) -> MedRecordResult<BoxedIterator<'a, (T, MedRecordAttribute)>> {
         let kind = &operand.0.read_or_panic().kind;
 
         let attributes = attribtues.collect::<Vec<_>>();
@@ -966,10 +971,10 @@ impl MultipleAttributesOperation {
     #[inline]
     fn evaluate_single_attribute_comparison_operation<'a, T>(
         medrecord: &'a MedRecord,
-        attributes: impl Iterator<Item = (&'a T, MedRecordAttribute)> + 'a,
+        attributes: impl Iterator<Item = (T, MedRecordAttribute)> + 'a,
         comparison_operand: &SingleAttributeComparisonOperand,
         kind: &SingleComparisonKind,
-    ) -> MedRecordResult<BoxedIterator<'a, (&'a T, MedRecordAttribute)>> {
+    ) -> MedRecordResult<BoxedIterator<'a, (T, MedRecordAttribute)>> {
         let comparison_attribute =
             get_single_attribute_comparison_operand_attribute!(comparison_operand, medrecord);
 
@@ -1025,18 +1030,16 @@ impl MultipleAttributesOperation {
     #[inline]
     fn evaluate_multiple_attributes_comparison_operation<'a, T>(
         medrecord: &'a MedRecord,
-        attributes: impl Iterator<Item = (&'a T, MedRecordAttribute)> + 'a,
+        attributes: impl Iterator<Item = (T, MedRecordAttribute)> + 'a,
         comparison_operand: &MultipleAttributesComparisonOperand,
         kind: &MultipleComparisonKind,
-    ) -> MedRecordResult<BoxedIterator<'a, (&'a T, MedRecordAttribute)>> {
+    ) -> MedRecordResult<BoxedIterator<'a, (T, MedRecordAttribute)>> {
         let comparison_attributes = match comparison_operand {
             MultipleAttributesComparisonOperand::Operand(operand) => {
                 let context = &operand.context.context;
                 let kind = &operand.kind;
 
-                let comparison_attributes = context
-                    .get_attributes(medrecord)?
-                    .map(|attribute| (&0, attribute));
+                let comparison_attributes = context.get_attributes(medrecord)?;
 
                 let comparison_attributes: Box<dyn Iterator<Item = (_, MedRecordAttribute)>> =
                     get_multiple_operand_attributes!(kind, comparison_attributes);
@@ -1064,12 +1067,12 @@ impl MultipleAttributesOperation {
     }
 
     #[inline]
-    fn evaluate_binary_arithmetic_operation<'a, T: 'a>(
-        medrecord: &'a MedRecord,
-        attributes: impl Iterator<Item = (&'a T, MedRecordAttribute)>,
+    fn evaluate_binary_arithmetic_operation<T>(
+        medrecord: &MedRecord,
+        attributes: impl Iterator<Item = (T, MedRecordAttribute)>,
         operand: &SingleAttributeComparisonOperand,
         kind: &BinaryArithmeticKind,
-    ) -> MedRecordResult<impl Iterator<Item = (&'a T, MedRecordAttribute)>> {
+    ) -> MedRecordResult<impl Iterator<Item = (T, MedRecordAttribute)>> {
         let arithmetic_attribute =
             get_single_attribute_comparison_operand_attribute!(operand, medrecord);
 
@@ -1101,10 +1104,10 @@ impl MultipleAttributesOperation {
     }
 
     #[inline]
-    fn evaluate_unary_arithmetic_operation<'a, T: 'a>(
-        attributes: impl Iterator<Item = (&'a T, MedRecordAttribute)>,
+    fn evaluate_unary_arithmetic_operation<T>(
+        attributes: impl Iterator<Item = (T, MedRecordAttribute)>,
         kind: UnaryArithmeticKind,
-    ) -> impl Iterator<Item = (&'a T, MedRecordAttribute)> {
+    ) -> impl Iterator<Item = (T, MedRecordAttribute)> {
         attributes.map(move |(t, attribute)| {
             let attribute = match kind {
                 UnaryArithmeticKind::Abs => attribute.abs(),
@@ -1118,10 +1121,10 @@ impl MultipleAttributesOperation {
         })
     }
 
-    pub(crate) fn get_values<'a, T: 'a + Eq + Hash + GetAttributes + Display>(
+    pub(crate) fn get_values<'a, T: 'a + Eq + Clone + Hash + GetAttributes + Display>(
         medrecord: &'a MedRecord,
-        attributes: impl Iterator<Item = (&'a T, MedRecordAttribute)>,
-    ) -> MedRecordResult<impl Iterator<Item = (&'a T, MedRecordValue)>> {
+        attributes: impl Iterator<Item = (T, MedRecordAttribute)>,
+    ) -> MedRecordResult<impl Iterator<Item = (T, MedRecordValue)>> {
         Ok(attributes
             .map(|(index, attribute)| {
                 let value = index.get_attributes(medrecord)?.get(&attribute).ok_or(
@@ -1131,18 +1134,18 @@ impl MultipleAttributesOperation {
                     )),
                 )?;
 
-                Ok((index, value.clone()))
+                Ok((index.clone(), value.clone()))
             })
             .collect::<MedRecordResult<Vec<_>>>()?
             .into_iter())
     }
 
     #[inline]
-    fn evaluate_to_values<'a, T: 'a + Eq + Hash + GetAttributes + Display>(
+    fn evaluate_to_values<'a, T: 'a + Eq + Clone + Hash + GetAttributes + Display>(
         medrecord: &'a MedRecord,
-        attributes: impl Iterator<Item = (&'a T, MedRecordAttribute)>,
+        attributes: impl Iterator<Item = (T, MedRecordAttribute)> + 'a,
         operand: &Wrapper<MultipleValuesOperand>,
-    ) -> MedRecordResult<impl Iterator<Item = (&'a T, MedRecordAttribute)>> {
+    ) -> MedRecordResult<impl Iterator<Item = (T, MedRecordAttribute)> + 'a> {
         let attributes = attributes.collect::<Vec<_>>();
 
         let values = Self::get_values(medrecord, attributes.clone().into_iter())?;
@@ -1153,27 +1156,27 @@ impl MultipleAttributesOperation {
 
         Ok(values.map(move |(index, _)| {
             (
-                index,
+                index.clone(),
                 attributes.remove(&index).expect("Attribute must exist"),
             )
         }))
     }
 
     #[inline]
-    fn evaluate_slice<'a, T: 'a>(
-        attributes: impl Iterator<Item = (&'a T, MedRecordAttribute)>,
+    fn evaluate_slice<T>(
+        attributes: impl Iterator<Item = (T, MedRecordAttribute)>,
         range: Range<usize>,
-    ) -> impl Iterator<Item = (&'a T, MedRecordAttribute)> {
+    ) -> impl Iterator<Item = (T, MedRecordAttribute)> {
         attributes.map(move |(t, attribute)| (t, attribute.slice(range.clone())))
     }
 
     #[inline]
-    fn evaluate_either_or<'a, T: 'a + Eq + Hash + GetAttributes + Display>(
+    fn evaluate_either_or<'a, T: 'a + Eq + Clone + Hash + GetAttributes + Display>(
         medrecord: &'a MedRecord,
-        attributes: impl Iterator<Item = (&'a T, MedRecordAttribute)>,
+        attributes: impl Iterator<Item = (T, MedRecordAttribute)>,
         either: &Wrapper<MultipleAttributesOperand>,
         or: &Wrapper<MultipleAttributesOperand>,
-    ) -> MedRecordResult<BoxedIterator<'a, (&'a T, MedRecordAttribute)>> {
+    ) -> MedRecordResult<BoxedIterator<'a, (T, MedRecordAttribute)>> {
         let attributes = attributes.collect::<Vec<_>>();
 
         let either_attributes = either.evaluate(medrecord, attributes.clone().into_iter())?;
@@ -1182,16 +1185,16 @@ impl MultipleAttributesOperation {
         Ok(Box::new(
             either_attributes
                 .chain(or_attributes)
-                .unique_by(|attribute| attribute.0),
+                .unique_by(|attribute| attribute.0.clone()),
         ))
     }
 
     #[inline]
-    fn evaluate_exclude<'a, T: 'a + Eq + Hash + GetAttributes + Display>(
+    fn evaluate_exclude<'a, T: 'a + Eq + Clone + Hash + GetAttributes + Display>(
         medrecord: &'a MedRecord,
-        attributes: impl Iterator<Item = (&'a T, MedRecordAttribute)>,
+        attributes: impl Iterator<Item = (T, MedRecordAttribute)>,
         operand: &Wrapper<MultipleAttributesOperand>,
-    ) -> MedRecordResult<BoxedIterator<'a, (&'a T, MedRecordAttribute)>> {
+    ) -> MedRecordResult<BoxedIterator<'a, (T, MedRecordAttribute)>> {
         let attributes = attributes.collect::<Vec<_>>();
 
         let result = operand
@@ -1365,9 +1368,7 @@ impl SingleAttributeOperation {
                 let context = &operand.context.context;
                 let kind = &operand.kind;
 
-                let comparison_attributes = context
-                    .get_attributes(medrecord)?
-                    .map(|attribute| (&0, attribute));
+                let comparison_attributes = context.get_attributes(medrecord)?;
 
                 let comparison_attributes: Box<dyn Iterator<Item = (_, MedRecordAttribute)>> =
                     get_multiple_operand_attributes!(kind, comparison_attributes);

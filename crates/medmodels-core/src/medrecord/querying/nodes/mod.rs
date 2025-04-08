@@ -1,13 +1,11 @@
 mod operand;
 mod operation;
-mod selection;
 
 pub use operand::{
     NodeIndexComparisonOperand, NodeIndexOperand, NodeIndicesComparisonOperand, NodeIndicesOperand,
     NodeOperand,
 };
-pub use operation::{EdgeDirection, NodeOperation};
-pub use selection::NodeSelection;
+pub use operation::{EdgeDirection, NodeIndicesOperation, NodeOperation};
 use std::fmt::Display;
 
 #[derive(Debug, Clone)]

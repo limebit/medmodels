@@ -1,13 +1,11 @@
 mod operand;
 mod operation;
-mod selection;
 
 pub use operand::{
     EdgeIndexComparisonOperand, EdgeIndexOperand, EdgeIndicesComparisonOperand, EdgeIndicesOperand,
     EdgeOperand,
 };
-pub use operation::EdgeOperation;
-pub use selection::EdgeSelection;
+pub use operation::{EdgeIndicesOperation, EdgeOperation};
 use std::fmt::Display;
 
 #[derive(Debug, Clone)]

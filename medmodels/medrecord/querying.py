@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import Callable, List, TypeAlias, Union
+from typing import Callable, Dict, List, Optional, Tuple, TypeAlias, Union
 
 from medmodels._medmodels import (
     PyAttributesTreeOperand,
@@ -27,8 +27,88 @@ from medmodels.medrecord.types import (
     NodeIndex,
 )
 
-NodeQuery: TypeAlias = Callable[["NodeOperand"], None]
-EdgeQuery: TypeAlias = Callable[["EdgeOperand"], None]
+PyQueryReturnOperand: TypeAlias = Union[
+    PyAttributesTreeOperand,
+    PyMultipleAttributesOperand,
+    PySingleAttributeOperand,
+    PyEdgeIndicesOperand,
+    PyEdgeIndexOperand,
+    PyNodeIndicesOperand,
+    PyNodeIndexOperand,
+    PyMultipleValuesOperand,
+    PySingleValueOperand,
+]
+
+#: A type alias for a query return operand.
+QueryReturnOperand = Union[
+    "AttributesTreeOperand",
+    "MultipleAttributesOperand",
+    "SingleAttributeOperand",
+    "EdgeIndicesOperand",
+    "EdgeIndexOperand",
+    "NodeIndicesOperand",
+    "NodeIndexOperand",
+    "MultipleValuesOperand",
+    "SingleValueOperand",
+]
+
+AttributesTreeQueryResult = Union[
+    Dict[NodeIndex, List[MedRecordAttribute]],
+    Dict[EdgeIndex, List[MedRecordAttribute]],
+]
+
+MultipleAttributesQueryResult = Union[
+    Dict[NodeIndex, List[MedRecordAttribute]],
+    Dict[EdgeIndex, List[MedRecordAttribute]],
+]
+
+SingleAttributeQueryResult = Union[
+    Optional[Tuple[NodeIndex, MedRecordAttribute]],
+    Optional[Tuple[EdgeIndex, MedRecordAttribute]],
+    Optional[MedRecordAttribute],
+]
+
+EdgeIndicesQueryResult = List[EdgeIndex]
+
+EdgeIndexQueryResult = Optional[EdgeIndex]
+
+NodeIndicesQueryResult = List[NodeIndex]
+
+NodeIndexQueryResult = Optional[NodeIndex]
+
+MultipleValuesQueryResult = Union[
+    Dict[NodeIndex, List[MedRecordValue]],
+    Dict[EdgeIndex, List[MedRecordValue]],
+]
+
+SingleValueQueryResult = Union[
+    Optional[Tuple[NodeIndex, MedRecordValue]],
+    Optional[Tuple[EdgeIndex, MedRecordValue]],
+    Optional[MedRecordValue],
+]
+
+#: A type alias for a query result.
+QueryResult = Union[
+    AttributesTreeQueryResult,
+    MultipleAttributesQueryResult,
+    SingleAttributeQueryResult,
+    EdgeIndicesQueryResult,
+    EdgeIndexQueryResult,
+    NodeIndicesQueryResult,
+    NodeIndexQueryResult,
+    MultipleValuesQueryResult,
+    SingleValueQueryResult,
+]
+
+NodeQuery: TypeAlias = Callable[["NodeOperand"], QueryReturnOperand]
+NodeQueryExtension: TypeAlias = Callable[["NodeOperand"], None]
+NodeIndicesQuery: TypeAlias = Callable[["NodeOperand"], "NodeIndicesOperand"]
+NodeIndexQuery: TypeAlias = Callable[["NodeOperand"], "NodeIndexOperand"]
+
+EdgeQuery: TypeAlias = Callable[["EdgeOperand"], QueryReturnOperand]
+EdgeQueryExtension: TypeAlias = Callable[["EdgeOperand"], None]
+EdgeIndicesQuery: TypeAlias = Callable[["EdgeOperand"], "EdgeIndicesOperand"]
+EdgeIndexQuery: TypeAlias = Callable[["EdgeOperand"], "EdgeIndexOperand"]
 
 SingleValueComparisonOperand: TypeAlias = Union["SingleValueOperand", MedRecordValue]
 SingleValueArithmeticOperand: TypeAlias = SingleValueComparisonOperand
@@ -263,7 +343,11 @@ class NodeOperand:
             self._node_operand.neighbors(edge_direction._into_py_edge_direction())
         )
 
-    def either_or(self, either: NodeQuery, or_: NodeQuery) -> None:
+    def either_or(
+        self,
+        either: NodeQueryExtension,
+        or_: NodeQueryExtension,
+    ) -> None:
         """Apply either-or logic to the current node query.
 
         It applies the combination of the two queries to the node query. It returns all
@@ -288,7 +372,7 @@ class NodeOperand:
             lambda node: or_(NodeOperand._from_py_node_operand(node)),
         )
 
-    def exclude(self, query: NodeQuery) -> None:
+    def exclude(self, query: NodeQueryExtension) -> None:
         """Exclude nodes based on the query.
 
         Args:
@@ -388,7 +472,11 @@ class EdgeOperand:
         """
         return NodeOperand._from_py_node_operand(self._edge_operand.target_node())
 
-    def either_or(self, either: EdgeQuery, or_: EdgeQuery) -> None:
+    def either_or(
+        self,
+        either: EdgeQueryExtension,
+        or_: EdgeQueryExtension,
+    ) -> None:
         """Apply either-or logic to the current edge query.
 
         This method applies the combination of the two queries to the edge query. It
@@ -415,7 +503,7 @@ class EdgeOperand:
             lambda edge: or_(EdgeOperand._from_py_edge_operand(edge)),
         )
 
-    def exclude(self, query: EdgeQuery) -> None:
+    def exclude(self, query: EdgeQueryExtension) -> None:
         """Exclude edges based on the query.
 
         Args:

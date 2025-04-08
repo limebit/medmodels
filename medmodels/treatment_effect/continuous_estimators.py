@@ -12,7 +12,7 @@ from medmodels.treatment_effect.temporal_analysis import find_reference_edge
 
 if TYPE_CHECKING:
     from medmodels.medrecord.medrecord import MedRecord
-    from medmodels.medrecord.querying import EdgeOperand
+    from medmodels.medrecord.querying import EdgeIndicesOperand, EdgeOperand
     from medmodels.medrecord.types import Group, MedRecordAttribute, NodeIndex
 
 logger = logging.getLogger(__name__)
@@ -105,7 +105,7 @@ def average_treatment_effect(
         )
 
     else:
-        edges_treated_outcomes = medrecord.select_edges(
+        edges_treated_outcomes = medrecord.query_edges(
             lambda edge: query_edges_between_set_outcome(
                 edge, treatment_outcome_true_set, outcome_group
             )
@@ -117,7 +117,7 @@ def average_treatment_effect(
             ]
         )
 
-        edges_control_outcomes = medrecord.select_edges(
+        edges_control_outcomes = medrecord.query_edges(
             lambda edge: query_edges_between_set_outcome(
                 edge, control_outcome_true_set, outcome_group
             )
@@ -221,7 +221,7 @@ def cohens_d(
             ]
         )
     else:
-        edges_treated_outcomes = medrecord.select_edges(
+        edges_treated_outcomes = medrecord.query_edges(
             lambda edge: query_edges_between_set_outcome(
                 edge, treatment_outcome_true_set, outcome_group
             )
@@ -233,7 +233,7 @@ def cohens_d(
             ]
         )
 
-        edges_control_outcomes = medrecord.select_edges(
+        edges_control_outcomes = medrecord.query_edges(
             lambda edge: query_edges_between_set_outcome(
                 edge, control_outcome_true_set, outcome_group
             )
@@ -332,7 +332,7 @@ def hedges_g(
             ]
         )
     else:
-        edges_treated_outcomes = medrecord.select_edges(
+        edges_treated_outcomes = medrecord.query_edges(
             lambda edge: query_edges_between_set_outcome(
                 edge, treatment_outcome_true_set, outcome_group
             )
@@ -344,7 +344,7 @@ def hedges_g(
             ]
         )
 
-        edges_control_outcomes = medrecord.select_edges(
+        edges_control_outcomes = medrecord.query_edges(
             lambda edge: query_edges_between_set_outcome(
                 edge, control_outcome_true_set, outcome_group
             )
@@ -384,7 +384,7 @@ CONTINUOUS_ESTIMATOR = {
 
 def query_edges_between_set_outcome(
     edge: EdgeOperand, set: Set[NodeIndex], outcomes_group: Group
-) -> None:
+) -> EdgeIndicesOperand:
     """Query edges that connect a set of nodes to the outcomes group.
 
     Args:
@@ -392,6 +392,9 @@ def query_edges_between_set_outcome(
         set (Set[NodeIndex]): A set of node indices representing the treated group that
             also have the outcome.
         outcomes_group (Group): The group of nodes that contain the outcome variable.
+
+    Returns:
+        EdgeIndicesOperand: The edge indices of the queried edges.
     """
     list_nodes = list(set)
     edge.either_or(
@@ -403,3 +406,5 @@ def query_edges_between_set_outcome(
         lambda edge: edge.source_node().in_group(outcomes_group),
         lambda edge: edge.target_node().in_group(outcomes_group),
     )
+
+    return edge.index()

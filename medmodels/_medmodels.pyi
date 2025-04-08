@@ -1,6 +1,7 @@
 from enum import Enum
 from typing import Callable, Dict, List, Optional, Sequence, TypeAlias, Union
 
+from medmodels.medrecord.querying import PyQueryReturnOperand, QueryResult
 from medmodels.medrecord.types import (
     Attributes,
     AttributesInput,
@@ -277,12 +278,12 @@ class PyMedRecord:
         self, node_indices: NodeIndexInputList
     ) -> Dict[NodeIndex, List[NodeIndex]]: ...
     def clear(self) -> None: ...
-    def select_nodes(
-        self, query: Callable[[PyNodeOperand], None]
-    ) -> List[NodeIndex]: ...
-    def select_edges(
-        self, query: Callable[[PyEdgeOperand], None]
-    ) -> List[EdgeIndex]: ...
+    def query_nodes(
+        self, query: Callable[[PyNodeOperand], PyQueryReturnOperand]
+    ) -> QueryResult: ...
+    def query_edges(
+        self, query: Callable[[PyEdgeOperand], PyQueryReturnOperand]
+    ) -> QueryResult: ...
     def clone(self) -> PyMedRecord: ...
 
 class PyEdgeDirection(Enum):

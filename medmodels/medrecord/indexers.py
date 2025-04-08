@@ -23,7 +23,12 @@ from medmodels.medrecord.types import (
 
 if TYPE_CHECKING:
     from medmodels import MedRecord
-    from medmodels.medrecord.querying import EdgeQuery, NodeQuery
+    from medmodels.medrecord.querying import (
+        EdgeIndexQuery,
+        EdgeIndicesQuery,
+        NodeIndexQuery,
+        NodeIndicesQuery,
+    )
 
 
 class NodeIndexer:
@@ -43,13 +48,18 @@ class NodeIndexer:
     def __getitem__(
         self,
         key: Union[
-            NodeIndex, Tuple[NodeIndex, Union[MedRecordAttributeInputList, slice]]
+            NodeIndex,
+            NodeIndexQuery,
+            Tuple[
+                Union[NodeIndex, NodeIndexQuery],
+                Union[MedRecordAttributeInputList, slice],
+            ],
         ],
     ) -> Attributes: ...
 
     @overload
     def __getitem__(
-        self, key: Tuple[NodeIndex, MedRecordAttribute]
+        self, key: Tuple[Union[NodeIndex, NodeIndexQuery], MedRecordAttribute]
     ) -> MedRecordValue: ...
 
     @overload
@@ -57,10 +67,10 @@ class NodeIndexer:
         self,
         key: Union[
             NodeIndexInputList,
-            NodeQuery,
+            NodeIndicesQuery,
             slice,
             Tuple[
-                Union[NodeIndexInputList, NodeQuery, slice],
+                Union[NodeIndexInputList, NodeIndicesQuery, slice],
                 Union[MedRecordAttributeInputList, slice],
             ],
         ],
@@ -69,7 +79,9 @@ class NodeIndexer:
     @overload
     def __getitem__(
         self,
-        key: Tuple[Union[NodeIndexInputList, NodeQuery, slice], MedRecordAttribute],
+        key: Tuple[
+            Union[NodeIndexInputList, NodeIndicesQuery, slice], MedRecordAttribute
+        ],
     ) -> Dict[NodeIndex, MedRecordValue]: ...
 
     def __getitem__(  # noqa: C901
@@ -77,10 +89,17 @@ class NodeIndexer:
         key: Union[
             NodeIndex,
             NodeIndexInputList,
-            NodeQuery,
+            NodeIndexQuery,
+            NodeIndicesQuery,
             slice,
             Tuple[
-                Union[NodeIndex, NodeIndexInputList, NodeQuery, slice],
+                Union[
+                    NodeIndex,
+                    NodeIndexInputList,
+                    NodeIndexQuery,
+                    NodeIndicesQuery,
+                    slice,
+                ],
                 Union[MedRecordAttribute, MedRecordAttributeInputList, slice],
             ],
         ],
@@ -93,7 +112,7 @@ class NodeIndexer:
         """Gets the node attributes for the specified key.
 
         Args:
-            key (Union[NodeIndex, NodeIndexInputList, NodeQuery, slice, Tuple[Union[NodeIndex, NodeIndexInputList, NodeQuery, slice], Union[MedRecordAttribute, MedRecordAttributeInputList, slice]]):
+            key (Union[NodeIndex, NodeIndexInputList, NodeIndexQuery, NodeIndicesQuery, slice, Tuple[Union[NodeIndex, NodeIndexInputList, NodeIndexQuery, NodeIndicesQuery, slice], Union[MedRecordAttribute, MedRecordAttributeInputList, slice]]):
                 The nodes to get attributes for.
 
         Returns:
@@ -102,6 +121,7 @@ class NodeIndexer:
 
         Raises:
             ValueError: If the key is a slice, but not ":" is provided.
+            IndexError: If the query returned no results.
         """  # noqa: W505
         if is_node_index(key):
             return self._medrecord._medrecord.node([key])[key]
@@ -110,7 +130,15 @@ class NodeIndexer:
             return self._medrecord._medrecord.node(key)
 
         if isinstance(key, Callable):
-            return self._medrecord._medrecord.node(self._medrecord.select_nodes(key))
+            query_result = self._medrecord.query_nodes(key)
+
+            if isinstance(query_result, list):
+                return self._medrecord._medrecord.node(query_result)
+            if query_result:
+                return self._medrecord._medrecord.node([query_result])[query_result]
+
+            msg = "The query returned no results"
+            raise IndexError(msg)
 
         if isinstance(key, slice):
             if key.start is not None or key.stop is not None or key.step is not None:
@@ -138,11 +166,18 @@ class NodeIndexer:
         if isinstance(index_selection, Callable) and is_medrecord_attribute(
             attribute_selection
         ):
-            attributes = self._medrecord._medrecord.node(
-                self._medrecord.select_nodes(index_selection)
-            )
+            query_result = self._medrecord.query_nodes(index_selection)
+            if isinstance(query_result, list):
+                attributes = self._medrecord._medrecord.node(query_result)
 
-            return {x: attributes[x][attribute_selection] for x in attributes}
+                return {x: attributes[x][attribute_selection] for x in attributes}
+            if query_result:
+                return self._medrecord._medrecord.node([query_result])[query_result][
+                    attribute_selection
+                ]
+
+            msg = "The query returned no results"
+            raise IndexError(msg)
 
         if isinstance(index_selection, slice) and is_medrecord_attribute(
             attribute_selection
@@ -178,14 +213,23 @@ class NodeIndexer:
         if isinstance(index_selection, Callable) and isinstance(
             attribute_selection, list
         ):
-            attributes = self._medrecord._medrecord.node(
-                self._medrecord.select_nodes(index_selection)
-            )
+            query_result = self._medrecord.query_nodes(index_selection)
 
-            return {
-                x: {y: attributes[x][y] for y in attribute_selection}
-                for x in attributes
-            }
+            if isinstance(query_result, list):
+                attributes = self._medrecord._medrecord.node(query_result)
+
+                return {
+                    x: {y: attributes[x][y] for y in attribute_selection}
+                    for x in attributes
+                }
+            if query_result:
+                return {
+                    x: self._medrecord._medrecord.node([query_result])[query_result][x]
+                    for x in attribute_selection
+                }
+
+            msg = "The query returned no results"
+            raise IndexError(msg)
 
         if isinstance(index_selection, slice) and isinstance(attribute_selection, list):
             if (
@@ -236,9 +280,15 @@ class NodeIndexer:
                 msg = "Invalid slice, only ':' is allowed"
                 raise ValueError(msg)
 
-            return self._medrecord._medrecord.node(
-                self._medrecord.select_nodes(index_selection)
-            )
+            query_result = self._medrecord.query_nodes(index_selection)
+
+            if isinstance(query_result, list):
+                return self._medrecord._medrecord.node(query_result)
+            if query_result:
+                return self._medrecord._medrecord.node([query_result])[query_result]
+
+            msg = "The query returned no results"
+            raise IndexError(msg)
 
         if isinstance(index_selection, slice) and isinstance(
             attribute_selection, slice
@@ -260,7 +310,9 @@ class NodeIndexer:
     @overload
     def __setitem__(
         self,
-        key: Union[NodeIndex, NodeIndexInputList, NodeQuery, slice],
+        key: Union[
+            NodeIndex, NodeIndexInputList, NodeIndexQuery, NodeIndicesQuery, slice
+        ],
         value: AttributesInput,
     ) -> None: ...
 
@@ -268,7 +320,9 @@ class NodeIndexer:
     def __setitem__(
         self,
         key: Tuple[
-            Union[NodeIndex, NodeIndexInputList, NodeQuery, slice],
+            Union[
+                NodeIndex, NodeIndexInputList, NodeIndexQuery, NodeIndicesQuery, slice
+            ],
             Union[MedRecordAttribute, MedRecordAttributeInputList, slice],
         ],
         value: MedRecordValue,
@@ -279,10 +333,17 @@ class NodeIndexer:
         key: Union[
             NodeIndex,
             NodeIndexInputList,
-            NodeQuery,
+            NodeIndexQuery,
+            NodeIndicesQuery,
             slice,
             Tuple[
-                Union[NodeIndex, NodeIndexInputList, NodeQuery, slice],
+                Union[
+                    NodeIndex,
+                    NodeIndexInputList,
+                    NodeIndexQuery,
+                    NodeIndicesQuery,
+                    slice,
+                ],
                 Union[MedRecordAttribute, MedRecordAttributeInputList, slice],
             ],
         ],
@@ -291,7 +352,7 @@ class NodeIndexer:
         """Sets the specified node attributes.
 
         Args:
-            key (Union[NodeIndex, NodeIndexInputList, NodeQuery, slice, Tuple[Union[NodeIndex, NodeIndexInputList, NodeQuery, slice], Union[MedRecordAttribute, MedRecordAttributeInputList, slice]]):
+            key (Union[NodeIndex, NodeIndexInputList, NodeIndexQuery, NodeIndicesQuery, slice, Tuple[Union[NodeIndex, NodeIndexInputList, NodeIndexQuery, NodeIndicesQuery, slice], Union[MedRecordAttribute, MedRecordAttributeInputList, slice]]):
                 The nodes to set attributes for.
             value (Union[AttributesInput, MedRecordValue]): The values to set.
 
@@ -318,9 +379,18 @@ class NodeIndexer:
                 msg = "Invalid value type. Expected Attributes"
                 raise ValueError(msg)
 
-            return self._medrecord._medrecord.replace_node_attributes(
-                self._medrecord.select_nodes(key), value
-            )
+            query_result = self._medrecord.query_nodes(key)
+
+            if isinstance(query_result, list):
+                return self._medrecord._medrecord.replace_node_attributes(
+                    query_result, value
+                )
+            if query_result:
+                return self._medrecord._medrecord.replace_node_attributes(
+                    [query_result], value
+                )
+
+            return None
 
         if isinstance(key, slice):
             if key.start is not None or key.stop is not None or key.step is not None:
@@ -366,11 +436,18 @@ class NodeIndexer:
                 msg = "Invalid value type. Expected MedRecordValue"
                 raise ValueError(msg)
 
-            return self._medrecord._medrecord.update_node_attribute(
-                self._medrecord.select_nodes(index_selection),
-                attribute_selection,
-                value,
-            )
+            query_result = self._medrecord.query_nodes(index_selection)
+
+            if isinstance(query_result, list):
+                return self._medrecord._medrecord.update_node_attribute(
+                    query_result, attribute_selection, value
+                )
+            if query_result:
+                return self._medrecord._medrecord.update_node_attribute(
+                    [query_result], attribute_selection, value
+                )
+
+            return None
 
         if isinstance(index_selection, slice) and is_medrecord_attribute(
             attribute_selection
@@ -424,10 +501,20 @@ class NodeIndexer:
                 msg = "Invalid value type. Expected MedRecordValue"
                 raise ValueError(msg)
 
-            for attribute in attribute_selection:
-                self._medrecord._medrecord.update_node_attribute(
-                    self._medrecord.select_nodes(index_selection), attribute, value
-                )
+            query_result = self._medrecord.query_nodes(index_selection)
+
+            if isinstance(query_result, list):
+                for attribute in attribute_selection:
+                    self._medrecord._medrecord.update_node_attribute(
+                        query_result, attribute, value
+                    )
+                return None
+            if query_result:
+                for attribute in attribute_selection:
+                    self._medrecord._medrecord.update_node_attribute(
+                        [query_result], attribute, value
+                    )
+                return None
 
             return None
 
@@ -515,14 +602,26 @@ class NodeIndexer:
                 msg = "Invalid value type. Expected MedRecordValue"
                 raise ValueError(msg)
 
-            attributes = self._medrecord._medrecord.node(
-                self._medrecord.select_nodes(index_selection)
-            )
+            query_result = self._medrecord.query_nodes(index_selection)
 
-            for node in attributes:
-                for attribute in attributes[node]:
+            if isinstance(query_result, list):
+                attributes = self._medrecord._medrecord.node(query_result)
+
+                for node in attributes:
+                    for attribute in attributes[node]:
+                        self._medrecord._medrecord.update_node_attribute(
+                            [node], attribute, value
+                        )
+            elif query_result:
+                attributes = self._medrecord._medrecord.node([query_result])[
+                    query_result
+                ]
+
+                for attribute in attributes:
                     self._medrecord._medrecord.update_node_attribute(
-                        [node], attribute, value
+                        [query_result],
+                        attribute,
+                        value,
                     )
 
             return None
@@ -559,14 +658,16 @@ class NodeIndexer:
     def __delitem__(  # noqa: C901
         self,
         key: Tuple[
-            Union[NodeIndex, NodeIndexInputList, NodeQuery, slice],
+            Union[
+                NodeIndex, NodeIndexInputList, NodeIndexQuery, NodeIndicesQuery, slice
+            ],
             Union[MedRecordAttribute, MedRecordAttributeInputList, slice],
         ],
     ) -> None:
         """Deletes the specified node attributes.
 
         Args:
-            key (Tuple[Union[NodeIndex, NodeIndexInputList, NodeQuery, slice], Union[MedRecordAttribute, MedRecordAttributeInputList, slice]]):
+            key (Tuple[Union[NodeIndex, NodeIndexInputList, NodeIndexQuery, NodeIndicesQuery, slice], Union[MedRecordAttribute, MedRecordAttributeInputList, slice]]):
                 The key to delete.
 
         Raises:
@@ -591,10 +692,18 @@ class NodeIndexer:
         if isinstance(index_selection, Callable) and is_medrecord_attribute(
             attribute_selection
         ):
-            return self._medrecord._medrecord.remove_node_attribute(
-                self._medrecord.select_nodes(index_selection),
-                attribute_selection,
-            )
+            query_result = self._medrecord.query_nodes(index_selection)
+
+            if isinstance(query_result, list):
+                return self._medrecord._medrecord.remove_node_attribute(
+                    query_result, attribute_selection
+                )
+            if query_result:
+                return self._medrecord._medrecord.remove_node_attribute(
+                    [query_result], attribute_selection
+                )
+
+            return None
 
         if isinstance(index_selection, slice) and is_medrecord_attribute(
             attribute_selection
@@ -631,10 +740,18 @@ class NodeIndexer:
         if isinstance(index_selection, Callable) and isinstance(
             attribute_selection, list
         ):
-            for attribute in attribute_selection:
-                self._medrecord._medrecord.remove_node_attribute(
-                    self._medrecord.select_nodes(index_selection), attribute
-                )
+            query_result = self._medrecord.query_nodes(index_selection)
+
+            if isinstance(query_result, list):
+                for attribute in attribute_selection:
+                    self._medrecord._medrecord.remove_node_attribute(
+                        query_result, attribute
+                    )
+            elif query_result:
+                for attribute in attribute_selection:
+                    self._medrecord._medrecord.remove_node_attribute(
+                        [query_result], attribute
+                    )
 
             return None
 
@@ -691,9 +808,18 @@ class NodeIndexer:
                 msg = "Invalid slice, only ':' is allowed"
                 raise ValueError(msg)
 
-            return self._medrecord._medrecord.replace_node_attributes(
-                self._medrecord.select_nodes(index_selection), {}
-            )
+            query_result = self._medrecord.query_nodes(index_selection)
+
+            if isinstance(query_result, list):
+                return self._medrecord._medrecord.replace_node_attributes(
+                    query_result, {}
+                )
+            if query_result:
+                return self._medrecord._medrecord.replace_node_attributes(
+                    [query_result], {}
+                )
+
+            return None
 
         if isinstance(index_selection, slice) and isinstance(
             attribute_selection, slice
@@ -732,13 +858,18 @@ class EdgeIndexer:
     def __getitem__(
         self,
         key: Union[
-            EdgeIndex, Tuple[EdgeIndex, Union[MedRecordAttributeInputList, slice]]
+            EdgeIndex,
+            EdgeIndexQuery,
+            Tuple[
+                Union[EdgeIndex, EdgeIndexQuery],
+                Union[MedRecordAttributeInputList, slice],
+            ],
         ],
     ) -> Attributes: ...
 
     @overload
     def __getitem__(
-        self, key: Tuple[EdgeIndex, MedRecordAttribute]
+        self, key: Tuple[Union[EdgeIndex, EdgeIndexQuery], MedRecordAttribute]
     ) -> MedRecordValue: ...
 
     @overload
@@ -746,10 +877,10 @@ class EdgeIndexer:
         self,
         key: Union[
             EdgeIndexInputList,
-            EdgeQuery,
+            EdgeIndicesQuery,
             slice,
             Tuple[
-                Union[EdgeIndexInputList, EdgeQuery, slice],
+                Union[EdgeIndexInputList, EdgeIndicesQuery, slice],
                 Union[MedRecordAttributeInputList, slice],
             ],
         ],
@@ -758,7 +889,9 @@ class EdgeIndexer:
     @overload
     def __getitem__(
         self,
-        key: Tuple[Union[EdgeIndexInputList, EdgeQuery, slice], MedRecordAttribute],
+        key: Tuple[
+            Union[EdgeIndexInputList, EdgeIndicesQuery, slice], MedRecordAttribute
+        ],
     ) -> Dict[EdgeIndex, MedRecordValue]: ...
 
     def __getitem__(  # noqa: C901
@@ -766,10 +899,17 @@ class EdgeIndexer:
         key: Union[
             EdgeIndex,
             EdgeIndexInputList,
-            EdgeQuery,
+            EdgeIndexQuery,
+            EdgeIndicesQuery,
             slice,
             Tuple[
-                Union[EdgeIndex, EdgeIndexInputList, EdgeQuery, slice],
+                Union[
+                    EdgeIndex,
+                    EdgeIndexInputList,
+                    EdgeIndexQuery,
+                    EdgeIndicesQuery,
+                    slice,
+                ],
                 Union[MedRecordAttribute, MedRecordAttributeInputList, slice],
             ],
         ],
@@ -791,6 +931,7 @@ class EdgeIndexer:
 
         Raises:
             ValueError: If the key is a slice, but not ":" is provided.
+            IndexError: If the query returned no results.
         """  # noqa: W505
         if is_edge_index(key):
             return self._medrecord._medrecord.edge([key])[key]
@@ -799,7 +940,15 @@ class EdgeIndexer:
             return self._medrecord._medrecord.edge(key)
 
         if isinstance(key, Callable):
-            return self._medrecord._medrecord.edge(self._medrecord.select_edges(key))
+            query_result = self._medrecord.query_edges(key)
+
+            if isinstance(query_result, list):
+                return self._medrecord._medrecord.edge(query_result)
+            if query_result:
+                return self._medrecord._medrecord.edge([query_result])[query_result]
+
+            msg = "The query returned no results"
+            raise IndexError(msg)
 
         if isinstance(key, slice):
             if key.start is not None or key.stop is not None or key.step is not None:
@@ -827,11 +976,19 @@ class EdgeIndexer:
         if isinstance(index_selection, Callable) and is_medrecord_attribute(
             attribute_selection
         ):
-            attributes = self._medrecord._medrecord.edge(
-                self._medrecord.select_edges(index_selection)
-            )
+            query_result = self._medrecord.query_edges(index_selection)
 
-            return {x: attributes[x][attribute_selection] for x in attributes}
+            if isinstance(query_result, list):
+                attributes = self._medrecord._medrecord.edge(query_result)
+
+                return {x: attributes[x][attribute_selection] for x in attributes}
+            if query_result:
+                return self._medrecord._medrecord.edge([query_result])[query_result][
+                    attribute_selection
+                ]
+
+            msg = "The query returned no results"
+            raise IndexError(msg)
 
         if isinstance(index_selection, slice) and is_medrecord_attribute(
             attribute_selection
@@ -867,14 +1024,23 @@ class EdgeIndexer:
         if isinstance(index_selection, Callable) and isinstance(
             attribute_selection, list
         ):
-            attributes = self._medrecord._medrecord.edge(
-                self._medrecord.select_edges(index_selection)
-            )
+            query_result = self._medrecord.query_edges(index_selection)
 
-            return {
-                x: {y: attributes[x][y] for y in attribute_selection}
-                for x in attributes
-            }
+            if isinstance(query_result, list):
+                attributes = self._medrecord._medrecord.edge(query_result)
+
+                return {
+                    x: {y: attributes[x][y] for y in attribute_selection}
+                    for x in attributes
+                }
+            if query_result:
+                return {
+                    x: self._medrecord._medrecord.edge([query_result])[query_result][x]
+                    for x in attribute_selection
+                }
+
+            msg = "The query returned no results"
+            raise IndexError(msg)
 
         if isinstance(index_selection, slice) and isinstance(attribute_selection, list):
             if (
@@ -925,9 +1091,15 @@ class EdgeIndexer:
                 msg = "Invalid slice, only ':' is allowed"
                 raise ValueError(msg)
 
-            return self._medrecord._medrecord.edge(
-                self._medrecord.select_edges(index_selection)
-            )
+            query_result = self._medrecord.query_edges(index_selection)
+
+            if isinstance(query_result, list):
+                return self._medrecord._medrecord.edge(query_result)
+            if query_result:
+                return self._medrecord._medrecord.edge([query_result])[query_result]
+
+            msg = "The query returned no results"
+            raise IndexError(msg)
 
         if isinstance(index_selection, slice) and isinstance(
             attribute_selection, slice
@@ -949,7 +1121,9 @@ class EdgeIndexer:
     @overload
     def __setitem__(
         self,
-        key: Union[EdgeIndex, EdgeIndexInputList, EdgeQuery, slice],
+        key: Union[
+            EdgeIndex, EdgeIndexInputList, EdgeIndexQuery, EdgeIndicesQuery, slice
+        ],
         value: AttributesInput,
     ) -> None: ...
 
@@ -957,7 +1131,9 @@ class EdgeIndexer:
     def __setitem__(
         self,
         key: Tuple[
-            Union[EdgeIndex, EdgeIndexInputList, EdgeQuery, slice],
+            Union[
+                EdgeIndex, EdgeIndexInputList, EdgeIndexQuery, EdgeIndicesQuery, slice
+            ],
             Union[MedRecordAttribute, MedRecordAttributeInputList, slice],
         ],
         value: MedRecordValue,
@@ -968,10 +1144,17 @@ class EdgeIndexer:
         key: Union[
             EdgeIndex,
             EdgeIndexInputList,
-            EdgeQuery,
+            EdgeIndexQuery,
+            EdgeIndicesQuery,
             slice,
             Tuple[
-                Union[EdgeIndex, EdgeIndexInputList, EdgeQuery, slice],
+                Union[
+                    EdgeIndex,
+                    EdgeIndexInputList,
+                    EdgeIndexQuery,
+                    EdgeIndicesQuery,
+                    slice,
+                ],
                 Union[MedRecordAttribute, MedRecordAttributeInputList, slice],
             ],
         ],
@@ -980,7 +1163,7 @@ class EdgeIndexer:
         """Sets the edge attributes for the specified key.
 
         Args:
-            key (Union[EdgeIndex, EdgeIndexInputList, EdgeQuery, slice, Tuple[Union[EdgeIndex, EdgeIndexInputList, EdgeQuery, slice], Union[MedRecordAttribute, MedRecordAttributeInputList, slice]]):
+            key (Union[EdgeIndex, EdgeIndexInputList, EdgeIndexQuery, EdgeIndicesQuery, slice, Tuple[Union[EdgeIndex, EdgeIndexInputList, EdgeIndexQuery, EdgeIndicesQuery, slice], Union[MedRecordAttribute, MedRecordAttributeInputList, slice]]):
                 The edges to which the attributes should be set.
 
             value (Union[AttributesInput, MedRecordValue]):
@@ -1009,9 +1192,18 @@ class EdgeIndexer:
                 msg = "Invalid value type. Expected Attributes"
                 raise ValueError(msg)
 
-            return self._medrecord._medrecord.replace_edge_attributes(
-                self._medrecord.select_edges(key), value
-            )
+            query_result = self._medrecord.query_edges(key)
+
+            if isinstance(query_result, list):
+                return self._medrecord._medrecord.replace_edge_attributes(
+                    query_result, value
+                )
+            if query_result:
+                return self._medrecord._medrecord.replace_edge_attributes(
+                    [query_result], value
+                )
+
+            return None
 
         if isinstance(key, slice):
             if key.start is not None or key.stop is not None or key.step is not None:
@@ -1057,11 +1249,18 @@ class EdgeIndexer:
                 msg = "Invalid value type. Expected MedRecordValue"
                 raise ValueError(msg)
 
-            return self._medrecord._medrecord.update_edge_attribute(
-                self._medrecord.select_edges(index_selection),
-                attribute_selection,
-                value,
-            )
+            query_result = self._medrecord.query_edges(index_selection)
+
+            if isinstance(query_result, list):
+                return self._medrecord._medrecord.update_edge_attribute(
+                    query_result, attribute_selection, value
+                )
+            if query_result:
+                return self._medrecord._medrecord.update_edge_attribute(
+                    [query_result], attribute_selection, value
+                )
+
+            return None
 
         if isinstance(index_selection, slice) and is_medrecord_attribute(
             attribute_selection
@@ -1115,10 +1314,18 @@ class EdgeIndexer:
                 msg = "Invalid value type. Expected MedRecordValue"
                 raise ValueError(msg)
 
-            for attribute in attribute_selection:
-                self._medrecord._medrecord.update_edge_attribute(
-                    self._medrecord.select_edges(index_selection), attribute, value
-                )
+            query_result = self._medrecord.query_edges(index_selection)
+
+            if isinstance(query_result, list):
+                for attribute in attribute_selection:
+                    self._medrecord._medrecord.update_edge_attribute(
+                        query_result, attribute, value
+                    )
+            elif query_result:
+                for attribute in attribute_selection:
+                    self._medrecord._medrecord.update_edge_attribute(
+                        [query_result], attribute, value
+                    )
 
             return None
 
@@ -1204,14 +1411,24 @@ class EdgeIndexer:
                 msg = "Invalid value type. Expected MedRecordValue"
                 raise ValueError(msg)
 
-            attributes = self._medrecord._medrecord.edge(
-                self._medrecord.select_edges(index_selection)
-            )
+            query_result = self._medrecord.query_edges(index_selection)
 
-            for edge in attributes:
-                for attribute in attributes[edge]:
+            if isinstance(query_result, list):
+                attributes = self._medrecord._medrecord.edge(query_result)
+
+                for edge in attributes:
+                    for attribute in attributes[edge]:
+                        self._medrecord._medrecord.update_edge_attribute(
+                            query_result, attribute, value
+                        )
+            elif query_result:
+                attributes = self._medrecord._medrecord.edge([query_result])[
+                    query_result
+                ]
+
+                for attribute in attributes:
                     self._medrecord._medrecord.update_edge_attribute(
-                        [edge], attribute, value
+                        [query_result], attribute, value
                     )
 
             return None
@@ -1248,18 +1465,21 @@ class EdgeIndexer:
     def __delitem__(  # noqa: C901
         self,
         key: Tuple[
-            Union[EdgeIndex, EdgeIndexInputList, EdgeQuery, slice],
+            Union[
+                EdgeIndex, EdgeIndexInputList, EdgeIndexQuery, EdgeIndicesQuery, slice
+            ],
             Union[MedRecordAttribute, MedRecordAttributeInputList, slice],
         ],
     ) -> None:
         """Deletes the specified edge attributes.
 
         Args:
-            key (Tuple[Union[EdgeIndex, EdgeIndexInputList, EdgeQuery, slice], Union[MedRecordAttribute, MedRecordAttributeInputList, slice]]):
+            key (Tuple[Union[EdgeIndex, EdgeIndexInputList, EdgeIndexQuery, EdgeIndicesQuery, slice], Union[MedRecordAttribute, MedRecordAttributeInputList, slice]]):
                 The edges from which to delete the attributes.
 
         Raises:
             ValueError: If the key is a slice, but not ":" is provided.
+            IndexError: If the query returned no results.
         """  # noqa: W505
         index_selection, attribute_selection = key
 
@@ -1280,10 +1500,19 @@ class EdgeIndexer:
         if isinstance(index_selection, Callable) and is_medrecord_attribute(
             attribute_selection
         ):
-            return self._medrecord._medrecord.remove_edge_attribute(
-                self._medrecord.select_edges(index_selection),
-                attribute_selection,
-            )
+            query_result = self._medrecord.query_edges(index_selection)
+
+            if isinstance(query_result, list):
+                return self._medrecord._medrecord.remove_edge_attribute(
+                    query_result, attribute_selection
+                )
+            if query_result:
+                return self._medrecord._medrecord.remove_edge_attribute(
+                    [query_result], attribute_selection
+                )
+
+            msg = "The query returned no results"
+            raise IndexError(msg)
 
         if isinstance(index_selection, slice) and is_medrecord_attribute(
             attribute_selection
@@ -1320,10 +1549,18 @@ class EdgeIndexer:
         if isinstance(index_selection, Callable) and isinstance(
             attribute_selection, list
         ):
-            for attribute in attribute_selection:
-                self._medrecord._medrecord.remove_edge_attribute(
-                    self._medrecord.select_edges(index_selection), attribute
-                )
+            query_result = self._medrecord.query_edges(index_selection)
+
+            if isinstance(query_result, list):
+                for attribute in attribute_selection:
+                    self._medrecord._medrecord.remove_edge_attribute(
+                        query_result, attribute
+                    )
+            elif query_result:
+                for attribute in attribute_selection:
+                    self._medrecord._medrecord.remove_edge_attribute(
+                        [query_result], attribute
+                    )
 
             return None
 
@@ -1380,9 +1617,18 @@ class EdgeIndexer:
                 msg = "Invalid slice, only ':' is allowed"
                 raise ValueError(msg)
 
-            return self._medrecord._medrecord.replace_edge_attributes(
-                self._medrecord.select_edges(index_selection), {}
-            )
+            query_result = self._medrecord.query_edges(index_selection)
+
+            if isinstance(query_result, list):
+                return self._medrecord._medrecord.replace_edge_attributes(
+                    query_result, {}
+                )
+            if query_result:
+                return self._medrecord._medrecord.replace_edge_attributes(
+                    [query_result], {}
+                )
+
+            return None
 
         if isinstance(index_selection, slice) and isinstance(
             attribute_selection, slice

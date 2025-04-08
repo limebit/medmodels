@@ -19,7 +19,12 @@ from datetime import timedelta
 from typing import TYPE_CHECKING, Any, Dict, Literal, Optional, Set, Tuple
 
 from medmodels import MedRecord
-from medmodels.medrecord.querying import EdgeDirection, NodeOperand, NodeQuery
+from medmodels.medrecord.querying import (
+    EdgeDirection,
+    NodeIndicesOperand,
+    NodeIndicesQuery,
+    NodeOperand,
+)
 from medmodels.medrecord.types import (
     Group,
     MedRecordAttribute,
@@ -65,7 +70,7 @@ class TreatmentEffect:
 
     _outcome_before_treatment_days: Optional[int]
 
-    _filter_controls_query: Optional[NodeQuery]
+    _filter_controls_query: Optional[NodeIndicesQuery]
 
     _matching_method: Optional[MatchingMethod]
     _matching_essential_covariates: MedRecordAttributeInputList
@@ -115,7 +120,7 @@ class TreatmentEffect:
         follow_up_period_days: int = 1000 * 365,
         follow_up_period_reference: Literal["first", "last"] = "last",
         outcome_before_treatment_days: Optional[int] = None,
-        filter_controls_query: Optional[NodeQuery] = None,
+        filter_controls_query: Optional[NodeIndicesQuery] = None,
         matching_method: Optional[MatchingMethod] = None,
         matching_essential_covariates: Optional[MedRecordAttributeInputList] = None,
         matching_one_hot_covariates: Optional[MedRecordAttributeInputList] = None,
@@ -154,7 +159,7 @@ class TreatmentEffect:
                 reference point for the follow-up period. Defaults to "last".
             outcome_before_treatment_days (Optional[int], optional): The number of days
                 before the treatment to consider for outcomes. Defaults to None.
-            filter_controls_query (Optional[NodeQuery], optional): An optional
+            filter_controls_query (Optional[NodeIndicesQuery], optional): An optional
                 query to filter the control group based on specified criteria.
                 Defaults to None.
             matching_method (Optional[MatchingMethod]): The method to match treatment
@@ -297,14 +302,16 @@ class TreatmentEffect:
                 MedRecord.
         """
 
-        def query(node: NodeOperand) -> None:
+        def query(node: NodeOperand) -> NodeIndicesOperand:
             node.in_group(self._patients_group)
             node.neighbors(edge_direction=EdgeDirection.BOTH).in_group(
                 self._treatments_group
             )
 
+            return node.index()
+
         # Create the group with all the patients that underwent the treatment
-        treated_set = set(medrecord.select_nodes(query))
+        treated_set = set(medrecord.query_nodes(query))
         if not treated_set:
             msg = "No patients found for the treatment group in this MedRecord"
             raise ValueError(msg)
@@ -347,7 +354,7 @@ class TreatmentEffect:
 
         if outcome_before_treatment_days and self._time_attribute:
             outcome_before_treatment_nodes = set(
-                medrecord.select_nodes(
+                medrecord.query_nodes(
                     lambda node: self._query_node_within_time_window(
                         node,
                         treated_set,
@@ -369,7 +376,7 @@ class TreatmentEffect:
 
         if self._time_attribute:
             treated_outcome_true = set(
-                medrecord.select_nodes(
+                medrecord.query_nodes(
                     lambda node: self._query_node_within_time_window(
                         node,
                         treated_set,
@@ -382,7 +389,7 @@ class TreatmentEffect:
             )
         else:
             treated_outcome_true = set(
-                medrecord.select_nodes(
+                medrecord.query_nodes(
                     lambda node: self._query_set_outcome_true(node, treated_set)
                 )
             )
@@ -413,7 +420,7 @@ class TreatmentEffect:
         # TODO: washout in both directions? We need a List then  # noqa: TD003, TD002
         for washout_group_id, washout_days in self._washout_period_days.items():
             washout_nodes.update(
-                medrecord.select_nodes(
+                medrecord.query_nodes(
                     lambda node,
                     group_id=washout_group_id,
                     days=washout_days,
@@ -445,7 +452,7 @@ class TreatmentEffect:
         control_set: Set[NodeIndex],
         treated_set: Set[NodeIndex],
         rejected_nodes: Optional[Set[NodeIndex]] = None,
-        filter_controls_query: Optional[NodeQuery] = None,
+        filter_controls_query: Optional[NodeIndicesQuery] = None,
     ) -> Tuple[Set[NodeIndex], Set[NodeIndex]]:
         """Identifies control patients based on specified criteria.
 
@@ -466,7 +473,7 @@ class TreatmentEffect:
             rejected_nodes (Optional[Set[NodeIndex]], optional): A set of patient nodes
                 that were rejected due to the washout period or outcome before
                 treatment.
-            filter_controls_query (Optional[NodeQuery], optional): An optional
+            filter_controls_query (Optional[NodeIndicesQuery], optional): An optional
                 query to filter the control group based on specified criteria.
                 Defaults to None.
 
@@ -487,7 +494,7 @@ class TreatmentEffect:
             rejected_nodes = set()
         if filter_controls_query:
             control_set = (
-                set(medrecord.select_nodes(filter_controls_query)) & control_set
+                set(medrecord.query_nodes(filter_controls_query)) & control_set
             )
 
         control_set = control_set - treated_set - rejected_nodes
@@ -503,7 +510,7 @@ class TreatmentEffect:
 
         # Finding the patients that had the outcome in the control group
         control_outcome_true = set(
-            medrecord.select_nodes(
+            medrecord.query_nodes(
                 lambda node: self._query_set_outcome_true(node, control_set)
             )
         )
@@ -511,15 +518,22 @@ class TreatmentEffect:
 
         return control_outcome_true, control_outcome_false
 
-    def _query_set_outcome_true(self, node: NodeOperand, set: Set[NodeIndex]) -> None:
+    def _query_set_outcome_true(
+        self, node: NodeOperand, set: Set[NodeIndex]
+    ) -> NodeIndicesOperand:
         """Query for nodes that are in the given set and have the outcome.
 
         Args:
             node (NodeOperand): The node to query.
             set (Set[NodeIndex]): The set of nodes to query.
+
+        Returns:
+            NodeIndicesOperand: The node indices of the queried node.
         """
         node.index().is_in(list(set))
         node.neighbors(edge_direction=EdgeDirection.BOTH).in_group(self._outcomes_group)
+
+        return node.index()
 
     def _query_node_within_time_window(
         self,
@@ -529,7 +543,7 @@ class TreatmentEffect:
         start_days: int,
         end_days: int,
         reference: Literal["first", "last"],
-    ) -> None:
+    ) -> NodeIndicesOperand:
         """Queries for nodes with edges containing time info within a time window.
 
         It queries for nodes that:
@@ -553,6 +567,9 @@ class TreatmentEffect:
                 event.
             reference (Literal["first", "last"]): The reference point for the time
                 window.
+
+        Returns:
+            NodeIndicesOperand: The node indices of the queried node.
 
         Raises:
             ValueError: If the time attribute is not set.
@@ -597,6 +614,8 @@ class TreatmentEffect:
 
         time_of_outcome.greater_than_or_equal_to(min_time_window)
         time_of_outcome.less_than_or_equal_to(max_time_window)
+
+        return node.index()
 
     @property
     def estimate(self) -> Estimate:

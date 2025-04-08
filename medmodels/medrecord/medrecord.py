@@ -18,11 +18,44 @@ from typing import Callable, Dict, List, Optional, Sequence, Union, overload
 
 import polars as pl
 
-from medmodels._medmodels import PyMedRecord
+from medmodels._medmodels import (
+    PyEdgeOperand,
+    PyMedRecord,
+    PyNodeOperand,
+)
 from medmodels.medrecord._overview import extract_attribute_summary, prettify_table
 from medmodels.medrecord.builder import MedRecordBuilder
 from medmodels.medrecord.indexers import EdgeIndexer, NodeIndexer
-from medmodels.medrecord.querying import EdgeOperand, EdgeQuery, NodeOperand, NodeQuery
+from medmodels.medrecord.querying import (
+    AttributesTreeOperand,
+    AttributesTreeQueryResult,
+    EdgeIndexOperand,
+    EdgeIndexQuery,
+    EdgeIndexQueryResult,
+    EdgeIndicesOperand,
+    EdgeIndicesQuery,
+    EdgeIndicesQueryResult,
+    EdgeOperand,
+    EdgeQuery,
+    MultipleAttributesOperand,
+    MultipleAttributesQueryResult,
+    MultipleValuesOperand,
+    MultipleValuesQueryResult,
+    NodeIndexOperand,
+    NodeIndexQuery,
+    NodeIndexQueryResult,
+    NodeIndicesOperand,
+    NodeIndicesQuery,
+    NodeIndicesQueryResult,
+    NodeOperand,
+    NodeQuery,
+    PyQueryReturnOperand,
+    QueryResult,
+    SingleAttributeOperand,
+    SingleAttributeQueryResult,
+    SingleValueOperand,
+    SingleValueQueryResult,
+)
 from medmodels.medrecord.schema import Schema
 from medmodels.medrecord.types import (
     AttributeInfo,
@@ -448,15 +481,18 @@ class MedRecord:
         return {"nodes": nodes_in_group[group], "edges": edges_in_group[group]}
 
     @overload
-    def outgoing_edges(self, node: NodeIndex) -> List[EdgeIndex]: ...
+    def outgoing_edges(
+        self, node: Union[NodeIndex, NodeIndexQuery]
+    ) -> List[EdgeIndex]: ...
 
     @overload
     def outgoing_edges(
-        self, node: Union[NodeIndexInputList, NodeQuery]
+        self, node: Union[NodeIndexInputList, NodeIndicesQuery]
     ) -> Dict[NodeIndex, List[EdgeIndex]]: ...
 
     def outgoing_edges(
-        self, node: Union[NodeIndex, NodeIndexInputList, NodeQuery]
+        self,
+        node: Union[NodeIndex, NodeIndexInputList, NodeIndexQuery, NodeIndicesQuery],
     ) -> Union[List[EdgeIndex], Dict[NodeIndex, List[EdgeIndex]]]:
         """Lists the outgoing edges of the specified node(s) in the MedRecord.
 
@@ -465,15 +501,22 @@ class MedRecord:
         its list of outgoing edge indices.
 
         Args:
-            node (Union[NodeIndex, NodeIndexInputList, NodeQuery]): One or more
-                node indices or a node query.
+            node (Union[NodeIndex, NodeIndexInputList, NodeIndexQuery, NodeIndicesQuery]):
+                One or more node indices or a node query.
 
         Returns:
             Union[List[EdgeIndex], Dict[NodeIndex, List[EdgeIndex]]]: Outgoing
                 edge indices for each specified node.
-        """
+        """  # noqa: W505
         if isinstance(node, Callable):
-            return self._medrecord.outgoing_edges(self.select_nodes(node))
+            query_result = self.query_nodes(node)
+
+            if isinstance(query_result, list):
+                return self._medrecord.outgoing_edges(query_result)
+            if query_result:
+                return self._medrecord.outgoing_edges([query_result])
+
+            return []
 
         indices = self._medrecord.outgoing_edges(
             node if isinstance(node, list) else [node]
@@ -485,15 +528,18 @@ class MedRecord:
         return indices[node]
 
     @overload
-    def incoming_edges(self, node: NodeIndex) -> List[EdgeIndex]: ...
+    def incoming_edges(
+        self, node: Union[NodeIndex, NodeIndexQuery]
+    ) -> List[EdgeIndex]: ...
 
     @overload
     def incoming_edges(
-        self, node: Union[NodeIndexInputList, NodeQuery]
+        self, node: Union[NodeIndexInputList, NodeIndicesQuery]
     ) -> Dict[NodeIndex, List[EdgeIndex]]: ...
 
     def incoming_edges(
-        self, node: Union[NodeIndex, NodeIndexInputList, NodeQuery]
+        self,
+        node: Union[NodeIndex, NodeIndexInputList, NodeIndexQuery, NodeIndicesQuery],
     ) -> Union[List[EdgeIndex], Dict[NodeIndex, List[EdgeIndex]]]:
         """Lists the incoming edges of the specified node(s) in the MedRecord.
 
@@ -502,15 +548,22 @@ class MedRecord:
         its list of incoming edge indices.
 
         Args:
-            node (Union[NodeIndex, NodeIndexInputList, NodeQuery]): One or more
-                node indices or a node query.
+            node (Union[NodeIndex, NodeIndexInputList, NodeIndexQuery, NodeIndicesQuery]):
+                One or more node indices or a node query.
 
         Returns:
             Union[List[EdgeIndex], Dict[NodeIndex, List[EdgeIndex]]]: Incoming
                 edge indices for each specified node.
-        """
+        """  # noqa: W505
         if isinstance(node, Callable):
-            return self._medrecord.incoming_edges(self.select_nodes(node))
+            query_result = self.query_nodes(node)
+
+            if isinstance(query_result, list):
+                return self._medrecord.incoming_edges(query_result)
+            if query_result:
+                return self._medrecord.incoming_edges([query_result])
+
+            return []
 
         indices = self._medrecord.incoming_edges(
             node if isinstance(node, list) else [node]
@@ -522,15 +575,18 @@ class MedRecord:
         return indices[node]
 
     @overload
-    def edge_endpoints(self, edge: EdgeIndex) -> tuple[NodeIndex, NodeIndex]: ...
+    def edge_endpoints(
+        self, edge: Union[EdgeIndex, EdgeIndexQuery]
+    ) -> tuple[NodeIndex, NodeIndex]: ...
 
     @overload
     def edge_endpoints(
-        self, edge: Union[EdgeIndexInputList, EdgeQuery]
+        self, edge: Union[EdgeIndexInputList, EdgeIndicesQuery]
     ) -> Dict[EdgeIndex, tuple[NodeIndex, NodeIndex]]: ...
 
     def edge_endpoints(
-        self, edge: Union[EdgeIndex, EdgeIndexInputList, EdgeQuery]
+        self,
+        edge: Union[EdgeIndex, EdgeIndexInputList, EdgeIndexQuery, EdgeIndicesQuery],
     ) -> Union[
         tuple[NodeIndex, NodeIndex], Dict[EdgeIndex, tuple[NodeIndex, NodeIndex]]
     ]:
@@ -541,17 +597,28 @@ class MedRecord:
         a dictionary mapping each edge index to its tuple of node indices.
 
         Args:
-            edge (Union[EdgeIndex, EdgeIndexInputList, EdgeQuery]): One or more
-                edge indices or an edge query.
+            edge (Union[EdgeIndex, EdgeIndexInputList, EdgeIndexQuery, EdgeIndicesQuery]):
+                One or more edge indices or an edge query.
 
         Returns:
             Union[tuple[NodeIndex, NodeIndex],
                 Dict[EdgeIndex, tuple[NodeIndex, NodeIndex]]]:
                 Tuple of node indices or a dictionary mapping each edge to its
                 node indices.
-        """
+
+        Raises:
+            IndexError: If the query returned no results.
+        """  # noqa: W505
         if isinstance(edge, Callable):
-            return self._medrecord.edge_endpoints(self.select_edges(edge))
+            query_result = self.query_edges(edge)
+
+            if isinstance(query_result, list):
+                return self._medrecord.edge_endpoints(query_result)
+            if query_result:
+                return self._medrecord.edge_endpoints([query_result])
+
+            msg = "The query returned no results"
+            raise IndexError(msg)
 
         endpoints = self._medrecord.edge_endpoints(
             edge if isinstance(edge, list) else [edge]
@@ -564,8 +631,12 @@ class MedRecord:
 
     def edges_connecting(
         self,
-        source_node: Union[NodeIndex, NodeIndexInputList, NodeQuery],
-        target_node: Union[NodeIndex, NodeIndexInputList, NodeQuery],
+        source_node: Union[
+            NodeIndex, NodeIndexInputList, NodeIndexQuery, NodeIndicesQuery
+        ],
+        target_node: Union[
+            NodeIndex, NodeIndexInputList, NodeIndexQuery, NodeIndicesQuery
+        ],
         directed: EdgesDirected = EdgesDirected.DIRECTED,
     ) -> List[EdgeIndex]:
         """Retrieves the edges connecting the specified source and target nodes.
@@ -576,10 +647,10 @@ class MedRecord:
         target nodes.
 
         Args:
-            source_node (Union[NodeIndex, NodeIndexInputList, NodeQuery]):
+            source_node (Union[NodeIndex, NodeIndexInputList, NodeIndexQuery, NodeIndicesQuery]):
                 The index or indices of the source node(s), or a node query to
                 select source nodes.
-            target_node (Union[NodeIndex, NodeIndexInputList, NodeQuery]):
+            target_node (Union[NodeIndex, NodeIndexInputList, NodeIndexQuery, NodeIndicesQuery]):
                 The index or indices of the target node(s), or a node query to
                 select target nodes.
             directed (EdgesDirected, optional): Whether to consider edges as directed.
@@ -588,13 +659,26 @@ class MedRecord:
         Returns:
             List[EdgeIndex]: A list of edge indices connecting the specified source and
                 target nodes.
-
-        """
+        """  # noqa: W505
         if isinstance(source_node, Callable):
-            source_node = self.select_nodes(source_node)
+            query_result = self.query_nodes(source_node)
+
+            if isinstance(query_result, list):
+                source_node = query_result
+            elif query_result:
+                source_node = [query_result]
+            else:
+                source_node = []
 
         if isinstance(target_node, Callable):
-            target_node = self.select_nodes(target_node)
+            query_result = self.query_nodes(target_node)
+
+            if isinstance(query_result, list):
+                target_node = query_result
+            elif query_result:
+                target_node = [query_result]
+            else:
+                target_node = []
 
         if directed == EdgesDirected.DIRECTED:
             return self._medrecord.edges_connecting(
@@ -607,15 +691,16 @@ class MedRecord:
         )
 
     @overload
-    def remove_nodes(self, nodes: NodeIndex) -> Attributes: ...
+    def remove_nodes(self, nodes: Union[NodeIndex, NodeIndexQuery]) -> Attributes: ...
 
     @overload
     def remove_nodes(
-        self, nodes: Union[NodeIndexInputList, NodeQuery]
+        self, nodes: Union[NodeIndexInputList, NodeIndicesQuery]
     ) -> Dict[NodeIndex, Attributes]: ...
 
     def remove_nodes(
-        self, nodes: Union[NodeIndex, NodeIndexInputList, NodeQuery]
+        self,
+        nodes: Union[NodeIndex, NodeIndexInputList, NodeIndexQuery, NodeIndicesQuery],
     ) -> Union[Attributes, Dict[NodeIndex, Attributes]]:
         """Removes nodes from the MedRecord and returns their attributes.
 
@@ -624,15 +709,22 @@ class MedRecord:
         index to its attributes.
 
         Args:
-            nodes (Union[NodeIndex, NodeIndexInputList, NodeQuery]): One or more
-                node indices or a node query.
+            nodes (Union[NodeIndex, NodeIndexInputList, NodeIndexQuery, NodeIndicesQuery]):
+                One or more node indices or a node query.
 
         Returns:
             Union[Attributes, Dict[NodeIndex, Attributes]]: Attributes of the
                 removed node(s).
-        """
+        """  # noqa: W505
         if isinstance(nodes, Callable):
-            return self._medrecord.remove_nodes(self.select_nodes(nodes))
+            query_result = self.query_nodes(nodes)
+
+            if isinstance(query_result, list):
+                return self._medrecord.remove_nodes(query_result)
+            if query_result:
+                return self._medrecord.remove_nodes([query_result])
+
+            return {}
 
         attributes = self._medrecord.remove_nodes(
             nodes if isinstance(nodes, list) else [nodes]
@@ -744,15 +836,16 @@ class MedRecord:
         self.add_nodes_to_group(group, node_indices)
 
     @overload
-    def remove_edges(self, edges: EdgeIndex) -> Attributes: ...
+    def remove_edges(self, edges: Union[EdgeIndex, EdgeIndexQuery]) -> Attributes: ...
 
     @overload
     def remove_edges(
-        self, edges: Union[EdgeIndexInputList, EdgeQuery]
+        self, edges: Union[EdgeIndexInputList, EdgeIndicesQuery]
     ) -> Dict[EdgeIndex, Attributes]: ...
 
     def remove_edges(
-        self, edges: Union[EdgeIndex, EdgeIndexInputList, EdgeQuery]
+        self,
+        edges: Union[EdgeIndex, EdgeIndexInputList, EdgeIndexQuery, EdgeIndicesQuery],
     ) -> Union[Attributes, Dict[EdgeIndex, Attributes]]:
         """Removes edges from the MedRecord and returns their attributes.
 
@@ -761,15 +854,22 @@ class MedRecord:
         index to its attributes.
 
         Args:
-            edges (Union[EdgeIndex, EdgeIndexInputList, EdgeQuery]): One or more
-                edge indices or an edge query.
+            edges (Union[EdgeIndex, EdgeIndexInputList, EdgeIndexQuery, EdgeIndicesQuery]):
+                One or more edge indices or an edge query.
 
         Returns:
             Union[Attributes, Dict[EdgeIndex, Attributes]]: Attributes of the
                 removed edge(s).
-        """
+        """  # noqa: W505
         if isinstance(edges, Callable):
-            return self._medrecord.remove_edges(self.select_edges(edges))
+            query_result = self.query_edges(edges)
+
+            if isinstance(query_result, list):
+                return self._medrecord.remove_edges(query_result)
+            if query_result:
+                return self._medrecord.remove_edges([query_result])
+
+            return {}
 
         attributes = self._medrecord.remove_edges(
             edges if isinstance(edges, list) else [edges]
@@ -891,8 +991,12 @@ class MedRecord:
     def add_group(
         self,
         group: Group,
-        nodes: Optional[Union[NodeIndex, NodeIndexInputList, NodeQuery]] = None,
-        edges: Optional[Union[EdgeIndex, EdgeIndexInputList, EdgeQuery]] = None,
+        nodes: Optional[
+            Union[NodeIndex, NodeIndexInputList, NodeIndexQuery, NodeIndicesQuery]
+        ] = None,
+        edges: Optional[
+            Union[EdgeIndex, EdgeIndexInputList, EdgeIndexQuery, EdgeIndicesQuery]
+        ] = None,
     ) -> None:
         """Adds a group to the MedRecord instance with an optional list of node indices.
 
@@ -901,21 +1005,21 @@ class MedRecord:
 
         Args:
             group (Group): The name of the group to add.
-            nodes (Optional[Union[NodeIndex, NodeIndexInputList, NodeQuery]]):
+            nodes (Optional[Union[NodeIndex, NodeIndexInputList, NodeIndexQuery, NodeIndicesQuery]]):
                 One or more node indices or a node query to add
                 to the group, optional.
-            edges (Optional[Union[EdgeIndex, EdgeIndexInputList, EdgeQuery]]):
+            edges (Optional[Union[EdgeIndex, EdgeIndexInputList, EdgeIndexQuery, EdgeIndicesQuery]]):
                 One or more edge indices or an edge query to add
                 to the group, optional.
 
         Returns:
             None
-        """
+        """  # noqa: W505
         if isinstance(nodes, Callable):
-            nodes = self.select_nodes(nodes)
+            nodes = self.query_nodes(nodes)
 
         if isinstance(edges, Callable):
-            edges = self.select_edges(edges)
+            edges = self.query_edges(edges)
 
         if nodes is not None and edges is not None:
             return self._medrecord.add_group(
@@ -947,84 +1051,116 @@ class MedRecord:
         )
 
     def add_nodes_to_group(
-        self, group: Group, nodes: Union[NodeIndex, NodeIndexInputList, NodeQuery]
+        self,
+        group: Group,
+        nodes: Union[NodeIndex, NodeIndexInputList, NodeIndexQuery, NodeIndicesQuery],
     ) -> None:
         """Adds one or more nodes to a specified group in the MedRecord.
 
         Args:
             group (Group): The name of the group to add nodes to.
-            nodes (Union[NodeIndex, NodeIndexInputList, NodeQuery]): One or more
-                node indices or a node query to add to the group.
+            nodes (Union[NodeIndex, NodeIndexInputList, NodeIndexQuery, NodeIndicesQuery]):
+                One or more node indices or a node query to add to the group.
 
         Returns:
             None
-        """
+        """  # noqa: W505
         if isinstance(nodes, Callable):
-            return self._medrecord.add_nodes_to_group(group, self.select_nodes(nodes))
+            query_result = self.query_nodes(nodes)
+
+            if isinstance(query_result, list):
+                return self._medrecord.add_nodes_to_group(group, query_result)
+            if query_result:
+                return self._medrecord.add_nodes_to_group(group, [query_result])
+
+            return None
 
         return self._medrecord.add_nodes_to_group(
             group, nodes if isinstance(nodes, list) else [nodes]
         )
 
     def add_edges_to_group(
-        self, group: Group, edges: Union[EdgeIndex, EdgeIndexInputList, EdgeQuery]
+        self,
+        group: Group,
+        edges: Union[EdgeIndex, EdgeIndexInputList, EdgeIndexQuery, EdgeIndicesQuery],
     ) -> None:
         """Adds one or more edges to a specified group in the MedRecord.
 
         Args:
             group (Group): The name of the group to add edges to.
-            edges (Union[EdgeIndex, EdgeIndexInputList, EdgeQuery]): One or more
-                edge indices or an edge query to add to the group.
+            edges (Union[EdgeIndex, EdgeIndexInputList, EdgeIndexQuery, EdgeIndicesQuery]):
+                One or more edge indices or an edge query to add to the group.
 
         Returns:
             None
-        """
+        """  # noqa: W505
         if isinstance(edges, Callable):
-            return self._medrecord.add_edges_to_group(group, self.select_edges(edges))
+            query_result = self.query_edges(edges)
+
+            if isinstance(query_result, list):
+                return self._medrecord.add_edges_to_group(group, query_result)
+            if query_result:
+                return self._medrecord.add_edges_to_group(group, [query_result])
+
+            return None
 
         return self._medrecord.add_edges_to_group(
             group, edges if isinstance(edges, list) else [edges]
         )
 
     def remove_nodes_from_group(
-        self, group: Group, nodes: Union[NodeIndex, NodeIndexInputList, NodeQuery]
+        self,
+        group: Group,
+        nodes: Union[NodeIndex, NodeIndexInputList, NodeIndexQuery, NodeIndicesQuery],
     ) -> None:
         """Removes one or more nodes from a specified group in the MedRecord.
 
         Args:
             group (Group): The name of the group from which to remove nodes.
-            nodes (Union[NodeIndex, NodeIndexInputList, NodeQuery]): One or more
-                node indices or a node query to remove from the group.
+            nodes (Union[NodeIndex, NodeIndexInputList, NodeIndexQuery, NodeIndicesQuery]):
+                One or more node indices or a node query to remove from the group.
 
         Returns:
             None
-        """
+        """  # noqa: W505
         if isinstance(nodes, Callable):
-            return self._medrecord.remove_nodes_from_group(
-                group, self.select_nodes(nodes)
-            )
+            query_result = self.query_nodes(nodes)
+
+            if isinstance(query_result, list):
+                return self._medrecord.remove_nodes_from_group(group, query_result)
+            if query_result:
+                return self._medrecord.remove_nodes_from_group(group, [query_result])
+
+            return None
 
         return self._medrecord.remove_nodes_from_group(
             group, nodes if isinstance(nodes, list) else [nodes]
         )
 
     def remove_edges_from_group(
-        self, group: Group, edges: Union[EdgeIndex, EdgeIndexInputList, EdgeQuery]
+        self,
+        group: Group,
+        edges: Union[EdgeIndex, EdgeIndexInputList, EdgeIndexQuery, EdgeIndicesQuery],
     ) -> None:
         """Removes one or more edges from a specified group in the MedRecord.
 
         Args:
             group (Group): The name of the group from which to remove edges.
-            edges (Union[EdgeIndex, EdgeIndexInputList, EdgeQuery]): One or more
-                edge indices or an edge query to remove from the group.
+            edges (Union[EdgeIndex, EdgeIndexInputList, EdgeIndexQuery, EdgeIndicesQuery]):
+                One or more edge indices or an edge query to remove from the group.
 
         Returns:
             None
-        """
+        """  # noqa: W505
         if isinstance(edges, Callable):
-            return self._medrecord.remove_edges_from_group(
-                group, self.select_edges(edges)
-            )
+            query_result = self.query_edges(edges)
+
+            if isinstance(query_result, list):
+                return self._medrecord.remove_edges_from_group(group, query_result)
+            if query_result:
+                return self._medrecord.remove_edges_from_group(group, [query_result])
+
+            return None
 
         return self._medrecord.remove_edges_from_group(
             group, edges if isinstance(edges, list) else [edges]
@@ -1093,15 +1229,16 @@ class MedRecord:
         return edges[group]
 
     @overload
-    def groups_of_node(self, node: NodeIndex) -> List[Group]: ...
+    def groups_of_node(self, node: Union[NodeIndex, NodeIndexQuery]) -> List[Group]: ...
 
     @overload
     def groups_of_node(
-        self, node: Union[NodeIndexInputList, NodeQuery]
+        self, node: Union[NodeIndexInputList, NodeIndicesQuery]
     ) -> Dict[NodeIndex, List[Group]]: ...
 
     def groups_of_node(
-        self, node: Union[NodeIndex, NodeIndexInputList, NodeQuery]
+        self,
+        node: Union[NodeIndex, NodeIndexInputList, NodeIndexQuery, NodeIndicesQuery],
     ) -> Union[List[Group], Dict[NodeIndex, List[Group]]]:
         """Retrieves the groups associated with the specified node(s) in the MedRecord.
 
@@ -1110,15 +1247,22 @@ class MedRecord:
         its list of groups.
 
         Args:
-            node (Union[NodeIndex, NodeIndexInputList, NodeQuery]): One or more
-                node indices or a node query.
+            node (Union[NodeIndex, NodeIndexInputList, NodeIndexQuery, NodeIndicesQuery]):
+                One or more node indices or a node query.
 
         Returns:
             Union[List[Group], Dict[NodeIndex, List[Group]]]: Groups associated with
                 each node.
-        """
+        """  # noqa: W505
         if isinstance(node, Callable):
-            return self._medrecord.groups_of_node(self.select_nodes(node))
+            query_result = self.query_nodes(node)
+
+            if isinstance(query_result, list):
+                return self._medrecord.groups_of_node(query_result)
+            if query_result:
+                return self._medrecord.groups_of_node([query_result])
+
+            return []
 
         groups = self._medrecord.groups_of_node(
             node if isinstance(node, list) else [node]
@@ -1130,15 +1274,16 @@ class MedRecord:
         return groups[node]
 
     @overload
-    def groups_of_edge(self, edge: EdgeIndex) -> List[Group]: ...
+    def groups_of_edge(self, edge: Union[EdgeIndex, EdgeIndexQuery]) -> List[Group]: ...
 
     @overload
     def groups_of_edge(
-        self, edge: Union[EdgeIndexInputList, EdgeQuery]
+        self, edge: Union[EdgeIndexInputList, EdgeIndicesQuery]
     ) -> Dict[EdgeIndex, List[Group]]: ...
 
     def groups_of_edge(
-        self, edge: Union[EdgeIndex, EdgeIndexInputList, EdgeQuery]
+        self,
+        edge: Union[EdgeIndex, EdgeIndexInputList, EdgeIndexQuery, EdgeIndicesQuery],
     ) -> Union[List[Group], Dict[EdgeIndex, List[Group]]]:
         """Retrieves the groups associated with the specified edge(s) in the MedRecord.
 
@@ -1147,15 +1292,22 @@ class MedRecord:
         its list of groups.
 
         Args:
-            edge (Union[EdgeIndex, EdgeIndexInputList, EdgeQuery]): One or more
-                edge indices or an edge query.
+            edge (Union[EdgeIndex, EdgeIndexInputList, EdgeIndexQuery, EdgeIndicesQuery]):
+                One or more edge indices or an edge query.
 
         Returns:
             Union[List[Group], Dict[EdgeIndex, List[Group]]]: Groups associated with
                 each edge.
-        """
+        """  # noqa: W505
         if isinstance(edge, Callable):
-            return self._medrecord.groups_of_edge(self.select_edges(edge))
+            query_result = self.query_edges(edge)
+
+            if isinstance(query_result, list):
+                return self._medrecord.groups_of_edge(query_result)
+            if query_result:
+                return self._medrecord.groups_of_edge([query_result])
+
+            return []
 
         groups = self._medrecord.groups_of_edge(
             edge if isinstance(edge, list) else [edge]
@@ -1226,20 +1378,20 @@ class MedRecord:
     @overload
     def neighbors(
         self,
-        node: NodeIndex,
+        node: Union[NodeIndex, NodeIndexQuery],
         directed: EdgesDirected = EdgesDirected.DIRECTED,
     ) -> List[NodeIndex]: ...
 
     @overload
     def neighbors(
         self,
-        node: Union[NodeIndexInputList, NodeQuery],
+        node: Union[NodeIndexInputList, NodeIndicesQuery],
         directed: EdgesDirected = EdgesDirected.DIRECTED,
     ) -> Dict[NodeIndex, List[NodeIndex]]: ...
 
     def neighbors(
         self,
-        node: Union[NodeIndex, NodeIndexInputList, NodeQuery],
+        node: Union[NodeIndex, NodeIndexInputList, NodeIndexQuery, NodeIndicesQuery],
         directed: EdgesDirected = EdgesDirected.DIRECTED,
     ) -> Union[List[NodeIndex], Dict[NodeIndex, List[NodeIndex]]]:
         """Retrieves the neighbors of the specified node(s) in the MedRecord.
@@ -1249,16 +1401,23 @@ class MedRecord:
         each node index to its list of neighboring nodes.
 
         Args:
-            node (Union[NodeIndex, NodeIndexInputList, NodeQuery]): One or more
-                node indices or a node query.
+            node (Union[NodeIndex, NodeIndexInputList, NodeIndexQuery, NodeIndicesQuery]):
+                One or more node indices or a query that returns node indices.
             directed (EdgesDirected, optional): Whether to consider edges as directed.
                 Defaults to EdgesDirected.DIRECTED.
 
         Returns:
             Union[List[NodeIndex], Dict[NodeIndex, List[NodeIndex]]]: Neighboring nodes.
-        """
+        """  # noqa: W505
         if isinstance(node, Callable):
-            node = self.select_nodes(node)
+            query_result = self.query_nodes(node)
+
+            if isinstance(query_result, list):
+                node = query_result
+            elif query_result:
+                node = [query_result]
+            else:
+                node = []
 
         if directed == EdgesDirected.DIRECTED:
             neighbors = self._medrecord.neighbors(
@@ -1284,7 +1443,44 @@ class MedRecord:
         """
         return self._medrecord.clear()
 
-    def select_nodes(self, query: NodeQuery) -> List[NodeIndex]:
+    @overload
+    def query_nodes(
+        self, query: Callable[[NodeOperand], AttributesTreeOperand]
+    ) -> AttributesTreeQueryResult: ...
+    @overload
+    def query_nodes(
+        self, query: Callable[[NodeOperand], MultipleAttributesOperand]
+    ) -> MultipleAttributesQueryResult: ...
+    @overload
+    def query_nodes(
+        self, query: Callable[[NodeOperand], SingleAttributeOperand]
+    ) -> SingleAttributeQueryResult: ...
+    @overload
+    def query_nodes(
+        self, query: Callable[[NodeOperand], EdgeIndicesOperand]
+    ) -> EdgeIndicesQueryResult: ...
+    @overload
+    def query_nodes(
+        self, query: Callable[[NodeOperand], EdgeIndexOperand]
+    ) -> EdgeIndexQueryResult: ...
+    @overload
+    def query_nodes(
+        self, query: Callable[[NodeOperand], NodeIndicesOperand]
+    ) -> NodeIndicesQueryResult: ...
+    @overload
+    def query_nodes(
+        self, query: Callable[[NodeOperand], NodeIndexOperand]
+    ) -> NodeIndexQueryResult: ...
+    @overload
+    def query_nodes(
+        self, query: Callable[[NodeOperand], MultipleValuesOperand]
+    ) -> MultipleValuesQueryResult: ...
+    @overload
+    def query_nodes(
+        self, query: Callable[[NodeOperand], SingleValueOperand]
+    ) -> SingleValueQueryResult: ...
+
+    def query_nodes(self, query: NodeQuery) -> QueryResult:
         """Selects nodes from the MedRecord based on the provided query.
 
         Args:
@@ -1293,11 +1489,69 @@ class MedRecord:
         Returns:
             List[NodeIndex]: A list of node indices that satisfy the query.
         """
-        return self._medrecord.select_nodes(
-            lambda node: query(NodeOperand._from_py_node_operand(node))
-        )
 
-    def select_edges(self, query: EdgeQuery) -> List[EdgeIndex]:
+        def _query(node: PyNodeOperand) -> PyQueryReturnOperand:
+            result = query(NodeOperand._from_py_node_operand(node))
+
+            if isinstance(result, AttributesTreeOperand):
+                return result._attributes_tree_operand
+            if isinstance(result, MultipleAttributesOperand):
+                return result._multiple_attributes_operand
+            if isinstance(result, SingleAttributeOperand):
+                return result._single_attribute_operand
+            if isinstance(result, EdgeIndicesOperand):
+                return result._edge_indices_operand
+            if isinstance(result, EdgeIndexOperand):
+                return result._edge_index_operand
+            if isinstance(result, NodeIndicesOperand):
+                return result._node_indices_operand
+            if isinstance(result, NodeIndexOperand):
+                return result._node_index_operand
+            if isinstance(result, MultipleValuesOperand):
+                return result._multiple_values_operand
+
+            return result._single_value_operand
+
+        return self._medrecord.query_nodes(_query)
+
+    @overload
+    def query_edges(
+        self, query: Callable[[EdgeOperand], AttributesTreeOperand]
+    ) -> AttributesTreeQueryResult: ...
+    @overload
+    def query_edges(
+        self, query: Callable[[EdgeOperand], MultipleAttributesOperand]
+    ) -> MultipleAttributesQueryResult: ...
+    @overload
+    def query_edges(
+        self, query: Callable[[EdgeOperand], SingleAttributeOperand]
+    ) -> SingleAttributeQueryResult: ...
+    @overload
+    def query_edges(
+        self, query: Callable[[EdgeOperand], EdgeIndicesOperand]
+    ) -> EdgeIndicesQueryResult: ...
+    @overload
+    def query_edges(
+        self, query: Callable[[EdgeOperand], EdgeIndexOperand]
+    ) -> EdgeIndexQueryResult: ...
+    @overload
+    def query_edges(
+        self, query: Callable[[EdgeOperand], NodeIndicesOperand]
+    ) -> NodeIndicesQueryResult: ...
+    @overload
+    def query_edges(
+        self, query: Callable[[EdgeOperand], NodeIndexOperand]
+    ) -> NodeIndexQueryResult: ...
+    @overload
+    def query_edges(
+        self, query: Callable[[EdgeOperand], MultipleValuesOperand]
+    ) -> MultipleValuesQueryResult: ...
+    @overload
+    def query_edges(
+        self, query: Callable[[EdgeOperand], SingleValueOperand]
+    ) -> SingleValueQueryResult: ...
+
+    def query_edges(self, query: EdgeQuery) -> QueryResult:
         """Selects edges from the MedRecord based on the provided query.
 
         Args:
@@ -1306,9 +1560,30 @@ class MedRecord:
         Returns:
             List[EdgeIndex]: A list of edge indices that satisfy the query.
         """
-        return self._medrecord.select_edges(
-            lambda edge: query(EdgeOperand._from_py_edge_operand(edge))
-        )
+
+        def _query(edge: PyEdgeOperand) -> PyQueryReturnOperand:
+            result = query(EdgeOperand._from_py_edge_operand(edge))
+
+            if isinstance(result, AttributesTreeOperand):
+                return result._attributes_tree_operand
+            if isinstance(result, MultipleAttributesOperand):
+                return result._multiple_attributes_operand
+            if isinstance(result, SingleAttributeOperand):
+                return result._single_attribute_operand
+            if isinstance(result, EdgeIndicesOperand):
+                return result._edge_indices_operand
+            if isinstance(result, EdgeIndexOperand):
+                return result._edge_index_operand
+            if isinstance(result, NodeIndicesOperand):
+                return result._node_indices_operand
+            if isinstance(result, NodeIndexOperand):
+                return result._node_index_operand
+            if isinstance(result, MultipleValuesOperand):
+                return result._multiple_values_operand
+
+            return result._single_value_operand
+
+        return self._medrecord.query_edges(_query)
 
     def clone(self) -> MedRecord:
         """Clones the MedRecord instance.

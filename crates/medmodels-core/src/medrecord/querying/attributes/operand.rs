@@ -213,12 +213,12 @@ impl AttributesTreeOperand {
         }
     }
 
-    pub(crate) fn evaluate<'a, T: 'a + Eq + Hash + GetAttributes + Display>(
+    pub(crate) fn evaluate<'a, T: 'a + Eq + Clone + Hash + GetAttributes + Display>(
         &self,
         medrecord: &'a MedRecord,
-        attributes: impl Iterator<Item = (&'a T, Vec<MedRecordAttribute>)> + 'a,
-    ) -> MedRecordResult<impl Iterator<Item = (&'a T, Vec<MedRecordAttribute>)>> {
-        let attributes = Box::new(attributes) as BoxedIterator<(&'a T, Vec<MedRecordAttribute>)>;
+        attributes: impl Iterator<Item = (T, Vec<MedRecordAttribute>)> + 'a,
+    ) -> MedRecordResult<impl Iterator<Item = (T, Vec<MedRecordAttribute>)> + 'a> {
+        let attributes = Box::new(attributes) as BoxedIterator<(T, Vec<MedRecordAttribute>)>;
 
         self.operations
             .iter()
@@ -340,11 +340,11 @@ impl Wrapper<AttributesTreeOperand> {
         AttributesTreeOperand::new(context).into()
     }
 
-    pub(crate) fn evaluate<'a, T: 'a + Eq + Hash + GetAttributes + Display>(
+    pub(crate) fn evaluate<'a, T: 'a + Eq + Clone + Hash + GetAttributes + Display>(
         &self,
         medrecord: &'a MedRecord,
-        attributes: impl Iterator<Item = (&'a T, Vec<MedRecordAttribute>)> + 'a,
-    ) -> MedRecordResult<impl Iterator<Item = (&'a T, Vec<MedRecordAttribute>)>> {
+        attributes: impl Iterator<Item = (T, Vec<MedRecordAttribute>)> + 'a,
+    ) -> MedRecordResult<impl Iterator<Item = (T, Vec<MedRecordAttribute>)> + 'a> {
         self.0.read_or_panic().evaluate(medrecord, attributes)
     }
 
@@ -454,12 +454,12 @@ impl MultipleAttributesOperand {
         }
     }
 
-    pub(crate) fn evaluate<'a, T: 'a + Eq + Hash + GetAttributes + Display>(
+    pub(crate) fn evaluate<'a, T: 'a + Eq + Clone + Hash + GetAttributes + Display>(
         &self,
         medrecord: &'a MedRecord,
-        attributes: impl Iterator<Item = (&'a T, MedRecordAttribute)> + 'a,
-    ) -> MedRecordResult<impl Iterator<Item = (&'a T, MedRecordAttribute)>> {
-        let attributes = Box::new(attributes) as BoxedIterator<(&'a T, MedRecordAttribute)>;
+        attributes: impl Iterator<Item = (T, MedRecordAttribute)> + 'a,
+    ) -> MedRecordResult<impl Iterator<Item = (T, MedRecordAttribute)> + 'a> {
+        let attributes = Box::new(attributes) as BoxedIterator<(T, MedRecordAttribute)>;
 
         self.operations
             .iter()
@@ -614,11 +614,11 @@ impl Wrapper<MultipleAttributesOperand> {
         MultipleAttributesOperand::new(context, kind).into()
     }
 
-    pub(crate) fn evaluate<'a, T: 'a + Eq + Hash + GetAttributes + Display>(
+    pub(crate) fn evaluate<'a, T: 'a + Eq + Clone + Hash + GetAttributes + Display>(
         &self,
         medrecord: &'a MedRecord,
-        attributes: impl Iterator<Item = (&'a T, MedRecordAttribute)> + 'a,
-    ) -> MedRecordResult<impl Iterator<Item = (&'a T, MedRecordAttribute)>> {
+        attributes: impl Iterator<Item = (T, MedRecordAttribute)> + 'a,
+    ) -> MedRecordResult<impl Iterator<Item = (T, MedRecordAttribute)> + 'a> {
         self.0.read_or_panic().evaluate(medrecord, attributes)
     }
 

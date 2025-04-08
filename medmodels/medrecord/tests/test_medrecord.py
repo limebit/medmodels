@@ -9,7 +9,12 @@ import pytest
 from medmodels import MedRecord
 from medmodels.medrecord.datatype import Int
 from medmodels.medrecord.medrecord import EdgesDirected
-from medmodels.medrecord.querying import EdgeOperand, NodeOperand
+from medmodels.medrecord.querying import (
+    EdgeIndicesOperand,
+    EdgeOperand,
+    NodeIndicesOperand,
+    NodeOperand,
+)
 from medmodels.medrecord.schema import AttributeType, GroupSchema, Schema, SchemaType
 from medmodels.medrecord.types import Attributes, NodeIndex
 
@@ -469,8 +474,10 @@ class TestMedRecord(unittest.TestCase):
             "1": [1, 2],
         }
 
-        def query(node: NodeOperand) -> None:
+        def query(node: NodeOperand) -> NodeIndicesOperand:
             node.index().is_in(["0", "1"])
+
+            return node.index()
 
         edges = medrecord.outgoing_edges(query)
 
@@ -501,8 +508,10 @@ class TestMedRecord(unittest.TestCase):
 
         assert edges == {"1": [0], "2": [2]}
 
-        def query(node: NodeOperand) -> None:
+        def query(node: NodeOperand) -> NodeIndicesOperand:
             node.index().is_in(["1", "2"])
+
+            return node.index()
 
         edges = medrecord.incoming_edges(query)
 
@@ -530,8 +539,10 @@ class TestMedRecord(unittest.TestCase):
 
         assert endpoints == {0: ("0", "1"), 1: ("1", "0")}
 
-        def query(edge: EdgeOperand) -> None:
+        def query(edge: EdgeOperand) -> EdgeIndicesOperand:
             edge.index().is_in([0, 1])
+
+            return edge.index()
 
         endpoints = medrecord.edge_endpoints(query)
 
@@ -559,8 +570,10 @@ class TestMedRecord(unittest.TestCase):
 
         assert edges == [0]
 
-        def query1(node: NodeOperand) -> None:
+        def query1(node: NodeOperand) -> NodeIndicesOperand:
             node.index().is_in(["0", "1"])
+
+            return node.index()
 
         edges = medrecord.edges_connecting(query1, "1")
 
@@ -570,8 +583,10 @@ class TestMedRecord(unittest.TestCase):
 
         assert sorted([0, 3]) == sorted(edges)
 
-        def query2(node: NodeOperand) -> None:
+        def query2(node: NodeOperand) -> NodeIndicesOperand:
             node.index().is_in(["1", "3"])
+
+            return node.index()
 
         edges = medrecord.edges_connecting("0", query2)
 
@@ -581,11 +596,15 @@ class TestMedRecord(unittest.TestCase):
 
         assert sorted([0, 2, 3]) == sorted(edges)
 
-        def query3(node: NodeOperand) -> None:
+        def query3(node: NodeOperand) -> NodeIndicesOperand:
             node.index().is_in(["0", "1"])
 
-        def query4(node: NodeOperand) -> None:
+            return node.index()
+
+        def query4(node: NodeOperand) -> NodeIndicesOperand:
             node.index().is_in(["1", "2", "3"])
+
+            return node.index()
 
         edges = medrecord.edges_connecting(query3, query4)
 
@@ -614,8 +633,10 @@ class TestMedRecord(unittest.TestCase):
 
         assert medrecord.node_count() == 4
 
-        def query(node: NodeOperand) -> None:
+        def query(node: NodeOperand) -> NodeIndicesOperand:
             node.index().is_in(["0", "1"])
+
+            return node.index()
 
         attributes = medrecord.remove_nodes(query)
 
@@ -954,8 +975,10 @@ class TestMedRecord(unittest.TestCase):
 
         assert medrecord.edge_count() == 4
 
-        def query(edge: EdgeOperand) -> None:
+        def query(edge: EdgeOperand) -> EdgeIndicesOperand:
             edge.index().is_in([0, 1])
+
+            return edge.index()
 
         attributes = medrecord.remove_edges(query)
 
@@ -1273,11 +1296,15 @@ class TestMedRecord(unittest.TestCase):
         assert sorted(["0", "1"]) == sorted(nodes_and_edges["nodes"])
         assert sorted([0, 1]) == sorted(nodes_and_edges["edges"])
 
-        def query1(node: NodeOperand) -> None:
+        def query1(node: NodeOperand) -> NodeIndicesOperand:
             node.index().is_in(["0", "1"])
 
-        def query2(edge: EdgeOperand) -> None:
+            return node.index()
+
+        def query2(edge: EdgeOperand) -> EdgeIndicesOperand:
             edge.index().is_in([0, 1])
+
+            return edge.index()
 
         medrecord.add_group(
             "3",
@@ -1319,8 +1346,10 @@ class TestMedRecord(unittest.TestCase):
         with pytest.raises(AssertionError):
             medrecord.add_group("0", ["1", "0"])
 
-        def query(node: NodeOperand) -> None:
+        def query(node: NodeOperand) -> NodeIndicesOperand:
             node.index().equal_to("0")
+
+            return node.index()
 
         # Adding a node to a group that already is in the group should fail
         with pytest.raises(AssertionError):
@@ -1381,8 +1410,10 @@ class TestMedRecord(unittest.TestCase):
 
         assert sorted(["0", "1", "2"]) == sorted(medrecord.nodes_in_group("0"))
 
-        def query(node: NodeOperand) -> None:
+        def query(node: NodeOperand) -> NodeIndicesOperand:
             node.index().equal_to("3")
+
+            return node.index()
 
         medrecord.add_nodes_to_group("0", query)
 
@@ -1425,8 +1456,10 @@ class TestMedRecord(unittest.TestCase):
         with pytest.raises(AssertionError):
             medrecord.add_nodes_to_group("0", ["1", "0"])
 
-        def query(node: NodeOperand) -> None:
+        def query(node: NodeOperand) -> NodeIndicesOperand:
             node.index().equal_to("0")
+
+            return node.index()
 
         # Adding a node to a group that already is in the group should fail
         with pytest.raises(AssertionError):
@@ -1460,8 +1493,10 @@ class TestMedRecord(unittest.TestCase):
 
         assert sorted([0, 1, 2]) == sorted(medrecord.edges_in_group("0"))
 
-        def query(edge: EdgeOperand) -> None:
+        def query(edge: EdgeOperand) -> EdgeIndicesOperand:
             edge.index().equal_to(3)
+
+            return edge.index()
 
         medrecord.add_edges_to_group("0", query)
 
@@ -1507,8 +1542,10 @@ class TestMedRecord(unittest.TestCase):
         with pytest.raises(AssertionError):
             medrecord.add_edges_to_group("0", [1, 0])
 
-        def query(edge: EdgeOperand) -> None:
+        def query(edge: EdgeOperand) -> EdgeIndicesOperand:
             edge.index().equal_to(0)
+
+            return edge.index()
 
         # Adding an edge to a group that already is in the group should fail
         with pytest.raises(AssertionError):
@@ -1548,8 +1585,10 @@ class TestMedRecord(unittest.TestCase):
 
         assert sorted(["0", "1"]) == sorted(medrecord.nodes_in_group("0"))
 
-        def query(node: NodeOperand) -> None:
+        def query(node: NodeOperand) -> NodeIndicesOperand:
             node.index().is_in(["0", "1"])
+
+            return node.index()
 
         medrecord.remove_nodes_from_group("0", query)
 
@@ -1568,8 +1607,10 @@ class TestMedRecord(unittest.TestCase):
         with pytest.raises(IndexError):
             medrecord.remove_nodes_from_group("50", ["0", "1"])
 
-        def query(node: NodeOperand) -> None:
+        def query(node: NodeOperand) -> NodeIndicesOperand:
             node.index().equal_to("0")
+
+            return node.index()
 
         # Removing a node from a non-existing group should fail
         with pytest.raises(IndexError):
@@ -1606,8 +1647,10 @@ class TestMedRecord(unittest.TestCase):
 
         assert sorted([0, 1]) == sorted(medrecord.edges_in_group("0"))
 
-        def query(edge: EdgeOperand) -> None:
+        def query(edge: EdgeOperand) -> EdgeIndicesOperand:
             edge.index().is_in([0, 1])
+
+            return edge.index()
 
         medrecord.remove_edges_from_group("0", query)
 
@@ -1626,8 +1669,10 @@ class TestMedRecord(unittest.TestCase):
         with pytest.raises(IndexError):
             medrecord.remove_edges_from_group("50", [0, 1])
 
-        def query(edge: EdgeOperand) -> None:
+        def query(edge: EdgeOperand) -> EdgeIndicesOperand:
             edge.index().equal_to(0)
+
+            return edge.index()
 
         # Removing an edge from a non-existing group should fail
         with pytest.raises(IndexError):
@@ -1678,8 +1723,10 @@ class TestMedRecord(unittest.TestCase):
 
         assert medrecord.groups_of_node(["0", "1"]) == {"0": ["0"], "1": ["0"]}
 
-        def query(node: NodeOperand) -> None:
+        def query(node: NodeOperand) -> NodeIndicesOperand:
             node.index().is_in(["0", "1"])
+
+            return node.index()
 
         assert medrecord.groups_of_node(query) == {"0": ["0"], "1": ["0"]}
 
@@ -1703,8 +1750,10 @@ class TestMedRecord(unittest.TestCase):
 
         assert medrecord.groups_of_edge([0, 1]) == {0: ["0"], 1: ["0"]}
 
-        def query(edge: EdgeOperand) -> None:
+        def query(edge: EdgeOperand) -> EdgeIndicesOperand:
             edge.index().is_in([0, 1])
+
+            return edge.index()
 
         assert medrecord.groups_of_edge(query) == {0: ["0"], 1: ["0"]}
 
@@ -1786,8 +1835,10 @@ class TestMedRecord(unittest.TestCase):
             "1": ["0", "2"],
         }
 
-        def query1(node: NodeOperand) -> None:
+        def query1(node: NodeOperand) -> NodeIndicesOperand:
             node.index().is_in(["0", "1"])
+
+            return node.index()
 
         neighbors = medrecord.neighbors(query1)
 
@@ -1807,8 +1858,10 @@ class TestMedRecord(unittest.TestCase):
             "1": ["0", "2"],
         }
 
-        def query2(node: NodeOperand) -> None:
+        def query2(node: NodeOperand) -> NodeIndicesOperand:
             node.index().is_in(["0", "1"])
+
+            return node.index()
 
         neighbors = medrecord.neighbors(query2, directed=EdgesDirected.UNDIRECTED)
 
