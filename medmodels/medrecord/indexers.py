@@ -134,7 +134,7 @@ class NodeIndexer:
 
             if isinstance(query_result, list):
                 return self._medrecord._medrecord.node(query_result)
-            if query_result:
+            if query_result is not None:
                 return self._medrecord._medrecord.node([query_result])[query_result]
 
             msg = "The query returned no results"
@@ -171,7 +171,7 @@ class NodeIndexer:
                 attributes = self._medrecord._medrecord.node(query_result)
 
                 return {x: attributes[x][attribute_selection] for x in attributes}
-            if query_result:
+            if query_result is not None:
                 return self._medrecord._medrecord.node([query_result])[query_result][
                     attribute_selection
                 ]
@@ -222,7 +222,7 @@ class NodeIndexer:
                     x: {y: attributes[x][y] for y in attribute_selection}
                     for x in attributes
                 }
-            if query_result:
+            if query_result is not None:
                 return {
                     x: self._medrecord._medrecord.node([query_result])[query_result][x]
                     for x in attribute_selection
@@ -284,7 +284,7 @@ class NodeIndexer:
 
             if isinstance(query_result, list):
                 return self._medrecord._medrecord.node(query_result)
-            if query_result:
+            if query_result is not None:
                 return self._medrecord._medrecord.node([query_result])[query_result]
 
             msg = "The query returned no results"
@@ -362,22 +362,22 @@ class NodeIndexer:
         """  # noqa: W505
         if is_node_index(key):
             if not is_attributes(value):
-                msg = "Invalid value type. Expected Attributes"
-                raise ValueError(msg)
+                msg = "Should never be reached"
+                raise NotImplementedError(msg)
 
             return self._medrecord._medrecord.replace_node_attributes([key], value)
 
         if isinstance(key, list):
             if not is_attributes(value):
-                msg = "Invalid value type. Expected Attributes"
-                raise ValueError(msg)
+                msg = "Should never be reached"
+                raise NotImplementedError(msg)
 
             return self._medrecord._medrecord.replace_node_attributes(key, value)
 
         if isinstance(key, Callable):
             if not is_attributes(value):
-                msg = "Invalid value type. Expected Attributes"
-                raise ValueError(msg)
+                msg = "Should never be reached"
+                raise NotImplementedError(msg)
 
             query_result = self._medrecord.query_nodes(key)
 
@@ -385,7 +385,7 @@ class NodeIndexer:
                 return self._medrecord._medrecord.replace_node_attributes(
                     query_result, value
                 )
-            if query_result:
+            if query_result is not None:
                 return self._medrecord._medrecord.replace_node_attributes(
                     [query_result], value
                 )
@@ -398,8 +398,8 @@ class NodeIndexer:
                 raise ValueError(msg)
 
             if not is_attributes(value):
-                msg = "Invalid value type. Expected Attributes"
-                raise ValueError(msg)
+                msg = "Should never be reached"
+                raise NotImplementedError(msg)
 
             return self._medrecord._medrecord.replace_node_attributes(
                 self._medrecord.nodes, value
@@ -411,8 +411,8 @@ class NodeIndexer:
             attribute_selection
         ):
             if not is_medrecord_value(value):
-                msg = "Invalid value type. Expected MedRecordValue"
-                raise ValueError(msg)
+                msg = "Should never be reached"
+                raise NotImplementedError(msg)
 
             return self._medrecord._medrecord.update_node_attribute(
                 [index_selection], attribute_selection, value
@@ -422,8 +422,8 @@ class NodeIndexer:
             attribute_selection
         ):
             if not is_medrecord_value(value):
-                msg = "Invalid value type. Expected MedRecordValue"
-                raise ValueError(msg)
+                msg = "Should never be reached"
+                raise NotImplementedError(msg)
 
             return self._medrecord._medrecord.update_node_attribute(
                 index_selection, attribute_selection, value
@@ -433,8 +433,8 @@ class NodeIndexer:
             attribute_selection
         ):
             if not is_medrecord_value(value):
-                msg = "Invalid value type. Expected MedRecordValue"
-                raise ValueError(msg)
+                msg = "Should never be reached"
+                raise NotImplementedError(msg)
 
             query_result = self._medrecord.query_nodes(index_selection)
 
@@ -442,7 +442,7 @@ class NodeIndexer:
                 return self._medrecord._medrecord.update_node_attribute(
                     query_result, attribute_selection, value
                 )
-            if query_result:
+            if query_result is not None:
                 return self._medrecord._medrecord.update_node_attribute(
                     [query_result], attribute_selection, value
                 )
@@ -461,8 +461,8 @@ class NodeIndexer:
                 raise ValueError(msg)
 
             if not is_medrecord_value(value):
-                msg = "Invalid value type. Expected MedRecordValue"
-                raise ValueError(msg)
+                msg = "Should never be reached"
+                raise NotImplementedError(msg)
 
             return self._medrecord._medrecord.update_node_attribute(
                 self._medrecord.nodes,
@@ -472,8 +472,8 @@ class NodeIndexer:
 
         if is_node_index(index_selection) and isinstance(attribute_selection, list):
             if not is_medrecord_value(value):
-                msg = "Invalid value type. Expected MedRecordValue"
-                raise ValueError(msg)
+                msg = "Should never be reached"
+                raise NotImplementedError(msg)
 
             for attribute in attribute_selection:
                 self._medrecord._medrecord.update_node_attribute(
@@ -484,8 +484,8 @@ class NodeIndexer:
 
         if isinstance(index_selection, list) and isinstance(attribute_selection, list):
             if not is_medrecord_value(value):
-                msg = "Invalid value type. Expected MedRecordValue"
-                raise ValueError(msg)
+                msg = "Should never be reached"
+                raise NotImplementedError(msg)
 
             for attribute in attribute_selection:
                 self._medrecord._medrecord.update_node_attribute(
@@ -498,8 +498,8 @@ class NodeIndexer:
             attribute_selection, list
         ):
             if not is_medrecord_value(value):
-                msg = "Invalid value type. Expected MedRecordValue"
-                raise ValueError(msg)
+                msg = "Should never be reached"
+                raise NotImplementedError(msg)
 
             query_result = self._medrecord.query_nodes(index_selection)
 
@@ -509,7 +509,7 @@ class NodeIndexer:
                         query_result, attribute, value
                     )
                 return None
-            if query_result:
+            if query_result is not None:
                 for attribute in attribute_selection:
                     self._medrecord._medrecord.update_node_attribute(
                         [query_result], attribute, value
@@ -528,8 +528,8 @@ class NodeIndexer:
                 raise ValueError(msg)
 
             if not is_medrecord_value(value):
-                msg = "Invalid value type. Expected MedRecordValue"
-                raise ValueError(msg)
+                msg = "Should never be reached"
+                raise NotImplementedError(msg)
 
             for attribute in attribute_selection:
                 self._medrecord._medrecord.update_node_attribute(
@@ -548,8 +548,8 @@ class NodeIndexer:
                 raise ValueError(msg)
 
             if not is_medrecord_value(value):
-                msg = "Invalid value type. Expected MedRecordValue"
-                raise ValueError(msg)
+                msg = "Should never be reached"
+                raise NotImplementedError(msg)
 
             attributes = self._medrecord._medrecord.node([index_selection])[
                 index_selection
@@ -574,8 +574,8 @@ class NodeIndexer:
                 raise ValueError(msg)
 
             if not is_medrecord_value(value):
-                msg = "Invalid value type. Expected MedRecordValue"
-                raise ValueError(msg)
+                msg = "Should never be reached"
+                raise NotImplementedError(msg)
 
             attributes = self._medrecord._medrecord.node(index_selection)
 
@@ -599,8 +599,8 @@ class NodeIndexer:
                 raise ValueError(msg)
 
             if not is_medrecord_value(value):
-                msg = "Invalid value type. Expected MedRecordValue"
-                raise ValueError(msg)
+                msg = "Should never be reached"
+                raise NotImplementedError(msg)
 
             query_result = self._medrecord.query_nodes(index_selection)
 
@@ -612,7 +612,7 @@ class NodeIndexer:
                         self._medrecord._medrecord.update_node_attribute(
                             [node], attribute, value
                         )
-            elif query_result:
+            elif query_result is not None:
                 attributes = self._medrecord._medrecord.node([query_result])[
                     query_result
                 ]
@@ -641,8 +641,8 @@ class NodeIndexer:
                 raise ValueError(msg)
 
             if not is_medrecord_value(value):
-                msg = "Invalid value type. Expected MedRecordValue"
-                raise ValueError(msg)
+                msg = "Should never be reached"
+                raise NotImplementedError(msg)
 
             attributes = self._medrecord._medrecord.node(self._medrecord.nodes)
 
@@ -698,7 +698,7 @@ class NodeIndexer:
                 return self._medrecord._medrecord.remove_node_attribute(
                     query_result, attribute_selection
                 )
-            if query_result:
+            if query_result is not None:
                 return self._medrecord._medrecord.remove_node_attribute(
                     [query_result], attribute_selection
                 )
@@ -747,7 +747,7 @@ class NodeIndexer:
                     self._medrecord._medrecord.remove_node_attribute(
                         query_result, attribute
                     )
-            elif query_result:
+            elif query_result is not None:
                 for attribute in attribute_selection:
                     self._medrecord._medrecord.remove_node_attribute(
                         [query_result], attribute
@@ -814,7 +814,7 @@ class NodeIndexer:
                 return self._medrecord._medrecord.replace_node_attributes(
                     query_result, {}
                 )
-            if query_result:
+            if query_result is not None:
                 return self._medrecord._medrecord.replace_node_attributes(
                     [query_result], {}
                 )
@@ -944,7 +944,7 @@ class EdgeIndexer:
 
             if isinstance(query_result, list):
                 return self._medrecord._medrecord.edge(query_result)
-            if query_result:
+            if query_result is not None:
                 return self._medrecord._medrecord.edge([query_result])[query_result]
 
             msg = "The query returned no results"
@@ -982,7 +982,7 @@ class EdgeIndexer:
                 attributes = self._medrecord._medrecord.edge(query_result)
 
                 return {x: attributes[x][attribute_selection] for x in attributes}
-            if query_result:
+            if query_result is not None:
                 return self._medrecord._medrecord.edge([query_result])[query_result][
                     attribute_selection
                 ]
@@ -1033,7 +1033,7 @@ class EdgeIndexer:
                     x: {y: attributes[x][y] for y in attribute_selection}
                     for x in attributes
                 }
-            if query_result:
+            if query_result is not None:
                 return {
                     x: self._medrecord._medrecord.edge([query_result])[query_result][x]
                     for x in attribute_selection
@@ -1095,7 +1095,7 @@ class EdgeIndexer:
 
             if isinstance(query_result, list):
                 return self._medrecord._medrecord.edge(query_result)
-            if query_result:
+            if query_result is not None:
                 return self._medrecord._medrecord.edge([query_result])[query_result]
 
             msg = "The query returned no results"
@@ -1175,22 +1175,22 @@ class EdgeIndexer:
         """  # noqa: W505
         if is_edge_index(key):
             if not is_attributes(value):
-                msg = "Invalid value type. Expected Attributes"
-                raise ValueError(msg)
+                msg = "Should never be reached"
+                raise NotImplementedError(msg)
 
             return self._medrecord._medrecord.replace_edge_attributes([key], value)
 
         if isinstance(key, list):
             if not is_attributes(value):
-                msg = "Invalid value type. Expected Attributes"
-                raise ValueError(msg)
+                msg = "Should never be reached"
+                raise NotImplementedError(msg)
 
             return self._medrecord._medrecord.replace_edge_attributes(key, value)
 
         if isinstance(key, Callable):
             if not is_attributes(value):
-                msg = "Invalid value type. Expected Attributes"
-                raise ValueError(msg)
+                msg = "Should never be reached"
+                raise NotImplementedError(msg)
 
             query_result = self._medrecord.query_edges(key)
 
@@ -1198,7 +1198,7 @@ class EdgeIndexer:
                 return self._medrecord._medrecord.replace_edge_attributes(
                     query_result, value
                 )
-            if query_result:
+            if query_result is not None:
                 return self._medrecord._medrecord.replace_edge_attributes(
                     [query_result], value
                 )
@@ -1211,8 +1211,8 @@ class EdgeIndexer:
                 raise ValueError(msg)
 
             if not is_attributes(value):
-                msg = "Invalid value type. Expected Attributes"
-                raise ValueError(msg)
+                msg = "Should never be reached"
+                raise NotImplementedError(msg)
 
             return self._medrecord._medrecord.replace_edge_attributes(
                 self._medrecord.edges, value
@@ -1224,8 +1224,8 @@ class EdgeIndexer:
             attribute_selection
         ):
             if not is_medrecord_value(value):
-                msg = "Invalid value type. Expected MedRecordValue"
-                raise ValueError(msg)
+                msg = "Should never be reached"
+                raise NotImplementedError(msg)
 
             return self._medrecord._medrecord.update_edge_attribute(
                 [index_selection], attribute_selection, value
@@ -1235,8 +1235,8 @@ class EdgeIndexer:
             attribute_selection
         ):
             if not is_medrecord_value(value):
-                msg = "Invalid value type. Expected MedRecordValue"
-                raise ValueError(msg)
+                msg = "Should never be reached"
+                raise NotImplementedError(msg)
 
             return self._medrecord._medrecord.update_edge_attribute(
                 index_selection, attribute_selection, value
@@ -1246,8 +1246,8 @@ class EdgeIndexer:
             attribute_selection
         ):
             if not is_medrecord_value(value):
-                msg = "Invalid value type. Expected MedRecordValue"
-                raise ValueError(msg)
+                msg = "Should never be reached"
+                raise NotImplementedError(msg)
 
             query_result = self._medrecord.query_edges(index_selection)
 
@@ -1255,7 +1255,7 @@ class EdgeIndexer:
                 return self._medrecord._medrecord.update_edge_attribute(
                     query_result, attribute_selection, value
                 )
-            if query_result:
+            if query_result is not None:
                 return self._medrecord._medrecord.update_edge_attribute(
                     [query_result], attribute_selection, value
                 )
@@ -1274,8 +1274,8 @@ class EdgeIndexer:
                 raise ValueError(msg)
 
             if not is_medrecord_value(value):
-                msg = "Invalid value type. Expected MedRecordValue"
-                raise ValueError(msg)
+                msg = "Should never be reached"
+                raise NotImplementedError(msg)
 
             return self._medrecord._medrecord.update_edge_attribute(
                 self._medrecord.edges,
@@ -1285,8 +1285,8 @@ class EdgeIndexer:
 
         if is_edge_index(index_selection) and isinstance(attribute_selection, list):
             if not is_medrecord_value(value):
-                msg = "Invalid value type. Expected MedRecordValue"
-                raise ValueError(msg)
+                msg = "Should never be reached"
+                raise NotImplementedError(msg)
 
             for attribute in attribute_selection:
                 self._medrecord._medrecord.update_edge_attribute(
@@ -1297,8 +1297,8 @@ class EdgeIndexer:
 
         if isinstance(index_selection, list) and isinstance(attribute_selection, list):
             if not is_medrecord_value(value):
-                msg = "Invalid value type. Expected MedRecordValue"
-                raise ValueError(msg)
+                msg = "Should never be reached"
+                raise NotImplementedError(msg)
 
             for attribute in attribute_selection:
                 self._medrecord._medrecord.update_edge_attribute(
@@ -1311,8 +1311,8 @@ class EdgeIndexer:
             attribute_selection, list
         ):
             if not is_medrecord_value(value):
-                msg = "Invalid value type. Expected MedRecordValue"
-                raise ValueError(msg)
+                msg = "Should never be reached"
+                raise NotImplementedError(msg)
 
             query_result = self._medrecord.query_edges(index_selection)
 
@@ -1321,7 +1321,7 @@ class EdgeIndexer:
                     self._medrecord._medrecord.update_edge_attribute(
                         query_result, attribute, value
                     )
-            elif query_result:
+            elif query_result is not None:
                 for attribute in attribute_selection:
                     self._medrecord._medrecord.update_edge_attribute(
                         [query_result], attribute, value
@@ -1339,8 +1339,8 @@ class EdgeIndexer:
                 raise ValueError(msg)
 
             if not is_medrecord_value(value):
-                msg = "Invalid value type. Expected MedRecordValue"
-                raise ValueError(msg)
+                msg = "Should never be reached"
+                raise NotImplementedError(msg)
 
             for attribute in attribute_selection:
                 self._medrecord._medrecord.update_edge_attribute(
@@ -1359,8 +1359,8 @@ class EdgeIndexer:
                 raise ValueError(msg)
 
             if not is_medrecord_value(value):
-                msg = "Invalid value type. Expected MedRecordValue"
-                raise ValueError(msg)
+                msg = "Should never be reached"
+                raise NotImplementedError(msg)
 
             attributes = self._medrecord._medrecord.edge([index_selection])[
                 index_selection
@@ -1383,8 +1383,8 @@ class EdgeIndexer:
                 raise ValueError(msg)
 
             if not is_medrecord_value(value):
-                msg = "Invalid value type. Expected MedRecordValue"
-                raise ValueError(msg)
+                msg = "Should never be reached"
+                raise NotImplementedError(msg)
 
             attributes = self._medrecord._medrecord.edge(index_selection)
 
@@ -1408,8 +1408,8 @@ class EdgeIndexer:
                 raise ValueError(msg)
 
             if not is_medrecord_value(value):
-                msg = "Invalid value type. Expected MedRecordValue"
-                raise ValueError(msg)
+                msg = "Should never be reached"
+                raise NotImplementedError(msg)
 
             query_result = self._medrecord.query_edges(index_selection)
 
@@ -1421,7 +1421,7 @@ class EdgeIndexer:
                         self._medrecord._medrecord.update_edge_attribute(
                             query_result, attribute, value
                         )
-            elif query_result:
+            elif query_result is not None:
                 attributes = self._medrecord._medrecord.edge([query_result])[
                     query_result
                 ]
@@ -1448,8 +1448,8 @@ class EdgeIndexer:
                 raise ValueError(msg)
 
             if not is_medrecord_value(value):
-                msg = "Invalid value type. Expected MedRecordValue"
-                raise ValueError(msg)
+                msg = "Should never be reached"
+                raise NotImplementedError(msg)
 
             attributes = self._medrecord._medrecord.edge(self._medrecord.edges)
 
@@ -1506,7 +1506,7 @@ class EdgeIndexer:
                 return self._medrecord._medrecord.remove_edge_attribute(
                     query_result, attribute_selection
                 )
-            if query_result:
+            if query_result is not None:
                 return self._medrecord._medrecord.remove_edge_attribute(
                     [query_result], attribute_selection
                 )
@@ -1556,7 +1556,7 @@ class EdgeIndexer:
                     self._medrecord._medrecord.remove_edge_attribute(
                         query_result, attribute
                     )
-            elif query_result:
+            elif query_result is not None:
                 for attribute in attribute_selection:
                     self._medrecord._medrecord.remove_edge_attribute(
                         [query_result], attribute
@@ -1623,7 +1623,7 @@ class EdgeIndexer:
                 return self._medrecord._medrecord.replace_edge_attributes(
                     query_result, {}
                 )
-            if query_result:
+            if query_result is not None:
                 return self._medrecord._medrecord.replace_edge_attributes(
                     [query_result], {}
                 )
