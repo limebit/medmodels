@@ -55,6 +55,36 @@ class TestMedRecordBuilder(unittest.TestCase):
         assert medrecord.groups[0] == "group"
         assert medrecord.nodes_in_group("group") == ["0"]
 
+        builder = mr.MedRecord.builder().add_nodes(("0", {})).add_group("group")
+
+        assert len(builder._groups) == 1
+
+        medrecord = builder.build()
+
+        assert len(medrecord.nodes) == 1
+        assert len(medrecord.edges) == 0
+        assert len(medrecord.groups) == 1
+        assert medrecord.groups[0] == "group"
+        assert medrecord.nodes_in_group("group") == []
+
+        # Test adding a group twice. The second call should overwrite the first.
+        builder = (
+            mr.MedRecord.builder()
+            .add_nodes(("0", {}))
+            .add_group("group", nodes=["0"])
+            .add_group("group")
+        )
+
+        assert len(builder._groups) == 1
+
+        medrecord = builder.build()
+
+        assert len(medrecord.nodes) == 1
+        assert len(medrecord.edges) == 0
+        assert len(medrecord.groups) == 1
+        assert medrecord.groups[0] == "group"
+        assert medrecord.nodes_in_group("group") == []
+
     def test_with_schema(self) -> None:
         schema = mr.Schema(
             ungrouped=mr.GroupSchema(nodes={"attribute": mr.Int()}),

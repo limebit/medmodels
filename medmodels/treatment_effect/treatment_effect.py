@@ -572,7 +572,7 @@ class TreatmentEffect:
             NodeIndicesOperand: The node indices of the queried node.
         """
         node.index().is_in(list(treated_set))
-        if self._time_attribute is None:  # pragma: no cover
+        if self._time_attribute is None:
             msg = "Should never be reached"
             raise NotImplementedError(msg)
 
