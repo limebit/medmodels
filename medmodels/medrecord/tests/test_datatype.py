@@ -5,6 +5,7 @@ from medmodels._medmodels import (
     PyAny,
     PyBool,
     PyDateTime,
+    PyDuration,
     PyFloat,
     PyInt,
     PyNull,
@@ -12,9 +13,58 @@ from medmodels._medmodels import (
     PyString,
     PyUnion,
 )
+from medmodels.medrecord.datatype import DataType
 
 
 class TestDataType(unittest.TestCase):
+    def test_from_py_data_type(self) -> None:
+        py_string = PyString()
+        result = DataType._from_py_data_type(py_string)
+        assert isinstance(result, mr.String)
+
+        py_int = PyInt()
+        result = DataType._from_py_data_type(py_int)
+        assert isinstance(result, mr.Int)
+
+        py_float = PyFloat()
+        result = DataType._from_py_data_type(py_float)
+        assert isinstance(result, mr.Float)
+
+        py_bool = PyBool()
+        result = DataType._from_py_data_type(py_bool)
+        assert isinstance(result, mr.Bool)
+
+        py_datetime = PyDateTime()
+        result = DataType._from_py_data_type(py_datetime)
+        assert isinstance(result, mr.DateTime)
+
+        py_duration = PyDuration()
+        result = DataType._from_py_data_type(py_duration)
+        assert isinstance(result, mr.Duration)
+
+        py_null = PyNull()
+        result = DataType._from_py_data_type(py_null)
+        assert isinstance(result, mr.Null)
+
+        py_any = PyAny()
+        result = DataType._from_py_data_type(py_any)
+        assert isinstance(result, mr.Any)
+
+        py_union = PyUnion(PyString(), PyInt())
+        result = DataType._from_py_data_type(py_union)
+        assert isinstance(result, mr.Union)
+        assert result == mr.Union(mr.String(), mr.Int())
+
+        nested_py_union = PyUnion(PyString(), PyUnion(PyInt(), PyBool()))
+        result = DataType._from_py_data_type(nested_py_union)
+        assert isinstance(result, mr.Union)
+        assert result == mr.Union(mr.String(), mr.Union(mr.Int(), mr.Bool()))
+
+        py_option = PyOption(PyString())
+        result = DataType._from_py_data_type(py_option)
+        assert isinstance(result, mr.Option)
+        assert result == mr.Option(mr.String())
+
     def test_string(self) -> None:
         string = mr.String()
         assert isinstance(string._inner(), PyString)
@@ -70,6 +120,17 @@ class TestDataType(unittest.TestCase):
         assert mr.DateTime() == mr.DateTime()
         assert mr.DateTime() != mr.String()
 
+    def test_duration(self) -> None:
+        duration = mr.Duration()
+        assert isinstance(duration._inner(), PyDuration)
+
+        assert str(duration) == "Duration"
+
+        assert duration.__repr__() == "DataType.Duration"
+
+        assert mr.Duration() == mr.Duration()
+        assert mr.Duration() != mr.String()
+
     def test_null(self) -> None:
         null = mr.Null()
         assert isinstance(null._inner(), PyNull)
@@ -123,3 +184,8 @@ class TestDataType(unittest.TestCase):
 
         assert mr.Option(mr.String()) == mr.Option(mr.String())
         assert mr.Option(mr.String()) != mr.Option(mr.Int())
+
+
+if __name__ == "__main__":
+    run_test = unittest.TestLoader().loadTestsFromTestCase(TestDataType)
+    unittest.TextTestRunner(verbosity=2).run(run_test)
