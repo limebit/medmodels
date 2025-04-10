@@ -514,7 +514,7 @@ class MedRecord:
             if isinstance(query_result, list):
                 return self._medrecord.outgoing_edges(query_result)
             if query_result:
-                return self._medrecord.outgoing_edges([query_result])
+                return self._medrecord.outgoing_edges([query_result])[query_result]
 
             return []
 
@@ -561,7 +561,7 @@ class MedRecord:
             if isinstance(query_result, list):
                 return self._medrecord.incoming_edges(query_result)
             if query_result:
-                return self._medrecord.incoming_edges([query_result])
+                return self._medrecord.incoming_edges([query_result])[query_result]
 
             return []
 
@@ -615,7 +615,7 @@ class MedRecord:
             if isinstance(query_result, list):
                 return self._medrecord.edge_endpoints(query_result)
             if query_result:
-                return self._medrecord.edge_endpoints([query_result])
+                return self._medrecord.edge_endpoints([query_result])[query_result]
 
             msg = "The query returned no results"
             raise IndexError(msg)
@@ -722,7 +722,7 @@ class MedRecord:
             if isinstance(query_result, list):
                 return self._medrecord.remove_nodes(query_result)
             if query_result:
-                return self._medrecord.remove_nodes([query_result])
+                return self._medrecord.remove_nodes([query_result])[query_result]
 
             return {}
 
@@ -867,7 +867,7 @@ class MedRecord:
             if isinstance(query_result, list):
                 return self._medrecord.remove_edges(query_result)
             if query_result:
-                return self._medrecord.remove_edges([query_result])
+                return self._medrecord.remove_edges([query_result])[query_result]
 
             return {}
 
@@ -1260,7 +1260,7 @@ class MedRecord:
             if isinstance(query_result, list):
                 return self._medrecord.groups_of_node(query_result)
             if query_result:
-                return self._medrecord.groups_of_node([query_result])
+                return self._medrecord.groups_of_node([query_result])[query_result]
 
             return []
 
@@ -1305,7 +1305,7 @@ class MedRecord:
             if isinstance(query_result, list):
                 return self._medrecord.groups_of_edge(query_result)
             if query_result:
-                return self._medrecord.groups_of_edge([query_result])
+                return self._medrecord.groups_of_edge([query_result])[query_result]
 
             return []
 
