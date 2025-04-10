@@ -101,12 +101,12 @@ QueryResult = Union[
 ]
 
 NodeQuery: TypeAlias = Callable[["NodeOperand"], QueryReturnOperand]
-NodeQueryExtension: TypeAlias = Callable[["NodeOperand"], None]
+NodeQueryComponent: TypeAlias = Callable[["NodeOperand"], None]
 NodeIndicesQuery: TypeAlias = Callable[["NodeOperand"], "NodeIndicesOperand"]
 NodeIndexQuery: TypeAlias = Callable[["NodeOperand"], "NodeIndexOperand"]
 
 EdgeQuery: TypeAlias = Callable[["EdgeOperand"], QueryReturnOperand]
-EdgeQueryExtension: TypeAlias = Callable[["EdgeOperand"], None]
+EdgeQueryComponent: TypeAlias = Callable[["EdgeOperand"], None]
 EdgeIndicesQuery: TypeAlias = Callable[["EdgeOperand"], "EdgeIndicesOperand"]
 EdgeIndexQuery: TypeAlias = Callable[["EdgeOperand"], "EdgeIndexOperand"]
 
@@ -345,8 +345,8 @@ class NodeOperand:
 
     def either_or(
         self,
-        either: NodeQueryExtension,
-        or_: NodeQueryExtension,
+        either: NodeQueryComponent,
+        or_: NodeQueryComponent,
     ) -> None:
         """Apply either-or logic to the current node query.
 
@@ -354,8 +354,8 @@ class NodeOperand:
         nodes that satisfy either the first query or the second query.
 
         Args:
-            either (Callable[[EdgeIndexOperand], None]): One of the queries to apply.
-            or_ (Callable[[EdgeIndexOperand], None]): The other query to apply.
+            either (NodeQueryComponent): One of the queries to apply.
+            or_ (NodeQueryComponent): The other query to apply.
 
         Example:
 
@@ -372,12 +372,11 @@ class NodeOperand:
             lambda node: or_(NodeOperand._from_py_node_operand(node)),
         )
 
-    def exclude(self, query: NodeQueryExtension) -> None:
+    def exclude(self, query: NodeQueryComponent) -> None:
         """Exclude nodes based on the query.
 
         Args:
-            query (Callable[[EdgeIndexOperand], None]): The query to apply to exclude
-                nodes.
+            query (NodeQueryComponent): The query to apply to exclude nodes.
         """
         self._node_operand.exclude(
             lambda node: query(NodeOperand._from_py_node_operand(node))
@@ -474,8 +473,8 @@ class EdgeOperand:
 
     def either_or(
         self,
-        either: EdgeQueryExtension,
-        or_: EdgeQueryExtension,
+        either: EdgeQueryComponent,
+        or_: EdgeQueryComponent,
     ) -> None:
         """Apply either-or logic to the current edge query.
 
@@ -483,8 +482,8 @@ class EdgeOperand:
         returns all edges that satisfy either the first query or the second query.
 
         Args:
-            either (Callable[[EdgeIndexOperand], None]): One of the queries to apply.
-            or_ (Callable[[EdgeIndexOperand], None]): The other query to apply.
+            either (EdgeQueryComponent): One of the queries to apply.
+            or_ (EdgeQueryComponent): The other query to apply.
 
         Example:
 
@@ -503,12 +502,11 @@ class EdgeOperand:
             lambda edge: or_(EdgeOperand._from_py_edge_operand(edge)),
         )
 
-    def exclude(self, query: EdgeQueryExtension) -> None:
+    def exclude(self, query: EdgeQueryComponent) -> None:
         """Exclude edges based on the query.
 
         Args:
-            query (Callable[[EdgeIndexOperand], None]): The query to apply to exclude
-                edges.
+            query (EdgeQueryComponent): The query to apply to exclude edges.
         """
         self._edge_operand.exclude(
             lambda edge: query(EdgeOperand._from_py_edge_operand(edge))
