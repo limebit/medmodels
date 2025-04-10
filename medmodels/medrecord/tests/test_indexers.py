@@ -1,11 +1,14 @@
 import unittest
+from typing import Any
 
 import pytest
 
 from medmodels import MedRecord
 from medmodels.medrecord.querying import (
+    EdgeIndexOperand,
     EdgeIndicesOperand,
     EdgeOperand,
+    NodeIndexOperand,
     NodeIndicesOperand,
     NodeOperand,
 )
@@ -32,6 +35,19 @@ def node_greater_than_or_equal_two(node: NodeOperand) -> NodeIndicesOperand:
     node.index().greater_than_or_equal_to(2)
 
     return node.index()
+
+
+def node_max(node: NodeOperand) -> NodeIndexOperand:
+    node.index().greater_than(2)
+
+    return node.index().max()
+
+
+def node_max_greater_than_3(node: NodeOperand) -> NodeIndexOperand:
+    max_index = node.index().max()
+    max_index.greater_than(3)
+
+    return max_index
 
 
 def node_greater_than_three(node: NodeOperand) -> NodeIndicesOperand:
@@ -62,6 +78,19 @@ def edge_less_than_two(edge: EdgeOperand) -> EdgeIndicesOperand:
     edge.index().less_than(2)
 
     return edge.index()
+
+
+def edge_max(edge: EdgeOperand) -> EdgeIndexOperand:
+    edge.index().greater_than(2)
+
+    return edge.index().max()
+
+
+def edge_max_greater_than_3(edge: EdgeOperand) -> EdgeIndexOperand:
+    max_index = edge.index().max()
+    max_index.greater_than(3)
+
+    return max_index
 
 
 class TestIndexers(unittest.TestCase):
@@ -142,14 +171,24 @@ class TestIndexers(unittest.TestCase):
             2: {"foo": "bar", "bar": "foo"},
             3: {"foo": "bar", "bar": "test"},
         }
+        assert medrecord.node[node_max] == {"foo": "bar", "bar": "test"}
 
-        # Empty query should not fail
+        # Empty query should not fail when using a NodeIndicesOperand
         assert medrecord.node[node_greater_than_three] == {}
+
+        # Query should fail when using a NodeIndexOperand with no return value
+        with pytest.raises(IndexError, match="The query returned no results"):
+            medrecord.node[node_max_greater_than_3]
 
         assert medrecord.node[node_greater_than_or_equal_two, "foo"] == {
             2: "bar",
             3: "bar",
         }
+
+        assert medrecord.node[node_max, "foo"] == "bar"
+
+        with pytest.raises(IndexError, match="The query returned no results"):
+            medrecord.node[node_max_greater_than_3, "foo"]
 
         # Accessing a non-existing key should fail
         with pytest.raises(
@@ -161,6 +200,11 @@ class TestIndexers(unittest.TestCase):
             2: {"foo": "bar", "bar": "foo"},
             3: {"foo": "bar", "bar": "test"},
         }
+
+        assert medrecord.node[node_max, ["foo", "bar"]] == {"foo": "bar", "bar": "test"}
+
+        with pytest.raises(IndexError, match="The query returned no results"):
+            medrecord.node[node_max_greater_than_3, ["foo", "bar"]]
 
         # Accessing a non-existing key should fail
         with pytest.raises(KeyError):
@@ -174,6 +218,10 @@ class TestIndexers(unittest.TestCase):
             2: {"foo": "bar", "bar": "foo"},
             3: {"foo": "bar", "bar": "test"},
         }
+        assert medrecord.node[node_max, :] == {"foo": "bar", "bar": "test"}
+
+        with pytest.raises(IndexError, match="The query returned no results"):
+            medrecord.node[node_max_greater_than_3, :]
 
         with pytest.raises(ValueError, match="Invalid slice, only ':' is allowed"):
             medrecord.node[node_greater_than_or_equal_two, 1:]
@@ -251,6 +299,10 @@ class TestIndexers(unittest.TestCase):
         with pytest.raises(ValueError, match="Invalid slice, only ':' is allowed"):
             medrecord.node[:, ::1]
 
+        # Accessing a non-existing key returns None
+        key: Any = (object(), object())
+        assert medrecord.node[key] is None
+
     def test_node_setitem(self) -> None:
         # Updating existing attributes
 
@@ -260,6 +312,54 @@ class TestIndexers(unittest.TestCase):
             0: {"foo": "bar", "bar": "test"},
             1: {"foo": "bar", "bar": "foo"},
             2: {"foo": "bar", "bar": "foo"},
+            3: {"foo": "bar", "bar": "test"},
+        }
+
+        medrecord = create_medrecord()
+        medrecord.node[[0, 1]] = {"foo": "bar", "bar": "test"}
+        assert medrecord.node[:] == {
+            0: {"foo": "bar", "bar": "test"},
+            1: {"foo": "bar", "bar": "test"},
+            2: {"foo": "bar", "bar": "foo"},
+            3: {"foo": "bar", "bar": "test"},
+        }
+
+        medrecord = create_medrecord()
+        medrecord.node[node_greater_than_or_equal_two] = {"foo": "test", "bar": "test2"}
+        assert medrecord.node[:] == {
+            0: {"foo": "bar", "bar": "foo", "lorem": "ipsum"},
+            1: {"foo": "bar", "bar": "foo"},
+            2: {"foo": "test", "bar": "test2"},
+            3: {"foo": "test", "bar": "test2"},
+        }
+
+        medrecord = create_medrecord()
+        medrecord.node[node_max] = {"foo": "test", "bar": "test2"}
+        assert medrecord.node[:] == {
+            0: {"foo": "bar", "bar": "foo", "lorem": "ipsum"},
+            1: {"foo": "bar", "bar": "foo"},
+            2: {"foo": "bar", "bar": "foo"},
+            3: {"foo": "test", "bar": "test2"},
+        }
+
+        medrecord = create_medrecord()
+        medrecord.node[node_max_greater_than_3] = {"foo": "test", "bar": "test2"}
+        assert medrecord.node[:] == {
+            0: {"foo": "bar", "bar": "foo", "lorem": "ipsum"},
+            1: {"foo": "bar", "bar": "foo"},
+            2: {"foo": "bar", "bar": "foo"},
+            3: {"foo": "bar", "bar": "test"},
+        }
+
+        with pytest.raises(ValueError, match="Invalid slice, only ':' is allowed"):
+            medrecord.node[1:] = {"foo": "bar", "bar": "test"}
+
+        medrecord = create_medrecord()
+        medrecord.node[:] = {"foo": "bar", "bar": "test"}
+        assert medrecord.node[:] == {
+            0: {"foo": "bar", "bar": "test"},
+            1: {"foo": "bar", "bar": "test"},
+            2: {"foo": "bar", "bar": "test"},
             3: {"foo": "bar", "bar": "test"},
         }
 
@@ -359,11 +459,46 @@ class TestIndexers(unittest.TestCase):
         }
 
         medrecord = create_medrecord()
+        medrecord.node[node_max, "foo"] = "test"
+        assert medrecord.node[:] == {
+            0: {"foo": "bar", "bar": "foo", "lorem": "ipsum"},
+            1: {"foo": "bar", "bar": "foo"},
+            2: {"foo": "bar", "bar": "foo"},
+            3: {"foo": "test", "bar": "test"},
+        }
+
+        medrecord = create_medrecord()
+        medrecord.node[node_max_greater_than_3, "foo"] = "test"
+        assert medrecord.node[:] == {
+            0: {"foo": "bar", "bar": "foo", "lorem": "ipsum"},
+            1: {"foo": "bar", "bar": "foo"},
+            2: {"foo": "bar", "bar": "foo"},
+            3: {"foo": "bar", "bar": "test"},
+        }
+
+        medrecord = create_medrecord()
         medrecord.node[node_greater_than_or_equal_two, ["foo", "bar"]] = "test"
         assert medrecord.node[:] == {
             0: {"foo": "bar", "bar": "foo", "lorem": "ipsum"},
             1: {"foo": "bar", "bar": "foo"},
             2: {"foo": "test", "bar": "test"},
+            3: {"foo": "test", "bar": "test"},
+        }
+
+        medrecord = create_medrecord()
+        medrecord.node[node_max, ["foo", "bar"]] = "test"
+        assert medrecord.node[:] == {
+            0: {"foo": "bar", "bar": "foo", "lorem": "ipsum"},
+            1: {"foo": "bar", "bar": "foo"},
+            2: {"foo": "bar", "bar": "foo"},
+            3: {"foo": "test", "bar": "test"},
+        }
+
+        medrecord.node[node_max_greater_than_3, ["foo", "bar"]] = "test"
+        assert medrecord.node[:] == {
+            0: {"foo": "bar", "bar": "foo", "lorem": "ipsum"},
+            1: {"foo": "bar", "bar": "foo"},
+            2: {"foo": "bar", "bar": "foo"},
             3: {"foo": "test", "bar": "test"},
         }
 
@@ -374,6 +509,24 @@ class TestIndexers(unittest.TestCase):
             1: {"foo": "bar", "bar": "foo"},
             2: {"foo": "test", "bar": "test"},
             3: {"foo": "test", "bar": "test"},
+        }
+
+        medrecord = create_medrecord()
+        medrecord.node[node_max, :] = "test"
+        assert medrecord.node[:] == {
+            0: {"foo": "bar", "bar": "foo", "lorem": "ipsum"},
+            1: {"foo": "bar", "bar": "foo"},
+            2: {"foo": "bar", "bar": "foo"},
+            3: {"foo": "test", "bar": "test"},
+        }
+
+        medrecord = create_medrecord()
+        medrecord.node[node_max_greater_than_3, :] = "test"
+        assert medrecord.node[:] == {
+            0: {"foo": "bar", "bar": "foo", "lorem": "ipsum"},
+            1: {"foo": "bar", "bar": "foo"},
+            2: {"foo": "bar", "bar": "foo"},
+            3: {"foo": "bar", "bar": "test"},
         }
 
         with pytest.raises(ValueError, match="Invalid slice, only ':' is allowed"):
@@ -585,6 +738,9 @@ class TestIndexers(unittest.TestCase):
             3: {"foo": "bar", "bar": "test", "lorem": "test", "test": "test"},
         }
 
+        key: Any = (object(), object())
+        medrecord.node[key] = None
+
     def test_node_delitem(self) -> None:
         medrecord = create_medrecord()
         del medrecord.node[0, "foo"]
@@ -699,6 +855,24 @@ class TestIndexers(unittest.TestCase):
         }
 
         medrecord = create_medrecord()
+        del medrecord.node[node_max, "foo"]
+        assert medrecord.node[:] == {
+            0: {"foo": "bar", "bar": "foo", "lorem": "ipsum"},
+            1: {"foo": "bar", "bar": "foo"},
+            2: {"foo": "bar", "bar": "foo"},
+            3: {"bar": "test"},
+        }
+
+        medrecord = create_medrecord()
+        del medrecord.node[node_max_greater_than_3, "foo"]
+        assert medrecord.node[:] == {
+            0: {"foo": "bar", "bar": "foo", "lorem": "ipsum"},
+            1: {"foo": "bar", "bar": "foo"},
+            2: {"foo": "bar", "bar": "foo"},
+            3: {"foo": "bar", "bar": "test"},
+        }
+
+        medrecord = create_medrecord()
         # Empty query should not fail
         del medrecord.node[node_greater_than_three, "foo"]
         assert medrecord.node[:] == {
@@ -723,6 +897,24 @@ class TestIndexers(unittest.TestCase):
         }
 
         medrecord = create_medrecord()
+        del medrecord.node[node_max, ["foo", "bar"]]
+        assert medrecord.node[:] == {
+            1: {"foo": "bar", "bar": "foo"},
+            0: {"foo": "bar", "bar": "foo", "lorem": "ipsum"},
+            2: {"foo": "bar", "bar": "foo"},
+            3: {},
+        }
+
+        medrecord = create_medrecord()
+        del medrecord.node[node_max_greater_than_3, ["foo", "bar"]]
+        assert medrecord.node[:] == {
+            0: {"foo": "bar", "bar": "foo", "lorem": "ipsum"},
+            1: {"foo": "bar", "bar": "foo"},
+            2: {"foo": "bar", "bar": "foo"},
+            3: {"foo": "bar", "bar": "test"},
+        }
+
+        medrecord = create_medrecord()
         # Removing a non-existing key should fail
         with pytest.raises(KeyError):
             del medrecord.node[node_greater_than_or_equal_two, ["foo", "test"]]
@@ -739,6 +931,24 @@ class TestIndexers(unittest.TestCase):
             1: {"foo": "bar", "bar": "foo"},
             2: {},
             3: {},
+        }
+
+        medrecord = create_medrecord()
+        del medrecord.node[node_max, :]
+        assert medrecord.node[:] == {
+            0: {"foo": "bar", "bar": "foo", "lorem": "ipsum"},
+            1: {"foo": "bar", "bar": "foo"},
+            2: {"foo": "bar", "bar": "foo"},
+            3: {},
+        }
+
+        medrecord = create_medrecord()
+        del medrecord.node[node_max_greater_than_3, :]
+        assert medrecord.node[:] == {
+            0: {"foo": "bar", "bar": "foo", "lorem": "ipsum"},
+            1: {"foo": "bar", "bar": "foo"},
+            2: {"foo": "bar", "bar": "foo"},
+            3: {"foo": "bar", "bar": "test"},
         }
 
         with pytest.raises(ValueError, match="Invalid slice, only ':' is allowed"):
@@ -806,6 +1016,9 @@ class TestIndexers(unittest.TestCase):
             del medrecord.node[:, :1]
         with pytest.raises(ValueError, match="Invalid slice, only ':' is allowed"):
             del medrecord.node[:, ::1]
+
+        key: Any = (object(), object())
+        del medrecord.node[key]
 
     def test_edge_getitem(self) -> None:
         medrecord = create_medrecord()
@@ -885,6 +1098,11 @@ class TestIndexers(unittest.TestCase):
             3: {"foo": "bar", "bar": "test"},
         }
 
+        assert medrecord.edge[edge_max] == {"foo": "bar", "bar": "test"}
+
+        with pytest.raises(IndexError, match="The query returned no results"):
+            medrecord.edge[edge_max_greater_than_3]
+
         # Empty query should not fail
         assert medrecord.edge[edge_greater_than_three] == {}
 
@@ -892,6 +1110,11 @@ class TestIndexers(unittest.TestCase):
             2: "bar",
             3: "bar",
         }
+
+        assert medrecord.edge[edge_max, "foo"] == "bar"
+
+        with pytest.raises(IndexError, match="The query returned no results"):
+            medrecord.edge[edge_max_greater_than_3, "foo"]
 
         # Accessing a non-existing key should fail
         with pytest.raises(KeyError):
@@ -901,6 +1124,11 @@ class TestIndexers(unittest.TestCase):
             2: {"foo": "bar", "bar": "foo"},
             3: {"foo": "bar", "bar": "test"},
         }
+
+        assert medrecord.edge[edge_max, ["foo", "bar"]] == {"foo": "bar", "bar": "test"}
+
+        with pytest.raises(IndexError, match="The query returned no results"):
+            medrecord.edge[edge_max_greater_than_3, ["foo", "bar"]]
 
         # Accessing a non-existing key should fail
         with pytest.raises(KeyError):
@@ -914,6 +1142,11 @@ class TestIndexers(unittest.TestCase):
             2: {"foo": "bar", "bar": "foo"},
             3: {"foo": "bar", "bar": "test"},
         }
+
+        assert medrecord.edge[edge_max, :] == {"foo": "bar", "bar": "test"}
+
+        with pytest.raises(IndexError, match="The query returned no results"):
+            medrecord.edge[edge_max_greater_than_3, :]
 
         with pytest.raises(ValueError, match="Invalid slice, only ':' is allowed"):
             medrecord.edge[edge_greater_than_or_equal_two, 1:]
@@ -991,6 +1224,9 @@ class TestIndexers(unittest.TestCase):
         with pytest.raises(ValueError, match="Invalid slice, only ':' is allowed"):
             medrecord.edge[:, ::1]
 
+        key: Any = (object(), object())
+        assert medrecord.edge[key] is None
+
     def test_edge_setitem(self) -> None:
         # Updating existing attributes
 
@@ -999,6 +1235,15 @@ class TestIndexers(unittest.TestCase):
         assert medrecord.edge[:] == {
             0: {"foo": "bar", "bar": "test"},
             1: {"foo": "bar", "bar": "foo"},
+            2: {"foo": "bar", "bar": "foo"},
+            3: {"foo": "bar", "bar": "test"},
+        }
+
+        medrecord = create_medrecord()
+        medrecord.edge[[0, 1]] = {"foo": "test", "bar": "test1"}
+        assert medrecord.edge[:] == {
+            0: {"foo": "test", "bar": "test1"},
+            1: {"foo": "test", "bar": "test1"},
             2: {"foo": "bar", "bar": "foo"},
             3: {"foo": "bar", "bar": "test"},
         }
@@ -1086,6 +1331,24 @@ class TestIndexers(unittest.TestCase):
         }
 
         medrecord = create_medrecord()
+        medrecord.edge[edge_max] = {"foo": "test", "bar": "test1"}
+        assert medrecord.edge[:] == {
+            0: {"foo": "bar", "bar": "foo", "lorem": "ipsum"},
+            1: {"foo": "bar", "bar": "foo"},
+            2: {"foo": "bar", "bar": "foo"},
+            3: {"foo": "test", "bar": "test1"},
+        }
+
+        medrecord = create_medrecord()
+        medrecord.edge[edge_max_greater_than_3] = {"foo": "test", "bar": "test1"}
+        assert medrecord.edge[:] == {
+            0: {"foo": "bar", "bar": "foo", "lorem": "ipsum"},
+            1: {"foo": "bar", "bar": "foo"},
+            2: {"foo": "bar", "bar": "foo"},
+            3: {"foo": "bar", "bar": "test"},
+        }
+
+        medrecord = create_medrecord()
         # Empty query should not fail
         medrecord.edge[edge_greater_than_three] = {"foo": "bar", "bar": "test"}
 
@@ -1099,6 +1362,24 @@ class TestIndexers(unittest.TestCase):
         }
 
         medrecord = create_medrecord()
+        medrecord.edge[edge_max, "foo"] = "test"
+        assert medrecord.edge[:] == {
+            0: {"foo": "bar", "bar": "foo", "lorem": "ipsum"},
+            1: {"foo": "bar", "bar": "foo"},
+            2: {"foo": "bar", "bar": "foo"},
+            3: {"foo": "test", "bar": "test"},
+        }
+
+        medrecord = create_medrecord()
+        medrecord.edge[edge_max_greater_than_3, "foo"] = "test"
+        assert medrecord.edge[:] == {
+            0: {"foo": "bar", "bar": "foo", "lorem": "ipsum"},
+            1: {"foo": "bar", "bar": "foo"},
+            2: {"foo": "bar", "bar": "foo"},
+            3: {"foo": "bar", "bar": "test"},
+        }
+
+        medrecord = create_medrecord()
         medrecord.edge[edge_greater_than_or_equal_two, ["foo", "bar"]] = "test"
         assert medrecord.edge[:] == {
             0: {"foo": "bar", "bar": "foo", "lorem": "ipsum"},
@@ -1108,12 +1389,48 @@ class TestIndexers(unittest.TestCase):
         }
 
         medrecord = create_medrecord()
+        medrecord.edge[edge_max, ["foo", "bar"]] = "test"
+        assert medrecord.edge[:] == {
+            0: {"foo": "bar", "bar": "foo", "lorem": "ipsum"},
+            1: {"foo": "bar", "bar": "foo"},
+            2: {"foo": "bar", "bar": "foo"},
+            3: {"foo": "test", "bar": "test"},
+        }
+
+        medrecord = create_medrecord()
+        medrecord.edge[edge_max_greater_than_3, ["foo", "bar"]] = "test"
+        assert medrecord.edge[:] == {
+            0: {"foo": "bar", "bar": "foo", "lorem": "ipsum"},
+            1: {"foo": "bar", "bar": "foo"},
+            2: {"foo": "bar", "bar": "foo"},
+            3: {"foo": "bar", "bar": "test"},
+        }
+
+        medrecord = create_medrecord()
         medrecord.edge[edge_greater_than_or_equal_two, :] = "test"
         assert medrecord.edge[:] == {
             0: {"foo": "bar", "bar": "foo", "lorem": "ipsum"},
             1: {"foo": "bar", "bar": "foo"},
             2: {"foo": "test", "bar": "test"},
             3: {"foo": "test", "bar": "test"},
+        }
+
+        medrecord = create_medrecord()
+        medrecord.edge[edge_max, :] = "test"
+        assert medrecord.edge[:] == {
+            0: {"foo": "bar", "bar": "foo", "lorem": "ipsum"},
+            1: {"foo": "bar", "bar": "foo"},
+            2: {"foo": "bar", "bar": "foo"},
+            3: {"foo": "test", "bar": "test"},
+        }
+
+        medrecord = create_medrecord()
+        medrecord.edge[edge_max_greater_than_3, :] = "test"
+        assert medrecord.edge[:] == {
+            0: {"foo": "bar", "bar": "foo", "lorem": "ipsum"},
+            1: {"foo": "bar", "bar": "foo"},
+            2: {"foo": "bar", "bar": "foo"},
+            3: {"foo": "bar", "bar": "test"},
         }
 
         with pytest.raises(ValueError, match="Invalid slice, only ':' is allowed"):
@@ -1131,6 +1448,18 @@ class TestIndexers(unittest.TestCase):
             2: {"foo": "test", "bar": "foo"},
             3: {"foo": "test", "bar": "test"},
         }
+
+        medrecord = create_medrecord()
+        medrecord.edge[:] = {"foo": "bar", "bar": "test"}
+        assert medrecord.edge[:] == {
+            0: {"foo": "bar", "bar": "test"},
+            1: {"foo": "bar", "bar": "test"},
+            2: {"foo": "bar", "bar": "test"},
+            3: {"foo": "bar", "bar": "test"},
+        }
+
+        with pytest.raises(ValueError, match="Invalid slice, only ':' is allowed"):
+            medrecord.edge[1:] = {"foo": "bar", "bar": "test"}
 
         with pytest.raises(ValueError, match="Invalid slice, only ':' is allowed"):
             medrecord.edge[1:, "foo"] = "test"
@@ -1325,6 +1654,9 @@ class TestIndexers(unittest.TestCase):
             3: {"foo": "bar", "bar": "test", "lorem": "test", "test": "test"},
         }
 
+        key: Any = (object(), object())
+        medrecord.edge[key] = None
+
     def test_edge_delitem(self) -> None:
         medrecord = create_medrecord()
         del medrecord.edge[0, "foo"]
@@ -1439,6 +1771,19 @@ class TestIndexers(unittest.TestCase):
         }
 
         medrecord = create_medrecord()
+        del medrecord.edge[edge_max, "foo"]
+        assert medrecord.edge[:] == {
+            0: {"foo": "bar", "bar": "foo", "lorem": "ipsum"},
+            1: {"foo": "bar", "bar": "foo"},
+            2: {"foo": "bar", "bar": "foo"},
+            3: {"bar": "test"},
+        }
+
+        medrecord = create_medrecord()
+        with pytest.raises(IndexError, match="The query returned no results"):
+            del medrecord.edge[edge_max_greater_than_3, "foo"]
+
+        medrecord = create_medrecord()
         # Empty query should not fail
         del medrecord.edge[edge_greater_than_three, "foo"]
         assert medrecord.edge[:] == {
@@ -1463,6 +1808,15 @@ class TestIndexers(unittest.TestCase):
         }
 
         medrecord = create_medrecord()
+        del medrecord.edge[edge_max, ["foo", "bar"]]
+        assert medrecord.edge[:] == {
+            0: {"foo": "bar", "bar": "foo", "lorem": "ipsum"},
+            1: {"foo": "bar", "bar": "foo"},
+            2: {"foo": "bar", "bar": "foo"},
+            3: {},
+        }
+
+        medrecord = create_medrecord()
         # Removing a non-existing key should fail
         with pytest.raises(KeyError):
             del medrecord.edge[edge_greater_than_or_equal_two, ["foo", "test"]]
@@ -1479,6 +1833,24 @@ class TestIndexers(unittest.TestCase):
             1: {"foo": "bar", "bar": "foo"},
             2: {},
             3: {},
+        }
+
+        medrecord = create_medrecord()
+        del medrecord.edge[edge_max, :]
+        assert medrecord.edge[:] == {
+            0: {"foo": "bar", "bar": "foo", "lorem": "ipsum"},
+            1: {"foo": "bar", "bar": "foo"},
+            2: {"foo": "bar", "bar": "foo"},
+            3: {},
+        }
+
+        medrecord = create_medrecord()
+        del medrecord.edge[edge_max_greater_than_3, :]
+        assert medrecord.edge[:] == {
+            0: {"foo": "bar", "bar": "foo", "lorem": "ipsum"},
+            1: {"foo": "bar", "bar": "foo"},
+            2: {"foo": "bar", "bar": "foo"},
+            3: {"foo": "bar", "bar": "test"},
         }
 
         with pytest.raises(ValueError, match="Invalid slice, only ':' is allowed"):
@@ -1546,6 +1918,9 @@ class TestIndexers(unittest.TestCase):
             del medrecord.edge[:, :1]
         with pytest.raises(ValueError, match="Invalid slice, only ':' is allowed"):
             del medrecord.edge[:, ::1]
+
+        key: Any = (object(), object())
+        del medrecord.edge[key]
 
 
 if __name__ == "__main__":
