@@ -1137,6 +1137,18 @@ class SingleValueOperand:
             )
         )
 
+    def divide(self, value: SingleValueArithmeticOperand) -> None:
+        """Divide the single value by a value.
+
+        Args:
+            value (SingleValueArithmeticOperand): The value to divide by.
+        """
+        self._single_value_operand.div(
+            _py_single_value_comparison_operand_from_single_value_comparison_operand(
+                value
+            )
+        )
+
     def modulo(self, value: SingleValueArithmeticOperand) -> None:
         """Compute the modulo of the single value.
 
