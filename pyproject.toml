@@ -177,6 +177,7 @@ exclude_also = [
     "if TYPE_CHECKING:",
     "if __name__ == .__main__.:",
     "if 0:",
+    'msg = "Should never be reached"',
     "raise NotImplementedError",
     "@(abc\\.)?abstractmethod",
 ]
