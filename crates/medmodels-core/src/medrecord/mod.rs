@@ -29,6 +29,7 @@ pub use self::{
             SingleValueOperand,
         },
         wrapper::{CardinalityWrapper, Wrapper},
+        Index, ReturnOperand, ReturnValue, Selection,
     },
     schema::{AttributeDataType, AttributeSchema, AttributeType, GroupSchema, Schema, SchemaType},
 };
@@ -37,7 +38,6 @@ use ::polars::frame::DataFrame;
 use graph::Graph;
 use group_mapping::GroupMapping;
 use polars::{dataframe_to_edges, dataframe_to_nodes};
-use querying::{edges::EdgeSelection, nodes::NodeSelection};
 use serde::{Deserialize, Serialize};
 use std::{
     collections::{hash_map::Entry, HashMap},
@@ -905,18 +905,20 @@ impl MedRecord {
         self.group_mapping.clear();
     }
 
-    pub fn select_nodes<Q>(&self, query: Q) -> NodeSelection
+    pub fn query_nodes<Q, R>(&self, query: Q) -> Selection
     where
-        Q: FnOnce(&mut Wrapper<NodeOperand>),
+        Q: FnOnce(&mut Wrapper<NodeOperand>) -> R,
+        R: Into<ReturnOperand>,
     {
-        NodeSelection::new(self, query)
+        Selection::new_node(self, query)
     }
 
-    pub fn select_edges<Q>(&self, query: Q) -> EdgeSelection
+    pub fn query_edges<Q, R>(&self, query: Q) -> Selection
     where
-        Q: FnOnce(&mut Wrapper<EdgeOperand>),
+        Q: FnOnce(&mut Wrapper<EdgeOperand>) -> R,
+        R: Into<ReturnOperand>,
     {
-        EdgeSelection::new(self, query)
+        Selection::new_edge(self, query)
     }
 }
 

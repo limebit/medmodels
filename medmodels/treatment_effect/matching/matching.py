@@ -26,7 +26,7 @@ from medmodels.medrecord.medrecord import MedRecord
 
 if TYPE_CHECKING:
     from medmodels.medrecord.medrecord import MedRecord
-    from medmodels.medrecord.querying import NodeOperand
+    from medmodels.medrecord.querying import NodeIndicesOperand, NodeOperand
     from medmodels.medrecord.types import Group, MedRecordAttribute, NodeIndex
 
 MatchingMethod: TypeAlias = Literal["propensity", "nearest_neighbors"]
@@ -176,14 +176,20 @@ class Matching(ABC):
 
         def query_essential_covariates(
             node: NodeOperand, patients_set: Set[NodeIndex]
-        ) -> None:
-            """Query the nodes that have all the essential covariates."""
+        ) -> NodeIndicesOperand:
+            """Query the nodes that have all the essential covariates.
+
+            Returns:
+                NodeIndicesOperand: The node indices of the queried node.
+            """
             node.has_attribute(essential_covariates)
 
             node.index().is_in(list(patients_set))
 
+            return node.index()
+
         control_set = set(
-            medrecord.select_nodes(
+            medrecord.query_nodes(
                 lambda node: query_essential_covariates(node, control_set)
             )
         )
@@ -199,7 +205,7 @@ class Matching(ABC):
             raise ValueError(msg)
 
         if len(treated_set) != len(
-            medrecord.select_nodes(
+            medrecord.query_nodes(
                 lambda node: query_essential_covariates(node, treated_set)
             )
         ):

@@ -3,7 +3,12 @@ import unittest
 import pytest
 
 from medmodels import MedRecord
-from medmodels.medrecord.querying import EdgeOperand, NodeOperand
+from medmodels.medrecord.querying import (
+    EdgeIndicesOperand,
+    EdgeOperand,
+    NodeIndicesOperand,
+    NodeOperand,
+)
 
 
 def create_medrecord() -> MedRecord:
@@ -23,28 +28,40 @@ def create_medrecord() -> MedRecord:
     )
 
 
-def node_greater_than_or_equal_two(node: NodeOperand) -> None:
+def node_greater_than_or_equal_two(node: NodeOperand) -> NodeIndicesOperand:
     node.index().greater_than_or_equal_to(2)
 
+    return node.index()
 
-def node_greater_than_three(node: NodeOperand) -> None:
+
+def node_greater_than_three(node: NodeOperand) -> NodeIndicesOperand:
     node.index().greater_than(3)
 
+    return node.index()
 
-def node_less_than_two(node: NodeOperand) -> None:
+
+def node_less_than_two(node: NodeOperand) -> NodeIndicesOperand:
     node.index().less_than(2)
 
+    return node.index()
 
-def edge_greater_than_or_equal_two(edge: EdgeOperand) -> None:
+
+def edge_greater_than_or_equal_two(edge: EdgeOperand) -> EdgeIndicesOperand:
     edge.index().greater_than_or_equal_to(2)
 
+    return edge.index()
 
-def edge_greater_than_three(edge: EdgeOperand) -> None:
+
+def edge_greater_than_three(edge: EdgeOperand) -> EdgeIndicesOperand:
     edge.index().greater_than(3)
 
+    return edge.index()
 
-def edge_less_than_two(edge: EdgeOperand) -> None:
+
+def edge_less_than_two(edge: EdgeOperand) -> EdgeIndicesOperand:
     edge.index().less_than(2)
+
+    return edge.index()
 
 
 class TestMedRecord(unittest.TestCase):

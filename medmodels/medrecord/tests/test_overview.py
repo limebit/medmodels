@@ -7,7 +7,12 @@ import polars as pl
 
 import medmodels as mm
 from medmodels.medrecord._overview import extract_attribute_summary, prettify_table
-from medmodels.medrecord.querying import EdgeOperand, NodeOperand
+from medmodels.medrecord.querying import (
+    EdgeIndicesOperand,
+    EdgeOperand,
+    NodeIndicesOperand,
+    NodeOperand,
+)
 
 
 def create_medrecord() -> mm.MedRecord:
@@ -86,16 +91,20 @@ class TestOverview(unittest.TestCase):
         # medrecord without schema
         medrecord = create_medrecord()
 
-        def query1(node: NodeOperand) -> None:
+        def query1(node: NodeOperand) -> NodeIndicesOperand:
             node.in_group("Stroke")
+
+            return node.index()
 
         # No attributes
         no_attributes = extract_attribute_summary(medrecord.node[query1])
 
         assert no_attributes == {}
 
-        def query2(node: NodeOperand) -> None:
+        def query2(node: NodeOperand) -> NodeIndicesOperand:
             node.in_group("Patients")
+
+            return node.index()
 
         # numeric type
         numeric_attribute = extract_attribute_summary(medrecord.node[query2])
@@ -106,8 +115,10 @@ class TestOverview(unittest.TestCase):
 
         assert numeric_attribute == numeric_expected
 
-        def query3(node: NodeOperand) -> None:
+        def query3(node: NodeOperand) -> NodeIndicesOperand:
             node.in_group("Medications")
+
+            return node.index()
 
         # string attributes
         str_attributes = extract_attribute_summary(medrecord.node[query3])
@@ -116,17 +127,21 @@ class TestOverview(unittest.TestCase):
             "ATC": {"type": "Categorical", "values": "Values: B01AA03, B01AF01"}
         }
 
-        def query4(node: NodeOperand) -> None:
+        def query4(node: NodeOperand) -> NodeIndicesOperand:
             node.in_group("Aspirin")
+
+            return node.index()
 
         # nan attribute
         nan_attributes = extract_attribute_summary(medrecord.node[query4])
 
         assert nan_attributes == {"ATC": {"type": "-", "values": "-"}}
 
-        def query5(edge: EdgeOperand) -> None:
+        def query5(edge: EdgeOperand) -> EdgeIndicesOperand:
             edge.source_node().in_group("Medications")
             edge.target_node().in_group("Patients")
+
+            return edge.index()
 
         # temporal attributes
         temp_attributes = extract_attribute_summary(medrecord.edge[query5])
@@ -139,13 +154,15 @@ class TestOverview(unittest.TestCase):
             }
         }
 
-        def query6(edge: EdgeOperand) -> None:
+        def query6(edge: EdgeOperand) -> EdgeIndicesOperand:
             edge.source_node().in_group("Stroke")
             edge.target_node().in_group("Patients")
 
+            return edge.index()
+
         # mixed attributes
         mixed_attributes = extract_attribute_summary(
-            medrecord.edge[medrecord.select_edges(query6)]
+            medrecord.edge[medrecord.query_edges(query6)]
         )
         assert mixed_attributes == {
             "time": {
@@ -170,8 +187,10 @@ class TestOverview(unittest.TestCase):
             "gender": {"type": "Categorical", "values": "Categories: F, M"},
         }
 
-        def query7(edge: EdgeOperand) -> None:
+        def query7(edge: EdgeOperand) -> EdgeIndicesOperand:
             edge.in_group("patient_diagnosis")
+
+            return edge.index()
 
         # compare schema and not schema
         patient_diagnosis = extract_attribute_summary(

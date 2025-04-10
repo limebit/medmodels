@@ -85,6 +85,7 @@ impl FromPyObject<'_> for PyMultipleAttributesComparisonOperand {
 
 #[pyclass]
 #[repr(transparent)]
+#[derive(Clone)]
 pub struct PyAttributesTreeOperand(Wrapper<AttributesTreeOperand>);
 
 impl From<Wrapper<AttributesTreeOperand>> for PyAttributesTreeOperand {

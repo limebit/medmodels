@@ -17,7 +17,7 @@ use medmodels_core::{
 };
 use pyo3::{prelude::*, types::PyFunction};
 use pyo3_polars::PyDataFrame;
-use querying::{edges::PyEdgeOperand, nodes::PyNodeOperand};
+use querying::{edges::PyEdgeOperand, nodes::PyNodeOperand, parse_query_result, PyReturnValue};
 use schema::PySchema;
 use std::collections::HashMap;
 use traits::DeepInto;
@@ -693,32 +693,34 @@ impl PyMedRecord {
         self.0.clear();
     }
 
-    pub fn select_nodes(&self, query: &Bound<'_, PyFunction>) -> PyResult<Vec<PyNodeIndex>> {
+    pub fn query_nodes(&self, query: &Bound<'_, PyFunction>) -> PyResult<PyReturnValue> {
         Ok(self
             .0
-            .select_nodes(|node| {
-                query
+            .query_nodes(|node| {
+                let result = query
                     .call1((PyNodeOperand::from(node.clone()),))
                     .expect("Call must succeed");
+
+                parse_query_result(result)
             })
-            .iter()
+            .evaluate()
             .map_err(PyMedRecordError::from)?
-            .map(|node_index| node_index.clone().into())
-            .collect())
+            .into())
     }
 
-    pub fn select_edges(&self, query: &Bound<'_, PyFunction>) -> PyResult<Vec<EdgeIndex>> {
+    pub fn query_edges(&self, query: &Bound<'_, PyFunction>) -> PyResult<PyReturnValue> {
         Ok(self
             .0
-            .select_edges(|edge| {
-                query
+            .query_edges(|edge| {
+                let result = query
                     .call1((PyEdgeOperand::from(edge.clone()),))
                     .expect("Call must succeed");
+
+                parse_query_result(result)
             })
-            .iter()
+            .evaluate()
             .map_err(PyMedRecordError::from)?
-            .copied()
-            .collect())
+            .into())
     }
 
     pub fn clone(&self) -> Self {

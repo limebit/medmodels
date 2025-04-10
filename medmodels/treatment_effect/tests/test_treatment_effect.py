@@ -8,7 +8,7 @@ import pandas as pd
 import pytest
 
 from medmodels import MedRecord
-from medmodels.medrecord.querying import EdgeDirection, NodeOperand
+from medmodels.medrecord.querying import EdgeDirection, NodeIndicesOperand, NodeOperand
 from medmodels.treatment_effect.estimate import ContingencyTable, SubjectIndices
 from medmodels.treatment_effect.treatment_effect import TreatmentEffect
 
@@ -416,7 +416,7 @@ class TestTreatmentEffect:
         )
         treated_set = tee._find_treated_patients(medrecord)
 
-        nodes = medrecord.select_nodes(
+        nodes = medrecord.query_nodes(
             lambda node: tee._query_node_within_time_window(
                 node, treated_set, "Stroke", 0, 365, "last"
             )
@@ -429,7 +429,7 @@ class TestTreatmentEffect:
         assert "P6" in treated_set
 
         # check which patients have outcome within 30 days after treatment
-        nodes = medrecord.select_nodes(
+        nodes = medrecord.query_nodes(
             lambda node: tee._query_node_within_time_window(
                 node, treated_set, "Stroke", 0, 30, "last"
             )
@@ -440,7 +440,7 @@ class TestTreatmentEffect:
         )  # P2 has no outcome in the 30 days window after treatment
 
         # If we reduce the window to 3 days, no patients with outcome in that window
-        nodes = medrecord.select_nodes(
+        nodes = medrecord.query_nodes(
             lambda node: tee._query_node_within_time_window(
                 node, treated_set, "Stroke", 0, 3, "last"
             )
@@ -760,8 +760,10 @@ class TestTreatmentEffect:
             tee3._find_outcomes(medrecord=medrecord, treated_set=treated_set)
 
     def test_filter_controls(self, medrecord: MedRecord) -> None:
-        def query_neighbors_to_m2(node: NodeOperand) -> None:
+        def query_neighbors_to_m2(node: NodeOperand) -> NodeIndicesOperand:
             node.neighbors(EdgeDirection.BOTH).index().equal_to("M2")
+
+            return node.index()
 
         tee = (
             TreatmentEffect.builder()
@@ -776,8 +778,10 @@ class TestTreatmentEffect:
         assert counts_tee == (2, 1, 1, 2)
 
         # filter females only
-        def query_female_patients(node: NodeOperand) -> None:
+        def query_female_patients(node: NodeOperand) -> NodeIndicesOperand:
             node.attribute("gender").equal_to("female")
+
+            return node.index()
 
         tee2 = (
             TreatmentEffect.builder()

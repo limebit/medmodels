@@ -3,7 +3,7 @@
 from typing import Literal
 
 from medmodels.medrecord.medrecord import MedRecord
-from medmodels.medrecord.querying import EdgeOperand
+from medmodels.medrecord.querying import EdgeIndicesOperand, EdgeOperand
 from medmodels.medrecord.types import EdgeIndex, Group, MedRecordAttribute, NodeIndex
 
 
@@ -80,7 +80,7 @@ def find_reference_edge(
         edge.source_node().in_group(connected_group)
         edge.target_node().index().equal_to(node_index)
 
-    def query(edge: EdgeOperand) -> None:
+    def query(edge: EdgeOperand) -> EdgeIndicesOperand:
         """Query the reference edge.
 
         Query the edge that:
@@ -89,6 +89,9 @@ def find_reference_edge(
 
         Args:
             edge (EdgeOperand): The edge operand.
+
+        Returns:
+            EdgeIndicesOperand: The edge indices of the queried edge.
         """
         edge.either_or(query_source_node, query_target_node)
         edge.attribute(time_attribute).is_datetime()
@@ -98,8 +101,10 @@ def find_reference_edge(
         elif reference == "last":
             edge.attribute(time_attribute).is_max()
 
+        return edge.index()
+
     try:
-        reference_edge = medrecord.select_edges(query)
+        reference_edge = medrecord.query_edges(query)
 
     except RuntimeError as err:
         msg = (

@@ -7,17 +7,18 @@ use super::{
     },
     edges::{EdgeOperand, EdgeOperation},
     nodes::{NodeOperand, NodeOperation},
-    BoxedIterator,
+    BoxedIterator, Index,
 };
 use crate::{
     errors::MedRecordResult,
-    medrecord::{MedRecordAttribute, MedRecordValue},
+    medrecord::{EdgeIndex, MedRecordAttribute, MedRecordValue, NodeIndex},
     MedRecord,
 };
 pub use operand::{
     MultipleValuesComparisonOperand, MultipleValuesOperand, SingleValueComparisonOperand,
     SingleValueOperand,
 };
+pub use operation::MultipleValuesOperation;
 use std::fmt::Display;
 
 macro_rules! get_attributes {
@@ -56,7 +57,7 @@ macro_rules! get_attributes {
 
         Box::new(
             MultipleAttributesOperation::get_values($medrecord, attributes)?
-                .map(|(_, value)| value),
+                .map(|(index, value)| (index.into(), value)),
         )
     }};
 }
@@ -140,19 +141,31 @@ pub enum Context {
     MultipleAttributesOperand(MultipleAttributesOperand),
 }
 
+impl<'a> From<&'a NodeIndex> for Index<'a> {
+    fn from(node_index: &'a NodeIndex) -> Self {
+        Self::NodeIndex(node_index)
+    }
+}
+
+impl<'a> From<&'a EdgeIndex> for Index<'a> {
+    fn from(edge_index: &'a EdgeIndex) -> Self {
+        Self::EdgeIndex(edge_index)
+    }
+}
+
 impl Context {
     pub(crate) fn get_values<'a>(
         &self,
         medrecord: &'a MedRecord,
         attribute: MedRecordAttribute,
-    ) -> MedRecordResult<BoxedIterator<'a, MedRecordValue>> {
+    ) -> MedRecordResult<BoxedIterator<'a, (Index<'a>, MedRecordValue)>> {
         Ok(match self {
             Self::NodeOperand(node_operand) => {
                 let node_indices = node_operand.evaluate(medrecord)?;
 
                 Box::new(
                     NodeOperation::get_values(medrecord, node_indices, attribute)
-                        .map(|(_, value)| value),
+                        .map(|(index, value)| (index.into(), value)),
                 )
             }
             Self::EdgeOperand(edge_operand) => {
@@ -160,7 +173,7 @@ impl Context {
 
                 Box::new(
                     EdgeOperation::get_values(medrecord, edge_indices, attribute)
-                        .map(|(_, value)| value),
+                        .map(|(index, value)| (index.into(), value)),
                 )
             }
             Self::MultipleAttributesOperand(multiple_attributes_operand) => {
