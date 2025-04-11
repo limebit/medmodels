@@ -8,7 +8,7 @@ use crate::{
     medrecord::{
         querying::{
             traits::{DeepClone, ReadWriteOrPanic},
-            BoxedIterator,
+            BoxedIterator, OptionalIndexWrapper,
         },
         MedRecordAttribute, MedRecordValue, Wrapper,
     },
@@ -200,7 +200,6 @@ impl MultipleValuesOperand {
     pub(crate) fn evaluate<'a, T: 'a + Eq + Hash + Clone>(
         &self,
         medrecord: &'a MedRecord,
-        values: impl Iterator<Item = (T, MedRecordValue)> + 'a,
     ) -> MedRecordResult<impl Iterator<Item = (T, MedRecordValue)> + 'a> {
         let values = Box::new(values) as BoxedIterator<(T, MedRecordValue)>;
 
@@ -335,9 +334,8 @@ impl Wrapper<MultipleValuesOperand> {
     pub(crate) fn evaluate<'a, T: 'a + Eq + Hash + Clone>(
         &self,
         medrecord: &'a MedRecord,
-        values: impl Iterator<Item = (T, MedRecordValue)> + 'a,
     ) -> MedRecordResult<impl Iterator<Item = (T, MedRecordValue)> + 'a> {
-        self.0.read_or_panic().evaluate(medrecord, values)
+        self.0.read_or_panic().evaluate(medrecord)
     }
 
     implement_wrapper_operand_with_return!(max, SingleValueOperand);
@@ -443,11 +441,10 @@ impl SingleValueOperand {
         }
     }
 
-    pub(crate) fn evaluate(
+    pub(crate) fn evaluate<T>(
         &self,
         medrecord: &MedRecord,
-        value: MedRecordValue,
-    ) -> MedRecordResult<Option<MedRecordValue>> {
+    ) -> MedRecordResult<Option<OptionalIndexWrapper<T, MedRecordValue>>> {
         self.operations
             .iter()
             .try_fold(Some(value), |value, operation| {
@@ -565,7 +562,6 @@ impl Wrapper<SingleValueOperand> {
     pub(crate) fn evaluate(
         &self,
         medrecord: &MedRecord,
-        value: MedRecordValue,
     ) -> MedRecordResult<Option<MedRecordValue>> {
         self.0.read_or_panic().evaluate(medrecord, value)
     }

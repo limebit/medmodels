@@ -47,6 +47,11 @@ impl Display for Index<'_> {
     }
 }
 
+pub enum OptionalIndexWrapper<I, T> {
+    WithIndex((I, T)),
+    WithoutIndex(T),
+}
+
 #[derive(Debug, Clone)]
 pub struct Selection<'a> {
     medrecord: &'a MedRecord,
@@ -83,45 +88,10 @@ impl<'a> Selection<'a> {
     pub fn evaluate(self) -> MedRecordResult<ReturnValue<'a>> {
         let result = match self.return_operand {
             ReturnOperand::AttributesTree(operand) => {
-                let operand = operand.0.read_or_panic();
-
-                let attributes = operand.context.get_attributes(self.medrecord)?;
-
-                ReturnValue::AttributesTree(Box::new(operand.evaluate(self.medrecord, attributes)?))
+                ReturnValue::AttributesTree(Box::new(operand.evaluate(self.medrecord)?))
             }
             ReturnOperand::MultipleAttributes(operand) => {
-                let operand = operand.0.read_or_panic();
-
-                let context_attributes = operand.context.context.get_attributes(self.medrecord)?;
-                let attributes = operand
-                    .context
-                    .evaluate(self.medrecord, context_attributes)?;
-
-                let attributes: Box<dyn Iterator<Item = (_, MedRecordAttribute)>> =
-                    match operand.kind {
-                        attributes::MultipleKind::Max => {
-                            Box::new(AttributesTreeOperation::get_max(attributes)?)
-                        }
-                        attributes::MultipleKind::Min => {
-                            Box::new(AttributesTreeOperation::get_min(attributes)?)
-                        }
-                        attributes::MultipleKind::Count => {
-                            Box::new(AttributesTreeOperation::get_count(attributes)?)
-                        }
-                        attributes::MultipleKind::Sum => {
-                            Box::new(AttributesTreeOperation::get_sum(attributes)?)
-                        }
-                        attributes::MultipleKind::First => {
-                            Box::new(AttributesTreeOperation::get_first(attributes)?)
-                        }
-                        attributes::MultipleKind::Last => {
-                            Box::new(AttributesTreeOperation::get_last(attributes)?)
-                        }
-                    };
-
-                ReturnValue::MultipleAttributes(Box::new(
-                    operand.evaluate(self.medrecord, attributes)?,
-                ))
+                ReturnValue::MultipleAttributes(Box::new(operand.evaluate(self.medrecord)?))
             }
             ReturnOperand::SingleAttribute(operand) => {
                 let operand = operand.0.read_or_panic();

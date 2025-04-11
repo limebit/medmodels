@@ -216,9 +216,8 @@ impl AttributesTreeOperand {
     pub(crate) fn evaluate<'a, T: 'a + Eq + Clone + Hash + GetAttributes + Display>(
         &self,
         medrecord: &'a MedRecord,
-        attributes: impl Iterator<Item = (T, Vec<MedRecordAttribute>)> + 'a,
-    ) -> MedRecordResult<impl Iterator<Item = (T, Vec<MedRecordAttribute>)> + 'a> {
-        let attributes = Box::new(attributes) as BoxedIterator<(T, Vec<MedRecordAttribute>)>;
+    ) -> MedRecordResult<impl Iterator<Item = (, Vec<MedRecordAttribute>)> + 'a> {
+        let attributes = self.context.get_attributes(medrecord)?;
 
         self.operations
             .iter()
@@ -343,9 +342,8 @@ impl Wrapper<AttributesTreeOperand> {
     pub(crate) fn evaluate<'a, T: 'a + Eq + Clone + Hash + GetAttributes + Display>(
         &self,
         medrecord: &'a MedRecord,
-        attributes: impl Iterator<Item = (T, Vec<MedRecordAttribute>)> + 'a,
     ) -> MedRecordResult<impl Iterator<Item = (T, Vec<MedRecordAttribute>)> + 'a> {
-        self.0.read_or_panic().evaluate(medrecord, attributes)
+        self.0.read_or_panic().evaluate(medrecord)
     }
 
     implement_wrapper_operand_with_return!(max, MultipleAttributesOperand);
@@ -457,7 +455,6 @@ impl MultipleAttributesOperand {
     pub(crate) fn evaluate<'a, T: 'a + Eq + Clone + Hash + GetAttributes + Display>(
         &self,
         medrecord: &'a MedRecord,
-        attributes: impl Iterator<Item = (T, MedRecordAttribute)> + 'a,
     ) -> MedRecordResult<impl Iterator<Item = (T, MedRecordAttribute)> + 'a> {
         let attributes = Box::new(attributes) as BoxedIterator<(T, MedRecordAttribute)>;
 
@@ -617,9 +614,8 @@ impl Wrapper<MultipleAttributesOperand> {
     pub(crate) fn evaluate<'a, T: 'a + Eq + Clone + Hash + GetAttributes + Display>(
         &self,
         medrecord: &'a MedRecord,
-        attributes: impl Iterator<Item = (T, MedRecordAttribute)> + 'a,
     ) -> MedRecordResult<impl Iterator<Item = (T, MedRecordAttribute)> + 'a> {
-        self.0.read_or_panic().evaluate(medrecord, attributes)
+        self.0.read_or_panic().evaluate(medrecord)
     }
 
     implement_wrapper_operand_with_return!(max, SingleAttributeOperand);
@@ -733,7 +729,6 @@ impl SingleAttributeOperand {
     pub(crate) fn evaluate(
         &self,
         medrecord: &MedRecord,
-        attribute: MedRecordAttribute,
     ) -> MedRecordResult<Option<MedRecordAttribute>> {
         self.operations
             .iter()
@@ -856,9 +851,8 @@ impl Wrapper<SingleAttributeOperand> {
     pub(crate) fn evaluate(
         &self,
         medrecord: &MedRecord,
-        attribute: MedRecordAttribute,
     ) -> MedRecordResult<Option<MedRecordAttribute>> {
-        self.0.read_or_panic().evaluate(medrecord, attribute)
+        self.0.read_or_panic().evaluate(medrecord)
     }
 
     implement_wrapper_operand_with_argument!(
