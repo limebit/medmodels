@@ -9,6 +9,9 @@ pub use operation::{EdgeIndicesOperation, EdgeOperation};
 use std::fmt::Display;
 
 #[derive(Debug, Clone)]
+pub enum Context {}
+
+#[derive(Debug, Clone)]
 pub enum SingleKind {
     Max,
     Min,

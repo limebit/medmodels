@@ -2,9 +2,7 @@ mod operand;
 mod operation;
 
 use super::{
-    attributes::{
-        self, AttributesTreeOperation, MultipleAttributesOperand, MultipleAttributesOperation,
-    },
+    attributes::{GetAttributes, MultipleAttributesOperand, MultipleAttributesOperation},
     edges::{EdgeOperand, EdgeOperation},
     nodes::{NodeOperand, NodeOperation},
     BoxedIterator, Index,
@@ -19,48 +17,7 @@ pub use operand::{
     SingleValueOperand,
 };
 pub use operation::MultipleValuesOperation;
-use std::fmt::Display;
-
-macro_rules! get_attributes {
-    ($operand:ident, $medrecord:ident, $operation:ident, $multiple_attributes_operand:ident) => {{
-        let indices = $operand.evaluate($medrecord)?;
-
-        let attributes = $operation::get_attributes($medrecord, indices);
-
-        let attributes = $multiple_attributes_operand
-            .context
-            .evaluate($medrecord, attributes)?;
-
-        let attributes: Box<dyn Iterator<Item = (_, MedRecordAttribute)>> =
-            match $multiple_attributes_operand.kind {
-                attributes::MultipleKind::Max => {
-                    Box::new(AttributesTreeOperation::get_max(attributes)?)
-                }
-                attributes::MultipleKind::Min => {
-                    Box::new(AttributesTreeOperation::get_min(attributes)?)
-                }
-                attributes::MultipleKind::Count => {
-                    Box::new(AttributesTreeOperation::get_count(attributes)?)
-                }
-                attributes::MultipleKind::Sum => {
-                    Box::new(AttributesTreeOperation::get_sum(attributes)?)
-                }
-                attributes::MultipleKind::First => {
-                    Box::new(AttributesTreeOperation::get_first(attributes)?)
-                }
-                attributes::MultipleKind::Last => {
-                    Box::new(AttributesTreeOperation::get_last(attributes)?)
-                }
-            };
-
-        let attributes = $multiple_attributes_operand.evaluate($medrecord, attributes)?;
-
-        Box::new(
-            MultipleAttributesOperation::get_values($medrecord, attributes)?
-                .map(|(index, value)| (index.into(), value)),
-        )
-    }};
-}
+use std::{fmt::Display, hash::Hash};
 
 #[derive(Debug, Clone)]
 pub enum SingleKind {
@@ -154,7 +111,10 @@ impl<'a> From<&'a EdgeIndex> for Index<'a> {
 }
 
 impl Context {
-    pub(crate) fn get_values<'a>(
+    pub(crate) fn get_values<
+        'a,
+        T: 'a + Eq + Clone + Hash + GetAttributes + Display + Into<Index<'a>>,
+    >(
         &self,
         medrecord: &'a MedRecord,
         attribute: MedRecordAttribute,
@@ -177,24 +137,12 @@ impl Context {
                 )
             }
             Self::MultipleAttributesOperand(multiple_attributes_operand) => {
-                match &multiple_attributes_operand.context.context {
-                    attributes::Context::NodeOperand(node_operand) => {
-                        get_attributes!(
-                            node_operand,
-                            medrecord,
-                            NodeOperation,
-                            multiple_attributes_operand
-                        )
-                    }
-                    attributes::Context::EdgeOperand(edge_operand) => {
-                        get_attributes!(
-                            edge_operand,
-                            medrecord,
-                            EdgeOperation,
-                            multiple_attributes_operand
-                        )
-                    }
-                }
+                let attributes = multiple_attributes_operand.evaluate::<T>(medrecord)?;
+
+                Box::new(
+                    MultipleAttributesOperation::get_values(medrecord, attributes)?
+                        .map(|(index, value)| (index.into(), value)),
+                )
             }
         })
     }

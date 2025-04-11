@@ -420,8 +420,8 @@ impl EdgeIndicesOperation {
     pub(crate) fn evaluate<'a>(
         &self,
         medrecord: &'a MedRecord,
-        indices: impl Iterator<Item = EdgeIndex> + 'a,
-    ) -> MedRecordResult<BoxedIterator<'a, EdgeIndex>> {
+        indices: impl Iterator<Item = &'a EdgeIndex> + 'a,
+    ) -> MedRecordResult<BoxedIterator<'a, &'a EdgeIndex>> {
         match self {
             Self::EdgeIndexOperation { operand } => {
                 Self::evaluate_edge_index_operation(medrecord, indices, operand)
@@ -470,39 +470,45 @@ impl EdgeIndicesOperation {
     }
 
     #[inline]
-    pub(crate) fn get_max(indices: impl Iterator<Item = EdgeIndex>) -> MedRecordResult<EdgeIndex> {
+    pub(crate) fn get_max<'a>(
+        indices: impl Iterator<Item = &'a EdgeIndex>,
+    ) -> MedRecordResult<&'a EdgeIndex> {
         indices.max().ok_or(MedRecordError::QueryError(
             "No indices to compare".to_string(),
         ))
     }
 
     #[inline]
-    pub(crate) fn get_min(indices: impl Iterator<Item = EdgeIndex>) -> MedRecordResult<EdgeIndex> {
+    pub(crate) fn get_min<'a>(
+        indices: impl Iterator<Item = &'a EdgeIndex>,
+    ) -> MedRecordResult<&'a EdgeIndex> {
         indices.min().ok_or(MedRecordError::QueryError(
             "No indices to compare".to_string(),
         ))
     }
     #[inline]
-    pub(crate) fn get_count(indices: impl Iterator<Item = EdgeIndex>) -> EdgeIndex {
+    pub(crate) fn get_count<'a>(indices: impl Iterator<Item = &'a EdgeIndex>) -> EdgeIndex {
         indices.count() as EdgeIndex
     }
 
     #[inline]
-    pub(crate) fn get_sum(indices: impl Iterator<Item = EdgeIndex>) -> EdgeIndex {
+    pub(crate) fn get_sum<'a>(indices: impl Iterator<Item = &'a EdgeIndex>) -> EdgeIndex {
         indices.sum()
     }
 
     #[inline]
-    pub(crate) fn get_first(
-        mut indices: impl Iterator<Item = EdgeIndex>,
-    ) -> MedRecordResult<EdgeIndex> {
+    pub(crate) fn get_first<'a>(
+        mut indices: impl Iterator<Item = &'a EdgeIndex>,
+    ) -> MedRecordResult<&'a EdgeIndex> {
         indices.next().ok_or(MedRecordError::QueryError(
             "No indices to get the first".to_string(),
         ))
     }
 
     #[inline]
-    pub(crate) fn get_last(indices: impl Iterator<Item = EdgeIndex>) -> MedRecordResult<EdgeIndex> {
+    pub(crate) fn get_last<'a>(
+        indices: impl Iterator<Item = &'a EdgeIndex>,
+    ) -> MedRecordResult<&'a EdgeIndex> {
         indices.last().ok_or(MedRecordError::QueryError(
             "No indices to get the first".to_string(),
         ))
@@ -511,16 +517,10 @@ impl EdgeIndicesOperation {
     #[inline]
     fn evaluate_edge_index_operation<'a>(
         medrecord: &MedRecord,
-        indices: impl Iterator<Item = EdgeIndex>,
+        indices: impl Iterator<Item = &'a EdgeIndex>,
         operand: &Wrapper<EdgeIndexOperand>,
-    ) -> MedRecordResult<BoxedIterator<'a, EdgeIndex>> {
-        let kind = &operand.0.read_or_panic().kind;
-
-        let indices = indices.collect::<Vec<_>>();
-
-        let index = get_edge_index!(kind, indices.clone().into_iter());
-
-        Ok(match operand.evaluate(medrecord, index)? {
+    ) -> MedRecordResult<BoxedIterator<'a, &'a EdgeIndex>> {
+        Ok(match operand.evaluate(medrecord)? {
             Some(_) => Box::new(indices.into_iter()),
             None => Box::new(std::iter::empty()),
         })
