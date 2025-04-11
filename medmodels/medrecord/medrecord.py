@@ -663,22 +663,18 @@ class MedRecord:
         if isinstance(source_node, Callable):
             query_result = self.query_nodes(source_node)
 
-            if isinstance(query_result, list):
-                source_node = query_result
-            elif query_result:
-                source_node = [query_result]
-            else:
-                source_node = []
+            if query_result is None:
+                return []
+
+            source_node = query_result
 
         if isinstance(target_node, Callable):
             query_result = self.query_nodes(target_node)
 
-            if isinstance(query_result, list):
-                target_node = query_result
-            elif query_result:
-                target_node = [query_result]
-            else:
-                target_node = []
+            if query_result is None:
+                return []
+
+            target_node = query_result
 
         if directed == EdgesDirected.DIRECTED:
             return self._medrecord.edges_connecting(
@@ -1412,12 +1408,10 @@ class MedRecord:
         if isinstance(node, Callable):
             query_result = self.query_nodes(node)
 
-            if isinstance(query_result, list):
-                node = query_result
-            elif query_result:
-                node = [query_result]
-            else:
-                node = []
+            if query_result is None:
+                return []
+
+            node = query_result
 
         if directed == EdgesDirected.DIRECTED:
             neighbors = self._medrecord.neighbors(
