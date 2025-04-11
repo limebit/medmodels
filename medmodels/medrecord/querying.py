@@ -2633,6 +2633,14 @@ class NodeIndicesOperand:
             self._node_indices_operand.last()
         )
 
+    def is_string(self) -> None:
+        """Query which node indices are strings."""
+        self._node_indices_operand.is_string()
+
+    def is_int(self) -> None:
+        """Query which node indices are integers."""
+        self._node_indices_operand.is_int()
+
     def greater_than(self, index: NodeIndexComparisonOperand) -> None:
         """Query which node indices are greater than a value.
 
@@ -2913,6 +2921,14 @@ class NodeIndexOperand:
     """Query API for a node index in a MedRecord."""
 
     _node_index_operand: PyNodeIndexOperand
+
+    def is_string(self) -> None:
+        """Query whether the node index is a string."""
+        self._node_index_operand.is_string()
+
+    def is_int(self) -> None:
+        """Query whether the node index is an integer."""
+        self._node_index_operand.is_int()
 
     def greater_than(self, index: NodeIndexComparisonOperand) -> None:
         """Query whether the node index is greater than a value.
