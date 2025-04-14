@@ -582,6 +582,20 @@ class TestTreatmentEffect:
         assert subjects_tee["treated_outcome_false"] == 1
         assert subjects_tee["treated_outcome_true"] == 2
 
+        assert "\n".join(
+            [
+                "-----------------------------------",
+                "                   Outcome   ",
+                "Group           True     False   ",
+                "-----------------------------------",
+                "Treated         2        1       ",
+                "Control         3        3       ",
+                "-----------------------------------",
+            ]
+        ) == str(subjects_tee)
+
+        assert repr(subjects_tee) == str(subjects_tee)
+
     def test_subjects_indices(self, medrecord: MedRecord) -> None:
         tee = (
             TreatmentEffect.builder()
@@ -892,6 +906,23 @@ class TestTreatmentEffect:
         assert tee.estimate.confounding_bias(medrecord) == pytest.approx(22 / 21)
         assert tee.estimate.hazard_ratio(medrecord) == pytest.approx(4 / 3)
         assert tee.estimate.number_needed_to_treat(medrecord) == pytest.approx(-6)
+
+        medrecord = create_medrecord(["P2", "P3", "P4", "P5", "P6", "P7"])
+        assert tee.estimate.confounding_bias(medrecord) == 1
+
+    def test_invalid_metrics(self) -> None:
+        """Test the invalid metrics of the TreatmentEffect class."""
+        medrecord = create_medrecord(["P2", "P3", "P4", "P5", "P6", "P7"])
+        tee = (
+            TreatmentEffect.builder()
+            .with_treatment("Rivaroxaban")
+            .with_outcome("Stroke")
+            .build()
+        )
+        with pytest.raises(
+            ValueError, match="Absolute Risk Reduction is zero, cannot calculate NNT"
+        ):
+            tee.estimate.number_needed_to_treat(medrecord)
 
     def test_full_report(self, medrecord: MedRecord) -> None:
         """Test the full reporting of the TreatmentEffect class."""
