@@ -2641,6 +2641,14 @@ class NodeIndicesOperand:
         """Query which node indices are integers."""
         self._node_indices_operand.is_int()
 
+    def is_max(self) -> None:
+        """Query which node indices are the maximum value."""
+        self._node_indices_operand.is_max()
+
+    def is_min(self) -> None:
+        """Query which node indices are the minimum value."""
+        self._node_indices_operand.is_min()
+
     def greater_than(self, index: NodeIndexComparisonOperand) -> None:
         """Query which node indices are greater than a value.
 
@@ -3269,6 +3277,14 @@ class EdgeIndicesOperand:
         return EdgeIndexOperand._from_py_edge_index_operand(
             self._edge_indices_operand.last()
         )
+
+    def is_max(self) -> None:
+        """Query which edge indices are the maximum value."""
+        self._edge_indices_operand.is_max()
+
+    def is_min(self) -> None:
+        """Query which edge indices are the minimum value."""
+        self._edge_indices_operand.is_min()
 
     def greater_than(self, index: EdgeIndexComparisonOperand) -> None:
         """Query which edge indices are greater than a value.
