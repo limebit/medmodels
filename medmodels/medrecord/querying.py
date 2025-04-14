@@ -58,8 +58,8 @@ AttributesTreeQueryResult = Union[
 ]
 
 MultipleAttributesQueryResult = Union[
-    Dict[NodeIndex, List[MedRecordAttribute]],
-    Dict[EdgeIndex, List[MedRecordAttribute]],
+    Dict[NodeIndex, MedRecordAttribute],
+    Dict[EdgeIndex, MedRecordAttribute],
 ]
 
 SingleAttributeQueryResult = Union[
@@ -77,8 +77,8 @@ NodeIndicesQueryResult = List[NodeIndex]
 NodeIndexQueryResult = Optional[NodeIndex]
 
 MultipleValuesQueryResult = Union[
-    Dict[NodeIndex, List[MedRecordValue]],
-    Dict[EdgeIndex, List[MedRecordValue]],
+    Dict[NodeIndex, MedRecordValue],
+    Dict[EdgeIndex, MedRecordValue],
 ]
 
 SingleValueQueryResult = Union[
