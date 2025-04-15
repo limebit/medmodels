@@ -48,15 +48,16 @@ The [`NodeOperand`](medmodels.medrecord.querying.NodeOperand){target="_blank"} q
 ```{exec-literalinclude} scripts/02b_query_engine.py
 ---
 language: python
-setup-lines: 1-6
-lines: 10-14
+setup-lines: 1-11
+lines: 15-21
 ---
 ```
 
 :::{dropdown} Methods used in the snippet
 
 - [`in_group()`](medmodels.medrecord.querying.NodeOperand.in_group){target="_blank"} : Query nodes that belong to that group.
-- [`select_nodes()`](medmodels.medrecord.medrecord.MedRecord.select_nodes){target="_blank"} : Select nodes that match that query.
+- [`index()`](medmodels.medrecord.querying.NodeOperand.index){target="_blank"} : Returns a [`NodeIndicesOperand`](medmodels.medrecord.querying.NodeIndicesOperand){target="_blank"} representing the indices of the nodes queried.
+- [`query_nodes()`](medmodels.medrecord.medrecord.MedRecord.query_nodes){target="_blank"} : Selects nodes from the MedRecord based on the provided query.
 
 :::
 
@@ -65,20 +66,20 @@ You can get to the same result via different approaches. That makes the query en
 ```{exec-literalinclude} scripts/02b_query_engine.py
 ---
 language: python
-setup-lines: 1-6
-lines: 18-26
+setup-lines: 1-11
+lines: 25-35
 ---
 ```
 
 :::{dropdown} Methods used in the snippet
 
 - [`in_group()`](medmodels.medrecord.querying.NodeOperand.in_group){target="_blank"} : Query nodes that belong to that group.
-- [`index()`](medmodels.medrecord.querying.NodeOperand.index){target="_blank"}: Returns a [`NodeIndexOperand`](medmodels.medrecord.querying.NodeIndexOperand){target="_blank"} to query on the indices.
+- [`index()`](medmodels.medrecord.querying.NodeOperand.index){target="_blank"}: Returns a [`NodeIndicesOperand`](medmodels.medrecord.querying.NodeIndicesOperand){target="_blank"} representing the indices of the nodes queried.
 - [`contains()`](medmodels.medrecord.querying.NodeIndexOperand.contains){target="_blank"} : Query node indices containing that argument.
 - [`has_attribute()`](medmodels.medrecord.querying.NodeOperand.has_attribute){target="_blank"} : Query nodes that have that attribute.
 - [`attribute()`](medmodels.medrecord.querying.NodeOperand.attribute){target="_blank"} : Returns a [`MultipleValuesOperand`](medmodels.medrecord.querying.MultipleValuesOperand){target="_blank"} to query on the values of the nodes for that attribute.
 - [`greater_than()`](medmodels.medrecord.querying.MultipleValuesOperand.greater_than){target="_blank"} : Query values that are greater than that value.
-- [`select_nodes()`](medmodels.medrecord.medrecord.MedRecord.select_nodes){target="_blank"} : Select nodes that match that query.
+- [`query_nodes()`](medmodels.medrecord.medrecord.MedRecord.query_nodes){target="_blank"} : Selects nodes from the MedRecord based on the provided query.
 
 :::
 
@@ -94,18 +95,18 @@ As you can see, the query engine can prove to be highly useful for finding nodes
 ---
 language: python
 setup-lines: 1-14
-lines: 30-38
+lines: 39-49
 ---
 ```
 
 :::{dropdown} Methods used in the snippet
 
-- [`index()`](medmodels.medrecord.querying.NodeOperand.index){target="_blank"}: Returns a [`NodeIndexOperand`](medmodels.medrecord.querying.NodeIndexOperand){target="_blank"} to query on the indices.
+- [`index()`](medmodels.medrecord.querying.NodeOperand.index){target="_blank"}: Returns a [`NodeIndicesOperand`](medmodels.medrecord.querying.NodeIndicesOperand){target="_blank"} representing the indices of the nodes queried.
 - [`contains()`](medmodels.medrecord.querying.NodeIndexOperand.contains){target="_blank"} : Query node indices containing that argument.
 - [`has_attribute()`](medmodels.medrecord.querying.NodeOperand.has_attribute){target="_blank"} : Query nodes that have that attribute.
 - [`attribute()`](medmodels.medrecord.querying.NodeOperand.attribute){target="_blank"} : Returns a [`MultipleValuesOperand`](medmodels.medrecord.querying.MultipleValuesOperand){target="_blank"} to query on the values of the nodes for that attribute.
 - [`greater_than()`](medmodels.medrecord.querying.MultipleValuesOperand.greater_than){target="_blank"} : Query values that are greater than that value.
-- [`select_nodes()`](medmodels.medrecord.medrecord.MedRecord.select_nodes){target="_blank"} : Select nodes that match that query.
+- [`query_nodes()`](medmodels.medrecord.medrecord.MedRecord.query_nodes){target="_blank"} : Selects nodes from the MedRecord based on the provided query.
 
 :::
 
@@ -124,15 +125,15 @@ You can also perform mathematical calculations like [`mean()`](medmodels.medreco
 ```{exec-literalinclude} scripts/02b_query_engine.py
 ---
 language: python
-setup-lines: 1-6
-lines: 42-57
+setup-lines: 1-11
+lines: 53-67
 ---
 ```
 
 :::{dropdown} Methods used in the snippet
 
 - [`in_group()`](medmodels.medrecord.querying.NodeOperand.in_group){target="_blank"} : Query nodes that belong to that group.
-- [`index()`](medmodels.medrecord.querying.NodeOperand.index){target="_blank"}: Returns a [`NodeIndexOperand`](medmodels.medrecord.querying.NodeIndexOperand){target="_blank"} to query on the indices.
+- [`index()`](medmodels.medrecord.querying.NodeOperand.index){target="_blank"}: Returns a [`NodeIndicesOperand`](medmodels.medrecord.querying.NodeIndicesOperand){target="_blank"} representing the indices of the nodes queried.
 - [`contains()`](medmodels.medrecord.querying.NodeIndexOperand.contains){target="_blank"} : Query node indices containing that argument.
 - [`attribute()`](medmodels.medrecord.querying.NodeOperand.attribute){target="_blank"} : Returns a [`MultipleValuesOperand`](medmodels.medrecord.querying.MultipleValuesOperand){target="_blank"} to query on the values of the nodes for that attribute.
 - [`lowercase()`](medmodels.medrecord.querying.MultipleValuesOperand.lowercase){target="_blank"} : Converts the values that are strings to lowercase.
@@ -144,7 +145,7 @@ lines: 42-57
 - [`subtract()`](medmodels.medrecord.querying.SingleValueOperand.subtract){target="_blank"} : Subtract the argument from the single value operand.
 
 - [`less_than()`](medmodels.medrecord.querying.MultipleValuesOperand.less_than){target="_blank"} : Query values that are less than that value.
-- [`select_nodes()`](medmodels.medrecord.medrecord.MedRecord.select_nodes){target="_blank"} : Select nodes that match that query.
+- [`query_nodes()`](medmodels.medrecord.medrecord.MedRecord.query_nodes){target="_blank"} : Selects nodes from the MedRecord based on the provided query.
 
 :::
 
@@ -154,8 +155,8 @@ Query methods used for changing the operands cannot be assigned to variables for
 ```{exec-literalinclude} scripts/02b_query_engine.py
 ---
 language: python
-setup-lines: 1-6
-lines: 61-68
+setup-lines: 1-11
+lines: 74-83
 expect-error: PanicException
 ---
 ```
@@ -165,8 +166,8 @@ Nor does the concatenation of querying methods:
 ```{exec-literalinclude} scripts/02b_query_engine.py
 ---
 language: python
-setup-lines: 1-6
-lines: 72-78
+setup-lines: 1-11
+lines: 88-95
 expect-error: PanicException
 ---
 ```
@@ -176,8 +177,8 @@ expect-error: PanicException
 ```{exec-literalinclude} scripts/02b_query_engine.py
 ---
 language: python
-setup-lines: 1-6
-lines: 82-89
+setup-lines: 1-11
+lines: 99-108
 ---
 ```
 
@@ -195,8 +196,8 @@ In this following example we are selecting the nodes that fulfill the following 
 ```{exec-literalinclude} scripts/02b_query_engine.py
 ---
 language: python
-setup-lines: 1-6, 17-26
-lines: 93-101
+setup-lines: 1-11, 25-35
+lines: 112-122
 ---
 ```
 
@@ -206,7 +207,8 @@ lines: 93-101
 - [`attribute()`](medmodels.medrecord.querying.NodeOperand.attribute){target="_blank"} : Returns a [`MultipleValuesOperand()`](medmodels.medrecord.querying.MultipleValuesOperand){target="_blank"} to query on the values of the nodes for that attribute.
 - [`lowercase()`](medmodels.medrecord.querying.MultipleValuesOperand.lowercase){target="_blank"} : Converts the values that are strings to lowercase.
 - [`contains()`](medmodels.medrecord.querying.NodeIndexOperand.contains){target="_blank"} : Query node indices containing that argument.
-- [`select_nodes()`](medmodels.medrecord.medrecord.MedRecord.select_nodes){target="_blank"} : Select nodes that match that query.
+- [`index()`](medmodels.medrecord.querying.NodeOperand.index){target="_blank"}: Returns a [`NodeIndicesOperand`](medmodels.medrecord.querying.NodeIndicesOperand){target="_blank"} representing the indices of the nodes queried.
+- [`query_nodes()`](medmodels.medrecord.medrecord.MedRecord.query_nodes){target="_blank"} : Selects nodes from the MedRecord based on the provided query.
 
 :::
 
@@ -217,15 +219,16 @@ The querying class [`EdgeOperand`](medmodels.medrecord.querying.EdgeOperand){tar
 ```{exec-literalinclude} scripts/02b_query_engine.py
 ---
 language: python
-setup-lines: 1-6
-lines: 105-110
+setup-lines: 1-11
+lines: 126-132
 ---
 ```
 
 :::{dropdown} Methods used in the snippet
 
 - [`in_group()`](medmodels.medrecord.querying.EdgeOperand.in_group){target="_blank"} : Query nodes that belong to that group.
-- [`select_edges()`](medmodels.medrecord.medrecord.MedRecord.select_edges){target="_blank"} : Select edges that match that query.
+- [`index()`](medmodels.medrecord.querying.EdgeOperand.index){target="_blank"}: Returns a [`EdgeIndicesOperand`](medmodels.medrecord.querying.EdgeIndicesOperand){target="_blank"} representing the indices of the edges queried.
+- [`query_edges()`](medmodels.medrecord.medrecord.MedRecord.query_edges){target="_blank"} : Selects edges from the MedRecord based on the provided query.
 
 :::
 
@@ -234,8 +237,8 @@ The edge operand follows the same principles as the node operand, with some extr
 ```{exec-literalinclude} scripts/02b_query_engine.py
 ---
 language: python
-setup-lines: 1-6
-lines: 114-122
+setup-lines: 1-11
+lines: 136-145
 ---
 ```
 
@@ -248,7 +251,8 @@ lines: 114-122
 - [`is_max()`](medmodels.medrecord.querying.MultipleValuesOperand.is_max){target="_blank"} : Query on the values that hold on the maximum value among all of the.
 - [`target_node()`](medmodels.medrecord.querying.EdgeOperand.target_node){target="_blank"} : Returns a [`NodeOperand()`](medmodels.medrecord.querying.NodeOperand){target="_blank"} to query on the target nodes for those edges.
 - [`contains()`](medmodels.medrecord.querying.NodeIndexOperand.contains){target="_blank"} : Query node indices containing that argument.
-- [`select_edges()`](medmodels.medrecord.medrecord.MedRecord.select_edges){target="_blank"} : Select edges that match that query.
+- [`index()`](medmodels.medrecord.querying.EdgeOperand.index){target="_blank"}: Returns a [`EdgeIndicesOperand`](medmodels.medrecord.querying.EdgeIndicesOperand){target="_blank"} representing the indices of the edges queried.
+- [`query_edges()`](medmodels.medrecord.medrecord.MedRecord.query_edges){target="_blank"} : Selects edges from the MedRecord based on the provided query.
 
 :::
 
@@ -263,8 +267,8 @@ The full power of the query engine appears once you combine both operands inside
 ```{exec-literalinclude} scripts/02b_query_engine.py
 ---
 language: python
-setup-lines: 1-6
-lines: 126-141
+setup-lines: 1-11
+lines: 149-168
 ---
 ```
 
@@ -274,10 +278,12 @@ lines: 126-141
 - [`attribute()`](medmodels.medrecord.querying.EdgeOperand.attribute){target="_blank"} : Returns a [`MultipleValuesOperand()`](medmodels.medrecord.querying.MultipleValuesOperand){target="_blank"} to query on the values of the nodes for that attribute.
 - [`less_than()`](medmodels.medrecord.querying.MultipleValuesOperand.less_than){target="_blank"} : Query values that are less than that value.
 - [`equal_to()`](medmodels.medrecord.querying.MultipleValuesOperand.equal_to){target="_blank"} : Query values that are equal to that value.
+- [`index()`](medmodels.medrecord.querying.EdgeOperand.index){target="_blank"}: Returns a [`EdgeIndicesOperand`](medmodels.medrecord.querying.EdgeIndicesOperand){target="_blank"} representing the indices of the edges queried.
 - [`is_int()`](medmodels.medrecord.querying.MultipleValuesOperand.is_int){target="_blank"} : Query on the values which format is `int`.
 - [`greater_than()`](medmodels.medrecord.querying.MultipleValuesOperand.greater_than){target="_blank"} : Query values that are greater than that value.
 - [`edges()`](medmodels.medrecord.querying.NodeOperand.edges){target="_blank"} : Returns a [`EdgeOperand()`](medmodels.medrecord.querying.EdgeOperand){target="_blank"} to query on the edges of those nodes.
-- [`select_nodes()`](medmodels.medrecord.medrecord.MedRecord.select_nodes){target="_blank"} : Select nodes that match that query.
+- [`index()`](medmodels.medrecord.querying.NodeOperand.index){target="_blank"}: Returns a [`NodeIndicesOperand`](medmodels.medrecord.querying.NodeIndicesOperand){target="_blank"} representing the indices of the nodes queried.
+- [`query_nodes()`](medmodels.medrecord.medrecord.MedRecord.query_nodes){target="_blank"} : Selects nodes from the MedRecord based on the provided query.
 
 :::
 
@@ -288,8 +294,8 @@ The inherent structure of the query engine works with logical **AND** operations
 ```{exec-literalinclude} scripts/02b_query_engine.py
 ---
 language: python
-setup-lines: 1-6
-lines: 145-164
+setup-lines: 1-11
+lines: 172-193
 ---
 ```
 
@@ -302,7 +308,8 @@ lines: 145-164
 - [`greater_than()`](medmodels.medrecord.querying.MultipleValuesOperand.greater_than){target="_blank"} : Query values that are greater than that value.
 - [`edges()`](medmodels.medrecord.querying.NodeOperand.edges){target="_blank"} : Returns a [`EdgeOperand()`](medmodels.medrecord.querying.EdgeOperand){target="_blank"} to query on the edges of those nodes.
 - [`either_or()`](medmodels.medrecord.querying.NodeOperand.either_or){target="_blank"} : Queries edges that match either one or the other given queries.
-- [`select_nodes()`](medmodels.medrecord.medrecord.MedRecord.select_nodes){target="_blank"} : Select nodes that match that query.
+- [`index()`](medmodels.medrecord.querying.NodeOperand.index){target="_blank"}: Returns a [`NodeIndicesOperand`](medmodels.medrecord.querying.NodeIndicesOperand){target="_blank"} representing the indices of the nodes queried.
+- [`query_nodes()`](medmodels.medrecord.medrecord.MedRecord.query_nodes){target="_blank"} : Selects nodes from the MedRecord based on the provided query.
 
 :::
 
@@ -311,8 +318,8 @@ This includes also _"pat_3"_, that was not included in the previous section beca
 ```{exec-literalinclude} scripts/02b_query_engine.py
 ---
 language: python
-setup-lines: 1-6, 143-163
-lines: 168-173
+setup-lines: 1-11, 172-181
+lines: 196-208
 ---
 ```
 
@@ -320,7 +327,8 @@ lines: 168-173
 
 - [`in_group()`](medmodels.medrecord.querying.EdgeOperand.in_group){target="_blank"} : Query nodes that belong to that group.: Query edges that belong to that group.
 - [`exclude()`](medmodels.medrecord.querying.NodeOperand.exclude){target="_blank"} : Exclude the nodes that belong to the given query.
-- [`select_nodes()`](medmodels.medrecord.medrecord.MedRecord.select_nodes){target="_blank"} : Select nodes that match that query.
+- [`index()`](medmodels.medrecord.querying.NodeOperand.index){target="_blank"}: Returns a [`NodeIndicesOperand`](medmodels.medrecord.querying.NodeIndicesOperand){target="_blank"} representing the indices of the nodes queried.
+- [`query_nodes()`](medmodels.medrecord.medrecord.MedRecord.query_nodes){target="_blank"} : Selects nodes from the MedRecord based on the provided query.
 
 :::
 
@@ -335,8 +343,8 @@ To address this limitation, the [`clone()`](medmodels.medrecord.querying.SingleV
 ```{exec-literalinclude} scripts/02b_query_engine.py
 ---
 language: python
-setup-lines: 1-6
-lines: 177-191
+setup-lines: 1-11
+lines: 215-231
 ---
 ```
 
@@ -351,21 +359,22 @@ lines: 177-191
 - [`subtract()`](medmodels.medrecord.querying.SingleValueOperand.subtract){target="_blank"} : Subtract the argument from the single value operand.
 - [`greater_than()`](medmodels.medrecord.querying.MultipleValuesOperand.greater_than){target="_blank"} : Query values that are greater than that value.
 - [`less_than()`](medmodels.medrecord.querying.MultipleValuesOperand.less_than){target="_blank"} : Query values that are less than that value.
-- [`select_nodes()`](medmodels.medrecord.medrecord.MedRecord.select_nodes){target="_blank"} : Select nodes that match that query.
+- [`index()`](medmodels.medrecord.querying.EdgeOperand.index){target="_blank"}: Returns a [`EdgeIndicesOperand`](medmodels.medrecord.querying.NodeIndicesOperand){target="_blank"} representing the indices of the edges queried.
+- [`query_nodes()`](medmodels.medrecord.medrecord.MedRecord.query_nodes){target="_blank"} : Selects nodes from the MedRecord based on the provided query.
 
 :::
 
 ## Queries as Function Arguments
 
-In all previous snippets, we have used queries with the method [`select_nodes()`](medmodels.medrecord.medrecord.MedRecord.select_nodes){target="_blank"} for representation purposes of its capacities. However, queries can also be used as function arguments to other methods or indexers from the [`MedRecord`](medmodels.medrecord.medrecord.MedRecord){target="_blank"} that take edge/node indices or the queries that result on those indices as arguments. Here are some examples of those functions:
+In all previous snippets, we have used queries with the method [`query_nodes()`](medmodels.medrecord.medrecord.MedRecord.query_nodes){target="_blank"} for representation purposes of its capacities. However, queries can also be used as function arguments to other methods or indexers from the [`MedRecord`](medmodels.medrecord.medrecord.MedRecord){target="_blank"} that take edge/node indices or the queries that result on those indices as arguments. Here are some examples of those functions:
 
 - Using the [`node[]`](medmodels.medrecord.medrecord.MedRecord.node){target="_blank"}, an indexer that retrieves the attributes for the given node indices.
 
 ```{exec-literalinclude} scripts/02b_query_engine.py
 ---
 language: python
-setup-lines: 1-6, 145-187
-lines: 194
+setup-lines: 1-11, 184-190
+lines: 234
 ---
 ```
 
@@ -374,8 +383,8 @@ lines: 194
 ```{exec-literalinclude} scripts/02b_query_engine.py
 ---
 language: python
-setup-lines: 1-23
-lines: 195
+setup-lines: 1-32
+lines: 235
 ---
 ```
 
@@ -384,8 +393,8 @@ lines: 195
 ```{exec-literalinclude} scripts/02b_query_engine.py
 ---
 language: python
-setup-lines: 1-6, 114-119
-lines: 196
+setup-lines: 1-11, 136-145
+lines: 236
 ---
 ```
 
@@ -404,6 +413,6 @@ The full code examples for this chapter can be found here:
 ```{literalinclude} scripts/02b_query_engine.py
 ---
 language: python
-lines: 3-196
+lines: 3-236
 ---
 ```
