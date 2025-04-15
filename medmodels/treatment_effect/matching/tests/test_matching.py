@@ -9,6 +9,9 @@ import pandas as pd
 import pytest
 
 from medmodels import MedRecord
+from medmodels.medrecord import AttributeType
+from medmodels.medrecord.datatype import Int, String
+from medmodels.medrecord.schema import GroupSchema, Schema
 from medmodels.treatment_effect.matching.neighbors import NeighborsMatching
 
 if TYPE_CHECKING:
@@ -110,30 +113,28 @@ class TestNeighborsMatching(unittest.TestCase):
         # Assert that the treated and control dataframes have the correct number of rows
         assert len(data_treated) == len(treated_set)
         assert len(data_control) == len(control_set)
-
-        # Try automatic detection of attributes
-        data_treated, data_control = neighbors_matching._preprocess_data(
-            medrecord=self.medrecord,
-            control_set=control_set,
-            treated_set=treated_set,
-            patients_group="patients",
-        )
-
-        # Assert that the treated and control dataframes have the correct columns
-        assert "age" in data_treated.columns
-        assert "age" in data_control.columns
-        assert (
-            "gender_female" in data_treated.columns
-            or "gender_male" in data_treated.columns
-        )
-        assert (
-            "gender_female" in data_control.columns
-            or "gender_male" in data_control.columns
-        )
-
         # Assert that the treated and control dataframes have the correct number of rows
         assert len(data_treated) == len(treated_set)
         assert len(data_control) == len(control_set)
+
+    def test_invalid_preprocess_data(self) -> None:
+        neighbors_matching = NeighborsMatching(number_of_neighbors=1)
+
+        control_set: Set[NodeIndex] = {"P1", "P3", "P5", "P7", "P9"}
+        treated_set: Set[NodeIndex] = {"P2", "P4", "P6"}
+
+        # Gender is not treated as a one-hot encoded variable so it will not be numeric
+        with pytest.raises(
+            ValueError,
+            match="All covariates must be numeric",
+        ):
+            neighbors_matching._preprocess_data(
+                medrecord=self.medrecord,
+                control_set=control_set,
+                treated_set=treated_set,
+                patients_group="patients",
+                essential_covariates=["age", "gender"],
+            )
 
     def test_match_controls(self) -> None:
         neighbors_matching = NeighborsMatching(number_of_neighbors=1)
@@ -156,15 +157,27 @@ class TestNeighborsMatching(unittest.TestCase):
         # Assert that the correct number of controls were matched
         assert len(matched_controls) == len(treated_set)
 
-        # It should do the same if no covariates are given (all attributes assigned)
-        matched_controls_no_covariates_specified = neighbors_matching.match_controls(
-            medrecord=self.medrecord,
+        # When the schema has a categorical attribute, it is one-hot encoded
+        patients_schema = GroupSchema(
+            nodes={"gender": (String(), AttributeType.Categorical), "age": Int()}
+        )
+
+        schema = Schema(groups={"patients": patients_schema})
+        medrecord_clone = self.medrecord.clone()
+        medrecord_clone.remove_nodes("P10")
+        medrecord_clone.set_schema(schema)
+
+        matched_controls_categorical = neighbors_matching.match_controls(
+            medrecord=medrecord_clone,
             control_set=control_set,
             treated_set=treated_set,
             patients_group="patients",
+            essential_covariates=["age", "gender"],
+            one_hot_covariates=None,  # We expect it to find "gender" as Categorical
+            # and one-hot encode it
         )
 
-        assert matched_controls_no_covariates_specified == matched_controls
+        assert matched_controls_categorical == matched_controls
 
     def test_check_nodes(self) -> None:
         neighbors_matching = NeighborsMatching(number_of_neighbors=1)
