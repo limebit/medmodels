@@ -415,23 +415,23 @@ print(f"First patient attributes: {medrecord.node[first_patient]}")
 
 ### Selecting nodes and grouping
 
-Nodes can be selected using the MedRecords query engine. The [`select_nodes()`](medmodels.medrecord.medrecord.MedRecord.select_nodes){target="_blank"} function works with logical operators on node properties, attributes or the node index and returns a list of node indices.
+Nodes can be selected using the MedRecords query engine. The [`query_nodes()`](medmodels.medrecord.medrecord.MedRecord.query_nodes){target="_blank"} function works with logical operators on node properties, attributes or the node index and returns a list of node indices.
 
 Nodes and edges can be organized in groups for easier access. Nodes can be added to a group by their indices.
 
 ```python
 # select all indices for node
-patient_ids = medrecord.select_nodes(node().index().starts_with("pat"))
+patient_ids = medrecord.query_nodes(node().index().starts_with("pat"))
 medrecord.add_group(group="Patient", node=patient_ids)
 
-print(f"Patients: {medrecord.select_nodes(node().in_group('Patient'))}")
+print(f"Patients: {medrecord.query_nodes(node().in_group('Patient'))}")
 ```
 
     Patients: ['pat_5', 'pat_1', 'pat_4', 'pat_3', 'pat_2']
 
 :::{dropdown} Methods used in the snippet
 
-* [`select_nodes()`](medmodels.medrecord.medrecord.MedRecord.select_nodes){target="_blank"} : Select nodes that match that query.
+* [`query_nodes()`](medmodels.medrecord.medrecord.MedRecord.query_nodes){target="_blank"} : Selects nodes from the MedRecord based on the provided query.
 * [`node()`](medmodels.medrecord.querying.NodeOperand){target="_blank"} : Returns a [`NodeOperand`](medmodels.medrecord.querying.NodeOperand){target="_blank"} to query on the nodes of the MedRecord.
 * [`index()`](medmodels.medrecord.querying.NodeOperand.index){target="_blank"} : Returns a [`NodeIndexOperand`](medmodels.medrecord.querying.NodeIndexOperand){target="_blank"} to query on the node indices of the node operand.
 * [`starts_with()`](medmodels.medrecord.querying.NodeIndexOperand.starts_with){target="_blank"} : Query the node indices that start with that argument.
@@ -446,7 +446,7 @@ Grouping can also be used to make sub populations that share the same properties
 ```python
 young_age = 20
 # query and get node indices
-young_id = medrecord.select_nodes(node().attribute("age").less_than(young_age))
+young_id = medrecord.query_nodes(node().attribute("age").less_than(young_age))
 medrecord.add_group(group="Young", node=young_id)
 
 # node operation
@@ -455,11 +455,11 @@ medrecord.add_group(group="Woman", node=node().attribute("gender").equal_to("F")
 
 :::{dropdown} Methods used in the snippet
 
-* [`select_nodes()`](medmodels.medrecord.medrecord.MedRecord.select_nodes){target="_blank"} : Select nodes that match that query.
+* [`query_nodes()`](medmodels.medrecord.medrecord.MedRecord.query_nodes){target="_blank"} : Selects nodes from the MedRecord based on the provided query.
 * [`node()`](medmodels.medrecord.querying.NodeOperand){target="_blank"} : Returns a [`NodeOperand`](medmodels.medrecord.querying.NodeOperand){target="_blank"} to query on the nodes of the MedRecord.
-* [`attribute()`](medmodels.medrecord.querying.NodeOperand.attribute){target="_blank"} : Returns a [`MultipleValuesOperand`](medmodels.medrecord.querying.MultipleValuesOperand){target="_blank"} to query on the values of the nodes for that attribute.
-* [`less_than()`](medmodels.medrecord.querying.MultipleValuesOperand.less_than){target="_blank"} : Query values that are less than that value.
-* [`equal_to()`](medmodels.medrecord.querying.MultipleValuesOperand.equal_to){target="_blank"} : Query values equal to that value.
+* [`attribute()`](medmodels.medrecord.querying.NodeOperand.attribute){target="_blank"} : Returns a [`NodeMultipleValuesOperand`](medmodels.medrecord.querying.NodeMultipleValuesOperand){target="_blank"} to query on the values of the nodes for that attribute.
+* [`less_than()`](medmodels.medrecord.querying.NodeMultipleValuesOperand.less_than){target="_blank"} : Query values that are less than that value.
+* [`equal_to()`](medmodels.medrecord.querying.NodeMultipleValuesOperand.equal_to){target="_blank"} : Query values equal to that value.
 * [`add_group()`](medmodels.medrecord.medrecord.MedRecord.add_group){target="_blank"} : Adds a group to the MedRecord, optionally with node and edge indices.
 :::
 
@@ -493,7 +493,7 @@ Nodes can also be added to an existing group later.
 
 ```python
 higher_age = 25
-additional_young_id = medrecord.select_nodes(
+additional_young_id = medrecord.query_nodes(
     node().attribute("age").greater_than_or_equal_to(young_age)
     & node().attribute("age").less_than(higher_age)
 )
@@ -508,11 +508,11 @@ print(
 
 :::{dropdown} Methods used in the snippet
 
-* [`select_nodes()`](medmodels.medrecord.medrecord.MedRecord.select_nodes){target="_blank"} : Select nodes that match that query.
+* [`query_nodes()`](medmodels.medrecord.medrecord.MedRecord.query_nodes){target="_blank"} : Selects nodes from the MedRecord based on the provided query.
 * [`node()`](medmodels.medrecord.querying.NodeOperand){target="_blank"} : Returns a [`NodeOperand`](medmodels.medrecord.querying.NodeOperand){target="_blank"} to query on the nodes of the MedRecord.
-* [`attribute()`](medmodels.medrecord.querying.NodeOperand.attribute){target="_blank"} : Returns a [`MultipleValuesOperand`](medmodels.medrecord.querying.MultipleValuesOperand){target="_blank"} to query on the values of the nodes for that attribute.
-* [`greater_than_or_equal_to()`](medmodels.medrecord.querying.MultipleValuesOperand.greater_than_or_equal_to){target="_blank"} : Query values that are greater or equal to a specific value.
-* [`less_than()`](medmodels.medrecord.querying.MultipleValuesOperand.less_than){target="_blank"} : Query values that are less than that value.
+* [`attribute()`](medmodels.medrecord.querying.NodeOperand.attribute){target="_blank"} : Returns a [`NodeMultipleValuesOperand`](medmodels.medrecord.querying.NodeMultipleValuesOperand){target="_blank"} to query on the values of the nodes for that attribute.
+* [`greater_than_or_equal_to()`](medmodels.medrecord.querying.NodeMultipleValuesOperand.greater_than_or_equal_to){target="_blank"} : Query values that are greater or equal to a specific value.
+* [`less_than()`](medmodels.medrecord.querying.NodeMultipleValuesOperand.less_than){target="_blank"} : Query values that are less than that value.
 * [`group()`](medmodels.medrecord.medrecord.MedRecord.group){target="_blank"} : Returns the node and edge indices associated with the specified group(s) in the MedRecord.
 * [`add_nodes_to_group()`](medmodels.medrecord.medrecord.MedRecord.add_nodes_to_group){target="_blank"} : Adds one or more nodes to a specified group in the MedRecord.
 :::
@@ -521,7 +521,7 @@ It is possible to remove nodes from groups and to remove groups entirely from th
 
 ```python
 medrecord.remove_nodes_from_group(group="Young", nodes=additional_young_id)
-print(f"Patients in group 'Young': {medrecord.select_nodes(node().in_group('Young'))}")
+print(f"Patients in group 'Young': {medrecord.query_nodes(node().in_group('Young'))}")
 
 
 print(f"The MedRecord contains {medrecord.group_count()} groups.")
@@ -547,7 +547,7 @@ medrecord.add_group(group="Diagnosis", node=node().index().starts_with("diagnosi
 :::{dropdown} Methods used in the snippet
 
 * [`remove_nodes_from_group()`](medmodels.medrecord.medrecord.MedRecord.remove_nodes_from_group){target="_blank"} : Removes one or more nodes from a specified group.
-* [`select_nodes()`](medmodels.medrecord.medrecord.MedRecord.select_nodes){target="_blank"} : Select nodes that match that query.
+* [`query_nodes()`](medmodels.medrecord.medrecord.MedRecord.query_nodes){target="_blank"} : Selects nodes from the MedRecord based on the provided query.
 * [`node()`](medmodels.medrecord.querying.NodeOperand){target="_blank"} : Returns a [`NodeOperand`](medmodels.medrecord.querying.NodeOperand){target="_blank"} to query on the nodes of the MedRecord.
 * [`in_group()`](medmodels.medrecord.querying.NodeOperand.in_group){target="_blank"} : Query the nodes that are in that given group.
 * [`group_count()`](medmodels.medrecord.medrecord.MedRecord.group_count){target="_blank"} : Returns the total number of groups currently defined within the MedRecord.
@@ -588,7 +588,7 @@ print(
 
 ```python
 # diagnosis edges
-diabetes_diagnosis = medrecord.select_nodes(
+diabetes_diagnosis = medrecord.query_nodes(
     node().attribute("description").contains("diabetes")
 )
 diabetes_incoming_edges = medrecord.incoming_edges(diabetes_diagnosis[0])
@@ -603,9 +603,9 @@ print(
 
 * [`outgoing_edges()`](medmodels.medrecord.medrecord.MedRecord.outgoing_edges){target="_blank"} : Lists the outgoing edges of the specified node(s) in the MedRecord.
 * [`incoming_edges()`](medmodels.medrecord.medrecord.MedRecord.incoming_edges){target="_blank"} : Lists the incoming edges of the specified node(s) in the MedRecord.
-* [`select_nodes()`](medmodels.medrecord.medrecord.MedRecord.select_nodes){target="_blank"} : Select nodes that match that query.
+* [`query_nodes()`](medmodels.medrecord.medrecord.MedRecord.query_nodes){target="_blank"} : Selects nodes from the MedRecord based on the provided query.
 * [`node()`](medmodels.medrecord.querying.NodeOperand){target="_blank"} : Returns a [`NodeOperand`](medmodels.medrecord.querying.NodeOperand){target="_blank"} to query on the nodes of the MedRecord.
-* [`attribute()`](medmodels.medrecord.querying.NodeOperand.attribute){target="_blank"} : Returns a [`MultipleValuesOperand`](medmodels.medrecord.querying.MultipleValuesOperand){target="_blank"} to query on the values of the nodes for that attribute.
+* [`attribute()`](medmodels.medrecord.querying.NodeOperand.attribute){target="_blank"} : Returns a [`NodeMultipleValuesOperand`](medmodels.medrecord.querying.NodeMultipleValuesOperand){target="_blank"} to query on the values of the nodes for that attribute.
 * [`contains()`](medmodels.medrecord.querying.NodeIndexOperand.contains){target="_blank"} : Query node indices containing that argument.
 :::
 
@@ -662,20 +662,20 @@ print(medrecord.edge[patient_drug_edges[0]])
 
 ### Selecting edges
 
-Edges can also be selected using the query engine. The logic operators and functions are similar to the ones used for `select_nodes()`.
+Edges can also be selected using the query engine. The logic operators and functions are similar to the ones used for `query_nodes()`.
 
 ```python
-medrecord.select_edges(edge().attribute("cost").greater_than(500))
+medrecord.query_edges(edge().attribute("cost").greater_than(500))
 ```
 
     [114, 117, 124]
 
 :::{dropdown} Methods used in the snippet
 
-* [`select_edges()`](medmodels.medrecord.medrecord.MedRecord.select_edges){target="_blank"} : Select edges that match that query.
+* [`query_edges()`](medmodels.medrecord.medrecord.MedRecord.query_edges){target="_blank"} : Selects edges from the MedRecord based on the provided query.
 * [`edge()`](medmodels.medrecord.querying.EdgeOperand){target="_blank"} : Returns a [`EdgeOperand`](medmodels.medrecord.querying.EdgeOperand){target="_blank"} to query on the edges of the MedRecord.
-* [`attribute()`](medmodels.medrecord.querying.EdgeOperand.attribute){target="_blank"} : Returns a [`MultipleValuesOperand()`](medmodels.medrecord.querying.MultipleValuesOperand){target="_blank"} to query on the values of the edges for that attribute.
-* [`greater_than()`](medmodels.medrecord.querying.MultipleValuesOperand.greater_than){target="_blank"} : Query values that are greater than that value.
+* [`attribute()`](medmodels.medrecord.querying.EdgeOperand.attribute){target="_blank"} : Returns a [`EdgeMultipleValuesOperand()`](medmodels.medrecord.querying.EdgeMultipleValuesOperand){target="_blank"} to query on the values of the edges for that attribute.
+* [`greater_than()`](medmodels.medrecord.querying.EdgeMultipleValuesOperand.greater_than){target="_blank"} : Query values that are greater than that value.
 :::
 
 ## Saving the MedRecord
