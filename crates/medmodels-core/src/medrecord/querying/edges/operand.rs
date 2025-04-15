@@ -6,7 +6,7 @@ use crate::{
     errors::MedRecordResult,
     medrecord::{
         querying::{
-            attributes::{self, AttributesTreeOperand},
+            attributes::AttributesTreeOperand,
             nodes::NodeOperand,
             traits::{DeepClone, ReadWriteOrPanic},
             values::{self, MultipleValuesOperand},
@@ -62,9 +62,12 @@ impl EdgeOperand {
             })
     }
 
-    pub fn attribute(&mut self, attribute: MedRecordAttribute) -> Wrapper<MultipleValuesOperand> {
-        let operand = Wrapper::<MultipleValuesOperand>::new(
-            values::Context::EdgeOperand(self.deep_clone()),
+    pub fn attribute(
+        &mut self,
+        attribute: MedRecordAttribute,
+    ) -> Wrapper<MultipleValuesOperand<Self>> {
+        let operand = Wrapper::<MultipleValuesOperand<Self>>::new(
+            values::Context::Operand(self.deep_clone()),
             attribute,
         );
 
@@ -75,10 +78,8 @@ impl EdgeOperand {
         operand
     }
 
-    pub fn attributes(&mut self) -> Wrapper<AttributesTreeOperand> {
-        let operand = Wrapper::<AttributesTreeOperand>::new(attributes::Context::EdgeOperand(
-            self.deep_clone(),
-        ));
+    pub fn attributes(&mut self) -> Wrapper<AttributesTreeOperand<Self>> {
+        let operand = Wrapper::<AttributesTreeOperand<Self>>::new(self.deep_clone());
 
         self.operations.push(EdgeOperation::Attributes {
             operand: operand.clone(),
@@ -176,14 +177,14 @@ impl Wrapper<EdgeOperand> {
         self.0.read_or_panic().evaluate(medrecord)
     }
 
-    pub fn attribute<A>(&self, attribute: A) -> Wrapper<MultipleValuesOperand>
+    pub fn attribute<A>(&self, attribute: A) -> Wrapper<MultipleValuesOperand<EdgeOperand>>
     where
         A: Into<MedRecordAttribute>,
     {
         self.0.write_or_panic().attribute(attribute.into())
     }
 
-    pub fn attributes(&self) -> Wrapper<AttributesTreeOperand> {
+    pub fn attributes(&self) -> Wrapper<AttributesTreeOperand<EdgeOperand>> {
         self.0.write_or_panic().attributes()
     }
 

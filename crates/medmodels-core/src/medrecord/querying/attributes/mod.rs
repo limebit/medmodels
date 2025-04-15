@@ -4,11 +4,10 @@ mod operation;
 use super::{
     edges::{EdgeOperand, EdgeOperation},
     nodes::{NodeOperand, NodeOperation},
-    BoxedIterator, Index,
 };
 use crate::{
     errors::MedRecordResult,
-    medrecord::{Attributes, EdgeIndex, MedRecordAttribute, NodeIndex},
+    medrecord::{EdgeIndex, MedRecordAttribute, NodeIndex},
     MedRecord,
 };
 pub use operand::{
@@ -88,62 +87,41 @@ pub enum UnaryArithmeticKind {
     Uppercase,
 }
 
-pub(crate) trait GetAttributes {
-    fn get_attributes<'a>(&'a self, medrecord: &'a MedRecord) -> MedRecordResult<&'a Attributes>;
-}
-
-impl GetAttributes for NodeIndex {
-    fn get_attributes<'a>(&'a self, medrecord: &'a MedRecord) -> MedRecordResult<&'a Attributes> {
-        medrecord.node_attributes(self)
-    }
-}
-
-impl GetAttributes for EdgeIndex {
-    fn get_attributes<'a>(&'a self, medrecord: &'a MedRecord) -> MedRecordResult<&'a Attributes> {
-        medrecord.edge_attributes(self)
-    }
-}
-
-impl GetAttributes for &NodeIndex {
-    fn get_attributes<'a>(&'a self, medrecord: &'a MedRecord) -> MedRecordResult<&'a Attributes> {
-        medrecord.node_attributes(self)
-    }
-}
-
-impl GetAttributes for &EdgeIndex {
-    fn get_attributes<'a>(&'a self, medrecord: &'a MedRecord) -> MedRecordResult<&'a Attributes> {
-        medrecord.edge_attributes(self)
-    }
-}
-
-#[derive(Debug, Clone)]
-pub enum Context {
-    NodeOperand(NodeOperand),
-    EdgeOperand(EdgeOperand),
-}
-
-impl Context {
-    pub(crate) fn get_attributes<'a>(
+pub(crate) trait GetAttributes<I> {
+    fn get_attributes<'a>(
         &self,
         medrecord: &'a MedRecord,
-    ) -> MedRecordResult<BoxedIterator<'a, (Index<'a>, Vec<MedRecordAttribute>)>> {
-        Ok(match self {
-            Self::NodeOperand(node_operand) => {
-                let node_indices = node_operand.evaluate(medrecord)?;
+    ) -> MedRecordResult<impl Iterator<Item = (&'a I, Vec<MedRecordAttribute>)>>
+    where
+        I: 'a;
+}
 
-                Box::new(
-                    NodeOperation::get_attributes(medrecord, node_indices)
-                        .map(|(index, value)| (index.into(), value)),
-                )
-            }
-            Self::EdgeOperand(edge_operand) => {
-                let edge_indices = edge_operand.evaluate(medrecord)?;
+impl GetAttributes<NodeIndex> for NodeOperand {
+    fn get_attributes<'a>(
+        &self,
+        medrecord: &'a MedRecord,
+    ) -> MedRecordResult<impl Iterator<Item = (&'a NodeIndex, Vec<MedRecordAttribute>)>>
+    where
+        NodeIndex: 'a,
+    {
+        Ok(NodeOperation::get_attributes(
+            medrecord,
+            self.evaluate(medrecord)?,
+        ))
+    }
+}
 
-                Box::new(
-                    EdgeOperation::get_attributes(medrecord, edge_indices)
-                        .map(|(index, value)| (index.into(), value)),
-                )
-            }
-        })
+impl GetAttributes<EdgeIndex> for EdgeOperand {
+    fn get_attributes<'a>(
+        &self,
+        medrecord: &'a MedRecord,
+    ) -> MedRecordResult<impl Iterator<Item = (&'a EdgeIndex, Vec<MedRecordAttribute>)>>
+    where
+        EdgeIndex: 'a,
+    {
+        Ok(EdgeOperation::get_attributes(
+            medrecord,
+            self.evaluate(medrecord)?,
+        ))
     }
 }

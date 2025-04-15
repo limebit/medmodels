@@ -15,9 +15,9 @@ use crate::{
         },
         querying::{
             traits::{DeepClone, ReadWriteOrPanic},
-            BoxedIterator,
+            BoxedIterator, Operand, OptionalIndexWrapper,
         },
-        DataType, MedRecordValue, Wrapper,
+        DataType, Index, MedRecordValue, Wrapper,
     },
     MedRecord,
 };
@@ -91,20 +91,20 @@ macro_rules! get_median {
 }
 
 #[derive(Debug, Clone)]
-pub enum MultipleValuesOperation {
+pub enum MultipleValuesOperation<O: Operand> {
     ValueOperation {
-        operand: Wrapper<SingleValueOperand>,
+        operand: Wrapper<SingleValueOperand<O>>,
     },
     SingleValueComparisonOperation {
-        operand: SingleValueComparisonOperand,
+        operand: SingleValueComparisonOperand<O>,
         kind: SingleComparisonKind,
     },
     MultipleValuesComparisonOperation {
-        operand: MultipleValuesComparisonOperand,
+        operand: MultipleValuesComparisonOperand<O>,
         kind: MultipleComparisonKind,
     },
     BinaryArithmeticOpration {
-        operand: SingleValueComparisonOperand,
+        operand: SingleValueComparisonOperand<O>,
         kind: BinaryArithmeticKind,
     },
     UnaryArithmeticOperation {
@@ -125,15 +125,15 @@ pub enum MultipleValuesOperation {
     IsMin,
 
     EitherOr {
-        either: Wrapper<MultipleValuesOperand>,
-        or: Wrapper<MultipleValuesOperand>,
+        either: Wrapper<MultipleValuesOperand<O>>,
+        or: Wrapper<MultipleValuesOperand<O>>,
     },
     Exclude {
-        operand: Wrapper<MultipleValuesOperand>,
+        operand: Wrapper<MultipleValuesOperand<O>>,
     },
 }
 
-impl DeepClone for MultipleValuesOperation {
+impl<O: Operand> DeepClone for MultipleValuesOperation<O> {
     fn deep_clone(&self) -> Self {
         match self {
             Self::ValueOperation { operand } => Self::ValueOperation {
@@ -179,12 +179,12 @@ impl DeepClone for MultipleValuesOperation {
     }
 }
 
-impl MultipleValuesOperation {
-    pub(crate) fn evaluate<'a, T: Clone + Eq + Hash + 'a>(
+impl<O: Operand> MultipleValuesOperation<O> {
+    pub(crate) fn evaluate<'a>(
         &self,
         medrecord: &'a MedRecord,
-        values: impl Iterator<Item = (T, MedRecordValue)> + 'a,
-    ) -> MedRecordResult<BoxedIterator<'a, (T, MedRecordValue)>> {
+        values: impl Iterator<Item = (&'a O::Index, MedRecordValue)> + 'a,
+    ) -> MedRecordResult<BoxedIterator<'a, (&'a O::Index, MedRecordValue)>> {
         match self {
             Self::ValueOperation { operand } => {
                 Self::evaluate_value_operation(medrecord, values, operand)
@@ -257,9 +257,9 @@ impl MultipleValuesOperation {
     }
 
     #[inline]
-    pub(crate) fn get_max<T>(
-        mut values: impl Iterator<Item = (T, MedRecordValue)>,
-    ) -> MedRecordResult<(T, MedRecordValue)> {
+    pub(crate) fn get_max<'a, T>(
+        mut values: impl Iterator<Item = (&'a T, MedRecordValue)>,
+    ) -> MedRecordResult<(&'a T, MedRecordValue)> {
         let max_value = values.next().ok_or(MedRecordError::QueryError(
             "No values to compare".to_string(),
         ))?;
@@ -766,17 +766,17 @@ impl MultipleValuesOperation {
 }
 
 #[derive(Debug, Clone)]
-pub enum SingleValueOperation {
+pub enum SingleValueOperation<O: Operand> {
     SingleValueComparisonOperation {
-        operand: SingleValueComparisonOperand,
+        operand: SingleValueComparisonOperand<O>,
         kind: SingleComparisonKind,
     },
     MultipleValuesComparisonOperation {
-        operand: MultipleValuesComparisonOperand,
+        operand: MultipleValuesComparisonOperand<O>,
         kind: MultipleComparisonKind,
     },
     BinaryArithmeticOpration {
-        operand: SingleValueComparisonOperand,
+        operand: SingleValueComparisonOperand<O>,
         kind: BinaryArithmeticKind,
     },
     UnaryArithmeticOperation {
@@ -794,15 +794,15 @@ pub enum SingleValueOperation {
     IsNull,
 
     EitherOr {
-        either: Wrapper<SingleValueOperand>,
-        or: Wrapper<SingleValueOperand>,
+        either: Wrapper<SingleValueOperand<O>>,
+        or: Wrapper<SingleValueOperand<O>>,
     },
     Exclude {
-        operand: Wrapper<SingleValueOperand>,
+        operand: Wrapper<SingleValueOperand<O>>,
     },
 }
 
-impl DeepClone for SingleValueOperation {
+impl<O: Operand> DeepClone for SingleValueOperation<O> {
     fn deep_clone(&self) -> Self {
         match self {
             Self::SingleValueComparisonOperation { operand, kind } => {
@@ -843,12 +843,12 @@ impl DeepClone for SingleValueOperation {
     }
 }
 
-impl SingleValueOperation {
-    pub(crate) fn evaluate(
+impl<O: Operand> SingleValueOperation<O> {
+    pub(crate) fn evaluate<'a>(
         &self,
-        medrecord: &MedRecord,
-        value: MedRecordValue,
-    ) -> MedRecordResult<Option<MedRecordValue>> {
+        medrecord: &'a MedRecord,
+        value: OptionalIndexWrapper<&'a O::Index, MedRecordValue>,
+    ) -> MedRecordResult<Option<OptionalIndexWrapper<&'a O::Index, MedRecordValue>>> {
         match self {
             Self::SingleValueComparisonOperation { operand, kind } => {
                 Self::evaluate_single_value_comparison_operation(medrecord, value, operand, kind)

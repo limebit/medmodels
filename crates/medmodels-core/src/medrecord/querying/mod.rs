@@ -14,37 +14,28 @@ use crate::errors::MedRecordResult;
 use attributes::{AttributesTreeOperation, GetAttributes, MultipleAttributesOperation};
 use edges::{EdgeIndexOperand, EdgeIndicesOperand, EdgeIndicesOperation, EdgeOperand};
 use nodes::{NodeIndexOperand, NodeIndicesOperand, NodeIndicesOperation, NodeOperand};
-use std::fmt::Display;
+use std::{fmt::Display, hash::Hash};
 use traits::ReadWriteOrPanic;
-use values::MultipleValuesOperation;
+use values::{GetValues, MultipleValuesOperation};
 
 pub(crate) type BoxedIterator<'a, T> = Box<dyn Iterator<Item = T> + 'a>;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum Index<'a> {
-    NodeIndex(&'a NodeIndex),
-    EdgeIndex(&'a EdgeIndex),
+pub trait Index: Eq + Hash + Display + Clone {}
+
+impl Index for NodeIndex {}
+
+impl Index for EdgeIndex {}
+
+pub trait Operand: GetAttributes<Self::Index> + GetValues<Self::Index> + Clone {
+    type Index: Index;
 }
 
-impl GetAttributes for Index<'_> {
-    fn get_attributes<'a>(
-        &'a self,
-        medrecord: &'a MedRecord,
-    ) -> MedRecordResult<&'a super::Attributes> {
-        match self {
-            Self::NodeIndex(node_index) => node_index.get_attributes(medrecord),
-            Self::EdgeIndex(edge_index) => edge_index.get_attributes(medrecord),
-        }
-    }
+impl Operand for NodeOperand {
+    type Index = NodeIndex;
 }
 
-impl Display for Index<'_> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::NodeIndex(node_index) => write!(f, "{}", node_index),
-            Self::EdgeIndex(edge_index) => write!(f, "{}", edge_index),
-        }
-    }
+impl Operand for EdgeOperand {
+    type Index = EdgeIndex;
 }
 
 pub enum OptionalIndexWrapper<I, T> {

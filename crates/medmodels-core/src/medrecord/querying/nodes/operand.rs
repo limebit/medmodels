@@ -7,7 +7,7 @@ use crate::{
     errors::MedRecordResult,
     medrecord::{
         querying::{
-            attributes::{self, AttributesTreeOperand},
+            attributes::AttributesTreeOperand,
             edges::EdgeOperand,
             traits::{DeepClone, ReadWriteOrPanic},
             values::{self, MultipleValuesOperand},
@@ -63,9 +63,12 @@ impl NodeOperand {
             })
     }
 
-    pub fn attribute(&mut self, attribute: MedRecordAttribute) -> Wrapper<MultipleValuesOperand> {
-        let operand = Wrapper::<MultipleValuesOperand>::new(
-            values::Context::NodeOperand(self.deep_clone()),
+    pub fn attribute(
+        &mut self,
+        attribute: MedRecordAttribute,
+    ) -> Wrapper<MultipleValuesOperand<Self>> {
+        let operand = Wrapper::<MultipleValuesOperand<Self>>::new(
+            values::Context::Operand(self.deep_clone()),
             attribute,
         );
 
@@ -76,10 +79,8 @@ impl NodeOperand {
         operand
     }
 
-    pub fn attributes(&mut self) -> Wrapper<AttributesTreeOperand> {
-        let operand = Wrapper::<AttributesTreeOperand>::new(attributes::Context::NodeOperand(
-            self.deep_clone(),
-        ));
+    pub fn attributes(&mut self) -> Wrapper<AttributesTreeOperand<Self>> {
+        let operand = Wrapper::<AttributesTreeOperand<Self>>::new(self.deep_clone());
 
         self.operations.push(NodeOperation::Attributes {
             operand: operand.clone(),
@@ -179,14 +180,14 @@ impl Wrapper<NodeOperand> {
         self.0.read_or_panic().evaluate(medrecord)
     }
 
-    pub fn attribute<A>(&mut self, attribute: A) -> Wrapper<MultipleValuesOperand>
+    pub fn attribute<A>(&mut self, attribute: A) -> Wrapper<MultipleValuesOperand<NodeOperand>>
     where
         A: Into<MedRecordAttribute>,
     {
         self.0.write_or_panic().attribute(attribute.into())
     }
 
-    pub fn attributes(&mut self) -> Wrapper<AttributesTreeOperand> {
+    pub fn attributes(&mut self) -> Wrapper<AttributesTreeOperand<NodeOperand>> {
         self.0.write_or_panic().attributes()
     }
 

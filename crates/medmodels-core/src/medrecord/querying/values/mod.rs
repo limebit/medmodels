@@ -2,10 +2,8 @@ mod operand;
 mod operation;
 
 use super::{
-    attributes::{GetAttributes, MultipleAttributesOperand, MultipleAttributesOperation},
-    edges::{EdgeOperand, EdgeOperation},
-    nodes::{NodeOperand, NodeOperation},
-    BoxedIterator, Index,
+    attributes::MultipleAttributesOperand, edges::EdgeOperand, nodes::NodeOperand, BoxedIterator,
+    Index, Operand,
 };
 use crate::{
     errors::MedRecordResult,
@@ -17,7 +15,7 @@ pub use operand::{
     SingleValueOperand,
 };
 pub use operation::MultipleValuesOperation;
-use std::{fmt::Display, hash::Hash};
+use std::fmt::Display;
 
 #[derive(Debug, Clone)]
 pub enum SingleKind {
@@ -90,59 +88,112 @@ pub enum UnaryArithmeticKind {
     Uppercase,
 }
 
-#[allow(clippy::enum_variant_names)]
-#[derive(Debug, Clone)]
-pub enum Context {
-    NodeOperand(NodeOperand),
-    EdgeOperand(EdgeOperand),
-    MultipleAttributesOperand(MultipleAttributesOperand),
-}
-
-impl<'a> From<&'a NodeIndex> for Index<'a> {
-    fn from(node_index: &'a NodeIndex) -> Self {
-        Self::NodeIndex(node_index)
-    }
-}
-
-impl<'a> From<&'a EdgeIndex> for Index<'a> {
-    fn from(edge_index: &'a EdgeIndex) -> Self {
-        Self::EdgeIndex(edge_index)
-    }
-}
-
-impl Context {
-    pub(crate) fn get_values<
-        'a,
-        T: 'a + Eq + Clone + Hash + GetAttributes + Display + Into<Index<'a>>,
-    >(
+pub(crate) trait GetValues<I: Index> {
+    fn get_values<'a>(
         &self,
         medrecord: &'a MedRecord,
         attribute: MedRecordAttribute,
-    ) -> MedRecordResult<BoxedIterator<'a, (Index<'a>, MedRecordValue)>> {
+    ) -> MedRecordResult<impl Iterator<Item = (&'a I, MedRecordValue)>>
+    where
+        I: 'a;
+}
+
+impl GetValues<NodeIndex> for NodeOperand {
+    fn get_values<'a>(
+        &self,
+        medrecord: &'a MedRecord,
+        attribute: MedRecordAttribute,
+    ) -> MedRecordResult<impl Iterator<Item = (&'a NodeIndex, MedRecordValue)>>
+    where
+        NodeIndex: 'a,
+    {
+        let node_indices = self.evaluate(medrecord)?;
+
+        Ok(node_indices.flat_map(move |node_index| {
+            Some((
+                node_index,
+                medrecord
+                    .node_attributes(node_index)
+                    .expect("Edge must exist")
+                    .get(&attribute)?
+                    .clone(),
+            ))
+        }))
+    }
+}
+
+impl GetValues<EdgeIndex> for EdgeOperand {
+    fn get_values<'a>(
+        &self,
+        medrecord: &'a MedRecord,
+        attribute: MedRecordAttribute,
+    ) -> MedRecordResult<impl Iterator<Item = (&'a EdgeIndex, MedRecordValue)>>
+    where
+        EdgeIndex: 'a,
+    {
+        let edge_indices = self.evaluate(medrecord)?;
+
+        Ok(edge_indices.flat_map(move |edge_index| {
+            Some((
+                edge_index,
+                medrecord
+                    .edge_attributes(edge_index)
+                    .expect("Edge must exist")
+                    .get(&attribute)?
+                    .clone(),
+            ))
+        }))
+    }
+}
+
+impl<O: Operand> GetValues<O::Index> for MultipleAttributesOperand<O> {
+    fn get_values<'a>(
+        &self,
+        medrecord: &'a MedRecord,
+        attribute: MedRecordAttribute,
+    ) -> MedRecordResult<impl Iterator<Item = (&'a O::Index, MedRecordValue)>>
+    where
+        O::Index: 'a,
+    {
+        let attributes = self.evaluate(medrecord)?;
+
+        // Ok(attributes
+        //     .map(|(index, attribute)| {
+        //         let value = index.get_attributes(medrecord)?.get(&attribute).ok_or(
+        //             MedRecordError::QueryError(format!(
+        //                 "Cannot find attribute {} for index {}",
+        //                 attribute, index
+        //             )),
+        //         )?;
+
+        //         Ok((index.clone(), value.clone()))
+        //     })
+        //     .collect::<MedRecordResult<Vec<_>>>()?
+        //     .into_iter())
+
+        todo!();
+
+        Ok(std::iter::empty())
+    }
+}
+
+#[allow(clippy::enum_variant_names)]
+#[derive(Debug, Clone)]
+pub enum Context<O: Operand> {
+    Operand(O),
+    MultipleAttributesOperand(MultipleAttributesOperand<O>),
+}
+
+impl<O: Operand> Context<O> {
+    pub(crate) fn get_values<'a>(
+        &'a self,
+        medrecord: &'a MedRecord,
+        attribute: MedRecordAttribute,
+    ) -> MedRecordResult<BoxedIterator<(&'a O::Index, MedRecordValue)>> {
         Ok(match self {
-            Self::NodeOperand(node_operand) => {
-                let node_indices = node_operand.evaluate(medrecord)?;
-
-                Box::new(
-                    NodeOperation::get_values(medrecord, node_indices, attribute)
-                        .map(|(index, value)| (index.into(), value)),
-                )
-            }
-            Self::EdgeOperand(edge_operand) => {
-                let edge_indices = edge_operand.evaluate(medrecord)?;
-
-                Box::new(
-                    EdgeOperation::get_values(medrecord, edge_indices, attribute)
-                        .map(|(index, value)| (index.into(), value)),
-                )
-            }
+            Self::Operand(operand) => Box::new(operand.get_values(medrecord, attribute)?),
             Self::MultipleAttributesOperand(multiple_attributes_operand) => {
-                let attributes = multiple_attributes_operand.evaluate::<T>(medrecord)?;
-
-                Box::new(
-                    MultipleAttributesOperation::get_values(medrecord, attributes)?
-                        .map(|(index, value)| (index.into(), value)),
-                )
+                Box::new(multiple_attributes_operand.get_values(medrecord, attribute)?)
             }
         })
     }
