@@ -26,9 +26,11 @@ if TYPE_CHECKING:
     from medmodels.medrecord import MedRecord
     from medmodels.medrecord.querying import (
         EdgeOperand,
-        EdgeQuery,
+        EdgeQueryComponent,
+        MultipleValuesOperand,
         NodeOperand,
-        NodeQuery,
+        NodeQueryComponent,
+        SingleValueOperand,
     )
     from medmodels.medrecord.types import AttributeInfo, Group, MedRecordAttribute
 
@@ -41,8 +43,9 @@ AttributeDictionary: TypeAlias = Union[
 class Metric(Enum):
     """Enumeration of possible metrics."""
 
-    min = "is_min"
-    max = "is_max"
+    min = "min"
+    max = "max"
+    mean = "mean"
 
 
 class TypeTable(Enum):
@@ -94,25 +97,22 @@ def prettify_table(  # noqa: C901
         Table: The formatted table.
     """
 
-    def format_detail(label: str, value: str) -> str:
+    def format_detail(label: str, value: MedRecordValue) -> str:
         """Format the detail for the table.
 
-        In case the label is "values", return the value as is.
-        If the value is a float (or float-like), round it.
-        Otherwise, return the label and value as a string.
+        In case the label is "values", return the value as is. If the value is a float,
+        round it. Otherwise, return the label and value as a string.
 
         Args:
             label (str): The label of the detail.
-            value (str|float|int): The value of the detail.
+            value (MedRecordValue): The value of the detail.
 
         Returns:
             str: The formatted detail.
         """
         if isinstance(value, float):
-            rounded_val = round(value, decimal)
-            value_str = str(rounded_val)
-        else:
-            value_str = str(value)
+            value = round(value, decimal)
+        value_str = str(value)
 
         return value_str if label == "values" else f"{label}: {value_str}"
 
@@ -147,7 +147,7 @@ def prettify_table(  # noqa: C901
         table.add_row("No data")
         return table
 
-    info_order = ["min", "max", "values"]
+    info_order = ["min", "mean", "max", "values"]
     type_colors = {
         "Continuous": "cyan",
         "Temporal": "magenta",
@@ -236,7 +236,7 @@ def join_tables_with_titles(
 
 def get_values_from_attribute(
     medrecord: MedRecord,
-    query: Union[NodeQuery, EdgeQuery],
+    query: Union[NodeQueryComponent, EdgeQueryComponent],
     attribute: MedRecordAttribute,
     type: Literal["nodes", "edges"],
 ) -> Set[MedRecordValue]:
@@ -244,7 +244,7 @@ def get_values_from_attribute(
 
     Args:
         medrecord (MedRecord): The MedRecord object.
-        query (Union[NodeQuery, EdgeQuery]): The query to get the
+        query (Union[NodeQueryComponent, EdgeQueryComponent]): The query to get the
             nodes or edges from.
         attribute (MedRecordAttribute): The attribute to search for.
         type (Literal["nodes", "edges"]): The type of the attribute.
@@ -253,24 +253,24 @@ def get_values_from_attribute(
         Set[MedRecordValue]: The values of the attribute in the group.
     """
 
-    def query_node(node: NodeOperand) -> None:
+    def query_node(node: NodeOperand) -> MultipleValuesOperand:
         query(node)  # pyright: ignore[reportArgumentType]
-        node.has_attribute(attribute)
+        return node.attribute(attribute)
 
-    def query_edge(edge: EdgeOperand) -> None:
+    def query_edge(edge: EdgeOperand) -> MultipleValuesOperand:
         query(edge)  # pyright: ignore[reportArgumentType]
-        edge.has_attribute(attribute)
+        return edge.attribute(attribute)
 
     return (
-        set(medrecord.node[query_node, attribute].values())
+        set(medrecord.query_nodes(query_node).values())
         if type == "nodes"
-        else set(medrecord.edge[query_edge, attribute].values())
+        else set(medrecord.query_edges(query_edge).values())
     )
 
 
 def get_attribute_metric(
     medrecord: MedRecord,
-    group_query: Union[NodeQuery, EdgeQuery],
+    query: Union[NodeQueryComponent, EdgeQueryComponent],
     attribute: MedRecordAttribute,
     metric: Metric,
     type: Literal["nodes", "edges"],
@@ -279,7 +279,8 @@ def get_attribute_metric(
 
     Args:
         medrecord (MedRecord): The MedRecord object.
-        group_query (Union[NodeQuery, EdgeQuery]): The query to search for the group.
+        query (Union[NodeQueryComponent, EdgeQueryComponent]): The query to get
+            the nodes or edges from.
         attribute (MedRecordAttribute): The attribute to search for.
         metric (Metric): The metric to get.
         type (Literal["nodes", "edges"]): The type of the attribute.
@@ -288,18 +289,23 @@ def get_attribute_metric(
         AttributeInfo: The attribute metrics.
     """
 
-    def query_node(node: NodeOperand) -> None:
-        group_query(node)  # pyright: ignore[reportArgumentType]
+    def query_node(node: NodeOperand) -> SingleValueOperand:
+        query(node)  # pyright: ignore[reportArgumentType]
         node.exclude(lambda node: node.attribute(attribute).is_null())
-        getattr(node.attribute(attribute), metric.value)()
+        return getattr(node.attribute(attribute), metric.value)()
 
-    def query_edge(edge: EdgeOperand) -> None:
-        group_query(edge)  # pyright: ignore[reportArgumentType]
+    def query_edge(edge: EdgeOperand) -> SingleValueOperand:
+        query(edge)  # pyright: ignore[reportArgumentType]
         edge.exclude(lambda edge: edge.attribute(attribute).is_null())
-        getattr(edge.attribute(attribute), metric.value)()
+        return getattr(edge.attribute(attribute), metric.value)()
 
-    return (
-        next(iter(medrecord.node[query_node, attribute].values()))
+    result = (
+        medrecord.query_nodes(query_node)
         if type == "nodes"
-        else next(iter(medrecord.edge[query_edge, attribute].values()))
+        else medrecord.query_edges(query_edge)
     )
+
+    if isinstance(result, tuple):
+        return result[1]
+
+    return result

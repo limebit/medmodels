@@ -19,9 +19,7 @@ from medmodels.medrecord._overview import (
     prettify_table,
 )
 from medmodels.medrecord.querying import (
-    EdgeIndicesOperand,
     EdgeOperand,
-    NodeIndicesOperand,
     NodeOperand,
 )
 from medmodels.medrecord.tests.test_medrecord import strip_ansi
@@ -136,6 +134,7 @@ class TestOverview(unittest.TestCase):
                 "│ drug        │ 19    │ description │ Unstructured │ String   │ -                │",
                 "│             │       │             │              │          │                  │",
                 "│ patient     │ 5     │ age         │ Continuous   │ Int      │ min: 19          │",
+                "│             │       │             │              │          │ mean: 43.2       │",
                 "│             │       │             │              │          │ max: 96          │",
                 "│             │       │ gender      │ Categorical  │ String   │ Categories: F, M │",
                 "│             │       │             │              │          │                  │",
@@ -156,26 +155,33 @@ class TestOverview(unittest.TestCase):
 
         expected = "\n".join(
             [
-                "┏━━━━━━━━━━━━━━━━━━━┳━━━━━━━┳━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━┳━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━┓",
-                "┃ Group Edges       ┃ count ┃ attribute        ┃ type       ┃ datatype      ┃ data                     ┃",
-                "┡━━━━━━━━━━━━━━━━━━━╇━━━━━━━╇━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━╇━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━┩",
-                "│ patient_diagnosis │ 60    │ duration_days    │ Continuous │ Option(Float) │ min: 0.0                 │",
-                "│                   │       │                  │            │               │ max: 3416.0              │",
-                "│                   │       │ time             │ Temporal   │ DateTime      │ min: 1962-10-21 00:00:00 │",
-                "│                   │       │                  │            │               │ max: 2024-04-12 00:00:00 │",
-                "│                   │       │                  │            │               │                          │",
-                "│ patient_drug      │ 50    │ cost             │ Continuous │ Float         │ min: 0.1                 │",
-                "│                   │       │                  │            │               │ max: 7822.2              │",
-                "│                   │       │ quantity         │ Continuous │ Int           │ min: 1                   │",
-                "│                   │       │                  │            │               │ max: 12                  │",
-                "│                   │       │ time             │ Temporal   │ DateTime      │ min: 1995-03-26 02:00:40 │",
-                "│                   │       │                  │            │               │ max: 2024-04-12 11:59:55 │",
-                "│                   │       │                  │            │               │                          │",
-                "│ patient_procedure │ 50    │ duration_minutes │ Continuous │ Float         │ min: 4.0                 │",
-                "│                   │       │                  │            │               │ max: 59.0                │",
-                "│                   │       │ time             │ Temporal   │ DateTime      │ min: 1993-03-14 02:42:31 │",
-                "│                   │       │                  │            │               │ max: 2024-04-24 03:38:35 │",
-                "└───────────────────┴───────┴──────────────────┴────────────┴───────────────┴──────────────────────────┘",
+                "┏━━━━━━━━━━━━━━━━━━━┳━━━━━━━┳━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━┳━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━┓",
+                "┃ Group Edges       ┃ count ┃ attribute        ┃ type       ┃ datatype      ┃ data                      ┃",
+                "┡━━━━━━━━━━━━━━━━━━━╇━━━━━━━╇━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━╇━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━┩",
+                "│ patient_diagnosis │ 60    │ duration_days    │ Continuous │ Option(Float) │ min: 0.0                  │",
+                "│                   │       │                  │            │               │ mean: 405.02              │",
+                "│                   │       │                  │            │               │ max: 3416.0               │",
+                "│                   │       │ time             │ Temporal   │ DateTime      │ min: 1962-10-21 00:00:00  │",
+                "│                   │       │                  │            │               │ mean: 2012-01-25 11:12:00 │",
+                "│                   │       │                  │            │               │ max: 2024-04-12 00:00:00  │",
+                "│                   │       │                  │            │               │                           │",
+                "│ patient_drug      │ 50    │ cost             │ Continuous │ Float         │ min: 0.1                  │",
+                "│                   │       │                  │            │               │ mean: 412.1               │",
+                "│                   │       │                  │            │               │ max: 7822.2               │",
+                "│                   │       │ quantity         │ Continuous │ Int           │ min: 1                    │",
+                "│                   │       │                  │            │               │ mean: 2.96                │",
+                "│                   │       │                  │            │               │ max: 12                   │",
+                "│                   │       │ time             │ Temporal   │ DateTime      │ min: 1995-03-26 02:00:40  │",
+                "│                   │       │                  │            │               │ mean: 2016-02-17 14:41:36 │",
+                "│                   │       │                  │            │               │ max: 2024-04-12 11:59:55  │",
+                "│                   │       │                  │            │               │                           │",
+                "│ patient_procedure │ 50    │ duration_minutes │ Continuous │ Float         │ min: 4.0                  │",
+                "│                   │       │                  │            │               │ mean: 19.44               │",
+                "│                   │       │                  │            │               │ max: 59.0                 │",
+                "│                   │       │ time             │ Temporal   │ DateTime      │ min: 1993-03-14 02:42:31  │",
+                "│                   │       │                  │            │               │ mean: 2015-07-29 12:05:08 │",
+                "│                   │       │                  │            │               │ max: 2024-04-24 03:38:35  │",
+                "└───────────────────┴───────┴──────────────────┴────────────┴───────────────┴───────────────────────────┘",
             ]
         )
 
@@ -258,7 +264,6 @@ class TestOverview(unittest.TestCase):
         assert joined_output.strip() == expected.strip()
 
     def test_get_attribute_metric(self) -> None:
-        # Test with a MedRecord object
         medrecord = MedRecord.from_simple_example_dataset()
 
         def query_males(node: NodeOperand) -> None:
@@ -266,7 +271,7 @@ class TestOverview(unittest.TestCase):
 
         result = get_attribute_metric(
             medrecord,
-            group_query=query_males,
+            query=query_males,
             attribute="age",
             metric=Metric.min,
             type="nodes",
@@ -275,19 +280,30 @@ class TestOverview(unittest.TestCase):
 
         result = get_attribute_metric(
             medrecord,
-            group_query=query_males,
+            query=query_males,
             attribute="age",
             metric=Metric.max,
             type="nodes",
         )
         assert result == 42
 
+        result = get_attribute_metric(
+            medrecord,
+            query=query_males,
+            attribute="age",
+            metric=Metric.mean,
+            type="nodes",
+        )
+        result = round(float(result), 2)  # pyright: ignore[reportArgumentType]
+
+        assert result == 32.67
+
         def query_edges(edge: EdgeOperand) -> None:
             edge.in_group("patient_diagnosis")
 
         result = get_attribute_metric(
             medrecord,
-            group_query=query_edges,
+            query=query_edges,
             attribute="duration_days",
             metric=Metric.min,
             type="edges",
@@ -296,12 +312,23 @@ class TestOverview(unittest.TestCase):
 
         result = get_attribute_metric(
             medrecord,
-            group_query=query_edges,
+            query=query_edges,
             attribute="time",
             metric=Metric.max,
             type="edges",
         )
         assert result == datetime(2024, 4, 12, 0, 0)
+
+        result = get_attribute_metric(
+            medrecord,
+            query=query_edges,
+            attribute="duration_days",
+            metric=Metric.mean,
+            type="edges",
+        )
+        result = round(float(result), 2)  # pyright: ignore[reportArgumentType]
+
+        assert result == 405.02
 
     def test_get_values_from_attribute(self) -> None:
         # Test with a MedRecord object

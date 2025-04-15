@@ -56,6 +56,7 @@ from medmodels.medrecord.querying import (
     EdgeIndicesQueryResult,
     EdgeOperand,
     EdgeQuery,
+    EdgeQueryComponent,
     MultipleAttributesOperand,
     MultipleAttributesQueryResult,
     MultipleValuesOperand,
@@ -68,6 +69,7 @@ from medmodels.medrecord.querying import (
     NodeIndicesQueryResult,
     NodeOperand,
     NodeQuery,
+    NodeQueryComponent,
     PyQueryReturnOperand,
     QueryResult,
     SingleAttributeOperand,
@@ -1637,7 +1639,7 @@ class MedRecord:
         self,
         schema: AttributesSchema,
         type: Literal["nodes", "edges"],
-        group_query: Union[NodeQuery, EdgeQuery],
+        group_query: Union[NodeQueryComponent, EdgeQueryComponent],
     ) -> Dict[
         MedRecordAttribute,
         AnyAttributeInfo,
@@ -1647,7 +1649,8 @@ class MedRecord:
         Args:
             schema (AttributesSchema): Schema of the attributes.
             type (Literal["nodes", "edges"]): Type of the attribute.
-            group_query (Union[NodeQuery, EdgeQuery]): Query to filter the group.
+            group_query (Union[NodeQueryComponent, EdgeQueryComponent]): Query to filter
+                the group.
 
         Returns:
             Dict[MedRecordAttribute, AnyAttributeInfo]: Summary of the attributes.
@@ -1677,6 +1680,9 @@ class MedRecord:
                     "min": get_attribute_metric(
                         self, group_query, attribute, Metric.min, type=type
                     ),
+                    "mean": get_attribute_metric(
+                        self, group_query, attribute, Metric.mean, type=type
+                    ),
                     "max": get_attribute_metric(
                         self, group_query, attribute, Metric.max, type=type
                     ),
@@ -1688,6 +1694,9 @@ class MedRecord:
                     "datatype": str(data_type),
                     "min": get_attribute_metric(
                         self, group_query, attribute, Metric.min, type=type
+                    ).strftime("%Y-%m-%d %H:%M:%S"),  # pyright: ignore[reportAttributeAccessIssue, reportOptionalMemberAccess]
+                    "mean": get_attribute_metric(
+                        self, group_query, attribute, Metric.mean, type=type
                     ).strftime("%Y-%m-%d %H:%M:%S"),  # pyright: ignore[reportAttributeAccessIssue, reportOptionalMemberAccess]
                     "max": get_attribute_metric(
                         self, group_query, attribute, Metric.max, type=type
