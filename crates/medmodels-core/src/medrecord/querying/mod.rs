@@ -11,12 +11,11 @@ use super::{
     SingleValueOperand, Wrapper,
 };
 use crate::errors::MedRecordResult;
-use attributes::{AttributesTreeOperation, GetAttributes, MultipleAttributesOperation};
-use edges::{EdgeIndexOperand, EdgeIndicesOperand, EdgeIndicesOperation, EdgeOperand};
-use nodes::{NodeIndexOperand, NodeIndicesOperand, NodeIndicesOperation, NodeOperand};
+use attributes::GetAttributes;
+use edges::{EdgeIndexOperand, EdgeIndicesOperand, EdgeOperand};
+use nodes::{NodeIndexOperand, NodeIndicesOperand, NodeOperand};
 use std::{fmt::Display, hash::Hash};
-use traits::ReadWriteOrPanic;
-use values::{GetValues, MultipleValuesOperation};
+use values::GetValues;
 
 pub(crate) type BoxedIterator<'a, T> = Box<dyn Iterator<Item = T> + 'a>;
 
@@ -44,16 +43,16 @@ pub enum OptionalIndexWrapper<I, T> {
 }
 
 #[derive(Debug, Clone)]
-pub struct Selection<'a> {
+pub struct Selection<'a, O: Operand> {
     medrecord: &'a MedRecord,
-    return_operand: ReturnOperand,
+    return_operand: ReturnOperand<O>,
 }
 
-impl<'a> Selection<'a> {
+impl<'a, O: Operand> Selection<'a, O> {
     pub fn new_node<Q, R>(medrecord: &'a MedRecord, query: Q) -> Self
     where
         Q: FnOnce(&mut Wrapper<NodeOperand>) -> R,
-        R: Into<ReturnOperand>,
+        R: Into<ReturnOperand<O>>,
     {
         let mut operand = Wrapper::<NodeOperand>::new();
 
@@ -66,7 +65,7 @@ impl<'a> Selection<'a> {
     pub fn new_edge<Q, R>(medrecord: &'a MedRecord, query: Q) -> Self
     where
         Q: FnOnce(&mut Wrapper<EdgeOperand>) -> R,
-        R: Into<ReturnOperand>,
+        R: Into<ReturnOperand<O>>,
     {
         let mut operand = Wrapper::<EdgeOperand>::new();
 
@@ -76,8 +75,11 @@ impl<'a> Selection<'a> {
         }
     }
 
-    pub fn evaluate(self) -> MedRecordResult<ReturnValue<'a>> {
-        let result = match self.return_operand {
+    pub fn evaluate(self) -> MedRecordResult<ReturnValue<'a, O>>
+    where
+        O: 'a,
+    {
+        Ok(match self.return_operand {
             ReturnOperand::AttributesTree(operand) => {
                 ReturnValue::AttributesTree(Box::new(operand.evaluate(self.medrecord)?))
             }
@@ -85,312 +87,105 @@ impl<'a> Selection<'a> {
                 ReturnValue::MultipleAttributes(Box::new(operand.evaluate(self.medrecord)?))
             }
             ReturnOperand::SingleAttribute(operand) => {
-                let operand = operand.0.read_or_panic();
-
-                let context_context_attributes = operand
-                    .context
-                    .context
-                    .context
-                    .get_attributes(self.medrecord)?;
-                let context_attributes = operand
-                    .context
-                    .context
-                    .evaluate(self.medrecord, context_context_attributes)?;
-                let attributes: Box<dyn Iterator<Item = (_, MedRecordAttribute)>> =
-                    match operand.context.kind {
-                        attributes::MultipleKind::Max => {
-                            Box::new(AttributesTreeOperation::get_max(context_attributes)?)
-                        }
-                        attributes::MultipleKind::Min => {
-                            Box::new(AttributesTreeOperation::get_min(context_attributes)?)
-                        }
-                        attributes::MultipleKind::Count => {
-                            Box::new(AttributesTreeOperation::get_count(context_attributes)?)
-                        }
-                        attributes::MultipleKind::Sum => {
-                            Box::new(AttributesTreeOperation::get_sum(context_attributes)?)
-                        }
-                        attributes::MultipleKind::First => {
-                            Box::new(AttributesTreeOperation::get_first(context_attributes)?)
-                        }
-                        attributes::MultipleKind::Last => {
-                            Box::new(AttributesTreeOperation::get_last(context_attributes)?)
-                        }
-                    };
-
-                let attributes = operand.context.evaluate(self.medrecord, attributes)?;
-
-                match operand.kind {
-                    attributes::SingleKind::Max => {
-                        let attribute = MultipleAttributesOperation::get_max(attributes)?;
-
-                        ReturnValue::SingleAttributeWithIndex(
-                            operand
-                                .evaluate(self.medrecord, attribute.1)?
-                                .map(|result| (attribute.0, result)),
-                        )
-                    }
-                    attributes::SingleKind::Min => {
-                        let attribute = MultipleAttributesOperation::get_min(attributes)?;
-
-                        ReturnValue::SingleAttributeWithIndex(
-                            operand
-                                .evaluate(self.medrecord, attribute.1)?
-                                .map(|result| (attribute.0, result)),
-                        )
-                    }
-                    attributes::SingleKind::Count => {
-                        ReturnValue::SingleAttribute(operand.evaluate(
-                            self.medrecord,
-                            MultipleAttributesOperation::get_count(attributes),
-                        )?)
-                    }
-                    attributes::SingleKind::Sum => ReturnValue::SingleAttribute(operand.evaluate(
-                        self.medrecord,
-                        MultipleAttributesOperation::get_sum(attributes)?,
-                    )?),
-                    attributes::SingleKind::First => {
-                        let attribute = MultipleAttributesOperation::get_first(attributes)?;
-
-                        ReturnValue::SingleAttributeWithIndex(
-                            operand
-                                .evaluate(self.medrecord, attribute.1)?
-                                .map(|result| (attribute.0, result)),
-                        )
-                    }
-                    attributes::SingleKind::Last => {
-                        let attribute = MultipleAttributesOperation::get_last(attributes)?;
-
-                        ReturnValue::SingleAttributeWithIndex(
-                            operand
-                                .evaluate(self.medrecord, attribute.1)?
-                                .map(|result| (attribute.0, result)),
-                        )
-                    }
-                }
+                ReturnValue::SingleAttribute(operand.evaluate(self.medrecord)?)
             }
             ReturnOperand::EdgeIndices(operand) => {
-                let operand = operand.0.read_or_panic();
-
-                // TODO: This is a temporary solution. It should be optimized.
-                let indices = operand.context.evaluate(self.medrecord)?.cloned();
-
-                ReturnValue::EdgeIndices(Box::new(operand.evaluate(self.medrecord, indices)?))
+                ReturnValue::EdgeIndices(Box::new(operand.evaluate(self.medrecord)?))
             }
             ReturnOperand::EdgeIndex(operand) => {
-                let operand = operand.0.read_or_panic();
-
-                // TODO: This is a temporary solution. It should be optimized.
-                let context_indices = operand.context.context.evaluate(self.medrecord)?.cloned();
-                let indices = operand.context.evaluate(self.medrecord, context_indices)?;
-
-                let index = match operand.kind {
-                    edges::SingleKind::Max => EdgeIndicesOperation::get_max(indices)?,
-                    edges::SingleKind::Min => EdgeIndicesOperation::get_min(indices)?,
-                    edges::SingleKind::Count => EdgeIndicesOperation::get_count(indices),
-                    edges::SingleKind::Sum => EdgeIndicesOperation::get_sum(indices),
-                    edges::SingleKind::First => EdgeIndicesOperation::get_first(indices)?,
-                    edges::SingleKind::Last => EdgeIndicesOperation::get_last(indices)?,
-                };
-
-                ReturnValue::EdgeIndex(operand.evaluate(self.medrecord, index)?)
+                ReturnValue::EdgeIndex(operand.evaluate(self.medrecord)?)
             }
             ReturnOperand::NodeIndices(operand) => {
-                let operand = operand.0.read_or_panic();
-
-                let indices = operand.context.evaluate(self.medrecord)?.cloned();
-
-                ReturnValue::NodeIndices(Box::new(operand.evaluate(self.medrecord, indices)?))
+                ReturnValue::NodeIndices(Box::new(operand.evaluate(self.medrecord)?))
             }
             ReturnOperand::NodeIndex(operand) => {
-                let operand = operand.0.read_or_panic();
-
-                // TODO: This is a temporary solution. It should be optimized.
-                let context_indices = operand.context.context.evaluate(self.medrecord)?.cloned();
-                let indices = operand.context.evaluate(self.medrecord, context_indices)?;
-
-                let index = match operand.kind {
-                    nodes::SingleKind::Max => NodeIndicesOperation::get_max(indices)?.clone(),
-                    nodes::SingleKind::Min => NodeIndicesOperation::get_min(indices)?.clone(),
-                    nodes::SingleKind::Count => NodeIndicesOperation::get_count(indices),
-                    nodes::SingleKind::Sum => NodeIndicesOperation::get_sum(indices)?,
-                    nodes::SingleKind::First => NodeIndicesOperation::get_first(indices)?,
-                    nodes::SingleKind::Last => NodeIndicesOperation::get_last(indices)?,
-                };
-
-                ReturnValue::NodeIndex(operand.evaluate(self.medrecord, index)?)
+                ReturnValue::NodeIndex(operand.evaluate(self.medrecord)?)
             }
             ReturnOperand::MultipleValues(operand) => {
-                let operand = operand.0.read_or_panic();
-                let attribute = operand.attribute.clone();
-
-                let values = operand.context.get_values(self.medrecord, attribute)?;
-
-                ReturnValue::MultipleValues(Box::new(operand.evaluate(self.medrecord, values)?))
+                ReturnValue::MultipleValues(Box::new(operand.evaluate(self.medrecord)?))
             }
             ReturnOperand::SingleValue(operand) => {
-                let operand = operand.0.read_or_panic();
-
-                let attribute = operand.context.attribute.clone();
-
-                let context_values = operand
-                    .context
-                    .context
-                    .get_values(self.medrecord, attribute)?;
-                let values = operand.context.evaluate(self.medrecord, context_values)?;
-
-                match operand.kind {
-                    values::SingleKind::Max => {
-                        let value = MultipleValuesOperation::get_max(values)?;
-
-                        ReturnValue::SingleValueWithIndex(
-                            operand
-                                .evaluate(self.medrecord, value.1)?
-                                .map(|result| (value.0, result)),
-                        )
-                    }
-                    values::SingleKind::Min => {
-                        let value = MultipleValuesOperation::get_min(values)?;
-
-                        ReturnValue::SingleValueWithIndex(
-                            operand
-                                .evaluate(self.medrecord, value.1)?
-                                .map(|result| (value.0, result)),
-                        )
-                    }
-                    values::SingleKind::Mean => ReturnValue::SingleValue(
-                        operand
-                            .evaluate(self.medrecord, MultipleValuesOperation::get_mean(values)?)?,
-                    ),
-                    values::SingleKind::Median => {
-                        ReturnValue::SingleValue(operand.evaluate(
-                            self.medrecord,
-                            MultipleValuesOperation::get_median(values)?,
-                        )?)
-                    }
-                    values::SingleKind::Mode => ReturnValue::SingleValue(
-                        operand
-                            .evaluate(self.medrecord, MultipleValuesOperation::get_mode(values)?)?,
-                    ),
-                    values::SingleKind::Std => ReturnValue::SingleValue(
-                        operand
-                            .evaluate(self.medrecord, MultipleValuesOperation::get_std(values)?)?,
-                    ),
-                    values::SingleKind::Var => ReturnValue::SingleValue(
-                        operand
-                            .evaluate(self.medrecord, MultipleValuesOperation::get_var(values)?)?,
-                    ),
-                    values::SingleKind::Count => ReturnValue::SingleValue(
-                        operand
-                            .evaluate(self.medrecord, MultipleValuesOperation::get_count(values))?,
-                    ),
-                    values::SingleKind::Sum => ReturnValue::SingleValue(
-                        operand
-                            .evaluate(self.medrecord, MultipleValuesOperation::get_sum(values)?)?,
-                    ),
-                    values::SingleKind::First => {
-                        let value = MultipleValuesOperation::get_first(values)?;
-
-                        ReturnValue::SingleValueWithIndex(
-                            operand
-                                .evaluate(self.medrecord, value.1)?
-                                .map(|result| (value.0, result)),
-                        )
-                    }
-                    values::SingleKind::Last => {
-                        let value = MultipleValuesOperation::get_last(values)?;
-
-                        ReturnValue::SingleValueWithIndex(
-                            operand
-                                .evaluate(self.medrecord, value.1)?
-                                .map(|result| (value.0, result)),
-                        )
-                    }
-                }
+                ReturnValue::SingleValue(operand.evaluate(self.medrecord)?)
             }
-        };
-
-        Ok(result)
+        })
     }
 }
 
 #[derive(Debug, Clone)]
-pub enum ReturnOperand {
-    AttributesTree(Wrapper<AttributesTreeOperand>),
-    MultipleAttributes(Wrapper<MultipleAttributesOperand>),
-    SingleAttribute(Wrapper<SingleAttributeOperand>),
+pub enum ReturnOperand<O: Operand> {
+    AttributesTree(Wrapper<AttributesTreeOperand<O>>),
+    MultipleAttributes(Wrapper<MultipleAttributesOperand<O>>),
+    SingleAttribute(Wrapper<SingleAttributeOperand<O>>),
     EdgeIndices(Wrapper<EdgeIndicesOperand>),
     EdgeIndex(Wrapper<EdgeIndexOperand>),
     NodeIndices(Wrapper<NodeIndicesOperand>),
     NodeIndex(Wrapper<NodeIndexOperand>),
-    MultipleValues(Wrapper<MultipleValuesOperand>),
-    SingleValue(Wrapper<SingleValueOperand>),
+    MultipleValues(Wrapper<MultipleValuesOperand<O>>),
+    SingleValue(Wrapper<SingleValueOperand<O>>),
 }
 
-impl From<Wrapper<AttributesTreeOperand>> for ReturnOperand {
-    fn from(operand: Wrapper<AttributesTreeOperand>) -> Self {
+impl<O: Operand> From<Wrapper<AttributesTreeOperand<O>>> for ReturnOperand<O> {
+    fn from(operand: Wrapper<AttributesTreeOperand<O>>) -> Self {
         Self::AttributesTree(operand)
     }
 }
 
-impl From<Wrapper<MultipleAttributesOperand>> for ReturnOperand {
-    fn from(operand: Wrapper<MultipleAttributesOperand>) -> Self {
+impl<O: Operand> From<Wrapper<MultipleAttributesOperand<O>>> for ReturnOperand<O> {
+    fn from(operand: Wrapper<MultipleAttributesOperand<O>>) -> Self {
         Self::MultipleAttributes(operand)
     }
 }
 
-impl From<Wrapper<SingleAttributeOperand>> for ReturnOperand {
-    fn from(operand: Wrapper<SingleAttributeOperand>) -> Self {
+impl<O: Operand> From<Wrapper<SingleAttributeOperand<O>>> for ReturnOperand<O> {
+    fn from(operand: Wrapper<SingleAttributeOperand<O>>) -> Self {
         Self::SingleAttribute(operand)
     }
 }
 
-impl From<Wrapper<EdgeIndicesOperand>> for ReturnOperand {
+impl<O: Operand> From<Wrapper<EdgeIndicesOperand>> for ReturnOperand<O> {
     fn from(operand: Wrapper<EdgeIndicesOperand>) -> Self {
         Self::EdgeIndices(operand)
     }
 }
 
-impl From<Wrapper<EdgeIndexOperand>> for ReturnOperand {
+impl<O: Operand> From<Wrapper<EdgeIndexOperand>> for ReturnOperand<O> {
     fn from(operand: Wrapper<EdgeIndexOperand>) -> Self {
         Self::EdgeIndex(operand)
     }
 }
 
-impl From<Wrapper<NodeIndicesOperand>> for ReturnOperand {
+impl<O: Operand> From<Wrapper<NodeIndicesOperand>> for ReturnOperand<O> {
     fn from(operand: Wrapper<NodeIndicesOperand>) -> Self {
         Self::NodeIndices(operand)
     }
 }
 
-impl From<Wrapper<NodeIndexOperand>> for ReturnOperand {
+impl<O: Operand> From<Wrapper<NodeIndexOperand>> for ReturnOperand<O> {
     fn from(operand: Wrapper<NodeIndexOperand>) -> Self {
         Self::NodeIndex(operand)
     }
 }
 
-impl From<Wrapper<MultipleValuesOperand>> for ReturnOperand {
-    fn from(operand: Wrapper<MultipleValuesOperand>) -> Self {
+impl<O: Operand> From<Wrapper<MultipleValuesOperand<O>>> for ReturnOperand<O> {
+    fn from(operand: Wrapper<MultipleValuesOperand<O>>) -> Self {
         Self::MultipleValues(operand)
     }
 }
 
-impl From<Wrapper<SingleValueOperand>> for ReturnOperand {
-    fn from(operand: Wrapper<SingleValueOperand>) -> Self {
+impl<O: Operand> From<Wrapper<SingleValueOperand<O>>> for ReturnOperand<O> {
+    fn from(operand: Wrapper<SingleValueOperand<O>>) -> Self {
         Self::SingleValue(operand)
     }
 }
 
-pub enum ReturnValue<'a> {
-    AttributesTree(Box<dyn Iterator<Item = (Index<'a>, Vec<MedRecordAttribute>)> + 'a>),
-    MultipleAttributes(Box<dyn Iterator<Item = (Index<'a>, MedRecordAttribute)> + 'a>),
-    SingleAttributeWithIndex(Option<(Index<'a>, MedRecordAttribute)>),
-    SingleAttribute(Option<MedRecordAttribute>),
-    EdgeIndices(Box<dyn Iterator<Item = EdgeIndex> + 'a>),
+pub enum ReturnValue<'a, O: Operand> {
+    AttributesTree(BoxedIterator<'a, (&'a O::Index, Vec<MedRecordAttribute>)>),
+    MultipleAttributes(BoxedIterator<'a, (&'a O::Index, MedRecordAttribute)>),
+    SingleAttribute(Option<OptionalIndexWrapper<&'a O::Index, MedRecordAttribute>>),
+    EdgeIndices(BoxedIterator<'a, &'a EdgeIndex>),
     EdgeIndex(Option<EdgeIndex>),
-    NodeIndices(Box<dyn Iterator<Item = NodeIndex> + 'a>),
+    NodeIndices(BoxedIterator<'a, &'a NodeIndex>),
     NodeIndex(Option<NodeIndex>),
-    MultipleValues(Box<dyn Iterator<Item = (Index<'a>, MedRecordValue)> + 'a>),
-    SingleValueWithIndex(Option<(Index<'a>, MedRecordValue)>),
-    SingleValue(Option<MedRecordValue>),
+    MultipleValues(BoxedIterator<'a, (&'a O::Index, MedRecordValue)>),
+    SingleValue(Option<OptionalIndexWrapper<&'a O::Index, MedRecordValue>>),
 }

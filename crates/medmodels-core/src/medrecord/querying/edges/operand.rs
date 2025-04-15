@@ -66,10 +66,10 @@ impl EdgeOperand {
         &mut self,
         attribute: MedRecordAttribute,
     ) -> Wrapper<MultipleValuesOperand<Self>> {
-        let operand = Wrapper::<MultipleValuesOperand<Self>>::new(
-            values::Context::Operand(self.deep_clone()),
+        let operand = Wrapper::<MultipleValuesOperand<Self>>::new(values::Context::Operand((
+            self.deep_clone(),
             attribute,
-        );
+        )));
 
         self.operations.push(EdgeOperation::Values {
             operand: operand.clone(),
@@ -333,6 +333,15 @@ impl<V: Into<EdgeIndex>> From<V> for EdgeIndexComparisonOperand {
     }
 }
 
+impl EdgeIndexComparisonOperand {
+    pub(crate) fn evaluate(&self, medrecord: &MedRecord) -> MedRecordResult<Option<EdgeIndex>> {
+        match self {
+            Self::Operand(operand) => operand.evaluate(medrecord),
+            Self::Index(index) => Ok(Some(*index)),
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub enum EdgeIndicesComparisonOperand {
     Operand(EdgeIndicesOperand),
@@ -398,7 +407,7 @@ impl EdgeIndicesOperand {
     pub(crate) fn evaluate<'a>(
         &self,
         medrecord: &'a MedRecord,
-    ) -> MedRecordResult<impl Iterator<Item = &'a EdgeIndex> + 'a> {
+    ) -> MedRecordResult<impl Iterator<Item = EdgeIndex> + 'a> {
         let indices: BoxedIterator<&'a EdgeIndex> = Box::new(self.context.evaluate(medrecord)?);
 
         self.operations

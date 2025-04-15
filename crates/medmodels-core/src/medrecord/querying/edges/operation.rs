@@ -10,13 +10,8 @@ use crate::{
     medrecord::{
         datatypes::{Contains, EndsWith, Mod, StartsWith},
         querying::{
-            attributes::AttributesTreeOperand,
-            edges::SingleKind,
-            nodes::NodeOperand,
-            traits::{DeepClone, ReadWriteOrPanic},
-            values::MultipleValuesOperand,
-            wrapper::Wrapper,
-            BoxedIterator,
+            attributes::AttributesTreeOperand, nodes::NodeOperand, traits::DeepClone,
+            values::MultipleValuesOperand, wrapper::Wrapper, BoxedIterator,
         },
         CardinalityWrapper, EdgeIndex, Group, MedRecordAttribute, MedRecordValue,
     },
@@ -31,10 +26,10 @@ use std::{
 #[derive(Debug, Clone)]
 pub enum EdgeOperation {
     Values {
-        operand: Wrapper<MultipleValuesOperand>,
+        operand: Wrapper<MultipleValuesOperand<EdgeOperand>>,
     },
     Attributes {
-        operand: Wrapper<AttributesTreeOperand>,
+        operand: Wrapper<AttributesTreeOperand<EdgeOperand>>,
     },
     Indices {
         operand: Wrapper<EdgeIndicesOperand>,
@@ -179,15 +174,9 @@ impl EdgeOperation {
     fn evaluate_values<'a>(
         medrecord: &'a MedRecord,
         edge_indices: impl Iterator<Item = &'a EdgeIndex> + 'a,
-        operand: Wrapper<MultipleValuesOperand>,
+        operand: Wrapper<MultipleValuesOperand<EdgeOperand>>,
     ) -> MedRecordResult<impl Iterator<Item = &'a EdgeIndex>> {
-        let values = Self::get_values(
-            medrecord,
-            edge_indices,
-            operand.0.read_or_panic().attribute.clone(),
-        );
-
-        Ok(operand.evaluate(medrecord, values)?.map(|value| value.0))
+        Ok(operand.evaluate(medrecord)?.map(|value| value.0))
     }
 
     #[inline]
@@ -210,13 +199,9 @@ impl EdgeOperation {
     fn evaluate_attributes<'a>(
         medrecord: &'a MedRecord,
         edge_indices: impl Iterator<Item = &'a EdgeIndex> + 'a,
-        operand: Wrapper<AttributesTreeOperand>,
+        operand: Wrapper<AttributesTreeOperand<EdgeOperand>>,
     ) -> MedRecordResult<impl Iterator<Item = &'a EdgeIndex>> {
-        let attributes = Self::get_attributes(medrecord, edge_indices);
-
-        Ok(operand
-            .evaluate(medrecord, attributes)?
-            .map(|value| value.0))
+        Ok(operand.evaluate(medrecord)?.map(|value| value.0))
     }
 
     #[inline]
@@ -225,16 +210,7 @@ impl EdgeOperation {
         edge_indices: impl Iterator<Item = &'a EdgeIndex>,
         operand: Wrapper<EdgeIndicesOperand>,
     ) -> MedRecordResult<impl Iterator<Item = &'a EdgeIndex>> {
-        // TODO: This is a temporary solution. It should be optimized.
-        let edge_indices = edge_indices.collect::<Vec<_>>();
-
-        let result = operand
-            .evaluate(medrecord, edge_indices.clone().into_iter().cloned())?
-            .collect::<HashSet<_>>();
-
-        Ok(edge_indices
-            .into_iter()
-            .filter(move |index| result.contains(index)))
+        operand.evaluate(medrecord)
     }
 
     #[inline]
@@ -317,40 +293,6 @@ impl EdgeOperation {
     }
 }
 
-macro_rules! get_edge_index {
-    ($kind:ident, $indices:expr) => {
-        match $kind {
-            SingleKind::Max => EdgeIndicesOperation::get_max($indices)?.clone(),
-            SingleKind::Min => EdgeIndicesOperation::get_min($indices)?.clone(),
-            SingleKind::Count => EdgeIndicesOperation::get_count($indices),
-            SingleKind::Sum => EdgeIndicesOperation::get_sum($indices),
-            SingleKind::First => EdgeIndicesOperation::get_first($indices)?,
-            SingleKind::Last => EdgeIndicesOperation::get_last($indices)?,
-        }
-    };
-}
-
-macro_rules! get_edge_index_comparison_operand_index {
-    ($operand:ident, $medrecord:ident) => {
-        match $operand {
-            EdgeIndexComparisonOperand::Operand(operand) => {
-                let context = &operand.context.context;
-                let kind = &operand.kind;
-
-                // TODO: This is a temporary solution. It should be optimized.
-                let comparison_indices = context.evaluate($medrecord)?.cloned();
-
-                let comparison_index = get_edge_index!(kind, comparison_indices);
-
-                operand.evaluate($medrecord, comparison_index)?.ok_or(
-                    MedRecordError::QueryError("No index to compare".to_string()),
-                )?
-            }
-            EdgeIndexComparisonOperand::Index(index) => index.clone(),
-        }
-    };
-}
-
 #[derive(Debug, Clone)]
 pub enum EdgeIndicesOperation {
     EdgeIndexOperation {
@@ -420,8 +362,8 @@ impl EdgeIndicesOperation {
     pub(crate) fn evaluate<'a>(
         &self,
         medrecord: &'a MedRecord,
-        indices: impl Iterator<Item = &'a EdgeIndex> + 'a,
-    ) -> MedRecordResult<BoxedIterator<'a, &'a EdgeIndex>> {
+        indices: impl Iterator<Item = EdgeIndex> + 'a,
+    ) -> MedRecordResult<BoxedIterator<'a, EdgeIndex>> {
         match self {
             Self::EdgeIndexOperation { operand } => {
                 Self::evaluate_edge_index_operation(medrecord, indices, operand)
@@ -443,27 +385,21 @@ impl EdgeIndicesOperation {
             Self::IsMax => {
                 let max_index = Self::get_max(indices)?;
 
-                Ok(Box::new(std::iter::once(max_index)))
+                Ok(Box::new(indices.filter(move |index| index == max_index)))
             }
             Self::IsMin => {
                 let min_index = Self::get_min(indices)?;
 
-                Ok(Box::new(std::iter::once(min_index)))
+                Ok(Box::new(indices.filter(move |index| index == min_index)))
             }
             Self::EitherOr { either, or } => {
                 Self::evaluate_either_or(medrecord, indices, either, or)
             }
             Self::Exclude { operand } => {
-                let edge_indices = indices.collect::<Vec<_>>();
-
-                let result = operand
-                    .evaluate(medrecord, edge_indices.clone().into_iter())?
-                    .collect::<HashSet<_>>();
+                let result = operand.evaluate(medrecord)?.collect::<HashSet<_>>();
 
                 Ok(Box::new(
-                    edge_indices
-                        .into_iter()
-                        .filter(move |index| !result.contains(index)),
+                    indices.filter(move |index| !result.contains(index)),
                 ))
             }
         }
@@ -534,7 +470,11 @@ impl EdgeIndicesOperation {
         kind: &SingleComparisonKind,
     ) -> MedRecordResult<BoxedIterator<'a, EdgeIndex>> {
         let comparison_index =
-            get_edge_index_comparison_operand_index!(comparison_operand, medrecord);
+            comparison_operand
+                .evaluate(medrecord)?
+                .ok_or(MedRecordError::QueryError(
+                    "No index to compare".to_string(),
+                ))?;
 
         match kind {
             SingleComparisonKind::GreaterThan => Ok(Box::new(
@@ -574,26 +514,27 @@ impl EdgeIndicesOperation {
         comparison_operand: &EdgeIndicesComparisonOperand,
         kind: &MultipleComparisonKind,
     ) -> MedRecordResult<BoxedIterator<'a, EdgeIndex>> {
-        let comparison_indices = match comparison_operand {
+        match comparison_operand {
             EdgeIndicesComparisonOperand::Operand(operand) => {
-                let context = &operand.context;
+                let comparison_indices = operand.evaluate(medrecord)?;
 
-                let comparison_indices = context.evaluate(medrecord)?.cloned();
-
-                operand
-                    .evaluate(medrecord, comparison_indices)?
-                    .collect::<Vec<_>>()
+                match kind {
+                    MultipleComparisonKind::IsIn => Ok(Box::new(
+                        indices.filter(move |index| comparison_indices.contains(index)),
+                    )),
+                    MultipleComparisonKind::IsNotIn => Ok(Box::new(
+                        indices.filter(move |index| !comparison_indices.contains(index)),
+                    )),
+                }
             }
-            EdgeIndicesComparisonOperand::Indices(indices) => indices.clone(),
-        };
-
-        match kind {
-            MultipleComparisonKind::IsIn => Ok(Box::new(
-                indices.filter(move |index| comparison_indices.contains(index)),
-            )),
-            MultipleComparisonKind::IsNotIn => Ok(Box::new(
-                indices.filter(move |index| !comparison_indices.contains(index)),
-            )),
+            EdgeIndicesComparisonOperand::Indices(comparison_indices) => match kind {
+                MultipleComparisonKind::IsIn => Ok(Box::new(
+                    indices.filter(move |index| comparison_indices.contains(index)),
+                )),
+                MultipleComparisonKind::IsNotIn => Ok(Box::new(
+                    indices.filter(move |index| !comparison_indices.contains(index)),
+                )),
+            },
         }
     }
 
@@ -604,7 +545,11 @@ impl EdgeIndicesOperation {
         operand: &EdgeIndexComparisonOperand,
         kind: BinaryArithmeticKind,
     ) -> MedRecordResult<impl Iterator<Item = EdgeIndex>> {
-        let arithmetic_index = get_edge_index_comparison_operand_index!(operand, medrecord);
+        let arithmetic_index = operand
+            .evaluate(medrecord)?
+            .ok_or(MedRecordError::QueryError(
+                "No index to compare".to_string(),
+            ))?;
 
         Ok(indices
             .map(move |index| match kind {
@@ -627,8 +572,8 @@ impl EdgeIndicesOperation {
     ) -> MedRecordResult<BoxedIterator<'a, EdgeIndex>> {
         let indices = indices.collect::<Vec<_>>();
 
-        let either_indices = either.evaluate(medrecord, indices.clone().into_iter())?;
-        let or_indices = or.evaluate(medrecord, indices.into_iter())?;
+        let either_indices = either.evaluate(medrecord)?;
+        let or_indices = or.evaluate(medrecord)?;
 
         Ok(Box::new(either_indices.chain(or_indices).unique()))
     }
@@ -706,7 +651,7 @@ impl EdgeIndexOperation {
             }
             Self::EitherOr { either, or } => Self::evaluate_either_or(medrecord, index, either, or),
             Self::Exclude { operand } => {
-                let result = operand.evaluate(medrecord, index)?.is_some();
+                let result = operand.evaluate(medrecord)?.is_some();
 
                 Ok(if result { None } else { Some(index) })
             }
@@ -721,7 +666,11 @@ impl EdgeIndexOperation {
         kind: &SingleComparisonKind,
     ) -> MedRecordResult<Option<EdgeIndex>> {
         let comparison_index =
-            get_edge_index_comparison_operand_index!(comparison_operand, medrecord);
+            comparison_operand
+                .evaluate(medrecord)?
+                .ok_or(MedRecordError::QueryError(
+                    "No index to compare".to_string(),
+                ))?;
 
         let comparison_result = match kind {
             SingleComparisonKind::GreaterThan => index > comparison_index,
@@ -745,29 +694,34 @@ impl EdgeIndexOperation {
         comparison_operand: &EdgeIndicesComparisonOperand,
         kind: &MultipleComparisonKind,
     ) -> MedRecordResult<Option<EdgeIndex>> {
-        let comparison_indices = match comparison_operand {
+        match comparison_operand {
             EdgeIndicesComparisonOperand::Operand(operand) => {
-                let context = &operand.context;
+                let comparison_indices = operand.evaluate(medrecord)?;
 
-                let comparison_indices = context.evaluate(medrecord)?.cloned();
+                let comparison_result = match kind {
+                    MultipleComparisonKind::IsIn => comparison_indices
+                        .into_iter()
+                        .any(|comparison_index| index == comparison_index),
+                    MultipleComparisonKind::IsNotIn => comparison_indices
+                        .into_iter()
+                        .all(|comparison_index| index != comparison_index),
+                };
 
-                operand
-                    .evaluate(medrecord, comparison_indices)?
-                    .collect::<Vec<_>>()
+                Ok(if comparison_result { Some(index) } else { None })
             }
-            EdgeIndicesComparisonOperand::Indices(indices) => indices.clone(),
-        };
+            EdgeIndicesComparisonOperand::Indices(comparison_indices) => {
+                let comparison_result = match kind {
+                    MultipleComparisonKind::IsIn => comparison_indices
+                        .into_iter()
+                        .any(|comparison_index| index == comparison_index),
+                    MultipleComparisonKind::IsNotIn => comparison_indices
+                        .into_iter()
+                        .all(|comparison_index| index != comparison_index),
+                };
 
-        let comparison_result = match kind {
-            MultipleComparisonKind::IsIn => comparison_indices
-                .into_iter()
-                .any(|comparison_index| index == comparison_index),
-            MultipleComparisonKind::IsNotIn => comparison_indices
-                .into_iter()
-                .all(|comparison_index| index != comparison_index),
-        };
-
-        Ok(if comparison_result { Some(index) } else { None })
+                Ok(if comparison_result { Some(index) } else { None })
+            }
+        }
     }
 
     #[inline]
@@ -777,7 +731,11 @@ impl EdgeIndexOperation {
         operand: &EdgeIndexComparisonOperand,
         kind: &BinaryArithmeticKind,
     ) -> MedRecordResult<Option<EdgeIndex>> {
-        let arithmetic_index = get_edge_index_comparison_operand_index!(operand, medrecord);
+        let arithmetic_index = operand
+            .evaluate(medrecord)?
+            .ok_or(MedRecordError::QueryError(
+                "No index to compare".to_string(),
+            ))?;
 
         Ok(Some(match kind {
             BinaryArithmeticKind::Add => index.add(arithmetic_index),
@@ -795,8 +753,8 @@ impl EdgeIndexOperation {
         either: &Wrapper<EdgeIndexOperand>,
         or: &Wrapper<EdgeIndexOperand>,
     ) -> MedRecordResult<Option<EdgeIndex>> {
-        let either_result = either.evaluate(medrecord, index)?;
-        let or_result = or.evaluate(medrecord, index)?;
+        let either_result = either.evaluate(medrecord)?;
+        let or_result = or.evaluate(medrecord)?;
 
         match (either_result, or_result) {
             (Some(either_result), _) => Ok(Some(either_result)),

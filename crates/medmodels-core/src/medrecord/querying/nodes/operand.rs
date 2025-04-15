@@ -67,10 +67,10 @@ impl NodeOperand {
         &mut self,
         attribute: MedRecordAttribute,
     ) -> Wrapper<MultipleValuesOperand<Self>> {
-        let operand = Wrapper::<MultipleValuesOperand<Self>>::new(
-            values::Context::Operand(self.deep_clone()),
+        let operand = Wrapper::<MultipleValuesOperand<Self>>::new(values::Context::Operand((
+            self.deep_clone(),
             attribute,
-        );
+        )));
 
         self.operations.push(NodeOperation::Values {
             operand: operand.clone(),
@@ -343,6 +343,15 @@ impl From<&Wrapper<NodeIndexOperand>> for NodeIndexComparisonOperand {
 impl<V: Into<NodeIndex>> From<V> for NodeIndexComparisonOperand {
     fn from(index: V) -> Self {
         Self::Index(index.into())
+    }
+}
+
+impl NodeIndexComparisonOperand {
+    pub(crate) fn evaluate(&self, medrecord: &MedRecord) -> MedRecordResult<Option<NodeIndex>> {
+        match self {
+            Self::Operand(operand) => operand.evaluate(medrecord),
+            Self::Index(index) => Ok(Some(index.clone())),
+        }
     }
 }
 

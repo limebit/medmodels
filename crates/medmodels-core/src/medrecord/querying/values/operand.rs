@@ -10,7 +10,7 @@ use crate::{
             traits::{DeepClone, ReadWriteOrPanic},
             BoxedIterator, Operand, OptionalIndexWrapper,
         },
-        MedRecordAttribute, MedRecordValue, Wrapper,
+        MedRecordValue, Wrapper,
     },
     MedRecord,
 };
@@ -173,7 +173,6 @@ impl<V: Into<MedRecordValue> + Clone, O: Operand, const N: usize> From<[V; N]>
 #[derive(Debug, Clone)]
 pub struct MultipleValuesOperand<O: Operand> {
     pub(crate) context: Context<O>,
-    pub(crate) attribute: MedRecordAttribute,
     operations: Vec<MultipleValuesOperation<O>>,
 }
 
@@ -181,27 +180,28 @@ impl<O: Operand> DeepClone for MultipleValuesOperand<O> {
     fn deep_clone(&self) -> Self {
         Self {
             context: self.context.clone(),
-            attribute: self.attribute.clone(),
             operations: self.operations.iter().map(DeepClone::deep_clone).collect(),
         }
     }
 }
 
 impl<O: Operand> MultipleValuesOperand<O> {
-    pub(crate) fn new(context: Context<O>, attribute: MedRecordAttribute) -> Self {
+    pub(crate) fn new(context: Context<O>) -> Self {
         Self {
             context,
-            attribute,
             operations: Vec::new(),
         }
     }
 
     pub(crate) fn evaluate<'a>(
-        &'a self,
+        &self,
         medrecord: &'a MedRecord,
-    ) -> MedRecordResult<impl Iterator<Item = (&'a O::Index, MedRecordValue)>> {
-        let values: BoxedIterator<(&O::Index, MedRecordValue)> =
-            Box::new(self.context.get_values(medrecord, self.attribute.clone())?);
+    ) -> MedRecordResult<impl Iterator<Item = (&'a O::Index, MedRecordValue)>>
+    where
+        O: 'a,
+    {
+        let values: BoxedIterator<(&'a O::Index, MedRecordValue)> =
+            Box::new(self.context.get_values(medrecord)?);
 
         self.operations
             .iter()
@@ -298,10 +298,8 @@ impl<O: Operand> MultipleValuesOperand<O> {
         EQ: FnOnce(&mut Wrapper<MultipleValuesOperand<O>>),
         OQ: FnOnce(&mut Wrapper<MultipleValuesOperand<O>>),
     {
-        let mut either_operand =
-            Wrapper::<MultipleValuesOperand<O>>::new(self.context.clone(), self.attribute.clone());
-        let mut or_operand =
-            Wrapper::<MultipleValuesOperand<O>>::new(self.context.clone(), self.attribute.clone());
+        let mut either_operand = Wrapper::<MultipleValuesOperand<O>>::new(self.context.clone());
+        let mut or_operand = Wrapper::<MultipleValuesOperand<O>>::new(self.context.clone());
 
         either_query(&mut either_operand);
         or_query(&mut or_operand);
@@ -316,8 +314,7 @@ impl<O: Operand> MultipleValuesOperand<O> {
     where
         Q: FnOnce(&mut Wrapper<MultipleValuesOperand<O>>),
     {
-        let mut operand =
-            Wrapper::<MultipleValuesOperand<O>>::new(self.context.clone(), self.attribute.clone());
+        let mut operand = Wrapper::<MultipleValuesOperand<O>>::new(self.context.clone());
 
         query(&mut operand);
 
@@ -327,14 +324,17 @@ impl<O: Operand> MultipleValuesOperand<O> {
 }
 
 impl<O: Operand> Wrapper<MultipleValuesOperand<O>> {
-    pub(crate) fn new(context: Context<O>, attribute: MedRecordAttribute) -> Self {
-        MultipleValuesOperand::new(context, attribute).into()
+    pub(crate) fn new(context: Context<O>) -> Self {
+        MultipleValuesOperand::new(context).into()
     }
 
     pub(crate) fn evaluate<'a>(
-        &'a self,
+        &self,
         medrecord: &'a MedRecord,
-    ) -> MedRecordResult<impl Iterator<Item = (&'a O::Index, MedRecordValue)>> {
+    ) -> MedRecordResult<impl Iterator<Item = (&'a O::Index, MedRecordValue)>>
+    where
+        O: 'a,
+    {
         self.0.read_or_panic().evaluate(medrecord)
     }
 
@@ -454,9 +454,12 @@ impl<O: Operand> SingleValueOperand<O> {
     }
 
     pub(crate) fn evaluate<'a>(
-        &'a self,
+        &self,
         medrecord: &'a MedRecord,
-    ) -> MedRecordResult<Option<OptionalIndexWrapper<&'a O::Index, MedRecordValue>>> {
+    ) -> MedRecordResult<Option<OptionalIndexWrapper<&'a O::Index, MedRecordValue>>>
+    where
+        O: 'a,
+    {
         let values = self.context.evaluate(medrecord)?;
 
         let value = match self.kind {
@@ -497,7 +500,7 @@ impl<O: Operand> SingleValueOperand<O> {
 
         self.operations
             .iter()
-            .try_fold(Some(value), move |value, operation| {
+            .try_fold(Some(value), |value, operation| {
                 if let Some(value) = value {
                     operation.evaluate(medrecord, value)
                 } else {
@@ -612,7 +615,10 @@ impl<O: Operand> Wrapper<SingleValueOperand<O>> {
     pub(crate) fn evaluate<'a>(
         &self,
         medrecord: &'a MedRecord,
-    ) -> MedRecordResult<Option<OptionalIndexWrapper<&'a O::Index, MedRecordValue>>> {
+    ) -> MedRecordResult<Option<OptionalIndexWrapper<&'a O::Index, MedRecordValue>>>
+    where
+        O: 'a,
+    {
         self.0.read_or_panic().evaluate(medrecord)
     }
 

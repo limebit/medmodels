@@ -14,7 +14,7 @@ pub use operand::{
     AttributesTreeOperand, MultipleAttributesComparisonOperand, MultipleAttributesOperand,
     SingleAttributeComparisonOperand, SingleAttributeOperand,
 };
-pub use operation::{AttributesTreeOperation, MultipleAttributesOperation};
+pub use operation::MultipleAttributesOperation;
 use std::fmt::Display;
 
 #[derive(Debug, Clone)]

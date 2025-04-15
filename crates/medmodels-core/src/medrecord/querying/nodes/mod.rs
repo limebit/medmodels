@@ -5,7 +5,7 @@ pub use operand::{
     NodeIndexComparisonOperand, NodeIndexOperand, NodeIndicesComparisonOperand, NodeIndicesOperand,
     NodeOperand,
 };
-pub use operation::{EdgeDirection, NodeIndicesOperation, NodeOperation};
+pub use operation::{EdgeDirection, NodeOperation};
 use std::fmt::Display;
 
 #[derive(Debug, Clone)]

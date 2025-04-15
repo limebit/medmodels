@@ -38,6 +38,7 @@ use ::polars::frame::DataFrame;
 use graph::Graph;
 use group_mapping::GroupMapping;
 use polars::{dataframe_to_edges, dataframe_to_nodes};
+use querying::Operand;
 use serde::{Deserialize, Serialize};
 use std::{
     collections::{hash_map::Entry, HashMap},
@@ -905,18 +906,18 @@ impl MedRecord {
         self.group_mapping.clear();
     }
 
-    pub fn query_nodes<Q, R>(&self, query: Q) -> Selection
+    pub fn query_nodes<Q, R, O: Operand>(&self, query: Q) -> Selection<O>
     where
         Q: FnOnce(&mut Wrapper<NodeOperand>) -> R,
-        R: Into<ReturnOperand>,
+        R: Into<ReturnOperand<O>>,
     {
         Selection::new_node(self, query)
     }
 
-    pub fn query_edges<Q, R>(&self, query: Q) -> Selection
+    pub fn query_edges<Q, R, O: Operand>(&self, query: Q) -> Selection<O>
     where
         Q: FnOnce(&mut Wrapper<EdgeOperand>) -> R,
-        R: Into<ReturnOperand>,
+        R: Into<ReturnOperand<O>>,
     {
         Selection::new_edge(self, query)
     }

@@ -17,7 +17,7 @@ use crate::{
             attributes::{MultipleKind, SingleKind},
             traits::{DeepClone, ReadWriteOrPanic},
             values::MultipleValuesOperand,
-            BoxedIterator,
+            BoxedIterator, OptionalIndexWrapper,
         },
         DataType, MedRecordAttribute, MedRecordValue, Wrapper,
     },
@@ -227,6 +227,143 @@ impl AttributesTreeOperation {
             }
             Self::Exclude { operand } => Self::evaluate_exclude(medrecord, attributes, operand),
         }
+    }
+
+    #[inline]
+    pub(crate) fn get_max<T>(
+        attributes: impl Iterator<Item = (T, Vec<MedRecordAttribute>)>,
+    ) -> MedRecordResult<impl Iterator<Item = (T, MedRecordAttribute)>> {
+        Ok(attributes.map(|(index, attributes)| {
+            let mut attributes = attributes.into_iter();
+
+            let first_attribute = attributes.next().ok_or(MedRecordError::QueryError(
+                "No attributes to compare".to_string(),
+            ))?;
+
+            let attribute = attributes.try_fold(first_attribute, |max, attribute| {
+                match attribute.partial_cmp(&max) {
+                    Some(Ordering::Greater) => Ok(attribute),
+                    None => {
+                        let first_dtype = DataType::from(attribute);
+                        let second_dtype = DataType::from(max);
+
+                        Err(MedRecordError::QueryError(format!(
+                            "Cannot compare attributes of data types {} and {}. Consider narrowing down the attributes using .is_string() or .is_int()",
+                            first_dtype, second_dtype
+                        )))
+                    }
+                    _ => Ok(max),
+                }
+            })?;
+
+            Ok((index, attribute))
+        }).collect::<MedRecordResult<Vec<_>>>()?.into_iter())
+    }
+
+    #[inline]
+    pub(crate) fn get_min<T>(
+        attributes: impl Iterator<Item = (T, Vec<MedRecordAttribute>)>,
+    ) -> MedRecordResult<impl Iterator<Item = (T, MedRecordAttribute)>> {
+        Ok(attributes.map(|(index, attributes)| {
+            let mut attributes = attributes.into_iter();
+
+            let first_attribute = attributes.next().ok_or(MedRecordError::QueryError(
+                "No attributes to compare".to_string(),
+            ))?;
+
+            let attribute = attributes.try_fold(first_attribute, |max, attribute| {
+                match attribute.partial_cmp(&max) {
+                    Some(Ordering::Less) => Ok(attribute),
+                    None => {
+                        let first_dtype = DataType::from(attribute);
+                        let second_dtype = DataType::from(max);
+
+                        Err(MedRecordError::QueryError(format!(
+                            "Cannot compare attributes of data types {} and {}. Consider narrowing down the attributes using .is_string() or .is_int()",
+                            first_dtype, second_dtype
+                        )))
+                    }
+                    _ => Ok(max),
+                }
+            })?;
+
+            Ok((index, attribute))
+        }).collect::<MedRecordResult<Vec<_>>>()?.into_iter())
+    }
+
+    #[inline]
+    pub(crate) fn get_count<T>(
+        attributes: impl Iterator<Item = (T, Vec<MedRecordAttribute>)>,
+    ) -> MedRecordResult<impl Iterator<Item = (T, MedRecordAttribute)>> {
+        Ok(attributes
+            .map(|(index, attribute)| (index, MedRecordAttribute::Int(attribute.len() as i64))))
+    }
+
+    #[inline]
+    pub(crate) fn get_sum<T>(
+        attributes: impl Iterator<Item = (T, Vec<MedRecordAttribute>)>,
+    ) -> MedRecordResult<impl Iterator<Item = (T, MedRecordAttribute)>> {
+        Ok(attributes.map(|(index, attributes)| {
+            let mut attributes = attributes.into_iter();
+
+            let first_attribute = attributes.next().ok_or(MedRecordError::QueryError(
+                "No attributes to compare".to_string(),
+            ))?;
+
+            let attribute = attributes.try_fold(first_attribute, |sum, attribute| {
+                let first_dtype = DataType::from(&sum);
+                let second_dtype = DataType::from(&attribute);
+
+                sum.add(attribute).map_err(|_| {
+                    MedRecordError::QueryError(format!(
+                        "Cannot add attributes of data types {} and {}. Consider narrowing down the attributes using .is_string() or .is_int()",
+                        first_dtype, second_dtype
+                    ))
+                })
+            })?;
+
+            Ok((index, attribute))
+        }).collect::<MedRecordResult<Vec<_>>>()?.into_iter())
+    }
+
+    #[inline]
+    pub(crate) fn get_first<T>(
+        attributes: impl Iterator<Item = (T, Vec<MedRecordAttribute>)>,
+    ) -> MedRecordResult<impl Iterator<Item = (T, MedRecordAttribute)>> {
+        Ok(attributes
+            .map(|(index, attributes)| {
+                let first_attribute =
+                    attributes
+                        .into_iter()
+                        .next()
+                        .ok_or(MedRecordError::QueryError(
+                            "No attributes to compare".to_string(),
+                        ))?;
+
+                Ok((index, first_attribute))
+            })
+            .collect::<MedRecordResult<Vec<_>>>()?
+            .into_iter())
+    }
+
+    #[inline]
+    pub(crate) fn get_last<T>(
+        attributes: impl Iterator<Item = (T, Vec<MedRecordAttribute>)>,
+    ) -> MedRecordResult<impl Iterator<Item = (T, MedRecordAttribute)>> {
+        Ok(attributes
+            .map(|(index, attributes)| {
+                let first_attribute =
+                    attributes
+                        .into_iter()
+                        .next_back()
+                        .ok_or(MedRecordError::QueryError(
+                            "No attributes to compare".to_string(),
+                        ))?;
+
+                Ok((index, first_attribute))
+            })
+            .collect::<MedRecordResult<Vec<_>>>()?
+            .into_iter())
     }
 
     #[inline]
@@ -717,6 +854,103 @@ impl MultipleAttributesOperation {
     }
 
     #[inline]
+    pub(crate) fn get_max<T>(
+        mut attributes: impl Iterator<Item = (T, MedRecordAttribute)>,
+    ) -> MedRecordResult<(T, MedRecordAttribute)> {
+        let max_attribute = attributes.next().ok_or(MedRecordError::QueryError(
+            "No attributes to compare".to_string(),
+        ))?;
+
+        attributes.try_fold(max_attribute, |max_attribute, attribute| {
+            match attribute.1.partial_cmp(&max_attribute.1) {
+                Some(Ordering::Greater) => Ok(attribute),
+                None => {
+                    let first_dtype = DataType::from(attribute.1);
+                    let second_dtype = DataType::from(max_attribute.1);
+
+                    Err(MedRecordError::QueryError(format!(
+                        "Cannot compare attributes of data types {} and {}. Consider narrowing down the attributes using .is_string() or .is_int()",
+                        first_dtype, second_dtype
+                    )))
+                }
+                _ => Ok(max_attribute),
+            }
+        })
+    }
+
+    #[inline]
+    pub(crate) fn get_min<T>(
+        mut attributes: impl Iterator<Item = (T, MedRecordAttribute)>,
+    ) -> MedRecordResult<(T, MedRecordAttribute)> {
+        let min_attribute = attributes.next().ok_or(MedRecordError::QueryError(
+            "No attributes to compare".to_string(),
+        ))?;
+
+        attributes.try_fold(min_attribute, |min_attribute, attribute| {
+            match attribute.1.partial_cmp(&min_attribute.1) {
+                Some(Ordering::Less) => Ok(attribute),
+                None => {
+                    let first_dtype = DataType::from(attribute.1);
+                    let second_dtype = DataType::from(min_attribute.1);
+
+                    Err(MedRecordError::QueryError(format!(
+                        "Cannot compare attributes of data types {} and {}. Consider narrowing down the attributes using .is_string() or .is_int()",
+                        first_dtype, second_dtype
+                    )))
+                }
+                _ => Ok(min_attribute),
+            }
+        })
+    }
+
+    #[inline]
+    pub(crate) fn get_count<T>(
+        attributes: impl Iterator<Item = (T, MedRecordAttribute)>,
+    ) -> MedRecordAttribute {
+        MedRecordAttribute::Int(attributes.count() as i64)
+    }
+
+    #[inline]
+    // 🥊💥
+    pub(crate) fn get_sum<T>(
+        mut attributes: impl Iterator<Item = (T, MedRecordAttribute)>,
+    ) -> MedRecordResult<MedRecordAttribute> {
+        let first_attribute = attributes.next().ok_or(MedRecordError::QueryError(
+            "No attributes to compare".to_string(),
+        ))?;
+
+        attributes.try_fold(first_attribute.1, |sum, (_, attribute)| {
+            let first_dtype = DataType::from(&sum);
+            let second_dtype = DataType::from(&attribute);
+
+            sum.add(attribute).map_err(|_| {
+                MedRecordError::QueryError(format!(
+                    "Cannot add attributes of data types {} and {}. Consider narrowing down the attributes using .is_string() or .is_int()",
+                    first_dtype, second_dtype
+                ))
+            })
+        })
+    }
+
+    #[inline]
+    pub(crate) fn get_first<T>(
+        mut attributes: impl Iterator<Item = (T, MedRecordAttribute)>,
+    ) -> MedRecordResult<(T, MedRecordAttribute)> {
+        attributes.next().ok_or(MedRecordError::QueryError(
+            "No attributes to get the first".to_string(),
+        ))
+    }
+
+    #[inline]
+    pub(crate) fn get_last<T>(
+        attributes: impl Iterator<Item = (T, MedRecordAttribute)>,
+    ) -> MedRecordResult<(T, MedRecordAttribute)> {
+        attributes.last().ok_or(MedRecordError::QueryError(
+            "No attributes to get the first".to_string(),
+        ))
+    }
+
+    #[inline]
     fn evaluate_attribute_operation<'a, T: 'a + Clone>(
         medrecord: &'a MedRecord,
         attribtues: impl Iterator<Item = (T, MedRecordAttribute)>,
@@ -1045,11 +1279,11 @@ impl DeepClone for SingleAttributeOperation {
 }
 
 impl SingleAttributeOperation {
-    pub(crate) fn evaluate(
+    pub(crate) fn evaluate<'a, T>(
         &self,
         medrecord: &MedRecord,
-        attribute: MedRecordAttribute,
-    ) -> MedRecordResult<Option<MedRecordAttribute>> {
+        attribute: OptionalIndexWrapper<T, MedRecordAttribute>,
+    ) -> MedRecordResult<Option<OptionalIndexWrapper<T, MedRecordAttribute>>> {
         match self {
             Self::SingleAttributeComparisonOperation { operand, kind } => {
                 Self::evaluate_single_attribute_comparison_operation(

@@ -5,7 +5,7 @@ pub use operand::{
     EdgeIndexComparisonOperand, EdgeIndexOperand, EdgeIndicesComparisonOperand, EdgeIndicesOperand,
     EdgeOperand,
 };
-pub use operation::{EdgeIndicesOperation, EdgeOperation};
+pub use operation::EdgeOperation;
 use std::fmt::Display;
 
 #[derive(Debug, Clone)]

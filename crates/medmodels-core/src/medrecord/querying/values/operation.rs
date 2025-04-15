@@ -17,7 +17,7 @@ use crate::{
             traits::{DeepClone, ReadWriteOrPanic},
             BoxedIterator, Operand, OptionalIndexWrapper,
         },
-        DataType, Index, MedRecordValue, Wrapper,
+        DataType, MedRecordValue, Wrapper,
     },
     MedRecord,
 };
@@ -180,11 +180,11 @@ impl<O: Operand> DeepClone for MultipleValuesOperation<O> {
 }
 
 impl<O: Operand> MultipleValuesOperation<O> {
-    pub(crate) fn evaluate<'a>(
+    pub(crate) fn evaluate<'a, T: 'a + Eq + Clone + Hash>(
         &self,
         medrecord: &'a MedRecord,
-        values: impl Iterator<Item = (&'a O::Index, MedRecordValue)> + 'a,
-    ) -> MedRecordResult<BoxedIterator<'a, (&'a O::Index, MedRecordValue)>> {
+        values: impl Iterator<Item = (T, MedRecordValue)> + 'a,
+    ) -> MedRecordResult<BoxedIterator<'a, (T, MedRecordValue)>> {
         match self {
             Self::ValueOperation { operand } => {
                 Self::evaluate_value_operation(medrecord, values, operand)
