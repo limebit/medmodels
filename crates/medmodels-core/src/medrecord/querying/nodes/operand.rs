@@ -1,13 +1,13 @@
 use super::{
     operation::{EdgeDirection, NodeIndexOperation, NodeIndicesOperation, NodeOperation},
-    BinaryArithmeticKind, MultipleComparisonKind, SingleComparisonKind, SingleKind,
+    BinaryArithmeticKind, Context, MultipleComparisonKind, SingleComparisonKind, SingleKind,
     UnaryArithmeticKind,
 };
 use crate::{
     errors::MedRecordResult,
     medrecord::{
         querying::{
-            attributes::{self, AttributesTreeOperand},
+            attributes::AttributesTreeOperand,
             edges::EdgeOperand,
             traits::{DeepClone, ReadWriteOrPanic},
             values::{self, MultipleValuesOperand},
@@ -23,6 +23,7 @@ use std::fmt::Debug;
 #[derive(Debug, Clone)]
 pub struct NodeOperand {
     operations: Vec<NodeOperation>,
+    context: Option<Context>,
 }
 
 impl DeepClone for NodeOperand {
@@ -33,6 +34,7 @@ impl DeepClone for NodeOperand {
                 .iter()
                 .map(|operation| operation.deep_clone())
                 .collect(),
+            context: self.context.clone(),
         }
     }
 }
@@ -41,14 +43,18 @@ impl NodeOperand {
     pub(crate) fn new() -> Self {
         Self {
             operations: Vec::new(),
+            context: None,
         }
     }
 
     pub(crate) fn evaluate<'a>(
         &self,
         medrecord: &'a MedRecord,
-    ) -> MedRecordResult<BoxedIterator<'a, &'a NodeIndex>> {
-        let node_indices = Box::new(medrecord.node_indices()) as BoxedIterator<'a, &'a NodeIndex>;
+    ) -> MedRecordResult<impl Iterator<Item = NodeIndex> + 'a> {
+        let node_indices: BoxedIterator<'a, NodeIndex> = match self.context {
+            Some(_) => todo!(),
+            None => Box::new(medrecord.node_indices().cloned()),
+        };
 
         self.operations
             .iter()
@@ -57,11 +63,14 @@ impl NodeOperand {
             })
     }
 
-    pub fn attribute(&mut self, attribute: MedRecordAttribute) -> Wrapper<MultipleValuesOperand> {
-        let operand = Wrapper::<MultipleValuesOperand>::new(
-            values::Context::NodeOperand(self.deep_clone()),
+    pub fn attribute(
+        &mut self,
+        attribute: MedRecordAttribute,
+    ) -> Wrapper<MultipleValuesOperand<Self>> {
+        let operand = Wrapper::<MultipleValuesOperand<Self>>::new(values::Context::Operand((
+            self.deep_clone(),
             attribute,
-        );
+        )));
 
         self.operations.push(NodeOperation::Values {
             operand: operand.clone(),
@@ -70,10 +79,8 @@ impl NodeOperand {
         operand
     }
 
-    pub fn attributes(&mut self) -> Wrapper<AttributesTreeOperand> {
-        let operand = Wrapper::<AttributesTreeOperand>::new(attributes::Context::NodeOperand(
-            self.deep_clone(),
-        ));
+    pub fn attributes(&mut self) -> Wrapper<AttributesTreeOperand<Self>> {
+        let operand = Wrapper::<AttributesTreeOperand<Self>>::new(self.deep_clone());
 
         self.operations.push(NodeOperation::Attributes {
             operand: operand.clone(),
@@ -169,18 +176,18 @@ impl Wrapper<NodeOperand> {
     pub(crate) fn evaluate<'a>(
         &self,
         medrecord: &'a MedRecord,
-    ) -> MedRecordResult<BoxedIterator<'a, &'a NodeIndex>> {
+    ) -> MedRecordResult<impl Iterator<Item = NodeIndex> + 'a> {
         self.0.read_or_panic().evaluate(medrecord)
     }
 
-    pub fn attribute<A>(&mut self, attribute: A) -> Wrapper<MultipleValuesOperand>
+    pub fn attribute<A>(&mut self, attribute: A) -> Wrapper<MultipleValuesOperand<NodeOperand>>
     where
         A: Into<MedRecordAttribute>,
     {
         self.0.write_or_panic().attribute(attribute.into())
     }
 
-    pub fn attributes(&mut self) -> Wrapper<AttributesTreeOperand> {
+    pub fn attributes(&mut self) -> Wrapper<AttributesTreeOperand<NodeOperand>> {
         self.0.write_or_panic().attributes()
     }
 
@@ -339,6 +346,15 @@ impl<V: Into<NodeIndex>> From<V> for NodeIndexComparisonOperand {
     }
 }
 
+impl NodeIndexComparisonOperand {
+    pub(crate) fn evaluate(&self, medrecord: &MedRecord) -> MedRecordResult<Option<NodeIndex>> {
+        match self {
+            Self::Operand(operand) => operand.evaluate(medrecord),
+            Self::Index(index) => Ok(Some(index.clone())),
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub enum NodeIndicesComparisonOperand {
     Operand(NodeIndicesOperand),
@@ -404,13 +420,12 @@ impl NodeIndicesOperand {
     pub(crate) fn evaluate<'a>(
         &self,
         medrecord: &'a MedRecord,
-        indices: impl Iterator<Item = NodeIndex> + 'a,
     ) -> MedRecordResult<impl Iterator<Item = NodeIndex> + 'a> {
-        let indices = Box::new(indices) as BoxedIterator<NodeIndex>;
+        let indices: BoxedIterator<NodeIndex> = Box::new(self.context.evaluate(medrecord)?);
 
         self.operations
             .iter()
-            .try_fold(indices, |index_tuples, operation| {
+            .try_fold(indices, move |index_tuples, operation| {
                 operation.evaluate(medrecord, index_tuples)
             })
     }
@@ -517,9 +532,8 @@ impl Wrapper<NodeIndicesOperand> {
     pub(crate) fn evaluate<'a>(
         &self,
         medrecord: &'a MedRecord,
-        indices: impl Iterator<Item = NodeIndex> + 'a,
     ) -> MedRecordResult<impl Iterator<Item = NodeIndex> + 'a> {
-        self.0.read_or_panic().evaluate(medrecord, indices)
+        self.0.read_or_panic().evaluate(medrecord)
     }
 
     implement_wrapper_operand_with_return!(max, NodeIndexOperand);
@@ -610,11 +624,18 @@ impl NodeIndexOperand {
         }
     }
 
-    pub(crate) fn evaluate(
-        &self,
-        medrecord: &MedRecord,
-        index: NodeIndex,
-    ) -> MedRecordResult<Option<NodeIndex>> {
+    pub(crate) fn evaluate(&self, medrecord: &MedRecord) -> MedRecordResult<Option<NodeIndex>> {
+        let indices = self.context.evaluate(medrecord)?;
+
+        let index = match self.kind {
+            SingleKind::Max => NodeIndicesOperation::get_max(indices)?.clone(),
+            SingleKind::Min => NodeIndicesOperation::get_min(indices)?.clone(),
+            SingleKind::Count => NodeIndicesOperation::get_count(indices),
+            SingleKind::Sum => NodeIndicesOperation::get_sum(indices)?,
+            SingleKind::First => NodeIndicesOperation::get_first(indices)?.clone(),
+            SingleKind::Last => NodeIndicesOperation::get_last(indices)?.clone(),
+        };
+
         self.operations
             .iter()
             .try_fold(Some(index), |index, operation| {
@@ -716,12 +737,8 @@ impl Wrapper<NodeIndexOperand> {
         NodeIndexOperand::new(context, kind).into()
     }
 
-    pub(crate) fn evaluate(
-        &self,
-        medrecord: &MedRecord,
-        index: NodeIndex,
-    ) -> MedRecordResult<Option<NodeIndex>> {
-        self.0.read_or_panic().evaluate(medrecord, index)
+    pub(crate) fn evaluate(&self, medrecord: &MedRecord) -> MedRecordResult<Option<NodeIndex>> {
+        self.0.read_or_panic().evaluate(medrecord)
     }
 
     implement_wrapper_operand_with_argument!(greater_than, impl Into<NodeIndexComparisonOperand>);
