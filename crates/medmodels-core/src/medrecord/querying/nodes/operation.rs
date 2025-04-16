@@ -121,8 +121,8 @@ impl NodeOperation {
     pub(crate) fn evaluate<'a>(
         &self,
         medrecord: &'a MedRecord,
-        node_indices: impl Iterator<Item = &'a NodeIndex> + 'a,
-    ) -> MedRecordResult<BoxedIterator<'a, &'a NodeIndex>> {
+        node_indices: impl Iterator<Item = NodeIndex> + 'a,
+    ) -> MedRecordResult<BoxedIterator<'a, NodeIndex>> {
         Ok(match self {
             Self::Values { operand } => {
                 Box::new(Self::evaluate_values(medrecord, operand.clone())?)
@@ -197,18 +197,18 @@ impl NodeOperation {
     fn evaluate_values<'a>(
         medrecord: &'a MedRecord,
         operand: Wrapper<MultipleValuesOperand<NodeOperand>>,
-    ) -> MedRecordResult<impl Iterator<Item = &'a NodeIndex>> {
+    ) -> MedRecordResult<impl Iterator<Item = NodeIndex>> {
         Ok(operand.evaluate(medrecord)?.map(|value| value.0))
     }
 
     #[inline]
     pub(crate) fn get_attributes<'a>(
         medrecord: &'a MedRecord,
-        node_indices: impl Iterator<Item = &'a NodeIndex>,
-    ) -> impl Iterator<Item = (&'a NodeIndex, Vec<MedRecordAttribute>)> {
+        node_indices: impl Iterator<Item = NodeIndex> + 'a,
+    ) -> impl Iterator<Item = (NodeIndex, Vec<MedRecordAttribute>)> + 'a {
         node_indices.map(move |node_index| {
             let attributes = medrecord
-                .node_attributes(node_index)
+                .node_attributes(&node_index)
                 .expect("Edge must exist")
                 .keys()
                 .cloned();
@@ -427,9 +427,9 @@ impl DeepClone for NodeIndicesOperation {
 impl NodeIndicesOperation {
     pub(crate) fn evaluate<'a>(
         &self,
-        medrecord: &MedRecord,
+        medrecord: &'a MedRecord,
         indices: impl Iterator<Item = NodeIndex>,
-    ) -> MedRecordResult<BoxedIterator<'_, NodeIndex>> {
+    ) -> MedRecordResult<BoxedIterator<'a, NodeIndex>> {
         match self {
             Self::NodeIndexOperation { operand } => {
                 Self::evaluate_node_index_operation(medrecord, indices, operand)
@@ -487,8 +487,8 @@ impl NodeIndicesOperation {
 
     #[inline]
     pub(crate) fn get_max<'a>(
-        mut indices: impl Iterator<Item = &'a NodeIndex>,
-    ) -> MedRecordResult<&'a NodeIndex> {
+        mut indices: impl Iterator<Item = NodeIndex>,
+    ) -> MedRecordResult<NodeIndex> {
         let max_index = indices.next().ok_or(MedRecordError::QueryError(
             "No indices to compare".to_string(),
         ))?;
@@ -512,9 +512,9 @@ impl NodeIndicesOperation {
     }
 
     #[inline]
-    pub(crate) fn get_min<'a>(
-        mut indices: impl Iterator<Item = &'a NodeIndex>,
-    ) -> MedRecordResult<&'a NodeIndex> {
+    pub(crate) fn get_min(
+        mut indices: impl Iterator<Item = NodeIndex>,
+    ) -> MedRecordResult<NodeIndex> {
         let min_index = indices.next().ok_or(MedRecordError::QueryError(
             "No indices to compare".to_string(),
         ))?;
@@ -536,14 +536,14 @@ impl NodeIndicesOperation {
         })
     }
     #[inline]
-    pub(crate) fn get_count<'a>(indices: impl Iterator<Item = &'a NodeIndex>) -> NodeIndex {
+    pub(crate) fn get_count(indices: impl Iterator<Item = NodeIndex>) -> NodeIndex {
         MedRecordAttribute::Int(indices.count() as i64)
     }
 
     #[inline]
     // 🥊💥
-    pub(crate) fn get_sum<'a>(
-        mut indices: impl Iterator<Item = &'a NodeIndex>,
+    pub(crate) fn get_sum(
+        mut indices: impl Iterator<Item = NodeIndex>,
     ) -> MedRecordResult<NodeIndex> {
         let first_index = indices
             .next()
@@ -564,8 +564,8 @@ impl NodeIndicesOperation {
 
     #[inline]
     pub(crate) fn get_first<'a>(
-        mut indices: impl Iterator<Item = &'a NodeIndex>,
-    ) -> MedRecordResult<&'a NodeIndex> {
+        mut indices: impl Iterator<Item = NodeIndex>,
+    ) -> MedRecordResult<NodeIndex> {
         indices.next().ok_or(MedRecordError::QueryError(
             "No indices to get the first".to_string(),
         ))
@@ -573,8 +573,8 @@ impl NodeIndicesOperation {
 
     #[inline]
     pub(crate) fn get_last<'a>(
-        indices: impl Iterator<Item = &'a NodeIndex>,
-    ) -> MedRecordResult<&'a NodeIndex> {
+        indices: impl Iterator<Item = NodeIndex>,
+    ) -> MedRecordResult<NodeIndex> {
         indices.last().ok_or(MedRecordError::QueryError(
             "No indices to get the first".to_string(),
         ))

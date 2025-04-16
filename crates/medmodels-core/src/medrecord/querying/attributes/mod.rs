@@ -91,19 +91,14 @@ pub(crate) trait GetAttributes<I> {
     fn get_attributes<'a>(
         &self,
         medrecord: &'a MedRecord,
-    ) -> MedRecordResult<impl Iterator<Item = (&'a I, Vec<MedRecordAttribute>)>>
-    where
-        I: 'a;
+    ) -> MedRecordResult<impl Iterator<Item = (I, Vec<MedRecordAttribute>)> + 'a>;
 }
 
 impl GetAttributes<NodeIndex> for NodeOperand {
     fn get_attributes<'a>(
         &self,
         medrecord: &'a MedRecord,
-    ) -> MedRecordResult<impl Iterator<Item = (&'a NodeIndex, Vec<MedRecordAttribute>)>>
-    where
-        NodeIndex: 'a,
-    {
+    ) -> MedRecordResult<impl Iterator<Item = (NodeIndex, Vec<MedRecordAttribute>)> + 'a> {
         Ok(NodeOperation::get_attributes(
             medrecord,
             self.evaluate(medrecord)?,
@@ -115,10 +110,7 @@ impl GetAttributes<EdgeIndex> for EdgeOperand {
     fn get_attributes<'a>(
         &self,
         medrecord: &'a MedRecord,
-    ) -> MedRecordResult<impl Iterator<Item = (&'a EdgeIndex, Vec<MedRecordAttribute>)>>
-    where
-        EdgeIndex: 'a,
-    {
+    ) -> MedRecordResult<impl Iterator<Item = (EdgeIndex, Vec<MedRecordAttribute>)> + 'a> {
         Ok(EdgeOperation::get_attributes(
             medrecord,
             self.evaluate(medrecord)?,

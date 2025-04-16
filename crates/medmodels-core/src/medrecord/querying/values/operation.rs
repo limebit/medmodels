@@ -258,8 +258,8 @@ impl<O: Operand> MultipleValuesOperation<O> {
 
     #[inline]
     pub(crate) fn get_max<'a, T>(
-        mut values: impl Iterator<Item = (&'a T, MedRecordValue)>,
-    ) -> MedRecordResult<(&'a T, MedRecordValue)> {
+        mut values: impl Iterator<Item = (T, MedRecordValue)>,
+    ) -> MedRecordResult<(T, MedRecordValue)> {
         let max_value = values.next().ok_or(MedRecordError::QueryError(
             "No values to compare".to_string(),
         ))?;
@@ -847,8 +847,8 @@ impl<O: Operand> SingleValueOperation<O> {
     pub(crate) fn evaluate<'a>(
         &self,
         medrecord: &'a MedRecord,
-        value: OptionalIndexWrapper<&'a O::Index, MedRecordValue>,
-    ) -> MedRecordResult<Option<OptionalIndexWrapper<&'a O::Index, MedRecordValue>>> {
+        value: OptionalIndexWrapper<O::Index, MedRecordValue>,
+    ) -> MedRecordResult<Option<OptionalIndexWrapper<O::Index, MedRecordValue>>> {
         match self {
             Self::SingleValueComparisonOperation { operand, kind } => {
                 Self::evaluate_single_value_comparison_operation(medrecord, value, operand, kind)

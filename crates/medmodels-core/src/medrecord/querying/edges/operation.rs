@@ -96,25 +96,19 @@ impl DeepClone for EdgeOperation {
 impl EdgeOperation {
     pub(crate) fn evaluate<'a>(
         &self,
-        medrecord: &'a MedRecord,
-        edge_indices: impl Iterator<Item = &'a EdgeIndex> + 'a,
-    ) -> MedRecordResult<BoxedIterator<'a, &'a EdgeIndex>> {
+        medrecord: &MedRecord,
+        edge_indices: impl Iterator<Item = EdgeIndex>,
+    ) -> MedRecordResult<Box<dyn Iterator<Item = EdgeIndex>>> {
         Ok(match self {
-            Self::Values { operand } => Box::new(Self::evaluate_values(
-                medrecord,
-                edge_indices,
-                operand.clone(),
-            )?),
-            Self::Attributes { operand } => Box::new(Self::evaluate_attributes(
-                medrecord,
-                edge_indices,
-                operand.clone(),
-            )?),
-            Self::Indices { operand } => Box::new(Self::evaluate_indices(
-                medrecord,
-                edge_indices,
-                operand.clone(),
-            )?),
+            Self::Values { operand } => {
+                Box::new(Self::evaluate_values(medrecord, operand.clone())?)
+            }
+            Self::Attributes { operand } => {
+                Box::new(Self::evaluate_attributes(medrecord, operand.clone())?)
+            }
+            Self::Indices { operand } => {
+                Box::new(Self::evaluate_indices(medrecord, operand.clone())?)
+            }
             Self::InGroup { group } => Box::new(Self::evaluate_in_group(
                 medrecord,
                 edge_indices,
@@ -155,14 +149,14 @@ impl EdgeOperation {
     #[inline]
     pub(crate) fn get_values<'a>(
         medrecord: &'a MedRecord,
-        edge_indices: impl Iterator<Item = &'a EdgeIndex>,
+        edge_indices: impl Iterator<Item = EdgeIndex> + 'a,
         attribute: MedRecordAttribute,
-    ) -> impl Iterator<Item = (&'a EdgeIndex, MedRecordValue)> {
+    ) -> impl Iterator<Item = (EdgeIndex, MedRecordValue)> + 'a {
         edge_indices.flat_map(move |edge_index| {
             Some((
                 edge_index,
                 medrecord
-                    .edge_attributes(edge_index)
+                    .edge_attributes(&edge_index)
                     .expect("Edge must exist")
                     .get(&attribute)?
                     .clone(),
@@ -173,17 +167,16 @@ impl EdgeOperation {
     #[inline]
     fn evaluate_values<'a>(
         medrecord: &'a MedRecord,
-        edge_indices: impl Iterator<Item = &'a EdgeIndex> + 'a,
         operand: Wrapper<MultipleValuesOperand<EdgeOperand>>,
-    ) -> MedRecordResult<impl Iterator<Item = &'a EdgeIndex>> {
+    ) -> MedRecordResult<impl Iterator<Item = EdgeIndex>> {
         Ok(operand.evaluate(medrecord)?.map(|value| value.0))
     }
 
     #[inline]
     pub(crate) fn get_attributes<'a>(
         medrecord: &'a MedRecord,
-        edge_indices: impl Iterator<Item = &'a EdgeIndex>,
-    ) -> impl Iterator<Item = (&'a EdgeIndex, Vec<MedRecordAttribute>)> {
+        edge_indices: impl Iterator<Item = EdgeIndex>,
+    ) -> impl Iterator<Item = (EdgeIndex, Vec<MedRecordAttribute>)> {
         edge_indices.map(move |edge_index| {
             let attributes = medrecord
                 .edge_attributes(edge_index)
@@ -198,27 +191,25 @@ impl EdgeOperation {
     #[inline]
     fn evaluate_attributes<'a>(
         medrecord: &'a MedRecord,
-        edge_indices: impl Iterator<Item = &'a EdgeIndex> + 'a,
         operand: Wrapper<AttributesTreeOperand<EdgeOperand>>,
-    ) -> MedRecordResult<impl Iterator<Item = &'a EdgeIndex>> {
+    ) -> MedRecordResult<impl Iterator<Item = EdgeIndex>> {
         Ok(operand.evaluate(medrecord)?.map(|value| value.0))
     }
 
     #[inline]
     fn evaluate_indices<'a>(
-        medrecord: &MedRecord,
-        edge_indices: impl Iterator<Item = &'a EdgeIndex>,
+        medrecord: &'a MedRecord,
         operand: Wrapper<EdgeIndicesOperand>,
-    ) -> MedRecordResult<impl Iterator<Item = &'a EdgeIndex>> {
+    ) -> MedRecordResult<impl Iterator<Item = EdgeIndex>> {
         operand.evaluate(medrecord)
     }
 
     #[inline]
     fn evaluate_in_group<'a>(
         medrecord: &'a MedRecord,
-        edge_indices: impl Iterator<Item = &'a EdgeIndex>,
+        edge_indices: impl Iterator<Item = &EdgeIndex>,
         group: CardinalityWrapper<Group>,
-    ) -> impl Iterator<Item = &'a EdgeIndex> {
+    ) -> impl Iterator<Item = EdgeIndex> {
         edge_indices.filter(move |edge_index| {
             let groups_of_edge = medrecord
                 .groups_of_edge(edge_index)
@@ -367,12 +358,15 @@ impl EdgeIndicesOperation {
         match self {
             Self::EdgeIndexOperation { operand } => {
                 Self::evaluate_edge_index_operation(medrecord, indices, operand)
+                    .map(|x| Box::new(x.cloned()) as BoxedIterator<'a, EdgeIndex>)
             }
             Self::EdgeIndexComparisonOperation { operand, kind } => {
                 Self::evaluate_edge_index_comparison_operation(medrecord, indices, operand, kind)
+                    .map(|x| Box::new(x.cloned()) as BoxedIterator<'a, EdgeIndex>)
             }
             Self::EdgeIndicesComparisonOperation { operand, kind } => {
                 Self::evaluate_edge_indices_comparison_operation(medrecord, indices, operand, kind)
+                    .map(|x| Box::new(x.cloned()) as BoxedIterator<'a, EdgeIndex>)
             }
             Self::BinaryArithmeticOpration { operand, kind } => {
                 Ok(Box::new(Self::evaluate_binary_arithmetic_operation(
@@ -383,59 +377,63 @@ impl EdgeIndicesOperation {
                 )?))
             }
             Self::IsMax => {
-                let max_index = Self::get_max(indices)?;
+                let (indices_1, indices_2) = Itertools::tee(indices);
 
-                Ok(Box::new(indices.filter(move |index| index == max_index)))
+                let max_index = Self::get_max(indices_1)?;
+
+                Ok(Box::new(
+                    indices_2.filter(move |index| index == &max_index).cloned(),
+                ))
             }
             Self::IsMin => {
-                let min_index = Self::get_min(indices)?;
+                let (indices_1, indices_2) = Itertools::tee(indices);
 
-                Ok(Box::new(indices.filter(move |index| index == min_index)))
+                let min_index = Self::get_min(indices_1)?;
+
+                Ok(Box::new(
+                    indices_2.filter(move |index| index == &min_index).cloned(),
+                ))
             }
-            Self::EitherOr { either, or } => {
-                Self::evaluate_either_or(medrecord, indices, either, or)
-            }
+            Self::EitherOr { either, or } => Self::evaluate_either_or(medrecord, either, or),
             Self::Exclude { operand } => {
                 let result = operand.evaluate(medrecord)?.collect::<HashSet<_>>();
 
                 Ok(Box::new(
-                    indices.filter(move |index| !result.contains(index)),
+                    indices
+                        .filter(move |index| !result.contains(index))
+                        .cloned(),
                 ))
             }
         }
     }
 
     #[inline]
-    pub(crate) fn get_max<'a>(
-        indices: impl Iterator<Item = &'a EdgeIndex>,
-    ) -> MedRecordResult<&'a EdgeIndex> {
+    pub(crate) fn get_max<T: Ord>(indices: impl Iterator<Item = T>) -> MedRecordResult<T> {
         indices.max().ok_or(MedRecordError::QueryError(
             "No indices to compare".to_string(),
         ))
     }
 
     #[inline]
-    pub(crate) fn get_min<'a>(
-        indices: impl Iterator<Item = &'a EdgeIndex>,
-    ) -> MedRecordResult<&'a EdgeIndex> {
+    pub(crate) fn get_min<T: Ord>(indices: impl Iterator<Item = T>) -> MedRecordResult<T> {
         indices.min().ok_or(MedRecordError::QueryError(
             "No indices to compare".to_string(),
         ))
     }
     #[inline]
-    pub(crate) fn get_count<'a>(indices: impl Iterator<Item = &'a EdgeIndex>) -> EdgeIndex {
+    pub(crate) fn get_count<'a>(indices: impl Iterator<Item = EdgeIndex>) -> EdgeIndex {
         indices.count() as EdgeIndex
     }
 
     #[inline]
-    pub(crate) fn get_sum<'a>(indices: impl Iterator<Item = &'a EdgeIndex>) -> EdgeIndex {
+    pub(crate) fn get_sum<'a>(indices: impl Iterator<Item = EdgeIndex>) -> EdgeIndex {
         indices.sum()
     }
 
     #[inline]
     pub(crate) fn get_first<'a>(
-        mut indices: impl Iterator<Item = &'a EdgeIndex>,
-    ) -> MedRecordResult<&'a EdgeIndex> {
+        mut indices: impl Iterator<Item = EdgeIndex>,
+    ) -> MedRecordResult<EdgeIndex> {
         indices.next().ok_or(MedRecordError::QueryError(
             "No indices to get the first".to_string(),
         ))
@@ -443,8 +441,8 @@ impl EdgeIndicesOperation {
 
     #[inline]
     pub(crate) fn get_last<'a>(
-        indices: impl Iterator<Item = &'a EdgeIndex>,
-    ) -> MedRecordResult<&'a EdgeIndex> {
+        indices: impl Iterator<Item = EdgeIndex>,
+    ) -> MedRecordResult<EdgeIndex> {
         indices.last().ok_or(MedRecordError::QueryError(
             "No indices to get the first".to_string(),
         ))
@@ -453,11 +451,11 @@ impl EdgeIndicesOperation {
     #[inline]
     fn evaluate_edge_index_operation<'a>(
         medrecord: &MedRecord,
-        indices: impl Iterator<Item = &'a EdgeIndex>,
+        indices: impl Iterator<Item = EdgeIndex> + 'a,
         operand: &Wrapper<EdgeIndexOperand>,
-    ) -> MedRecordResult<BoxedIterator<'a, &'a EdgeIndex>> {
+    ) -> MedRecordResult<BoxedIterator<'a, EdgeIndex>> {
         Ok(match operand.evaluate(medrecord)? {
-            Some(_) => Box::new(indices.into_iter()),
+            Some(_) => Box::new(indices),
             None => Box::new(std::iter::empty()),
         })
     }
@@ -478,22 +476,22 @@ impl EdgeIndicesOperation {
 
         match kind {
             SingleComparisonKind::GreaterThan => Ok(Box::new(
-                indices.filter(move |index| index > &comparison_index),
+                indices.filter(move |index| *index > &comparison_index),
             )),
             SingleComparisonKind::GreaterThanOrEqualTo => Ok(Box::new(
-                indices.filter(move |index| index >= &comparison_index),
+                indices.filter(move |index| *index >= &comparison_index),
             )),
             SingleComparisonKind::LessThan => Ok(Box::new(
-                indices.filter(move |index| index < &comparison_index),
+                indices.filter(move |index| *index < &comparison_index),
             )),
             SingleComparisonKind::LessThanOrEqualTo => Ok(Box::new(
-                indices.filter(move |index| index <= &comparison_index),
+                indices.filter(move |index| *index <= &comparison_index),
             )),
             SingleComparisonKind::EqualTo => Ok(Box::new(
-                indices.filter(move |index| index == &comparison_index),
+                indices.filter(move |index| *index == &comparison_index),
             )),
             SingleComparisonKind::NotEqualTo => Ok(Box::new(
-                indices.filter(move |index| index != &comparison_index),
+                indices.filter(move |index| *index != &comparison_index),
             )),
             SingleComparisonKind::StartsWith => Ok(Box::new(
                 indices.filter(move |index| index.starts_with(&comparison_index)),
@@ -509,14 +507,14 @@ impl EdgeIndicesOperation {
 
     #[inline]
     fn evaluate_edge_indices_comparison_operation<'a>(
-        medrecord: &MedRecord,
-        indices: impl Iterator<Item = EdgeIndex> + 'a,
+        medrecord: &'a MedRecord,
+        indices: impl Iterator<Item = &'a EdgeIndex> + 'a,
         comparison_operand: &EdgeIndicesComparisonOperand,
         kind: &MultipleComparisonKind,
-    ) -> MedRecordResult<BoxedIterator<'a, EdgeIndex>> {
+    ) -> MedRecordResult<BoxedIterator<'a, &'a EdgeIndex>> {
         match comparison_operand {
             EdgeIndicesComparisonOperand::Operand(operand) => {
-                let comparison_indices = operand.evaluate(medrecord)?;
+                let mut comparison_indices = operand.evaluate(medrecord)?;
 
                 match kind {
                     MultipleComparisonKind::IsIn => Ok(Box::new(
@@ -527,24 +525,28 @@ impl EdgeIndicesOperation {
                     )),
                 }
             }
-            EdgeIndicesComparisonOperand::Indices(comparison_indices) => match kind {
-                MultipleComparisonKind::IsIn => Ok(Box::new(
-                    indices.filter(move |index| comparison_indices.contains(index)),
-                )),
-                MultipleComparisonKind::IsNotIn => Ok(Box::new(
-                    indices.filter(move |index| !comparison_indices.contains(index)),
-                )),
-            },
+            EdgeIndicesComparisonOperand::Indices(comparison_indices) => {
+                let comparison_indices = comparison_indices.clone();
+
+                match kind {
+                    MultipleComparisonKind::IsIn => Ok(Box::new(
+                        indices.filter(move |index| comparison_indices.contains(index)),
+                    )),
+                    MultipleComparisonKind::IsNotIn => Ok(Box::new(
+                        indices.filter(move |index| !comparison_indices.contains(index)),
+                    )),
+                }
+            }
         }
     }
 
     #[inline]
-    fn evaluate_binary_arithmetic_operation(
+    fn evaluate_binary_arithmetic_operation<'a>(
         medrecord: &MedRecord,
-        indices: impl Iterator<Item = EdgeIndex>,
+        indices: impl Iterator<Item = &'a EdgeIndex> + 'a,
         operand: &EdgeIndexComparisonOperand,
         kind: BinaryArithmeticKind,
-    ) -> MedRecordResult<impl Iterator<Item = EdgeIndex>> {
+    ) -> MedRecordResult<impl Iterator<Item = EdgeIndex> + 'a> {
         let arithmetic_index = operand
             .evaluate(medrecord)?
             .ok_or(MedRecordError::QueryError(
@@ -566,12 +568,9 @@ impl EdgeIndicesOperation {
     #[inline]
     fn evaluate_either_or<'a>(
         medrecord: &'a MedRecord,
-        indices: impl Iterator<Item = EdgeIndex>,
         either: &Wrapper<EdgeIndicesOperand>,
         or: &Wrapper<EdgeIndicesOperand>,
     ) -> MedRecordResult<BoxedIterator<'a, EdgeIndex>> {
-        let indices = indices.collect::<Vec<_>>();
-
         let either_indices = either.evaluate(medrecord)?;
         let or_indices = or.evaluate(medrecord)?;
 
@@ -649,7 +648,7 @@ impl EdgeIndexOperation {
             Self::BinaryArithmeticOpration { operand, kind } => {
                 Self::evaluate_binary_arithmetic_operation(medrecord, index, operand, kind)
             }
-            Self::EitherOr { either, or } => Self::evaluate_either_or(medrecord, index, either, or),
+            Self::EitherOr { either, or } => Self::evaluate_either_or(medrecord, either, or),
             Self::Exclude { operand } => {
                 let result = operand.evaluate(medrecord)?.is_some();
 
@@ -713,10 +712,10 @@ impl EdgeIndexOperation {
                 let comparison_result = match kind {
                     MultipleComparisonKind::IsIn => comparison_indices
                         .into_iter()
-                        .any(|comparison_index| index == comparison_index),
+                        .any(|comparison_index| &index == comparison_index),
                     MultipleComparisonKind::IsNotIn => comparison_indices
                         .into_iter()
-                        .all(|comparison_index| index != comparison_index),
+                        .all(|comparison_index| &index != comparison_index),
                 };
 
                 Ok(if comparison_result { Some(index) } else { None })
@@ -749,7 +748,6 @@ impl EdgeIndexOperation {
     #[inline]
     fn evaluate_either_or(
         medrecord: &MedRecord,
-        index: EdgeIndex,
         either: &Wrapper<EdgeIndexOperand>,
         or: &Wrapper<EdgeIndexOperand>,
     ) -> MedRecordResult<Option<EdgeIndex>> {

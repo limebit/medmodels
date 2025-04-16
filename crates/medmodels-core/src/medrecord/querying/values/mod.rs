@@ -90,55 +90,46 @@ pub enum UnaryArithmeticKind {
 }
 
 pub(crate) trait GetValues<I: Index> {
-    fn get_values<'a>(
+    fn get_values(
         &self,
-        medrecord: &'a MedRecord,
+        medrecord: &MedRecord,
         attribute: MedRecordAttribute,
-    ) -> MedRecordResult<impl Iterator<Item = (&'a I, MedRecordValue)>>
-    where
-        I: 'a;
+    ) -> MedRecordResult<impl Iterator<Item = (I, MedRecordValue)>>;
 }
 
 impl GetValues<NodeIndex> for NodeOperand {
-    fn get_values<'a>(
+    fn get_values(
         &self,
-        medrecord: &'a MedRecord,
+        medrecord: &MedRecord,
         attribute: MedRecordAttribute,
-    ) -> MedRecordResult<impl Iterator<Item = (&'a NodeIndex, MedRecordValue)>>
-    where
-        NodeIndex: 'a,
-    {
+    ) -> MedRecordResult<impl Iterator<Item = (NodeIndex, MedRecordValue)>> {
         let node_indices = self.evaluate(medrecord)?;
 
         Ok(node_indices.flat_map(move |node_index| {
-            Some((
-                node_index,
-                medrecord
-                    .node_attributes(node_index)
-                    .expect("Edge must exist")
-                    .get(&attribute)?
-                    .clone(),
-            ))
+            let attribute = medrecord
+                .node_attributes(&node_index)
+                .expect("Node must exist")
+                .get(&attribute)?
+                .clone();
+
+            Some((node_index, attribute))
         }))
     }
 }
 
 impl GetValues<EdgeIndex> for EdgeOperand {
-    fn get_values<'a>(
+    fn get_values(
         &self,
-        medrecord: &'a MedRecord,
+        medrecord: &MedRecord,
         attribute: MedRecordAttribute,
-    ) -> MedRecordResult<impl Iterator<Item = (&'a EdgeIndex, MedRecordValue)>>
-    where
-        EdgeIndex: 'a,
-    {
+    ) -> MedRecordResult<impl Iterator<Item = (EdgeIndex, MedRecordValue)>> {
         let edge_indices = self.evaluate(medrecord)?;
 
         Ok(edge_indices.flat_map(move |edge_index| {
             Some((
                 edge_index,
                 medrecord
-                    .edge_attributes(edge_index)
+                    .edge_attributes(&edge_index)
                     .expect("Edge must exist")
                     .get(&attribute)?
                     .clone(),
@@ -158,8 +149,8 @@ impl<O: Operand> Context<O> {
     pub(crate) fn get_values<'a>(
         &self,
         medrecord: &'a MedRecord,
-    ) -> MedRecordResult<impl Iterator<Item = (&'a O::Index, MedRecordValue)>> {
-        let values: BoxedIterator<(&'a O::Index, MedRecordValue)> = match self {
+    ) -> MedRecordResult<impl Iterator<Item = (O::Index, MedRecordValue)>> {
+        let values: BoxedIterator<(O::Index, MedRecordValue)> = match self {
             Self::Operand((operand, attribute)) => {
                 Box::new(operand.get_values(medrecord, attribute.clone())?)
             }

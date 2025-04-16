@@ -50,10 +50,10 @@ impl NodeOperand {
     pub(crate) fn evaluate<'a>(
         &self,
         medrecord: &'a MedRecord,
-    ) -> MedRecordResult<BoxedIterator<'a, &'a NodeIndex>> {
-        let node_indices: BoxedIterator<'a, &'a NodeIndex> = match self.context {
+    ) -> MedRecordResult<impl Iterator<Item = NodeIndex> + 'a> {
+        let node_indices: BoxedIterator<'a, NodeIndex> = match self.context {
             Some(_) => todo!(),
-            None => Box::new(medrecord.node_indices()),
+            None => Box::new(medrecord.node_indices().cloned()),
         };
 
         self.operations
@@ -176,7 +176,7 @@ impl Wrapper<NodeOperand> {
     pub(crate) fn evaluate<'a>(
         &self,
         medrecord: &'a MedRecord,
-    ) -> MedRecordResult<BoxedIterator<'a, &'a NodeIndex>> {
+    ) -> MedRecordResult<impl Iterator<Item = NodeIndex> + 'a> {
         self.0.read_or_panic().evaluate(medrecord)
     }
 
@@ -420,12 +420,12 @@ impl NodeIndicesOperand {
     pub(crate) fn evaluate<'a>(
         &self,
         medrecord: &'a MedRecord,
-    ) -> MedRecordResult<impl Iterator<Item = &'a NodeIndex> + 'a> {
-        let indices: BoxedIterator<&'a NodeIndex> = Box::new(self.context.evaluate(medrecord)?);
+    ) -> MedRecordResult<impl Iterator<Item = NodeIndex> + 'a> {
+        let indices: BoxedIterator<NodeIndex> = Box::new(self.context.evaluate(medrecord)?);
 
         self.operations
             .iter()
-            .try_fold(indices, |index_tuples, operation| {
+            .try_fold(indices, move |index_tuples, operation| {
                 operation.evaluate(medrecord, index_tuples)
             })
     }
@@ -532,7 +532,7 @@ impl Wrapper<NodeIndicesOperand> {
     pub(crate) fn evaluate<'a>(
         &self,
         medrecord: &'a MedRecord,
-    ) -> MedRecordResult<impl Iterator<Item = &'a NodeIndex> + 'a> {
+    ) -> MedRecordResult<impl Iterator<Item = NodeIndex> + 'a> {
         self.0.read_or_panic().evaluate(medrecord)
     }
 

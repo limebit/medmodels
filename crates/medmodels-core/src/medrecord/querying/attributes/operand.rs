@@ -148,6 +148,20 @@ impl<V: Into<MedRecordAttribute>, O: Operand> From<V> for SingleAttributeCompari
     }
 }
 
+impl<O: Operand> SingleAttributeComparisonOperand<O> {
+    pub(crate) fn evaluate(
+        &self,
+        medrecord: &MedRecord,
+    ) -> MedRecordResult<Option<OptionalIndexWrapper<O::Index, MedRecordAttribute>>> {
+        match self {
+            Self::Operand(operand) => operand.evaluate(medrecord),
+            Self::Attribute(attribute) => {
+                Ok(Some(OptionalIndexWrapper::WithoutIndex(attribute.clone())))
+            }
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub enum MultipleAttributesComparisonOperand<O: Operand> {
     Operand(MultipleAttributesOperand<O>),
@@ -198,7 +212,7 @@ impl<V: Into<MedRecordAttribute> + Clone, O: Operand, const N: usize> From<[V; N
 #[derive(Debug, Clone)]
 pub struct AttributesTreeOperand<O: Operand> {
     pub(crate) context: O,
-    operations: Vec<AttributesTreeOperation>,
+    operations: Vec<AttributesTreeOperation<O>>,
 }
 
 impl<O: Operand> DeepClone for AttributesTreeOperand<O> {
@@ -221,13 +235,16 @@ impl<O: Operand> AttributesTreeOperand<O> {
     pub(crate) fn evaluate<'a>(
         &self,
         medrecord: &'a MedRecord,
-    ) -> MedRecordResult<impl Iterator<Item = (&'a O::Index, Vec<MedRecordAttribute>)>> {
-        let attributes = Box::new(self.context.get_attributes(medrecord)?)
-            as BoxedIterator<(&'a O::Index, Vec<MedRecordAttribute>)>;
+    ) -> MedRecordResult<impl Iterator<Item = (O::Index, Vec<MedRecordAttribute>)> + 'a>
+    where
+        O: 'a,
+    {
+        let attributes: BoxedIterator<(O::Index, Vec<MedRecordAttribute>)> =
+            Box::new(self.context.get_attributes(medrecord)?);
 
         self.operations
             .iter()
-            .try_fold(attributes, |attribute_tuples, operation| {
+            .try_fold(attributes, move |attribute_tuples, operation| {
                 operation.evaluate(medrecord, attribute_tuples)
             })
     }
@@ -348,7 +365,10 @@ impl<O: Operand> Wrapper<AttributesTreeOperand<O>> {
     pub(crate) fn evaluate<'a>(
         &self,
         medrecord: &'a MedRecord,
-    ) -> MedRecordResult<impl Iterator<Item = (&'a O::Index, Vec<MedRecordAttribute>)>> {
+    ) -> MedRecordResult<impl Iterator<Item = (O::Index, Vec<MedRecordAttribute>)> + 'a>
+    where
+        O: 'a,
+    {
         self.0.read_or_panic().evaluate(medrecord)
     }
 
@@ -467,13 +487,13 @@ impl<O: Operand> MultipleAttributesOperand<O> {
         }
     }
 
-    pub(crate) fn evaluate<'a>(
+    pub(crate) fn evaluate(
         &self,
-        medrecord: &'a MedRecord,
-    ) -> MedRecordResult<impl Iterator<Item = (&'a O::Index, MedRecordAttribute)>> {
+        medrecord: &MedRecord,
+    ) -> MedRecordResult<impl Iterator<Item = (O::Index, MedRecordAttribute)>> {
         let attributes = self.context.evaluate(medrecord)?;
 
-        let attributes: BoxedIterator<(&O::Index, MedRecordAttribute)> = match self.kind {
+        let attributes: BoxedIterator<(O::Index, MedRecordAttribute)> = match self.kind {
             MultipleKind::Max => Box::new(AttributesTreeOperation::get_max(attributes)?),
             MultipleKind::Min => Box::new(AttributesTreeOperation::get_min(attributes)?),
             MultipleKind::Count => Box::new(AttributesTreeOperation::get_count(attributes)?),
@@ -634,10 +654,10 @@ impl<O: Operand> Wrapper<MultipleAttributesOperand<O>> {
         MultipleAttributesOperand::new(context, kind).into()
     }
 
-    pub(crate) fn evaluate<'a>(
+    pub(crate) fn evaluate(
         &self,
-        medrecord: &'a MedRecord,
-    ) -> MedRecordResult<impl Iterator<Item = (&'a O::Index, MedRecordAttribute)>> {
+        medrecord: &MedRecord,
+    ) -> MedRecordResult<impl Iterator<Item = (O::Index, MedRecordAttribute)>> {
         self.0.read_or_panic().evaluate(medrecord)
     }
 
@@ -758,10 +778,10 @@ impl<O: Operand> SingleAttributeOperand<O> {
         }
     }
 
-    pub(crate) fn evaluate<'a>(
+    pub(crate) fn evaluate(
         &self,
-        medrecord: &'a MedRecord,
-    ) -> MedRecordResult<Option<OptionalIndexWrapper<&'a O::Index, MedRecordAttribute>>> {
+        medrecord: &MedRecord,
+    ) -> MedRecordResult<Option<OptionalIndexWrapper<O::Index, MedRecordAttribute>>> {
         let attributes = self.context.evaluate(medrecord)?;
 
         let attribute = match self.kind {
@@ -903,10 +923,10 @@ impl<O: Operand> Wrapper<SingleAttributeOperand<O>> {
         SingleAttributeOperand::new(context, kind).into()
     }
 
-    pub(crate) fn evaluate<'a>(
+    pub(crate) fn evaluate(
         &self,
-        medrecord: &'a MedRecord,
-    ) -> MedRecordResult<Option<OptionalIndexWrapper<&'a O::Index, MedRecordAttribute>>> {
+        medrecord: &MedRecord,
+    ) -> MedRecordResult<Option<OptionalIndexWrapper<O::Index, MedRecordAttribute>>> {
         self.0.read_or_panic().evaluate(medrecord)
     }
 

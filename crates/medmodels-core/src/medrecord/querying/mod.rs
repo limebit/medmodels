@@ -42,6 +42,29 @@ pub enum OptionalIndexWrapper<I, T> {
     WithoutIndex(T),
 }
 
+impl<I, T> OptionalIndexWrapper<I, T> {
+    pub fn get_value(&self) -> &T {
+        match self {
+            OptionalIndexWrapper::WithIndex((_, value)) => value,
+            OptionalIndexWrapper::WithoutIndex(value) => value,
+        }
+    }
+
+    pub fn get_index(&self) -> Option<&I> {
+        match self {
+            OptionalIndexWrapper::WithIndex((index, _)) => Some(index),
+            OptionalIndexWrapper::WithoutIndex(_) => None,
+        }
+    }
+
+    pub fn unpack(self) -> (Option<I>, T) {
+        match self {
+            OptionalIndexWrapper::WithIndex((index, value)) => (Some(index), value),
+            OptionalIndexWrapper::WithoutIndex(value) => (None, value),
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct Selection<'a, O: Operand> {
     medrecord: &'a MedRecord,
@@ -179,13 +202,13 @@ impl<O: Operand> From<Wrapper<SingleValueOperand<O>>> for ReturnOperand<O> {
 }
 
 pub enum ReturnValue<'a, O: Operand> {
-    AttributesTree(BoxedIterator<'a, (&'a O::Index, Vec<MedRecordAttribute>)>),
-    MultipleAttributes(BoxedIterator<'a, (&'a O::Index, MedRecordAttribute)>),
-    SingleAttribute(Option<OptionalIndexWrapper<&'a O::Index, MedRecordAttribute>>),
-    EdgeIndices(BoxedIterator<'a, &'a EdgeIndex>),
+    AttributesTree(BoxedIterator<'a, (O::Index, Vec<MedRecordAttribute>)>),
+    MultipleAttributes(BoxedIterator<'a, (O::Index, MedRecordAttribute)>),
+    SingleAttribute(Option<OptionalIndexWrapper<O::Index, MedRecordAttribute>>),
+    EdgeIndices(BoxedIterator<'a, EdgeIndex>),
     EdgeIndex(Option<EdgeIndex>),
-    NodeIndices(BoxedIterator<'a, &'a NodeIndex>),
+    NodeIndices(BoxedIterator<'a, NodeIndex>),
     NodeIndex(Option<NodeIndex>),
-    MultipleValues(BoxedIterator<'a, (&'a O::Index, MedRecordValue)>),
-    SingleValue(Option<OptionalIndexWrapper<&'a O::Index, MedRecordValue>>),
+    MultipleValues(BoxedIterator<'a, (O::Index, MedRecordValue)>),
+    SingleValue(Option<OptionalIndexWrapper<O::Index, MedRecordValue>>),
 }

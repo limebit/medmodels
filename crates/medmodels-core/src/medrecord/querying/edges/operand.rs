@@ -49,10 +49,10 @@ impl EdgeOperand {
     pub(crate) fn evaluate<'a>(
         &self,
         medrecord: &'a MedRecord,
-    ) -> MedRecordResult<impl Iterator<Item = &'a EdgeIndex>> {
-        let edge_indices: BoxedIterator<&'a EdgeIndex> = match self.context {
+    ) -> MedRecordResult<impl Iterator<Item = EdgeIndex> + 'a> {
+        let edge_indices: BoxedIterator<EdgeIndex> = match self.context {
             Some(_) => todo!(),
-            None => Box::new(medrecord.edge_indices()),
+            None => Box::new(medrecord.edge_indices().cloned()),
         };
 
         self.operations
@@ -173,7 +173,7 @@ impl Wrapper<EdgeOperand> {
     pub(crate) fn evaluate<'a>(
         &self,
         medrecord: &'a MedRecord,
-    ) -> MedRecordResult<impl Iterator<Item = &'a EdgeIndex>> {
+    ) -> MedRecordResult<impl Iterator<Item = EdgeIndex> + 'a> {
         self.0.read_or_panic().evaluate(medrecord)
     }
 
@@ -408,7 +408,7 @@ impl EdgeIndicesOperand {
         &self,
         medrecord: &'a MedRecord,
     ) -> MedRecordResult<impl Iterator<Item = EdgeIndex> + 'a> {
-        let indices: BoxedIterator<&'a EdgeIndex> = Box::new(self.context.evaluate(medrecord)?);
+        let indices: BoxedIterator<EdgeIndex> = Box::new(self.context.evaluate(medrecord)?);
 
         self.operations
             .iter()
@@ -505,7 +505,7 @@ impl Wrapper<EdgeIndicesOperand> {
     pub(crate) fn evaluate<'a>(
         &self,
         medrecord: &'a MedRecord,
-    ) -> MedRecordResult<impl Iterator<Item = &'a EdgeIndex> + 'a> {
+    ) -> MedRecordResult<impl Iterator<Item = EdgeIndex> + 'a> {
         self.0.read_or_panic().evaluate(medrecord)
     }
 

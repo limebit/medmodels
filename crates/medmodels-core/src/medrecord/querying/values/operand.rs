@@ -196,11 +196,11 @@ impl<O: Operand> MultipleValuesOperand<O> {
     pub(crate) fn evaluate<'a>(
         &self,
         medrecord: &'a MedRecord,
-    ) -> MedRecordResult<impl Iterator<Item = (&'a O::Index, MedRecordValue)>>
+    ) -> MedRecordResult<impl Iterator<Item = (O::Index, MedRecordValue)> + 'a>
     where
         O: 'a,
     {
-        let values: BoxedIterator<(&'a O::Index, MedRecordValue)> =
+        let values: BoxedIterator<(O::Index, MedRecordValue)> =
             Box::new(self.context.get_values(medrecord)?);
 
         self.operations
@@ -331,7 +331,7 @@ impl<O: Operand> Wrapper<MultipleValuesOperand<O>> {
     pub(crate) fn evaluate<'a>(
         &self,
         medrecord: &'a MedRecord,
-    ) -> MedRecordResult<impl Iterator<Item = (&'a O::Index, MedRecordValue)>>
+    ) -> MedRecordResult<impl Iterator<Item = (O::Index, MedRecordValue)> + 'a>
     where
         O: 'a,
     {
@@ -455,8 +455,8 @@ impl<O: Operand> SingleValueOperand<O> {
 
     pub(crate) fn evaluate<'a>(
         &self,
-        medrecord: &'a MedRecord,
-    ) -> MedRecordResult<Option<OptionalIndexWrapper<&'a O::Index, MedRecordValue>>>
+        medrecord: &MedRecord,
+    ) -> MedRecordResult<Option<OptionalIndexWrapper<O::Index, MedRecordValue>>>
     where
         O: 'a,
     {
@@ -615,7 +615,7 @@ impl<O: Operand> Wrapper<SingleValueOperand<O>> {
     pub(crate) fn evaluate<'a>(
         &self,
         medrecord: &'a MedRecord,
-    ) -> MedRecordResult<Option<OptionalIndexWrapper<&'a O::Index, MedRecordValue>>>
+    ) -> MedRecordResult<Option<OptionalIndexWrapper<O::Index, MedRecordValue>>>
     where
         O: 'a,
     {
