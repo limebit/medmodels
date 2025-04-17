@@ -17,9 +17,9 @@ use crate::{
             attributes::{MultipleKind, SingleKind},
             traits::{DeepClone, ReadWriteOrPanic},
             values::MultipleValuesOperand,
-            BoxedIterator,
+            BoxedIterator, Operand,
         },
-        DataType, MedRecordAttribute, MedRecordValue, Wrapper,
+        DataType, Index, MedRecordAttribute, MedRecordValue, Wrapper,
     },
     MedRecord,
 };
@@ -85,20 +85,20 @@ macro_rules! get_single_attribute_comparison_operand_attribute {
 }
 
 #[derive(Debug, Clone)]
-pub enum AttributesTreeOperation {
+pub enum AttributesTreeOperation<O: Operand> {
     AttributesOperation {
-        operand: Wrapper<MultipleAttributesOperand>,
+        operand: Wrapper<MultipleAttributesOperand<O>>,
     },
     SingleAttributeComparisonOperation {
-        operand: SingleAttributeComparisonOperand,
+        operand: SingleAttributeComparisonOperand<O>,
         kind: SingleComparisonKind,
     },
     MultipleAttributesComparisonOperation {
-        operand: MultipleAttributesComparisonOperand,
+        operand: MultipleAttributesComparisonOperand<O>,
         kind: MultipleComparisonKind,
     },
     BinaryArithmeticOpration {
-        operand: SingleAttributeComparisonOperand,
+        operand: SingleAttributeComparisonOperand<O>,
         kind: BinaryArithmeticKind,
     },
     UnaryArithmeticOperation {
@@ -114,15 +114,15 @@ pub enum AttributesTreeOperation {
     IsMin,
 
     EitherOr {
-        either: Wrapper<AttributesTreeOperand>,
-        or: Wrapper<AttributesTreeOperand>,
+        either: Wrapper<AttributesTreeOperand<O>>,
+        or: Wrapper<AttributesTreeOperand<O>>,
     },
     Exclude {
-        operand: Wrapper<AttributesTreeOperand>,
+        operand: Wrapper<AttributesTreeOperand<O>>,
     },
 }
 
-impl DeepClone for AttributesTreeOperation {
+impl<O: Operand> DeepClone for AttributesTreeOperation<O> {
     fn deep_clone(&self) -> Self {
         match self {
             Self::AttributesOperation { operand } => Self::AttributesOperation {
@@ -163,8 +163,8 @@ impl DeepClone for AttributesTreeOperation {
     }
 }
 
-impl AttributesTreeOperation {
-    pub(crate) fn evaluate<'a, T: 'a + Eq + Clone + Hash + GetAttributes + Display>(
+impl<O: Operand> AttributesTreeOperation<O> {
+    pub(crate) fn evaluate<'a, T: 'a + Index>(
         &self,
         medrecord: &'a MedRecord,
         attributes: impl Iterator<Item = (T, Vec<MedRecordAttribute>)> + 'a,
@@ -367,10 +367,10 @@ impl AttributesTreeOperation {
     }
 
     #[inline]
-    fn evaluate_attributes_operation<'a, T: 'a + Clone + Eq + Hash + GetAttributes + Display>(
+    fn evaluate_attributes_operation<'a, T: 'a + Index>(
         medrecord: &'a MedRecord,
         attributes: impl Iterator<Item = (T, Vec<MedRecordAttribute>)> + 'a,
-        operand: &Wrapper<MultipleAttributesOperand>,
+        operand: &Wrapper<MultipleAttributesOperand<O>>,
     ) -> MedRecordResult<impl Iterator<Item = (T, Vec<MedRecordAttribute>)> + 'a> {
         let kind = &operand.0.read_or_panic().kind;
 
@@ -379,7 +379,7 @@ impl AttributesTreeOperation {
         let multiple_operand_attributes: Box<dyn Iterator<Item = (_, MedRecordAttribute)>> =
             get_multiple_operand_attributes!(kind, attributes.clone().into_iter());
 
-        let result = operand.evaluate(medrecord, multiple_operand_attributes)?;
+        let result = operand.evaluate_forward(medrecord, multiple_operand_attributes)?;
 
         let mut attributes = attributes.into_iter().collect::<HashMap<_, _>>();
 
@@ -395,7 +395,7 @@ impl AttributesTreeOperation {
     fn evaluate_single_attribute_comparison_operation<'a, T>(
         medrecord: &'a MedRecord,
         attributes: impl Iterator<Item = (T, Vec<MedRecordAttribute>)> + 'a,
-        comparison_operand: &SingleAttributeComparisonOperand,
+        comparison_operand: &SingleAttributeComparisonOperand<O>,
         kind: &SingleComparisonKind,
     ) -> MedRecordResult<BoxedIterator<'a, (T, Vec<MedRecordAttribute>)>> {
         let comparison_attribute =
@@ -508,7 +508,7 @@ impl AttributesTreeOperation {
     fn evaluate_multiple_attributes_comparison_operation<'a, T>(
         medrecord: &'a MedRecord,
         attributes: impl Iterator<Item = (T, Vec<MedRecordAttribute>)> + 'a,
-        comparison_operand: &MultipleAttributesComparisonOperand,
+        comparison_operand: &MultipleAttributesComparisonOperand<O>,
         kind: &MultipleComparisonKind,
     ) -> MedRecordResult<BoxedIterator<'a, (T, Vec<MedRecordAttribute>)>> {
         let comparison_attributes = match comparison_operand {
@@ -524,7 +524,7 @@ impl AttributesTreeOperation {
                     get_multiple_operand_attributes!(kind, comparison_attributes);
 
                 operand
-                    .evaluate(medrecord, comparison_attributes)?
+                    .evaluate_forward(medrecord, comparison_attributes)?
                     .map(|(_, attribute)| attribute)
                     .collect::<Vec<_>>()
             }
@@ -679,8 +679,9 @@ impl AttributesTreeOperation {
     ) -> MedRecordResult<BoxedIterator<'a, (T, Vec<MedRecordAttribute>)>> {
         let attributes = attributes.collect::<Vec<_>>();
 
-        let either_attributes = either.evaluate(medrecord, attributes.clone().into_iter())?;
-        let or_attributes = or.evaluate(medrecord, attributes.into_iter())?;
+        let either_attributes =
+            either.evaluate_forward(medrecord, attributes.clone().into_iter())?;
+        let or_attributes = or.evaluate_forward(medrecord, attributes.into_iter())?;
 
         Ok(Box::new(
             either_attributes
@@ -698,7 +699,7 @@ impl AttributesTreeOperation {
         let attributes = attributes.collect::<Vec<_>>();
 
         let result = operand
-            .evaluate(medrecord, attributes.clone().into_iter())?
+            .evaluate_forward(medrecord, attributes.clone().into_iter())?
             .map(|(index, _)| index)
             .collect::<HashSet<_>>();
 
@@ -962,7 +963,7 @@ impl MultipleAttributesOperation {
 
         let attribute = get_single_operand_attribute!(kind, attributes.clone().into_iter());
 
-        Ok(match operand.evaluate(medrecord, attribute)? {
+        Ok(match operand.evaluate_forward(medrecord, attribute)? {
             Some(_) => Box::new(attributes.into_iter()),
             None => Box::new(std::iter::empty()),
         })
@@ -1045,7 +1046,7 @@ impl MultipleAttributesOperation {
                     get_multiple_operand_attributes!(kind, comparison_attributes);
 
                 operand
-                    .evaluate(medrecord, comparison_attributes)?
+                    .evaluate_forward(medrecord, comparison_attributes)?
                     .map(|(_, attribute)| attribute)
                     .collect::<Vec<_>>()
             }
@@ -1152,7 +1153,7 @@ impl MultipleAttributesOperation {
 
         let mut attributes = attributes.into_iter().collect::<HashMap<_, _>>();
 
-        let values = operand.evaluate(medrecord, values.into_iter())?;
+        let values = operand.evaluate_forward(medrecord, values.into_iter())?;
 
         Ok(values.map(move |(index, _)| {
             (
@@ -1179,8 +1180,9 @@ impl MultipleAttributesOperation {
     ) -> MedRecordResult<BoxedIterator<'a, (T, MedRecordAttribute)>> {
         let attributes = attributes.collect::<Vec<_>>();
 
-        let either_attributes = either.evaluate(medrecord, attributes.clone().into_iter())?;
-        let or_attributes = or.evaluate(medrecord, attributes.into_iter())?;
+        let either_attributes =
+            either.evaluate_forward(medrecord, attributes.clone().into_iter())?;
+        let or_attributes = or.evaluate_forward(medrecord, attributes.into_iter())?;
 
         Ok(Box::new(
             either_attributes
@@ -1198,7 +1200,7 @@ impl MultipleAttributesOperation {
         let attributes = attributes.collect::<Vec<_>>();
 
         let result = operand
-            .evaluate(medrecord, attributes.clone().into_iter())?
+            .evaluate_forward(medrecord, attributes.clone().into_iter())?
             .map(|(index, _)| index)
             .collect::<HashSet<_>>();
 
@@ -1374,7 +1376,7 @@ impl SingleAttributeOperation {
                     get_multiple_operand_attributes!(kind, comparison_attributes);
 
                 operand
-                    .evaluate(medrecord, comparison_attributes)?
+                    .evaluate_forward(medrecord, comparison_attributes)?
                     .map(|(_, attribute)| attribute)
                     .collect::<Vec<_>>()
             }
@@ -1420,8 +1422,8 @@ impl SingleAttributeOperation {
         either: &Wrapper<SingleAttributeOperand>,
         or: &Wrapper<SingleAttributeOperand>,
     ) -> MedRecordResult<Option<MedRecordAttribute>> {
-        let either_result = either.evaluate(medrecord, attribute.clone())?;
-        let or_result = or.evaluate(medrecord, attribute)?;
+        let either_result = either.evaluate_forward(medrecord, attribute.clone())?;
+        let or_result = or.evaluate_forward(medrecord, attribute)?;
 
         match (either_result, or_result) {
             (Some(either_result), _) => Ok(Some(either_result)),

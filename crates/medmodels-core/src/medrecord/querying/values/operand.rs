@@ -8,19 +8,18 @@ use crate::{
     medrecord::{
         querying::{
             traits::{DeepClone, ReadWriteOrPanic},
-            BoxedIterator,
+            BoxedIterator, Operand,
         },
-        MedRecordAttribute, MedRecordValue, Wrapper,
+        Index, MedRecordValue, Wrapper,
     },
     MedRecord,
 };
-use std::hash::Hash;
 
 macro_rules! implement_value_operation {
     ($name:ident, $variant:ident) => {
-        pub fn $name(&mut self) -> Wrapper<SingleValueOperand> {
+        pub fn $name(&mut self) -> Wrapper<SingleValueOperand<O>> {
             let operand =
-                Wrapper::<SingleValueOperand>::new(self.deep_clone(), SingleKind::$variant);
+                Wrapper::<SingleValueOperand<O>>::new(self.deep_clone(), SingleKind::$variant);
 
             self.operations
                 .push(MultipleValuesOperation::ValueOperation {
@@ -34,7 +33,7 @@ macro_rules! implement_value_operation {
 
 macro_rules! implement_single_value_comparison_operation {
     ($name:ident, $operation:ident, $kind:ident) => {
-        pub fn $name<V: Into<SingleValueComparisonOperand>>(&mut self, value: V) {
+        pub fn $name<CO: Operand, V: Into<SingleValueComparisonOperand<CO>>>(&mut self, value: V) {
             self.operations
                 .push($operation::SingleValueComparisonOperation {
                     operand: value.into(),
@@ -46,7 +45,7 @@ macro_rules! implement_single_value_comparison_operation {
 
 macro_rules! implement_binary_arithmetic_operation {
     ($name:ident, $operation:ident, $kind:ident) => {
-        pub fn $name<V: Into<SingleValueComparisonOperand>>(&mut self, value: V) {
+        pub fn $name<CO: Operand, V: Into<SingleValueComparisonOperand<CO>>>(&mut self, value: V) {
             self.operations.push($operation::BinaryArithmeticOpration {
                 operand: value.into(),
                 kind: BinaryArithmeticKind::$kind,
@@ -82,7 +81,7 @@ macro_rules! implement_wrapper_operand {
 }
 
 macro_rules! implement_wrapper_operand_with_return {
-    ($name:ident, $return_operand:ident) => {
+    ($name:ident, $return_operand:ty) => {
         pub fn $name(&self) -> Wrapper<$return_operand> {
             self.0.write_or_panic().$name()
         }
@@ -90,20 +89,20 @@ macro_rules! implement_wrapper_operand_with_return {
 }
 
 macro_rules! implement_wrapper_operand_with_argument {
-    ($name:ident, $value_type:ty) => {
-        pub fn $name(&self, value: $value_type) {
-            self.0.write_or_panic().$name(value)
+    ($name:ident, $attribute_type:ident) => {
+        pub fn $name<CO: Operand, V: Into<$attribute_type<CO>>>(&self, attribute: V) {
+            self.0.write_or_panic().$name(attribute)
         }
     };
 }
 
 #[derive(Debug, Clone)]
-pub enum SingleValueComparisonOperand {
-    Operand(SingleValueOperand),
+pub enum SingleValueComparisonOperand<O: Operand> {
+    Operand(SingleValueOperand<O>),
     Value(MedRecordValue),
 }
 
-impl DeepClone for SingleValueComparisonOperand {
+impl<O: Operand> DeepClone for SingleValueComparisonOperand<O> {
     fn deep_clone(&self) -> Self {
         match self {
             Self::Operand(operand) => Self::Operand(operand.deep_clone()),
@@ -112,31 +111,31 @@ impl DeepClone for SingleValueComparisonOperand {
     }
 }
 
-impl From<Wrapper<SingleValueOperand>> for SingleValueComparisonOperand {
-    fn from(value: Wrapper<SingleValueOperand>) -> Self {
+impl<O: Operand> From<Wrapper<SingleValueOperand<O>>> for SingleValueComparisonOperand<O> {
+    fn from(value: Wrapper<SingleValueOperand<O>>) -> Self {
         Self::Operand(value.0.read_or_panic().deep_clone())
     }
 }
 
-impl From<&Wrapper<SingleValueOperand>> for SingleValueComparisonOperand {
-    fn from(value: &Wrapper<SingleValueOperand>) -> Self {
+impl<O: Operand> From<&Wrapper<SingleValueOperand<O>>> for SingleValueComparisonOperand<O> {
+    fn from(value: &Wrapper<SingleValueOperand<O>>) -> Self {
         Self::Operand(value.0.read_or_panic().deep_clone())
     }
 }
 
-impl<V: Into<MedRecordValue>> From<V> for SingleValueComparisonOperand {
+impl<V: Into<MedRecordValue>, O: Operand> From<V> for SingleValueComparisonOperand<O> {
     fn from(value: V) -> Self {
         Self::Value(value.into())
     }
 }
 
 #[derive(Debug, Clone)]
-pub enum MultipleValuesComparisonOperand {
-    Operand(MultipleValuesOperand),
+pub enum MultipleValuesComparisonOperand<O: Operand> {
+    Operand(MultipleValuesOperand<O>),
     Values(Vec<MedRecordValue>),
 }
 
-impl DeepClone for MultipleValuesComparisonOperand {
+impl<O: Operand> DeepClone for MultipleValuesComparisonOperand<O> {
     fn deep_clone(&self) -> Self {
         match self {
             Self::Operand(operand) => Self::Operand(operand.deep_clone()),
@@ -145,26 +144,26 @@ impl DeepClone for MultipleValuesComparisonOperand {
     }
 }
 
-impl From<Wrapper<MultipleValuesOperand>> for MultipleValuesComparisonOperand {
-    fn from(value: Wrapper<MultipleValuesOperand>) -> Self {
+impl<O: Operand> From<Wrapper<MultipleValuesOperand<O>>> for MultipleValuesComparisonOperand<O> {
+    fn from(value: Wrapper<MultipleValuesOperand<O>>) -> Self {
         Self::Operand(value.0.read_or_panic().deep_clone())
     }
 }
 
-impl From<&Wrapper<MultipleValuesOperand>> for MultipleValuesComparisonOperand {
-    fn from(value: &Wrapper<MultipleValuesOperand>) -> Self {
+impl<O: Operand> From<&Wrapper<MultipleValuesOperand<O>>> for MultipleValuesComparisonOperand<O> {
+    fn from(value: &Wrapper<MultipleValuesOperand<O>>) -> Self {
         Self::Operand(value.0.read_or_panic().deep_clone())
     }
 }
 
-impl<V: Into<MedRecordValue>> From<Vec<V>> for MultipleValuesComparisonOperand {
+impl<V: Into<MedRecordValue>, O: Operand> From<Vec<V>> for MultipleValuesComparisonOperand<O> {
     fn from(value: Vec<V>) -> Self {
         Self::Values(value.into_iter().map(Into::into).collect())
     }
 }
 
-impl<V: Into<MedRecordValue> + Clone, const N: usize> From<[V; N]>
-    for MultipleValuesComparisonOperand
+impl<V: Into<MedRecordValue> + Clone, O: Operand, const N: usize> From<[V; N]>
+    for MultipleValuesComparisonOperand<O>
 {
     fn from(value: [V; N]) -> Self {
         value.to_vec().into()
@@ -172,32 +171,29 @@ impl<V: Into<MedRecordValue> + Clone, const N: usize> From<[V; N]>
 }
 
 #[derive(Debug, Clone)]
-pub struct MultipleValuesOperand {
-    pub(crate) context: Context,
-    pub(crate) attribute: MedRecordAttribute,
+pub struct MultipleValuesOperand<O: Operand> {
+    pub(crate) context: Context<O>,
     operations: Vec<MultipleValuesOperation>,
 }
 
-impl DeepClone for MultipleValuesOperand {
+impl<O: Operand> DeepClone for MultipleValuesOperand<O> {
     fn deep_clone(&self) -> Self {
         Self {
             context: self.context.clone(),
-            attribute: self.attribute.clone(),
             operations: self.operations.iter().map(DeepClone::deep_clone).collect(),
         }
     }
 }
 
-impl MultipleValuesOperand {
-    pub(crate) fn new(context: Context, attribute: MedRecordAttribute) -> Self {
+impl<O: Operand> MultipleValuesOperand<O> {
+    pub(crate) fn new(context: Context<O>) -> Self {
         Self {
             context,
-            attribute,
             operations: Vec::new(),
         }
     }
 
-    pub(crate) fn evaluate<'a, T: 'a + Eq + Hash + Clone>(
+    pub(crate) fn evaluate_forward<'a, T: 'a + Index>(
         &self,
         medrecord: &'a MedRecord,
         values: impl Iterator<Item = (T, MedRecordValue)> + 'a,
@@ -245,7 +241,7 @@ impl MultipleValuesOperand {
     implement_single_value_comparison_operation!(ends_with, MultipleValuesOperation, EndsWith);
     implement_single_value_comparison_operation!(contains, MultipleValuesOperation, Contains);
 
-    pub fn is_in<V: Into<MultipleValuesComparisonOperand>>(&mut self, values: V) {
+    pub fn is_in<CO: Operand, V: Into<MultipleValuesComparisonOperand<CO>>>(&mut self, values: V) {
         self.operations
             .push(MultipleValuesOperation::MultipleValuesComparisonOperation {
                 operand: values.into(),
@@ -253,7 +249,10 @@ impl MultipleValuesOperand {
             });
     }
 
-    pub fn is_not_in<V: Into<MultipleValuesComparisonOperand>>(&mut self, values: V) {
+    pub fn is_not_in<CO: Operand, V: Into<MultipleValuesComparisonOperand<CO>>>(
+        &mut self,
+        values: V,
+    ) {
         self.operations
             .push(MultipleValuesOperation::MultipleValuesComparisonOperation {
                 operand: values.into(),
@@ -296,13 +295,11 @@ impl MultipleValuesOperand {
 
     pub fn either_or<EQ, OQ>(&mut self, either_query: EQ, or_query: OQ)
     where
-        EQ: FnOnce(&mut Wrapper<MultipleValuesOperand>),
-        OQ: FnOnce(&mut Wrapper<MultipleValuesOperand>),
+        EQ: FnOnce(&mut Wrapper<MultipleValuesOperand<O>>),
+        OQ: FnOnce(&mut Wrapper<MultipleValuesOperand<O>>),
     {
-        let mut either_operand =
-            Wrapper::<MultipleValuesOperand>::new(self.context.clone(), self.attribute.clone());
-        let mut or_operand =
-            Wrapper::<MultipleValuesOperand>::new(self.context.clone(), self.attribute.clone());
+        let mut either_operand = Wrapper::<MultipleValuesOperand<O>>::new(self.context.clone());
+        let mut or_operand = Wrapper::<MultipleValuesOperand<O>>::new(self.context.clone());
 
         either_query(&mut either_operand);
         or_query(&mut or_operand);
@@ -315,10 +312,9 @@ impl MultipleValuesOperand {
 
     pub fn exclude<Q>(&mut self, query: Q)
     where
-        Q: FnOnce(&mut Wrapper<MultipleValuesOperand>),
+        Q: FnOnce(&mut Wrapper<MultipleValuesOperand<O>>),
     {
-        let mut operand =
-            Wrapper::<MultipleValuesOperand>::new(self.context.clone(), self.attribute.clone());
+        let mut operand = Wrapper::<MultipleValuesOperand<O>>::new(self.context.clone());
 
         query(&mut operand);
 
@@ -327,54 +323,51 @@ impl MultipleValuesOperand {
     }
 }
 
-impl Wrapper<MultipleValuesOperand> {
-    pub(crate) fn new(context: Context, attribute: MedRecordAttribute) -> Self {
-        MultipleValuesOperand::new(context, attribute).into()
+impl<O: Operand> Wrapper<MultipleValuesOperand<O>> {
+    pub(crate) fn new(context: Context<O>) -> Self {
+        MultipleValuesOperand::new(context).into()
     }
 
-    pub(crate) fn evaluate<'a, T: 'a + Eq + Hash + Clone>(
+    pub(crate) fn evaluate_forward<'a, T: 'a + Index>(
         &self,
         medrecord: &'a MedRecord,
         values: impl Iterator<Item = (T, MedRecordValue)> + 'a,
     ) -> MedRecordResult<impl Iterator<Item = (T, MedRecordValue)> + 'a> {
-        self.0.read_or_panic().evaluate(medrecord, values)
+        self.0.read_or_panic().evaluate_forward(medrecord, values)
     }
 
-    implement_wrapper_operand_with_return!(max, SingleValueOperand);
-    implement_wrapper_operand_with_return!(min, SingleValueOperand);
-    implement_wrapper_operand_with_return!(mean, SingleValueOperand);
-    implement_wrapper_operand_with_return!(median, SingleValueOperand);
-    implement_wrapper_operand_with_return!(mode, SingleValueOperand);
-    implement_wrapper_operand_with_return!(std, SingleValueOperand);
-    implement_wrapper_operand_with_return!(var, SingleValueOperand);
-    implement_wrapper_operand_with_return!(count, SingleValueOperand);
-    implement_wrapper_operand_with_return!(sum, SingleValueOperand);
-    implement_wrapper_operand_with_return!(first, SingleValueOperand);
-    implement_wrapper_operand_with_return!(last, SingleValueOperand);
+    implement_wrapper_operand_with_return!(max, SingleValueOperand<O>);
+    implement_wrapper_operand_with_return!(min, SingleValueOperand<O>);
+    implement_wrapper_operand_with_return!(mean, SingleValueOperand<O>);
+    implement_wrapper_operand_with_return!(median, SingleValueOperand<O>);
+    implement_wrapper_operand_with_return!(mode, SingleValueOperand<O>);
+    implement_wrapper_operand_with_return!(std, SingleValueOperand<O>);
+    implement_wrapper_operand_with_return!(var, SingleValueOperand<O>);
+    implement_wrapper_operand_with_return!(count, SingleValueOperand<O>);
+    implement_wrapper_operand_with_return!(sum, SingleValueOperand<O>);
+    implement_wrapper_operand_with_return!(first, SingleValueOperand<O>);
+    implement_wrapper_operand_with_return!(last, SingleValueOperand<O>);
 
-    implement_wrapper_operand_with_argument!(greater_than, impl Into<SingleValueComparisonOperand>);
+    implement_wrapper_operand_with_argument!(greater_than, SingleValueComparisonOperand);
     implement_wrapper_operand_with_argument!(
         greater_than_or_equal_to,
-        impl Into<SingleValueComparisonOperand>
+        SingleValueComparisonOperand
     );
-    implement_wrapper_operand_with_argument!(less_than, impl Into<SingleValueComparisonOperand>);
-    implement_wrapper_operand_with_argument!(
-        less_than_or_equal_to,
-        impl Into<SingleValueComparisonOperand>
-    );
-    implement_wrapper_operand_with_argument!(equal_to, impl Into<SingleValueComparisonOperand>);
-    implement_wrapper_operand_with_argument!(not_equal_to, impl Into<SingleValueComparisonOperand>);
-    implement_wrapper_operand_with_argument!(starts_with, impl Into<SingleValueComparisonOperand>);
-    implement_wrapper_operand_with_argument!(ends_with, impl Into<SingleValueComparisonOperand>);
-    implement_wrapper_operand_with_argument!(contains, impl Into<SingleValueComparisonOperand>);
-    implement_wrapper_operand_with_argument!(is_in, impl Into<MultipleValuesComparisonOperand>);
-    implement_wrapper_operand_with_argument!(is_not_in, impl Into<MultipleValuesComparisonOperand>);
-    implement_wrapper_operand_with_argument!(add, impl Into<SingleValueComparisonOperand>);
-    implement_wrapper_operand_with_argument!(sub, impl Into<SingleValueComparisonOperand>);
-    implement_wrapper_operand_with_argument!(mul, impl Into<SingleValueComparisonOperand>);
-    implement_wrapper_operand_with_argument!(div, impl Into<SingleValueComparisonOperand>);
-    implement_wrapper_operand_with_argument!(pow, impl Into<SingleValueComparisonOperand>);
-    implement_wrapper_operand_with_argument!(r#mod, impl Into<SingleValueComparisonOperand>);
+    implement_wrapper_operand_with_argument!(less_than, SingleValueComparisonOperand);
+    implement_wrapper_operand_with_argument!(less_than_or_equal_to, SingleValueComparisonOperand);
+    implement_wrapper_operand_with_argument!(equal_to, SingleValueComparisonOperand);
+    implement_wrapper_operand_with_argument!(not_equal_to, SingleValueComparisonOperand);
+    implement_wrapper_operand_with_argument!(starts_with, SingleValueComparisonOperand);
+    implement_wrapper_operand_with_argument!(ends_with, SingleValueComparisonOperand);
+    implement_wrapper_operand_with_argument!(contains, SingleValueComparisonOperand);
+    implement_wrapper_operand_with_argument!(is_in, MultipleValuesComparisonOperand);
+    implement_wrapper_operand_with_argument!(is_not_in, MultipleValuesComparisonOperand);
+    implement_wrapper_operand_with_argument!(add, SingleValueComparisonOperand);
+    implement_wrapper_operand_with_argument!(sub, SingleValueComparisonOperand);
+    implement_wrapper_operand_with_argument!(mul, SingleValueComparisonOperand);
+    implement_wrapper_operand_with_argument!(div, SingleValueComparisonOperand);
+    implement_wrapper_operand_with_argument!(pow, SingleValueComparisonOperand);
+    implement_wrapper_operand_with_argument!(r#mod, SingleValueComparisonOperand);
 
     implement_wrapper_operand!(round);
     implement_wrapper_operand!(ceil);
@@ -403,28 +396,28 @@ impl Wrapper<MultipleValuesOperand> {
 
     pub fn either_or<EQ, OQ>(&self, either_query: EQ, or_query: OQ)
     where
-        EQ: FnOnce(&mut Wrapper<MultipleValuesOperand>),
-        OQ: FnOnce(&mut Wrapper<MultipleValuesOperand>),
+        EQ: FnOnce(&mut Wrapper<MultipleValuesOperand<O>>),
+        OQ: FnOnce(&mut Wrapper<MultipleValuesOperand<O>>),
     {
         self.0.write_or_panic().either_or(either_query, or_query);
     }
 
     pub fn exclude<Q>(&self, query: Q)
     where
-        Q: FnOnce(&mut Wrapper<MultipleValuesOperand>),
+        Q: FnOnce(&mut Wrapper<MultipleValuesOperand<O>>),
     {
         self.0.write_or_panic().exclude(query);
     }
 }
 
 #[derive(Debug, Clone)]
-pub struct SingleValueOperand {
-    pub(crate) context: MultipleValuesOperand,
+pub struct SingleValueOperand<O: Operand> {
+    pub(crate) context: MultipleValuesOperand<O>,
     pub(crate) kind: SingleKind,
     operations: Vec<SingleValueOperation>,
 }
 
-impl DeepClone for SingleValueOperand {
+impl<O: Operand> DeepClone for SingleValueOperand<O> {
     fn deep_clone(&self) -> Self {
         Self {
             context: self.context.deep_clone(),
@@ -434,8 +427,8 @@ impl DeepClone for SingleValueOperand {
     }
 }
 
-impl SingleValueOperand {
-    pub(crate) fn new(context: MultipleValuesOperand, kind: SingleKind) -> Self {
+impl<O: Operand> SingleValueOperand<O> {
+    pub(crate) fn new(context: MultipleValuesOperand<O>, kind: SingleKind) -> Self {
         Self {
             context,
             kind,
@@ -477,7 +470,7 @@ impl SingleValueOperand {
     implement_single_value_comparison_operation!(ends_with, SingleValueOperation, EndsWith);
     implement_single_value_comparison_operation!(contains, SingleValueOperation, Contains);
 
-    pub fn is_in<V: Into<MultipleValuesComparisonOperand>>(&mut self, values: V) {
+    pub fn is_in<CO: Operand, V: Into<MultipleValuesComparisonOperand<CO>>>(&mut self, values: V) {
         self.operations
             .push(SingleValueOperation::MultipleValuesComparisonOperation {
                 operand: values.into(),
@@ -485,7 +478,10 @@ impl SingleValueOperand {
             });
     }
 
-    pub fn is_not_in<V: Into<MultipleValuesComparisonOperand>>(&mut self, values: V) {
+    pub fn is_not_in<CO: Operand, V: Into<MultipleValuesComparisonOperand<CO>>>(
+        &mut self,
+        values: V,
+    ) {
         self.operations
             .push(SingleValueOperation::MultipleValuesComparisonOperation {
                 operand: values.into(),
@@ -526,13 +522,13 @@ impl SingleValueOperand {
 
     pub fn eiter_or<EQ, OQ>(&mut self, either_query: EQ, or_query: OQ)
     where
-        EQ: FnOnce(&mut Wrapper<SingleValueOperand>),
-        OQ: FnOnce(&mut Wrapper<SingleValueOperand>),
+        EQ: FnOnce(&mut Wrapper<SingleValueOperand<O>>),
+        OQ: FnOnce(&mut Wrapper<SingleValueOperand<O>>),
     {
         let mut either_operand =
-            Wrapper::<SingleValueOperand>::new(self.context.clone(), self.kind.clone());
+            Wrapper::<SingleValueOperand<O>>::new(self.context.clone(), self.kind.clone());
         let mut or_operand =
-            Wrapper::<SingleValueOperand>::new(self.context.clone(), self.kind.clone());
+            Wrapper::<SingleValueOperand<O>>::new(self.context.clone(), self.kind.clone());
 
         either_query(&mut either_operand);
         or_query(&mut or_operand);
@@ -545,10 +541,10 @@ impl SingleValueOperand {
 
     pub fn exclude<Q>(&mut self, query: Q)
     where
-        Q: FnOnce(&mut Wrapper<SingleValueOperand>),
+        Q: FnOnce(&mut Wrapper<SingleValueOperand<O>>),
     {
         let mut operand =
-            Wrapper::<SingleValueOperand>::new(self.context.clone(), self.kind.clone());
+            Wrapper::<SingleValueOperand<O>>::new(self.context.clone(), self.kind.clone());
 
         query(&mut operand);
 
@@ -557,8 +553,8 @@ impl SingleValueOperand {
     }
 }
 
-impl Wrapper<SingleValueOperand> {
-    pub(crate) fn new(context: MultipleValuesOperand, kind: SingleKind) -> Self {
+impl<O: Operand> Wrapper<SingleValueOperand<O>> {
+    pub(crate) fn new(context: MultipleValuesOperand<O>, kind: SingleKind) -> Self {
         SingleValueOperand::new(context, kind).into()
     }
 
@@ -570,29 +566,26 @@ impl Wrapper<SingleValueOperand> {
         self.0.read_or_panic().evaluate(medrecord, value)
     }
 
-    implement_wrapper_operand_with_argument!(greater_than, impl Into<SingleValueComparisonOperand>);
+    implement_wrapper_operand_with_argument!(greater_than, SingleValueComparisonOperand);
     implement_wrapper_operand_with_argument!(
         greater_than_or_equal_to,
-        impl Into<SingleValueComparisonOperand>
+        SingleValueComparisonOperand
     );
-    implement_wrapper_operand_with_argument!(less_than, impl Into<SingleValueComparisonOperand>);
-    implement_wrapper_operand_with_argument!(
-        less_than_or_equal_to,
-        impl Into<SingleValueComparisonOperand>
-    );
-    implement_wrapper_operand_with_argument!(equal_to, impl Into<SingleValueComparisonOperand>);
-    implement_wrapper_operand_with_argument!(not_equal_to, impl Into<SingleValueComparisonOperand>);
-    implement_wrapper_operand_with_argument!(starts_with, impl Into<SingleValueComparisonOperand>);
-    implement_wrapper_operand_with_argument!(ends_with, impl Into<SingleValueComparisonOperand>);
-    implement_wrapper_operand_with_argument!(contains, impl Into<SingleValueComparisonOperand>);
-    implement_wrapper_operand_with_argument!(is_in, impl Into<MultipleValuesComparisonOperand>);
-    implement_wrapper_operand_with_argument!(is_not_in, impl Into<MultipleValuesComparisonOperand>);
-    implement_wrapper_operand_with_argument!(add, impl Into<SingleValueComparisonOperand>);
-    implement_wrapper_operand_with_argument!(sub, impl Into<SingleValueComparisonOperand>);
-    implement_wrapper_operand_with_argument!(mul, impl Into<SingleValueComparisonOperand>);
-    implement_wrapper_operand_with_argument!(div, impl Into<SingleValueComparisonOperand>);
-    implement_wrapper_operand_with_argument!(pow, impl Into<SingleValueComparisonOperand>);
-    implement_wrapper_operand_with_argument!(r#mod, impl Into<SingleValueComparisonOperand>);
+    implement_wrapper_operand_with_argument!(less_than, SingleValueComparisonOperand);
+    implement_wrapper_operand_with_argument!(less_than_or_equal_to, SingleValueComparisonOperand);
+    implement_wrapper_operand_with_argument!(equal_to, SingleValueComparisonOperand);
+    implement_wrapper_operand_with_argument!(not_equal_to, SingleValueComparisonOperand);
+    implement_wrapper_operand_with_argument!(starts_with, SingleValueComparisonOperand);
+    implement_wrapper_operand_with_argument!(ends_with, SingleValueComparisonOperand);
+    implement_wrapper_operand_with_argument!(contains, SingleValueComparisonOperand);
+    implement_wrapper_operand_with_argument!(is_in, MultipleValuesComparisonOperand);
+    implement_wrapper_operand_with_argument!(is_not_in, MultipleValuesComparisonOperand);
+    implement_wrapper_operand_with_argument!(add, SingleValueComparisonOperand);
+    implement_wrapper_operand_with_argument!(sub, SingleValueComparisonOperand);
+    implement_wrapper_operand_with_argument!(mul, SingleValueComparisonOperand);
+    implement_wrapper_operand_with_argument!(div, SingleValueComparisonOperand);
+    implement_wrapper_operand_with_argument!(pow, SingleValueComparisonOperand);
+    implement_wrapper_operand_with_argument!(r#mod, SingleValueComparisonOperand);
 
     implement_wrapper_operand!(round);
     implement_wrapper_operand!(ceil);
@@ -619,15 +612,15 @@ impl Wrapper<SingleValueOperand> {
 
     pub fn either_or<EQ, OQ>(&self, either_query: EQ, or_query: OQ)
     where
-        EQ: FnOnce(&mut Wrapper<SingleValueOperand>),
-        OQ: FnOnce(&mut Wrapper<SingleValueOperand>),
+        EQ: FnOnce(&mut Wrapper<SingleValueOperand<O>>),
+        OQ: FnOnce(&mut Wrapper<SingleValueOperand<O>>),
     {
         self.0.write_or_panic().eiter_or(either_query, or_query);
     }
 
     pub fn exclude<Q>(&self, query: Q)
     where
-        Q: FnOnce(&mut Wrapper<SingleValueOperand>),
+        Q: FnOnce(&mut Wrapper<SingleValueOperand<O>>),
     {
         self.0.write_or_panic().exclude(query);
     }

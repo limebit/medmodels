@@ -6,7 +6,7 @@ use crate::{
     errors::MedRecordResult,
     medrecord::{
         querying::{
-            attributes::{self, AttributesTreeOperand},
+            attributes::AttributesTreeOperand,
             nodes::NodeOperand,
             traits::{DeepClone, ReadWriteOrPanic},
             values::{self, MultipleValuesOperand},
@@ -43,7 +43,7 @@ impl EdgeOperand {
         }
     }
 
-    pub(crate) fn evaluate<'a>(
+    pub(crate) fn evaluate_forward<'a>(
         &self,
         medrecord: &'a MedRecord,
     ) -> MedRecordResult<impl Iterator<Item = &'a EdgeIndex>> {
@@ -56,11 +56,14 @@ impl EdgeOperand {
             })
     }
 
-    pub fn attribute(&mut self, attribute: MedRecordAttribute) -> Wrapper<MultipleValuesOperand> {
-        let operand = Wrapper::<MultipleValuesOperand>::new(
-            values::Context::EdgeOperand(self.deep_clone()),
+    pub fn attribute(
+        &mut self,
+        attribute: MedRecordAttribute,
+    ) -> Wrapper<MultipleValuesOperand<Self>> {
+        let operand = Wrapper::<MultipleValuesOperand<Self>>::new(values::Context::Operand((
+            self.deep_clone(),
             attribute,
-        );
+        )));
 
         self.operations.push(EdgeOperation::Values {
             operand: operand.clone(),
@@ -69,10 +72,8 @@ impl EdgeOperand {
         operand
     }
 
-    pub fn attributes(&mut self) -> Wrapper<AttributesTreeOperand> {
-        let operand = Wrapper::<AttributesTreeOperand>::new(attributes::Context::EdgeOperand(
-            self.deep_clone(),
-        ));
+    pub fn attributes(&mut self) -> Wrapper<AttributesTreeOperand<Self>> {
+        let operand = Wrapper::<AttributesTreeOperand<Self>>::new(self.deep_clone());
 
         self.operations.push(EdgeOperation::Attributes {
             operand: operand.clone(),
@@ -163,21 +164,21 @@ impl Wrapper<EdgeOperand> {
         EdgeOperand::new().into()
     }
 
-    pub(crate) fn evaluate<'a>(
+    pub(crate) fn evaluate_forward<'a>(
         &self,
         medrecord: &'a MedRecord,
     ) -> MedRecordResult<impl Iterator<Item = &'a EdgeIndex>> {
-        self.0.read_or_panic().evaluate(medrecord)
+        self.0.read_or_panic().evaluate_forward(medrecord)
     }
 
-    pub fn attribute<A>(&self, attribute: A) -> Wrapper<MultipleValuesOperand>
+    pub fn attribute<A>(&self, attribute: A) -> Wrapper<MultipleValuesOperand<EdgeOperand>>
     where
         A: Into<MedRecordAttribute>,
     {
         self.0.write_or_panic().attribute(attribute.into())
     }
 
-    pub fn attributes(&self) -> Wrapper<AttributesTreeOperand> {
+    pub fn attributes(&self) -> Wrapper<AttributesTreeOperand<EdgeOperand>> {
         self.0.write_or_panic().attributes()
     }
 
@@ -388,7 +389,7 @@ impl EdgeIndicesOperand {
         }
     }
 
-    pub(crate) fn evaluate<'a>(
+    pub(crate) fn evaluate_forward<'a>(
         &self,
         medrecord: &'a MedRecord,
         indices: impl Iterator<Item = EdgeIndex> + 'a,
@@ -487,12 +488,12 @@ impl Wrapper<EdgeIndicesOperand> {
         EdgeIndicesOperand::new(context).into()
     }
 
-    pub(crate) fn evaluate<'a>(
+    pub(crate) fn evaluate_forward<'a>(
         &self,
         medrecord: &'a MedRecord,
         indices: impl Iterator<Item = EdgeIndex> + 'a,
     ) -> MedRecordResult<impl Iterator<Item = EdgeIndex> + 'a> {
-        self.0.read_or_panic().evaluate(medrecord, indices)
+        self.0.read_or_panic().evaluate_forward(medrecord, indices)
     }
 
     implement_wrapper_operand_with_return!(max, EdgeIndexOperand);

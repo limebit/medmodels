@@ -637,7 +637,7 @@ impl MultipleValuesOperation {
                 let comparison_values = context.get_values(medrecord, attribute)?;
 
                 operand
-                    .evaluate(medrecord, comparison_values)?
+                    .evaluate_forward(medrecord, comparison_values)?
                     .map(|(_, value)| value)
                     .collect::<Vec<_>>()
             }
@@ -736,8 +736,8 @@ impl MultipleValuesOperation {
     ) -> MedRecordResult<BoxedIterator<'a, (T, MedRecordValue)>> {
         let values = values.collect::<Vec<_>>();
 
-        let either_values = either.evaluate(medrecord, values.clone().into_iter())?;
-        let or_values = or.evaluate(medrecord, values.into_iter())?;
+        let either_values = either.evaluate_forward(medrecord, values.clone().into_iter())?;
+        let or_values = or.evaluate_forward(medrecord, values.into_iter())?;
 
         Ok(Box::new(
             either_values
@@ -755,7 +755,7 @@ impl MultipleValuesOperation {
         let values = values.collect::<Vec<_>>();
 
         let result = operand
-            .evaluate(medrecord, values.clone().into_iter())?
+            .evaluate_forward(medrecord, values.clone().into_iter())?
             .map(|(t, _)| t)
             .collect::<HashSet<_>>();
 
@@ -949,7 +949,7 @@ impl SingleValueOperation {
                 let comparison_values = context.get_values(medrecord, attribute)?;
 
                 operand
-                    .evaluate(medrecord, comparison_values)?
+                    .evaluate_forward(medrecord, comparison_values)?
                     .map(|(_, value)| value)
                     .collect::<Vec<_>>()
             }
