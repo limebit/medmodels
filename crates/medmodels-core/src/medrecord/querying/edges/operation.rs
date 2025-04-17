@@ -141,18 +141,28 @@ impl EdgeOperation {
                 operand,
             )?),
             Self::EitherOr { either, or } => {
-                // TODO: This is a temporary solution. It should be optimized.
-                let either_result = either.evaluate(medrecord)?.collect::<HashSet<_>>();
-                let or_result = or.evaluate(medrecord)?.collect::<HashSet<_>>();
+                let (edge_indices_1, rest) = edge_indices.tee();
+                let (edge_indices_2, edge_indices_3) = rest.tee();
 
-                Box::new(edge_indices.filter(move |node_index| {
-                    either_result.contains(node_index) || or_result.contains(node_index)
-                }))
+                let left_set: HashSet<&EdgeIndex> = either
+                    .evaluate_forward(medrecord, edge_indices_1)?
+                    .collect();
+                let right_set: HashSet<&EdgeIndex> =
+                    or.evaluate_forward(medrecord, edge_indices_2)?.collect();
+
+                Box::new(
+                    edge_indices_3
+                        .filter(move |edge| left_set.contains(edge) || right_set.contains(edge)),
+                )
             }
             Self::Exclude { operand } => {
-                let result = operand.evaluate(medrecord)?.collect::<HashSet<_>>();
+                let (edge_indices_1, edge_indices_2) = edge_indices.tee();
 
-                Box::new(edge_indices.filter(move |node_index| !result.contains(node_index)))
+                let result = operand
+                    .evaluate_forward(medrecord, edge_indices_1)?
+                    .collect::<HashSet<_>>();
+
+                Box::new(edge_indices_2.filter(move |node_index| !result.contains(node_index)))
             }
         })
     }
@@ -187,7 +197,9 @@ impl EdgeOperation {
             operand.0.read_or_panic().attribute.clone(),
         );
 
-        Ok(operand.evaluate(medrecord, values)?.map(|value| value.0))
+        Ok(operand
+            .evaluate_forward(medrecord, values)?
+            .map(|value| value.0))
     }
 
     #[inline]
@@ -215,7 +227,7 @@ impl EdgeOperation {
         let attributes = Self::get_attributes(medrecord, edge_indices);
 
         Ok(operand
-            .evaluate(medrecord, attributes)?
+            .evaluate_forward(medrecord, attributes)?
             .map(|value| value.0))
     }
 
@@ -229,7 +241,7 @@ impl EdgeOperation {
         let edge_indices = edge_indices.collect::<Vec<_>>();
 
         let result = operand
-            .evaluate(medrecord, edge_indices.clone().into_iter().cloned())?
+            .evaluate_forward(medrecord, edge_indices.clone().into_iter().cloned())?
             .collect::<HashSet<_>>();
 
         Ok(edge_indices
@@ -285,12 +297,24 @@ impl EdgeOperation {
     #[inline]
     fn evaluate_source_node<'a>(
         medrecord: &'a MedRecord,
-        edge_indices: impl Iterator<Item = &'a EdgeIndex>,
+        edge_indices: impl Iterator<Item = &'a EdgeIndex> + 'a,
         operand: &Wrapper<NodeOperand>,
     ) -> MedRecordResult<impl Iterator<Item = &'a EdgeIndex>> {
-        let node_indices = operand.evaluate(medrecord)?.collect::<HashSet<_>>();
+        let (edge_indices_1, edge_indices_2) = Itertools::tee(edge_indices);
 
-        Ok(edge_indices.filter(move |edge_index| {
+        let node_indices = edge_indices_1.map(|edge_index| {
+            let edge_endpoints = medrecord
+                .edge_endpoints(edge_index)
+                .expect("Edge must exist");
+
+            edge_endpoints.0
+        });
+
+        let node_indices = operand
+            .evaluate_forward(medrecord, node_indices)?
+            .collect::<HashSet<_>>();
+
+        Ok(edge_indices_2.filter(move |edge_index| {
             let edge_endpoints = medrecord
                 .edge_endpoints(edge_index)
                 .expect("Edge must exist");
@@ -302,12 +326,24 @@ impl EdgeOperation {
     #[inline]
     fn evaluate_target_node<'a>(
         medrecord: &'a MedRecord,
-        edge_indices: impl Iterator<Item = &'a EdgeIndex>,
+        edge_indices: impl Iterator<Item = &'a EdgeIndex> + 'a,
         operand: &Wrapper<NodeOperand>,
     ) -> MedRecordResult<impl Iterator<Item = &'a EdgeIndex>> {
-        let node_indices = operand.evaluate(medrecord)?.collect::<HashSet<_>>();
+        let (edge_indices_1, edge_indices_2) = Itertools::tee(edge_indices);
 
-        Ok(edge_indices.filter(move |edge_index| {
+        let node_indices = edge_indices_1.map(|edge_index| {
+            let edge_endpoints = medrecord
+                .edge_endpoints(edge_index)
+                .expect("Edge must exist");
+
+            edge_endpoints.1
+        });
+
+        let node_indices = operand
+            .evaluate_forward(medrecord, node_indices)?
+            .collect::<HashSet<_>>();
+
+        Ok(edge_indices_2.filter(move |edge_index| {
             let edge_endpoints = medrecord
                 .edge_endpoints(edge_index)
                 .expect("Edge must exist");
@@ -338,13 +374,15 @@ macro_rules! get_edge_index_comparison_operand_index {
                 let kind = &operand.kind;
 
                 // TODO: This is a temporary solution. It should be optimized.
-                let comparison_indices = context.evaluate($medrecord)?.cloned();
+                let comparison_indices = context.evaluate_backward($medrecord)?.cloned();
 
                 let comparison_index = get_edge_index!(kind, comparison_indices);
 
-                operand.evaluate($medrecord, comparison_index)?.ok_or(
-                    MedRecordError::QueryError("No index to compare".to_string()),
-                )?
+                operand
+                    .evaluate_forward($medrecord, comparison_index)?
+                    .ok_or(MedRecordError::QueryError(
+                        "No index to compare".to_string(),
+                    ))?
             }
             EdgeIndexComparisonOperand::Index(index) => index.clone(),
         }
@@ -457,7 +495,7 @@ impl EdgeIndicesOperation {
                 let edge_indices = indices.collect::<Vec<_>>();
 
                 let result = operand
-                    .evaluate(medrecord, edge_indices.clone().into_iter())?
+                    .evaluate_forward(medrecord, edge_indices.clone().into_iter())?
                     .collect::<HashSet<_>>();
 
                 Ok(Box::new(
@@ -520,7 +558,7 @@ impl EdgeIndicesOperation {
 
         let index = get_edge_index!(kind, indices.clone().into_iter());
 
-        Ok(match operand.evaluate(medrecord, index)? {
+        Ok(match operand.evaluate_forward(medrecord, index)? {
             Some(_) => Box::new(indices.into_iter()),
             None => Box::new(std::iter::empty()),
         })
@@ -578,10 +616,10 @@ impl EdgeIndicesOperation {
             EdgeIndicesComparisonOperand::Operand(operand) => {
                 let context = &operand.context;
 
-                let comparison_indices = context.evaluate(medrecord)?.cloned();
+                let comparison_indices = context.evaluate_forward(medrecord)?.cloned();
 
                 operand
-                    .evaluate(medrecord, comparison_indices)?
+                    .evaluate_forward(medrecord, comparison_indices)?
                     .collect::<Vec<_>>()
             }
             EdgeIndicesComparisonOperand::Indices(indices) => indices.clone(),
@@ -627,8 +665,8 @@ impl EdgeIndicesOperation {
     ) -> MedRecordResult<BoxedIterator<'a, EdgeIndex>> {
         let indices = indices.collect::<Vec<_>>();
 
-        let either_indices = either.evaluate(medrecord, indices.clone().into_iter())?;
-        let or_indices = or.evaluate(medrecord, indices.into_iter())?;
+        let either_indices = either.evaluate_forward(medrecord, indices.clone().into_iter())?;
+        let or_indices = or.evaluate_forward(medrecord, indices.into_iter())?;
 
         Ok(Box::new(either_indices.chain(or_indices).unique()))
     }
@@ -706,7 +744,7 @@ impl EdgeIndexOperation {
             }
             Self::EitherOr { either, or } => Self::evaluate_either_or(medrecord, index, either, or),
             Self::Exclude { operand } => {
-                let result = operand.evaluate(medrecord, index)?.is_some();
+                let result = operand.evaluate_forward(medrecord, index)?.is_some();
 
                 Ok(if result { None } else { Some(index) })
             }
@@ -749,10 +787,10 @@ impl EdgeIndexOperation {
             EdgeIndicesComparisonOperand::Operand(operand) => {
                 let context = &operand.context;
 
-                let comparison_indices = context.evaluate(medrecord)?.cloned();
+                let comparison_indices = context.evaluate_forward(medrecord)?.cloned();
 
                 operand
-                    .evaluate(medrecord, comparison_indices)?
+                    .evaluate_forward(medrecord, comparison_indices)?
                     .collect::<Vec<_>>()
             }
             EdgeIndicesComparisonOperand::Indices(indices) => indices.clone(),
@@ -795,8 +833,8 @@ impl EdgeIndexOperation {
         either: &Wrapper<EdgeIndexOperand>,
         or: &Wrapper<EdgeIndexOperand>,
     ) -> MedRecordResult<Option<EdgeIndex>> {
-        let either_result = either.evaluate(medrecord, index)?;
-        let or_result = or.evaluate(medrecord, index)?;
+        let either_result = either.evaluate_forward(medrecord, index)?;
+        let or_result = or.evaluate_forward(medrecord, index)?;
 
         match (either_result, or_result) {
             (Some(either_result), _) => Ok(Some(either_result)),

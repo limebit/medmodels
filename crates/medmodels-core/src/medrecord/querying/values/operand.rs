@@ -197,7 +197,7 @@ impl MultipleValuesOperand {
         }
     }
 
-    pub(crate) fn evaluate<'a, T: 'a + Eq + Hash + Clone>(
+    pub(crate) fn evaluate_forward<'a, T: 'a + Eq + Hash + Clone>(
         &self,
         medrecord: &'a MedRecord,
         values: impl Iterator<Item = (T, MedRecordValue)> + 'a,
@@ -332,12 +332,12 @@ impl Wrapper<MultipleValuesOperand> {
         MultipleValuesOperand::new(context, attribute).into()
     }
 
-    pub(crate) fn evaluate<'a, T: 'a + Eq + Hash + Clone>(
+    pub(crate) fn evaluate_forward<'a, T: 'a + Eq + Hash + Clone>(
         &self,
         medrecord: &'a MedRecord,
         values: impl Iterator<Item = (T, MedRecordValue)> + 'a,
     ) -> MedRecordResult<impl Iterator<Item = (T, MedRecordValue)> + 'a> {
-        self.0.read_or_panic().evaluate(medrecord, values)
+        self.0.read_or_panic().evaluate_forward(medrecord, values)
     }
 
     implement_wrapper_operand_with_return!(max, SingleValueOperand);
@@ -443,7 +443,7 @@ impl SingleValueOperand {
         }
     }
 
-    pub(crate) fn evaluate(
+    pub(crate) fn evaluate_forward(
         &self,
         medrecord: &MedRecord,
         value: MedRecordValue,
@@ -562,12 +562,12 @@ impl Wrapper<SingleValueOperand> {
         SingleValueOperand::new(context, kind).into()
     }
 
-    pub(crate) fn evaluate(
+    pub(crate) fn evaluate_forward(
         &self,
         medrecord: &MedRecord,
         value: MedRecordValue,
     ) -> MedRecordResult<Option<MedRecordValue>> {
-        self.0.read_or_panic().evaluate(medrecord, value)
+        self.0.read_or_panic().evaluate_forward(medrecord, value)
     }
 
     implement_wrapper_operand_with_argument!(greater_than, impl Into<SingleValueComparisonOperand>);

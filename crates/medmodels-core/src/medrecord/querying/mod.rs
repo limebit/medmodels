@@ -59,7 +59,7 @@ impl<'a> Selection<'a> {
         Q: FnOnce(&mut Wrapper<NodeOperand>) -> R,
         R: Into<ReturnOperand>,
     {
-        let mut operand = Wrapper::<NodeOperand>::new();
+        let mut operand = Wrapper::<NodeOperand>::new(None);
 
         Self {
             medrecord,
@@ -72,7 +72,7 @@ impl<'a> Selection<'a> {
         Q: FnOnce(&mut Wrapper<EdgeOperand>) -> R,
         R: Into<ReturnOperand>,
     {
-        let mut operand = Wrapper::<EdgeOperand>::new();
+        let mut operand = Wrapper::<EdgeOperand>::new(None);
 
         Self {
             medrecord,
@@ -87,7 +87,9 @@ impl<'a> Selection<'a> {
 
                 let attributes = operand.context.get_attributes(self.medrecord)?;
 
-                ReturnValue::AttributesTree(Box::new(operand.evaluate(self.medrecord, attributes)?))
+                ReturnValue::AttributesTree(Box::new(
+                    operand.evaluate_forward(self.medrecord, attributes)?,
+                ))
             }
             ReturnOperand::MultipleAttributes(operand) => {
                 let operand = operand.0.read_or_panic();
@@ -95,7 +97,7 @@ impl<'a> Selection<'a> {
                 let context_attributes = operand.context.context.get_attributes(self.medrecord)?;
                 let attributes = operand
                     .context
-                    .evaluate(self.medrecord, context_attributes)?;
+                    .evaluate_forward(self.medrecord, context_attributes)?;
 
                 let attributes: Box<dyn Iterator<Item = (_, MedRecordAttribute)>> =
                     match operand.kind {
@@ -120,7 +122,7 @@ impl<'a> Selection<'a> {
                     };
 
                 ReturnValue::MultipleAttributes(Box::new(
-                    operand.evaluate(self.medrecord, attributes)?,
+                    operand.evaluate_forward(self.medrecord, attributes)?,
                 ))
             }
             ReturnOperand::SingleAttribute(operand) => {
@@ -134,7 +136,7 @@ impl<'a> Selection<'a> {
                 let context_attributes = operand
                     .context
                     .context
-                    .evaluate(self.medrecord, context_context_attributes)?;
+                    .evaluate_forward(self.medrecord, context_context_attributes)?;
                 let attributes: Box<dyn Iterator<Item = (_, MedRecordAttribute)>> =
                     match operand.context.kind {
                         attributes::MultipleKind::Max => {
@@ -157,7 +159,9 @@ impl<'a> Selection<'a> {
                         }
                     };
 
-                let attributes = operand.context.evaluate(self.medrecord, attributes)?;
+                let attributes = operand
+                    .context
+                    .evaluate_forward(self.medrecord, attributes)?;
 
                 match operand.kind {
                     attributes::SingleKind::Max => {
@@ -165,7 +169,7 @@ impl<'a> Selection<'a> {
 
                         ReturnValue::SingleAttributeWithIndex(
                             operand
-                                .evaluate(self.medrecord, attribute.1)?
+                                .evaluate_forward(self.medrecord, attribute.1)?
                                 .map(|result| (attribute.0, result)),
                         )
                     }
@@ -174,26 +178,28 @@ impl<'a> Selection<'a> {
 
                         ReturnValue::SingleAttributeWithIndex(
                             operand
-                                .evaluate(self.medrecord, attribute.1)?
+                                .evaluate_forward(self.medrecord, attribute.1)?
                                 .map(|result| (attribute.0, result)),
                         )
                     }
                     attributes::SingleKind::Count => {
-                        ReturnValue::SingleAttribute(operand.evaluate(
+                        ReturnValue::SingleAttribute(operand.evaluate_forward(
                             self.medrecord,
                             MultipleAttributesOperation::get_count(attributes),
                         )?)
                     }
-                    attributes::SingleKind::Sum => ReturnValue::SingleAttribute(operand.evaluate(
-                        self.medrecord,
-                        MultipleAttributesOperation::get_sum(attributes)?,
-                    )?),
+                    attributes::SingleKind::Sum => {
+                        ReturnValue::SingleAttribute(operand.evaluate_forward(
+                            self.medrecord,
+                            MultipleAttributesOperation::get_sum(attributes)?,
+                        )?)
+                    }
                     attributes::SingleKind::First => {
                         let attribute = MultipleAttributesOperation::get_first(attributes)?;
 
                         ReturnValue::SingleAttributeWithIndex(
                             operand
-                                .evaluate(self.medrecord, attribute.1)?
+                                .evaluate_forward(self.medrecord, attribute.1)?
                                 .map(|result| (attribute.0, result)),
                         )
                     }
@@ -202,7 +208,7 @@ impl<'a> Selection<'a> {
 
                         ReturnValue::SingleAttributeWithIndex(
                             operand
-                                .evaluate(self.medrecord, attribute.1)?
+                                .evaluate_forward(self.medrecord, attribute.1)?
                                 .map(|result| (attribute.0, result)),
                         )
                     }
@@ -212,16 +218,24 @@ impl<'a> Selection<'a> {
                 let operand = operand.0.read_or_panic();
 
                 // TODO: This is a temporary solution. It should be optimized.
-                let indices = operand.context.evaluate(self.medrecord)?.cloned();
+                let indices = operand.context.evaluate_forward(self.medrecord)?.cloned();
 
-                ReturnValue::EdgeIndices(Box::new(operand.evaluate(self.medrecord, indices)?))
+                ReturnValue::EdgeIndices(Box::new(
+                    operand.evaluate_forward(self.medrecord, indices)?,
+                ))
             }
             ReturnOperand::EdgeIndex(operand) => {
                 let operand = operand.0.read_or_panic();
 
                 // TODO: This is a temporary solution. It should be optimized.
-                let context_indices = operand.context.context.evaluate(self.medrecord)?.cloned();
-                let indices = operand.context.evaluate(self.medrecord, context_indices)?;
+                let context_indices = operand
+                    .context
+                    .context
+                    .evaluate_forward(self.medrecord)?
+                    .cloned();
+                let indices = operand
+                    .context
+                    .evaluate_forward(self.medrecord, context_indices)?;
 
                 let index = match operand.kind {
                     edges::SingleKind::Max => EdgeIndicesOperation::get_max(indices)?,
@@ -232,21 +246,29 @@ impl<'a> Selection<'a> {
                     edges::SingleKind::Last => EdgeIndicesOperation::get_last(indices)?,
                 };
 
-                ReturnValue::EdgeIndex(operand.evaluate(self.medrecord, index)?)
+                ReturnValue::EdgeIndex(operand.evaluate_forward(self.medrecord, index)?)
             }
             ReturnOperand::NodeIndices(operand) => {
                 let operand = operand.0.read_or_panic();
 
-                let indices = operand.context.evaluate(self.medrecord)?.cloned();
+                let indices = operand.context.evaluate_forward(self.medrecord)?.cloned();
 
-                ReturnValue::NodeIndices(Box::new(operand.evaluate(self.medrecord, indices)?))
+                ReturnValue::NodeIndices(Box::new(
+                    operand.evaluate_forward(self.medrecord, indices)?,
+                ))
             }
             ReturnOperand::NodeIndex(operand) => {
                 let operand = operand.0.read_or_panic();
 
                 // TODO: This is a temporary solution. It should be optimized.
-                let context_indices = operand.context.context.evaluate(self.medrecord)?.cloned();
-                let indices = operand.context.evaluate(self.medrecord, context_indices)?;
+                let context_indices = operand
+                    .context
+                    .context
+                    .evaluate_forward(self.medrecord)?
+                    .cloned();
+                let indices = operand
+                    .context
+                    .evaluate_forward(self.medrecord, context_indices)?;
 
                 let index = match operand.kind {
                     nodes::SingleKind::Max => NodeIndicesOperation::get_max(indices)?.clone(),
@@ -257,7 +279,7 @@ impl<'a> Selection<'a> {
                     nodes::SingleKind::Last => NodeIndicesOperation::get_last(indices)?,
                 };
 
-                ReturnValue::NodeIndex(operand.evaluate(self.medrecord, index)?)
+                ReturnValue::NodeIndex(operand.evaluate_forward(self.medrecord, index)?)
             }
             ReturnOperand::MultipleValues(operand) => {
                 let operand = operand.0.read_or_panic();
@@ -265,7 +287,9 @@ impl<'a> Selection<'a> {
 
                 let values = operand.context.get_values(self.medrecord, attribute)?;
 
-                ReturnValue::MultipleValues(Box::new(operand.evaluate(self.medrecord, values)?))
+                ReturnValue::MultipleValues(Box::new(
+                    operand.evaluate_forward(self.medrecord, values)?,
+                ))
             }
             ReturnOperand::SingleValue(operand) => {
                 let operand = operand.0.read_or_panic();
@@ -276,7 +300,9 @@ impl<'a> Selection<'a> {
                     .context
                     .context
                     .get_values(self.medrecord, attribute)?;
-                let values = operand.context.evaluate(self.medrecord, context_values)?;
+                let values = operand
+                    .context
+                    .evaluate_forward(self.medrecord, context_values)?;
 
                 match operand.kind {
                     values::SingleKind::Max => {
@@ -284,7 +310,7 @@ impl<'a> Selection<'a> {
 
                         ReturnValue::SingleValueWithIndex(
                             operand
-                                .evaluate(self.medrecord, value.1)?
+                                .evaluate_forward(self.medrecord, value.1)?
                                 .map(|result| (value.0, result)),
                         )
                     }
@@ -293,46 +319,52 @@ impl<'a> Selection<'a> {
 
                         ReturnValue::SingleValueWithIndex(
                             operand
-                                .evaluate(self.medrecord, value.1)?
+                                .evaluate_forward(self.medrecord, value.1)?
                                 .map(|result| (value.0, result)),
                         )
                     }
-                    values::SingleKind::Mean => ReturnValue::SingleValue(
-                        operand
-                            .evaluate(self.medrecord, MultipleValuesOperation::get_mean(values)?)?,
-                    ),
+                    values::SingleKind::Mean => {
+                        ReturnValue::SingleValue(operand.evaluate_forward(
+                            self.medrecord,
+                            MultipleValuesOperation::get_mean(values)?,
+                        )?)
+                    }
                     values::SingleKind::Median => {
-                        ReturnValue::SingleValue(operand.evaluate(
+                        ReturnValue::SingleValue(operand.evaluate_forward(
                             self.medrecord,
                             MultipleValuesOperation::get_median(values)?,
                         )?)
                     }
-                    values::SingleKind::Mode => ReturnValue::SingleValue(
-                        operand
-                            .evaluate(self.medrecord, MultipleValuesOperation::get_mode(values)?)?,
-                    ),
-                    values::SingleKind::Std => ReturnValue::SingleValue(
-                        operand
-                            .evaluate(self.medrecord, MultipleValuesOperation::get_std(values)?)?,
-                    ),
-                    values::SingleKind::Var => ReturnValue::SingleValue(
-                        operand
-                            .evaluate(self.medrecord, MultipleValuesOperation::get_var(values)?)?,
-                    ),
-                    values::SingleKind::Count => ReturnValue::SingleValue(
-                        operand
-                            .evaluate(self.medrecord, MultipleValuesOperation::get_count(values))?,
-                    ),
-                    values::SingleKind::Sum => ReturnValue::SingleValue(
-                        operand
-                            .evaluate(self.medrecord, MultipleValuesOperation::get_sum(values)?)?,
-                    ),
+                    values::SingleKind::Mode => {
+                        ReturnValue::SingleValue(operand.evaluate_forward(
+                            self.medrecord,
+                            MultipleValuesOperation::get_mode(values)?,
+                        )?)
+                    }
+                    values::SingleKind::Std => ReturnValue::SingleValue(operand.evaluate_forward(
+                        self.medrecord,
+                        MultipleValuesOperation::get_std(values)?,
+                    )?),
+                    values::SingleKind::Var => ReturnValue::SingleValue(operand.evaluate_forward(
+                        self.medrecord,
+                        MultipleValuesOperation::get_var(values)?,
+                    )?),
+                    values::SingleKind::Count => {
+                        ReturnValue::SingleValue(operand.evaluate_forward(
+                            self.medrecord,
+                            MultipleValuesOperation::get_count(values),
+                        )?)
+                    }
+                    values::SingleKind::Sum => ReturnValue::SingleValue(operand.evaluate_forward(
+                        self.medrecord,
+                        MultipleValuesOperation::get_sum(values)?,
+                    )?),
                     values::SingleKind::First => {
                         let value = MultipleValuesOperation::get_first(values)?;
 
                         ReturnValue::SingleValueWithIndex(
                             operand
-                                .evaluate(self.medrecord, value.1)?
+                                .evaluate_forward(self.medrecord, value.1)?
                                 .map(|result| (value.0, result)),
                         )
                     }
@@ -341,7 +373,7 @@ impl<'a> Selection<'a> {
 
                         ReturnValue::SingleValueWithIndex(
                             operand
-                                .evaluate(self.medrecord, value.1)?
+                                .evaluate_forward(self.medrecord, value.1)?
                                 .map(|result| (value.0, result)),
                         )
                     }

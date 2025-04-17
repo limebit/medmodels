@@ -8,6 +8,15 @@ pub use operand::{
 pub use operation::{EdgeDirection, NodeIndicesOperation, NodeOperation};
 use std::fmt::Display;
 
+use super::edges::EdgeOperand;
+
+#[derive(Debug, Clone)]
+pub enum Context {
+    Neighbors { operand: Box<NodeOperand> },
+    SourceNode { operand: EdgeOperand },
+    TargetNode { operand: EdgeOperand },
+}
+
 #[derive(Debug, Clone)]
 pub enum SingleKind {
     Max,

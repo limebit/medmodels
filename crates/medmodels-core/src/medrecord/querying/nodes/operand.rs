@@ -1,6 +1,6 @@
 use super::{
     operation::{EdgeDirection, NodeIndexOperation, NodeIndicesOperation, NodeOperation},
-    BinaryArithmeticKind, MultipleComparisonKind, SingleComparisonKind, SingleKind,
+    BinaryArithmeticKind, Context, MultipleComparisonKind, SingleComparisonKind, SingleKind,
     UnaryArithmeticKind,
 };
 use crate::{
@@ -8,7 +8,7 @@ use crate::{
     medrecord::{
         querying::{
             attributes::{self, AttributesTreeOperand},
-            edges::EdgeOperand,
+            edges::{self, EdgeOperand},
             traits::{DeepClone, ReadWriteOrPanic},
             values::{self, MultipleValuesOperand},
             wrapper::{CardinalityWrapper, Wrapper},
@@ -22,12 +22,14 @@ use std::fmt::Debug;
 
 #[derive(Debug, Clone)]
 pub struct NodeOperand {
+    pub(crate) context: Option<Context>,
     operations: Vec<NodeOperation>,
 }
 
 impl DeepClone for NodeOperand {
     fn deep_clone(&self) -> Self {
         Self {
+            context: self.context.clone(),
             operations: self
                 .operations
                 .iter()
@@ -38,23 +40,32 @@ impl DeepClone for NodeOperand {
 }
 
 impl NodeOperand {
-    pub(crate) fn new() -> Self {
+    pub(crate) fn new(context: Option<Context>) -> Self {
         Self {
+            context,
             operations: Vec::new(),
         }
     }
 
-    pub(crate) fn evaluate<'a>(
+    pub(crate) fn evaluate_forward<'a>(
         &self,
         medrecord: &'a MedRecord,
+        node_indices: impl Iterator<Item = &'a NodeIndex> + 'a,
     ) -> MedRecordResult<BoxedIterator<'a, &'a NodeIndex>> {
-        let node_indices = Box::new(medrecord.node_indices()) as BoxedIterator<'a, &'a NodeIndex>;
+        let node_indices = Box::new(node_indices) as BoxedIterator<'a, &'a NodeIndex>;
 
         self.operations
             .iter()
             .try_fold(node_indices, |node_indices, operation| {
                 operation.evaluate(medrecord, node_indices)
             })
+    }
+
+    pub(crate) fn evaluate_backward<'a>(
+        &self,
+        medrecord: &'a MedRecord,
+    ) -> MedRecordResult<BoxedIterator<'a, &'a NodeIndex>> {
+        todo!()
     }
 
     pub fn attribute(&mut self, attribute: MedRecordAttribute) -> Wrapper<MultipleValuesOperand> {
@@ -111,7 +122,10 @@ impl NodeOperand {
     }
 
     pub fn edges(&mut self, direction: EdgeDirection) -> Wrapper<EdgeOperand> {
-        let operand = Wrapper::<EdgeOperand>::new();
+        let operand = Wrapper::<EdgeOperand>::new(Some(edges::Context::Edges {
+            operand: Box::new(self.clone()),
+            kind: direction.clone(),
+        }));
 
         self.operations.push(NodeOperation::Edges {
             operand: operand.clone(),
@@ -122,7 +136,9 @@ impl NodeOperand {
     }
 
     pub fn neighbors(&mut self, direction: EdgeDirection) -> Wrapper<NodeOperand> {
-        let operand = Wrapper::<NodeOperand>::new();
+        let operand = Wrapper::<NodeOperand>::new(Some(Context::Neighbors {
+            operand: Box::new(self.clone()),
+        }));
 
         self.operations.push(NodeOperation::Neighbors {
             operand: operand.clone(),
@@ -137,8 +153,8 @@ impl NodeOperand {
         EQ: FnOnce(&mut Wrapper<NodeOperand>),
         OQ: FnOnce(&mut Wrapper<NodeOperand>),
     {
-        let mut either_operand = Wrapper::<NodeOperand>::new();
-        let mut or_operand = Wrapper::<NodeOperand>::new();
+        let mut either_operand = Wrapper::<NodeOperand>::new(self.context.clone());
+        let mut or_operand = Wrapper::<NodeOperand>::new(self.context.clone());
 
         either_query(&mut either_operand);
         or_query(&mut or_operand);
@@ -153,7 +169,7 @@ impl NodeOperand {
     where
         Q: FnOnce(&mut Wrapper<NodeOperand>),
     {
-        let mut operand = Wrapper::<NodeOperand>::new();
+        let mut operand = Wrapper::<NodeOperand>::new(self.context.clone());
 
         query(&mut operand);
 
@@ -162,15 +178,25 @@ impl NodeOperand {
 }
 
 impl Wrapper<NodeOperand> {
-    pub(crate) fn new() -> Self {
-        NodeOperand::new().into()
+    pub(crate) fn new(context: Option<Context>) -> Self {
+        NodeOperand::new(context).into()
     }
 
-    pub(crate) fn evaluate<'a>(
+    pub(crate) fn evaluate_forward<'a>(
+        &self,
+        medrecord: &'a MedRecord,
+        node_indices: impl Iterator<Item = &'a NodeIndex> + 'a,
+    ) -> MedRecordResult<BoxedIterator<'a, &'a NodeIndex>> {
+        self.0
+            .read_or_panic()
+            .evaluate_forward(medrecord, node_indices)
+    }
+
+    pub(crate) fn evaluate_backward<'a>(
         &self,
         medrecord: &'a MedRecord,
     ) -> MedRecordResult<BoxedIterator<'a, &'a NodeIndex>> {
-        self.0.read_or_panic().evaluate(medrecord)
+        self.0.read_or_panic().evaluate_backward(medrecord)
     }
 
     pub fn attribute<A>(&mut self, attribute: A) -> Wrapper<MultipleValuesOperand>
@@ -401,7 +427,7 @@ impl NodeIndicesOperand {
         }
     }
 
-    pub(crate) fn evaluate<'a>(
+    pub(crate) fn evaluate_forward<'a>(
         &self,
         medrecord: &'a MedRecord,
         indices: impl Iterator<Item = NodeIndex> + 'a,
@@ -514,12 +540,12 @@ impl Wrapper<NodeIndicesOperand> {
         NodeIndicesOperand::new(context).into()
     }
 
-    pub(crate) fn evaluate<'a>(
+    pub(crate) fn evaluate_forward<'a>(
         &self,
         medrecord: &'a MedRecord,
         indices: impl Iterator<Item = NodeIndex> + 'a,
     ) -> MedRecordResult<impl Iterator<Item = NodeIndex> + 'a> {
-        self.0.read_or_panic().evaluate(medrecord, indices)
+        self.0.read_or_panic().evaluate_forward(medrecord, indices)
     }
 
     implement_wrapper_operand_with_return!(max, NodeIndexOperand);
@@ -610,7 +636,7 @@ impl NodeIndexOperand {
         }
     }
 
-    pub(crate) fn evaluate(
+    pub(crate) fn evaluate_forward(
         &self,
         medrecord: &MedRecord,
         index: NodeIndex,
@@ -716,12 +742,12 @@ impl Wrapper<NodeIndexOperand> {
         NodeIndexOperand::new(context, kind).into()
     }
 
-    pub(crate) fn evaluate(
+    pub(crate) fn evaluate_forward(
         &self,
         medrecord: &MedRecord,
         index: NodeIndex,
     ) -> MedRecordResult<Option<NodeIndex>> {
-        self.0.read_or_panic().evaluate(medrecord, index)
+        self.0.read_or_panic().evaluate_forward(medrecord, index)
     }
 
     implement_wrapper_operand_with_argument!(greater_than, impl Into<NodeIndexComparisonOperand>);

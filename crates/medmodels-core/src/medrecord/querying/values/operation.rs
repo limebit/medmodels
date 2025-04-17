@@ -59,9 +59,11 @@ macro_rules! get_single_value_comparison_operand_value {
 
                 let comparison_value = get_single_operand_value!(kind, comparison_values);
 
-                operand.evaluate($medrecord, comparison_value)?.ok_or(
-                    MedRecordError::QueryError("No index to compare".to_string()),
-                )?
+                operand
+                    .evaluate_forward($medrecord, comparison_value)?
+                    .ok_or(MedRecordError::QueryError(
+                        "No index to compare".to_string(),
+                    ))?
             }
             SingleValueComparisonOperand::Value(value) => value.clone(),
         }
@@ -568,7 +570,7 @@ impl MultipleValuesOperation {
 
         let value = get_single_operand_value!(kind, values.clone().into_iter());
 
-        Ok(match operand.evaluate(medrecord, value)? {
+        Ok(match operand.evaluate_forward(medrecord, value)? {
             Some(_) => Box::new(values.into_iter()),
             None => Box::new(std::iter::empty()),
         })
@@ -637,7 +639,7 @@ impl MultipleValuesOperation {
                 let comparison_values = context.get_values(medrecord, attribute)?;
 
                 operand
-                    .evaluate(medrecord, comparison_values)?
+                    .evaluate_forward(medrecord, comparison_values)?
                     .map(|(_, value)| value)
                     .collect::<Vec<_>>()
             }
@@ -736,8 +738,8 @@ impl MultipleValuesOperation {
     ) -> MedRecordResult<BoxedIterator<'a, (T, MedRecordValue)>> {
         let values = values.collect::<Vec<_>>();
 
-        let either_values = either.evaluate(medrecord, values.clone().into_iter())?;
-        let or_values = or.evaluate(medrecord, values.into_iter())?;
+        let either_values = either.evaluate_forward(medrecord, values.clone().into_iter())?;
+        let or_values = or.evaluate_forward(medrecord, values.into_iter())?;
 
         Ok(Box::new(
             either_values
@@ -755,7 +757,7 @@ impl MultipleValuesOperation {
         let values = values.collect::<Vec<_>>();
 
         let result = operand
-            .evaluate(medrecord, values.clone().into_iter())?
+            .evaluate_forward(medrecord, values.clone().into_iter())?
             .map(|(t, _)| t)
             .collect::<HashSet<_>>();
 
@@ -901,10 +903,12 @@ impl SingleValueOperation {
                 _ => None,
             }),
             Self::EitherOr { either, or } => Self::evaluate_either_or(medrecord, value, either, or),
-            Self::Exclude { operand } => Ok(match operand.evaluate(medrecord, value.clone())? {
-                Some(_) => None,
-                None => Some(value),
-            }),
+            Self::Exclude { operand } => {
+                Ok(match operand.evaluate_forward(medrecord, value.clone())? {
+                    Some(_) => None,
+                    None => Some(value),
+                })
+            }
         }
     }
 
@@ -949,7 +953,7 @@ impl SingleValueOperation {
                 let comparison_values = context.get_values(medrecord, attribute)?;
 
                 operand
-                    .evaluate(medrecord, comparison_values)?
+                    .evaluate_forward(medrecord, comparison_values)?
                     .map(|(_, value)| value)
                     .collect::<Vec<_>>()
             }
@@ -991,8 +995,8 @@ impl SingleValueOperation {
         either: &Wrapper<SingleValueOperand>,
         or: &Wrapper<SingleValueOperand>,
     ) -> MedRecordResult<Option<MedRecordValue>> {
-        let either_result = either.evaluate(medrecord, value.clone())?;
-        let or_result = or.evaluate(medrecord, value)?;
+        let either_result = either.evaluate_forward(medrecord, value.clone())?;
+        let or_result = or.evaluate_forward(medrecord, value)?;
 
         match (either_result, or_result) {
             (Some(either_result), _) => Ok(Some(either_result)),

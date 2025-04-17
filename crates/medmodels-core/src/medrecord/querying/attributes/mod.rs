@@ -129,7 +129,7 @@ impl Context {
     ) -> MedRecordResult<BoxedIterator<'a, (Index<'a>, Vec<MedRecordAttribute>)>> {
         Ok(match self {
             Self::NodeOperand(node_operand) => {
-                let node_indices = node_operand.evaluate(medrecord)?;
+                let node_indices = node_operand.evaluate_backward(medrecord)?;
 
                 Box::new(
                     NodeOperation::get_attributes(medrecord, node_indices)
@@ -137,7 +137,7 @@ impl Context {
                 )
             }
             Self::EdgeOperand(edge_operand) => {
-                let edge_indices = edge_operand.evaluate(medrecord)?;
+                let edge_indices = edge_operand.evaluate_backward(medrecord)?;
 
                 Box::new(
                     EdgeOperation::get_attributes(medrecord, edge_indices)
