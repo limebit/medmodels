@@ -262,11 +262,11 @@ impl AttributeSchema {
             }
         }
 
-        let attributes_not_in_schema = attributes
+        let attributes_not_in_schema: Vec<_> = attributes
             .keys()
             .filter(|attribute| !self.0.contains_key(*attribute))
             .map(|attribute| attribute.to_string())
-            .collect::<Vec<_>>();
+            .collect();
 
         if !attributes_not_in_schema.is_empty() {
             return Err(GraphError::SchemaError(
@@ -412,10 +412,10 @@ impl Schema {
     }
 
     pub fn infer(medrecord: &MedRecord) -> Self {
-        let mut group_mapping = medrecord
+        let mut group_mapping: MrHashMap<_, _> = medrecord
             .groups()
             .map(|group| (group, (Vec::new(), Vec::new())))
-            .collect::<MrHashMap<_, _>>();
+            .collect();
 
         let mut ungrouped = (Vec::new(), Vec::new());
 
@@ -459,14 +459,14 @@ impl Schema {
             group_mapping
                 .into_iter()
                 .map(|(group, (nodes_in_group, edges_in_group))| {
-                    let node_attributes = nodes_in_group
+                    let node_attributes: Vec<_> = nodes_in_group
                         .into_iter()
                         .map(|node| medrecord.node_attributes(node).expect("Node must exist."))
-                        .collect::<Vec<_>>();
-                    let edge_attributes = edges_in_group
+                        .collect();
+                    let edge_attributes: Vec<_> = edges_in_group
                         .into_iter()
                         .map(|edge| medrecord.edge_attributes(edge).expect("Edge must exist."))
-                        .collect::<Vec<_>>();
+                        .collect();
 
                     let schema = GroupSchema::infer(node_attributes, edge_attributes);
 

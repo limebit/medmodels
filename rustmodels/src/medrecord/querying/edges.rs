@@ -1,6 +1,7 @@
 use super::{
-    attributes::PyAttributesTreeOperand, nodes::PyNodeOperand, values::PyMultipleValuesOperand,
-    PyGroupCardinalityWrapper, PyMedRecordAttributeCardinalityWrapper,
+    attributes::PyEdgeAttributesTreeOperand, nodes::PyNodeOperand,
+    values::PyEdgeMultipleValuesOperand, PyGroupCardinalityWrapper,
+    PyMedRecordAttributeCardinalityWrapper,
 };
 use crate::medrecord::{attribute::PyMedRecordAttribute, errors::PyMedRecordError};
 use medmodels_core::{
@@ -34,11 +35,11 @@ impl From<PyEdgeOperand> for Wrapper<EdgeOperand> {
 
 #[pymethods]
 impl PyEdgeOperand {
-    pub fn attribute(&mut self, attribute: PyMedRecordAttribute) -> PyMultipleValuesOperand {
+    pub fn attribute(&mut self, attribute: PyMedRecordAttribute) -> PyEdgeMultipleValuesOperand {
         self.0.attribute(attribute).into()
     }
 
-    pub fn attributes(&mut self) -> PyAttributesTreeOperand {
+    pub fn attributes(&mut self) -> PyEdgeAttributesTreeOperand {
         self.0.attributes().into()
     }
 
@@ -140,7 +141,7 @@ impl From<PyEdgeIndicesComparisonOperand> for EdgeIndicesComparisonOperand {
 impl FromPyObject<'_> for PyEdgeIndicesComparisonOperand {
     fn extract_bound(ob: &Bound<'_, PyAny>) -> PyResult<Self> {
         if let Ok(indices) = ob.extract::<Vec<EdgeIndex>>() {
-            Ok(EdgeIndicesComparisonOperand::Indices(indices).into())
+            Ok(EdgeIndicesComparisonOperand::from(indices).into())
         } else if let Ok(operand) = ob.extract::<PyEdgeIndicesOperand>() {
             Ok(PyEdgeIndicesComparisonOperand(operand.0.into()))
         } else {

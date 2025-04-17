@@ -29,7 +29,7 @@ pub use self::{
             SingleValueOperand,
         },
         wrapper::{CardinalityWrapper, Wrapper},
-        Index, ReturnOperand, ReturnValue, Selection,
+        OptionalIndexWrapper, ReturnOperand, ReturnValue, Selection,
     },
     schema::{AttributeDataType, AttributeSchema, AttributeType, GroupSchema, Schema, SchemaType},
 };
@@ -252,10 +252,10 @@ impl MedRecord {
         let mut edges_ungrouped_visited = false;
 
         for (node_index, node) in self.graph.nodes.iter() {
-            let groups_of_node = self
+            let groups_of_node: Vec<_> = self
                 .groups_of_node(node_index)
                 .expect("groups of node must exist")
-                .collect::<Vec<_>>();
+                .collect();
 
             if !groups_of_node.is_empty() {
                 for group in groups_of_node {
@@ -308,10 +308,10 @@ impl MedRecord {
         }
 
         for (edge_index, edge) in self.graph.edges.iter() {
-            let groups_of_edge = self
+            let groups_of_edge: Vec<_> = self
                 .groups_of_edge(edge_index)
                 .expect("groups of edge must exist")
-                .collect::<Vec<_>>();
+                .collect();
 
             if !groups_of_edge.is_empty() {
                 for group in groups_of_edge {
@@ -1249,10 +1249,10 @@ mod test {
     fn test_node_indices() {
         let medrecord = create_medrecord();
 
-        let node_indices = create_nodes()
+        let node_indices: Vec<_> = create_nodes()
             .into_iter()
             .map(|(node_index, _)| node_index)
-            .collect::<Vec<_>>();
+            .collect();
 
         for node_index in medrecord.node_indices() {
             assert!(node_indices.contains(node_index));
@@ -1438,9 +1438,9 @@ mod test {
         let first_index = "0".into();
         let second_index = "1".into();
         let third_index = "2".into();
-        let mut edges_connecting = medrecord
+        let mut edges_connecting: Vec<_> = medrecord
             .edges_connecting(vec![&first_index, &second_index], vec![&third_index])
-            .collect::<Vec<_>>();
+            .collect();
 
         edges_connecting.sort();
         assert_eq!(vec![&2, &3], edges_connecting);
@@ -1449,12 +1449,12 @@ mod test {
         let second_index = "1".into();
         let third_index = "2".into();
         let fourth_index = "3".into();
-        let mut edges_connecting = medrecord
+        let mut edges_connecting: Vec<_> = medrecord
             .edges_connecting(
                 vec![&first_index, &second_index],
                 vec![&third_index, &fourth_index],
             )
-            .collect::<Vec<_>>();
+            .collect();
 
         edges_connecting.sort();
         assert_eq!(vec![&2, &3], edges_connecting);
@@ -1466,9 +1466,9 @@ mod test {
 
         let first_index = "0".into();
         let second_index = "1".into();
-        let mut edges_connecting = medrecord
+        let mut edges_connecting: Vec<_> = medrecord
             .edges_connecting_undirected(vec![&first_index], vec![&second_index])
-            .collect::<Vec<_>>();
+            .collect();
 
         edges_connecting.sort();
         assert_eq!(vec![&0, &1], edges_connecting);
@@ -2020,7 +2020,7 @@ mod test {
 
         medrecord.add_group("0".into(), None, None).unwrap();
 
-        let groups = medrecord.groups().collect::<Vec<_>>();
+        let groups: Vec<_> = medrecord.groups().collect();
 
         assert_eq!(vec![&(MedRecordAttribute::from("0"))], groups);
     }

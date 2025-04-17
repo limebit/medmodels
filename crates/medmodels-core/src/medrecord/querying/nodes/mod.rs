@@ -5,8 +5,24 @@ pub use operand::{
     NodeIndexComparisonOperand, NodeIndexOperand, NodeIndicesComparisonOperand, NodeIndicesOperand,
     NodeOperand,
 };
-pub use operation::{EdgeDirection, NodeIndicesOperation, NodeOperation};
+pub use operation::{EdgeDirection, NodeOperation};
 use std::fmt::Display;
+
+use super::edges::EdgeOperand;
+
+#[derive(Debug, Clone)]
+pub enum Context {
+    Neighbors {
+        operand: Box<NodeOperand>,
+        direction: EdgeDirection,
+    },
+    SourceNode {
+        operand: EdgeOperand,
+    },
+    TargetNode {
+        operand: EdgeOperand,
+    },
+}
 
 #[derive(Debug, Clone)]
 pub enum SingleKind {
