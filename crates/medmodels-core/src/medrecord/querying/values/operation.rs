@@ -15,7 +15,7 @@ use crate::{
         },
         querying::{
             traits::{DeepClone, ReadWriteOrPanic},
-            BoxedIterator, Index, Operand, OptionalIndexWrapper,
+            BoxedIterator, Operand, OptionalIndexWrapper,
         },
         DataType, MedRecordValue, Wrapper,
     },
@@ -140,11 +140,11 @@ impl<O: Operand> DeepClone for MultipleValuesOperation<O> {
 }
 
 impl<O: Operand> MultipleValuesOperation<O> {
-    pub(crate) fn evaluate<'a, I: Index + 'a>(
+    pub(crate) fn evaluate<'a>(
         &self,
         medrecord: &'a MedRecord,
-        values: impl Iterator<Item = (I, MedRecordValue)> + 'a,
-    ) -> MedRecordResult<BoxedIterator<'a, (I, MedRecordValue)>>
+        values: impl Iterator<Item = (&'a O::Index, MedRecordValue)> + 'a,
+    ) -> MedRecordResult<BoxedIterator<'a, (&'a O::Index, MedRecordValue)>>
     where
         O: 'a,
     {
@@ -418,9 +418,12 @@ impl<O: Operand> MultipleValuesOperation<O> {
 
     #[inline]
     // 👀
-    pub(crate) fn get_std<I: Index>(
-        values: impl Iterator<Item = (I, MedRecordValue)>,
-    ) -> MedRecordResult<MedRecordValue> {
+    pub(crate) fn get_std<'a>(
+        values: impl Iterator<Item = (&'a O::Index, MedRecordValue)>,
+    ) -> MedRecordResult<MedRecordValue>
+    where
+        O: 'a,
+    {
         let variance = Self::get_var(values)?;
 
         let MedRecordValue::Float(variance) = variance else {
@@ -432,9 +435,12 @@ impl<O: Operand> MultipleValuesOperation<O> {
 
     // TODO: This is a temporary solution. It should be optimized.
     #[inline]
-    pub(crate) fn get_var<I: Index>(
-        values: impl Iterator<Item = (I, MedRecordValue)>,
-    ) -> MedRecordResult<MedRecordValue> {
+    pub(crate) fn get_var<'a>(
+        values: impl Iterator<Item = (&'a O::Index, MedRecordValue)>,
+    ) -> MedRecordResult<MedRecordValue>
+    where
+        O: 'a,
+    {
         let values: Vec<_> = values.collect();
 
         let mean = Self::get_mean(values.clone().into_iter())?;
@@ -520,11 +526,14 @@ impl<O: Operand> MultipleValuesOperation<O> {
     }
 
     #[inline]
-    fn evaluate_value_operation<'a, I: Index + 'a>(
+    fn evaluate_value_operation<'a>(
         medrecord: &'a MedRecord,
-        values: impl Iterator<Item = (I, MedRecordValue)> + 'a,
+        values: impl Iterator<Item = (&'a O::Index, MedRecordValue)> + 'a,
         operand: &Wrapper<SingleValueOperand<O>>,
-    ) -> MedRecordResult<BoxedIterator<'a, (I, MedRecordValue)>> {
+    ) -> MedRecordResult<BoxedIterator<'a, (&'a O::Index, MedRecordValue)>>
+    where
+        O: 'a,
+    {
         let (values_1, values_2) = Itertools::tee(values);
 
         let kind = &operand.0.read_or_panic().kind;
@@ -601,12 +610,12 @@ impl<O: Operand> MultipleValuesOperation<O> {
     }
 
     #[inline]
-    fn evaluate_multiple_values_comparison_operation<'a, I: Index>(
+    fn evaluate_multiple_values_comparison_operation<'a>(
         medrecord: &'a MedRecord,
-        values: impl Iterator<Item = (I, MedRecordValue)> + 'a,
+        values: impl Iterator<Item = (&'a O::Index, MedRecordValue)> + 'a,
         comparison_operand: &MultipleValuesComparisonOperand,
         kind: &MultipleComparisonKind,
-    ) -> MedRecordResult<BoxedIterator<'a, (I, MedRecordValue)>> {
+    ) -> MedRecordResult<BoxedIterator<'a, (&'a O::Index, MedRecordValue)>> {
         let comparison_values = comparison_operand.evaluate_backward(medrecord)?;
 
         match kind {
@@ -698,12 +707,12 @@ impl<O: Operand> MultipleValuesOperation<O> {
     }
 
     #[inline]
-    fn evaluate_either_or<'a, I: Index + 'a>(
+    fn evaluate_either_or<'a>(
         medrecord: &'a MedRecord,
-        values: impl Iterator<Item = (I, MedRecordValue)>,
+        values: impl Iterator<Item = (&'a O::Index, MedRecordValue)>,
         either: &Wrapper<MultipleValuesOperand<O>>,
         or: &Wrapper<MultipleValuesOperand<O>>,
-    ) -> MedRecordResult<BoxedIterator<'a, (I, MedRecordValue)>>
+    ) -> MedRecordResult<BoxedIterator<'a, (&'a O::Index, MedRecordValue)>>
     where
         O: 'a,
     {
@@ -720,11 +729,14 @@ impl<O: Operand> MultipleValuesOperation<O> {
     }
 
     #[inline]
-    fn evaluate_exclude<'a, I: Index + 'a>(
+    fn evaluate_exclude<'a>(
         medrecord: &'a MedRecord,
-        values: impl Iterator<Item = (I, MedRecordValue)>,
+        values: impl Iterator<Item = (&'a O::Index, MedRecordValue)>,
         operand: &Wrapper<MultipleValuesOperand<O>>,
-    ) -> MedRecordResult<BoxedIterator<'a, (I, MedRecordValue)>> {
+    ) -> MedRecordResult<BoxedIterator<'a, (&'a O::Index, MedRecordValue)>>
+    where
+        O: 'a,
+    {
         let values: Vec<_> = values.collect();
 
         let result: MrHashSet<_> = operand
@@ -817,11 +829,11 @@ impl<O: Operand> DeepClone for SingleValueOperation<O> {
 }
 
 impl<O: Operand> SingleValueOperation<O> {
-    pub(crate) fn evaluate<I: Index>(
+    pub(crate) fn evaluate<'a>(
         &self,
         medrecord: &MedRecord,
-        value: OptionalIndexWrapper<I, MedRecordValue>,
-    ) -> MedRecordResult<Option<OptionalIndexWrapper<I, MedRecordValue>>> {
+        value: OptionalIndexWrapper<&'a O::Index, MedRecordValue>,
+    ) -> MedRecordResult<Option<OptionalIndexWrapper<&'a O::Index, MedRecordValue>>> {
         match self {
             Self::SingleValueComparisonOperation { operand, kind } => {
                 Self::evaluate_single_value_comparison_operation(medrecord, value, operand, kind)
@@ -884,12 +896,12 @@ impl<O: Operand> SingleValueOperation<O> {
     }
 
     #[inline]
-    fn evaluate_single_value_comparison_operation<I: Index>(
+    fn evaluate_single_value_comparison_operation<'a>(
         medrecord: &MedRecord,
-        value: OptionalIndexWrapper<I, MedRecordValue>,
+        value: OptionalIndexWrapper<&'a O::Index, MedRecordValue>,
         comparison_operand: &SingleValueComparisonOperand,
         kind: &SingleComparisonKind,
-    ) -> MedRecordResult<Option<OptionalIndexWrapper<I, MedRecordValue>>> {
+    ) -> MedRecordResult<Option<OptionalIndexWrapper<&'a O::Index, MedRecordValue>>> {
         let comparison_value =
             comparison_operand
                 .evaluate_backward(medrecord)?
@@ -913,12 +925,12 @@ impl<O: Operand> SingleValueOperation<O> {
     }
 
     #[inline]
-    fn evaluate_multiple_values_comparison_operation<I: Index>(
+    fn evaluate_multiple_values_comparison_operation<'a>(
         medrecord: &MedRecord,
-        value: OptionalIndexWrapper<I, MedRecordValue>,
+        value: OptionalIndexWrapper<&'a O::Index, MedRecordValue>,
         comparison_operand: &MultipleValuesComparisonOperand,
         kind: &MultipleComparisonKind,
-    ) -> MedRecordResult<Option<OptionalIndexWrapper<I, MedRecordValue>>> {
+    ) -> MedRecordResult<Option<OptionalIndexWrapper<&'a O::Index, MedRecordValue>>> {
         let comparison_values = comparison_operand.evaluate_backward(medrecord)?;
 
         let comparison_result = match kind {
@@ -930,12 +942,12 @@ impl<O: Operand> SingleValueOperation<O> {
     }
 
     #[inline]
-    fn evaluate_binary_arithmetic_operation<I: Index>(
+    fn evaluate_binary_arithmetic_operation<'a>(
         medrecord: &MedRecord,
-        value: OptionalIndexWrapper<I, MedRecordValue>,
+        value: OptionalIndexWrapper<&'a O::Index, MedRecordValue>,
         operand: &SingleValueComparisonOperand,
         kind: &BinaryArithmeticKind,
-    ) -> MedRecordResult<Option<OptionalIndexWrapper<I, MedRecordValue>>> {
+    ) -> MedRecordResult<Option<OptionalIndexWrapper<&'a O::Index, MedRecordValue>>> {
         let arithmetic_value =
             operand
                 .evaluate_backward(medrecord)?
@@ -965,12 +977,12 @@ impl<O: Operand> SingleValueOperation<O> {
     }
 
     #[inline]
-    fn evaluate_either_or<I: Index>(
+    fn evaluate_either_or<'a>(
         medrecord: &MedRecord,
-        value: OptionalIndexWrapper<I, MedRecordValue>,
+        value: OptionalIndexWrapper<&'a O::Index, MedRecordValue>,
         either: &Wrapper<SingleValueOperand<O>>,
         or: &Wrapper<SingleValueOperand<O>>,
-    ) -> MedRecordResult<Option<OptionalIndexWrapper<I, MedRecordValue>>> {
+    ) -> MedRecordResult<Option<OptionalIndexWrapper<&'a O::Index, MedRecordValue>>> {
         let either_result = either.evaluate_forward(medrecord, value.clone())?;
         let or_result = or.evaluate_forward(medrecord, value)?;
 

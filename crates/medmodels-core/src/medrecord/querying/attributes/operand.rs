@@ -11,7 +11,7 @@ use crate::{
         querying::{
             traits::{DeepClone, ReadWriteOrPanic},
             values::{self, MultipleValuesOperand},
-            BoxedIterator, Index, Operand, OptionalIndexWrapper,
+            BoxedIterator, Operand, OptionalIndexWrapper,
         },
         EdgeOperand, MedRecordAttribute, NodeOperand, Wrapper,
     },
@@ -302,15 +302,15 @@ impl<O: Operand> AttributesTreeOperand<O> {
         }
     }
 
-    pub(crate) fn evaluate_forward<'a, I: Index + 'a>(
+    pub(crate) fn evaluate_forward<'a>(
         &self,
         medrecord: &'a MedRecord,
-        attributes: impl Iterator<Item = (I, Vec<MedRecordAttribute>)> + 'a,
-    ) -> MedRecordResult<impl Iterator<Item = (I, Vec<MedRecordAttribute>)> + 'a>
+        attributes: impl Iterator<Item = (&'a O::Index, Vec<MedRecordAttribute>)> + 'a,
+    ) -> MedRecordResult<impl Iterator<Item = (&'a O::Index, Vec<MedRecordAttribute>)> + 'a>
     where
         O: 'a,
     {
-        let attributes = Box::new(attributes) as BoxedIterator<(I, Vec<MedRecordAttribute>)>;
+        let attributes = Box::new(attributes) as BoxedIterator<_>;
 
         self.operations
             .iter()
@@ -444,11 +444,11 @@ impl<O: Operand> Wrapper<AttributesTreeOperand<O>> {
         AttributesTreeOperand::new(context).into()
     }
 
-    pub(crate) fn evaluate_forward<'a, I: Index + 'a>(
+    pub(crate) fn evaluate_forward<'a>(
         &self,
         medrecord: &'a MedRecord,
-        attributes: impl Iterator<Item = (I, Vec<MedRecordAttribute>)> + 'a,
-    ) -> MedRecordResult<impl Iterator<Item = (I, Vec<MedRecordAttribute>)> + 'a>
+        attributes: impl Iterator<Item = (&'a O::Index, Vec<MedRecordAttribute>)> + 'a,
+    ) -> MedRecordResult<impl Iterator<Item = (&'a O::Index, Vec<MedRecordAttribute>)> + 'a>
     where
         O: 'a,
     {
@@ -576,15 +576,15 @@ impl<O: Operand> MultipleAttributesOperand<O> {
         }
     }
 
-    pub(crate) fn evaluate_forward<'a, I: Index + 'a>(
+    pub(crate) fn evaluate_forward<'a>(
         &self,
         medrecord: &'a MedRecord,
-        attributes: impl Iterator<Item = (I, MedRecordAttribute)> + 'a,
-    ) -> MedRecordResult<impl Iterator<Item = (I, MedRecordAttribute)> + 'a>
+        attributes: impl Iterator<Item = (&'a O::Index, MedRecordAttribute)> + 'a,
+    ) -> MedRecordResult<impl Iterator<Item = (&'a O::Index, MedRecordAttribute)> + 'a>
     where
         O: 'a,
     {
-        let attributes = Box::new(attributes) as BoxedIterator<(I, MedRecordAttribute)>;
+        let attributes = Box::new(attributes) as BoxedIterator<_>;
 
         self.operations
             .iter()
@@ -759,11 +759,11 @@ impl<O: Operand> Wrapper<MultipleAttributesOperand<O>> {
         MultipleAttributesOperand::new(context, kind).into()
     }
 
-    pub(crate) fn evaluate_forward<'a, I: Index + 'a>(
+    pub(crate) fn evaluate_forward<'a>(
         &self,
         medrecord: &'a MedRecord,
-        attributes: impl Iterator<Item = (I, MedRecordAttribute)> + 'a,
-    ) -> MedRecordResult<impl Iterator<Item = (I, MedRecordAttribute)> + 'a>
+        attributes: impl Iterator<Item = (&'a O::Index, MedRecordAttribute)> + 'a,
+    ) -> MedRecordResult<impl Iterator<Item = (&'a O::Index, MedRecordAttribute)> + 'a>
     where
         O: 'a,
     {
@@ -893,11 +893,11 @@ impl<O: Operand> SingleAttributeOperand<O> {
         }
     }
 
-    pub(crate) fn evaluate_forward<I: Index>(
+    pub(crate) fn evaluate_forward<'a>(
         &self,
         medrecord: &MedRecord,
-        attribute: OptionalIndexWrapper<I, MedRecordAttribute>,
-    ) -> MedRecordResult<Option<OptionalIndexWrapper<I, MedRecordAttribute>>> {
+        attribute: OptionalIndexWrapper<&'a O::Index, MedRecordAttribute>,
+    ) -> MedRecordResult<Option<OptionalIndexWrapper<&'a O::Index, MedRecordAttribute>>> {
         self.operations
             .iter()
             .try_fold(Some(attribute), |attribute, operation| {
@@ -1037,11 +1037,11 @@ impl<O: Operand> Wrapper<SingleAttributeOperand<O>> {
         SingleAttributeOperand::new(context, kind).into()
     }
 
-    pub(crate) fn evaluate_forward<I: Index>(
+    pub(crate) fn evaluate_forward<'a>(
         &self,
         medrecord: &MedRecord,
-        attribute: OptionalIndexWrapper<I, MedRecordAttribute>,
-    ) -> MedRecordResult<Option<OptionalIndexWrapper<I, MedRecordAttribute>>> {
+        attribute: OptionalIndexWrapper<&'a O::Index, MedRecordAttribute>,
+    ) -> MedRecordResult<Option<OptionalIndexWrapper<&'a O::Index, MedRecordAttribute>>> {
         self.0
             .read_or_panic()
             .evaluate_forward(medrecord, attribute)
