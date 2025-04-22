@@ -1,3 +1,4 @@
+use super::values::{PyEdgeMultipleValuesOperand, PyNodeMultipleValuesOperand};
 use crate::medrecord::{attribute::PyMedRecordAttribute, errors::PyMedRecordError};
 use medmodels_core::{
     errors::MedRecordError,
@@ -12,8 +13,6 @@ use pyo3::{
     types::{PyAnyMethods, PyFunction},
     Bound, FromPyObject, PyAny, PyResult,
 };
-
-use super::values::{PyEdgeMultipleValuesOperand, PyNodeMultipleValuesOperand};
 
 #[repr(transparent)]
 pub struct PySingleAttributeComparisonOperand(SingleAttributeComparisonOperand);

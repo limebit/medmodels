@@ -158,18 +158,38 @@ impl<O: Operand> AttributesTreeOperation<O> {
                 )
             }))),
             Self::IsMax => {
-                let max_attributes = Self::get_max(attributes)?;
+                let (attributes_1, attributes_2) = Itertools::tee(attributes);
 
-                Ok(Box::new(
-                    max_attributes.map(|(index, attribute)| (index, vec![attribute])),
-                ))
+                let max_attributes = Self::get_max(attributes_1)?.collect::<MrHashMap<_, _>>();
+
+                Ok(Box::new(attributes_2.map(move |(index, attributes)| {
+                    let max_attribute = max_attributes.get(&index).expect("Index must exist");
+
+                    (
+                        index,
+                        attributes
+                            .into_iter()
+                            .filter(|attribute| attribute == max_attribute)
+                            .collect(),
+                    )
+                })))
             }
             Self::IsMin => {
-                let min_attributes = Self::get_min(attributes)?;
+                let (attributes_1, attributes_2) = Itertools::tee(attributes);
 
-                Ok(Box::new(
-                    min_attributes.map(|(index, attribute)| (index, vec![attribute])),
-                ))
+                let min_attributes = Self::get_min(attributes_1)?.collect::<MrHashMap<_, _>>();
+
+                Ok(Box::new(attributes_2.map(move |(index, attributes)| {
+                    let min_attribute = min_attributes.get(&index).expect("Index must exist");
+
+                    (
+                        index,
+                        attributes
+                            .into_iter()
+                            .filter(|attribute| attribute == min_attribute)
+                            .collect(),
+                    )
+                })))
             }
             Self::EitherOr { either, or } => {
                 Self::evaluate_either_or(medrecord, attributes, either, or)
@@ -791,14 +811,22 @@ impl<O: Operand> MultipleAttributesOperation<O> {
                 })))
             }
             Self::IsMax => {
-                let max_attribute = Self::get_max(attributes)?;
+                let (attributes_1, attributes_2) = Itertools::tee(attributes);
 
-                Ok(Box::new(std::iter::once(max_attribute)))
+                let max_attribute = Self::get_max(attributes_1)?.1;
+
+                Ok(Box::new(
+                    attributes_2.filter(move |(_, attribute)| *attribute == max_attribute),
+                ))
             }
             Self::IsMin => {
-                let min_attribute = Self::get_min(attributes)?;
+                let (attributes_1, attributes_2) = Itertools::tee(attributes);
 
-                Ok(Box::new(std::iter::once(min_attribute)))
+                let min_attribute = Self::get_min(attributes_1)?.1;
+
+                Ok(Box::new(
+                    attributes_2.filter(move |(_, attribute)| *attribute == min_attribute),
+                ))
             }
             Self::EitherOr { either, or } => {
                 Self::evaluate_either_or(medrecord, attributes, either, or)

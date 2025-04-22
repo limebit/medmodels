@@ -1,5 +1,3 @@
-use medmodels_utils::aliases::MrHashSet;
-
 use super::{
     operation::{AttributesTreeOperation, MultipleAttributesOperation, SingleAttributeOperation},
     BinaryArithmeticKind, MultipleComparisonKind, MultipleKind, SingleComparisonKind, SingleKind,
@@ -17,6 +15,7 @@ use crate::{
     },
     MedRecord,
 };
+use medmodels_utils::aliases::MrHashSet;
 use std::collections::HashSet;
 
 macro_rules! implement_attributes_operation {

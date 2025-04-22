@@ -1,14 +1,13 @@
 mod operand;
 mod operation;
 
+use super::edges::EdgeOperand;
 pub use operand::{
     NodeIndexComparisonOperand, NodeIndexOperand, NodeIndicesComparisonOperand, NodeIndicesOperand,
     NodeOperand,
 };
 pub use operation::{EdgeDirection, NodeOperation};
 use std::fmt::Display;
-
-use super::edges::EdgeOperand;
 
 #[derive(Debug, Clone)]
 pub enum Context {

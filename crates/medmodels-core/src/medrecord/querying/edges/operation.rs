@@ -438,14 +438,18 @@ impl EdgeIndicesOperation {
                 )?))
             }
             Self::IsMax => {
-                let max_index = Self::get_max(indices)?;
+                let (indices_1, indices_2) = Itertools::tee(indices);
 
-                Ok(Box::new(std::iter::once(max_index)))
+                let max_index = Self::get_max(indices_1)?;
+
+                Ok(Box::new(indices_2.filter(move |index| *index == max_index)))
             }
             Self::IsMin => {
-                let min_index = Self::get_min(indices)?;
+                let (indices_1, indices_2) = Itertools::tee(indices);
 
-                Ok(Box::new(std::iter::once(min_index)))
+                let min_index = Self::get_min(indices_1)?;
+
+                Ok(Box::new(indices_2.filter(move |index| *index == min_index)))
             }
             Self::EitherOr { either, or } => {
                 Self::evaluate_either_or(medrecord, indices, either, or)

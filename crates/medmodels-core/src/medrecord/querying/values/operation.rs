@@ -203,14 +203,22 @@ impl<O: Operand> MultipleValuesOperation<O> {
                 })))
             }
             Self::IsMax => {
-                let max_value = Self::get_max(values)?;
+                let (values_1, values_2) = Itertools::tee(values);
 
-                Ok(Box::new(std::iter::once(max_value)))
+                let max_value = Self::get_max(values_1)?.1;
+
+                Ok(Box::new(
+                    values_2.filter(move |(_, value)| *value == max_value),
+                ))
             }
             Self::IsMin => {
-                let min_value = Self::get_min(values)?;
+                let (values_1, values_2) = Itertools::tee(values);
 
-                Ok(Box::new(std::iter::once(min_value)))
+                let min_value = Self::get_min(values_1)?.1;
+
+                Ok(Box::new(
+                    values_2.filter(move |(_, value)| *value == min_value),
+                ))
             }
             Self::EitherOr { either, or } => {
                 Self::evaluate_either_or(medrecord, values, either, or)
