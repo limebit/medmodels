@@ -6,18 +6,23 @@ from enum import Enum
 from typing import Callable, Dict, List, Optional, Tuple, TypeAlias, Union
 
 from medmodels._medmodels import (
-    PyAttributesTreeOperand,
+    PyEdgeAttributesTreeOperand,
     PyEdgeDirection,
     PyEdgeIndexOperand,
     PyEdgeIndicesOperand,
+    PyEdgeMultipleAttributesOperand,
+    PyEdgeMultipleValuesOperand,
     PyEdgeOperand,
-    PyMultipleAttributesOperand,
-    PyMultipleValuesOperand,
+    PyEdgeSingleAttributeOperand,
+    PyEdgeSingleValueOperand,
+    PyNodeAttributesTreeOperand,
     PyNodeIndexOperand,
     PyNodeIndicesOperand,
+    PyNodeMultipleAttributesOperand,
+    PyNodeMultipleValuesOperand,
     PyNodeOperand,
-    PySingleAttributeOperand,
-    PySingleValueOperand,
+    PyNodeSingleAttributeOperand,
+    PyNodeSingleValueOperand,
 )
 from medmodels.medrecord.types import (
     EdgeIndex,
@@ -28,42 +33,51 @@ from medmodels.medrecord.types import (
 )
 
 PyQueryReturnOperand: TypeAlias = Union[
-    PyAttributesTreeOperand,
-    PyMultipleAttributesOperand,
-    PySingleAttributeOperand,
+    PyNodeAttributesTreeOperand,
+    PyEdgeAttributesTreeOperand,
+    PyNodeMultipleAttributesOperand,
+    PyEdgeMultipleAttributesOperand,
+    PyNodeSingleAttributeOperand,
+    PyEdgeSingleAttributeOperand,
     PyEdgeIndicesOperand,
     PyEdgeIndexOperand,
     PyNodeIndicesOperand,
     PyNodeIndexOperand,
-    PyMultipleValuesOperand,
-    PySingleValueOperand,
+    PyNodeMultipleValuesOperand,
+    PyEdgeMultipleValuesOperand,
+    PyNodeSingleValueOperand,
+    PyEdgeSingleValueOperand,
 ]
 
 #: A type alias for a query return operand.
 QueryReturnOperand = Union[
-    "AttributesTreeOperand",
-    "MultipleAttributesOperand",
-    "SingleAttributeOperand",
+    "NodeAttributesTreeOperand",
+    "EdgeAttributesTreeOperand",
+    "NodeMultipleAttributesOperand",
+    "EdgeMultipleAttributesOperand",
+    "NodeSingleAttributeOperand",
+    "EdgeSingleAttributeOperand",
     "EdgeIndicesOperand",
     "EdgeIndexOperand",
     "NodeIndicesOperand",
     "NodeIndexOperand",
-    "MultipleValuesOperand",
-    "SingleValueOperand",
+    "NodeMultipleValuesOperand",
+    "EdgeMultipleValuesOperand",
+    "NodeSingleValueOperand",
+    "EdgeSingleValueOperand",
 ]
 
-AttributesTreeQueryResult = Union[
-    Dict[NodeIndex, List[MedRecordAttribute]],
-    Dict[EdgeIndex, List[MedRecordAttribute]],
-]
+NodeAttributesTreeQueryResult = Dict[NodeIndex, List[MedRecordAttribute]]
+EdgeAttributesTreeQueryResult = Dict[EdgeIndex, List[MedRecordAttribute]]
 
-MultipleAttributesQueryResult = Union[
-    Dict[NodeIndex, MedRecordAttribute],
-    Dict[EdgeIndex, MedRecordAttribute],
-]
+NodeMultipleAttributesQueryResult = Dict[NodeIndex, MedRecordAttribute]
+EdgeMultipleAttributesQueryResult = Dict[EdgeIndex, MedRecordAttribute]
 
-SingleAttributeQueryResult = Union[
+NodeSingleAttributeQueryResult = Union[
     Optional[Tuple[NodeIndex, MedRecordAttribute]],
+    Optional[MedRecordAttribute],
+]
+EdgeSingleAttributeQueryResult = Union[
     Optional[Tuple[EdgeIndex, MedRecordAttribute]],
     Optional[MedRecordAttribute],
 ]
@@ -76,28 +90,34 @@ NodeIndicesQueryResult = List[NodeIndex]
 
 NodeIndexQueryResult = Optional[NodeIndex]
 
-MultipleValuesQueryResult = Union[
-    Dict[NodeIndex, MedRecordValue],
-    Dict[EdgeIndex, MedRecordValue],
-]
+NodeMultipleValuesQueryResult = Dict[NodeIndex, MedRecordValue]
+EdgeMultipleValuesQueryResult = Dict[EdgeIndex, MedRecordValue]
 
-SingleValueQueryResult = Union[
+NodeSingleValueQueryResult = Union[
     Optional[Tuple[NodeIndex, MedRecordValue]],
+    Optional[MedRecordValue],
+]
+EdgeSingleValueQueryResult = Union[
     Optional[Tuple[EdgeIndex, MedRecordValue]],
     Optional[MedRecordValue],
 ]
 
 #: A type alias for a query result.
 QueryResult = Union[
-    AttributesTreeQueryResult,
-    MultipleAttributesQueryResult,
-    SingleAttributeQueryResult,
+    NodeAttributesTreeQueryResult,
+    EdgeAttributesTreeQueryResult,
+    NodeMultipleAttributesQueryResult,
+    EdgeMultipleAttributesQueryResult,
+    NodeSingleAttributeQueryResult,
+    EdgeSingleAttributeQueryResult,
     EdgeIndicesQueryResult,
     EdgeIndexQueryResult,
     NodeIndicesQueryResult,
     NodeIndexQueryResult,
-    MultipleValuesQueryResult,
-    SingleValueQueryResult,
+    NodeMultipleValuesQueryResult,
+    EdgeMultipleValuesQueryResult,
+    NodeSingleValueQueryResult,
+    EdgeSingleValueQueryResult,
 ]
 
 NodeQuery: TypeAlias = Callable[["NodeOperand"], QueryReturnOperand]
@@ -110,51 +130,76 @@ EdgeQueryComponent: TypeAlias = Callable[["EdgeOperand"], None]
 EdgeIndicesQuery: TypeAlias = Callable[["EdgeOperand"], "EdgeIndicesOperand"]
 EdgeIndexQuery: TypeAlias = Callable[["EdgeOperand"], "EdgeIndexOperand"]
 
-SingleValueComparisonOperand: TypeAlias = Union["SingleValueOperand", MedRecordValue]
+SingleValueComparisonOperand: TypeAlias = Union[
+    MedRecordValue, "NodeSingleValueOperand", "EdgeSingleValueOperand"
+]
 SingleValueArithmeticOperand: TypeAlias = SingleValueComparisonOperand
 MultipleValuesComparisonOperand: TypeAlias = Union[
-    "MultipleValuesOperand", List[MedRecordValue]
+    List[MedRecordValue], "NodeMultipleValuesOperand", "EdgeMultipleValuesOperand"
 ]
 
 
 def _py_single_value_comparison_operand_from_single_value_comparison_operand(
     single_value_comparison_operand: SingleValueComparisonOperand,
-) -> Union[MedRecordValue, PySingleValueOperand]:
-    if isinstance(single_value_comparison_operand, SingleValueOperand):
+) -> Union[MedRecordValue, PyNodeSingleValueOperand, PyEdgeSingleValueOperand]:
+    if isinstance(single_value_comparison_operand, NodeSingleValueOperand):
+        return single_value_comparison_operand._single_value_operand
+    if isinstance(single_value_comparison_operand, EdgeSingleValueOperand):
         return single_value_comparison_operand._single_value_operand
     return single_value_comparison_operand
 
 
 def _py_multiple_values_comparison_operand_from_multiple_values_comparison_operand(
     multiple_values_comparison_operand: MultipleValuesComparisonOperand,
-) -> Union[List[MedRecordValue], PyMultipleValuesOperand]:
-    if isinstance(multiple_values_comparison_operand, MultipleValuesOperand):
+) -> Union[
+    List[MedRecordValue], PyNodeMultipleValuesOperand, PyEdgeMultipleValuesOperand
+]:
+    if isinstance(multiple_values_comparison_operand, NodeMultipleValuesOperand):
+        return multiple_values_comparison_operand._multiple_values_operand
+    if isinstance(multiple_values_comparison_operand, EdgeMultipleValuesOperand):
         return multiple_values_comparison_operand._multiple_values_operand
     return multiple_values_comparison_operand
 
 
 SingleAttributeComparisonOperand: TypeAlias = Union[
-    "SingleAttributeOperand",
     MedRecordAttribute,
+    "NodeSingleAttributeOperand",
+    "EdgeSingleAttributeOperand",
 ]
 SingleAttributeArithmeticOperand: TypeAlias = SingleAttributeComparisonOperand
 MultipleAttributesComparisonOperand: TypeAlias = Union[
-    "MultipleAttributesOperand", List[MedRecordAttribute]
+    List[MedRecordAttribute],
+    "NodeMultipleAttributesOperand",
+    "EdgeMultipleAttributesOperand",
 ]
 
 
 def _py_single_attribute_comparison_operand_from_single_attribute_comparison_operand(
     single_attribute_comparison_operand: SingleAttributeComparisonOperand,
-) -> Union[MedRecordAttribute, PySingleAttributeOperand]:
-    if isinstance(single_attribute_comparison_operand, SingleAttributeOperand):
+) -> Union[
+    MedRecordAttribute, PyNodeSingleAttributeOperand, PyEdgeSingleAttributeOperand
+]:
+    if isinstance(single_attribute_comparison_operand, NodeSingleAttributeOperand):
+        return single_attribute_comparison_operand._single_attribute_operand
+    if isinstance(single_attribute_comparison_operand, EdgeSingleAttributeOperand):
         return single_attribute_comparison_operand._single_attribute_operand
     return single_attribute_comparison_operand
 
 
 def _py_multiple_attributes_comparison_operand_from_multiple_attributes_comparison_operand(
     multiple_attributes_comparison_operand: MultipleAttributesComparisonOperand,
-) -> Union[List[MedRecordAttribute], PyMultipleAttributesOperand]:
-    if isinstance(multiple_attributes_comparison_operand, MultipleAttributesOperand):
+) -> Union[
+    List[MedRecordAttribute],
+    PyNodeMultipleAttributesOperand,
+    PyEdgeMultipleAttributesOperand,
+]:
+    if isinstance(
+        multiple_attributes_comparison_operand, NodeMultipleAttributesOperand
+    ):
+        return multiple_attributes_comparison_operand._multiple_attributes_operand
+    if isinstance(
+        multiple_attributes_comparison_operand, EdgeMultipleAttributesOperand
+    ):
         return multiple_attributes_comparison_operand._multiple_attributes_operand
     return multiple_attributes_comparison_operand
 
@@ -229,7 +274,7 @@ class NodeOperand:
 
     _node_operand: PyNodeOperand
 
-    def attribute(self, attribute: MedRecordAttribute) -> MultipleValuesOperand:
+    def attribute(self, attribute: MedRecordAttribute) -> NodeMultipleValuesOperand:
         """Returns an operand representing the values of that attribute for the nodes.
 
         This method is used to query the values of an attribute for the nodes in the
@@ -239,24 +284,24 @@ class NodeOperand:
             attribute (MedRecordAttribute): The attribute to query.
 
         Returns:
-            MultipleValuesOperand: The operand representing the values of the attribute
-                for the nodes in the current node query.
+            NodeMultipleValuesOperand: The operand representing the values of the
+                attribute for the nodes in the current node query.
         """
-        return MultipleValuesOperand._from_py_multiple_values_operand(
+        return NodeMultipleValuesOperand._from_py_multiple_values_operand(
             self._node_operand.attribute(attribute)
         )
 
-    def attributes(self) -> AttributesTreeOperand:
+    def attributes(self) -> NodeAttributesTreeOperand:
         """Returns an operand representing all the attributes of the nodes queried.
 
         This method is used to query all the attributes of the nodes in the current node
         query.
 
         Returns:
-            AttributesTreeOperand: The operand representing all the attributes of the
-                nodes in the current node query.
+            NodeAttributesTreeOperand: The operand representing all the attributes of
+                the nodes in the current node query.
         """
-        return AttributesTreeOperand._from_py_attributes_tree_operand(
+        return NodeAttributesTreeOperand._from_py_attributes_tree_operand(
             self._node_operand.attributes()
         )
 
@@ -402,28 +447,28 @@ class EdgeOperand:
 
     _edge_operand: PyEdgeOperand
 
-    def attribute(self, attribute: MedRecordAttribute) -> MultipleValuesOperand:
+    def attribute(self, attribute: MedRecordAttribute) -> EdgeMultipleValuesOperand:
         """Returns an operand representing the values of that attribute for the edges.
 
         Args:
             attribute (MedRecordAttribute): The attribute to query.
 
         Returns:
-            MultipleValuesOperand: The operand representing the values of the attribute
-                for the edges in the current edge query.
+            EdgeMultipleValuesOperand: The operand representing the values of
+                the attribute for the edges in the current edge query.
         """
-        return MultipleValuesOperand._from_py_multiple_values_operand(
+        return EdgeMultipleValuesOperand._from_py_multiple_values_operand(
             self._edge_operand.attribute(attribute)
         )
 
-    def attributes(self) -> AttributesTreeOperand:
+    def attributes(self) -> EdgeAttributesTreeOperand:
         """Returns an operand representing all the attributes of the edges queried.
 
         Returns:
-            AttributesTreeOperand: The operand representing all the attributes of the
-                edges in the current edge query.
+            EdgeAttributesTreeOperand: The operand representing all the attributes of
+                the edges in the current edge query.
         """
-        return AttributesTreeOperand._from_py_attributes_tree_operand(
+        return EdgeAttributesTreeOperand._from_py_attributes_tree_operand(
             self._edge_operand.attributes()
         )
 
@@ -527,119 +572,109 @@ class EdgeOperand:
         return edge_operand
 
 
-class MultipleValuesOperand:
+class NodeMultipleValuesOperand:
     """Query API for multiple attribute values in a MedRecord."""
 
-    _multiple_values_operand: PyMultipleValuesOperand
+    _multiple_values_operand: PyNodeMultipleValuesOperand
 
-    def max(self) -> SingleValueOperand:
+    def max(self) -> NodeSingleValueOperand:
         """Get the maximum value of the multiple values.
 
         Returns:
-            SingleValueOperand: The maximum value of the multiple values.
+            NodeSingleValueOperand: The maximum value of the multiple values.
         """
-        return SingleValueOperand._from_py_single_value_operand(
+        return NodeSingleValueOperand._from_py_single_value_operand(
             self._multiple_values_operand.max()
         )
 
-    def min(self) -> SingleValueOperand:
+    def min(self) -> NodeSingleValueOperand:
         """Get the minimum value of the multiple values.
 
         Returns:
-            SingleValueOperand: The minimum value of the multiple values.
+            NodeSingleValueOperand: The minimum value of the multiple values.
         """
-        return SingleValueOperand._from_py_single_value_operand(
+        return NodeSingleValueOperand._from_py_single_value_operand(
             self._multiple_values_operand.min()
         )
 
-    def mean(self) -> SingleValueOperand:
+    def mean(self) -> NodeSingleValueOperand:
         """Get the mean of the multiple values.
 
         Returns:
-            SingleValueOperand: The mean of the multiple values.
+            NodeSingleValueOperand: The mean of the multiple values.
         """
-        return SingleValueOperand._from_py_single_value_operand(
+        return NodeSingleValueOperand._from_py_single_value_operand(
             self._multiple_values_operand.mean()
         )
 
-    def median(self) -> SingleValueOperand:
+    def median(self) -> NodeSingleValueOperand:
         """Get the median of the multiple values.
 
         Returns:
-            SingleValueOperand: The median of the multiple values.
+            NodeSingleValueOperand: The median of the multiple values.
         """
-        return SingleValueOperand._from_py_single_value_operand(
+        return NodeSingleValueOperand._from_py_single_value_operand(
             self._multiple_values_operand.median()
         )
 
-    def mode(self) -> SingleValueOperand:
+    def mode(self) -> NodeSingleValueOperand:
         """Get the mode of the multiple values.
 
         Returns:
-            SingleValueOperand: The mode of the multiple values.
+            NodeSingleValueOperand: The mode of the multiple values.
         """
-        return SingleValueOperand._from_py_single_value_operand(
+        return NodeSingleValueOperand._from_py_single_value_operand(
             self._multiple_values_operand.mode()
         )
 
-    def std(self) -> SingleValueOperand:
+    def std(self) -> NodeSingleValueOperand:
         """Get the standard deviation of the multiple values.
 
         Returns:
-            SingleValueOperand: The standard deviation of the multiple values.
+            NodeSingleValueOperand: The standard deviation of the multiple values.
         """
-        return SingleValueOperand._from_py_single_value_operand(
+        return NodeSingleValueOperand._from_py_single_value_operand(
             self._multiple_values_operand.std()
         )
 
-    def var(self) -> SingleValueOperand:
+    def var(self) -> NodeSingleValueOperand:
         """Get the variance of the multiple values.
 
         Returns:
-            SingleValueOperand: The variance of the multiple values.
+            NodeSingleValueOperand: The variance of the multiple values.
         """
-        return SingleValueOperand._from_py_single_value_operand(
+        return NodeSingleValueOperand._from_py_single_value_operand(
             self._multiple_values_operand.var()
         )
 
-    def count(self) -> SingleValueOperand:
+    def count(self) -> NodeSingleValueOperand:
         """Get the number of multiple values.
 
         Returns:
-            SingleValueOperand: The number of multiple values.
+            NodeSingleValueOperand: The number of multiple values.
         """
-        return SingleValueOperand._from_py_single_value_operand(
+        return NodeSingleValueOperand._from_py_single_value_operand(
             self._multiple_values_operand.count()
         )
 
-    def sum(self) -> SingleValueOperand:
+    def sum(self) -> NodeSingleValueOperand:
         """Get the sum of the multiple values.
 
         Returns:
-            SingleValueOperand: The sum of the multiple values.
+            NodeSingleValueOperand: The sum of the multiple values.
         """
-        return SingleValueOperand._from_py_single_value_operand(
+        return NodeSingleValueOperand._from_py_single_value_operand(
             self._multiple_values_operand.sum()
         )
 
-    def first(self) -> SingleValueOperand:
-        """Get the first value of the multiple values.
+    def random(self) -> NodeSingleValueOperand:
+        """Get a random value of the multiple values.
 
         Returns:
-            SingleValueOperand: The first value of the multiple values.
+            NodeSingleValueOperand: A random value of the multiple values.
         """
-        return SingleValueOperand._from_py_single_value_operand(
-            self._multiple_values_operand.first()
-        )
-
-    def last(self) -> SingleValueOperand:
-        """Get the last value of the multiple values.
-
-        Returns:
-            SingleValueOperand: The last value of the multiple values.
-        """
-        return SingleValueOperand._from_py_single_value_operand(
-            self._multiple_values_operand.last()
+        return NodeSingleValueOperand._from_py_single_value_operand(
+            self._multiple_values_operand.random()
         )
 
     def is_string(self) -> None:
@@ -958,8 +993,8 @@ class MultipleValuesOperand:
 
     def either_or(
         self,
-        either: Callable[[MultipleValuesOperand], None],
-        or_: Callable[[MultipleValuesOperand], None],
+        either: Callable[[NodeMultipleValuesOperand], None],
+        or_: Callable[[NodeMultipleValuesOperand], None],
     ) -> None:
         """Apply either-or logic to the current multiple values query.
 
@@ -968,9 +1003,9 @@ class MultipleValuesOperand:
         second query.
 
         Args:
-            either (Callable[[MultipleValuesOperand], None]): One of the queries to
+            either (Callable[[NodeMultipleValuesOperand], None]): One of the queries to
                 apply.
-            or_ (Callable[[MultipleValuesOperand], None]): The other query to apply.
+            or_ (Callable[[NodeMultipleValuesOperand], None]): The other query to apply.
 
         Example:
             .. highlight:: python
@@ -983,49 +1018,536 @@ class MultipleValuesOperand:
         """
         self._multiple_values_operand.either_or(
             lambda values: either(
-                MultipleValuesOperand._from_py_multiple_values_operand(values)
+                NodeMultipleValuesOperand._from_py_multiple_values_operand(values)
             ),
             lambda values: or_(
-                MultipleValuesOperand._from_py_multiple_values_operand(values)
+                NodeMultipleValuesOperand._from_py_multiple_values_operand(values)
             ),
         )
 
-    def exclude(self, query: Callable[[MultipleValuesOperand], None]) -> None:
+    def exclude(self, query: Callable[[NodeMultipleValuesOperand], None]) -> None:
         """Exclude multiple values based on the query.
 
         Args:
-            query (Callable[[MultipleValuesOperand], None]): The query to apply to
+            query (Callable[[NodeMultipleValuesOperand], None]): The query to apply to
                 exclude multiple values.
         """
         self._multiple_values_operand.exclude(
             lambda values: query(
-                MultipleValuesOperand._from_py_multiple_values_operand(values)
+                NodeMultipleValuesOperand._from_py_multiple_values_operand(values)
             )
         )
 
-    def clone(self) -> MultipleValuesOperand:
+    def clone(self) -> NodeMultipleValuesOperand:
         """Create a deep clone of the current multiple values query.
 
         Returns:
-            MultipleValuesOperand: A deep clone of the current multiple values query.
+            NodeMultipleValuesOperand: A deep clone of the current multiple
+                values query.
         """
-        return MultipleValuesOperand._from_py_multiple_values_operand(
+        return NodeMultipleValuesOperand._from_py_multiple_values_operand(
             self._multiple_values_operand.deep_clone()
         )
 
     @classmethod
     def _from_py_multiple_values_operand(
-        cls, py_multiple_values_operand: PyMultipleValuesOperand
-    ) -> MultipleValuesOperand:
+        cls, py_multiple_values_operand: PyNodeMultipleValuesOperand
+    ) -> NodeMultipleValuesOperand:
         multiple_values_operand = cls()
         multiple_values_operand._multiple_values_operand = py_multiple_values_operand
         return multiple_values_operand
 
 
-class SingleValueOperand:
+class EdgeMultipleValuesOperand:
+    """Query API for multiple attribute values in a MedRecord."""
+
+    _multiple_values_operand: PyEdgeMultipleValuesOperand
+
+    def max(self) -> EdgeSingleValueOperand:
+        """Get the maximum value of the multiple values.
+
+        Returns:
+            EdgeSingleValueOperand: The maximum value of the multiple values.
+        """
+        return EdgeSingleValueOperand._from_py_single_value_operand(
+            self._multiple_values_operand.max()
+        )
+
+    def min(self) -> EdgeSingleValueOperand:
+        """Get the minimum value of the multiple values.
+
+        Returns:
+            EdgeSingleValueOperand: The minimum value of the multiple values.
+        """
+        return EdgeSingleValueOperand._from_py_single_value_operand(
+            self._multiple_values_operand.min()
+        )
+
+    def mean(self) -> EdgeSingleValueOperand:
+        """Get the mean of the multiple values.
+
+        Returns:
+            EdgeSingleValueOperand: The mean of the multiple values.
+        """
+        return EdgeSingleValueOperand._from_py_single_value_operand(
+            self._multiple_values_operand.mean()
+        )
+
+    def median(self) -> EdgeSingleValueOperand:
+        """Get the median of the multiple values.
+
+        Returns:
+            EdgeSingleValueOperand: The median of the multiple values.
+        """
+        return EdgeSingleValueOperand._from_py_single_value_operand(
+            self._multiple_values_operand.median()
+        )
+
+    def mode(self) -> EdgeSingleValueOperand:
+        """Get the mode of the multiple values.
+
+        Returns:
+            EdgeSingleValueOperand: The mode of the multiple values.
+        """
+        return EdgeSingleValueOperand._from_py_single_value_operand(
+            self._multiple_values_operand.mode()
+        )
+
+    def std(self) -> EdgeSingleValueOperand:
+        """Get the standard deviation of the multiple values.
+
+        Returns:
+            EdgeSingleValueOperand: The standard deviation of the multiple values.
+        """
+        return EdgeSingleValueOperand._from_py_single_value_operand(
+            self._multiple_values_operand.std()
+        )
+
+    def var(self) -> EdgeSingleValueOperand:
+        """Get the variance of the multiple values.
+
+        Returns:
+            EdgeSingleValueOperand: The variance of the multiple values.
+        """
+        return EdgeSingleValueOperand._from_py_single_value_operand(
+            self._multiple_values_operand.var()
+        )
+
+    def count(self) -> EdgeSingleValueOperand:
+        """Get the number of multiple values.
+
+        Returns:
+            EdgeSingleValueOperand: The number of multiple values.
+        """
+        return EdgeSingleValueOperand._from_py_single_value_operand(
+            self._multiple_values_operand.count()
+        )
+
+    def sum(self) -> EdgeSingleValueOperand:
+        """Get the sum of the multiple values.
+
+        Returns:
+            EdgeSingleValueOperand: The sum of the multiple values.
+        """
+        return EdgeSingleValueOperand._from_py_single_value_operand(
+            self._multiple_values_operand.sum()
+        )
+
+    def random(self) -> EdgeSingleValueOperand:
+        """Get a random value of the multiple values.
+
+        Returns:
+            EdgeSingleValueOperand: A random value of the multiple values.
+        """
+        return EdgeSingleValueOperand._from_py_single_value_operand(
+            self._multiple_values_operand.random()
+        )
+
+    def is_string(self) -> None:
+        """Query which multiple values are strings."""
+        self._multiple_values_operand.is_string()
+
+    def is_int(self) -> None:
+        """Query which multiple values are integers."""
+        self._multiple_values_operand.is_int()
+
+    def is_float(self) -> None:
+        """Query which multiple values are floats."""
+        self._multiple_values_operand.is_float()
+
+    def is_bool(self) -> None:
+        """Query which multiple values are booleans."""
+        self._multiple_values_operand.is_bool()
+
+    def is_datetime(self) -> None:
+        """Query which multiple values are datetimes."""
+        self._multiple_values_operand.is_datetime()
+
+    def is_duration(self) -> None:
+        """Query which multiple values are durations (timedeltas)."""
+        self._multiple_values_operand.is_duration()
+
+    def is_null(self) -> None:
+        """Query which multiple values are null (None)."""
+        self._multiple_values_operand.is_null()
+
+    def is_max(self) -> None:
+        """Query which multiple values are the maximum value."""
+        self._multiple_values_operand.is_max()
+
+    def is_min(self) -> None:
+        """Query which multiple values are the minimum value."""
+        self._multiple_values_operand.is_min()
+
+    def greater_than(self, value: SingleValueComparisonOperand) -> None:
+        """Query which multiple values are greater than a value.
+
+        Args:
+            value (SingleValueComparisonOperand): The value to compare against.
+        """
+        self._multiple_values_operand.greater_than(
+            _py_single_value_comparison_operand_from_single_value_comparison_operand(
+                value
+            )
+        )
+
+    def greater_than_or_equal_to(self, value: SingleValueComparisonOperand) -> None:
+        """Query which multiple values are greater than or equal to a value.
+
+        Args:
+            value (SingleValueComparisonOperand): The value to compare against.
+        """
+        self._multiple_values_operand.greater_than_or_equal_to(
+            _py_single_value_comparison_operand_from_single_value_comparison_operand(
+                value
+            )
+        )
+
+    def less_than(self, value: SingleValueComparisonOperand) -> None:
+        """Query which multiple values are less than a value.
+
+        Args:
+            value (SingleValueComparisonOperand): The value to compare against.
+        """
+        self._multiple_values_operand.less_than(
+            _py_single_value_comparison_operand_from_single_value_comparison_operand(
+                value
+            )
+        )
+
+    def less_than_or_equal_to(self, value: SingleValueComparisonOperand) -> None:
+        """Query which multiple values are less than or equal to a value.
+
+        Args:
+            value (SingleValueComparisonOperand): The value to compare against.
+        """
+        self._multiple_values_operand.less_than_or_equal_to(
+            _py_single_value_comparison_operand_from_single_value_comparison_operand(
+                value
+            )
+        )
+
+    def equal_to(self, value: SingleValueComparisonOperand) -> None:
+        """Query which multiple values are equal to a value.
+
+        Args:
+            value (SingleValueComparisonOperand): The value to compare against.
+        """
+        self._multiple_values_operand.equal_to(
+            _py_single_value_comparison_operand_from_single_value_comparison_operand(
+                value
+            )
+        )
+
+    def not_equal_to(self, value: SingleValueComparisonOperand) -> None:
+        """Query which multiple values are not equal to a value.
+
+        Args:
+            value (SingleValueComparisonOperand): The value to compare against.
+        """
+        self._multiple_values_operand.not_equal_to(
+            _py_single_value_comparison_operand_from_single_value_comparison_operand(
+                value
+            )
+        )
+
+    def is_in(self, values: MultipleValuesComparisonOperand) -> None:
+        """Query which multiple values are in a list of values.
+
+        Args:
+            values (MultipleValuesComparisonOperand): The values to compare against.
+        """
+        self._multiple_values_operand.is_in(
+            _py_multiple_values_comparison_operand_from_multiple_values_comparison_operand(
+                values
+            )
+        )
+
+    def is_not_in(self, values: MultipleValuesComparisonOperand) -> None:
+        """Query which multiple values are not in a list of values.
+
+        Args:
+            values (MultipleValuesComparisonOperand): The values to compare against.
+        """
+        self._multiple_values_operand.is_not_in(
+            _py_multiple_values_comparison_operand_from_multiple_values_comparison_operand(
+                values
+            )
+        )
+
+    def starts_with(self, value: SingleValueComparisonOperand) -> None:
+        """Query which multiple values start with a value.
+
+        Args:
+            value (SingleValueComparisonOperand): The value to compare against.
+        """
+        self._multiple_values_operand.starts_with(
+            _py_single_value_comparison_operand_from_single_value_comparison_operand(
+                value
+            )
+        )
+
+    def ends_with(self, value: SingleValueComparisonOperand) -> None:
+        """Query which multiple values end with a value.
+
+        Args:
+            value (SingleValueComparisonOperand): The value to compare against.
+        """
+        self._multiple_values_operand.ends_with(
+            _py_single_value_comparison_operand_from_single_value_comparison_operand(
+                value
+            )
+        )
+
+    def contains(self, value: SingleValueComparisonOperand) -> None:
+        """Query which multiple values contain a value.
+
+        Args:
+            value (SingleValueComparisonOperand): The value to compare against.
+        """
+        self._multiple_values_operand.contains(
+            _py_single_value_comparison_operand_from_single_value_comparison_operand(
+                value
+            )
+        )
+
+    def add(self, value: SingleValueArithmeticOperand) -> None:
+        """Add a value to the multiple values.
+
+        Args:
+            value (SingleValueArithmeticOperand): The value to add.
+        """
+        self._multiple_values_operand.add(
+            _py_single_value_comparison_operand_from_single_value_comparison_operand(
+                value
+            )
+        )
+
+    def subtract(self, value: SingleValueArithmeticOperand) -> None:
+        """Subtract a value from the multiple values.
+
+        Args:
+            value (SingleValueArithmeticOperand): The value to subtract.
+        """
+        self._multiple_values_operand.sub(
+            _py_single_value_comparison_operand_from_single_value_comparison_operand(
+                value
+            )
+        )
+
+    def multiply(self, value: SingleValueArithmeticOperand) -> None:
+        """Multiply the multiple values by a value.
+
+        Args:
+            value (SingleValueArithmeticOperand): The value to multiply by.
+        """
+        self._multiple_values_operand.mul(
+            _py_single_value_comparison_operand_from_single_value_comparison_operand(
+                value
+            )
+        )
+
+    def divide(self, value: SingleValueArithmeticOperand) -> None:
+        """Divide the multiple values by a value.
+
+        Args:
+            value (SingleValueArithmeticOperand): The value to divide by.
+        """
+        self._multiple_values_operand.div(
+            _py_single_value_comparison_operand_from_single_value_comparison_operand(
+                value
+            )
+        )
+
+    def modulo(self, value: SingleValueArithmeticOperand) -> None:
+        """Compute the modulo of the multiple values.
+
+        In mathematics and computer science, the modulo operation finds the remainder
+        after division of one number by another.
+
+        Args:
+            value (SingleValueArithmeticOperand): The value to divide by when
+                computing the modulo.
+        """
+        self._multiple_values_operand.mod(
+            _py_single_value_comparison_operand_from_single_value_comparison_operand(
+                value
+            )
+        )
+
+    def power(self, value: SingleValueArithmeticOperand) -> None:
+        """Raise the multiple values to a power.
+
+        Args:
+            value (SingleValueArithmeticOperand): The power to raise the multiple values
+                to.
+        """
+        self._multiple_values_operand.pow(
+            _py_single_value_comparison_operand_from_single_value_comparison_operand(
+                value
+            )
+        )
+
+    def round(self) -> None:
+        """Round the multiple values."""
+        self._multiple_values_operand.round()
+
+    def ceil(self) -> None:
+        """Get the respective ceiling value of the multiple values.
+
+        In mathematics and computer science, the ceiling function is the function that
+        rounds a number upward to the nearest integer.
+        """
+        self._multiple_values_operand.ceil()
+
+    def floor(self) -> None:
+        """Get the respective floor of the multiple values.
+
+        In mathematics and computer science, the floor function is the function that
+        rounds a number downward to the nearest integer.
+        """
+        self._multiple_values_operand.floor()
+
+    def absolute(self) -> None:
+        """Get the absolute value of the multiple values."""
+        self._multiple_values_operand.abs()
+
+    def sqrt(self) -> None:
+        """Get the square root of the multiple values."""
+        self._multiple_values_operand.sqrt()
+
+    def trim(self) -> None:
+        """Trim the multiple values.
+
+        The trim method removes leading and trailing whitespace from the multiple
+        values.
+        """
+        self._multiple_values_operand.trim()
+
+    def trim_start(self) -> None:
+        """Trim the start of the multiple values.
+
+        The trim_start method removes leading whitespace from the multiple values.
+        """
+        self._multiple_values_operand.trim_start()
+
+    def trim_end(self) -> None:
+        """Trim the end of the multiple values.
+
+        The trim_end method removes trailing whitespace from the multiple values.
+        """
+        self._multiple_values_operand.trim_end()
+
+    def lowercase(self) -> None:
+        """Convert the multiple values to lowercase."""
+        self._multiple_values_operand.lowercase()
+
+    def uppercase(self) -> None:
+        """Convert the multiple values to uppercase."""
+        self._multiple_values_operand.uppercase()
+
+    def slice(self, start: int, end: int) -> None:
+        """Slice the multiple values.
+
+        The slice method extracts a section of the multiple values.
+
+        Args:
+            start (int): The start index of the slice.
+            end (int): The end index of the slice.
+        """
+        self._multiple_values_operand.slice(start, end)
+
+    def either_or(
+        self,
+        either: Callable[[EdgeMultipleValuesOperand], None],
+        or_: Callable[[EdgeMultipleValuesOperand], None],
+    ) -> None:
+        """Apply either-or logic to the current multiple values query.
+
+        This method applies the combination of the two queries to the multiple values
+        query. It returns all multiple values that satisfy either the first query or the
+        second query.
+
+        Args:
+            either (Callable[[EdgeMultipleValuesOperand], None]): One of the queries to
+                apply.
+            or_ (Callable[[EdgeMultipleValuesOperand], None]): The other query to apply.
+
+        Example:
+            .. highlight:: python
+            .. code-block:: python
+
+                multiple_values_operand.either_or(
+                    lambda values: values.is_int(), lambda values: values.is_float()
+                )
+
+        """
+        self._multiple_values_operand.either_or(
+            lambda values: either(
+                EdgeMultipleValuesOperand._from_py_multiple_values_operand(values)
+            ),
+            lambda values: or_(
+                EdgeMultipleValuesOperand._from_py_multiple_values_operand(values)
+            ),
+        )
+
+    def exclude(self, query: Callable[[EdgeMultipleValuesOperand], None]) -> None:
+        """Exclude multiple values based on the query.
+
+        Args:
+            query (Callable[[EdgeMultipleValuesOperand], None]): The query to apply to
+                exclude multiple values.
+        """
+        self._multiple_values_operand.exclude(
+            lambda values: query(
+                EdgeMultipleValuesOperand._from_py_multiple_values_operand(values)
+            )
+        )
+
+    def clone(self) -> EdgeMultipleValuesOperand:
+        """Create a deep clone of the current multiple values query.
+
+        Returns:
+            EdgeMultipleValuesOperand: A deep clone of the current multiple
+                values query.
+        """
+        return EdgeMultipleValuesOperand._from_py_multiple_values_operand(
+            self._multiple_values_operand.deep_clone()
+        )
+
+    @classmethod
+    def _from_py_multiple_values_operand(
+        cls, py_multiple_values_operand: PyEdgeMultipleValuesOperand
+    ) -> EdgeMultipleValuesOperand:
+        multiple_values_operand = cls()
+        multiple_values_operand._multiple_values_operand = py_multiple_values_operand
+        return multiple_values_operand
+
+
+class NodeSingleValueOperand:
     """Query API for a single value in a MedRecord."""
 
-    _single_value_operand: PySingleValueOperand
+    _single_value_operand: PyNodeSingleValueOperand
 
     def is_string(self) -> None:
         """Query if the single value is a string."""
@@ -1329,8 +1851,8 @@ class SingleValueOperand:
 
     def either_or(
         self,
-        either: Callable[[SingleValueOperand], None],
-        or_: Callable[[SingleValueOperand], None],
+        either: Callable[[NodeSingleValueOperand], None],
+        or_: Callable[[NodeSingleValueOperand], None],
     ) -> None:
         """Apply either-or logic to the current single value query.
 
@@ -1339,8 +1861,10 @@ class SingleValueOperand:
         second query.
 
         Args:
-            either (Callable[[SingleValueOperand], None]): One of the queries to apply.
-            or_ (Callable[[SingleValueOperand], None]): The other query to apply.
+            either (Callable[[NodeSingleValueOperand], None]): One of the queries
+                to apply.
+            or_ (Callable[[NodeSingleValueOperand], None]): The other query
+                to apply.
 
         Example:
             .. highlight:: python
@@ -1349,113 +1873,477 @@ class SingleValueOperand:
                 single_value_operand.either_or(
                     lambda value: value.is_int(), lambda value: value.is_float()
                 )
-
         """
         self._single_value_operand.either_or(
             lambda value: either(
-                SingleValueOperand._from_py_single_value_operand(value)
+                NodeSingleValueOperand._from_py_single_value_operand(value)
             ),
-            lambda value: or_(SingleValueOperand._from_py_single_value_operand(value)),
+            lambda value: or_(
+                NodeSingleValueOperand._from_py_single_value_operand(value)
+            ),
         )
 
-    def exclude(self, query: Callable[[SingleValueOperand], None]) -> None:
+    def exclude(self, query: Callable[[NodeSingleValueOperand], None]) -> None:
         """Exclude the single value if it satisfies the query.
 
         Args:
-            query (Callable[[SingleValueOperand], None]): The query to apply to exclude
-                the value.
+            query (Callable[[NodeSingleValueOperand], None]): The query to apply
+                to exclude the value.
         """
         self._single_value_operand.exclude(
-            lambda value: query(SingleValueOperand._from_py_single_value_operand(value))
+            lambda value: query(
+                NodeSingleValueOperand._from_py_single_value_operand(value)
+            )
         )
 
-    def clone(self) -> SingleValueOperand:
+    def clone(self) -> NodeSingleValueOperand:
         """Create a deep clone of the current single value query.
 
         Returns:
-            SingleValueOperand: A deep clone of the current single value query.
+            NodeSingleValueOperand: A deep clone of the current single value query.
         """
-        return SingleValueOperand._from_py_single_value_operand(
+        return NodeSingleValueOperand._from_py_single_value_operand(
             self._single_value_operand.deep_clone()
         )
 
     @classmethod
     def _from_py_single_value_operand(
-        cls, py_single_value_operand: PySingleValueOperand
-    ) -> SingleValueOperand:
+        cls, py_single_value_operand: PyNodeSingleValueOperand
+    ) -> NodeSingleValueOperand:
         single_value_operand = cls()
         single_value_operand._single_value_operand = py_single_value_operand
         return single_value_operand
 
 
-class AttributesTreeOperand:
+class EdgeSingleValueOperand:
+    """Query API for a single value in a MedRecord."""
+
+    _single_value_operand: PyEdgeSingleValueOperand
+
+    def is_string(self) -> None:
+        """Query if the single value is a string."""
+        self._single_value_operand.is_string()
+
+    def is_int(self) -> None:
+        """Query if the single value is an integer."""
+        self._single_value_operand.is_int()
+
+    def is_float(self) -> None:
+        """Query if the single value is a float."""
+        self._single_value_operand.is_float()
+
+    def is_bool(self) -> None:
+        """Query if the single value is a boolean."""
+        self._single_value_operand.is_bool()
+
+    def is_datetime(self) -> None:
+        """Query if the single value is a datetime."""
+        self._single_value_operand.is_datetime()
+
+    def is_duration(self) -> None:
+        """Query if the single value is a duration (timedelta)."""
+        self._single_value_operand.is_duration()
+
+    def is_null(self) -> None:
+        """Query if the single value is null (None)."""
+        self._single_value_operand.is_null()
+
+    def greater_than(self, value: SingleValueComparisonOperand) -> None:
+        """Query if the single value is greater than a value.
+
+        Args:
+            value (SingleValueComparisonOperand): The value to compare against.
+        """
+        self._single_value_operand.greater_than(
+            _py_single_value_comparison_operand_from_single_value_comparison_operand(
+                value
+            )
+        )
+
+    def greater_than_or_equal_to(self, value: SingleValueComparisonOperand) -> None:
+        """Query if the single value is greater than or equal to a value.
+
+        Args:
+            value (SingleValueComparisonOperand): The value to compare against.
+        """
+        self._single_value_operand.greater_than_or_equal_to(
+            _py_single_value_comparison_operand_from_single_value_comparison_operand(
+                value
+            )
+        )
+
+    def less_than(self, value: SingleValueComparisonOperand) -> None:
+        """Query if the single value is less than a value.
+
+        Args:
+            value (SingleValueComparisonOperand): The value to compare against.
+        """
+        self._single_value_operand.less_than(
+            _py_single_value_comparison_operand_from_single_value_comparison_operand(
+                value
+            )
+        )
+
+    def less_than_or_equal_to(self, value: SingleValueComparisonOperand) -> None:
+        """Query if the single value is less than or equal to a value.
+
+        Args:
+            value (SingleValueComparisonOperand): The value to compare against.
+        """
+        self._single_value_operand.less_than_or_equal_to(
+            _py_single_value_comparison_operand_from_single_value_comparison_operand(
+                value
+            )
+        )
+
+    def equal_to(self, value: SingleValueComparisonOperand) -> None:
+        """Query if the single value is equal to a value.
+
+        Args:
+            value (SingleValueComparisonOperand): The value to compare against.
+        """
+        self._single_value_operand.equal_to(
+            _py_single_value_comparison_operand_from_single_value_comparison_operand(
+                value
+            )
+        )
+
+    def not_equal_to(self, value: SingleValueComparisonOperand) -> None:
+        """Query if the single value is not equal to a value.
+
+        Args:
+            value (SingleValueComparisonOperand): The value to compare against.
+        """
+        self._single_value_operand.not_equal_to(
+            _py_single_value_comparison_operand_from_single_value_comparison_operand(
+                value
+            )
+        )
+
+    def is_in(self, values: MultipleValuesComparisonOperand) -> None:
+        """Query if the single value is in a list of values.
+
+        Args:
+            values (MultipleValuesComparisonOperand): The values to compare against.
+        """
+        self._single_value_operand.is_in(
+            _py_multiple_values_comparison_operand_from_multiple_values_comparison_operand(
+                values
+            )
+        )
+
+    def is_not_in(self, values: MultipleValuesComparisonOperand) -> None:
+        """Query if the single value is not in a list of values.
+
+        Args:
+            values (MultipleValuesComparisonOperand): The values to compare against.
+        """
+        self._single_value_operand.is_not_in(
+            _py_multiple_values_comparison_operand_from_multiple_values_comparison_operand(
+                values
+            )
+        )
+
+    def starts_with(self, value: SingleValueComparisonOperand) -> None:
+        """Query if the single value starts with a value.
+
+        Args:
+            value (SingleValueComparisonOperand): The value to compare against.
+        """
+        self._single_value_operand.starts_with(
+            _py_single_value_comparison_operand_from_single_value_comparison_operand(
+                value
+            )
+        )
+
+    def ends_with(self, value: SingleValueComparisonOperand) -> None:
+        """Query if the single value ends with a value.
+
+        Args:
+            value (SingleValueComparisonOperand): The value to compare against.
+        """
+        self._single_value_operand.ends_with(
+            _py_single_value_comparison_operand_from_single_value_comparison_operand(
+                value
+            )
+        )
+
+    def contains(self, value: SingleValueComparisonOperand) -> None:
+        """Query if the single value contains a value.
+
+        Args:
+            value (SingleValueComparisonOperand): The value to compare against.
+        """
+        self._single_value_operand.contains(
+            _py_single_value_comparison_operand_from_single_value_comparison_operand(
+                value
+            )
+        )
+
+    def add(self, value: SingleValueArithmeticOperand) -> None:
+        """Add a value to the single value.
+
+        Args:
+            value (SingleValueArithmeticOperand): The value to add.
+        """
+        self._single_value_operand.add(
+            _py_single_value_comparison_operand_from_single_value_comparison_operand(
+                value
+            )
+        )
+
+    def subtract(self, value: SingleValueArithmeticOperand) -> None:
+        """Subtract a value from the single value.
+
+        Args:
+            value (SingleValueArithmeticOperand): The value to subtract.
+        """
+        self._single_value_operand.sub(
+            _py_single_value_comparison_operand_from_single_value_comparison_operand(
+                value
+            )
+        )
+
+    def multiply(self, value: SingleValueArithmeticOperand) -> None:
+        """Multiply the single value by a value.
+
+        Args:
+            value (SingleValueArithmeticOperand): The value to multiply by.
+        """
+        self._single_value_operand.mul(
+            _py_single_value_comparison_operand_from_single_value_comparison_operand(
+                value
+            )
+        )
+
+    def divide(self, value: SingleValueArithmeticOperand) -> None:
+        """Divide the single value by a value.
+
+        Args:
+            value (SingleValueArithmeticOperand): The value to divide by.
+        """
+        self._single_value_operand.div(
+            _py_single_value_comparison_operand_from_single_value_comparison_operand(
+                value
+            )
+        )
+
+    def modulo(self, value: SingleValueArithmeticOperand) -> None:
+        """Compute the modulo of the single value.
+
+        In mathematics and computer science, the modulo operation finds the remainder
+        after division of one number by another.
+
+        Args:
+            value (SingleValueArithmeticOperand): The value to divide by when
+                computing the modulo.
+        """
+        self._single_value_operand.mod(
+            _py_single_value_comparison_operand_from_single_value_comparison_operand(
+                value
+            )
+        )
+
+    def power(self, value: SingleValueArithmeticOperand) -> None:
+        """Raise the single value to a power.
+
+        Args:
+            value (SingleValueArithmeticOperand): The power to raise the value to.
+        """
+        self._single_value_operand.pow(
+            _py_single_value_comparison_operand_from_single_value_comparison_operand(
+                value
+            )
+        )
+
+    def round(self) -> None:
+        """Round the single value."""
+        self._single_value_operand.round()
+
+    def ceil(self) -> None:
+        """Get the respective ceiling value of the single value.
+
+        In mathematics and computer science, the ceiling function is the function that
+        rounds a number upward to the nearest integer.
+        """
+        self._single_value_operand.ceil()
+
+    def floor(self) -> None:
+        """Get the respective floor of the single value."""
+        self._single_value_operand.floor()
+
+    def absolute(self) -> None:
+        """Get the absolute value of the single value."""
+        self._single_value_operand.abs()
+
+    def sqrt(self) -> None:
+        """Get the square root of the single value."""
+        self._single_value_operand.sqrt()
+
+    def trim(self) -> None:
+        """Trim the single value.
+
+        The trim method removes leading and trailing whitespace from the single value.
+        """
+        self._single_value_operand.trim()
+
+    def trim_start(self) -> None:
+        """Trim the start of the single value.
+
+        The trim_start method removes leading whitespace from the single value.
+        """
+        self._single_value_operand.trim_start()
+
+    def trim_end(self) -> None:
+        """Trim the end of the single value.
+
+        The trim_end method removes trailing whitespace from the single value.
+        """
+        self._single_value_operand.trim_end()
+
+    def lowercase(self) -> None:
+        """Convert the single value to lowercase."""
+        self._single_value_operand.lowercase()
+
+    def uppercase(self) -> None:
+        """Convert the single value to uppercase."""
+        self._single_value_operand.uppercase()
+
+    def slice(self, start: int, end: int) -> None:
+        """Slice the single value.
+
+        The slice method extracts a section of the single value.
+
+        Args:
+            start (int): The start index of the slice.
+            end (int): The end index of the slice.
+        """
+        self._single_value_operand.slice(start, end)
+
+    def either_or(
+        self,
+        either: Callable[[EdgeSingleValueOperand], None],
+        or_: Callable[[EdgeSingleValueOperand], None],
+    ) -> None:
+        """Apply either-or logic to the current single value query.
+
+        This method applies the combination of the two queries to the single value
+        query. It returns all single values that satisfy either the first query or the
+        second query.
+
+        Args:
+            either (Callable[[EdgeSingleValueOperand], None]): One of the queries
+                to apply.
+            or_ (Callable[[EdgeSingleValueOperand], None]): The other query
+                to apply.
+
+        Example:
+            .. highlight:: python
+            .. code-block:: python
+
+                single_value_operand.either_or(
+                    lambda value: value.is_int(), lambda value: value.is_float()
+                )
+        """
+        self._single_value_operand.either_or(
+            lambda value: either(
+                EdgeSingleValueOperand._from_py_single_value_operand(value)
+            ),
+            lambda value: or_(
+                EdgeSingleValueOperand._from_py_single_value_operand(value)
+            ),
+        )
+
+    def exclude(self, query: Callable[[EdgeSingleValueOperand], None]) -> None:
+        """Exclude the single value if it satisfies the query.
+
+        Args:
+            query (Callable[[EdgeSingleValueOperand], None]): The query to apply
+                to exclude the value.
+        """
+        self._single_value_operand.exclude(
+            lambda value: query(
+                EdgeSingleValueOperand._from_py_single_value_operand(value)
+            )
+        )
+
+    def clone(self) -> EdgeSingleValueOperand:
+        """Create a deep clone of the current single value query.
+
+        Returns:
+            EdgeSingleValueOperand: A deep clone of the current single value query.
+        """
+        return EdgeSingleValueOperand._from_py_single_value_operand(
+            self._single_value_operand.deep_clone()
+        )
+
+    @classmethod
+    def _from_py_single_value_operand(
+        cls, py_single_value_operand: PyEdgeSingleValueOperand
+    ) -> EdgeSingleValueOperand:
+        single_value_operand = cls()
+        single_value_operand._single_value_operand = py_single_value_operand
+        return single_value_operand
+
+
+class NodeAttributesTreeOperand:
     """Query API for all attributes of given nodes/edges.
 
     This operand is used to query on attribute names, not its values.
     """
 
-    _attributes_tree_operand: PyAttributesTreeOperand
+    _attributes_tree_operand: PyNodeAttributesTreeOperand
 
-    def max(self) -> MultipleAttributesOperand:
+    def max(self) -> NodeMultipleAttributesOperand:
         """Query the attributes which names have the maximum value for each node/edge.
 
         Returns:
-            MultipleAttributesOperand: The attribute name with the maximum value for
+            NodeMultipleAttributesOperand: The attribute name with the maximum value for
                 each node/edge.
         """
-        return MultipleAttributesOperand._from_py_multiple_attributes_operand(
+        return NodeMultipleAttributesOperand._from_py_multiple_attributes_operand(
             self._attributes_tree_operand.max()
         )
 
-    def min(self) -> MultipleAttributesOperand:
+    def min(self) -> NodeMultipleAttributesOperand:
         """Query the attributes which names have the minimum value for each node/edge.
 
         Returns:
-            MultipleAttributesOperand: The attribute name with the minimum value for
+            NodeMultipleAttributesOperand: The attribute name with the minimum value for
                 each node/edge.
         """
-        return MultipleAttributesOperand._from_py_multiple_attributes_operand(
+        return NodeMultipleAttributesOperand._from_py_multiple_attributes_operand(
             self._attributes_tree_operand.min()
         )
 
-    def count(self) -> MultipleAttributesOperand:
+    def count(self) -> NodeMultipleAttributesOperand:
         """Query the number of attributes for each node/edge.
 
         Returns:
-            MultipleAttributesOperand: The number of attributes for each node/edge.
+            NodeMultipleAttributesOperand: The number of attributes for each node/edge.
         """
-        return MultipleAttributesOperand._from_py_multiple_attributes_operand(
+        return NodeMultipleAttributesOperand._from_py_multiple_attributes_operand(
             self._attributes_tree_operand.count()
         )
 
-    def sum(self) -> MultipleAttributesOperand:
+    def sum(self) -> NodeMultipleAttributesOperand:
         """Query the sum of the attributes for each node/edge.
 
         Returns:
-            MultipleAttributesOperand: The sum of the attributes for each node/edge.
+            NodeMultipleAttributesOperand: The sum of the attributes for each node/edge.
         """
-        return MultipleAttributesOperand._from_py_multiple_attributes_operand(
+        return NodeMultipleAttributesOperand._from_py_multiple_attributes_operand(
             self._attributes_tree_operand.sum()
         )
 
-    def first(self) -> MultipleAttributesOperand:
-        """Query the first attribute of each node/edge.
+    def random(self) -> NodeMultipleAttributesOperand:
+        """Query a random attribute for each node/edge.
 
         Returns:
-            MultipleAttributesOperand: The first attribute names for each node/edge.
+            NodeMultipleAttributesOperand: A random attribute names for each node/edge.
         """
-        return MultipleAttributesOperand._from_py_multiple_attributes_operand(
-            self._attributes_tree_operand.first()
-        )
-
-    def last(self) -> MultipleAttributesOperand:
-        """Query the last attribute of each node/edge.
-
-        Returns:
-            MultipleAttributesOperand: The first attribute names for each node/edge.
-        """
-        return MultipleAttributesOperand._from_py_multiple_attributes_operand(
-            self._attributes_tree_operand.last()
+        return NodeMultipleAttributesOperand._from_py_multiple_attributes_operand(
+            self._attributes_tree_operand.random()
         )
 
     def is_string(self) -> None:
@@ -1735,8 +2623,8 @@ class AttributesTreeOperand:
 
     def either_or(
         self,
-        either: Callable[[AttributesTreeOperand], None],
-        or_: Callable[[AttributesTreeOperand], None],
+        either: Callable[[NodeAttributesTreeOperand], None],
+        or_: Callable[[NodeAttributesTreeOperand], None],
     ) -> None:
         """Apply either-or query logic to the current attributes tree.
 
@@ -1745,9 +2633,9 @@ class AttributesTreeOperand:
         each node/edge.
 
         Args:
-            either (Callable[[AttributesTreeOperand], None]): A query function to
+            either (Callable[[NodeAttributesTreeOperand], None]): A query function to
                 evaluate one condition on the attributes.
-            or_ (Callable[[AttributesTreeOperand], None]): A query function to evaluate
+            or_ (Callable[[NodeAttributesTreeOperand], None]): A query function to evaluate
                 the alternative condition on the attributes.
 
         Example:
@@ -1760,121 +2648,518 @@ class AttributesTreeOperand:
                     lambda attributes: attributes.is_int(),  # Query for integer attributes
                     lambda attributes: attributes.is_float(),  # Query for float attributes
                 )
-
         """  # noqa: W505
         self._attributes_tree_operand.either_or(
             lambda attributes: either(
-                AttributesTreeOperand._from_py_attributes_tree_operand(attributes)
+                NodeAttributesTreeOperand._from_py_attributes_tree_operand(attributes)
             ),
             lambda attributes: or_(
-                AttributesTreeOperand._from_py_attributes_tree_operand(attributes)
+                NodeAttributesTreeOperand._from_py_attributes_tree_operand(attributes)
             ),
         )
 
-    def exclude(self, query: Callable[[AttributesTreeOperand], None]) -> None:
+    def exclude(self, query: Callable[[NodeAttributesTreeOperand], None]) -> None:
         """Exclude attribute names based on the query.
 
         Exclude attribute names that satisfy the query from the attributes tree.
 
         Args:
-            query (Callable[[AttributesTreeOperand], None]): The query to apply to
+            query (Callable[[NodeAttributesTreeOperand], None]): The query to apply to
                 exclude attribute names.
         """
         self._attributes_tree_operand.exclude(
             lambda attributes: query(
-                AttributesTreeOperand._from_py_attributes_tree_operand(attributes)
+                NodeAttributesTreeOperand._from_py_attributes_tree_operand(attributes)
             )
         )
 
-    def clone(self) -> AttributesTreeOperand:
+    def clone(self) -> NodeAttributesTreeOperand:
         """Create a deep clone of the current attributes tree query.
 
         Returns:
-            AttributesTreeOperand: A deep clone of the current attributes tree query.
+            NodeAttributesTreeOperand: A deep clone of the current attributes
+                tree query.
         """
-        return AttributesTreeOperand._from_py_attributes_tree_operand(
+        return NodeAttributesTreeOperand._from_py_attributes_tree_operand(
             self._attributes_tree_operand.deep_clone()
         )
 
     @classmethod
     def _from_py_attributes_tree_operand(
-        cls, py_attributes_tree_operand: PyAttributesTreeOperand
-    ) -> AttributesTreeOperand:
+        cls, py_attributes_tree_operand: PyNodeAttributesTreeOperand
+    ) -> NodeAttributesTreeOperand:
         attributes_tree_operand = cls()
         attributes_tree_operand._attributes_tree_operand = py_attributes_tree_operand
         return attributes_tree_operand
 
 
-class MultipleAttributesOperand:
-    """Query API for multiple attributes accross nodes/edges.
+class EdgeAttributesTreeOperand:
+    """Query API for all attributes of given nodes/edges.
 
-    This operand is used to query on multiple attributes names, not their values.
+    This operand is used to query on attribute names, not its values.
     """
 
-    _multiple_attributes_operand: PyMultipleAttributesOperand
+    _attributes_tree_operand: PyEdgeAttributesTreeOperand
 
-    def max(self) -> SingleAttributeOperand:
+    def max(self) -> EdgeMultipleAttributesOperand:
+        """Query the attributes which names have the maximum value for each node/edge.
+
+        Returns:
+            EdgeMultipleAttributesOperand: The attribute name with the maximum value for
+                each node/edge.
+        """
+        return EdgeMultipleAttributesOperand._from_py_multiple_attributes_operand(
+            self._attributes_tree_operand.max()
+        )
+
+    def min(self) -> EdgeMultipleAttributesOperand:
+        """Query the attributes which names have the minimum value for each node/edge.
+
+        Returns:
+            EdgeMultipleAttributesOperand: The attribute name with the minimum value for
+                each node/edge.
+        """
+        return EdgeMultipleAttributesOperand._from_py_multiple_attributes_operand(
+            self._attributes_tree_operand.min()
+        )
+
+    def count(self) -> EdgeMultipleAttributesOperand:
+        """Query the number of attributes for each node/edge.
+
+        Returns:
+            EdgeMultipleAttributesOperand: The number of attributes for each node/edge.
+        """
+        return EdgeMultipleAttributesOperand._from_py_multiple_attributes_operand(
+            self._attributes_tree_operand.count()
+        )
+
+    def sum(self) -> EdgeMultipleAttributesOperand:
+        """Query the sum of the attributes for each node/edge.
+
+        Returns:
+            EdgeMultipleAttributesOperand: The sum of the attributes for each node/edge.
+        """
+        return EdgeMultipleAttributesOperand._from_py_multiple_attributes_operand(
+            self._attributes_tree_operand.sum()
+        )
+
+    def random(self) -> EdgeMultipleAttributesOperand:
+        """Query a random attribute for each node/edge.
+
+        Returns:
+            EdgeMultipleAttributesOperand: A random attribute names for each node/edge.
+        """
+        return EdgeMultipleAttributesOperand._from_py_multiple_attributes_operand(
+            self._attributes_tree_operand.random()
+        )
+
+    def is_string(self) -> None:
+        """Query which attribute names are strings for each node/edge."""
+        self._attributes_tree_operand.is_string()
+
+    def is_int(self) -> None:
+        """Query which attribute names are integers for each node/edge."""
+        self._attributes_tree_operand.is_int()
+
+    def is_max(self) -> None:
+        """Query which attribute names are the maximum value for each node/edge."""
+        self._attributes_tree_operand.is_max()
+
+    def is_min(self) -> None:
+        """Query which attribute names are the minimum value for each node/edge."""
+        self._attributes_tree_operand.is_min()
+
+    def greater_than(self, attribute: SingleAttributeComparisonOperand) -> None:
+        """Query which attribute names are greater than a value for each node/edge.
+
+        Args:
+            attribute (SingleAttributeComparisonOperand): The value to compare against
+                across all attribute names of each node/edge.
+        """
+        self._attributes_tree_operand.greater_than(
+            _py_single_attribute_comparison_operand_from_single_attribute_comparison_operand(
+                attribute
+            )
+        )
+
+    def greater_than_or_equal_to(
+        self, attribute: SingleAttributeComparisonOperand
+    ) -> None:
+        """Query which attribute names are greater than or equal to a value.
+
+        Args:
+            attribute (SingleAttributeComparisonOperand): The value to compare against
+                across all attribute names of each node/edge.
+        """
+        self._attributes_tree_operand.greater_than_or_equal_to(
+            _py_single_attribute_comparison_operand_from_single_attribute_comparison_operand(
+                attribute
+            )
+        )
+
+    def less_than(self, attribute: SingleAttributeComparisonOperand) -> None:
+        """Query which attribute names are less than a value for each node/edge.
+
+        Args:
+            attribute (SingleAttributeComparisonOperand): The value to compare against
+                across all attribute names of each node/edge.
+        """
+        self._attributes_tree_operand.less_than(
+            _py_single_attribute_comparison_operand_from_single_attribute_comparison_operand(
+                attribute
+            )
+        )
+
+    def less_than_or_equal_to(
+        self, attribute: SingleAttributeComparisonOperand
+    ) -> None:
+        """Query which attribute names are less than or equal to a value.
+
+        Args:
+            attribute (SingleAttributeComparisonOperand): The value to compare against
+                across all attribute names of each node/edge.
+        """
+        self._attributes_tree_operand.less_than_or_equal_to(
+            _py_single_attribute_comparison_operand_from_single_attribute_comparison_operand(
+                attribute
+            )
+        )
+
+    def equal_to(self, attribute: SingleAttributeComparisonOperand) -> None:
+        """Query which attribute names are equal to a value for each node/edge.
+
+        Args:
+            attribute (SingleAttributeComparisonOperand): The value to compare against
+                across all attribute names of each node/edge.
+        """
+        self._attributes_tree_operand.equal_to(
+            _py_single_attribute_comparison_operand_from_single_attribute_comparison_operand(
+                attribute
+            )
+        )
+
+    def not_equal_to(self, attribute: SingleAttributeComparisonOperand) -> None:
+        """Query which attribute names are not equal to a value for each node/edge.
+
+        Args:
+            attribute (SingleAttributeComparisonOperand): The value to compare against
+                across all attribute names of each node/edge.
+        """
+        self._attributes_tree_operand.not_equal_to(
+            _py_single_attribute_comparison_operand_from_single_attribute_comparison_operand(
+                attribute
+            )
+        )
+
+    def is_in(self, attributes: MultipleAttributesComparisonOperand) -> None:
+        """Query which attribute names are in a list of values for each node/edge.
+
+        Args:
+            attributes (MultipleAttributesComparisonOperand): The list of values to
+                compare against across the attribute names of each node/edge.
+        """
+        self._attributes_tree_operand.is_in(
+            _py_multiple_attributes_comparison_operand_from_multiple_attributes_comparison_operand(
+                attributes
+            )
+        )
+
+    def is_not_in(self, attributes: MultipleAttributesComparisonOperand) -> None:
+        """Query which attribute names are not in a list of values for each node/edge.
+
+        Args:
+            attributes (MultipleAttributesComparisonOperand): The list of values to
+                compare against across the attribute names of each node/edge.
+        """
+        self._attributes_tree_operand.is_not_in(
+            _py_multiple_attributes_comparison_operand_from_multiple_attributes_comparison_operand(
+                attributes
+            )
+        )
+
+    def starts_with(self, attribute: SingleAttributeComparisonOperand) -> None:
+        """Query which attribute names start with a value for each node/edge.
+
+        Args:
+            attribute (SingleAttributeComparisonOperand): The value to compare against
+                across all attribute names of each node/edge.
+        """
+        self._attributes_tree_operand.starts_with(
+            _py_single_attribute_comparison_operand_from_single_attribute_comparison_operand(
+                attribute
+            )
+        )
+
+    def ends_with(self, attribute: SingleAttributeComparisonOperand) -> None:
+        """Query which attribute names end with a value for each node/edge.
+
+        Args:
+            attribute (SingleAttributeComparisonOperand): The value to compare against
+                across all attribute names of each node/edge.
+        """
+        self._attributes_tree_operand.ends_with(
+            _py_single_attribute_comparison_operand_from_single_attribute_comparison_operand(
+                attribute
+            )
+        )
+
+    def contains(self, attribute: SingleAttributeComparisonOperand) -> None:
+        """Query which attribute names contain a value for each node/edge.
+
+        Args:
+            attribute (SingleAttributeComparisonOperand): The value to compare against
+                across all attribute names of each node/edge.
+        """
+        self._attributes_tree_operand.contains(
+            _py_single_attribute_comparison_operand_from_single_attribute_comparison_operand(
+                attribute
+            )
+        )
+
+    def add(self, attribute: SingleAttributeArithmeticOperand) -> None:
+        """Add a value to all attribute names for each node/edge.
+
+        Args:
+            attribute (SingleAttributeArithmeticOperand): The value to add to all
+                attribute names of each node/edge.
+        """
+        self._attributes_tree_operand.add(
+            _py_single_attribute_comparison_operand_from_single_attribute_comparison_operand(
+                attribute
+            )
+        )
+
+    def subtract(self, attribute: SingleAttributeArithmeticOperand) -> None:
+        """Subtract a value from all attribute names for each node/edge.
+
+        Args:
+            attribute (SingleAttributeArithmeticOperand): The value to subtract from
+                all attribute names of each node/edge.
+        """
+        self._attributes_tree_operand.sub(
+            _py_single_attribute_comparison_operand_from_single_attribute_comparison_operand(
+                attribute
+            )
+        )
+
+    def multiply(self, attribute: SingleAttributeArithmeticOperand) -> None:
+        """Multiply all attribute names for each node/edge by a value.
+
+        Args:
+            attribute (SingleAttributeArithmeticOperand): The value to multiply by.
+        """
+        self._attributes_tree_operand.mul(
+            _py_single_attribute_comparison_operand_from_single_attribute_comparison_operand(
+                attribute
+            )
+        )
+
+    def modulo(self, attribute: SingleAttributeArithmeticOperand) -> None:
+        """Compute the modulo of the attribute names for each node/ edge by a value.
+
+        In mathematics and computer science, the modulo operation finds the remainder
+        after division of one number by another.
+
+        Args:
+            attribute (SingleAttributeArithmeticOperand): The value to divide by when
+                computing the modulo.
+        """
+        self._attributes_tree_operand.mod(
+            _py_single_attribute_comparison_operand_from_single_attribute_comparison_operand(
+                attribute
+            )
+        )
+
+    def power(self, attribute: SingleAttributeArithmeticOperand) -> None:
+        """Raise the attribute names to a power for each node/edge.
+
+        Args:
+            attribute (SingleAttributeArithmeticOperand): The power to raise the
+                attribute names to.
+        """
+        self._attributes_tree_operand.pow(
+            _py_single_attribute_comparison_operand_from_single_attribute_comparison_operand(
+                attribute
+            )
+        )
+
+    def absolute(self) -> None:
+        """Get the absolute value of the attribute names."""
+        self._attributes_tree_operand.abs()
+
+    def trim(self) -> None:
+        """Trim the attribute names for each node/edge.
+
+        The trim method removes leading and trailing whitespace from the attribute
+        names.
+        """
+        self._attributes_tree_operand.trim()
+
+    def trim_start(self) -> None:
+        """Trim the start of the attribute names for each node/edge.
+
+        The trim_start method removes leading whitespace from the attribute names.
+        """
+        self._attributes_tree_operand.trim_start()
+
+    def trim_end(self) -> None:
+        """Trim the end of the attribute names for each node/edge.
+
+        The trim_end method removes trailing whitespace from the attribute names.
+        """
+        self._attributes_tree_operand.trim_end()
+
+    def lowercase(self) -> None:
+        """Convert the attribute names to lowercase."""
+        self._attributes_tree_operand.lowercase()
+
+    def uppercase(self) -> None:
+        """Convert the attribute names to uppercase."""
+        self._attributes_tree_operand.uppercase()
+
+    def slice(self, start: int, end: int) -> None:
+        """Slice the attribute names.
+
+        The slice method extracts a section of the attribute names.
+
+        Args:
+            start (int): The start index of the slice.
+            end (int): The end index of the slice.
+        """
+        self._attributes_tree_operand.slice(start, end)
+
+    def either_or(
+        self,
+        either: Callable[[EdgeAttributesTreeOperand], None],
+        or_: Callable[[EdgeAttributesTreeOperand], None],
+    ) -> None:
+        """Apply either-or query logic to the current attributes tree.
+
+        This method evaluates two queries on the attributes tree and returns all
+        attribute names that satisfy either the first query or the second query for
+        each node/edge.
+
+        Args:
+            either (Callable[[EdgeAttributesTreeOperand], None]): A query function to
+                evaluate one condition on the attributes.
+            or_ (Callable[[EdgeAttributesTreeOperand], None]): A query function to evaluate
+                the alternative condition on the attributes.
+
+        Example:
+            Example usage of `either_or` logic to filter attributes
+
+            .. highlight:: python
+            .. code-block:: python
+
+                attributes_tree_operand.either_or(
+                    lambda attributes: attributes.is_int(),  # Query for integer attributes
+                    lambda attributes: attributes.is_float(),  # Query for float attributes
+                )
+        """  # noqa: W505
+        self._attributes_tree_operand.either_or(
+            lambda attributes: either(
+                EdgeAttributesTreeOperand._from_py_attributes_tree_operand(attributes)
+            ),
+            lambda attributes: or_(
+                EdgeAttributesTreeOperand._from_py_attributes_tree_operand(attributes)
+            ),
+        )
+
+    def exclude(self, query: Callable[[EdgeAttributesTreeOperand], None]) -> None:
+        """Exclude attribute names based on the query.
+
+        Exclude attribute names that satisfy the query from the attributes tree.
+
+        Args:
+            query (Callable[[EdgeAttributesTreeOperand], None]): The query to apply to
+                exclude attribute names.
+        """
+        self._attributes_tree_operand.exclude(
+            lambda attributes: query(
+                EdgeAttributesTreeOperand._from_py_attributes_tree_operand(attributes)
+            )
+        )
+
+    def clone(self) -> EdgeAttributesTreeOperand:
+        """Create a deep clone of the current attributes tree query.
+
+        Returns:
+            EdgeAttributesTreeOperand: A deep clone of the current attributes
+                tree query.
+        """
+        return EdgeAttributesTreeOperand._from_py_attributes_tree_operand(
+            self._attributes_tree_operand.deep_clone()
+        )
+
+    @classmethod
+    def _from_py_attributes_tree_operand(
+        cls, py_attributes_tree_operand: PyEdgeAttributesTreeOperand
+    ) -> EdgeAttributesTreeOperand:
+        attributes_tree_operand = cls()
+        attributes_tree_operand._attributes_tree_operand = py_attributes_tree_operand
+        return attributes_tree_operand
+
+
+class NodeMultipleAttributesOperand:
+    """Query API for multiple attributes accross nodes/edges.
+
+    This operand is used to query on multiple attributes names.
+    """
+
+    _multiple_attributes_operand: PyNodeMultipleAttributesOperand
+
+    def max(self) -> NodeSingleAttributeOperand:
         """Query the attribute name across nodes/edges with the maximum value.
 
         Returns:
-            SingleAttributeOperand: The maximum attribute name across all
+            NodeSingleAttributeOperand: The maximum attribute name across all
                 nodes/edges.
         """
-        return SingleAttributeOperand._from_py_single_attribute_operand(
+        return NodeSingleAttributeOperand._from_py_single_attribute_operand(
             self._multiple_attributes_operand.max()
         )
 
-    def min(self) -> SingleAttributeOperand:
+    def min(self) -> NodeSingleAttributeOperand:
         """Query the attribute name across nodes/edges with the minimum value.
 
         Returns:
-            SingleAttributeOperand: The minimum attribute name across all
+            NodeSingleAttributeOperand: The minimum attribute name across all
                 nodes/edges.
         """
-        return SingleAttributeOperand._from_py_single_attribute_operand(
+        return NodeSingleAttributeOperand._from_py_single_attribute_operand(
             self._multiple_attributes_operand.min()
         )
 
-    def count(self) -> SingleAttributeOperand:
+    def count(self) -> NodeSingleAttributeOperand:
         """Query the number of attribute names across nodes/edges.
 
         Returns:
-            SingleAttributeOperand: The number of attribute names across all
+            NodeSingleAttributeOperand: The number of attribute names across all
                 nodes/edges.
         """
-        return SingleAttributeOperand._from_py_single_attribute_operand(
+        return NodeSingleAttributeOperand._from_py_single_attribute_operand(
             self._multiple_attributes_operand.count()
         )
 
-    def sum(self) -> SingleAttributeOperand:
+    def sum(self) -> NodeSingleAttributeOperand:
         """Query the sum of the attribute names across nodes/edges.
 
         Returns:
-            SingleAttributeOperand: The sum of the attribute names across all
+            NodeSingleAttributeOperand: The sum of the attribute names across all
                 nodes/edges.
         """
-        return SingleAttributeOperand._from_py_single_attribute_operand(
+        return NodeSingleAttributeOperand._from_py_single_attribute_operand(
             self._multiple_attributes_operand.sum()
         )
 
-    def first(self) -> SingleAttributeOperand:
-        """Query the first attribute name across nodes/edges.
+    def random(self) -> NodeSingleAttributeOperand:
+        """Query a random attribute name across nodes/edges.
 
         Returns:
-            SingleAttributeOperand: The first attribute name across all nodes/edges.
+            NodeSingleAttributeOperand: A random attribute name across all nodes/edges.
         """
-        return SingleAttributeOperand._from_py_single_attribute_operand(
-            self._multiple_attributes_operand.first()
-        )
-
-    def last(self) -> SingleAttributeOperand:
-        """Query the last attribute name across nodes/edges.
-
-        Returns:
-            SingleAttributeOperand: The last attribute name across all nodes/edges.
-        """
-        return SingleAttributeOperand._from_py_single_attribute_operand(
-            self._multiple_attributes_operand.last()
+        return NodeSingleAttributeOperand._from_py_single_attribute_operand(
+            self._multiple_attributes_operand.random()
         )
 
     def is_string(self) -> None:
@@ -2141,13 +3426,14 @@ class MultipleAttributesOperand:
         """Convert the attribute names to uppercase."""
         self._multiple_attributes_operand.uppercase()
 
-    def to_values(self) -> MultipleValuesOperand:
+    def to_values(self) -> NodeMultipleValuesOperand:
         """Returns an operand representing the values of the attributes.
 
         Returns:
-            MultipleValuesOperand: An operand representing the values of the attributes.
+            NodeMultipleValuesOperand: An operand representing the values of
+                the attributes.
         """
-        return MultipleValuesOperand._from_py_multiple_values_operand(
+        return NodeMultipleValuesOperand._from_py_multiple_values_operand(
             self._multiple_attributes_operand.to_values()
         )
 
@@ -2164,8 +3450,8 @@ class MultipleAttributesOperand:
 
     def either_or(
         self,
-        either: Callable[[MultipleAttributesOperand], None],
-        or_: Callable[[MultipleAttributesOperand], None],
+        either: Callable[[NodeMultipleAttributesOperand], None],
+        or_: Callable[[NodeMultipleAttributesOperand], None],
     ) -> None:
         """Apply either-or query logic to the current multiple attributes query.
 
@@ -2173,9 +3459,9 @@ class MultipleAttributesOperand:
         attribute names that satisfy either the first query or the second query.
 
         Args:
-            either (Callable[[MultipleAttributesOperand], None]): A query function to
-                evaluate one condition on the multiple attributes.
-            or_ (Callable[[MultipleAttributesOperand], None]): A query function to
+            either (Callable[[NodeMultipleAttributesOperand], None]): A query function
+                to evaluate one condition on the multiple attributes.
+            or_ (Callable[[NodeMultipleAttributesOperand], None]): A query function to
                 evaluate the alternative condition on the multiple attributes.
 
         Example:
@@ -2191,49 +3477,49 @@ class MultipleAttributesOperand:
         """  # noqa: W505
         self._multiple_attributes_operand.either_or(
             lambda attributes: either(
-                MultipleAttributesOperand._from_py_multiple_attributes_operand(
+                NodeMultipleAttributesOperand._from_py_multiple_attributes_operand(
                     attributes
                 )
             ),
             lambda attributes: or_(
-                MultipleAttributesOperand._from_py_multiple_attributes_operand(
+                NodeMultipleAttributesOperand._from_py_multiple_attributes_operand(
                     attributes
                 )
             ),
         )
 
-    def exclude(self, query: Callable[[MultipleAttributesOperand], None]) -> None:
+    def exclude(self, query: Callable[[NodeMultipleAttributesOperand], None]) -> None:
         """Exclude attribute names based on the query.
 
         Exclude attribute names that satisfy the query from the multiple attributes.
 
         Args:
-            query (Callable[[MultipleAttributesOperand], None]): The query to apply to
-                exclude attribute names.
+            query (Callable[[NodeMultipleAttributesOperand], None]): The query to apply
+                to exclude attribute names.
         """
         self._multiple_attributes_operand.exclude(
             lambda attributes: query(
-                MultipleAttributesOperand._from_py_multiple_attributes_operand(
+                NodeMultipleAttributesOperand._from_py_multiple_attributes_operand(
                     attributes
                 )
             )
         )
 
-    def clone(self) -> MultipleAttributesOperand:
+    def clone(self) -> NodeMultipleAttributesOperand:
         """Create a deep clone of the current multiple attributes query.
 
         Returns:
-            MultipleAttributesOperand: A deep clone of the current multiple attributes
-                query.
+            NodeMultipleAttributesOperand: A deep clone of the current multiple
+                attributes query.
         """
-        return MultipleAttributesOperand._from_py_multiple_attributes_operand(
+        return NodeMultipleAttributesOperand._from_py_multiple_attributes_operand(
             self._multiple_attributes_operand.deep_clone()
         )
 
     @classmethod
     def _from_py_multiple_attributes_operand(
-        cls, py_multiple_attributes_operand: PyMultipleAttributesOperand
-    ) -> MultipleAttributesOperand:
+        cls, py_multiple_attributes_operand: PyNodeMultipleAttributesOperand
+    ) -> NodeMultipleAttributesOperand:
         multiple_attributes_operand = cls()
         multiple_attributes_operand._multiple_attributes_operand = (
             py_multiple_attributes_operand
@@ -2241,10 +3527,437 @@ class MultipleAttributesOperand:
         return multiple_attributes_operand
 
 
-class SingleAttributeOperand:
+class EdgeMultipleAttributesOperand:
+    """Query API for multiple attributes accross nodes/edges.
+
+    This operand is used to query on multiple attributes names.
+    """
+
+    _multiple_attributes_operand: PyEdgeMultipleAttributesOperand
+
+    def max(self) -> EdgeSingleAttributeOperand:
+        """Query the attribute name across nodes/edges with the maximum value.
+
+        Returns:
+            EdgeSingleAttributeOperand: The maximum attribute name across all
+                nodes/edges.
+        """
+        return EdgeSingleAttributeOperand._from_py_single_attribute_operand(
+            self._multiple_attributes_operand.max()
+        )
+
+    def min(self) -> EdgeSingleAttributeOperand:
+        """Query the attribute name across nodes/edges with the minimum value.
+
+        Returns:
+            EdgeSingleAttributeOperand: The minimum attribute name across all
+                nodes/edges.
+        """
+        return EdgeSingleAttributeOperand._from_py_single_attribute_operand(
+            self._multiple_attributes_operand.min()
+        )
+
+    def count(self) -> EdgeSingleAttributeOperand:
+        """Query the number of attribute names across nodes/edges.
+
+        Returns:
+            EdgeSingleAttributeOperand: The number of attribute names across all
+                nodes/edges.
+        """
+        return EdgeSingleAttributeOperand._from_py_single_attribute_operand(
+            self._multiple_attributes_operand.count()
+        )
+
+    def sum(self) -> EdgeSingleAttributeOperand:
+        """Query the sum of the attribute names across nodes/edges.
+
+        Returns:
+            EdgeSingleAttributeOperand: The sum of the attribute names across all
+                nodes/edges.
+        """
+        return EdgeSingleAttributeOperand._from_py_single_attribute_operand(
+            self._multiple_attributes_operand.sum()
+        )
+
+    def random(self) -> EdgeSingleAttributeOperand:
+        """Query a random attribute name across nodes/edges.
+
+        Returns:
+            EdgeSingleAttributeOperand: A random attribute name across all nodes/edges.
+        """
+        return EdgeSingleAttributeOperand._from_py_single_attribute_operand(
+            self._multiple_attributes_operand.random()
+        )
+
+    def is_string(self) -> None:
+        """Query which attribute names are strings across nodes/edges."""
+        self._multiple_attributes_operand.is_string()
+
+    def is_int(self) -> None:
+        """Query which attribute names are integers across nodes/edges."""
+        self._multiple_attributes_operand.is_int()
+
+    def is_max(self) -> None:
+        """Query which attribute names are the maximum value across nodes/edges."""
+        self._multiple_attributes_operand.is_max()
+
+    def is_min(self) -> None:
+        """Query which attribute names are the minimum value across nodes/edges."""
+        self._multiple_attributes_operand.is_min()
+
+    def greater_than(self, attribute: SingleAttributeComparisonOperand) -> None:
+        """Query which attribute names are greater than a value across nodes/edges.
+
+        Args:
+            attribute (SingleAttributeComparisonOperand): The value to compare against
+                across the attribute names.
+        """
+        self._multiple_attributes_operand.greater_than(
+            _py_single_attribute_comparison_operand_from_single_attribute_comparison_operand(
+                attribute
+            )
+        )
+
+    def greater_than_or_equal_to(
+        self, attribute: SingleAttributeComparisonOperand
+    ) -> None:
+        """Query which attribute names are greater than or equal to a value.
+
+        Args:
+            attribute (SingleAttributeComparisonOperand): The value to compare against
+                across the attribute names.
+        """
+        self._multiple_attributes_operand.greater_than_or_equal_to(
+            _py_single_attribute_comparison_operand_from_single_attribute_comparison_operand(
+                attribute
+            )
+        )
+
+    def less_than(self, attribute: SingleAttributeComparisonOperand) -> None:
+        """Query which attribute names are less than a value.
+
+        Args:
+            attribute (SingleAttributeComparisonOperand): The value to compare against
+                across the attribute names.
+        """
+        self._multiple_attributes_operand.less_than(
+            _py_single_attribute_comparison_operand_from_single_attribute_comparison_operand(
+                attribute
+            )
+        )
+
+    def less_than_or_equal_to(
+        self, attribute: SingleAttributeComparisonOperand
+    ) -> None:
+        """Query which attribute names are less than or equal to a value.
+
+        Args:
+            attribute (SingleAttributeComparisonOperand): The value to compare against
+                across the attribute names.
+        """
+        self._multiple_attributes_operand.less_than_or_equal_to(
+            _py_single_attribute_comparison_operand_from_single_attribute_comparison_operand(
+                attribute
+            )
+        )
+
+    def equal_to(self, attribute: SingleAttributeComparisonOperand) -> None:
+        """Query which attribute names are equal to a value.
+
+        Args:
+            attribute (SingleAttributeComparisonOperand): The value to compare against
+                across the attribute names.
+        """
+        self._multiple_attributes_operand.equal_to(
+            _py_single_attribute_comparison_operand_from_single_attribute_comparison_operand(
+                attribute
+            )
+        )
+
+    def not_equal_to(self, attribute: SingleAttributeComparisonOperand) -> None:
+        """Query which attribute names are not equal to a value.
+
+        Args:
+            attribute (SingleAttributeComparisonOperand): The value to compare against
+                across the attribute names.
+        """
+        self._multiple_attributes_operand.not_equal_to(
+            _py_single_attribute_comparison_operand_from_single_attribute_comparison_operand(
+                attribute
+            )
+        )
+
+    def is_in(self, attributes: MultipleAttributesComparisonOperand) -> None:
+        """Query which attribute names are in a list of values.
+
+        Args:
+            attributes (MultipleAttributesComparisonOperand): The list of values to
+                compare against across the attribute names.
+        """
+        self._multiple_attributes_operand.is_in(
+            _py_multiple_attributes_comparison_operand_from_multiple_attributes_comparison_operand(
+                attributes
+            )
+        )
+
+    def is_not_in(self, attributes: MultipleAttributesComparisonOperand) -> None:
+        """Query which attribute names are not in a list of values.
+
+        Args:
+            attributes (MultipleAttributesComparisonOperand): The list of values to
+                compare against across the attribute names.
+        """
+        self._multiple_attributes_operand.is_not_in(
+            _py_multiple_attributes_comparison_operand_from_multiple_attributes_comparison_operand(
+                attributes
+            )
+        )
+
+    def starts_with(self, attribute: SingleAttributeComparisonOperand) -> None:
+        """Query which attribute names start with a value.
+
+        Args:
+            attribute (SingleAttributeComparisonOperand): The value to compare against
+                across the attribute names.
+        """
+        self._multiple_attributes_operand.starts_with(
+            _py_single_attribute_comparison_operand_from_single_attribute_comparison_operand(
+                attribute
+            )
+        )
+
+    def ends_with(self, attribute: SingleAttributeComparisonOperand) -> None:
+        """Query which attribute names end with a value.
+
+        Args:
+            attribute (SingleAttributeComparisonOperand): The value to compare against
+                across the attribute names.
+        """
+        self._multiple_attributes_operand.ends_with(
+            _py_single_attribute_comparison_operand_from_single_attribute_comparison_operand(
+                attribute
+            )
+        )
+
+    def contains(self, attribute: SingleAttributeComparisonOperand) -> None:
+        """Query which attribute names contain a value.
+
+        Args:
+            attribute (SingleAttributeComparisonOperand): The value to compare against
+                across the attribute names.
+        """
+        self._multiple_attributes_operand.contains(
+            _py_single_attribute_comparison_operand_from_single_attribute_comparison_operand(
+                attribute
+            )
+        )
+
+    def add(self, attribute: SingleAttributeArithmeticOperand) -> None:
+        """Add a value to the attribute names.
+
+        Args:
+            attribute (SingleAttributeArithmeticOperand): The value to add to the
+                attribute names.
+        """
+        self._multiple_attributes_operand.add(
+            _py_single_attribute_comparison_operand_from_single_attribute_comparison_operand(
+                attribute
+            )
+        )
+
+    def subtract(self, attribute: SingleAttributeArithmeticOperand) -> None:
+        """Subtract a value from the attribute names.
+
+        Args:
+            attribute (SingleAttributeArithmeticOperand): The value to subtract from
+                the attribute names.
+        """
+        self._multiple_attributes_operand.sub(
+            _py_single_attribute_comparison_operand_from_single_attribute_comparison_operand(
+                attribute
+            )
+        )
+
+    def multiply(self, attribute: SingleAttributeArithmeticOperand) -> None:
+        """Multiply the attribute names by a value.
+
+        Args:
+            attribute (SingleAttributeArithmeticOperand): The value to multiply by.
+        """
+        self._multiple_attributes_operand.mul(
+            _py_single_attribute_comparison_operand_from_single_attribute_comparison_operand(
+                attribute
+            )
+        )
+
+    def modulo(self, attribute: SingleAttributeArithmeticOperand) -> None:
+        """Compute the modulo of the attribute names by a value.
+
+        In mathematics and computer science, the modulo operation finds the remainder
+        after division of one number by another.
+
+        Args:
+            attribute (SingleAttributeArithmeticOperand): The value to divide by when
+                computing the modulo.
+        """
+        self._multiple_attributes_operand.mod(
+            _py_single_attribute_comparison_operand_from_single_attribute_comparison_operand(
+                attribute
+            )
+        )
+
+    def power(self, attribute: SingleAttributeArithmeticOperand) -> None:
+        """Raise the attribute names to a power.
+
+        Args:
+            attribute (SingleAttributeArithmeticOperand): The power to raise the
+                attribute names to.
+        """
+        self._multiple_attributes_operand.pow(
+            _py_single_attribute_comparison_operand_from_single_attribute_comparison_operand(
+                attribute
+            )
+        )
+
+    def absolute(self) -> None:
+        """Get the absolute value of the attribute names."""
+        self._multiple_attributes_operand.abs()
+
+    def trim(self) -> None:
+        """Trim the attribute names.
+
+        The trim method removes leading and trailing whitespace from the attribute
+        names.
+        """
+        self._multiple_attributes_operand.trim()
+
+    def trim_start(self) -> None:
+        """Trim the start of the attribute names.
+
+        The trim_start method removes leading whitespace from the attribute names.
+        """
+        self._multiple_attributes_operand.trim_start()
+
+    def trim_end(self) -> None:
+        """Trim the end of the attribute names.
+
+        The trim_end method removes trailing whitespace from the attribute names.
+        """
+        self._multiple_attributes_operand.trim_end()
+
+    def lowercase(self) -> None:
+        """Convert the attribute names to lowercase."""
+        self._multiple_attributes_operand.lowercase()
+
+    def uppercase(self) -> None:
+        """Convert the attribute names to uppercase."""
+        self._multiple_attributes_operand.uppercase()
+
+    def to_values(self) -> EdgeMultipleValuesOperand:
+        """Returns an operand representing the values of the attributes.
+
+        Returns:
+            EdgeMultipleValuesOperand: An operand representing the values of
+                the attributes.
+        """
+        return EdgeMultipleValuesOperand._from_py_multiple_values_operand(
+            self._multiple_attributes_operand.to_values()
+        )
+
+    def slice(self, start: int, end: int) -> None:
+        """Slice the attribute names.
+
+        The slice method extracts a section of the attribute names.
+
+        Args:
+            start (int): The start index of the slice.
+            end (int): The end index of the slice.
+        """
+        self._multiple_attributes_operand.slice(start, end)
+
+    def either_or(
+        self,
+        either: Callable[[EdgeMultipleAttributesOperand], None],
+        or_: Callable[[EdgeMultipleAttributesOperand], None],
+    ) -> None:
+        """Apply either-or query logic to the current multiple attributes query.
+
+        This method evaluates two queries on the multiple attributes and returns all
+        attribute names that satisfy either the first query or the second query.
+
+        Args:
+            either (Callable[[EdgeMultipleAttributesOperand], None]): A query function
+                to evaluate one condition on the multiple attributes.
+            or_ (Callable[[EdgeMultipleAttributesOperand], None]): A query function to
+                evaluate the alternative condition on the multiple attributes.
+
+        Example:
+            Example usage of `either_or` logic to filter attributes
+
+            .. highlight:: python
+            .. code-block:: python
+
+                multiple_attributes_operand.either_or(
+                    lambda attributes: attributes.is_int(),  # Query for integer attributes
+                    lambda attributes: attributes.is_float(),  # Query for float attributes
+                )
+        """  # noqa: W505
+        self._multiple_attributes_operand.either_or(
+            lambda attributes: either(
+                EdgeMultipleAttributesOperand._from_py_multiple_attributes_operand(
+                    attributes
+                )
+            ),
+            lambda attributes: or_(
+                EdgeMultipleAttributesOperand._from_py_multiple_attributes_operand(
+                    attributes
+                )
+            ),
+        )
+
+    def exclude(self, query: Callable[[EdgeMultipleAttributesOperand], None]) -> None:
+        """Exclude attribute names based on the query.
+
+        Exclude attribute names that satisfy the query from the multiple attributes.
+
+        Args:
+            query (Callable[[EdgeMultipleAttributesOperand], None]): The query to apply
+                to exclude attribute names.
+        """
+        self._multiple_attributes_operand.exclude(
+            lambda attributes: query(
+                EdgeMultipleAttributesOperand._from_py_multiple_attributes_operand(
+                    attributes
+                )
+            )
+        )
+
+    def clone(self) -> EdgeMultipleAttributesOperand:
+        """Create a deep clone of the current multiple attributes query.
+
+        Returns:
+            EdgeMultipleAttributesOperand: A deep clone of the current multiple
+                attributes query.
+        """
+        return EdgeMultipleAttributesOperand._from_py_multiple_attributes_operand(
+            self._multiple_attributes_operand.deep_clone()
+        )
+
+    @classmethod
+    def _from_py_multiple_attributes_operand(
+        cls, py_multiple_attributes_operand: PyEdgeMultipleAttributesOperand
+    ) -> EdgeMultipleAttributesOperand:
+        multiple_attributes_operand = cls()
+        multiple_attributes_operand._multiple_attributes_operand = (
+            py_multiple_attributes_operand
+        )
+        return multiple_attributes_operand
+
+
+class NodeSingleAttributeOperand:
     """Query API for a single attribute name in a MedRecord."""
 
-    _single_attribute_operand: PySingleAttributeOperand
+    _single_attribute_operand: PyNodeSingleAttributeOperand
 
     def is_string(self) -> None:
         """Query if the single attribute name is a string."""
@@ -2504,8 +4217,8 @@ class SingleAttributeOperand:
 
     def either_or(
         self,
-        either: Callable[[SingleAttributeOperand], None],
-        or_: Callable[[SingleAttributeOperand], None],
+        either: Callable[[NodeSingleAttributeOperand], None],
+        or_: Callable[[NodeSingleAttributeOperand], None],
     ) -> None:
         """Apply either-or logic to the current single attribute name query.
 
@@ -2513,9 +4226,10 @@ class SingleAttributeOperand:
         attribute name that satisfies either the first query or the second query.
 
         Args:
-            either (Callable[[SingleAttributeOperand], None]): One of the queries to
+            either (Callable[[NodeSingleAttributeOperand], None]): One of the queries to
                 apply.
-            or_ (Callable[[SingleAttributeOperand], None]): The other query to apply.
+            or_ (Callable[[NodeSingleAttributeOperand], None]): The other query
+                to apply.
 
         Example:
             .. highlight:: python
@@ -2528,41 +4242,369 @@ class SingleAttributeOperand:
         """
         self._single_attribute_operand.either_or(
             lambda attribute: either(
-                SingleAttributeOperand._from_py_single_attribute_operand(attribute)
+                NodeSingleAttributeOperand._from_py_single_attribute_operand(attribute)
             ),
             lambda attribute: or_(
-                SingleAttributeOperand._from_py_single_attribute_operand(attribute)
+                NodeSingleAttributeOperand._from_py_single_attribute_operand(attribute)
             ),
         )
 
-    def exclude(self, query: Callable[[SingleAttributeOperand], None]) -> None:
+    def exclude(self, query: Callable[[NodeSingleAttributeOperand], None]) -> None:
         """Exclude the single attribute name if it satisfies the query.
 
         Args:
-            query (Callable[[SingleAttributeOperand], None]): The query to apply to
+            query (Callable[[NodeSingleAttributeOperand], None]): The query to apply to
                 exclude the value.
         """
         self._single_attribute_operand.exclude(
             lambda attribute: query(
-                SingleAttributeOperand._from_py_single_attribute_operand(attribute)
+                NodeSingleAttributeOperand._from_py_single_attribute_operand(attribute)
             )
         )
 
-    def clone(self) -> SingleAttributeOperand:
+    def clone(self) -> NodeSingleAttributeOperand:
         """Create a deep clone of the current single attribute name query.
 
         Returns:
-            SingleAttributeOperand: A deep clone of the current single attribute name
-                query.
+            NodeSingleAttributeOperand: A deep clone of the current single attribute
+                name query.
         """
-        return SingleAttributeOperand._from_py_single_attribute_operand(
+        return NodeSingleAttributeOperand._from_py_single_attribute_operand(
             self._single_attribute_operand.deep_clone()
         )
 
     @classmethod
     def _from_py_single_attribute_operand(
-        cls, py_single_attribute_operand: PySingleAttributeOperand
-    ) -> SingleAttributeOperand:
+        cls, py_single_attribute_operand: PyNodeSingleAttributeOperand
+    ) -> NodeSingleAttributeOperand:
+        single_attribute_operand = cls()
+        single_attribute_operand._single_attribute_operand = py_single_attribute_operand
+        return single_attribute_operand
+
+
+class EdgeSingleAttributeOperand:
+    """Query API for a single attribute name in a MedRecord."""
+
+    _single_attribute_operand: PyEdgeSingleAttributeOperand
+
+    def is_string(self) -> None:
+        """Query if the single attribute name is a string."""
+        self._single_attribute_operand.is_string()
+
+    def is_int(self) -> None:
+        """Query if the single attribute name is an integer."""
+        self._single_attribute_operand.is_int()
+
+    def greater_than(self, attribute: SingleAttributeComparisonOperand) -> None:
+        """Query if the single attribute name is greater than a value.
+
+        Args:
+            attribute (SingleAttributeComparisonOperand): The value to compare against.
+        """
+        self._single_attribute_operand.greater_than(
+            _py_single_attribute_comparison_operand_from_single_attribute_comparison_operand(
+                attribute
+            )
+        )
+
+    def greater_than_or_equal_to(
+        self, attribute: SingleAttributeComparisonOperand
+    ) -> None:
+        """Query if the single attribute name is greater than or equal to a value.
+
+        Args:
+            attribute (SingleAttributeComparisonOperand): The value to compare against.
+        """
+        self._single_attribute_operand.greater_than_or_equal_to(
+            _py_single_attribute_comparison_operand_from_single_attribute_comparison_operand(
+                attribute
+            )
+        )
+
+    def less_than(self, attribute: SingleAttributeComparisonOperand) -> None:
+        """Query if the single attribute name is less than a value.
+
+        Args:
+            attribute (SingleAttributeComparisonOperand): The value to compare against.
+        """
+        self._single_attribute_operand.less_than(
+            _py_single_attribute_comparison_operand_from_single_attribute_comparison_operand(
+                attribute
+            )
+        )
+
+    def less_than_or_equal_to(
+        self, attribute: SingleAttributeComparisonOperand
+    ) -> None:
+        """Query if the single attribute name is less than or equal to a value.
+
+        Args:
+            attribute (SingleAttributeComparisonOperand): The value to compare against.
+        """
+        self._single_attribute_operand.less_than_or_equal_to(
+            _py_single_attribute_comparison_operand_from_single_attribute_comparison_operand(
+                attribute
+            )
+        )
+
+    def equal_to(self, attribute: SingleAttributeComparisonOperand) -> None:
+        """Query if the single attribute name is equal to a value.
+
+        Args:
+            attribute (SingleAttributeComparisonOperand): The value to compare against.
+        """
+        self._single_attribute_operand.equal_to(
+            _py_single_attribute_comparison_operand_from_single_attribute_comparison_operand(
+                attribute
+            )
+        )
+
+    def not_equal_to(self, attribute: SingleAttributeComparisonOperand) -> None:
+        """Query if the single attribute name is not equal to a value.
+
+        Args:
+            attribute (SingleAttributeComparisonOperand): The value to compare against.
+        """
+        self._single_attribute_operand.not_equal_to(
+            _py_single_attribute_comparison_operand_from_single_attribute_comparison_operand(
+                attribute
+            )
+        )
+
+    def is_in(self, attributes: MultipleAttributesComparisonOperand) -> None:
+        """Query if the single attribute name is in a list of values.
+
+        Args:
+            attributes (MultipleAttributesComparisonOperand): The values to compare
+                against.
+        """
+        self._single_attribute_operand.is_in(
+            _py_multiple_attributes_comparison_operand_from_multiple_attributes_comparison_operand(
+                attributes
+            )
+        )
+
+    def is_not_in(self, attributes: MultipleAttributesComparisonOperand) -> None:
+        """Query if the single attribute name is not in a list of values.
+
+        Args:
+            attributes (MultipleAttributesComparisonOperand): The values to compare
+                against.
+        """
+        self._single_attribute_operand.is_not_in(
+            _py_multiple_attributes_comparison_operand_from_multiple_attributes_comparison_operand(
+                attributes
+            )
+        )
+
+    def starts_with(self, attribute: SingleAttributeComparisonOperand) -> None:
+        """Query if the single attribute name starts with a value.
+
+        Args:
+            attribute (SingleAttributeComparisonOperand): The value to compare against.
+        """
+        self._single_attribute_operand.starts_with(
+            _py_single_attribute_comparison_operand_from_single_attribute_comparison_operand(
+                attribute
+            )
+        )
+
+    def ends_with(self, attribute: SingleAttributeComparisonOperand) -> None:
+        """Query if the single attribute name ends with a value.
+
+        Args:
+            attribute (SingleAttributeComparisonOperand): The value to compare against.
+        """
+        self._single_attribute_operand.ends_with(
+            _py_single_attribute_comparison_operand_from_single_attribute_comparison_operand(
+                attribute
+            )
+        )
+
+    def contains(self, attribute: SingleAttributeComparisonOperand) -> None:
+        """Query if the single attribute name contains a value.
+
+        Args:
+            attribute (SingleAttributeComparisonOperand): The value to compare against.
+        """
+        self._single_attribute_operand.contains(
+            _py_single_attribute_comparison_operand_from_single_attribute_comparison_operand(
+                attribute
+            )
+        )
+
+    def add(self, attribute: SingleAttributeArithmeticOperand) -> None:
+        """Add a value to the single attribute name.
+
+        Args:
+            attribute (SingleAttributeArithmeticOperand): The value to add.
+        """
+        self._single_attribute_operand.add(
+            _py_single_attribute_comparison_operand_from_single_attribute_comparison_operand(
+                attribute
+            )
+        )
+
+    def subtract(self, attribute: SingleAttributeArithmeticOperand) -> None:
+        """Subtract a value from the single attribute name.
+
+        Args:
+            attribute (SingleAttributeArithmeticOperand): The value to subtract.
+        """
+        self._single_attribute_operand.sub(
+            _py_single_attribute_comparison_operand_from_single_attribute_comparison_operand(
+                attribute
+            )
+        )
+
+    def multiply(self, attribute: SingleAttributeArithmeticOperand) -> None:
+        """Multiply the single attribute name by a value.
+
+        Args:
+            attribute (SingleAttributeArithmeticOperand): The value to multiply by.
+        """
+        self._single_attribute_operand.mul(
+            _py_single_attribute_comparison_operand_from_single_attribute_comparison_operand(
+                attribute
+            )
+        )
+
+    def modulo(self, attribute: SingleAttributeArithmeticOperand) -> None:
+        """Compute the modulo of the single attribute name by a value.
+
+        In mathematics and computer science, the modulo operation finds the remainder
+        after division of one number by another.
+
+        Args:
+            attribute (SingleAttributeArithmeticOperand): The value to divide by when
+                computing the modulo.
+        """
+        self._single_attribute_operand.mod(
+            _py_single_attribute_comparison_operand_from_single_attribute_comparison_operand(
+                attribute
+            )
+        )
+
+    def power(self, attribute: SingleAttributeArithmeticOperand) -> None:
+        """Raise the single attribute name to a power.
+
+        Args:
+            attribute (SingleAttributeArithmeticOperand): The power to raise the single
+                attribute name to.
+        """
+        self._single_attribute_operand.pow(
+            _py_single_attribute_comparison_operand_from_single_attribute_comparison_operand(
+                attribute
+            )
+        )
+
+    def absolute(self) -> None:
+        """Get the absolute value of the single attribute name."""
+        self._single_attribute_operand.abs()
+
+    def trim(self) -> None:
+        """Trim the single attribute name.
+
+        The trim method removes leading and trailing whitespace from the single
+        attribute name.
+        """
+        self._single_attribute_operand.trim()
+
+    def trim_start(self) -> None:
+        """Trim the start of the single attribute name.
+
+        The trim_start method removes leading whitespace from the single attribute name.
+        """
+        self._single_attribute_operand.trim_start()
+
+    def trim_end(self) -> None:
+        """Trim the end of the single attribute name.
+
+        The trim_end method removes trailing whitespace from the single attribute name.
+        """
+        self._single_attribute_operand.trim_end()
+
+    def lowercase(self) -> None:
+        """Convert the single attribute name to lowercase."""
+        self._single_attribute_operand.lowercase()
+
+    def uppercase(self) -> None:
+        """Convert the single attribute name to uppercase."""
+        self._single_attribute_operand.uppercase()
+
+    def slice(self, start: int, end: int) -> None:
+        """Slice the single attribute name.
+
+        The slice method extracts a section of the single attribute name.
+
+        Args:
+            start (int): The start index of the slice.
+            end (int): The end index of the slice.
+        """
+        self._single_attribute_operand.slice(start, end)
+
+    def either_or(
+        self,
+        either: Callable[[EdgeSingleAttributeOperand], None],
+        or_: Callable[[EdgeSingleAttributeOperand], None],
+    ) -> None:
+        """Apply either-or logic to the current single attribute name query.
+
+        This method evaluates two queries on the single attribute name and returns the
+        attribute name that satisfies either the first query or the second query.
+
+        Args:
+            either (Callable[[EdgeSingleAttributeOperand], None]): One of the queries to
+                apply.
+            or_ (Callable[[EdgeSingleAttributeOperand], None]): The other query
+                to apply.
+
+        Example:
+            .. highlight:: python
+            .. code-block:: python
+
+                single_attribute_operand.either_or(
+                    lambda attribute: attribute.is_in(["a", "b"]),
+                    lambda attribute: attribute.is_in(["A", "B"]),
+                )
+        """
+        self._single_attribute_operand.either_or(
+            lambda attribute: either(
+                EdgeSingleAttributeOperand._from_py_single_attribute_operand(attribute)
+            ),
+            lambda attribute: or_(
+                EdgeSingleAttributeOperand._from_py_single_attribute_operand(attribute)
+            ),
+        )
+
+    def exclude(self, query: Callable[[EdgeSingleAttributeOperand], None]) -> None:
+        """Exclude the single attribute name if it satisfies the query.
+
+        Args:
+            query (Callable[[EdgeSingleAttributeOperand], None]): The query to apply to
+                exclude the value.
+        """
+        self._single_attribute_operand.exclude(
+            lambda attribute: query(
+                EdgeSingleAttributeOperand._from_py_single_attribute_operand(attribute)
+            )
+        )
+
+    def clone(self) -> EdgeSingleAttributeOperand:
+        """Create a deep clone of the current single attribute name query.
+
+        Returns:
+            EdgeSingleAttributeOperand: A deep clone of the current single attribute
+                name query.
+        """
+        return EdgeSingleAttributeOperand._from_py_single_attribute_operand(
+            self._single_attribute_operand.deep_clone()
+        )
+
+    @classmethod
+    def _from_py_single_attribute_operand(
+        cls, py_single_attribute_operand: PyEdgeSingleAttributeOperand
+    ) -> EdgeSingleAttributeOperand:
         single_attribute_operand = cls()
         single_attribute_operand._single_attribute_operand = py_single_attribute_operand
         return single_attribute_operand
@@ -2613,24 +4655,14 @@ class NodeIndicesOperand:
             self._node_indices_operand.sum()
         )
 
-    def first(self) -> NodeIndexOperand:
-        """Queries and returns the first node index.
+    def random(self) -> NodeIndexOperand:
+        """Queries and returns a random node index.
 
         Returns:
-            NodeIndexOperand: The first node index.
+            NodeIndexOperand: A random node index.
         """
         return NodeIndexOperand._from_py_node_index_operand(
-            self._node_indices_operand.first()
-        )
-
-    def last(self) -> NodeIndexOperand:
-        """Queries and returns the last node index.
-
-        Returns:
-            NodeIndexOperand: The last node index.
-        """
-        return NodeIndexOperand._from_py_node_index_operand(
-            self._node_indices_operand.last()
+            self._node_indices_operand.random()
         )
 
     def is_string(self) -> None:
@@ -3258,24 +5290,14 @@ class EdgeIndicesOperand:
             self._edge_indices_operand.sum()
         )
 
-    def first(self) -> EdgeIndexOperand:
-        """Queries and returns the first edge index.
+    def random(self) -> EdgeIndexOperand:
+        """Queries and returns a random edge index.
 
         Returns:
-            EdgeIndexOperand: The first edge index.
+            EdgeIndexOperand: A random edge index.
         """
         return EdgeIndexOperand._from_py_edge_index_operand(
-            self._edge_indices_operand.first()
-        )
-
-    def last(self) -> EdgeIndexOperand:
-        """Queries and returns the last edge index.
-
-        Returns:
-            EdgeIndexOperand: The last edge index.
-        """
-        return EdgeIndexOperand._from_py_edge_index_operand(
-            self._edge_indices_operand.last()
+            self._edge_indices_operand.random()
         )
 
     def is_max(self) -> None:

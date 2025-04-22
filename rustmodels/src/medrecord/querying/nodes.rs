@@ -1,6 +1,7 @@
 use super::{
-    attributes::PyAttributesTreeOperand, edges::PyEdgeOperand, values::PyMultipleValuesOperand,
-    PyGroupCardinalityWrapper, PyMedRecordAttributeCardinalityWrapper,
+    attributes::PyNodeAttributesTreeOperand, edges::PyEdgeOperand,
+    values::PyNodeMultipleValuesOperand, PyGroupCardinalityWrapper,
+    PyMedRecordAttributeCardinalityWrapper,
 };
 use crate::medrecord::{attribute::PyMedRecordAttribute, errors::PyMedRecordError, PyNodeIndex};
 use medmodels_core::{
@@ -62,11 +63,11 @@ impl From<PyNodeOperand> for Wrapper<NodeOperand> {
 
 #[pymethods]
 impl PyNodeOperand {
-    pub fn attribute(&mut self, attribute: PyMedRecordAttribute) -> PyMultipleValuesOperand {
+    pub fn attribute(&mut self, attribute: PyMedRecordAttribute) -> PyNodeMultipleValuesOperand {
         self.0.attribute(attribute).into()
     }
 
-    pub fn attributes(&mut self) -> PyAttributesTreeOperand {
+    pub fn attributes(&mut self) -> PyNodeAttributesTreeOperand {
         self.0.attributes().into()
     }
 
@@ -221,12 +222,8 @@ impl PyNodeIndicesOperand {
         self.0.sum().into()
     }
 
-    pub fn first(&mut self) -> PyNodeIndexOperand {
-        self.0.first().into()
-    }
-
-    pub fn last(&mut self) -> PyNodeIndexOperand {
-        self.0.last().into()
+    pub fn random(&mut self) -> PyNodeIndexOperand {
+        self.0.random().into()
     }
 
     pub fn greater_than(&mut self, index: PyNodeIndexComparisonOperand) {

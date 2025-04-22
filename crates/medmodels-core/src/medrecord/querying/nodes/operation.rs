@@ -17,14 +17,15 @@ use crate::{
             attributes::AttributesTreeOperand,
             edges::EdgeOperand,
             traits::{DeepClone, ReadWriteOrPanic},
-            values::MultipleValuesOperand,
+            values::{self, MultipleValuesOperand},
             wrapper::{CardinalityWrapper, Wrapper},
             BoxedIterator,
         },
-        DataType, Group, MedRecord, MedRecordAttribute, MedRecordValue, NodeIndex,
+        DataType, EdgeIndex, Group, MedRecord, MedRecordAttribute, MedRecordValue, NodeIndex,
     },
 };
 use itertools::Itertools;
+use rand::{rng, seq::IteratorRandom};
 use roaring::RoaringBitmap;
 use std::{
     cmp::Ordering,
@@ -42,10 +43,10 @@ pub enum EdgeDirection {
 #[derive(Debug, Clone)]
 pub enum NodeOperation {
     Values {
-        operand: Wrapper<MultipleValuesOperand>,
+        operand: Wrapper<MultipleValuesOperand<NodeOperand>>,
     },
     Attributes {
-        operand: Wrapper<AttributesTreeOperand>,
+        operand: Wrapper<AttributesTreeOperand<NodeOperand>>,
     },
     Indices {
         operand: Wrapper<NodeIndicesOperand>,
@@ -165,18 +166,27 @@ impl NodeOperation {
                 drection.clone(),
             )?),
             Self::EitherOr { either, or } => {
-                // TODO: This is a temporary solution. It should be optimized.
-                let either_result = either.evaluate(medrecord)?.collect::<HashSet<_>>();
-                let or_result = or.evaluate(medrecord)?.collect::<HashSet<_>>();
+                let (node_indices_1, rest) = node_indices.tee();
+                let (node_indices_2, node_indices_3) = rest.tee();
 
-                Box::new(node_indices.filter(move |node_index| {
-                    either_result.contains(node_index) || or_result.contains(node_index)
+                let either_set: HashSet<&NodeIndex> = either
+                    .evaluate_forward(medrecord, node_indices_1)?
+                    .collect();
+                let or_set: HashSet<&NodeIndex> =
+                    or.evaluate_forward(medrecord, node_indices_2)?.collect();
+
+                Box::new(node_indices_3.filter(move |node_index| {
+                    either_set.contains(node_index) || or_set.contains(node_index)
                 }))
             }
             Self::Exclude { operand } => {
-                let result = operand.evaluate(medrecord)?.collect::<HashSet<_>>();
+                let (node_indices_1, node_indices_2) = node_indices.tee();
 
-                Box::new(node_indices.filter(move |node_index| !result.contains(node_index)))
+                let result: HashSet<_> = operand
+                    .evaluate_forward(medrecord, node_indices_1)?
+                    .collect();
+
+                Box::new(node_indices_2.filter(move |node_index| !result.contains(node_index)))
             }
         })
     }
@@ -203,15 +213,17 @@ impl NodeOperation {
     fn evaluate_values<'a>(
         medrecord: &'a MedRecord,
         node_indices: impl Iterator<Item = &'a NodeIndex> + 'a,
-        operand: Wrapper<MultipleValuesOperand>,
+        operand: Wrapper<MultipleValuesOperand<NodeOperand>>,
     ) -> MedRecordResult<impl Iterator<Item = &'a NodeIndex>> {
-        let values = Self::get_values(
-            medrecord,
-            node_indices,
-            operand.0.read_or_panic().attribute.clone(),
-        );
+        let values::Context::Operand((_, ref attribute)) = operand.0.read_or_panic().context else {
+            unreachable!()
+        };
 
-        Ok(operand.evaluate(medrecord, values)?.map(|value| value.0))
+        let values = Self::get_values(medrecord, node_indices, attribute.clone());
+
+        Ok(operand
+            .evaluate_forward(medrecord, values)?
+            .map(|value| value.0))
     }
 
     #[inline]
@@ -234,29 +246,28 @@ impl NodeOperation {
     fn evaluate_attributes<'a>(
         medrecord: &'a MedRecord,
         node_indices: impl Iterator<Item = &'a NodeIndex> + 'a,
-        operand: Wrapper<AttributesTreeOperand>,
+        operand: Wrapper<AttributesTreeOperand<NodeOperand>>,
     ) -> MedRecordResult<impl Iterator<Item = &'a NodeIndex>> {
         let attributes = Self::get_attributes(medrecord, node_indices);
 
         Ok(operand
-            .evaluate(medrecord, attributes)?
+            .evaluate_forward(medrecord, attributes)?
             .map(|value| value.0))
     }
 
     #[inline]
     fn evaluate_indices<'a>(
         medrecord: &MedRecord,
-        edge_indices: impl Iterator<Item = &'a NodeIndex>,
+        node_indices: impl Iterator<Item = &'a NodeIndex>,
         operand: Wrapper<NodeIndicesOperand>,
     ) -> MedRecordResult<impl Iterator<Item = &'a NodeIndex>> {
-        // TODO: This is a temporary solution. It should be optimized.
-        let node_indices = edge_indices.collect::<Vec<_>>();
+        let (node_indices_1, node_indices_2) = Itertools::tee(node_indices);
 
-        let result = operand
-            .evaluate(medrecord, node_indices.clone().into_iter().cloned())?
-            .collect::<HashSet<_>>();
+        let result: HashSet<_> = operand
+            .evaluate_forward(medrecord, node_indices_1.cloned())?
+            .collect();
 
-        Ok(node_indices
+        Ok(node_indices_2
             .into_iter()
             .filter(move |index| result.contains(index)))
     }
@@ -272,7 +283,7 @@ impl NodeOperation {
                 .groups_of_node(node_index)
                 .expect("Node must exist");
 
-            let groups_of_node = groups_of_node.collect::<Vec<_>>();
+            let groups_of_node: Vec<_> = groups_of_node.collect();
 
             match &group {
                 CardinalityWrapper::Single(group) => groups_of_node.contains(&group),
@@ -295,7 +306,7 @@ impl NodeOperation {
                 .expect("Node must exist")
                 .keys();
 
-            let attributes_of_node = attributes_of_node.collect::<Vec<_>>();
+            let attributes_of_node: Vec<_> = attributes_of_node.collect();
 
             match &attribute {
                 CardinalityWrapper::Single(attribute) => attributes_of_node.contains(&attribute),
@@ -313,18 +324,44 @@ impl NodeOperation {
         operand: Wrapper<EdgeOperand>,
         direction: EdgeDirection,
     ) -> MedRecordResult<impl Iterator<Item = &'a NodeIndex>> {
-        let edge_indices = operand.evaluate(medrecord)?.collect::<RoaringBitmap>();
+        let (node_indices_1, node_indices_2) = Itertools::tee(node_indices);
 
-        Ok(node_indices.filter(move |node_index| {
-            let connected_indices = match direction {
+        let edge_indices: BoxedIterator<&EdgeIndex> = match direction {
+            EdgeDirection::Incoming => Box::new(node_indices_1.flat_map(|node_index| {
+                medrecord
+                    .incoming_edges(node_index)
+                    .expect("Node must exist.")
+            })),
+            EdgeDirection::Outgoing => Box::new(node_indices_1.flat_map(|node_index| {
+                medrecord
+                    .outgoing_edges(node_index)
+                    .expect("Node must exist.")
+            })),
+            EdgeDirection::Both => Box::new(node_indices_1.flat_map(|node_index| {
+                medrecord
+                    .incoming_edges(node_index)
+                    .expect("Node must exist")
+                    .chain(
+                        medrecord
+                            .outgoing_edges(node_index)
+                            .expect("Node must exist"),
+                    )
+            })),
+        };
+
+        let edge_indices: RoaringBitmap =
+            operand.evaluate_forward(medrecord, edge_indices)?.collect();
+
+        Ok(node_indices_2.filter(move |node_index| {
+            let connected_indices: RoaringBitmap = match direction {
                 EdgeDirection::Incoming => medrecord
                     .outgoing_edges(node_index)
                     .expect("Node must exist")
-                    .collect::<RoaringBitmap>(),
+                    .collect(),
                 EdgeDirection::Outgoing => medrecord
                     .incoming_edges(node_index)
                     .expect("Node must exist")
-                    .collect::<RoaringBitmap>(),
+                    .collect(),
                 EdgeDirection::Both => medrecord
                     .incoming_edges(node_index)
                     .expect("Node must exist")
@@ -333,7 +370,7 @@ impl NodeOperation {
                             .outgoing_edges(node_index)
                             .expect("Node must exist"),
                     )
-                    .collect::<RoaringBitmap>(),
+                    .collect(),
             };
 
             !connected_indices.is_disjoint(&edge_indices)
@@ -343,13 +380,35 @@ impl NodeOperation {
     #[inline]
     fn evaluate_neighbors<'a>(
         medrecord: &'a MedRecord,
-        node_indices: impl Iterator<Item = &'a NodeIndex>,
+        node_indices: impl Iterator<Item = &'a NodeIndex> + 'a,
         operand: Wrapper<NodeOperand>,
         direction: EdgeDirection,
     ) -> MedRecordResult<impl Iterator<Item = &'a NodeIndex>> {
-        let result = operand.evaluate(medrecord)?.collect::<HashSet<_>>();
+        let (node_indices_1, node_indices_2) = Itertools::tee(node_indices);
 
-        Ok(node_indices.filter(move |node_index| {
+        let neighbor_indices: BoxedIterator<&NodeIndex> = match direction {
+            EdgeDirection::Incoming => Box::new(node_indices_1.flat_map(move |node_index| {
+                medrecord
+                    .neighbors_incoming(node_index)
+                    .expect("Node must exist")
+            })),
+            EdgeDirection::Outgoing => Box::new(node_indices_1.flat_map(move |node_index| {
+                medrecord
+                    .neighbors_outgoing(node_index)
+                    .expect("Node must exist")
+            })),
+            EdgeDirection::Both => Box::new(node_indices_1.flat_map(move |node_index| {
+                medrecord
+                    .neighbors_undirected(node_index)
+                    .expect("Node must exist")
+            })),
+        };
+
+        let result: HashSet<_> = operand
+            .evaluate_forward(medrecord, neighbor_indices)?
+            .collect();
+
+        Ok(node_indices_2.filter(move |node_index| {
             let mut neighbors: Box<dyn Iterator<Item = &MedRecordAttribute>> = match direction {
                 EdgeDirection::Incoming => Box::new(
                     medrecord
@@ -371,40 +430,6 @@ impl NodeOperation {
             neighbors.any(|neighbor| result.contains(&neighbor))
         }))
     }
-}
-
-macro_rules! get_node_index {
-    ($kind:ident, $indices:expr) => {
-        match $kind {
-            SingleKind::Max => NodeIndicesOperation::get_max($indices)?.clone(),
-            SingleKind::Min => NodeIndicesOperation::get_min($indices)?.clone(),
-            SingleKind::Count => NodeIndicesOperation::get_count($indices),
-            SingleKind::Sum => NodeIndicesOperation::get_sum($indices)?,
-            SingleKind::First => NodeIndicesOperation::get_first($indices)?,
-            SingleKind::Last => NodeIndicesOperation::get_last($indices)?,
-        }
-    };
-}
-
-macro_rules! get_node_index_comparison_operand {
-    ($operand:ident, $medrecord:ident) => {
-        match $operand {
-            NodeIndexComparisonOperand::Operand(operand) => {
-                let context = &operand.context.context;
-                let kind = &operand.kind;
-
-                // TODO: This is a temporary solution. It should be optimized.
-                let comparison_indices = context.evaluate($medrecord)?.cloned();
-
-                let comparison_index = get_node_index!(kind, comparison_indices);
-
-                operand.evaluate($medrecord, comparison_index)?.ok_or(
-                    MedRecordError::QueryError("No index to compare".to_string()),
-                )?
-            }
-            NodeIndexComparisonOperand::Index(index) => index.clone(),
-        }
-    };
 }
 
 #[derive(Debug, Clone)]
@@ -525,24 +550,28 @@ impl NodeIndicesOperation {
                 })))
             }
             Self::IsMax => {
-                let max_index = Self::get_max(indices)?;
+                let (indices_1, indices_2) = Itertools::tee(indices);
 
-                Ok(Box::new(std::iter::once(max_index)))
+                let max_index = Self::get_max(indices_1)?;
+
+                Ok(Box::new(indices_2.filter(move |index| *index == max_index)))
             }
             Self::IsMin => {
-                let min_index = Self::get_min(indices)?;
+                let (indices_1, indices_2) = Itertools::tee(indices);
 
-                Ok(Box::new(std::iter::once(min_index)))
+                let min_index = Self::get_min(indices_1)?;
+
+                Ok(Box::new(indices_2.filter(move |index| *index == min_index)))
             }
             Self::EitherOr { either, or } => {
                 Self::evaluate_either_or(medrecord, indices, either, or)
             }
             Self::Exclude { operand } => {
-                let node_indices = indices.collect::<Vec<_>>();
+                let node_indices: Vec<_> = indices.collect();
 
-                let result = operand
-                    .evaluate(medrecord, node_indices.clone().into_iter())?
-                    .collect::<HashSet<_>>();
+                let result: HashSet<_> = operand
+                    .evaluate_forward(medrecord, node_indices.clone().into_iter())?
+                    .collect();
 
                 Ok(Box::new(
                     node_indices
@@ -631,17 +660,10 @@ impl NodeIndicesOperation {
     }
 
     #[inline]
-    pub(crate) fn get_first(
-        mut indices: impl Iterator<Item = NodeIndex>,
+    pub(crate) fn get_random(
+        indices: impl Iterator<Item = NodeIndex>,
     ) -> MedRecordResult<NodeIndex> {
-        indices.next().ok_or(MedRecordError::QueryError(
-            "No indices to get the first".to_string(),
-        ))
-    }
-
-    #[inline]
-    pub(crate) fn get_last(indices: impl Iterator<Item = NodeIndex>) -> MedRecordResult<NodeIndex> {
-        indices.last().ok_or(MedRecordError::QueryError(
+        indices.choose(&mut rng()).ok_or(MedRecordError::QueryError(
             "No indices to get the first".to_string(),
         ))
     }
@@ -649,17 +671,23 @@ impl NodeIndicesOperation {
     #[inline]
     fn evaluate_node_index_operation<'a>(
         medrecord: &MedRecord,
-        indices: impl Iterator<Item = NodeIndex>,
+        indices: impl Iterator<Item = NodeIndex> + 'a,
         operand: &Wrapper<NodeIndexOperand>,
     ) -> MedRecordResult<BoxedIterator<'a, NodeIndex>> {
+        let (indices_1, indices_2) = Itertools::tee(indices);
+
         let kind = &operand.0.read_or_panic().kind;
 
-        let indices = indices.collect::<Vec<_>>();
+        let index = match kind {
+            SingleKind::Max => NodeIndicesOperation::get_max(indices_1)?.clone(),
+            SingleKind::Min => NodeIndicesOperation::get_min(indices_1)?.clone(),
+            SingleKind::Count => NodeIndicesOperation::get_count(indices_1),
+            SingleKind::Sum => NodeIndicesOperation::get_sum(indices_1)?,
+            SingleKind::Random => NodeIndicesOperation::get_random(indices_1)?,
+        };
 
-        let index = get_node_index!(kind, indices.clone().into_iter());
-
-        Ok(match operand.evaluate(medrecord, index)? {
-            Some(_) => Box::new(indices.into_iter()),
+        Ok(match operand.evaluate_forward(medrecord, index)? {
+            Some(_) => Box::new(indices_2.into_iter()),
             None => Box::new(std::iter::empty()),
         })
     }
@@ -671,7 +699,12 @@ impl NodeIndicesOperation {
         comparison_operand: &NodeIndexComparisonOperand,
         kind: &SingleComparisonKind,
     ) -> MedRecordResult<BoxedIterator<'a, NodeIndex>> {
-        let comparison_index = get_node_index_comparison_operand!(comparison_operand, medrecord);
+        let comparison_index =
+            comparison_operand
+                .evaluate_backward(medrecord)?
+                .ok_or(MedRecordError::QueryError(
+                    "No index to compare".to_string(),
+                ))?;
 
         match kind {
             SingleComparisonKind::GreaterThan => Ok(Box::new(
@@ -711,18 +744,7 @@ impl NodeIndicesOperation {
         comparison_operand: &NodeIndicesComparisonOperand,
         kind: &MultipleComparisonKind,
     ) -> MedRecordResult<BoxedIterator<'a, NodeIndex>> {
-        let comparison_indices = match comparison_operand {
-            NodeIndicesComparisonOperand::Operand(operand) => {
-                let context = &operand.context;
-
-                let comparison_indices = context.evaluate(medrecord)?.cloned();
-
-                operand
-                    .evaluate(medrecord, comparison_indices)?
-                    .collect::<Vec<_>>()
-            }
-            NodeIndicesComparisonOperand::Indices(indices) => indices.clone(),
-        };
+        let comparison_indices = comparison_operand.evaluate_backward(medrecord)?;
 
         match kind {
             MultipleComparisonKind::IsIn => Ok(Box::new(
@@ -741,7 +763,12 @@ impl NodeIndicesOperation {
         operand: &NodeIndexComparisonOperand,
         kind: BinaryArithmeticKind,
     ) -> MedRecordResult<impl Iterator<Item = NodeIndex>> {
-        let arithmetic_index = get_node_index_comparison_operand!(operand, medrecord);
+        let arithmetic_index =
+            operand
+                .evaluate_backward(medrecord)?
+                .ok_or(MedRecordError::QueryError(
+                    "No index to compare".to_string(),
+                ))?;
 
         let indices = indices
             .map(move |index| {
@@ -766,7 +793,6 @@ impl NodeIndicesOperation {
                 })
             });
 
-        // TODO: This is a temporary solution. It should be optimized.
         Ok(indices.collect::<MedRecordResult<Vec<_>>>()?.into_iter())
     }
 
@@ -800,10 +826,10 @@ impl NodeIndicesOperation {
         either: &Wrapper<NodeIndicesOperand>,
         or: &Wrapper<NodeIndicesOperand>,
     ) -> MedRecordResult<BoxedIterator<'a, NodeIndex>> {
-        let indices = indices.collect::<Vec<_>>();
+        let indices: Vec<_> = indices.collect();
 
-        let either_indices = either.evaluate(medrecord, indices.clone().into_iter())?;
-        let or_indices = or.evaluate(medrecord, indices.into_iter())?;
+        let either_indices = either.evaluate_forward(medrecord, indices.clone().into_iter())?;
+        let or_indices = or.evaluate_forward(medrecord, indices.into_iter())?;
 
         Ok(Box::new(either_indices.chain(or_indices).unique()))
     }
@@ -912,7 +938,9 @@ impl NodeIndexOperation {
             }),
             Self::EitherOr { either, or } => Self::evaluate_either_or(medrecord, index, either, or),
             Self::Exclude { operand } => {
-                let result = operand.evaluate(medrecord, index.clone())?.is_some();
+                let result = operand
+                    .evaluate_forward(medrecord, index.clone())?
+                    .is_some();
 
                 Ok(if result { None } else { Some(index) })
             }
@@ -926,7 +954,12 @@ impl NodeIndexOperation {
         comparison_operand: &NodeIndexComparisonOperand,
         kind: &SingleComparisonKind,
     ) -> MedRecordResult<Option<NodeIndex>> {
-        let comparison_index = get_node_index_comparison_operand!(comparison_operand, medrecord);
+        let comparison_index =
+            comparison_operand
+                .evaluate_backward(medrecord)?
+                .ok_or(MedRecordError::QueryError(
+                    "No index to compare".to_string(),
+                ))?;
 
         let comparison_result = match kind {
             SingleComparisonKind::GreaterThan => index > comparison_index,
@@ -950,26 +983,11 @@ impl NodeIndexOperation {
         comparison_operand: &NodeIndicesComparisonOperand,
         kind: &MultipleComparisonKind,
     ) -> MedRecordResult<Option<NodeIndex>> {
-        let comparison_indices = match comparison_operand {
-            NodeIndicesComparisonOperand::Operand(operand) => {
-                let context = &operand.context;
-
-                let comparison_indices = context.evaluate(medrecord)?.cloned();
-
-                operand
-                    .evaluate(medrecord, comparison_indices)?
-                    .collect::<Vec<_>>()
-            }
-            NodeIndicesComparisonOperand::Indices(indices) => indices.clone(),
-        };
+        let comparison_indices = comparison_operand.evaluate_backward(medrecord)?;
 
         let comparison_result = match kind {
-            MultipleComparisonKind::IsIn => comparison_indices
-                .into_iter()
-                .any(|comparison_index| index == comparison_index),
-            MultipleComparisonKind::IsNotIn => comparison_indices
-                .into_iter()
-                .all(|comparison_index| index != comparison_index),
+            MultipleComparisonKind::IsIn => comparison_indices.contains(&index),
+            MultipleComparisonKind::IsNotIn => !comparison_indices.contains(&index),
         };
 
         Ok(if comparison_result { Some(index) } else { None })
@@ -982,7 +1000,12 @@ impl NodeIndexOperation {
         operand: &NodeIndexComparisonOperand,
         kind: &BinaryArithmeticKind,
     ) -> MedRecordResult<Option<NodeIndex>> {
-        let arithmetic_index = get_node_index_comparison_operand!(operand, medrecord);
+        let arithmetic_index =
+            operand
+                .evaluate_backward(medrecord)?
+                .ok_or(MedRecordError::QueryError(
+                    "No index to compare".to_string(),
+                ))?;
 
         Ok(Some(match kind {
             BinaryArithmeticKind::Add => index.add(arithmetic_index)?,
@@ -1000,8 +1023,8 @@ impl NodeIndexOperation {
         either: &Wrapper<NodeIndexOperand>,
         or: &Wrapper<NodeIndexOperand>,
     ) -> MedRecordResult<Option<NodeIndex>> {
-        let either_result = either.evaluate(medrecord, index.clone())?;
-        let or_result = or.evaluate(medrecord, index)?;
+        let either_result = either.evaluate_forward(medrecord, index.clone())?;
+        let or_result = or.evaluate_forward(medrecord, index)?;
 
         match (either_result, or_result) {
             (Some(either_result), _) => Ok(Some(either_result)),

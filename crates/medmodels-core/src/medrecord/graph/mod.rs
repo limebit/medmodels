@@ -735,10 +735,10 @@ mod test {
     fn test_nodes_attributes() {
         let graph = create_graph();
 
-        let all_attributes = create_nodes()
+        let all_attributes: Vec<_> = create_nodes()
             .into_iter()
             .map(|(_, attributes)| attributes)
-            .collect::<Vec<_>>();
+            .collect();
 
         for attributes in graph.nodes_attributes() {
             assert!(all_attributes.contains(attributes));
@@ -749,10 +749,10 @@ mod test {
     fn test_nodes_attributes_mut() {
         let mut graph = create_graph();
 
-        let all_attributes = create_nodes()
+        let all_attributes: Vec<_> = create_nodes()
             .into_iter()
             .map(|(_, attributes)| attributes)
-            .collect::<Vec<_>>();
+            .collect();
 
         let new_attributes = HashMap::from([("0".into(), "1".into()), ("2".into(), "3".into())]);
 
@@ -771,10 +771,10 @@ mod test {
     fn test_node_indices() {
         let graph = create_graph();
 
-        let node_indices = create_nodes()
+        let node_indices: Vec<_> = create_nodes()
             .into_iter()
             .map(|(node_index, _)| node_index)
-            .collect::<Vec<_>>();
+            .collect();
 
         for node_index in graph.node_indices() {
             assert!(node_indices.contains(node_index));
@@ -827,10 +827,10 @@ mod test {
     fn test_edges_attributes() {
         let graph = create_graph();
 
-        let all_attributes = create_edges()
+        let all_attributes: Vec<_> = create_edges()
             .into_iter()
             .map(|(_, _, attributes)| attributes)
-            .collect::<Vec<_>>();
+            .collect();
 
         for attributes in graph.edges_attributes() {
             assert!(all_attributes.contains(attributes));
@@ -841,10 +841,10 @@ mod test {
     fn test_edges_attributes_mut() {
         let mut graph = create_graph();
 
-        let all_attributes = create_edges()
+        let all_attributes: Vec<_> = create_edges()
             .into_iter()
             .map(|(_, _, attributes)| attributes)
-            .collect::<Vec<_>>();
+            .collect();
 
         let new_attributes = HashMap::from([("0".into(), "1".into()), ("2".into(), "3".into())]);
 
@@ -912,9 +912,9 @@ mod test {
         let first_index = "0".into();
         let second_index = "1".into();
         let third_index = "2".into();
-        let mut edges_connecting = graph
+        let mut edges_connecting: Vec<_> = graph
             .edges_connecting(vec![&first_index, &second_index], vec![&third_index])
-            .collect::<Vec<_>>();
+            .collect();
 
         edges_connecting.sort();
         assert_eq!(vec![&2, &3], edges_connecting);
@@ -923,12 +923,12 @@ mod test {
         let second_index = "1".into();
         let third_index = "2".into();
         let fourth_index = "3".into();
-        let mut edges_connecting = graph
+        let mut edges_connecting: Vec<_> = graph
             .edges_connecting(
                 vec![&first_index, &second_index],
                 vec![&third_index, &fourth_index],
             )
-            .collect::<Vec<_>>();
+            .collect();
 
         edges_connecting.sort();
         assert_eq!(vec![&2, &3], edges_connecting);
@@ -940,9 +940,9 @@ mod test {
 
         let first_index = "0".into();
         let second_index = "1".into();
-        let mut edges_connecting = graph
+        let mut edges_connecting: Vec<_> = graph
             .edges_connecting_undirected(vec![&first_index], vec![&second_index])
-            .collect::<Vec<_>>();
+            .collect();
 
         edges_connecting.sort();
         assert_eq!(vec![&0, &1], edges_connecting);

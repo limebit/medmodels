@@ -112,11 +112,11 @@ pub(crate) fn dataframe_to_nodes(
         nodes.rechunk_mut();
     }
 
-    let attribute_column_names = nodes
+    let attribute_column_names: Vec<_> = nodes
         .get_column_names()
         .into_iter()
         .filter(|name| *name != index_column_name)
-        .collect::<Vec<_>>();
+        .collect();
 
     let index = nodes
         .column(index_column_name)
@@ -129,13 +129,13 @@ pub(crate) fn dataframe_to_nodes(
         .as_materialized_series()
         .iter();
 
-    let mut columns = nodes
+    let mut columns: Vec<_> = nodes
         .columns(&attribute_column_names)
         .expect("Attribute columns must exist")
         .iter()
         .map(|s| s.as_materialized_series().iter())
         .zip(attribute_column_names)
-        .collect::<Vec<_>>();
+        .collect();
 
     index
         .map(|index_value| {
@@ -164,11 +164,11 @@ pub(crate) fn dataframe_to_edges(
         edges.rechunk_mut();
     }
 
-    let attribute_column_names = edges
+    let attribute_column_names: Vec<_> = edges
         .get_column_names()
         .into_iter()
         .filter(|name| *name != source_index_column_name && *name != target_index_column_name)
-        .collect::<Vec<_>>();
+        .collect();
 
     let source_index = edges
         .column(source_index_column_name)
@@ -191,13 +191,13 @@ pub(crate) fn dataframe_to_edges(
         .as_materialized_series()
         .iter();
 
-    let mut columns = edges
+    let mut columns: Vec<_> = edges
         .columns(&attribute_column_names)
         .expect("Attribute columns must exist")
         .iter()
         .map(|s| s.as_materialized_series().iter())
         .zip(attribute_column_names)
-        .collect::<Vec<_>>();
+        .collect();
 
     source_index
         .zip(target_index)

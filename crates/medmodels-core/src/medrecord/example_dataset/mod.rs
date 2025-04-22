@@ -291,13 +291,13 @@ impl MedRecord {
             .finish()
             .expect("DataFrame can be built");
         diagnosis.rechunk_mut();
-        let diagnosis_ids = diagnosis
+        let diagnosis_ids: Vec<_> = diagnosis
             .column("diagnosis_code")
             .expect("Column must exist")
             .as_materialized_series()
             .iter()
             .map(|value| MedRecordAttribute::try_from(value).expect("AnyValue can be converted"))
-            .collect::<Vec<_>>();
+            .collect();
 
         let cursor = Cursor::new(SIMPLE_DRUG_DATA);
         let mut drug_schema = PolarsSchema::with_capacity(2);
@@ -310,13 +310,13 @@ impl MedRecord {
             .finish()
             .expect("DataFrame can be built");
         drug.rechunk_mut();
-        let drug_ids = drug
+        let drug_ids: Vec<_> = drug
             .column("drug_code")
             .expect("Column must exist")
             .as_materialized_series()
             .iter()
             .map(|value| MedRecordAttribute::try_from(value).expect("AnyValue can be converted"))
-            .collect::<Vec<_>>();
+            .collect();
 
         let cursor = Cursor::new(SIMPLE_PATIENT_DATA);
         let mut patient_schema = PolarsSchema::with_capacity(3);
@@ -330,13 +330,13 @@ impl MedRecord {
             .finish()
             .expect("DataFrame can be built");
         patient.rechunk_mut();
-        let patient_ids = patient
+        let patient_ids: Vec<_> = patient
             .column("patient_id")
             .expect("Column must exist")
             .as_materialized_series()
             .iter()
             .map(|value| MedRecordAttribute::try_from(value).expect("AnyValue can be converted"))
-            .collect::<Vec<_>>();
+            .collect();
 
         let cursor = Cursor::new(SIMPLE_PROCEDURE_DATA);
         let mut procedure_schema = PolarsSchema::with_capacity(2);
@@ -349,13 +349,13 @@ impl MedRecord {
             .finish()
             .expect("DataFrame can be built");
         procedure.rechunk_mut();
-        let procedure_ids = procedure
+        let procedure_ids: Vec<_> = procedure
             .column("procedure_code")
             .expect("Column must exist")
             .as_materialized_series()
             .iter()
             .map(|value| MedRecordAttribute::try_from(value).expect("AnyValue can be converted"))
-            .collect::<Vec<_>>();
+            .collect();
 
         let cursor = Cursor::new(SIMPLE_PATIENT_DIAGNOSIS);
         let mut patient_diagnosis_schema = PolarsSchema::with_capacity(4);
@@ -372,7 +372,7 @@ impl MedRecord {
             .into_reader_with_file_handle(cursor)
             .finish()
             .expect("DataFrame can be built");
-        let patient_diagnosis_ids = (0..patient_diagnosis.height() as u32).collect::<Vec<_>>();
+        let patient_diagnosis_ids: Vec<_> = (0..patient_diagnosis.height() as u32).collect();
 
         let cursor = Cursor::new(SIMPLE_PATIENT_DRUG);
         let mut patient_drug_schema = PolarsSchema::with_capacity(5);
@@ -390,9 +390,9 @@ impl MedRecord {
             .into_reader_with_file_handle(cursor)
             .finish()
             .expect("DataFrame can be built");
-        let patient_drug_ids = (patient_diagnosis.height() as u32
+        let patient_drug_ids: Vec<_> = (patient_diagnosis.height() as u32
             ..(patient_diagnosis.height() + patient_drug.height()) as u32)
-            .collect::<Vec<_>>();
+            .collect();
 
         let cursor = Cursor::new(SIMPLE_PATIENT_PROCEDURE);
         let mut patient_procedure_schema = PolarsSchema::with_capacity(4);
@@ -409,10 +409,11 @@ impl MedRecord {
             .into_reader_with_file_handle(cursor)
             .finish()
             .expect("DataFrame can be built");
-        let patient_procedure_ids = ((patient_diagnosis.height() + patient_drug.height()) as u32
+        let patient_procedure_ids: Vec<_> = ((patient_diagnosis.height() + patient_drug.height())
+            as u32
             ..(patient_diagnosis.height() + patient_drug.height() + patient_procedure.height())
                 as u32)
-            .collect::<Vec<_>>();
+            .collect();
 
         let mut medrecord = Self::from_dataframes(
             vec![
@@ -477,13 +478,13 @@ impl MedRecord {
             .finish()
             .expect("DataFrame can be built");
         diagnosis.rechunk_mut();
-        let diagnosis_ids = diagnosis
+        let diagnosis_ids: Vec<_> = diagnosis
             .column("diagnosis_code")
             .expect("Column must exist")
             .as_materialized_series()
             .iter()
             .map(|value| MedRecordAttribute::try_from(value).expect("AnyValue can be converted"))
-            .collect::<Vec<_>>();
+            .collect();
 
         let cursor = Cursor::new(ADVANCED_DRUG_DATA);
         let mut drug_schema = PolarsSchema::with_capacity(2);
@@ -496,13 +497,13 @@ impl MedRecord {
             .finish()
             .expect("DataFrame can be built");
         drug.rechunk_mut();
-        let drug_ids = drug
+        let drug_ids: Vec<_> = drug
             .column("drug_code")
             .expect("Column must exist")
             .as_materialized_series()
             .iter()
             .map(|value| MedRecordAttribute::try_from(value).expect("AnyValue can be converted"))
-            .collect::<Vec<_>>();
+            .collect();
 
         let cursor = Cursor::new(ADVANCED_PATIENT_DATA);
         let mut patient_schema = PolarsSchema::with_capacity(3);
@@ -516,13 +517,13 @@ impl MedRecord {
             .finish()
             .expect("DataFrame can be built");
         patient.rechunk_mut();
-        let patient_ids = patient
+        let patient_ids: Vec<_> = patient
             .column("patient_id")
             .expect("Column must exist")
             .as_materialized_series()
             .iter()
             .map(|value| MedRecordAttribute::try_from(value).expect("AnyValue can be converted"))
-            .collect::<Vec<_>>();
+            .collect();
 
         let cursor = Cursor::new(ADVANCED_PROCEDURE_DATA);
         let mut procedure_schema = PolarsSchema::with_capacity(2);
@@ -535,13 +536,13 @@ impl MedRecord {
             .finish()
             .expect("DataFrame can be built");
         procedure.rechunk_mut();
-        let procedure_ids = procedure
+        let procedure_ids: Vec<_> = procedure
             .column("procedure_code")
             .expect("Column must exist")
             .as_materialized_series()
             .iter()
             .map(|value| MedRecordAttribute::try_from(value).expect("AnyValue can be converted"))
-            .collect::<Vec<_>>();
+            .collect();
 
         let cursor = Cursor::new(ADVANCED_EVENT_DATA);
         let mut event_schema = PolarsSchema::with_capacity(1);
@@ -553,13 +554,13 @@ impl MedRecord {
             .finish()
             .expect("DataFrame can be built");
         event.rechunk_mut();
-        let event_ids = event
+        let event_ids: Vec<_> = event
             .column("event")
             .expect("Column must exist")
             .as_materialized_series()
             .iter()
             .map(|value| MedRecordAttribute::try_from(value).expect("AnyValue can be converted"))
-            .collect::<Vec<_>>();
+            .collect();
 
         let cursor = Cursor::new(ADVANCED_PATIENT_DIAGNOSIS);
         let mut patient_diagnosis_schema = PolarsSchema::with_capacity(4);
@@ -576,7 +577,7 @@ impl MedRecord {
             .into_reader_with_file_handle(cursor)
             .finish()
             .expect("DataFrame can be built");
-        let patient_diagnosis_ids = (0..patient_diagnosis.height() as u32).collect::<Vec<_>>();
+        let patient_diagnosis_ids: Vec<_> = (0..patient_diagnosis.height() as u32).collect();
 
         let cursor = Cursor::new(ADVANCED_PATIENT_DRUG);
         let mut patient_drug_schema = PolarsSchema::with_capacity(5);
@@ -594,9 +595,9 @@ impl MedRecord {
             .into_reader_with_file_handle(cursor)
             .finish()
             .expect("DataFrame can be built");
-        let patient_drug_ids = (patient_diagnosis.height() as u32
+        let patient_drug_ids: Vec<_> = (patient_diagnosis.height() as u32
             ..(patient_diagnosis.height() + patient_drug.height()) as u32)
-            .collect::<Vec<_>>();
+            .collect();
 
         let cursor = Cursor::new(ADVANCED_PATIENT_PROCEDURE);
         let mut patient_procedure_schema = PolarsSchema::with_capacity(4);
@@ -613,10 +614,11 @@ impl MedRecord {
             .into_reader_with_file_handle(cursor)
             .finish()
             .expect("DataFrame can be built");
-        let patient_procedure_ids = ((patient_diagnosis.height() + patient_drug.height()) as u32
+        let patient_procedure_ids: Vec<_> = ((patient_diagnosis.height() + patient_drug.height())
+            as u32
             ..(patient_diagnosis.height() + patient_drug.height() + patient_procedure.height())
                 as u32)
-            .collect::<Vec<_>>();
+            .collect();
 
         let cursor = Cursor::new(ADVANCED_PATIENT_EVENT);
         let mut patient_event_schema = PolarsSchema::with_capacity(3);
@@ -632,14 +634,14 @@ impl MedRecord {
             .into_reader_with_file_handle(cursor)
             .finish()
             .expect("DataFrame can be built");
-        let patient_event_ids = ((patient_diagnosis.height()
+        let patient_event_ids: Vec<_> = ((patient_diagnosis.height()
             + patient_drug.height()
             + patient_procedure.height()) as u32
             ..(patient_diagnosis.height()
                 + patient_drug.height()
                 + patient_procedure.height()
                 + patient_event.height()) as u32)
-            .collect::<Vec<_>>();
+            .collect();
 
         let mut medrecord = Self::from_dataframes(
             vec![

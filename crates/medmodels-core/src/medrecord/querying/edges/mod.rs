@@ -1,12 +1,21 @@
 mod operand;
 mod operation;
 
+use super::nodes::{EdgeDirection, NodeOperand};
 pub use operand::{
     EdgeIndexComparisonOperand, EdgeIndexOperand, EdgeIndicesComparisonOperand, EdgeIndicesOperand,
     EdgeOperand,
 };
-pub use operation::{EdgeIndicesOperation, EdgeOperation};
+pub use operation::EdgeOperation;
 use std::fmt::Display;
+
+#[derive(Debug, Clone)]
+pub enum Context {
+    Edges {
+        operand: Box<NodeOperand>,
+        kind: EdgeDirection,
+    },
+}
 
 #[derive(Debug, Clone)]
 pub enum SingleKind {
@@ -14,8 +23,7 @@ pub enum SingleKind {
     Min,
     Count,
     Sum,
-    First,
-    Last,
+    Random,
 }
 
 #[derive(Debug, Clone)]
