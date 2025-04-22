@@ -24,6 +24,7 @@ use crate::{
 };
 use itertools::Itertools;
 use medmodels_utils::aliases::{MrHashMap, MrHashSet};
+use rand::{rng, seq::IteratorRandom};
 use std::{
     cmp::Ordering,
     collections::HashMap,
@@ -199,9 +200,12 @@ impl<O: Operand> AttributesTreeOperation<O> {
     }
 
     #[inline]
-    pub(crate) fn get_max<I>(
-        attributes: impl Iterator<Item = (I, Vec<MedRecordAttribute>)>,
-    ) -> MedRecordResult<impl Iterator<Item = (I, MedRecordAttribute)>> {
+    pub(crate) fn get_max<'a>(
+        attributes: impl Iterator<Item = (&'a O::Index, Vec<MedRecordAttribute>)>,
+    ) -> MedRecordResult<impl Iterator<Item = (&'a O::Index, MedRecordAttribute)>>
+    where
+        O: 'a,
+    {
         Ok(attributes.map(|(index, attributes)| {
             let mut attributes = attributes.into_iter();
 
@@ -230,9 +234,12 @@ impl<O: Operand> AttributesTreeOperation<O> {
     }
 
     #[inline]
-    pub(crate) fn get_min<I>(
-        attributes: impl Iterator<Item = (I, Vec<MedRecordAttribute>)>,
-    ) -> MedRecordResult<impl Iterator<Item = (I, MedRecordAttribute)>> {
+    pub(crate) fn get_min<'a>(
+        attributes: impl Iterator<Item = (&'a O::Index, Vec<MedRecordAttribute>)>,
+    ) -> MedRecordResult<impl Iterator<Item = (&'a O::Index, MedRecordAttribute)>>
+    where
+        O: 'a,
+    {
         Ok(attributes.map(|(index, attributes)| {
             let mut attributes = attributes.into_iter();
 
@@ -261,17 +268,23 @@ impl<O: Operand> AttributesTreeOperation<O> {
     }
 
     #[inline]
-    pub(crate) fn get_count<I>(
-        attributes: impl Iterator<Item = (I, Vec<MedRecordAttribute>)>,
-    ) -> MedRecordResult<impl Iterator<Item = (I, MedRecordAttribute)>> {
+    pub(crate) fn get_count<'a>(
+        attributes: impl Iterator<Item = (&'a O::Index, Vec<MedRecordAttribute>)>,
+    ) -> MedRecordResult<impl Iterator<Item = (&'a O::Index, MedRecordAttribute)>>
+    where
+        O: 'a,
+    {
         Ok(attributes
             .map(|(index, attribute)| (index, MedRecordAttribute::Int(attribute.len() as i64))))
     }
 
     #[inline]
-    pub(crate) fn get_sum<I>(
-        attributes: impl Iterator<Item = (I, Vec<MedRecordAttribute>)>,
-    ) -> MedRecordResult<impl Iterator<Item = (I, MedRecordAttribute)>> {
+    pub(crate) fn get_sum<'a>(
+        attributes: impl Iterator<Item = (&'a O::Index, Vec<MedRecordAttribute>)>,
+    ) -> MedRecordResult<impl Iterator<Item = (&'a O::Index, MedRecordAttribute)>>
+    where
+        O: 'a,
+    {
         Ok(attributes.map(|(index, attributes)| {
             let mut attributes = attributes.into_iter();
 
@@ -296,35 +309,18 @@ impl<O: Operand> AttributesTreeOperation<O> {
     }
 
     #[inline]
-    pub(crate) fn get_first<I>(
-        attributes: impl Iterator<Item = (I, Vec<MedRecordAttribute>)>,
-    ) -> MedRecordResult<impl Iterator<Item = (I, MedRecordAttribute)>> {
+    pub(crate) fn get_random<'a>(
+        attributes: impl Iterator<Item = (&'a O::Index, Vec<MedRecordAttribute>)>,
+    ) -> MedRecordResult<impl Iterator<Item = (&'a O::Index, MedRecordAttribute)>>
+    where
+        O: 'a,
+    {
         Ok(attributes
             .map(|(index, attributes)| {
                 let first_attribute =
                     attributes
                         .into_iter()
-                        .next()
-                        .ok_or(MedRecordError::QueryError(
-                            "No attributes to compare".to_string(),
-                        ))?;
-
-                Ok((index, first_attribute))
-            })
-            .collect::<MedRecordResult<Vec<_>>>()?
-            .into_iter())
-    }
-
-    #[inline]
-    pub(crate) fn get_last<I>(
-        attributes: impl Iterator<Item = (I, Vec<MedRecordAttribute>)>,
-    ) -> MedRecordResult<impl Iterator<Item = (I, MedRecordAttribute)>> {
-        Ok(attributes
-            .map(|(index, attributes)| {
-                let first_attribute =
-                    attributes
-                        .into_iter()
-                        .next_back()
+                        .choose(&mut rng())
                         .ok_or(MedRecordError::QueryError(
                             "No attributes to compare".to_string(),
                         ))?;
@@ -353,8 +349,9 @@ impl<O: Operand> AttributesTreeOperation<O> {
             MultipleKind::Min => Box::new(AttributesTreeOperation::<O>::get_min(attributes_1)?),
             MultipleKind::Count => Box::new(AttributesTreeOperation::<O>::get_count(attributes_1)?),
             MultipleKind::Sum => Box::new(AttributesTreeOperation::<O>::get_sum(attributes_1)?),
-            MultipleKind::First => Box::new(AttributesTreeOperation::<O>::get_first(attributes_1)?),
-            MultipleKind::Last => Box::new(AttributesTreeOperation::<O>::get_last(attributes_1)?),
+            MultipleKind::Random => {
+                Box::new(AttributesTreeOperation::<O>::get_random(attributes_1)?)
+            }
         };
 
         let result = operand.evaluate_forward(medrecord, multiple_operand_attributes)?;
@@ -366,12 +363,12 @@ impl<O: Operand> AttributesTreeOperation<O> {
     }
 
     #[inline]
-    fn evaluate_single_attribute_comparison_operation<'a, I>(
+    fn evaluate_single_attribute_comparison_operation<'a>(
         medrecord: &'a MedRecord,
-        attributes: impl Iterator<Item = (I, Vec<MedRecordAttribute>)> + 'a,
+        attributes: impl Iterator<Item = (&'a O::Index, Vec<MedRecordAttribute>)> + 'a,
         comparison_operand: &SingleAttributeComparisonOperand,
         kind: &SingleComparisonKind,
-    ) -> MedRecordResult<BoxedIterator<'a, (I, Vec<MedRecordAttribute>)>> {
+    ) -> MedRecordResult<BoxedIterator<'a, (&'a O::Index, Vec<MedRecordAttribute>)>> {
         let comparison_attribute =
             comparison_operand
                 .evaluate_backward(medrecord)?
@@ -483,12 +480,12 @@ impl<O: Operand> AttributesTreeOperation<O> {
     }
 
     #[inline]
-    fn evaluate_multiple_attributes_comparison_operation<'a, I>(
+    fn evaluate_multiple_attributes_comparison_operation<'a>(
         medrecord: &'a MedRecord,
-        attributes: impl Iterator<Item = (I, Vec<MedRecordAttribute>)> + 'a,
+        attributes: impl Iterator<Item = (&'a O::Index, Vec<MedRecordAttribute>)> + 'a,
         comparison_operand: &MultipleAttributesComparisonOperand,
         kind: &MultipleComparisonKind,
-    ) -> MedRecordResult<BoxedIterator<'a, (I, Vec<MedRecordAttribute>)>> {
+    ) -> MedRecordResult<BoxedIterator<'a, (&'a O::Index, Vec<MedRecordAttribute>)>> {
         let comparison_attributes = comparison_operand.evaluate_backward(medrecord)?;
 
         match kind {
@@ -596,10 +593,13 @@ impl<O: Operand> AttributesTreeOperation<O> {
     }
 
     #[inline]
-    fn evaluate_unary_arithmetic_operation<I>(
-        attributes: impl Iterator<Item = (I, Vec<MedRecordAttribute>)>,
+    fn evaluate_unary_arithmetic_operation<'a>(
+        attributes: impl Iterator<Item = (&'a O::Index, Vec<MedRecordAttribute>)>,
         kind: UnaryArithmeticKind,
-    ) -> impl Iterator<Item = (I, Vec<MedRecordAttribute>)> {
+    ) -> impl Iterator<Item = (&'a O::Index, Vec<MedRecordAttribute>)>
+    where
+        O: 'a,
+    {
         attributes.map(move |(index, attributes)| {
             (
                 index,
@@ -619,10 +619,13 @@ impl<O: Operand> AttributesTreeOperation<O> {
     }
 
     #[inline]
-    fn evaluate_slice<I>(
-        attributes: impl Iterator<Item = (I, Vec<MedRecordAttribute>)>,
+    fn evaluate_slice<'a>(
+        attributes: impl Iterator<Item = (&'a O::Index, Vec<MedRecordAttribute>)>,
         range: Range<usize>,
-    ) -> impl Iterator<Item = (I, Vec<MedRecordAttribute>)> {
+    ) -> impl Iterator<Item = (&'a O::Index, Vec<MedRecordAttribute>)>
+    where
+        O: 'a,
+    {
         attributes.map(move |(index, attributes)| {
             (
                 index,
@@ -836,9 +839,9 @@ impl<O: Operand> MultipleAttributesOperation<O> {
     }
 
     #[inline]
-    pub(crate) fn get_max<I>(
-        mut attributes: impl Iterator<Item = (I, MedRecordAttribute)>,
-    ) -> MedRecordResult<(I, MedRecordAttribute)> {
+    pub(crate) fn get_max<'a>(
+        mut attributes: impl Iterator<Item = (&'a O::Index, MedRecordAttribute)>,
+    ) -> MedRecordResult<(&'a O::Index, MedRecordAttribute)> {
         let max_attribute = attributes.next().ok_or(MedRecordError::QueryError(
             "No attributes to compare".to_string(),
         ))?;
@@ -861,9 +864,9 @@ impl<O: Operand> MultipleAttributesOperation<O> {
     }
 
     #[inline]
-    pub(crate) fn get_min<I>(
-        mut attributes: impl Iterator<Item = (I, MedRecordAttribute)>,
-    ) -> MedRecordResult<(I, MedRecordAttribute)> {
+    pub(crate) fn get_min<'a>(
+        mut attributes: impl Iterator<Item = (&'a O::Index, MedRecordAttribute)>,
+    ) -> MedRecordResult<(&'a O::Index, MedRecordAttribute)> {
         let min_attribute = attributes.next().ok_or(MedRecordError::QueryError(
             "No attributes to compare".to_string(),
         ))?;
@@ -886,17 +889,23 @@ impl<O: Operand> MultipleAttributesOperation<O> {
     }
 
     #[inline]
-    pub(crate) fn get_count<I>(
-        attributes: impl Iterator<Item = (I, MedRecordAttribute)>,
-    ) -> MedRecordAttribute {
+    pub(crate) fn get_count<'a>(
+        attributes: impl Iterator<Item = (&'a O::Index, MedRecordAttribute)>,
+    ) -> MedRecordAttribute
+    where
+        O: 'a,
+    {
         MedRecordAttribute::Int(attributes.count() as i64)
     }
 
     #[inline]
     // 🥊💥
-    pub(crate) fn get_sum<I>(
-        mut attributes: impl Iterator<Item = (I, MedRecordAttribute)>,
-    ) -> MedRecordResult<MedRecordAttribute> {
+    pub(crate) fn get_sum<'a>(
+        mut attributes: impl Iterator<Item = (&'a O::Index, MedRecordAttribute)>,
+    ) -> MedRecordResult<MedRecordAttribute>
+    where
+        O: 'a,
+    {
         let first_attribute = attributes.next().ok_or(MedRecordError::QueryError(
             "No attributes to compare".to_string(),
         ))?;
@@ -915,21 +924,14 @@ impl<O: Operand> MultipleAttributesOperation<O> {
     }
 
     #[inline]
-    pub(crate) fn get_first<I>(
-        mut attributes: impl Iterator<Item = (I, MedRecordAttribute)>,
-    ) -> MedRecordResult<(I, MedRecordAttribute)> {
-        attributes.next().ok_or(MedRecordError::QueryError(
-            "No attributes to get the first".to_string(),
-        ))
-    }
-
-    #[inline]
-    pub(crate) fn get_last<I>(
-        attributes: impl Iterator<Item = (I, MedRecordAttribute)>,
-    ) -> MedRecordResult<(I, MedRecordAttribute)> {
-        attributes.last().ok_or(MedRecordError::QueryError(
-            "No attributes to get the first".to_string(),
-        ))
+    pub(crate) fn get_random<'a>(
+        attributes: impl Iterator<Item = (&'a O::Index, MedRecordAttribute)>,
+    ) -> MedRecordResult<(&'a O::Index, MedRecordAttribute)> {
+        attributes
+            .choose(&mut rng())
+            .ok_or(MedRecordError::QueryError(
+                "No attributes to get the first".to_string(),
+            ))
     }
 
     #[inline]
@@ -937,7 +939,10 @@ impl<O: Operand> MultipleAttributesOperation<O> {
         medrecord: &'a MedRecord,
         attributes: impl Iterator<Item = (&'a O::Index, MedRecordAttribute)> + 'a,
         operand: &Wrapper<SingleAttributeOperand<O>>,
-    ) -> MedRecordResult<BoxedIterator<'a, (&'a O::Index, MedRecordAttribute)>> {
+    ) -> MedRecordResult<BoxedIterator<'a, (&'a O::Index, MedRecordAttribute)>>
+    where
+        O: 'a,
+    {
         let (attributes_1, attributes_2) = Itertools::tee(attributes);
 
         let kind = &operand.0.read_or_panic().kind;
@@ -947,8 +952,9 @@ impl<O: Operand> MultipleAttributesOperation<O> {
             SingleKind::Min => MultipleAttributesOperation::<O>::get_min(attributes_1)?.into(),
             SingleKind::Count => MultipleAttributesOperation::<O>::get_count(attributes_1).into(),
             SingleKind::Sum => MultipleAttributesOperation::<O>::get_sum(attributes_1)?.into(),
-            SingleKind::First => MultipleAttributesOperation::<O>::get_first(attributes_1)?.into(),
-            SingleKind::Last => MultipleAttributesOperation::<O>::get_last(attributes_1)?.into(),
+            SingleKind::Random => {
+                MultipleAttributesOperation::<O>::get_random(attributes_1)?.into()
+            }
         };
 
         Ok(match operand.evaluate_forward(medrecord, attribute)? {
@@ -958,12 +964,12 @@ impl<O: Operand> MultipleAttributesOperation<O> {
     }
 
     #[inline]
-    fn evaluate_single_attribute_comparison_operation<'a, I>(
+    fn evaluate_single_attribute_comparison_operation<'a>(
         medrecord: &'a MedRecord,
-        attributes: impl Iterator<Item = (I, MedRecordAttribute)> + 'a,
+        attributes: impl Iterator<Item = (&'a O::Index, MedRecordAttribute)> + 'a,
         comparison_operand: &SingleAttributeComparisonOperand,
         kind: &SingleComparisonKind,
-    ) -> MedRecordResult<BoxedIterator<'a, (I, MedRecordAttribute)>> {
+    ) -> MedRecordResult<BoxedIterator<'a, (&'a O::Index, MedRecordAttribute)>> {
         let comparison_attribute =
             comparison_operand
                 .evaluate_backward(medrecord)?
@@ -1021,12 +1027,12 @@ impl<O: Operand> MultipleAttributesOperation<O> {
     }
 
     #[inline]
-    fn evaluate_multiple_attributes_comparison_operation<'a, I>(
+    fn evaluate_multiple_attributes_comparison_operation<'a>(
         medrecord: &'a MedRecord,
-        attributes: impl Iterator<Item = (I, MedRecordAttribute)> + 'a,
+        attributes: impl Iterator<Item = (&'a O::Index, MedRecordAttribute)> + 'a,
         comparison_operand: &MultipleAttributesComparisonOperand,
         kind: &MultipleComparisonKind,
-    ) -> MedRecordResult<BoxedIterator<'a, (I, MedRecordAttribute)>> {
+    ) -> MedRecordResult<BoxedIterator<'a, (&'a O::Index, MedRecordAttribute)>> {
         let comparison_attributes = comparison_operand.evaluate_backward(medrecord)?;
 
         match kind {
@@ -1044,12 +1050,15 @@ impl<O: Operand> MultipleAttributesOperation<O> {
     }
 
     #[inline]
-    fn evaluate_binary_arithmetic_operation<I>(
+    fn evaluate_binary_arithmetic_operation<'a>(
         medrecord: &MedRecord,
-        attributes: impl Iterator<Item = (I, MedRecordAttribute)>,
+        attributes: impl Iterator<Item = (&'a O::Index, MedRecordAttribute)>,
         operand: &SingleAttributeComparisonOperand,
         kind: &BinaryArithmeticKind,
-    ) -> MedRecordResult<impl Iterator<Item = (I, MedRecordAttribute)>> {
+    ) -> MedRecordResult<impl Iterator<Item = (&'a O::Index, MedRecordAttribute)>>
+    where
+        O: 'a,
+    {
         let arithmetic_attribute =
             operand
                 .evaluate_backward(medrecord)?
@@ -1085,10 +1094,13 @@ impl<O: Operand> MultipleAttributesOperation<O> {
     }
 
     #[inline]
-    fn evaluate_unary_arithmetic_operation<I>(
-        attributes: impl Iterator<Item = (I, MedRecordAttribute)>,
+    fn evaluate_unary_arithmetic_operation<'a>(
+        attributes: impl Iterator<Item = (&'a O::Index, MedRecordAttribute)>,
         kind: UnaryArithmeticKind,
-    ) -> impl Iterator<Item = (I, MedRecordAttribute)> {
+    ) -> impl Iterator<Item = (&'a O::Index, MedRecordAttribute)>
+    where
+        O: 'a,
+    {
         attributes.map(move |(t, attribute)| {
             let attribute = match kind {
                 UnaryArithmeticKind::Abs => attribute.abs(),
@@ -1150,10 +1162,13 @@ impl<O: Operand> MultipleAttributesOperation<O> {
     }
 
     #[inline]
-    fn evaluate_slice<I>(
-        attributes: impl Iterator<Item = (I, MedRecordAttribute)>,
+    fn evaluate_slice<'a>(
+        attributes: impl Iterator<Item = (&'a O::Index, MedRecordAttribute)>,
         range: Range<usize>,
-    ) -> impl Iterator<Item = (I, MedRecordAttribute)> {
+    ) -> impl Iterator<Item = (&'a O::Index, MedRecordAttribute)>
+    where
+        O: 'a,
+    {
         attributes.map(move |(t, attribute)| (t, attribute.slice(range.clone())))
     }
 

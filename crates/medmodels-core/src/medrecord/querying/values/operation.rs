@@ -23,6 +23,7 @@ use crate::{
 };
 use itertools::Itertools;
 use medmodels_utils::aliases::MrHashSet;
+use rand::{rng, seq::IteratorRandom};
 use std::{
     cmp::Ordering,
     ops::{Add, Div, Mul, Range, Sub},
@@ -228,9 +229,9 @@ impl<O: Operand> MultipleValuesOperation<O> {
     }
 
     #[inline]
-    pub(crate) fn get_max<I>(
-        mut values: impl Iterator<Item = (I, MedRecordValue)>,
-    ) -> MedRecordResult<(I, MedRecordValue)> {
+    pub(crate) fn get_max<'a>(
+        mut values: impl Iterator<Item = (&'a O::Index, MedRecordValue)>,
+    ) -> MedRecordResult<(&'a O::Index, MedRecordValue)> {
         let max_value = values.next().ok_or(MedRecordError::QueryError(
             "No values to compare".to_string(),
         ))?;
@@ -253,9 +254,9 @@ impl<O: Operand> MultipleValuesOperation<O> {
     }
 
     #[inline]
-    pub(crate) fn get_min<I>(
-        mut values: impl Iterator<Item = (I, MedRecordValue)>,
-    ) -> MedRecordResult<(I, MedRecordValue)> {
+    pub(crate) fn get_min<'a>(
+        mut values: impl Iterator<Item = (&'a O::Index, MedRecordValue)>,
+    ) -> MedRecordResult<(&'a O::Index, MedRecordValue)> {
         let min_value = values.next().ok_or(MedRecordError::QueryError(
             "No values to compare".to_string(),
         ))?;
@@ -278,9 +279,12 @@ impl<O: Operand> MultipleValuesOperation<O> {
     }
 
     #[inline]
-    pub(crate) fn get_mean<I>(
-        mut values: impl Iterator<Item = (I, MedRecordValue)>,
-    ) -> MedRecordResult<MedRecordValue> {
+    pub(crate) fn get_mean<'a>(
+        mut values: impl Iterator<Item = (&'a O::Index, MedRecordValue)>,
+    ) -> MedRecordResult<MedRecordValue>
+    where
+        O: 'a,
+    {
         let first_value = values.next().ok_or(MedRecordError::QueryError(
             "No values to compare".to_string(),
         ))?;
@@ -303,9 +307,12 @@ impl<O: Operand> MultipleValuesOperation<O> {
 
     // TODO: This is a temporary solution. It should be optimized.
     #[inline]
-    pub(crate) fn get_median<I>(
-        mut values: impl Iterator<Item = (I, MedRecordValue)>,
-    ) -> MedRecordResult<MedRecordValue> {
+    pub(crate) fn get_median<'a>(
+        mut values: impl Iterator<Item = (&'a O::Index, MedRecordValue)>,
+    ) -> MedRecordResult<MedRecordValue>
+    where
+        O: 'a,
+    {
         let first_value = values.next().ok_or(MedRecordError::QueryError(
             "No values to compare".to_string(),
         ))?;
@@ -392,9 +399,12 @@ impl<O: Operand> MultipleValuesOperation<O> {
 
     // TODO: This is a temporary solution. It should be optimized.
     #[inline]
-    pub(crate) fn get_mode<I>(
-        values: impl Iterator<Item = (I, MedRecordValue)>,
-    ) -> MedRecordResult<MedRecordValue> {
+    pub(crate) fn get_mode<'a>(
+        values: impl Iterator<Item = (&'a O::Index, MedRecordValue)>,
+    ) -> MedRecordResult<MedRecordValue>
+    where
+        O: 'a,
+    {
         let values: Vec<_> = values.map(|(_, value)| value).collect();
 
         let most_common_value = values
@@ -487,17 +497,23 @@ impl<O: Operand> MultipleValuesOperation<O> {
     }
 
     #[inline]
-    pub(crate) fn get_count<I>(
-        values: impl Iterator<Item = (I, MedRecordValue)>,
-    ) -> MedRecordValue {
+    pub(crate) fn get_count<'a>(
+        values: impl Iterator<Item = (&'a O::Index, MedRecordValue)>,
+    ) -> MedRecordValue
+    where
+        O: 'a,
+    {
         MedRecordValue::Int(values.count() as i64)
     }
 
     #[inline]
     // 🥊💥
-    pub(crate) fn get_sum<I>(
-        mut values: impl Iterator<Item = (I, MedRecordValue)>,
-    ) -> MedRecordResult<MedRecordValue> {
+    pub(crate) fn get_sum<'a>(
+        mut values: impl Iterator<Item = (&'a O::Index, MedRecordValue)>,
+    ) -> MedRecordResult<MedRecordValue>
+    where
+        O: 'a,
+    {
         let first_value = values.next().ok_or(MedRecordError::QueryError(
             "No values to compare".to_string(),
         ))?;
@@ -516,19 +532,10 @@ impl<O: Operand> MultipleValuesOperation<O> {
     }
 
     #[inline]
-    pub(crate) fn get_first<I>(
-        mut values: impl Iterator<Item = (I, MedRecordValue)>,
-    ) -> MedRecordResult<(I, MedRecordValue)> {
-        values.next().ok_or(MedRecordError::QueryError(
-            "No values to compare".to_string(),
-        ))
-    }
-
-    #[inline]
-    pub(crate) fn get_last<I>(
-        values: impl Iterator<Item = (I, MedRecordValue)>,
-    ) -> MedRecordResult<(I, MedRecordValue)> {
-        values.last().ok_or(MedRecordError::QueryError(
+    pub(crate) fn get_random<'a>(
+        values: impl Iterator<Item = (&'a O::Index, MedRecordValue)>,
+    ) -> MedRecordResult<(&'a O::Index, MedRecordValue)> {
+        values.choose(&mut rng()).ok_or(MedRecordError::QueryError(
             "No values to compare".to_string(),
         ))
     }
@@ -556,8 +563,7 @@ impl<O: Operand> MultipleValuesOperation<O> {
             SingleKind::Var => MultipleValuesOperation::<O>::get_var(values_1)?.into(),
             SingleKind::Count => MultipleValuesOperation::<O>::get_count(values_1).into(),
             SingleKind::Sum => MultipleValuesOperation::<O>::get_sum(values_1)?.into(),
-            SingleKind::First => MultipleValuesOperation::<O>::get_first(values_1)?.into(),
-            SingleKind::Last => MultipleValuesOperation::<O>::get_last(values_1)?.into(),
+            SingleKind::Random => MultipleValuesOperation::<O>::get_random(values_1)?.into(),
         };
 
         Ok(match operand.evaluate_forward(medrecord, value)? {
@@ -567,12 +573,12 @@ impl<O: Operand> MultipleValuesOperation<O> {
     }
 
     #[inline]
-    fn evaluate_single_value_comparison_operation<'a, I>(
+    fn evaluate_single_value_comparison_operation<'a>(
         medrecord: &'a MedRecord,
-        values: impl Iterator<Item = (I, MedRecordValue)> + 'a,
+        values: impl Iterator<Item = (&'a O::Index, MedRecordValue)> + 'a,
         comparison_operand: &SingleValueComparisonOperand,
         kind: &SingleComparisonKind,
-    ) -> MedRecordResult<BoxedIterator<'a, (I, MedRecordValue)>> {
+    ) -> MedRecordResult<BoxedIterator<'a, (&'a O::Index, MedRecordValue)>> {
         let comparison_value =
             comparison_operand
                 .evaluate_backward(medrecord)?
@@ -641,12 +647,15 @@ impl<O: Operand> MultipleValuesOperation<O> {
     }
 
     #[inline]
-    fn evaluate_binary_arithmetic_operation<I>(
+    fn evaluate_binary_arithmetic_operation<'a>(
         medrecord: &MedRecord,
-        values: impl Iterator<Item = (I, MedRecordValue)>,
+        values: impl Iterator<Item = (&'a O::Index, MedRecordValue)>,
         operand: &SingleValueComparisonOperand,
         kind: &BinaryArithmeticKind,
-    ) -> MedRecordResult<impl Iterator<Item = (I, MedRecordValue)>> {
+    ) -> MedRecordResult<impl Iterator<Item = (&'a O::Index, MedRecordValue)>>
+    where
+        O: 'a,
+    {
         let arithmetic_value =
             operand
                 .evaluate_backward(medrecord)?
@@ -685,10 +694,13 @@ impl<O: Operand> MultipleValuesOperation<O> {
     }
 
     #[inline]
-    fn evaluate_unary_arithmetic_operation<I>(
-        values: impl Iterator<Item = (I, MedRecordValue)>,
+    fn evaluate_unary_arithmetic_operation<'a>(
+        values: impl Iterator<Item = (&'a O::Index, MedRecordValue)>,
         kind: UnaryArithmeticKind,
-    ) -> impl Iterator<Item = (I, MedRecordValue)> {
+    ) -> impl Iterator<Item = (&'a O::Index, MedRecordValue)>
+    where
+        O: 'a,
+    {
         values.map(move |(t, value)| {
             let value = match kind {
                 UnaryArithmeticKind::Round => value.round(),
@@ -707,10 +719,13 @@ impl<O: Operand> MultipleValuesOperation<O> {
     }
 
     #[inline]
-    fn evaluate_slice<I>(
-        values: impl Iterator<Item = (I, MedRecordValue)>,
+    fn evaluate_slice<'a>(
+        values: impl Iterator<Item = (&'a O::Index, MedRecordValue)>,
         range: Range<usize>,
-    ) -> impl Iterator<Item = (I, MedRecordValue)> {
+    ) -> impl Iterator<Item = (&'a O::Index, MedRecordValue)>
+    where
+        O: 'a,
+    {
         values.map(move |(t, value)| (t, value.slice(range.clone())))
     }
 

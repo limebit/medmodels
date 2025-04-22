@@ -23,6 +23,7 @@ use crate::{
     MedRecord,
 };
 use itertools::Itertools;
+use rand::{rng, seq::IteratorRandom};
 use std::{
     collections::HashSet,
     ops::{Add, Mul, Sub},
@@ -492,17 +493,10 @@ impl EdgeIndicesOperation {
     }
 
     #[inline]
-    pub(crate) fn get_first(
-        mut indices: impl Iterator<Item = EdgeIndex>,
+    pub(crate) fn get_random(
+        indices: impl Iterator<Item = EdgeIndex>,
     ) -> MedRecordResult<EdgeIndex> {
-        indices.next().ok_or(MedRecordError::QueryError(
-            "No indices to get the first".to_string(),
-        ))
-    }
-
-    #[inline]
-    pub(crate) fn get_last(indices: impl Iterator<Item = EdgeIndex>) -> MedRecordResult<EdgeIndex> {
-        indices.last().ok_or(MedRecordError::QueryError(
+        indices.choose(&mut rng()).ok_or(MedRecordError::QueryError(
             "No indices to get the first".to_string(),
         ))
     }
@@ -522,8 +516,7 @@ impl EdgeIndicesOperation {
             SingleKind::Min => EdgeIndicesOperation::get_min(indices_1)?,
             SingleKind::Count => EdgeIndicesOperation::get_count(indices_1),
             SingleKind::Sum => EdgeIndicesOperation::get_sum(indices_1),
-            SingleKind::First => EdgeIndicesOperation::get_first(indices_1)?,
-            SingleKind::Last => EdgeIndicesOperation::get_last(indices_1)?,
+            SingleKind::Random => EdgeIndicesOperation::get_random(indices_1)?,
         };
 
         Ok(match operand.evaluate_forward(medrecord, index)? {

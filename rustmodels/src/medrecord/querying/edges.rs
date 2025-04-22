@@ -191,12 +191,8 @@ impl PyEdgeIndicesOperand {
         self.0.sum().into()
     }
 
-    pub fn first(&mut self) -> PyEdgeIndexOperand {
-        self.0.first().into()
-    }
-
-    pub fn last(&mut self) -> PyEdgeIndexOperand {
-        self.0.last().into()
+    pub fn random(&mut self) -> PyEdgeIndexOperand {
+        self.0.random().into()
     }
 
     pub fn greater_than(&mut self, index: PyEdgeIndexComparisonOperand) {

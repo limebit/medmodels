@@ -25,8 +25,7 @@ pub enum SingleKind {
     Min,
     Count,
     Sum,
-    First,
-    Last,
+    Random,
 }
 
 #[derive(Debug, Clone)]
@@ -35,8 +34,7 @@ pub enum MultipleKind {
     Min,
     Count,
     Sum,
-    First,
-    Last,
+    Random,
 }
 
 #[derive(Debug, Clone)]

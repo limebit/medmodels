@@ -524,8 +524,7 @@ impl NodeIndicesOperand {
     implement_index_operation!(min, Min);
     implement_index_operation!(count, Count);
     implement_index_operation!(sum, Sum);
-    implement_index_operation!(first, First);
-    implement_index_operation!(last, Last);
+    implement_index_operation!(random, Random);
 
     implement_single_index_comparison_operation!(greater_than, NodeIndicesOperation, GreaterThan);
     implement_single_index_comparison_operation!(
@@ -638,8 +637,7 @@ impl Wrapper<NodeIndicesOperand> {
     implement_wrapper_operand_with_return!(min, NodeIndexOperand);
     implement_wrapper_operand_with_return!(count, NodeIndexOperand);
     implement_wrapper_operand_with_return!(sum, NodeIndexOperand);
-    implement_wrapper_operand_with_return!(first, NodeIndexOperand);
-    implement_wrapper_operand_with_return!(last, NodeIndexOperand);
+    implement_wrapper_operand_with_return!(random, NodeIndexOperand);
 
     implement_wrapper_operand_with_argument!(greater_than, impl Into<NodeIndexComparisonOperand>);
     implement_wrapper_operand_with_argument!(
@@ -749,8 +747,7 @@ impl NodeIndexOperand {
             SingleKind::Min => NodeIndicesOperation::get_min(node_indices)?.clone(),
             SingleKind::Count => NodeIndicesOperation::get_count(node_indices),
             SingleKind::Sum => NodeIndicesOperation::get_sum(node_indices)?,
-            SingleKind::First => NodeIndicesOperation::get_first(node_indices)?,
-            SingleKind::Last => NodeIndicesOperation::get_last(node_indices)?,
+            SingleKind::Random => NodeIndicesOperation::get_random(node_indices)?,
         };
 
         self.evaluate_forward(medrecord, node_index)

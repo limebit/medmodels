@@ -124,12 +124,8 @@ macro_rules! implement_attributes_tree_operand {
                 self.0.sum().into()
             }
 
-            pub fn first(&self) -> $multiple_attributes_operand {
-                self.0.first().into()
-            }
-
-            pub fn last(&self) -> $multiple_attributes_operand {
-                self.0.last().into()
+            pub fn random(&self) -> $multiple_attributes_operand {
+                self.0.random().into()
             }
 
             pub fn greater_than(&self, attribute: PySingleAttributeComparisonOperand) {
@@ -321,12 +317,8 @@ macro_rules! implement_multiple_attributes_operand {
                 self.0.sum().into()
             }
 
-            pub fn first(&self) -> $py_single_attribute_operand {
-                self.0.first().into()
-            }
-
-            pub fn last(&self) -> $py_single_attribute_operand {
-                self.0.last().into()
+            pub fn random(&self) -> $py_single_attribute_operand {
+                self.0.random().into()
             }
 
             pub fn greater_than(&self, attribute: PySingleAttributeComparisonOperand) {

@@ -505,8 +505,7 @@ impl EdgeIndicesOperand {
     implement_index_operation!(min, Min);
     implement_index_operation!(count, Count);
     implement_index_operation!(sum, Sum);
-    implement_index_operation!(first, First);
-    implement_index_operation!(last, Last);
+    implement_index_operation!(random, Random);
 
     implement_single_index_comparison_operation!(greater_than, EdgeIndicesOperation, GreaterThan);
     implement_single_index_comparison_operation!(
@@ -605,8 +604,7 @@ impl Wrapper<EdgeIndicesOperand> {
     implement_wrapper_operand_with_return!(min, EdgeIndexOperand);
     implement_wrapper_operand_with_return!(count, EdgeIndexOperand);
     implement_wrapper_operand_with_return!(sum, EdgeIndexOperand);
-    implement_wrapper_operand_with_return!(first, EdgeIndexOperand);
-    implement_wrapper_operand_with_return!(last, EdgeIndexOperand);
+    implement_wrapper_operand_with_return!(random, EdgeIndexOperand);
 
     implement_wrapper_operand_with_argument!(greater_than, impl Into<EdgeIndexComparisonOperand>);
     implement_wrapper_operand_with_argument!(
@@ -703,8 +701,7 @@ impl EdgeIndexOperand {
             SingleKind::Min => EdgeIndicesOperation::get_min(edge_indices)?,
             SingleKind::Count => EdgeIndicesOperation::get_count(edge_indices),
             SingleKind::Sum => EdgeIndicesOperation::get_sum(edge_indices),
-            SingleKind::First => EdgeIndicesOperation::get_first(edge_indices)?,
-            SingleKind::Last => EdgeIndicesOperation::get_last(edge_indices)?,
+            SingleKind::Random => EdgeIndicesOperation::get_random(edge_indices)?,
         };
 
         self.evaluate_forward(medrecord, edge_index)

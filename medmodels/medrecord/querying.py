@@ -667,24 +667,14 @@ class NodeMultipleValuesOperand:
             self._multiple_values_operand.sum()
         )
 
-    def first(self) -> NodeSingleValueOperand:
-        """Get the first value of the multiple values.
+    def random(self) -> NodeSingleValueOperand:
+        """Get a random value of the multiple values.
 
         Returns:
-            NodeSingleValueOperand: The first value of the multiple values.
+            NodeSingleValueOperand: A random value of the multiple values.
         """
         return NodeSingleValueOperand._from_py_single_value_operand(
-            self._multiple_values_operand.first()
-        )
-
-    def last(self) -> NodeSingleValueOperand:
-        """Get the last value of the multiple values.
-
-        Returns:
-            NodeSingleValueOperand: The last value of the multiple values.
-        """
-        return NodeSingleValueOperand._from_py_single_value_operand(
-            self._multiple_values_operand.last()
+            self._multiple_values_operand.random()
         )
 
     def is_string(self) -> None:
@@ -1163,24 +1153,14 @@ class EdgeMultipleValuesOperand:
             self._multiple_values_operand.sum()
         )
 
-    def first(self) -> EdgeSingleValueOperand:
-        """Get the first value of the multiple values.
+    def random(self) -> EdgeSingleValueOperand:
+        """Get a random value of the multiple values.
 
         Returns:
-            EdgeSingleValueOperand: The first value of the multiple values.
+            EdgeSingleValueOperand: A random value of the multiple values.
         """
         return EdgeSingleValueOperand._from_py_single_value_operand(
-            self._multiple_values_operand.first()
-        )
-
-    def last(self) -> EdgeSingleValueOperand:
-        """Get the last value of the multiple values.
-
-        Returns:
-            EdgeSingleValueOperand: The last value of the multiple values.
-        """
-        return EdgeSingleValueOperand._from_py_single_value_operand(
-            self._multiple_values_operand.last()
+            self._multiple_values_operand.random()
         )
 
     def is_string(self) -> None:
@@ -2356,24 +2336,14 @@ class NodeAttributesTreeOperand:
             self._attributes_tree_operand.sum()
         )
 
-    def first(self) -> NodeMultipleAttributesOperand:
-        """Query the first attribute of each node/edge.
+    def random(self) -> NodeMultipleAttributesOperand:
+        """Query a random attribute for each node/edge.
 
         Returns:
-            NodeMultipleAttributesOperand: The first attribute names for each node/edge.
+            NodeMultipleAttributesOperand: A random attribute names for each node/edge.
         """
         return NodeMultipleAttributesOperand._from_py_multiple_attributes_operand(
-            self._attributes_tree_operand.first()
-        )
-
-    def last(self) -> NodeMultipleAttributesOperand:
-        """Query the last attribute of each node/edge.
-
-        Returns:
-            NodeMultipleAttributesOperand: The first attribute names for each node/edge.
-        """
-        return NodeMultipleAttributesOperand._from_py_multiple_attributes_operand(
-            self._attributes_tree_operand.last()
+            self._attributes_tree_operand.random()
         )
 
     def is_string(self) -> None:
@@ -2773,24 +2743,14 @@ class EdgeAttributesTreeOperand:
             self._attributes_tree_operand.sum()
         )
 
-    def first(self) -> EdgeMultipleAttributesOperand:
-        """Query the first attribute of each node/edge.
+    def random(self) -> EdgeMultipleAttributesOperand:
+        """Query a random attribute for each node/edge.
 
         Returns:
-            EdgeMultipleAttributesOperand: The first attribute names for each node/edge.
+            EdgeMultipleAttributesOperand: A random attribute names for each node/edge.
         """
         return EdgeMultipleAttributesOperand._from_py_multiple_attributes_operand(
-            self._attributes_tree_operand.first()
-        )
-
-    def last(self) -> EdgeMultipleAttributesOperand:
-        """Query the last attribute of each node/edge.
-
-        Returns:
-            EdgeMultipleAttributesOperand: The first attribute names for each node/edge.
-        """
-        return EdgeMultipleAttributesOperand._from_py_multiple_attributes_operand(
-            self._attributes_tree_operand.last()
+            self._attributes_tree_operand.random()
         )
 
     def is_string(self) -> None:
@@ -3192,24 +3152,14 @@ class NodeMultipleAttributesOperand:
             self._multiple_attributes_operand.sum()
         )
 
-    def first(self) -> NodeSingleAttributeOperand:
-        """Query the first attribute name across nodes/edges.
+    def random(self) -> NodeSingleAttributeOperand:
+        """Query a random attribute name across nodes/edges.
 
         Returns:
-            NodeSingleAttributeOperand: The first attribute name across all nodes/edges.
+            NodeSingleAttributeOperand: A random attribute name across all nodes/edges.
         """
         return NodeSingleAttributeOperand._from_py_single_attribute_operand(
-            self._multiple_attributes_operand.first()
-        )
-
-    def last(self) -> NodeSingleAttributeOperand:
-        """Query the last attribute name across nodes/edges.
-
-        Returns:
-            NodeSingleAttributeOperand: The last attribute name across all nodes/edges.
-        """
-        return NodeSingleAttributeOperand._from_py_single_attribute_operand(
-            self._multiple_attributes_operand.last()
+            self._multiple_attributes_operand.random()
         )
 
     def is_string(self) -> None:
@@ -3629,24 +3579,14 @@ class EdgeMultipleAttributesOperand:
             self._multiple_attributes_operand.sum()
         )
 
-    def first(self) -> EdgeSingleAttributeOperand:
-        """Query the first attribute name across nodes/edges.
+    def random(self) -> EdgeSingleAttributeOperand:
+        """Query a random attribute name across nodes/edges.
 
         Returns:
-            EdgeSingleAttributeOperand: The first attribute name across all nodes/edges.
+            EdgeSingleAttributeOperand: A random attribute name across all nodes/edges.
         """
         return EdgeSingleAttributeOperand._from_py_single_attribute_operand(
-            self._multiple_attributes_operand.first()
-        )
-
-    def last(self) -> EdgeSingleAttributeOperand:
-        """Query the last attribute name across nodes/edges.
-
-        Returns:
-            EdgeSingleAttributeOperand: The last attribute name across all nodes/edges.
-        """
-        return EdgeSingleAttributeOperand._from_py_single_attribute_operand(
-            self._multiple_attributes_operand.last()
+            self._multiple_attributes_operand.random()
         )
 
     def is_string(self) -> None:
@@ -4715,24 +4655,14 @@ class NodeIndicesOperand:
             self._node_indices_operand.sum()
         )
 
-    def first(self) -> NodeIndexOperand:
-        """Queries and returns the first node index.
+    def random(self) -> NodeIndexOperand:
+        """Queries and returns a random node index.
 
         Returns:
-            NodeIndexOperand: The first node index.
+            NodeIndexOperand: A random node index.
         """
         return NodeIndexOperand._from_py_node_index_operand(
-            self._node_indices_operand.first()
-        )
-
-    def last(self) -> NodeIndexOperand:
-        """Queries and returns the last node index.
-
-        Returns:
-            NodeIndexOperand: The last node index.
-        """
-        return NodeIndexOperand._from_py_node_index_operand(
-            self._node_indices_operand.last()
+            self._node_indices_operand.random()
         )
 
     def is_string(self) -> None:
@@ -5360,24 +5290,14 @@ class EdgeIndicesOperand:
             self._edge_indices_operand.sum()
         )
 
-    def first(self) -> EdgeIndexOperand:
-        """Queries and returns the first edge index.
+    def random(self) -> EdgeIndexOperand:
+        """Queries and returns a random edge index.
 
         Returns:
-            EdgeIndexOperand: The first edge index.
+            EdgeIndexOperand: A random edge index.
         """
         return EdgeIndexOperand._from_py_edge_index_operand(
-            self._edge_indices_operand.first()
-        )
-
-    def last(self) -> EdgeIndexOperand:
-        """Queries and returns the last edge index.
-
-        Returns:
-            EdgeIndexOperand: The last edge index.
-        """
-        return EdgeIndexOperand._from_py_edge_index_operand(
-            self._edge_indices_operand.last()
+            self._edge_indices_operand.random()
         )
 
     def is_max(self) -> None:

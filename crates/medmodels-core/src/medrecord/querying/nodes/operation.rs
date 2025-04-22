@@ -25,6 +25,7 @@ use crate::{
     },
 };
 use itertools::Itertools;
+use rand::{rng, seq::IteratorRandom};
 use roaring::RoaringBitmap;
 use std::{
     cmp::Ordering,
@@ -660,17 +661,10 @@ impl NodeIndicesOperation {
     }
 
     #[inline]
-    pub(crate) fn get_first(
-        mut indices: impl Iterator<Item = NodeIndex>,
+    pub(crate) fn get_random(
+        indices: impl Iterator<Item = NodeIndex>,
     ) -> MedRecordResult<NodeIndex> {
-        indices.next().ok_or(MedRecordError::QueryError(
-            "No indices to get the first".to_string(),
-        ))
-    }
-
-    #[inline]
-    pub(crate) fn get_last(indices: impl Iterator<Item = NodeIndex>) -> MedRecordResult<NodeIndex> {
-        indices.last().ok_or(MedRecordError::QueryError(
+        indices.choose(&mut rng()).ok_or(MedRecordError::QueryError(
             "No indices to get the first".to_string(),
         ))
     }
@@ -690,8 +684,7 @@ impl NodeIndicesOperation {
             SingleKind::Min => NodeIndicesOperation::get_min(indices_1)?.clone(),
             SingleKind::Count => NodeIndicesOperation::get_count(indices_1),
             SingleKind::Sum => NodeIndicesOperation::get_sum(indices_1)?,
-            SingleKind::First => NodeIndicesOperation::get_first(indices_1)?,
-            SingleKind::Last => NodeIndicesOperation::get_last(indices_1)?,
+            SingleKind::Random => NodeIndicesOperation::get_random(indices_1)?,
         };
 
         Ok(match operand.evaluate_forward(medrecord, index)? {

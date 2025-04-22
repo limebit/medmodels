@@ -306,8 +306,7 @@ impl<O: Operand> MultipleValuesOperand<O> {
     implement_value_operation!(var, Var);
     implement_value_operation!(count, Count);
     implement_value_operation!(sum, Sum);
-    implement_value_operation!(first, First);
-    implement_value_operation!(last, Last);
+    implement_value_operation!(random, Random);
 
     implement_single_value_comparison_operation!(
         greater_than,
@@ -445,8 +444,7 @@ impl<O: Operand> Wrapper<MultipleValuesOperand<O>> {
     implement_wrapper_operand_with_return!(var, SingleValueOperand<O>);
     implement_wrapper_operand_with_return!(count, SingleValueOperand<O>);
     implement_wrapper_operand_with_return!(sum, SingleValueOperand<O>);
-    implement_wrapper_operand_with_return!(first, SingleValueOperand<O>);
-    implement_wrapper_operand_with_return!(last, SingleValueOperand<O>);
+    implement_wrapper_operand_with_return!(random, SingleValueOperand<O>);
 
     implement_wrapper_operand_with_argument!(greater_than, impl Into<SingleValueComparisonOperand>);
     implement_wrapper_operand_with_argument!(
@@ -577,8 +575,7 @@ impl<O: Operand> SingleValueOperand<O> {
             SingleKind::Var => MultipleValuesOperation::<O>::get_var(values)?.into(),
             SingleKind::Count => MultipleValuesOperation::<O>::get_count(values).into(),
             SingleKind::Sum => MultipleValuesOperation::<O>::get_sum(values)?.into(),
-            SingleKind::First => MultipleValuesOperation::<O>::get_first(values)?.into(),
-            SingleKind::Last => MultipleValuesOperation::<O>::get_last(values)?.into(),
+            SingleKind::Random => MultipleValuesOperation::<O>::get_random(values)?.into(),
         };
 
         self.evaluate_forward(medrecord, value)

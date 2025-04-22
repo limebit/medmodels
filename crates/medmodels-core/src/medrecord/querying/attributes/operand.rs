@@ -334,8 +334,7 @@ impl<O: Operand> AttributesTreeOperand<O> {
     implement_attributes_operation!(min, Min);
     implement_attributes_operation!(count, Count);
     implement_attributes_operation!(sum, Sum);
-    implement_attributes_operation!(first, First);
-    implement_attributes_operation!(last, Last);
+    implement_attributes_operation!(random, Random);
 
     implement_single_attribute_comparison_operation!(
         greater_than,
@@ -470,8 +469,7 @@ impl<O: Operand> Wrapper<AttributesTreeOperand<O>> {
     implement_wrapper_operand_with_return!(min, MultipleAttributesOperand<O>);
     implement_wrapper_operand_with_return!(count, MultipleAttributesOperand<O>);
     implement_wrapper_operand_with_return!(sum, MultipleAttributesOperand<O>);
-    implement_wrapper_operand_with_return!(first, MultipleAttributesOperand<O>);
-    implement_wrapper_operand_with_return!(last, MultipleAttributesOperand<O>);
+    implement_wrapper_operand_with_return!(random, MultipleAttributesOperand<O>);
 
     implement_wrapper_operand_with_argument!(
         greater_than,
@@ -606,8 +604,7 @@ impl<O: Operand> MultipleAttributesOperand<O> {
             MultipleKind::Min => Box::new(AttributesTreeOperation::<O>::get_min(attributes)?),
             MultipleKind::Count => Box::new(AttributesTreeOperation::<O>::get_count(attributes)?),
             MultipleKind::Sum => Box::new(AttributesTreeOperation::<O>::get_sum(attributes)?),
-            MultipleKind::First => Box::new(AttributesTreeOperation::<O>::get_first(attributes)?),
-            MultipleKind::Last => Box::new(AttributesTreeOperation::<O>::get_last(attributes)?),
+            MultipleKind::Random => Box::new(AttributesTreeOperation::<O>::get_random(attributes)?),
         };
 
         self.evaluate_forward(medrecord, attributes)
@@ -617,8 +614,7 @@ impl<O: Operand> MultipleAttributesOperand<O> {
     implement_attribute_operation!(min, Min);
     implement_attribute_operation!(count, Count);
     implement_attribute_operation!(sum, Sum);
-    implement_attribute_operation!(first, First);
-    implement_attribute_operation!(last, Last);
+    implement_attribute_operation!(random, Random);
 
     implement_single_attribute_comparison_operation!(
         greater_than,
@@ -785,8 +781,7 @@ impl<O: Operand> Wrapper<MultipleAttributesOperand<O>> {
     implement_wrapper_operand_with_return!(min, SingleAttributeOperand<O>);
     implement_wrapper_operand_with_return!(count, SingleAttributeOperand<O>);
     implement_wrapper_operand_with_return!(sum, SingleAttributeOperand<O>);
-    implement_wrapper_operand_with_return!(first, SingleAttributeOperand<O>);
-    implement_wrapper_operand_with_return!(last, SingleAttributeOperand<O>);
+    implement_wrapper_operand_with_return!(random, SingleAttributeOperand<O>);
 
     implement_wrapper_operand_with_argument!(
         greater_than,
@@ -922,8 +917,7 @@ impl<O: Operand> SingleAttributeOperand<O> {
             SingleKind::Min => MultipleAttributesOperation::<O>::get_min(attributes)?.into(),
             SingleKind::Count => MultipleAttributesOperation::<O>::get_count(attributes).into(),
             SingleKind::Sum => MultipleAttributesOperation::<O>::get_sum(attributes)?.into(),
-            SingleKind::First => MultipleAttributesOperation::<O>::get_first(attributes)?.into(),
-            SingleKind::Last => MultipleAttributesOperation::<O>::get_last(attributes)?.into(),
+            SingleKind::Random => MultipleAttributesOperation::<O>::get_random(attributes)?.into(),
         };
 
         self.evaluate_forward(medrecord, attribute)

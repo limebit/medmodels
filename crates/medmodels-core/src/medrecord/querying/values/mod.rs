@@ -30,8 +30,7 @@ pub enum SingleKind {
     Var,
     Count,
     Sum,
-    First,
-    Last,
+    Random,
 }
 
 #[derive(Debug, Clone)]

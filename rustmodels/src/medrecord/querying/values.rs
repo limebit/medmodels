@@ -143,12 +143,8 @@ macro_rules! implement_multiple_values_operand {
                 self.0.sum().into()
             }
 
-            pub fn first(&self) -> $py_single_value_operand {
-                self.0.first().into()
-            }
-
-            pub fn last(&self) -> $py_single_value_operand {
-                self.0.last().into()
+            pub fn random(&self) -> $py_single_value_operand {
+                self.0.random().into()
             }
 
             pub fn greater_than(&self, value: PySingleValueComparisonOperand) {
