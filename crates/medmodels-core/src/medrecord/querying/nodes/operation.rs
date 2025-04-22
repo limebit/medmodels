@@ -258,17 +258,16 @@ impl NodeOperation {
     #[inline]
     fn evaluate_indices<'a>(
         medrecord: &MedRecord,
-        edge_indices: impl Iterator<Item = &'a NodeIndex>,
+        node_indices: impl Iterator<Item = &'a NodeIndex>,
         operand: Wrapper<NodeIndicesOperand>,
     ) -> MedRecordResult<impl Iterator<Item = &'a NodeIndex>> {
-        // TODO: This is a temporary solution. It should be optimized.
-        let node_indices: Vec<_> = edge_indices.collect();
+        let (node_indices_1, node_indices_2) = Itertools::tee(node_indices);
 
         let result: HashSet<_> = operand
-            .evaluate_forward(medrecord, node_indices.clone().into_iter().cloned())?
+            .evaluate_forward(medrecord, node_indices_1.cloned())?
             .collect();
 
-        Ok(node_indices
+        Ok(node_indices_2
             .into_iter()
             .filter(move |index| result.contains(index)))
     }
@@ -794,7 +793,6 @@ impl NodeIndicesOperation {
                 })
             });
 
-        // TODO: This is a temporary solution. It should be optimized.
         Ok(indices.collect::<MedRecordResult<Vec<_>>>()?.into_iter())
     }
 

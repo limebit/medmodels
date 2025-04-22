@@ -689,7 +689,6 @@ impl<O: Operand> MultipleValuesOperation<O> {
                 }).map(|result| (t, result))
             });
 
-        // TODO: This is a temporary solution. It should be optimized.
         Ok(values.collect::<MedRecordResult<Vec<_>>>()?.into_iter())
     }
 

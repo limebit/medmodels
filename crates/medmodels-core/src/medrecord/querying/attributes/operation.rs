@@ -1089,7 +1089,6 @@ impl<O: Operand> MultipleAttributesOperation<O> {
                 }).map(|result| (t, result))
             });
 
-        // TODO: This is a temporary solution. It should be optimized.
         Ok(attributes.collect::<MedRecordResult<Vec<_>>>()?.into_iter())
     }
 

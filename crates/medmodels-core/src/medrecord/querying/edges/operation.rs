@@ -237,14 +237,13 @@ impl EdgeOperation {
         edge_indices: impl Iterator<Item = &'a EdgeIndex>,
         operand: Wrapper<EdgeIndicesOperand>,
     ) -> MedRecordResult<impl Iterator<Item = &'a EdgeIndex>> {
-        // TODO: This is a temporary solution. It should be optimized.
-        let edge_indices: Vec<_> = edge_indices.collect();
+        let (edge_indices_1, edge_indices_2) = Itertools::tee(edge_indices);
 
         let result: HashSet<_> = operand
-            .evaluate_forward(medrecord, edge_indices.clone().into_iter().cloned())?
+            .evaluate_forward(medrecord, edge_indices_1.cloned())?
             .collect();
 
-        Ok(edge_indices
+        Ok(edge_indices_2
             .into_iter()
             .filter(move |index| result.contains(index)))
     }
