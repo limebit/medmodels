@@ -1770,7 +1770,7 @@ class MedRecord:
 
         return "\n".join(
             [str(self.overview_nodes()), "", str(self.overview_edges())]
-        )  # pragma: no cover
+        )  # pragma: no cover  # because it is not possible to exit debug mode
 
     def overview_nodes(
         self, groups: Optional[Union[Group, GroupInputList]] = None, decimal: int = 2

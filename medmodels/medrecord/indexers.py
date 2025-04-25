@@ -305,7 +305,9 @@ class NodeIndexer:
                 raise ValueError(msg)
 
             return self._medrecord._medrecord.node(self._medrecord.nodes)
-        return None
+
+        msg = "Should never be reached"
+        raise NotImplementedError(msg)
 
     @overload
     def __setitem__(
@@ -653,7 +655,8 @@ class NodeIndexer:
                     )
 
             return None
-        return None
+        msg = "Should never be reached"
+        raise NotImplementedError(msg)
 
     def __delitem__(  # noqa: C901
         self,
@@ -838,7 +841,8 @@ class NodeIndexer:
             return self._medrecord._medrecord.replace_node_attributes(
                 self._medrecord.nodes, {}
             )
-        return None
+        msg = "Should never be reached"
+        raise NotImplementedError(msg)
 
 
 class EdgeIndexer:
@@ -1116,7 +1120,8 @@ class EdgeIndexer:
                 raise ValueError(msg)
 
             return self._medrecord._medrecord.edge(self._medrecord.edges)
-        return None
+        msg = "Should never be reached"
+        raise NotImplementedError(msg)
 
     @overload
     def __setitem__(
@@ -1460,7 +1465,8 @@ class EdgeIndexer:
                     )
 
             return None
-        return None
+        msg = "Should never be reached"
+        raise NotImplementedError(msg)
 
     def __delitem__(  # noqa: C901
         self,
@@ -1647,4 +1653,5 @@ class EdgeIndexer:
             return self._medrecord._medrecord.replace_edge_attributes(
                 self._medrecord.edges, {}
             )
-        return None
+        msg = "Should never be reached"
+        raise NotImplementedError(msg)

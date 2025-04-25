@@ -1,5 +1,4 @@
 import unittest
-from typing import Any
 
 import pytest
 
@@ -298,10 +297,6 @@ class TestIndexers(unittest.TestCase):
             medrecord.node[:, :1]
         with pytest.raises(ValueError, match="Invalid slice, only ':' is allowed"):
             medrecord.node[:, ::1]
-
-        # Accessing a non-existing key returns None
-        key: Any = (object(), object())
-        assert medrecord.node[key] is None
 
     def test_node_setitem(self) -> None:
         # Updating existing attributes
@@ -738,9 +733,6 @@ class TestIndexers(unittest.TestCase):
             3: {"foo": "bar", "bar": "test", "lorem": "test", "test": "test"},
         }
 
-        key: Any = (object(), object())
-        medrecord.node[key] = None
-
     def test_node_delitem(self) -> None:
         medrecord = create_medrecord()
         del medrecord.node[0, "foo"]
@@ -1017,9 +1009,6 @@ class TestIndexers(unittest.TestCase):
         with pytest.raises(ValueError, match="Invalid slice, only ':' is allowed"):
             del medrecord.node[:, ::1]
 
-        key: Any = (object(), object())
-        del medrecord.node[key]
-
     def test_edge_getitem(self) -> None:
         medrecord = create_medrecord()
 
@@ -1223,9 +1212,6 @@ class TestIndexers(unittest.TestCase):
             medrecord.edge[:, :1]
         with pytest.raises(ValueError, match="Invalid slice, only ':' is allowed"):
             medrecord.edge[:, ::1]
-
-        key: Any = (object(), object())
-        assert medrecord.edge[key] is None
 
     def test_edge_setitem(self) -> None:
         # Updating existing attributes
@@ -1654,9 +1640,6 @@ class TestIndexers(unittest.TestCase):
             3: {"foo": "bar", "bar": "test", "lorem": "test", "test": "test"},
         }
 
-        key: Any = (object(), object())
-        medrecord.edge[key] = None
-
     def test_edge_delitem(self) -> None:
         medrecord = create_medrecord()
         del medrecord.edge[0, "foo"]
@@ -1918,9 +1901,6 @@ class TestIndexers(unittest.TestCase):
             del medrecord.edge[:, :1]
         with pytest.raises(ValueError, match="Invalid slice, only ':' is allowed"):
             del medrecord.edge[:, ::1]
-
-        key: Any = (object(), object())
-        del medrecord.edge[key]
 
 
 if __name__ == "__main__":
