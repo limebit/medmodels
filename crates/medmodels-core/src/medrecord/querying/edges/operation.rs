@@ -454,17 +454,7 @@ impl EdgeIndicesOperation {
             Self::EitherOr { either, or } => {
                 Self::evaluate_either_or(medrecord, indices, either, or)
             }
-            Self::Exclude { operand } => {
-                let (edge_indices_1, edge_indices_2) = Itertools::tee(indices);
-
-                let result: HashSet<_> = operand
-                    .evaluate_forward(medrecord, edge_indices_1)?
-                    .collect();
-
-                Ok(Box::new(
-                    edge_indices_2.filter(move |index| !result.contains(index)),
-                ))
-            }
+            Self::Exclude { operand } => Self::evaluate_exclude(medrecord, indices, operand),
         }
     }
 
@@ -617,16 +607,31 @@ impl EdgeIndicesOperation {
     #[inline]
     fn evaluate_either_or<'a>(
         medrecord: &'a MedRecord,
-        indices: impl Iterator<Item = EdgeIndex>,
+        indices: impl Iterator<Item = EdgeIndex> + 'a,
         either: &Wrapper<EdgeIndicesOperand>,
         or: &Wrapper<EdgeIndicesOperand>,
     ) -> MedRecordResult<BoxedIterator<'a, EdgeIndex>> {
-        let indices: Vec<_> = indices.collect();
+        let (indices_1, indices_2) = Itertools::tee(indices);
 
-        let either_indices = either.evaluate_forward(medrecord, indices.clone().into_iter())?;
-        let or_indices = or.evaluate_forward(medrecord, indices.into_iter())?;
+        let either_indices = either.evaluate_forward(medrecord, indices_1)?;
+        let or_indices = or.evaluate_forward(medrecord, indices_2)?;
 
         Ok(Box::new(either_indices.chain(or_indices).unique()))
+    }
+
+    #[inline]
+    fn evaluate_exclude<'a>(
+        medrecord: &'a MedRecord,
+        indices: impl Iterator<Item = EdgeIndex> + 'a,
+        operand: &Wrapper<EdgeIndicesOperand>,
+    ) -> MedRecordResult<BoxedIterator<'a, EdgeIndex>> {
+        let (indices_1, indices_2) = Itertools::tee(indices);
+
+        let result: HashSet<_> = operand.evaluate_forward(medrecord, indices_1)?.collect();
+
+        Ok(Box::new(
+            indices_2.filter(move |index| !result.contains(index)),
+        ))
     }
 }
 

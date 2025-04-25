@@ -566,19 +566,7 @@ impl NodeIndicesOperation {
             Self::EitherOr { either, or } => {
                 Self::evaluate_either_or(medrecord, indices, either, or)
             }
-            Self::Exclude { operand } => {
-                let node_indices: Vec<_> = indices.collect();
-
-                let result: HashSet<_> = operand
-                    .evaluate_forward(medrecord, node_indices.clone().into_iter())?
-                    .collect();
-
-                Ok(Box::new(
-                    node_indices
-                        .into_iter()
-                        .filter(move |index| !result.contains(index)),
-                ))
-            }
+            Self::Exclude { operand } => Self::evaluate_exclude(medrecord, indices, operand),
         }
     }
 
@@ -822,16 +810,33 @@ impl NodeIndicesOperation {
     #[inline]
     fn evaluate_either_or<'a>(
         medrecord: &'a MedRecord,
-        indices: impl Iterator<Item = NodeIndex>,
+        indices: impl Iterator<Item = NodeIndex> + 'a,
         either: &Wrapper<NodeIndicesOperand>,
         or: &Wrapper<NodeIndicesOperand>,
     ) -> MedRecordResult<BoxedIterator<'a, NodeIndex>> {
-        let indices: Vec<_> = indices.collect();
+        let (indices_1, indices_2) = Itertools::tee(indices);
 
-        let either_indices = either.evaluate_forward(medrecord, indices.clone().into_iter())?;
-        let or_indices = or.evaluate_forward(medrecord, indices.into_iter())?;
+        let either_indices = either.evaluate_forward(medrecord, indices_1)?;
+        let or_indices = or.evaluate_forward(medrecord, indices_2)?;
 
         Ok(Box::new(either_indices.chain(or_indices).unique()))
+    }
+
+    #[inline]
+    fn evaluate_exclude<'a>(
+        medrecord: &'a MedRecord,
+        indices: impl Iterator<Item = NodeIndex> + 'a,
+        operand: &Wrapper<NodeIndicesOperand>,
+    ) -> MedRecordResult<BoxedIterator<'a, NodeIndex>> {
+        let (indices_1, indices_2) = Itertools::tee(indices);
+
+        let result: HashSet<_> = operand.evaluate_forward(medrecord, indices_1)?.collect();
+
+        Ok(Box::new(
+            indices_2
+                .filter(move |index| !result.contains(index))
+                .unique(),
+        ))
     }
 }
 

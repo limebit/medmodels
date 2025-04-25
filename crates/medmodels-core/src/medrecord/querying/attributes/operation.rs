@@ -640,47 +640,55 @@ impl<O: Operand> AttributesTreeOperation<O> {
     #[inline]
     fn evaluate_either_or<'a>(
         medrecord: &'a MedRecord,
-        attributes: impl Iterator<Item = (&'a O::Index, Vec<MedRecordAttribute>)>,
+        attributes: impl Iterator<Item = (&'a O::Index, Vec<MedRecordAttribute>)> + 'a,
         either: &Wrapper<AttributesTreeOperand<O>>,
         or: &Wrapper<AttributesTreeOperand<O>>,
     ) -> MedRecordResult<BoxedIterator<'a, (&'a O::Index, Vec<MedRecordAttribute>)>>
     where
         O: 'a,
     {
-        let attributes: Vec<_> = attributes.collect();
+        let (attributes_1, attributes_2) = Itertools::tee(attributes);
 
-        let either_attributes =
-            either.evaluate_forward(medrecord, attributes.clone().into_iter())?;
-        let or_attributes = or.evaluate_forward(medrecord, attributes.into_iter())?;
+        let either_attributes = either.evaluate_forward(medrecord, attributes_1)?;
+        let or_attributes = or.evaluate_forward(medrecord, attributes_2)?;
 
         Ok(Box::new(
             either_attributes
                 .chain(or_attributes)
-                .unique_by(|attribute| attribute.0.clone()),
+                .into_group_map_by(|(k, _)| *k)
+                .into_iter()
+                .map(|(idx, group)| {
+                    let attrs = group.into_iter().flat_map(|(_, v)| v).unique().collect();
+                    (idx, attrs)
+                }),
         ))
     }
 
     #[inline]
     fn evaluate_exclude<'a>(
         medrecord: &'a MedRecord,
-        attributes: impl Iterator<Item = (&'a O::Index, Vec<MedRecordAttribute>)>,
+        attributes: impl Iterator<Item = (&'a O::Index, Vec<MedRecordAttribute>)> + 'a,
         operand: &Wrapper<AttributesTreeOperand<O>>,
     ) -> MedRecordResult<BoxedIterator<'a, (&'a O::Index, Vec<MedRecordAttribute>)>>
     where
         O: 'a,
     {
-        let attributes: Vec<_> = attributes.collect();
+        let (attributes_1, attributes_2) = Itertools::tee(attributes);
 
-        let result: MrHashSet<_> = operand
-            .evaluate_forward(medrecord, attributes.clone().into_iter())?
-            .map(|(index, _)| index)
-            .collect();
+        let mut result: MrHashMap<_, _> =
+            operand.evaluate_forward(medrecord, attributes_1)?.collect();
 
-        Ok(Box::new(
-            attributes
-                .into_iter()
-                .filter(move |(index, _)| !result.contains(index)),
-        ))
+        Ok(Box::new(attributes_2.map(move |(index, attributes)| {
+            let entry = result.remove(&index).unwrap_or(Vec::new());
+
+            (
+                index,
+                attributes
+                    .into_iter()
+                    .filter(|attr| !entry.contains(attr))
+                    .collect(),
+            )
+        })))
     }
 }
 
@@ -1174,18 +1182,17 @@ impl<O: Operand> MultipleAttributesOperation<O> {
     #[inline]
     fn evaluate_either_or<'a>(
         medrecord: &'a MedRecord,
-        attributes: impl Iterator<Item = (&'a O::Index, MedRecordAttribute)>,
+        attributes: impl Iterator<Item = (&'a O::Index, MedRecordAttribute)> + 'a,
         either: &Wrapper<MultipleAttributesOperand<O>>,
         or: &Wrapper<MultipleAttributesOperand<O>>,
     ) -> MedRecordResult<BoxedIterator<'a, (&'a O::Index, MedRecordAttribute)>>
     where
         O: 'a,
     {
-        let attributes: Vec<_> = attributes.collect();
+        let (attributes_1, attributes_2) = Itertools::tee(attributes);
 
-        let either_attributes =
-            either.evaluate_forward(medrecord, attributes.clone().into_iter())?;
-        let or_attributes = or.evaluate_forward(medrecord, attributes.into_iter())?;
+        let either_attributes = either.evaluate_forward(medrecord, attributes_1)?;
+        let or_attributes = or.evaluate_forward(medrecord, attributes_2)?;
 
         Ok(Box::new(
             either_attributes
@@ -1197,23 +1204,21 @@ impl<O: Operand> MultipleAttributesOperation<O> {
     #[inline]
     fn evaluate_exclude<'a>(
         medrecord: &'a MedRecord,
-        attributes: impl Iterator<Item = (&'a O::Index, MedRecordAttribute)>,
+        attributes: impl Iterator<Item = (&'a O::Index, MedRecordAttribute)> + 'a,
         operand: &Wrapper<MultipleAttributesOperand<O>>,
     ) -> MedRecordResult<BoxedIterator<'a, (&'a O::Index, MedRecordAttribute)>>
     where
         O: 'a,
     {
-        let attributes: Vec<_> = attributes.collect();
+        let (attributes_1, attributes_2) = Itertools::tee(attributes);
 
         let result: MrHashSet<_> = operand
-            .evaluate_forward(medrecord, attributes.clone().into_iter())?
+            .evaluate_forward(medrecord, attributes_1)?
             .map(|(index, _)| index)
             .collect();
 
         Ok(Box::new(
-            attributes
-                .into_iter()
-                .filter(move |(index, _)| !result.contains(index)),
+            attributes_2.filter(move |(index, _)| !result.contains(index)),
         ))
     }
 }

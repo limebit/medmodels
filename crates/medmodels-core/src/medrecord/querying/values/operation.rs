@@ -731,17 +731,17 @@ impl<O: Operand> MultipleValuesOperation<O> {
     #[inline]
     fn evaluate_either_or<'a>(
         medrecord: &'a MedRecord,
-        values: impl Iterator<Item = (&'a O::Index, MedRecordValue)>,
+        values: impl Iterator<Item = (&'a O::Index, MedRecordValue)> + 'a,
         either: &Wrapper<MultipleValuesOperand<O>>,
         or: &Wrapper<MultipleValuesOperand<O>>,
     ) -> MedRecordResult<BoxedIterator<'a, (&'a O::Index, MedRecordValue)>>
     where
         O: 'a,
     {
-        let values: Vec<_> = values.collect();
+        let (values_1, values_2) = Itertools::tee(values);
 
-        let either_values = either.evaluate_forward(medrecord, values.clone().into_iter())?;
-        let or_values = or.evaluate_forward(medrecord, values.into_iter())?;
+        let either_values = either.evaluate_forward(medrecord, values_1)?;
+        let or_values = or.evaluate_forward(medrecord, values_2)?;
 
         Ok(Box::new(
             either_values
@@ -753,22 +753,20 @@ impl<O: Operand> MultipleValuesOperation<O> {
     #[inline]
     fn evaluate_exclude<'a>(
         medrecord: &'a MedRecord,
-        values: impl Iterator<Item = (&'a O::Index, MedRecordValue)>,
+        values: impl Iterator<Item = (&'a O::Index, MedRecordValue)> + 'a,
         operand: &Wrapper<MultipleValuesOperand<O>>,
     ) -> MedRecordResult<BoxedIterator<'a, (&'a O::Index, MedRecordValue)>>
     where
         O: 'a,
     {
-        let values: Vec<_> = values.collect();
+        let (values_1, values_2) = Itertools::tee(values);
 
         let result: MrHashSet<_> = operand
-            .evaluate_forward(medrecord, values.clone().into_iter())?
+            .evaluate_forward(medrecord, values_1)?
             .map(|(t, _)| t)
             .collect();
 
-        Ok(Box::new(
-            values.into_iter().filter(move |(t, _)| !result.contains(t)),
-        ))
+        Ok(Box::new(values_2.filter(move |(t, _)| !result.contains(t))))
     }
 }
 
