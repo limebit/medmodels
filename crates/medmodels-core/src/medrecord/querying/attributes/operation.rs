@@ -154,7 +154,7 @@ impl<O: Operand> AttributesTreeOperation<O> {
                     index,
                     attribute
                         .into_iter()
-                        .filter(|attribute| matches!(attribute, MedRecordAttribute::String(_)))
+                        .filter(|attribute| matches!(attribute, MedRecordAttribute::Int(_)))
                         .collect(),
                 )
             }))),
