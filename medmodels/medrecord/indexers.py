@@ -655,6 +655,7 @@ class NodeIndexer:
                     )
 
             return None
+
         msg = "Should never be reached"
         raise NotImplementedError(msg)
 
@@ -841,6 +842,7 @@ class NodeIndexer:
             return self._medrecord._medrecord.replace_node_attributes(
                 self._medrecord.nodes, {}
             )
+
         msg = "Should never be reached"
         raise NotImplementedError(msg)
 
@@ -1120,6 +1122,7 @@ class EdgeIndexer:
                 raise ValueError(msg)
 
             return self._medrecord._medrecord.edge(self._medrecord.edges)
+
         msg = "Should never be reached"
         raise NotImplementedError(msg)
 
@@ -1465,6 +1468,7 @@ class EdgeIndexer:
                     )
 
             return None
+
         msg = "Should never be reached"
         raise NotImplementedError(msg)
 
@@ -1653,5 +1657,6 @@ class EdgeIndexer:
             return self._medrecord._medrecord.replace_edge_attributes(
                 self._medrecord.edges, {}
             )
+
         msg = "Should never be reached"
         raise NotImplementedError(msg)
