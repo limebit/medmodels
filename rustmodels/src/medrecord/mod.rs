@@ -99,6 +99,11 @@ impl PyMedRecord {
     }
 
     #[staticmethod]
+    pub fn from_admissions_example_dataset() -> Self {
+        Self(MedRecord::from_admissions_example_dataset())
+    }
+
+    #[staticmethod]
     pub fn from_ron(path: &str) -> PyResult<Self> {
         Ok(Self(
             MedRecord::from_ron(path).map_err(PyMedRecordError::from)?,

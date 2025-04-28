@@ -238,9 +238,9 @@ class TestMedRecord(unittest.TestCase):
         assert medrecord.node_count() == 73
         assert medrecord.edge_count() == 160
 
-        assert len(medrecord.nodes_in_group("patient")) == 5
         assert len(medrecord.nodes_in_group("diagnosis")) == 25
         assert len(medrecord.nodes_in_group("drug")) == 19
+        assert len(medrecord.nodes_in_group("patient")) == 5
         assert len(medrecord.nodes_in_group("procedure")) == 24
 
         assert len(medrecord.edges_in_group("patient_diagnosis")) == 60
@@ -253,15 +253,34 @@ class TestMedRecord(unittest.TestCase):
         assert medrecord.node_count() == 1088
         assert medrecord.edge_count() == 16883
 
-        assert len(medrecord.nodes_in_group("patient")) == 600
         assert len(medrecord.nodes_in_group("diagnosis")) == 206
         assert len(medrecord.nodes_in_group("drug")) == 185
+        assert len(medrecord.nodes_in_group("event")) == 1
+        assert len(medrecord.nodes_in_group("patient")) == 600
         assert len(medrecord.nodes_in_group("procedure")) == 96
 
         assert len(medrecord.edges_in_group("patient_diagnosis")) == 5741
         assert len(medrecord.edges_in_group("patient_drug")) == 10373
         assert len(medrecord.edges_in_group("patient_procedure")) == 677
         assert len(medrecord.edges_in_group("patient_event")) == 92
+
+    def test_from_admissions_example_dataset(self) -> None:
+        medrecord = MedRecord.from_admissions_example_dataset()
+
+        assert medrecord.node_count() == 2518
+        assert medrecord.edge_count() == 10476
+
+        assert len(medrecord.nodes_in_group("diagnosis")) == 132
+        assert len(medrecord.nodes_in_group("drug")) == 91
+        assert len(medrecord.nodes_in_group("event")) == 1
+        assert len(medrecord.nodes_in_group("patient")) == 100
+        assert len(medrecord.nodes_in_group("procedure")) == 194
+
+        assert len(medrecord.edges_in_group("admission_diagnosis")) == 1413
+        assert len(medrecord.edges_in_group("admission_drug")) == 1329
+        assert len(medrecord.edges_in_group("admission_procedure")) == 5726
+        assert len(medrecord.edges_in_group("patient_admission")) == 2000
+        assert len(medrecord.edges_in_group("patient_event")) == 8
 
     def test_ron(self) -> None:
         medrecord = create_medrecord()
