@@ -145,7 +145,7 @@ ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"*/tests/*" = ["D", "DOC"]
+"tests/*" = ["D", "DOC"]
 "*/__init__.py" = ["D", "DOC"]
 
 [tool.ruff.lint.pydocstyle]
@@ -170,7 +170,7 @@ reportMissingTypeStubs = false
 enableTypeIgnoreComments = false
 
 [tool.pytest]
-python_files = "test_*.py"
+testpaths = "tests"
 
 [tool.coverage.report]
 exclude_also = [

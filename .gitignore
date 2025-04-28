@@ -14,4 +14,5 @@ target
 docs/api/_autosummary/*
 .coverage
 coverage.xml
+coverage/*
 supply-chain
