@@ -57,6 +57,9 @@ test: install-tests
 	cargo test
 
 test-python-coverage: install-tests
+	$(UV_LOC) run tests/coverage_report.py table
+
+test-python-coverage-non-isolated: install-tests
 	$(UV_LOC) run coverage run -m pytest -vv -W error
 	$(UV_LOC) run coverage report -m
 

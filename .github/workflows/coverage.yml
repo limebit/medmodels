@@ -29,12 +29,17 @@ jobs:
         run: |
           uv sync --group tests
 
-      - name: Create coverage report
+      - name: Create non-isolated coverage report
         run: |
           uv run coverage run -m pytest
-          uv run coverage xml
+          uv run coverage report -m --fail-under=100
 
-      - name: Create coverage comment
+      - name: Create isolated coverage report
+        if: ${{ always() }}
+        run: |
+          uv run tests/coverage_report.py xml
+
+      - name: Create isolated coverage comment
         if: github.event.pull_request.base.ref == 'main'
         uses: orgoro/coverage@v3.2
         with:
@@ -44,7 +49,7 @@ jobs:
           thresholdNew: 1
           thresholdModified: 1
 
-      - name: Check coverage
+      - name: Check isolated coverage
         if: ${{ always() }}
         run: |
           uv run coverage report -m --fail-under=100
