@@ -245,11 +245,9 @@ class TreatmentEffectBuilder:
 
         Args:
             essential_covariates (Optional[MedRecordAttributeInputList], optional):
-                Covariates that are essential for matching. Defaults to
-                ["gender", "age"].
+                Covariates that are essential for matching. Defaults to None.
             one_hot_covariates (Optional[MedRecordAttributeInputList], optional):
-                Covariates that are one-hot encoded for matching. Defaults to
-                ["gender"].
+                Covariates that are one-hot encoded for matching. Defaults to None.
             model (Model, optional): Model to choose for the matching. Defaults to
                 "logit".
             number_of_neighbors (int, optional): Number of neighbors to consider
@@ -261,11 +259,6 @@ class TreatmentEffectBuilder:
             TreatmentEffectBuilder: The current instance of the TreatmentEffectBuilder
                 with updated matching configurations.
         """
-        if essential_covariates is None:
-            essential_covariates = ["gender", "age"]
-        if one_hot_covariates is None:
-            one_hot_covariates = ["gender"]
-
         self.matching_method = "propensity"
         self.matching_essential_covariates = essential_covariates
         self.matching_one_hot_covariates = one_hot_covariates
@@ -285,11 +278,9 @@ class TreatmentEffectBuilder:
 
         Args:
             essential_covariates (Optional[MedRecordAttributeInputList], optional):
-                Covariates that are essential for matching. Defaults to
-                ["gender", "age"].
+                Covariates that are essential for matching. Defaults to None.
             one_hot_covariates (Optional[MedRecordAttributeInputList], optional):
-                Covariates that are one-hot encoded for matching. Defaults to
-                ["gender"].
+                Covariates that are one-hot encoded for matching. Defaults to None.
             number_of_neighbors (int, optional): Number of neighbors to consider for the
                 matching. Defaults to 1.
 
@@ -297,11 +288,6 @@ class TreatmentEffectBuilder:
             TreatmentEffectBuilder: The current instance of the TreatmentEffectBuilder
                 with updated matching configurations.
         """
-        if essential_covariates is None:
-            essential_covariates = ["gender", "age"]
-        if one_hot_covariates is None:
-            one_hot_covariates = ["gender"]
-
         self.matching_method = "nearest_neighbors"
         self.matching_essential_covariates = essential_covariates
         self.matching_one_hot_covariates = one_hot_covariates
@@ -314,7 +300,17 @@ class TreatmentEffectBuilder:
 
         Returns:
             tee.TreatmentEffect: treatment effect object
+
+        Raises:
+            ValueError: If the treatment and outcome groups are not set before
+                building the treatment effect.
         """
+        if not hasattr(self, "treatment") or not hasattr(self, "outcome"):
+            msg = (
+                "Treatment and outcome groups must be set before "
+                + "building the treatment effect."
+            )
+            raise ValueError(msg)
         treatment_effect = tee.TreatmentEffect.__new__(tee.TreatmentEffect)
         tee.TreatmentEffect._set_configuration(treatment_effect, **vars(self))
 

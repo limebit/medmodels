@@ -1,4 +1,8 @@
-"""Tests for the NeighborsMatching class in the matching module."""
+"""Tests for the Matching class in the matching module.
+
+Since the Matching class is an abstract class, this test file will test the methods
+that are common to all matching algorithms.
+"""
 
 from __future__ import annotations
 
@@ -74,7 +78,7 @@ def create_medrecord(patients_list: Optional[List[NodeIndex]] = None) -> MedReco
     return medrecord
 
 
-class TestNeighborsMatching(unittest.TestCase):
+class TestMatching(unittest.TestCase):
     """Class to test the NeighborsMatching class in the matching module."""
 
     def setUp(self) -> None:
@@ -135,36 +139,24 @@ class TestNeighborsMatching(unittest.TestCase):
         assert len(data_treated) == len(treated_set)
         assert len(data_control) == len(control_set)
 
-    def test_match_controls(self) -> None:
+    def test_invalid_preprocess_data(self) -> None:
         neighbors_matching = NeighborsMatching(number_of_neighbors=1)
 
         control_set: Set[NodeIndex] = {"P1", "P3", "P5", "P7", "P9"}
         treated_set: Set[NodeIndex] = {"P2", "P4", "P6"}
 
-        matched_controls = neighbors_matching.match_controls(
-            medrecord=self.medrecord,
-            control_set=control_set,
-            treated_set=treated_set,
-            patients_group="patients",
-            essential_covariates=["age", "gender"],
-            one_hot_covariates=["gender"],
-        )
-
-        # Assert that the matched controls are a subset of the control set
-        assert matched_controls.issubset(control_set)
-
-        # Assert that the correct number of controls were matched
-        assert len(matched_controls) == len(treated_set)
-
-        # It should do the same if no covariates are given (all attributes assigned)
-        matched_controls_no_covariates_specified = neighbors_matching.match_controls(
-            medrecord=self.medrecord,
-            control_set=control_set,
-            treated_set=treated_set,
-            patients_group="patients",
-        )
-
-        assert matched_controls_no_covariates_specified == matched_controls
+        with pytest.raises(
+            AssertionError,
+            match="One-hot covariates must be in the essential covariates",
+        ):
+            neighbors_matching.match_controls(
+                medrecord=self.medrecord,
+                control_set=control_set,
+                treated_set=treated_set,
+                patients_group="patients",
+                essential_covariates=["age"],
+                one_hot_covariates=["gender"],
+            )
 
     def test_check_nodes(self) -> None:
         neighbors_matching = NeighborsMatching(number_of_neighbors=1)
@@ -227,25 +219,6 @@ class TestNeighborsMatching(unittest.TestCase):
                 treated_set={"P2", "P10"},
                 control_set=control_set,
                 essential_covariates=["age", "gender"],
-            )
-
-    def test_invalid_match_controls(self) -> None:
-        neighbors_matching = NeighborsMatching(number_of_neighbors=1)
-
-        control_set: Set[NodeIndex] = {"P1", "P3", "P5", "P7", "P9"}
-        treated_set: Set[NodeIndex] = {"P2", "P4", "P6"}
-
-        with pytest.raises(
-            AssertionError,
-            match="One-hot covariates must be in the essential covariates",
-        ):
-            neighbors_matching.match_controls(
-                medrecord=self.medrecord,
-                control_set=control_set,
-                treated_set=treated_set,
-                patients_group="patients",
-                essential_covariates=["age"],
-                one_hot_covariates=["gender"],
             )
 
 
