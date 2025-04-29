@@ -73,8 +73,8 @@ class TreatmentEffect:
     _filter_controls_query: Optional[NodeIndicesQuery]
 
     _matching_method: Optional[MatchingMethod]
-    _matching_essential_covariates: MedRecordAttributeInputList
-    _matching_one_hot_covariates: MedRecordAttributeInputList
+    _matching_essential_covariates: Optional[MedRecordAttributeInputList]
+    _matching_one_hot_covariates: Optional[MedRecordAttributeInputList]
     _matching_model: Model
     _matching_number_of_neighbors: int
     _matching_hyperparameters: Optional[Dict[str, Any]]
@@ -182,10 +182,6 @@ class TreatmentEffect:
         """  # noqa: W505
         if washout_period_days is None:
             washout_period_days = {}
-        if matching_essential_covariates is None:
-            matching_essential_covariates = ["gender", "age"]
-        if matching_one_hot_covariates is None:
-            matching_one_hot_covariates = ["gender"]
 
         treatment_effect._patients_group = patients_group
         treatment_effect._time_attribute = time_attribute
