@@ -1,0 +1,17 @@
+name: Publish Coverage Badge
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  publish-coverage-badge:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger medmodels-static to update coverage badge
+        uses: peter-evans/repository-dispatch@v2
+        with:
+          token: ${{ secrets.MEDMODELS_STATIC_TOKEN }}
+          repository: limebit/medmodels-static
+          event-type: publish-coverage-badge
