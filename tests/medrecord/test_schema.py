@@ -257,6 +257,12 @@ class TestSchema(unittest.TestCase):
         assert schema.schema_type == mr.SchemaType.Provided
 
         schema = mr.Schema(
+            groups={}, ungrouped=mr.GroupSchema(), schema_type=mr.SchemaType.Provided
+        )
+
+        assert schema.schema_type == mr.SchemaType.Provided
+
+        schema = mr.Schema(
             groups={"test": mr.GroupSchema()},
             ungrouped=mr.GroupSchema(),
             schema_type=mr.SchemaType.Inferred,

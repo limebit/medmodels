@@ -64,7 +64,7 @@ dev = [
     "maturin>=1.6.0",
     "ruff>=0.4.9",
     "py-spy",
-    "pyright>=1.1.398",
+    "pyright>=1.1.400",
     "pandas-stubs>=2.2.2.240603",
     "scipy-stubs>=1.15.1.0",
 ]

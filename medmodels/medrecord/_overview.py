@@ -7,11 +7,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Dict, List, Literal, Optional, Union
 
 from medmodels.medrecord.schema import AttributesSchema, AttributeType
-from medmodels.medrecord.types import (
-    Attributes,
-    EdgeIndex,
-    NodeIndex,
-)
+from medmodels.medrecord.types import Attributes, EdgeIndex, NodeIndex
 
 if TYPE_CHECKING:
     from typing import TypeAlias

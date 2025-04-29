@@ -8,6 +8,7 @@ import polars as pl
 import pytest
 
 from medmodels import MedRecord
+from medmodels.medrecord.builder import MedRecordBuilder
 from medmodels.medrecord.datatype import Int
 from medmodels.medrecord.medrecord import EdgesDirected
 from medmodels.medrecord.querying import (
@@ -29,10 +30,11 @@ from medmodels.medrecord.querying import (
     NodeSingleValueOperand,
 )
 from medmodels.medrecord.schema import AttributeType, GroupSchema, Schema, SchemaType
-from medmodels.medrecord.types import Attributes, NodeIndex
+from medmodels.medrecord.types import AttributesInput, NodeIndex
 
 
-def create_nodes() -> List[Tuple[NodeIndex, Attributes]]:
+# TODO(#397): Change AttributesInput to Attributes
+def create_nodes() -> List[Tuple[NodeIndex, AttributesInput]]:
     return [
         ("0", {"lorem": "ipsum", "dolor": "sit"}),
         ("1", {"amet": "consectetur"}),
@@ -41,7 +43,8 @@ def create_nodes() -> List[Tuple[NodeIndex, Attributes]]:
     ]
 
 
-def create_edges() -> List[Tuple[NodeIndex, NodeIndex, Attributes]]:
+# TODO(#397): Change AttributesInput to Attributes
+def create_edges() -> List[Tuple[NodeIndex, NodeIndex, AttributesInput]]:
     return [
         ("0", "1", {"sed": "do", "eiusmod": "tempor"}),
         ("1", "0", {"sed": "do", "eiusmod": "tempor"}),
@@ -93,6 +96,19 @@ def create_medrecord() -> MedRecord:
 
 
 class TestMedRecord(unittest.TestCase):
+    def test_builder(self) -> None:
+        medrecord_builder = MedRecord().builder()
+
+        assert isinstance(medrecord_builder, MedRecordBuilder)
+
+        nodes = create_nodes()
+
+        medrecord = medrecord_builder.add_nodes(nodes=nodes).build()
+
+        assert isinstance(medrecord, MedRecord)
+        assert medrecord.node_count() == len(nodes)
+        assert medrecord.edge_count() == 0
+
     def test_from_tuples(self) -> None:
         medrecord = create_medrecord()
 
