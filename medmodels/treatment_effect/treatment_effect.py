@@ -73,8 +73,8 @@ class TreatmentEffect:
     _filter_controls_query: Optional[NodeIndicesQuery]
 
     _matching_method: Optional[MatchingMethod]
-    _matching_essential_covariates: MedRecordAttributeInputList
-    _matching_one_hot_covariates: MedRecordAttributeInputList
+    _matching_essential_covariates: Optional[MedRecordAttributeInputList]
+    _matching_one_hot_covariates: Optional[MedRecordAttributeInputList]
     _matching_model: Model
     _matching_number_of_neighbors: int
     _matching_hyperparameters: Optional[Dict[str, Any]]
@@ -182,10 +182,6 @@ class TreatmentEffect:
         """  # noqa: W505
         if washout_period_days is None:
             washout_period_days = {}
-        if matching_essential_covariates is None:
-            matching_essential_covariates = ["gender", "age"]
-        if matching_one_hot_covariates is None:
-            matching_one_hot_covariates = ["gender"]
 
         treatment_effect._patients_group = patients_group
         treatment_effect._time_attribute = time_attribute
@@ -359,9 +355,9 @@ class TreatmentEffect:
                         node,
                         treated_set,
                         self._outcomes_group,
-                        -outcome_before_treatment_days,
-                        0,
-                        "first",
+                        start_days=-outcome_before_treatment_days,
+                        end_days=0,
+                        reference="first",
                     )
                 )
             )
@@ -381,9 +377,9 @@ class TreatmentEffect:
                         node,
                         treated_set,
                         self._outcomes_group,
-                        self._grace_period_days,
-                        self._follow_up_period_days,
-                        self._follow_up_period_reference,
+                        start_days=self._grace_period_days,
+                        end_days=self._follow_up_period_days,
+                        reference=self._follow_up_period_reference,
                     )
                 )
             )
@@ -428,9 +424,9 @@ class TreatmentEffect:
                         node,
                         treated,
                         group_id,
-                        -days,
-                        0,
-                        self._washout_period_reference,
+                        start_days=-days,
+                        end_days=0,
+                        reference=self._washout_period_reference,
                     )
                 )
             )
@@ -570,14 +566,11 @@ class TreatmentEffect:
 
         Returns:
             NodeIndicesOperand: The node indices of the queried node.
-
-        Raises:
-            ValueError: If the time attribute is not set.
         """
         node.index().is_in(list(treated_set))
         if self._time_attribute is None:
-            msg = "Time attribute is not set."
-            raise ValueError(msg)
+            msg = "Should never be reached"
+            raise NotImplementedError(msg)
 
         edges_to_treatment = node.edges()
         edges_to_treatment.attribute(self._time_attribute).is_datetime()
@@ -601,16 +594,16 @@ class TreatmentEffect:
         time_of_outcome = edges_to_outcome.attribute(self._time_attribute)
 
         min_time_window = time_of_treatment.clone()
+
         if start_days < 0:
             min_time_window.subtract(timedelta(-start_days))
         else:
             min_time_window.add(timedelta(start_days))
 
         max_time_window = time_of_treatment.clone()
-        if end_days < 0:
-            max_time_window.subtract(timedelta(-end_days))
-        else:
-            max_time_window.add(timedelta(end_days))
+
+        # end_days should always be positive
+        max_time_window.add(timedelta(end_days))
 
         time_of_outcome.greater_than_or_equal_to(min_time_window)
         time_of_outcome.less_than_or_equal_to(max_time_window)

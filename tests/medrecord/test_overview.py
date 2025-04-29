@@ -212,6 +212,18 @@ class TestOverview(unittest.TestCase):
             },
         }
 
+        medrecord = mm.MedRecord.from_simple_example_dataset()
+
+        def query8(node: NodeOperand) -> NodeIndicesOperand:
+            node.in_group("diagnosis")
+
+            return node.index()
+
+        patient_diagnosis = extract_attribute_summary(
+            medrecord.node[query8],
+            schema=medrecord.get_schema().group("patient_diagnosis").edges,
+        )
+
     def test_prettify_table(self) -> None:
         medrecord = create_medrecord()
 

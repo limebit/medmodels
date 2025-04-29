@@ -31,9 +31,7 @@ from medmodels.medrecord.datatype import (
     Null,
     Option,
 )
-from medmodels.medrecord.datatype import (
-    Union as DataTypeUnion,
-)
+from medmodels.medrecord.datatype import Union as DataTypeUnion
 from medmodels.medrecord.types import (
     Attributes,
     EdgeIndex,

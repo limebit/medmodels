@@ -1,3 +1,4 @@
+import sys
 import tempfile
 import unittest
 from typing import List, Tuple
@@ -7,19 +8,33 @@ import polars as pl
 import pytest
 
 from medmodels import MedRecord
+from medmodels.medrecord.builder import MedRecordBuilder
 from medmodels.medrecord.datatype import Int
 from medmodels.medrecord.medrecord import EdgesDirected
 from medmodels.medrecord.querying import (
+    EdgeAttributesTreeOperand,
+    EdgeIndexOperand,
     EdgeIndicesOperand,
+    EdgeMultipleAttributesOperand,
+    EdgeMultipleValuesOperand,
     EdgeOperand,
+    EdgeSingleAttributeOperand,
+    EdgeSingleValueOperand,
+    NodeAttributesTreeOperand,
+    NodeIndexOperand,
     NodeIndicesOperand,
+    NodeMultipleAttributesOperand,
+    NodeMultipleValuesOperand,
     NodeOperand,
+    NodeSingleAttributeOperand,
+    NodeSingleValueOperand,
 )
 from medmodels.medrecord.schema import AttributeType, GroupSchema, Schema, SchemaType
-from medmodels.medrecord.types import Attributes, NodeIndex
+from medmodels.medrecord.types import AttributesInput, NodeIndex
 
 
-def create_nodes() -> List[Tuple[NodeIndex, Attributes]]:
+# TODO(#397): Change AttributesInput to Attributes
+def create_nodes() -> List[Tuple[NodeIndex, AttributesInput]]:
     return [
         ("0", {"lorem": "ipsum", "dolor": "sit"}),
         ("1", {"amet": "consectetur"}),
@@ -28,7 +43,8 @@ def create_nodes() -> List[Tuple[NodeIndex, Attributes]]:
     ]
 
 
-def create_edges() -> List[Tuple[NodeIndex, NodeIndex, Attributes]]:
+# TODO(#397): Change AttributesInput to Attributes
+def create_edges() -> List[Tuple[NodeIndex, NodeIndex, AttributesInput]]:
     return [
         ("0", "1", {"sed": "do", "eiusmod": "tempor"}),
         ("1", "0", {"sed": "do", "eiusmod": "tempor"}),
@@ -80,6 +96,19 @@ def create_medrecord() -> MedRecord:
 
 
 class TestMedRecord(unittest.TestCase):
+    def test_builder(self) -> None:
+        medrecord_builder = MedRecord().builder()
+
+        assert isinstance(medrecord_builder, MedRecordBuilder)
+
+        nodes = create_nodes()
+
+        medrecord = medrecord_builder.add_nodes(nodes=nodes).build()
+
+        assert isinstance(medrecord, MedRecord)
+        assert medrecord.node_count() == len(nodes)
+        assert medrecord.edge_count() == 0
+
     def test_from_tuples(self) -> None:
         medrecord = create_medrecord()
 
@@ -192,6 +221,13 @@ class TestMedRecord(unittest.TestCase):
 
         assert medrecord.node_count() == 4
         assert medrecord.edge_count() == 4
+
+        medrecord = MedRecord.from_polars(
+            (nodes, "index"),
+        )
+
+        assert medrecord.node_count() == 2
+        assert medrecord.edge_count() == 0
 
     def test_invalid_from_polars(self) -> None:
         nodes = pl.from_pandas(create_pandas_nodes_dataframe())
@@ -505,6 +541,24 @@ class TestMedRecord(unittest.TestCase):
             "1": [1, 2],
         }
 
+        def query2(node: NodeOperand) -> NodeIndexOperand:
+            node.index().equal_to("0")
+
+            return node.index().max()
+
+        edges = medrecord.outgoing_edges(query2)
+        assert sorted(edges) == [0, 3]
+
+        def query3(node: NodeOperand) -> NodeIndexOperand:
+            max_index = node.index().max()
+            max_index.equal_to("non-found")
+
+            return max_index
+
+        edges = medrecord.outgoing_edges(query3)
+
+        assert edges == []
+
     def test_invalid_outgoing_edges(self) -> None:
         medrecord = create_medrecord()
 
@@ -535,6 +589,24 @@ class TestMedRecord(unittest.TestCase):
         edges = medrecord.incoming_edges(query)
 
         assert edges == {"1": [0], "2": [2]}
+
+        def query2(node: NodeOperand) -> NodeIndexOperand:
+            node.index().equal_to("0")
+
+            return node.index().max()
+
+        edges = medrecord.incoming_edges(query2)
+        assert edges == [1]
+
+        def query3(node: NodeOperand) -> NodeIndexOperand:
+            max_index = node.index().max()
+            max_index.equal_to("non-found")
+
+            return max_index
+
+        edges = medrecord.incoming_edges(query3)
+
+        assert edges == []
 
     def test_invalid_incoming_edges(self) -> None:
         medrecord = create_medrecord()
@@ -567,6 +639,24 @@ class TestMedRecord(unittest.TestCase):
 
         assert endpoints == {0: ("0", "1"), 1: ("1", "0")}
 
+        def query2(edge: EdgeOperand) -> EdgeIndexOperand:
+            edge.index().equal_to(0)
+
+            return edge.index().max()
+
+        endpoints = medrecord.edge_endpoints(query2)
+
+        assert endpoints == ("0", "1")
+
+        def query3(edge: EdgeOperand) -> EdgeIndexOperand:
+            max_index = edge.index().max()
+            max_index.greater_than(10)
+
+            return max_index
+
+        with pytest.raises(IndexError, match="The query returned no results"):
+            medrecord.edge_endpoints(query3)
+
     def test_invalid_edge_endpoints(self) -> None:
         medrecord = create_medrecord()
 
@@ -598,6 +688,25 @@ class TestMedRecord(unittest.TestCase):
 
         assert edges == [0]
 
+        def query1_single(node: NodeOperand) -> NodeIndexOperand:
+            node.index().equal_to("0")
+
+            return node.index().max()
+
+        edges = medrecord.edges_connecting(query1_single, "1")
+
+        assert edges == [0]
+
+        def query1_not_found(node: NodeOperand) -> NodeIndexOperand:
+            max_index = node.index().max()
+            max_index.equal_to("non-found")
+
+            return max_index
+
+        edges = medrecord.edges_connecting(query1_not_found, "1")
+
+        assert edges == []
+
         edges = medrecord.edges_connecting("0", ["1", "3"])
 
         assert sorted([0, 3]) == sorted(edges)
@@ -610,6 +719,25 @@ class TestMedRecord(unittest.TestCase):
         edges = medrecord.edges_connecting("0", query2)
 
         assert sorted([0, 3]) == sorted(edges)
+
+        def query2_single(node: NodeOperand) -> NodeIndexOperand:
+            node.index().equal_to("1")
+
+            return node.index().max()
+
+        edges = medrecord.edges_connecting("0", query2_single)
+
+        assert edges == [0]
+
+        def query2_not_found(node: NodeOperand) -> NodeIndexOperand:
+            max_index = node.index().max()
+            max_index.equal_to("non-found")
+
+            return max_index
+
+        edges = medrecord.edges_connecting("0", query2_not_found)
+
+        assert edges == []
 
         edges = medrecord.edges_connecting(["0", "1"], ["1", "2", "3"])
 
@@ -661,6 +789,31 @@ class TestMedRecord(unittest.TestCase):
 
         assert medrecord.node_count() == 2
         assert attributes == {"0": create_nodes()[0][1], "1": create_nodes()[1][1]}
+
+        medrecord = create_medrecord()
+
+        assert medrecord.node_count() == 4
+
+        def query2(node: NodeOperand) -> NodeIndexOperand:
+            node.index().equal_to("0")
+
+            return node.index().max()
+
+        attributes = medrecord.remove_nodes(query2)
+
+        assert medrecord.node_count() == 3
+        assert attributes == create_nodes()[0][1]
+
+        def query3(node: NodeOperand) -> NodeIndexOperand:
+            max_index = node.index().max()
+            max_index.equal_to("non-found")
+
+            return max_index
+
+        attributes = medrecord.remove_nodes(query3)
+
+        assert medrecord.node_count() == 3
+        assert attributes == {}
 
         medrecord = MedRecord.from_tuples(nodes=[(0, {})], edges=[(0, 0, {})])
 
@@ -1003,6 +1156,26 @@ class TestMedRecord(unittest.TestCase):
 
         assert medrecord.edge_count() == 2
         assert attributes == {0: create_edges()[0][2], 1: create_edges()[1][2]}
+
+        def query2(edge: EdgeOperand) -> EdgeIndexOperand:
+            edge.index().equal_to(2)
+
+            return edge.index().max()
+
+        attributes = medrecord.remove_edges(query2)
+
+        assert medrecord.edge_count() == 1
+        assert attributes == create_edges()[2][2]
+
+        def query3(edge: EdgeOperand) -> EdgeIndexOperand:
+            max_index = edge.index().max()
+            max_index.equal_to(10)
+
+            return max_index
+
+        attributes = medrecord.remove_edges(query3)
+        assert medrecord.edge_count() == 1
+        assert attributes == {}
 
     def test_invalid_remove_edges(self) -> None:
         medrecord = create_medrecord()
@@ -1438,13 +1611,33 @@ class TestMedRecord(unittest.TestCase):
 
         assert sorted(["0", "1", "2", "3"]) == sorted(medrecord.nodes_in_group("0"))
 
+        def query2(node: NodeOperand) -> NodeIndexOperand:
+            node.index().equal_to("0")
+
+            return node.index().max()
+
+        medrecord.add_group("1")
+        medrecord.add_nodes_to_group("1", query2)
+
+        assert medrecord.nodes_in_group("1") == ["0"]
+
+        def query3(node: NodeOperand) -> NodeIndexOperand:
+            max_index = node.index().max()
+            max_index.greater_than(10)
+
+            return max_index
+
+        medrecord.add_nodes_to_group("1", query3)
+
+        assert medrecord.nodes_in_group("1") == ["0"]
+
         medrecord.add_nodes(("4", {"test": "test"}), "1")
 
         medrecord.freeze_schema()
 
         medrecord.add_nodes(("5", {"test": "test"}), "1")
 
-        assert len(medrecord.nodes_in_group("1")) == 2
+        assert len(medrecord.nodes_in_group("1")) == 3
 
     def test_invalid_add_nodes_to_group(self) -> None:
         medrecord = create_medrecord()
@@ -1520,6 +1713,25 @@ class TestMedRecord(unittest.TestCase):
         medrecord.add_edges_to_group("0", query)
 
         assert sorted([0, 1, 2, 3]) == sorted(medrecord.edges_in_group("0"))
+
+        def query2(edge: EdgeOperand) -> EdgeIndexOperand:
+            edge.index().equal_to(0)
+
+            return edge.index().max()
+
+        medrecord.add_group("1")
+        medrecord.add_edges_to_group("1", query2)
+
+        assert medrecord.edges_in_group("1") == [0]
+
+        def query3(edge: EdgeOperand) -> EdgeIndexOperand:
+            max_index = edge.index().max()
+            max_index.greater_than(10)
+
+            return max_index
+
+        medrecord.add_edges_to_group("1", query3)
+        assert medrecord.edges_in_group("1") == [0]
 
         medrecord = MedRecord()
         medrecord.add_nodes(create_nodes())
@@ -1613,6 +1825,27 @@ class TestMedRecord(unittest.TestCase):
 
         assert medrecord.nodes_in_group("0") == []
 
+        medrecord.add_nodes_to_group("0", ["0", "1"])
+
+        def query2(node: NodeOperand) -> NodeIndexOperand:
+            node.index().equal_to("0")
+
+            return node.index().max()
+
+        medrecord.remove_nodes_from_group("0", query2)
+
+        assert medrecord.nodes_in_group("0") == ["1"]
+
+        def query3(node: NodeOperand) -> NodeIndexOperand:
+            max_index = node.index().max()
+            max_index.greater_than(10)
+
+            return max_index
+
+        medrecord.remove_nodes_from_group("0", query3)
+
+        assert medrecord.nodes_in_group("0") == ["1"]
+
     def test_invalid_remove_nodes_from_group(self) -> None:
         medrecord = create_medrecord()
 
@@ -1675,6 +1908,26 @@ class TestMedRecord(unittest.TestCase):
 
         assert medrecord.edges_in_group("0") == []
 
+        def query2(edge: EdgeOperand) -> EdgeIndexOperand:
+            edge.index().equal_to(0)
+
+            return edge.index().max()
+
+        medrecord.add_edges_to_group("0", [0, 1])
+        medrecord.remove_edges_from_group("0", query2)
+
+        assert medrecord.edges_in_group("0") == [1]
+
+        def query3(edge: EdgeOperand) -> EdgeIndexOperand:
+            max_index = edge.index().max()
+            max_index.greater_than(10)
+
+            return max_index
+
+        medrecord.remove_edges_from_group("0", query3)
+
+        assert medrecord.edges_in_group("0") == [1]
+
     def test_invalid_remove_edges_from_group(self) -> None:
         medrecord = create_medrecord()
 
@@ -1712,6 +1965,12 @@ class TestMedRecord(unittest.TestCase):
 
         assert sorted(["0", "1"]) == sorted(medrecord.nodes_in_group("0"))
 
+        medrecord.add_group("1", ["2", "3"])
+
+        actual = {k: sorted(v) for k, v in medrecord.nodes_in_group(["0", "1"]).items()}
+
+        assert {"0": sorted(["1", "0"]), "1": sorted(["2", "3"])} == actual
+
     def test_invalid_nodes_in_group(self) -> None:
         medrecord = create_medrecord()
 
@@ -1725,6 +1984,12 @@ class TestMedRecord(unittest.TestCase):
         medrecord.add_group("0", edges=[0, 1])
 
         assert sorted([0, 1]) == sorted(medrecord.edges_in_group("0"))
+
+        medrecord.add_group("1", edges=[2, 3])
+
+        actual = {k: sorted(v) for k, v in medrecord.edges_in_group(["0", "1"]).items()}
+
+        assert {"0": sorted([0, 1]), "1": sorted([2, 3])} == actual
 
     def test_invalid_edges_in_group(self) -> None:
         medrecord = create_medrecord()
@@ -1748,6 +2013,21 @@ class TestMedRecord(unittest.TestCase):
             return node.index()
 
         assert medrecord.groups_of_node(query) == {"0": ["0"], "1": ["0"]}
+
+        def query2(node: NodeOperand) -> NodeIndexOperand:
+            node.index().equal_to("0")
+
+            return node.index().max()
+
+        assert medrecord.groups_of_node(query2) == ["0"]
+
+        def query3(node: NodeOperand) -> NodeIndexOperand:
+            max_index = node.index().max()
+            max_index.greater_than(10)
+
+            return max_index
+
+        assert medrecord.groups_of_node(query3) == []
 
     def test_invalid_groups_of_node(self) -> None:
         medrecord = create_medrecord()
@@ -1775,6 +2055,21 @@ class TestMedRecord(unittest.TestCase):
             return edge.index()
 
         assert medrecord.groups_of_edge(query) == {0: ["0"], 1: ["0"]}
+
+        def query2(edge: EdgeOperand) -> EdgeIndexOperand:
+            edge.index().equal_to(0)
+
+            return edge.index().max()
+
+        assert medrecord.groups_of_edge(query2) == ["0"]
+
+        def query3(edge: EdgeOperand) -> EdgeIndexOperand:
+            max_index = edge.index().max()
+            max_index.greater_than(10)
+
+            return max_index
+
+        assert medrecord.groups_of_edge(query3) == []
 
     def test_invalid_groups_of_edge(self) -> None:
         medrecord = create_medrecord()
@@ -1866,6 +2161,25 @@ class TestMedRecord(unittest.TestCase):
             "1": ["0", "2"],
         }
 
+        def query1_single(node: NodeOperand) -> NodeIndexOperand:
+            node.index().equal_to("0")
+
+            return node.index().max()
+
+        neighbors = medrecord.neighbors(query1_single)
+
+        assert sorted(neighbors) == ["1", "3"]
+
+        def query1_not_found(node: NodeOperand) -> NodeIndexOperand:
+            max_index = node.index().max()
+            max_index.equal_to("non-found")
+
+            return max_index
+
+        neighbors = medrecord.neighbors(query1_not_found)
+
+        assert neighbors == []
+
         neighbors = medrecord.neighbors("0", directed=EdgesDirected.UNDIRECTED)
 
         assert sorted(["1", "3"]) == sorted(neighbors)
@@ -1938,6 +2252,124 @@ class TestMedRecord(unittest.TestCase):
         assert medrecord.edge_count() != cloned_medrecord.edge_count()
         assert medrecord.group_count() != cloned_medrecord.group_count()
 
+    def test_query_nodes(self) -> None:
+        medrecord = create_medrecord()
+
+        def query1(node: NodeOperand) -> NodeIndicesOperand:
+            node.index().is_in(["0", "1"])
+
+            return node.index()
+
+        assert sorted(["0", "1"]) == sorted(medrecord.query_nodes(query1))
+
+        def query2(node: NodeOperand) -> NodeIndexOperand:
+            node.index().equal_to("0")
+
+            return node.index().max()
+
+        assert medrecord.query_nodes(query2) == "0"
+
+        def query3(node: NodeOperand) -> NodeMultipleValuesOperand:
+            return node.attribute("lorem")
+
+        assert medrecord.query_nodes(query3) == {"0": "ipsum"}
+
+        def query4(node: NodeOperand) -> NodeSingleValueOperand:
+            return node.attribute("lorem").max()
+
+        assert medrecord.query_nodes(query4) == ("0", "ipsum")
+
+        def query5(node: NodeOperand) -> NodeAttributesTreeOperand:
+            node.index().equal_to("0")
+            return node.attributes()
+
+        actual = {k: sorted(v) for k, v in medrecord.query_nodes(query5).items()}
+
+        assert actual == {"0": ["dolor", "lorem"]}
+
+        def query6(node: NodeOperand) -> NodeMultipleAttributesOperand:
+            attributes_tree = query5(node)
+            return attributes_tree.max()
+
+        assert medrecord.query_nodes(query6) == {"0": "lorem"}
+
+        def query7(node: NodeOperand) -> NodeSingleAttributeOperand:
+            multiple_attributes = query6(node)
+            return multiple_attributes.max()
+
+        assert medrecord.query_nodes(query7) == ("0", "lorem")
+
+        def query8(node: NodeOperand) -> EdgeIndexOperand:
+            node.index().equal_to("0")
+            return node.edges().index().max()
+
+        assert medrecord.query_nodes(query8) == 3
+
+        def query9(node: NodeOperand) -> EdgeIndicesOperand:
+            node.index().equal_to("0")
+            return node.edges().index()
+
+        assert sorted(medrecord.query_nodes(query9)) == [0, 1, 3]
+
+    def test_query_edges(self) -> None:
+        medrecord = create_medrecord()
+
+        def query1(edge: EdgeOperand) -> EdgeIndicesOperand:
+            edge.index().is_in([0, 1])
+
+            return edge.index()
+
+        assert sorted(medrecord.query_edges(query1)) == [0, 1]
+
+        def query2(edge: EdgeOperand) -> EdgeIndexOperand:
+            edge.index().equal_to(0)
+
+            return edge.index().max()
+
+        assert medrecord.query_edges(query2) == 0
+
+        def query3(edge: EdgeOperand) -> EdgeMultipleValuesOperand:
+            return edge.attribute("eiusmod")
+
+        assert medrecord.query_edges(query3) == {0: "tempor", 1: "tempor"}
+
+        def query4(edge: EdgeOperand) -> EdgeSingleValueOperand:
+            edge.index().equal_to(0)
+            return edge.attribute("eiusmod").max()
+
+        assert medrecord.query_edges(query4) == (0, "tempor")
+
+        def query5(edge: EdgeOperand) -> EdgeAttributesTreeOperand:
+            edge.index().equal_to(0)
+            return edge.attributes()
+
+        actual = {k: sorted(v) for k, v in medrecord.query_edges(query5).items()}
+
+        assert actual == {0: ["eiusmod", "sed"]}
+
+        def query6(edge: EdgeOperand) -> EdgeMultipleAttributesOperand:
+            attributes_tree = query5(edge)
+            return attributes_tree.max()
+
+        assert medrecord.query_edges(query6) == {0: "sed"}
+
+        def query7(edge: EdgeOperand) -> EdgeSingleAttributeOperand:
+            multiple_attributes = query6(edge)
+            return multiple_attributes.max()
+
+        assert medrecord.query_edges(query7) == (0, "sed")
+
+        def query8(edge: EdgeOperand) -> NodeIndexOperand:
+            edge.index().equal_to(0)
+            return edge.source_node().index().max()
+
+        assert medrecord.query_edges(query8) == "0"
+
+        def query9(edge: EdgeOperand) -> NodeIndicesOperand:
+            return edge.source_node().index()
+
+        assert sorted(medrecord.query_edges(query9)) == ["0", "0", "1", "1"]
+
     def test_describe_group_nodes(self) -> None:
         medrecord = create_medrecord()
 
@@ -2002,8 +2434,67 @@ class TestMedRecord(unittest.TestCase):
             },
         }
 
+    def test_overview_nodes(self) -> None:
+        medrecord = MedRecord.from_simple_example_dataset()
+
+        assert "\n".join(
+            [
+                "-----------------------------------------------------------",
+                "Nodes Group Count Attribute   Type        Data             ",
+                "-----------------------------------------------------------",
+                "diagnosis   25    description Categorical 25 categories    ",
+                "drug        19    description Categorical 19 categories    ",
+                "patient     5     age         Continuous  min: 19          ",
+                "                                          max: 96          ",
+                "                                          mean: 43.20      ",
+                "                  gender      Categorical Categories: F, M ",
+                "procedure   24    description Categorical 24 categories    ",
+                "-----------------------------------------------------------",
+            ]
+        ) == str(medrecord.overview_nodes())
+
+        assert "\n".join(
+            [
+                "---------------------------------------------------------",
+                "Nodes Group Count Attribute Type        Data             ",
+                "---------------------------------------------------------",
+                "patient     5     age       Continuous  min: 19          ",
+                "                                        max: 96          ",
+                "                                        mean: 43.20      ",
+                "                  gender    Categorical Categories: F, M ",
+                "---------------------------------------------------------",
+            ]
+        ) == str(medrecord.overview_nodes("patient"))
+
     def test_overview_edges(self) -> None:
         medrecord = MedRecord.from_simple_example_dataset()
+
+        assert "\n".join(
+            [
+                "-----------------------------------------------------------------------------",
+                "Edges Group       Count Attribute        Type       Data                     ",
+                "-----------------------------------------------------------------------------",
+                "patient_diagnosis 60    duration_days    Continuous min: 0.00                ",
+                "                                                    max: 3416.00             ",
+                "                                                    mean: 405.02             ",
+                "                        time             Temporal   min: 1962-10-21 00:00:00 ",
+                "                                                    max: 2024-04-12 00:00:00 ",
+                "patient_drug      50    cost             Continuous min: 0.10                ",
+                "                                                    max: 7822.20             ",
+                "                                                    mean: 412.10             ",
+                "                        quantity         Continuous min: 1                   ",
+                "                                                    max: 12                  ",
+                "                                                    mean: 2.96               ",
+                "                        time             Temporal   min: 1995-03-26 02:00:40 ",
+                "                                                    max: 2024-04-12 11:59:55 ",
+                "patient_procedure 50    duration_minutes Continuous min: 4.00                ",
+                "                                                    max: 59.00               ",
+                "                                                    mean: 19.44              ",
+                "                        time             Temporal   min: 1993-03-14 02:42:31 ",
+                "                                                    max: 2024-04-24 03:38:35 ",
+                "-----------------------------------------------------------------------------",
+            ]
+        ) == str(medrecord.overview_edges())
 
         assert "\n".join(
             [
@@ -2018,6 +2509,55 @@ class TestMedRecord(unittest.TestCase):
                 "--------------------------------------------------------------------------",
             ]
         ) == str(medrecord.overview_edges("patient_diagnosis"))
+
+    def test_repr(self) -> None:
+        medrecord = MedRecord.from_simple_example_dataset()
+
+        # Representation when in testing/debug mode
+        expected = (
+            "\n".join(
+                [
+                    "-----------------------------------------------------------",
+                    "Nodes Group Count Attribute   Type        Data             ",
+                    "-----------------------------------------------------------",
+                    "diagnosis   25    description Categorical 25 categories    ",
+                    "drug        19    description Categorical 19 categories    ",
+                    "patient     5     age         Continuous  min: 19          ",
+                    "                                          max: 96          ",
+                    "                                          mean: 43.20      ",
+                    "                  gender      Categorical Categories: F, M ",
+                    "procedure   24    description Categorical 24 categories    ",
+                    "-----------------------------------------------------------",
+                    "",
+                    "-----------------------------------------------------------------------------",
+                    "Edges Group       Count Attribute        Type       Data                     ",
+                    "-----------------------------------------------------------------------------",
+                    "patient_diagnosis 60    duration_days    Continuous min: 0.00                ",
+                    "                                                    max: 3416.00             ",
+                    "                                                    mean: 405.02             ",
+                    "                        time             Temporal   min: 1962-10-21 00:00:00 ",
+                    "                                                    max: 2024-04-12 00:00:00 ",
+                    "patient_drug      50    cost             Continuous min: 0.10                ",
+                    "                                                    max: 7822.20             ",
+                    "                                                    mean: 412.10             ",
+                    "                        quantity         Continuous min: 1                   ",
+                    "                                                    max: 12                  ",
+                    "                                                    mean: 2.96               ",
+                    "                        time             Temporal   min: 1995-03-26 02:00:40 ",
+                    "                                                    max: 2024-04-12 11:59:55 ",
+                    "patient_procedure 50    duration_minutes Continuous min: 4.00                ",
+                    "                                                    max: 59.00               ",
+                    "                                                    mean: 19.44              ",
+                    "                        time             Temporal   min: 1993-03-14 02:42:31 ",
+                    "                                                    max: 2024-04-24 03:38:35 ",
+                    "-----------------------------------------------------------------------------",
+                ]
+            )
+            if sys.gettrace() is None
+            else "<MedRecord: 73 nodes, 160 edges>"
+        )
+
+        assert repr(medrecord) == expected
 
 
 if __name__ == "__main__":
