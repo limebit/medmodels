@@ -18,11 +18,7 @@ from typing import Callable, Dict, List, Optional, Sequence, Union, overload
 
 import polars as pl
 
-from medmodels._medmodels import (
-    PyEdgeOperand,
-    PyMedRecord,
-    PyNodeOperand,
-)
+from medmodels._medmodels import PyEdgeOperand, PyMedRecord, PyNodeOperand
 from medmodels.medrecord._overview import extract_attribute_summary, prettify_table
 from medmodels.medrecord.builder import MedRecordBuilder
 from medmodels.medrecord.indexers import EdgeIndexer, NodeIndexer

@@ -27,7 +27,7 @@ Once you've made your changes to the MedModels codebase and are ready to share t
 
 - MedModels requires 100% Python isolated test coverage. That means that each module should be tested on its own (isolated coverage).
 - For every Python file in the main `medmodels/` directory, there has to be a matching test file in the `tests/` directory (e.g., `medmodels/utils.py` → `tests/test_utils.py`).
-- Use the Makefile command `make test-python-coverage` to run the tests with isolated coverage reporting. Also use the Makefile command `make test-python-coverage-non-isolated` to make sure all the tests are also 100% covered.
+- Use the Makefile command `make test-python-coverage` to run the tests with isolated coverage reporting. Also use the Makefile command `make test-python-coverage-non-isolated` to ensure all modules are 100% covered (including tests and `init.py` files).
 - If your code is not fully covered, add or revise tests accordingly before submitting your PR.
 
 **4. Create a Pull Request:**
