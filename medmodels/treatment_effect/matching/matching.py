@@ -139,7 +139,7 @@ class Matching(ABC):
         [essential_covariates.remove(col) for col in one_hot_covariates]
         data = data.select(essential_covariates)
 
-        # assert all columns but "id" are numeric
+        # Assert all columns but "id" are numeric
         if not all(data[col].dtype.is_numeric() for col in data.columns if col != "id"):
             msg = "All covariates must be numeric"
             raise ValueError(msg)

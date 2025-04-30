@@ -22,7 +22,7 @@ from medmodels.medrecord.querying import (
     EdgeOperand,
     NodeOperand,
 )
-from medmodels.medrecord.tests.test_medrecord import strip_ansi
+from tests.medrecord.test_medrecord import strip_ansi
 
 
 def repr_table(table: Table) -> str:
@@ -106,8 +106,6 @@ def create_medrecord() -> mm.MedRecord:
 
 class TestOverview(unittest.TestCase):
     def test_prettify_table(self) -> None:
-        medrecord = MedRecord.from_simple_example_dataset()
-
         header = ["Group Nodes", "count", "attribute", "type", "datatype", "data"]
 
         table = prettify_table({}, header, decimal=2, type_table=TypeTable.MedRecord)
@@ -122,7 +120,32 @@ class TestOverview(unittest.TestCase):
             ]
         )
 
-        assert repr_table(table).strip() == expected.strip()
+        assert repr_table(table) == expected
+
+        medrecord = MedRecord()
+        medrecord.add_nodes([(0, {})])
+        medrecord.add_group("group1", nodes=[0])
+
+        table = prettify_table(
+            medrecord._describe_group_nodes(),
+            header,
+            decimal=2,
+            type_table=TypeTable.MedRecord,
+        )
+
+        expected = "\n".join(
+            [
+                "┏━━━━━━━━━━━━━┳━━━━━━━┳━━━━━━━━━━━━━━━┳━━━━━━┳━━━━━━━━━━┳━━━━━━┓",
+                "┃ Group Nodes ┃ count ┃ attribute     ┃ type ┃ datatype ┃ data ┃",
+                "┡━━━━━━━━━━━━━╇━━━━━━━╇━━━━━━━━━━━━━━━╇━━━━━━╇━━━━━━━━━━╇━━━━━━┩",
+                "│ group1      │ 1     │ No attributes │      │          │      │",
+                "└─────────────┴───────┴───────────────┴──────┴──────────┴──────┘",
+            ]
+        )
+
+        assert repr_table(table) == expected
+
+        medrecord = MedRecord.from_simple_example_dataset()
 
         expected = "\n".join(
             [
@@ -149,7 +172,7 @@ class TestOverview(unittest.TestCase):
             type_table=TypeTable.MedRecord,
         )
 
-        assert repr_table(table).strip() == expected.strip()
+        assert repr_table(table) == expected
 
         header = ["Group Edges", "count", "attribute", "type", "datatype", "data"]
 
@@ -192,7 +215,7 @@ class TestOverview(unittest.TestCase):
             type_table=TypeTable.MedRecord,
         )
 
-        assert repr_table(table).strip() == expected.strip()
+        assert repr_table(table) == expected
 
         header = ["Group Edges", "attribute", "type", "datatype"]
 
@@ -220,7 +243,7 @@ class TestOverview(unittest.TestCase):
             type_table=TypeTable.Schema,
         )
 
-        assert repr_table(table).strip() == expected.strip()
+        assert repr_table(table) == expected
 
     def test_join_tables_with_titles(self) -> None:
         """Tests joining two simple tables with titles."""

@@ -25,12 +25,14 @@ if TYPE_CHECKING:
 
     from medmodels.medrecord import MedRecord
     from medmodels.medrecord.querying import (
+        EdgeMultipleValuesOperand,
         EdgeOperand,
         EdgeQueryComponent,
-        MultipleValuesOperand,
+        EdgeSingleValueOperand,
+        NodeMultipleValuesOperand,
         NodeOperand,
         NodeQueryComponent,
-        SingleValueOperand,
+        NodeSingleValueOperand,
     )
     from medmodels.medrecord.types import AttributeInfo, Group, MedRecordAttribute
 
@@ -132,11 +134,9 @@ def prettify_table(  # noqa: C901
             if label in attribute_info
         ]
 
-        if not detailed_values:
-            rows.append("-")
-        else:
-            for label, value in detailed_values:
-                rows.append(format_detail(label, value))
+        for label, value in detailed_values:
+            rows.append(format_detail(label, value))
+
         return rows
 
     table = Table(show_lines=False)
@@ -159,6 +159,10 @@ def prettify_table(  # noqa: C901
         group = str(group)
         count = str(attributes.get("count", ""))
         attribute_dictionary = attributes.get("attribute", {})
+
+        if not attribute_dictionary:
+            table.add_row(group, count, "No attributes", "", "", "")
+            continue
 
         for i, (attribute_name, attribute_info) in enumerate(
             sorted(attribute_dictionary.items())
@@ -253,11 +257,11 @@ def get_values_from_attribute(
         Set[MedRecordValue]: The values of the attribute in the group.
     """
 
-    def query_node(node: NodeOperand) -> MultipleValuesOperand:
+    def query_node(node: NodeOperand) -> NodeMultipleValuesOperand:
         query(node)  # pyright: ignore[reportArgumentType]
         return node.attribute(attribute)
 
-    def query_edge(edge: EdgeOperand) -> MultipleValuesOperand:
+    def query_edge(edge: EdgeOperand) -> EdgeMultipleValuesOperand:
         query(edge)  # pyright: ignore[reportArgumentType]
         return edge.attribute(attribute)
 
@@ -289,12 +293,12 @@ def get_attribute_metric(
         AttributeInfo: The attribute metrics.
     """
 
-    def query_node(node: NodeOperand) -> SingleValueOperand:
+    def query_node(node: NodeOperand) -> NodeSingleValueOperand:
         query(node)  # pyright: ignore[reportArgumentType]
         node.exclude(lambda node: node.attribute(attribute).is_null())
         return getattr(node.attribute(attribute), metric.value)()
 
-    def query_edge(edge: EdgeOperand) -> SingleValueOperand:
+    def query_edge(edge: EdgeOperand) -> EdgeSingleValueOperand:
         query(edge)  # pyright: ignore[reportArgumentType]
         edge.exclude(lambda edge: edge.attribute(attribute).is_null())
         return getattr(edge.attribute(attribute), metric.value)()
@@ -305,7 +309,4 @@ def get_attribute_metric(
         else medrecord.query_edges(query_edge)
     )
 
-    if isinstance(result, tuple):
-        return result[1]
-
-    return result
+    return result[1] if isinstance(result, tuple) else result

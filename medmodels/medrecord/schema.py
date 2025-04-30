@@ -805,7 +805,7 @@ class Schema:
                 attribute: {"type": attribute_type.value, "datatype": str(data_type)}
                 for attribute, (data_type, attribute_type) in ungrouped_schema.items()
             }
-            nodes_info["Ungrouped nodes"] = {"attribute": attribute_summary}
+            nodes_info["Ungrouped Nodes"] = {"attribute": attribute_summary}
 
         return nodes_info
 
@@ -834,7 +834,7 @@ class Schema:
                 attribute: {"type": attribute_type.value, "datatype": str(data_type)}
                 for attribute, (data_type, attribute_type) in ungrouped_schema.items()
             }
-            edges_info["Ungrouped edges"] = {"attribute": attribute_summary}
+            edges_info["Ungrouped Edges"] = {"attribute": attribute_summary}
 
         return edges_info
 

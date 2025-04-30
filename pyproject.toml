@@ -36,7 +36,7 @@ dependencies = [
 ]
 
 [dependency-groups]
-tests = ["pytest>=8.2.2", "coverage>=7.6.1"]
+tests = ["pytest>=8.2.2", "coverage[toml]>=7.6.1"]
 docs = [
     "sphinx>=7",
     "sphinx-design==0.6.0",
@@ -65,7 +65,7 @@ dev = [
     "maturin>=1.6.0",
     "ruff>=0.4.9",
     "py-spy",
-    "pyright>=1.1.398",
+    "pyright>=1.1.400",
     "pandas-stubs>=2.2.2.240603",
     "scipy-stubs>=1.15.1.0",
 ]
@@ -146,7 +146,7 @@ ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"*/tests/*" = ["D", "DOC"]
+"tests/*" = ["D", "DOC"]
 "*/__init__.py" = ["D", "DOC"]
 
 [tool.ruff.lint.pydocstyle]
@@ -171,7 +171,17 @@ reportMissingTypeStubs = false
 enableTypeIgnoreComments = false
 
 [tool.pytest]
-python_files = "test_*.py"
+testpaths = "tests"
+
+[tool.coverage.report]
+exclude_also = [
+    "if TYPE_CHECKING:",
+    "if __name__ == .__main__.:",
+    "if 0:",
+    'msg = "Should never be reached"',
+    "raise NotImplementedError",
+    "@(abc\\.)?abstractmethod",
+]
 
 [tool.uv]
 cache-keys = [

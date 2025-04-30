@@ -46,36 +46,46 @@ from medmodels.medrecord._overview import (
 from medmodels.medrecord.builder import MedRecordBuilder
 from medmodels.medrecord.indexers import EdgeIndexer, NodeIndexer
 from medmodels.medrecord.querying import (
-    AttributesTreeOperand,
-    AttributesTreeQueryResult,
+    EdgeAttributesTreeOperand,
+    EdgeAttributesTreeQueryResult,
     EdgeIndexOperand,
     EdgeIndexQuery,
     EdgeIndexQueryResult,
     EdgeIndicesOperand,
     EdgeIndicesQuery,
     EdgeIndicesQueryResult,
+    EdgeMultipleAttributesOperand,
+    EdgeMultipleAttributesQueryResult,
+    EdgeMultipleValuesOperand,
+    EdgeMultipleValuesQueryResult,
     EdgeOperand,
     EdgeQuery,
     EdgeQueryComponent,
-    MultipleAttributesOperand,
-    MultipleAttributesQueryResult,
-    MultipleValuesOperand,
-    MultipleValuesQueryResult,
+    EdgeSingleAttributeOperand,
+    EdgeSingleAttributeQueryResult,
+    EdgeSingleValueOperand,
+    EdgeSingleValueQueryResult,
+    NodeAttributesTreeOperand,
+    NodeAttributesTreeQueryResult,
     NodeIndexOperand,
     NodeIndexQuery,
     NodeIndexQueryResult,
     NodeIndicesOperand,
     NodeIndicesQuery,
     NodeIndicesQueryResult,
+    NodeMultipleAttributesOperand,
+    NodeMultipleAttributesQueryResult,
+    NodeMultipleValuesOperand,
+    NodeMultipleValuesQueryResult,
     NodeOperand,
     NodeQuery,
     NodeQueryComponent,
+    NodeSingleAttributeOperand,
+    NodeSingleAttributeQueryResult,
+    NodeSingleValueOperand,
+    NodeSingleValueQueryResult,
     PyQueryReturnOperand,
     QueryResult,
-    SingleAttributeOperand,
-    SingleAttributeQueryResult,
-    SingleValueOperand,
-    SingleValueQueryResult,
 )
 from medmodels.medrecord.schema import AttributesSchema, AttributeType, Schema
 from medmodels.medrecord.types import (
@@ -379,6 +389,21 @@ class MedRecord:
         return medrecord
 
     @classmethod
+    def from_admissions_example_dataset(cls) -> MedRecord:
+        """Creates a MedRecord instance from an admissions example dataset.
+
+        The example dataset was created using the Synthea™ Patient Generator:
+        https://github.com/synthetichealth/synthea, and it includes 100 patients with
+        their admissions, diagnoses, prescriptions, procedures, and death events.
+
+        Returns:
+            MedRecord: A new instance created from the admissions example dataset.
+        """
+        medrecord = cls.__new__(cls)
+        medrecord._medrecord = PyMedRecord.from_admissions_example_dataset()
+        return medrecord
+
+    @classmethod
     def from_ron(cls, path: str) -> MedRecord:
         """Creates a MedRecord instance from a RON file.
 
@@ -558,7 +583,7 @@ class MedRecord:
 
             if isinstance(query_result, list):
                 return self._medrecord.outgoing_edges(query_result)
-            if query_result:
+            if query_result is not None:
                 return self._medrecord.outgoing_edges([query_result])[query_result]
 
             return []
@@ -605,7 +630,7 @@ class MedRecord:
 
             if isinstance(query_result, list):
                 return self._medrecord.incoming_edges(query_result)
-            if query_result:
+            if query_result is not None:
                 return self._medrecord.incoming_edges([query_result])[query_result]
 
             return []
@@ -659,7 +684,7 @@ class MedRecord:
 
             if isinstance(query_result, list):
                 return self._medrecord.edge_endpoints(query_result)
-            if query_result:
+            if query_result is not None:
                 return self._medrecord.edge_endpoints([query_result])[query_result]
 
             msg = "The query returned no results"
@@ -762,7 +787,7 @@ class MedRecord:
 
             if isinstance(query_result, list):
                 return self._medrecord.remove_nodes(query_result)
-            if query_result:
+            if query_result is not None:
                 return self._medrecord.remove_nodes([query_result])[query_result]
 
             return {}
@@ -907,7 +932,7 @@ class MedRecord:
 
             if isinstance(query_result, list):
                 return self._medrecord.remove_edges(query_result)
-            if query_result:
+            if query_result is not None:
                 return self._medrecord.remove_edges([query_result])[query_result]
 
             return {}
@@ -1111,7 +1136,7 @@ class MedRecord:
 
             if isinstance(query_result, list):
                 return self._medrecord.add_nodes_to_group(group, query_result)
-            if query_result:
+            if query_result is not None:
                 return self._medrecord.add_nodes_to_group(group, [query_result])
 
             return None
@@ -1140,7 +1165,7 @@ class MedRecord:
 
             if isinstance(query_result, list):
                 return self._medrecord.add_edges_to_group(group, query_result)
-            if query_result:
+            if query_result is not None:
                 return self._medrecord.add_edges_to_group(group, [query_result])
 
             return None
@@ -1169,7 +1194,7 @@ class MedRecord:
 
             if isinstance(query_result, list):
                 return self._medrecord.remove_nodes_from_group(group, query_result)
-            if query_result:
+            if query_result is not None:
                 return self._medrecord.remove_nodes_from_group(group, [query_result])
 
             return None
@@ -1198,7 +1223,7 @@ class MedRecord:
 
             if isinstance(query_result, list):
                 return self._medrecord.remove_edges_from_group(group, query_result)
-            if query_result:
+            if query_result is not None:
                 return self._medrecord.remove_edges_from_group(group, [query_result])
 
             return None
@@ -1300,7 +1325,7 @@ class MedRecord:
 
             if isinstance(query_result, list):
                 return self._medrecord.groups_of_node(query_result)
-            if query_result:
+            if query_result is not None:
                 return self._medrecord.groups_of_node([query_result])[query_result]
 
             return []
@@ -1345,7 +1370,7 @@ class MedRecord:
 
             if isinstance(query_result, list):
                 return self._medrecord.groups_of_edge(query_result)
-            if query_result:
+            if query_result is not None:
                 return self._medrecord.groups_of_edge([query_result])[query_result]
 
             return []
@@ -1484,16 +1509,28 @@ class MedRecord:
 
     @overload
     def query_nodes(
-        self, query: Callable[[NodeOperand], AttributesTreeOperand]
-    ) -> AttributesTreeQueryResult: ...
+        self, query: Callable[[NodeOperand], NodeAttributesTreeOperand]
+    ) -> NodeAttributesTreeQueryResult: ...
     @overload
     def query_nodes(
-        self, query: Callable[[NodeOperand], MultipleAttributesOperand]
-    ) -> MultipleAttributesQueryResult: ...
+        self, query: Callable[[NodeOperand], EdgeAttributesTreeOperand]
+    ) -> EdgeAttributesTreeQueryResult: ...
     @overload
     def query_nodes(
-        self, query: Callable[[NodeOperand], SingleAttributeOperand]
-    ) -> SingleAttributeQueryResult: ...
+        self, query: Callable[[NodeOperand], NodeMultipleAttributesOperand]
+    ) -> NodeMultipleAttributesQueryResult: ...
+    @overload
+    def query_nodes(
+        self, query: Callable[[NodeOperand], EdgeMultipleAttributesOperand]
+    ) -> EdgeMultipleAttributesQueryResult: ...
+    @overload
+    def query_nodes(
+        self, query: Callable[[NodeOperand], NodeSingleAttributeOperand]
+    ) -> NodeSingleAttributeQueryResult: ...
+    @overload
+    def query_nodes(
+        self, query: Callable[[NodeOperand], EdgeSingleAttributeOperand]
+    ) -> EdgeSingleAttributeQueryResult: ...
     @overload
     def query_nodes(
         self, query: Callable[[NodeOperand], EdgeIndicesOperand]
@@ -1512,12 +1549,20 @@ class MedRecord:
     ) -> NodeIndexQueryResult: ...
     @overload
     def query_nodes(
-        self, query: Callable[[NodeOperand], MultipleValuesOperand]
-    ) -> MultipleValuesQueryResult: ...
+        self, query: Callable[[NodeOperand], NodeMultipleValuesOperand]
+    ) -> NodeMultipleValuesQueryResult: ...
     @overload
     def query_nodes(
-        self, query: Callable[[NodeOperand], SingleValueOperand]
-    ) -> SingleValueQueryResult: ...
+        self, query: Callable[[NodeOperand], EdgeMultipleValuesOperand]
+    ) -> EdgeMultipleValuesQueryResult: ...
+    @overload
+    def query_nodes(
+        self, query: Callable[[NodeOperand], NodeSingleValueOperand]
+    ) -> NodeSingleValueQueryResult: ...
+    @overload
+    def query_nodes(
+        self, query: Callable[[NodeOperand], EdgeSingleValueOperand]
+    ) -> EdgeSingleValueQueryResult: ...
 
     def query_nodes(self, query: NodeQuery) -> QueryResult:
         """Selects nodes from the MedRecord based on the provided query.
@@ -1532,11 +1577,17 @@ class MedRecord:
         def _query(node: PyNodeOperand) -> PyQueryReturnOperand:
             result = query(NodeOperand._from_py_node_operand(node))
 
-            if isinstance(result, AttributesTreeOperand):
+            if isinstance(
+                result, (NodeAttributesTreeOperand, EdgeAttributesTreeOperand)
+            ):
                 return result._attributes_tree_operand
-            if isinstance(result, MultipleAttributesOperand):
+            if isinstance(
+                result, (NodeMultipleAttributesOperand, EdgeMultipleAttributesOperand)
+            ):
                 return result._multiple_attributes_operand
-            if isinstance(result, SingleAttributeOperand):
+            if isinstance(
+                result, (NodeSingleAttributeOperand, EdgeSingleAttributeOperand)
+            ):
                 return result._single_attribute_operand
             if isinstance(result, EdgeIndicesOperand):
                 return result._edge_indices_operand
@@ -1546,7 +1597,9 @@ class MedRecord:
                 return result._node_indices_operand
             if isinstance(result, NodeIndexOperand):
                 return result._node_index_operand
-            if isinstance(result, MultipleValuesOperand):
+            if isinstance(
+                result, (NodeMultipleValuesOperand, EdgeMultipleValuesOperand)
+            ):
                 return result._multiple_values_operand
 
             return result._single_value_operand
@@ -1555,16 +1608,28 @@ class MedRecord:
 
     @overload
     def query_edges(
-        self, query: Callable[[EdgeOperand], AttributesTreeOperand]
-    ) -> AttributesTreeQueryResult: ...
+        self, query: Callable[[EdgeOperand], NodeAttributesTreeOperand]
+    ) -> NodeAttributesTreeQueryResult: ...
     @overload
     def query_edges(
-        self, query: Callable[[EdgeOperand], MultipleAttributesOperand]
-    ) -> MultipleAttributesQueryResult: ...
+        self, query: Callable[[EdgeOperand], EdgeAttributesTreeOperand]
+    ) -> EdgeAttributesTreeQueryResult: ...
     @overload
     def query_edges(
-        self, query: Callable[[EdgeOperand], SingleAttributeOperand]
-    ) -> SingleAttributeQueryResult: ...
+        self, query: Callable[[EdgeOperand], NodeMultipleAttributesOperand]
+    ) -> NodeMultipleAttributesQueryResult: ...
+    @overload
+    def query_edges(
+        self, query: Callable[[EdgeOperand], EdgeMultipleAttributesOperand]
+    ) -> EdgeMultipleAttributesQueryResult: ...
+    @overload
+    def query_edges(
+        self, query: Callable[[EdgeOperand], NodeSingleAttributeOperand]
+    ) -> NodeSingleAttributeQueryResult: ...
+    @overload
+    def query_edges(
+        self, query: Callable[[EdgeOperand], EdgeSingleAttributeOperand]
+    ) -> EdgeSingleAttributeQueryResult: ...
     @overload
     def query_edges(
         self, query: Callable[[EdgeOperand], EdgeIndicesOperand]
@@ -1583,12 +1648,20 @@ class MedRecord:
     ) -> NodeIndexQueryResult: ...
     @overload
     def query_edges(
-        self, query: Callable[[EdgeOperand], MultipleValuesOperand]
-    ) -> MultipleValuesQueryResult: ...
+        self, query: Callable[[EdgeOperand], NodeMultipleValuesOperand]
+    ) -> NodeMultipleValuesQueryResult: ...
     @overload
     def query_edges(
-        self, query: Callable[[EdgeOperand], SingleValueOperand]
-    ) -> SingleValueQueryResult: ...
+        self, query: Callable[[EdgeOperand], EdgeMultipleValuesOperand]
+    ) -> EdgeMultipleValuesQueryResult: ...
+    @overload
+    def query_edges(
+        self, query: Callable[[EdgeOperand], NodeSingleValueOperand]
+    ) -> NodeSingleValueQueryResult: ...
+    @overload
+    def query_edges(
+        self, query: Callable[[EdgeOperand], EdgeSingleValueOperand]
+    ) -> EdgeSingleValueQueryResult: ...
 
     def query_edges(self, query: EdgeQuery) -> QueryResult:
         """Selects edges from the MedRecord based on the provided query.
@@ -1603,11 +1676,17 @@ class MedRecord:
         def _query(edge: PyEdgeOperand) -> PyQueryReturnOperand:
             result = query(EdgeOperand._from_py_edge_operand(edge))
 
-            if isinstance(result, AttributesTreeOperand):
+            if isinstance(
+                result, (NodeAttributesTreeOperand, EdgeAttributesTreeOperand)
+            ):
                 return result._attributes_tree_operand
-            if isinstance(result, MultipleAttributesOperand):
+            if isinstance(
+                result, (NodeMultipleAttributesOperand, EdgeMultipleAttributesOperand)
+            ):
                 return result._multiple_attributes_operand
-            if isinstance(result, SingleAttributeOperand):
+            if isinstance(
+                result, (NodeSingleAttributeOperand, EdgeSingleAttributeOperand)
+            ):
                 return result._single_attribute_operand
             if isinstance(result, EdgeIndicesOperand):
                 return result._edge_indices_operand
@@ -1617,7 +1696,9 @@ class MedRecord:
                 return result._node_indices_operand
             if isinstance(result, NodeIndexOperand):
                 return result._node_index_operand
-            if isinstance(result, MultipleValuesOperand):
+            if isinstance(
+                result, (NodeMultipleValuesOperand, EdgeMultipleValuesOperand)
+            ):
                 return result._multiple_values_operand
 
             return result._single_value_operand
@@ -1821,7 +1902,7 @@ class MedRecord:
                     "count": len(ungrouped_edges),
                     "attribute": self._extract_attribute_summary(
                         group_schema,
-                        type="nodes",
+                        type="edges",
                         group_query=ungrouped_edges_query,
                     ),
                 }
@@ -1839,7 +1920,7 @@ class MedRecord:
             table1=self.overview_nodes().table,
             title2="Edges",
             table2=self.overview_edges().table,
-        )
+        )  # pragma: no cover  # coverage tests always have a trace, so this line cannot be reached by them
 
     def overview_nodes(
         self, groups: Optional[Union[Group, GroupInputList]] = None, decimal: int = 2

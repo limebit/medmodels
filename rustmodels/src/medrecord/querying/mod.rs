@@ -3,44 +3,72 @@ pub mod edges;
 pub mod nodes;
 pub mod values;
 
-use std::collections::HashMap;
-
 use super::{
     attribute::PyMedRecordAttribute, errors::PyMedRecordError, traits::DeepFrom,
     value::PyMedRecordValue, PyNodeIndex,
 };
-use attributes::{PyAttributesTreeOperand, PyMultipleAttributesOperand, PySingleAttributeOperand};
+use attributes::{
+    PyEdgeAttributesTreeOperand, PyEdgeMultipleAttributesOperand, PyEdgeSingleAttributeOperand,
+    PyNodeAttributesTreeOperand, PyNodeMultipleAttributesOperand, PyNodeSingleAttributeOperand,
+};
 use edges::{PyEdgeIndexOperand, PyEdgeIndicesOperand};
 use medmodels_core::{
     errors::MedRecordError,
-    medrecord::{CardinalityWrapper, Index, MedRecordAttribute, ReturnOperand, ReturnValue},
+    medrecord::{
+        CardinalityWrapper, MedRecordAttribute, OptionalIndexWrapper, ReturnOperand, ReturnValue,
+    },
 };
 use nodes::{PyNodeIndexOperand, PyNodeIndicesOperand};
 use pyo3::{
-    types::PyAnyMethods, Bound, FromPyObject, IntoPyObject, IntoPyObjectExt, PyAny, PyErr,
-    PyResult, Python,
+    types::{PyAnyMethods, PyNone},
+    Bound, FromPyObject, IntoPyObject, IntoPyObjectExt, PyAny, PyErr, PyResult, Python,
 };
-use values::{PyMultipleValuesOperand, PySingleValueOperand};
+use std::collections::HashMap;
+use values::{
+    PyEdgeMultipleValuesOperand, PyEdgeSingleValueOperand, PyNodeMultipleValuesOperand,
+    PyNodeSingleValueOperand,
+};
 
 pub fn parse_query_result(result: Bound<'_, PyAny>) -> ReturnOperand {
-    if result.is_instance_of::<PyAttributesTreeOperand>() {
-        ReturnOperand::AttributesTree(
+    if result.is_instance_of::<PyNodeAttributesTreeOperand>() {
+        ReturnOperand::NodeAttributesTree(
             result
-                .extract::<PyAttributesTreeOperand>()
+                .extract::<PyNodeAttributesTreeOperand>()
                 .expect("Extract must succeed")
                 .into(),
         )
-    } else if result.is_instance_of::<PyMultipleAttributesOperand>() {
-        ReturnOperand::MultipleAttributes(
+    } else if result.is_instance_of::<PyEdgeAttributesTreeOperand>() {
+        ReturnOperand::EdgeAttributesTree(
             result
-                .extract::<PyMultipleAttributesOperand>()
+                .extract::<PyEdgeAttributesTreeOperand>()
                 .expect("Extract must succeed")
                 .into(),
         )
-    } else if result.is_instance_of::<PySingleAttributeOperand>() {
-        ReturnOperand::SingleAttribute(
+    } else if result.is_instance_of::<PyNodeMultipleAttributesOperand>() {
+        ReturnOperand::NodeMultipleAttributes(
             result
-                .extract::<PySingleAttributeOperand>()
+                .extract::<PyNodeMultipleAttributesOperand>()
+                .expect("Extract must succeed")
+                .into(),
+        )
+    } else if result.is_instance_of::<PyEdgeMultipleAttributesOperand>() {
+        ReturnOperand::EdgeMultipleAttributes(
+            result
+                .extract::<PyEdgeMultipleAttributesOperand>()
+                .expect("Extract must succeed")
+                .into(),
+        )
+    } else if result.is_instance_of::<PyNodeSingleAttributeOperand>() {
+        ReturnOperand::NodeSingleAttribute(
+            result
+                .extract::<PyNodeSingleAttributeOperand>()
+                .expect("Extract must succeed")
+                .into(),
+        )
+    } else if result.is_instance_of::<PyEdgeSingleAttributeOperand>() {
+        ReturnOperand::EdgeSingleAttribute(
+            result
+                .extract::<PyEdgeSingleAttributeOperand>()
                 .expect("Extract must succeed")
                 .into(),
         )
@@ -72,51 +100,36 @@ pub fn parse_query_result(result: Bound<'_, PyAny>) -> ReturnOperand {
                 .expect("Extract must succeed")
                 .into(),
         )
-    } else if result.is_instance_of::<PyMultipleValuesOperand>() {
-        ReturnOperand::MultipleValues(
+    } else if result.is_instance_of::<PyNodeMultipleValuesOperand>() {
+        ReturnOperand::NodeMultipleValues(
             result
-                .extract::<PyMultipleValuesOperand>()
+                .extract::<PyNodeMultipleValuesOperand>()
                 .expect("Extract must succeed")
                 .into(),
         )
-    } else if result.is_instance_of::<PySingleValueOperand>() {
-        ReturnOperand::SingleValue(
+    } else if result.is_instance_of::<PyEdgeMultipleValuesOperand>() {
+        ReturnOperand::EdgeMultipleValues(
             result
-                .extract::<PySingleValueOperand>()
+                .extract::<PyEdgeMultipleValuesOperand>()
+                .expect("Extract must succeed")
+                .into(),
+        )
+    } else if result.is_instance_of::<PyNodeSingleValueOperand>() {
+        ReturnOperand::NodeSingleValue(
+            result
+                .extract::<PyNodeSingleValueOperand>()
+                .expect("Extract must succeed")
+                .into(),
+        )
+    } else if result.is_instance_of::<PyEdgeSingleValueOperand>() {
+        ReturnOperand::EdgeSingleValue(
+            result
+                .extract::<PyEdgeSingleValueOperand>()
                 .expect("Extract must succeed")
                 .into(),
         )
     } else {
         panic!("Query function is not a valid NodeQueryFunction")
-    }
-}
-
-#[repr(transparent)]
-#[derive(PartialEq, Eq, Hash)]
-pub struct PyIndex<'a>(Index<'a>);
-
-impl<'a> From<Index<'a>> for PyIndex<'a> {
-    fn from(value: Index<'a>) -> Self {
-        Self(value)
-    }
-}
-
-impl<'a> From<PyIndex<'a>> for Index<'a> {
-    fn from(value: PyIndex<'a>) -> Self {
-        value.0
-    }
-}
-
-impl<'py> IntoPyObject<'py> for PyIndex<'_> {
-    type Target = PyAny;
-    type Output = Bound<'py, Self::Target>;
-    type Error = PyErr;
-
-    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
-        match self.0 {
-            Index::NodeIndex(value) => PyMedRecordAttribute::from(value.clone()).into_pyobject(py),
-            Index::EdgeIndex(value) => (*value).into_bound_py_any(py),
-        }
     }
 }
 
@@ -142,27 +155,56 @@ impl<'py> IntoPyObject<'py> for PyReturnValue<'_> {
 
     fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
         match self.0 {
-            ReturnValue::AttributesTree(iterator) => iterator
+            ReturnValue::NodeAttributesTree(iterator) => iterator
                 .map(|item| {
                     (
-                        PyIndex::from(item.0),
+                        PyNodeIndex::from(item.0.clone()),
                         Vec::<PyMedRecordAttribute>::deep_from(item.1),
                     )
                 })
                 .collect::<HashMap<_, _>>()
                 .into_bound_py_any(py),
-            ReturnValue::MultipleAttributes(iterator) => iterator
-                .map(|item| (PyIndex::from(item.0), PyMedRecordAttribute::from(item.1)))
+            ReturnValue::EdgeAttributesTree(iterator) => iterator
+                .map(|item| (item.0, Vec::<PyMedRecordAttribute>::deep_from(item.1)))
                 .collect::<HashMap<_, _>>()
                 .into_bound_py_any(py),
-            ReturnValue::SingleAttributeWithIndex(attribute) => attribute
-                .map(|(index, attribute)| {
-                    (PyIndex::from(index), PyMedRecordAttribute::from(attribute))
+            ReturnValue::NodeMultipleAttributes(iterator) => iterator
+                .map(|item| {
+                    (
+                        PyNodeIndex::from(item.0.clone()),
+                        PyMedRecordAttribute::from(item.1),
+                    )
                 })
+                .collect::<HashMap<_, _>>()
                 .into_bound_py_any(py),
-            ReturnValue::SingleAttribute(attribute) => {
-                Option::<PyMedRecordAttribute>::deep_from(attribute).into_bound_py_any(py)
-            }
+            ReturnValue::EdgeMultipleAttributes(iterator) => iterator
+                .map(|item| (item.0, PyMedRecordAttribute::from(item.1)))
+                .collect::<HashMap<_, _>>()
+                .into_bound_py_any(py),
+            ReturnValue::NodeSingleAttribute(attribute) => match attribute {
+                Some(attribute) => match attribute {
+                    OptionalIndexWrapper::WithIndex((index, attribute)) => (
+                        PyNodeIndex::from(index.clone()),
+                        PyMedRecordAttribute::from(attribute),
+                    )
+                        .into_bound_py_any(py),
+                    OptionalIndexWrapper::WithoutIndex(attribute) => {
+                        PyMedRecordAttribute::from(attribute).into_bound_py_any(py)
+                    }
+                },
+                None => PyNone::get(py).into_bound_py_any(py),
+            },
+            ReturnValue::EdgeSingleAttribute(attribute) => match attribute {
+                Some(attribute) => match attribute {
+                    OptionalIndexWrapper::WithIndex((index, attribute)) => {
+                        (index, PyMedRecordAttribute::from(attribute)).into_bound_py_any(py)
+                    }
+                    OptionalIndexWrapper::WithoutIndex(attribute) => {
+                        PyMedRecordAttribute::from(attribute).into_bound_py_any(py)
+                    }
+                },
+                None => PyNone::get(py).into_bound_py_any(py),
+            },
             ReturnValue::EdgeIndices(iterator) => {
                 iterator.collect::<Vec<_>>().into_bound_py_any(py)
             }
@@ -174,16 +216,43 @@ impl<'py> IntoPyObject<'py> for PyReturnValue<'_> {
             ReturnValue::NodeIndex(index) => {
                 Option::<PyNodeIndex>::deep_from(index).into_bound_py_any(py)
             }
-            ReturnValue::MultipleValues(iterator) => iterator
-                .map(|item| (PyIndex::from(item.0), PyMedRecordValue::from(item.1)))
+            ReturnValue::NodeMultipleValues(iterator) => iterator
+                .map(|item| {
+                    (
+                        PyNodeIndex::from(item.0.clone()),
+                        PyMedRecordValue::from(item.1),
+                    )
+                })
                 .collect::<HashMap<_, _>>()
                 .into_bound_py_any(py),
-            ReturnValue::SingleValueWithIndex(value) => value
-                .map(|(index, value)| (PyIndex::from(index), PyMedRecordValue::from(value)))
+            ReturnValue::EdgeMultipleValues(iterator) => iterator
+                .map(|item| (item.0, PyMedRecordValue::from(item.1)))
+                .collect::<HashMap<_, _>>()
                 .into_bound_py_any(py),
-            ReturnValue::SingleValue(value) => {
-                Option::<PyMedRecordValue>::deep_from(value).into_bound_py_any(py)
-            }
+            ReturnValue::NodeSingleValue(value) => match value {
+                Some(value) => match value {
+                    OptionalIndexWrapper::WithIndex((index, value)) => (
+                        PyNodeIndex::from(index.clone()),
+                        PyMedRecordValue::from(value),
+                    )
+                        .into_bound_py_any(py),
+                    OptionalIndexWrapper::WithoutIndex(value) => {
+                        PyMedRecordValue::from(value).into_bound_py_any(py)
+                    }
+                },
+                None => PyNone::get(py).into_bound_py_any(py),
+            },
+            ReturnValue::EdgeSingleValue(value) => match value {
+                Some(value) => match value {
+                    OptionalIndexWrapper::WithIndex((index, value)) => {
+                        (index, PyMedRecordValue::from(value)).into_bound_py_any(py)
+                    }
+                    OptionalIndexWrapper::WithoutIndex(value) => {
+                        PyMedRecordValue::from(value).into_bound_py_any(py)
+                    }
+                },
+                None => PyNone::get(py).into_bound_py_any(py),
+            },
         }
     }
 }
