@@ -18,11 +18,7 @@ from typing import Callable, Dict, List, Optional, Sequence, Union, overload
 
 import polars as pl
 
-from medmodels._medmodels import (
-    PyEdgeOperand,
-    PyMedRecord,
-    PyNodeOperand,
-)
+from medmodels._medmodels import PyEdgeOperand, PyMedRecord, PyNodeOperand
 from medmodels.medrecord._overview import extract_attribute_summary, prettify_table
 from medmodels.medrecord.builder import MedRecordBuilder
 from medmodels.medrecord.indexers import EdgeIndexer, NodeIndexer
@@ -538,7 +534,7 @@ class MedRecord:
 
             if isinstance(query_result, list):
                 return self._medrecord.outgoing_edges(query_result)
-            if query_result:
+            if query_result is not None:
                 return self._medrecord.outgoing_edges([query_result])[query_result]
 
             return []
@@ -585,7 +581,7 @@ class MedRecord:
 
             if isinstance(query_result, list):
                 return self._medrecord.incoming_edges(query_result)
-            if query_result:
+            if query_result is not None:
                 return self._medrecord.incoming_edges([query_result])[query_result]
 
             return []
@@ -639,7 +635,7 @@ class MedRecord:
 
             if isinstance(query_result, list):
                 return self._medrecord.edge_endpoints(query_result)
-            if query_result:
+            if query_result is not None:
                 return self._medrecord.edge_endpoints([query_result])[query_result]
 
             msg = "The query returned no results"
@@ -742,7 +738,7 @@ class MedRecord:
 
             if isinstance(query_result, list):
                 return self._medrecord.remove_nodes(query_result)
-            if query_result:
+            if query_result is not None:
                 return self._medrecord.remove_nodes([query_result])[query_result]
 
             return {}
@@ -887,7 +883,7 @@ class MedRecord:
 
             if isinstance(query_result, list):
                 return self._medrecord.remove_edges(query_result)
-            if query_result:
+            if query_result is not None:
                 return self._medrecord.remove_edges([query_result])[query_result]
 
             return {}
@@ -1091,7 +1087,7 @@ class MedRecord:
 
             if isinstance(query_result, list):
                 return self._medrecord.add_nodes_to_group(group, query_result)
-            if query_result:
+            if query_result is not None:
                 return self._medrecord.add_nodes_to_group(group, [query_result])
 
             return None
@@ -1120,7 +1116,7 @@ class MedRecord:
 
             if isinstance(query_result, list):
                 return self._medrecord.add_edges_to_group(group, query_result)
-            if query_result:
+            if query_result is not None:
                 return self._medrecord.add_edges_to_group(group, [query_result])
 
             return None
@@ -1149,7 +1145,7 @@ class MedRecord:
 
             if isinstance(query_result, list):
                 return self._medrecord.remove_nodes_from_group(group, query_result)
-            if query_result:
+            if query_result is not None:
                 return self._medrecord.remove_nodes_from_group(group, [query_result])
 
             return None
@@ -1178,7 +1174,7 @@ class MedRecord:
 
             if isinstance(query_result, list):
                 return self._medrecord.remove_edges_from_group(group, query_result)
-            if query_result:
+            if query_result is not None:
                 return self._medrecord.remove_edges_from_group(group, [query_result])
 
             return None
@@ -1280,7 +1276,7 @@ class MedRecord:
 
             if isinstance(query_result, list):
                 return self._medrecord.groups_of_node(query_result)
-            if query_result:
+            if query_result is not None:
                 return self._medrecord.groups_of_node([query_result])[query_result]
 
             return []
@@ -1325,7 +1321,7 @@ class MedRecord:
 
             if isinstance(query_result, list):
                 return self._medrecord.groups_of_edge(query_result)
-            if query_result:
+            if query_result is not None:
                 return self._medrecord.groups_of_edge([query_result])[query_result]
 
             return []
@@ -1783,7 +1779,9 @@ class MedRecord:
         if sys.gettrace() is not None:
             return f"<MedRecord: {self.node_count()} nodes, {self.edge_count()} edges>"
 
-        return "\n".join([str(self.overview_nodes()), "", str(self.overview_edges())])
+        return "\n".join(
+            [str(self.overview_nodes()), "", str(self.overview_edges())]
+        )  # pragma: no cover  # coverage tests always have a trace, so this line cannot be reached by them
 
     def overview_nodes(
         self, groups: Optional[Union[Group, GroupInputList]] = None, decimal: int = 2

@@ -11,10 +11,6 @@ from medmodels._medmodels import (
 )
 
 
-def create_medrecord() -> mr.MedRecord:
-    return mr.MedRecord.from_simple_example_dataset()
-
-
 class TestAttributeType(unittest.TestCase):
     def test_from_py_attribute_type(self) -> None:
         assert (
@@ -105,6 +101,7 @@ class TestAttributeType(unittest.TestCase):
         assert mr.AttributeType.Continuous != PyAttributeType.Categorical
         assert mr.AttributeType.Continuous != PyAttributeType.Temporal
         assert mr.AttributeType.Continuous != PyAttributeType.Unstructured
+        assert mr.AttributeType.Continuous != "Continuous"
 
         assert mr.AttributeType.Temporal == mr.AttributeType.Temporal
         assert mr.AttributeType.Temporal == PyAttributeType.Temporal
@@ -114,6 +111,7 @@ class TestAttributeType(unittest.TestCase):
         assert mr.AttributeType.Temporal != PyAttributeType.Categorical
         assert mr.AttributeType.Temporal != PyAttributeType.Continuous
         assert mr.AttributeType.Temporal != PyAttributeType.Unstructured
+        assert mr.AttributeType.Temporal != "Temporal"
 
         assert mr.AttributeType.Unstructured == mr.AttributeType.Unstructured
         assert mr.AttributeType.Unstructured == PyAttributeType.Unstructured
@@ -123,6 +121,7 @@ class TestAttributeType(unittest.TestCase):
         assert mr.AttributeType.Unstructured != PyAttributeType.Categorical
         assert mr.AttributeType.Unstructured != PyAttributeType.Continuous
         assert mr.AttributeType.Unstructured != PyAttributeType.Temporal
+        assert mr.AttributeType.Unstructured != "Unstructured"
 
 
 class TestGroupSchema(unittest.TestCase):
@@ -254,6 +253,12 @@ class TestSchema(unittest.TestCase):
 
     def test_schema_type(self) -> None:
         schema = mr.Schema(groups={}, ungrouped=mr.GroupSchema())
+
+        assert schema.schema_type == mr.SchemaType.Provided
+
+        schema = mr.Schema(
+            groups={}, ungrouped=mr.GroupSchema(), schema_type=mr.SchemaType.Provided
+        )
 
         assert schema.schema_type == mr.SchemaType.Provided
 

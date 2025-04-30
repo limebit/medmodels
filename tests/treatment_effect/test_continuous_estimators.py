@@ -222,6 +222,7 @@ class TestContinuousEstimators(unittest.TestCase):
             reference="last",
             time_attribute=self.time_attribute,
         )
+
         assert ate_result == pytest.approx(-0.1)
 
         ate_result = average_treatment_effect(
@@ -233,7 +234,20 @@ class TestContinuousEstimators(unittest.TestCase):
             reference="first",
             time_attribute=self.time_attribute,
         )
+
         assert ate_result == pytest.approx(-0.15)
+
+        ate_result_no_time = average_treatment_effect(
+            self.medrecord,
+            treatment_outcome_true_set=set({"P2", "P3"}),
+            control_outcome_true_set=set({"P1", "P4", "P7"}),
+            outcome_group=self.outcome_group,
+            outcome_variable="intensity",
+            reference="first",
+            time_attribute=None,
+        )
+
+        assert ate_result_no_time == pytest.approx(-0.1)
 
     def test_invalid_treatment_effect(self) -> None:
         with pytest.raises(ValueError, match="Outcome variable must be numeric"):
@@ -257,6 +271,7 @@ class TestContinuousEstimators(unittest.TestCase):
             reference="last",
             time_attribute=self.time_attribute,
         )
+
         assert cohens_d_result == pytest.approx(-0.59, 2)
 
         cohens_d_result = cohens_d(
@@ -268,7 +283,20 @@ class TestContinuousEstimators(unittest.TestCase):
             reference="first",
             time_attribute=self.time_attribute,
         )
+
         assert cohens_d_result == pytest.approx(-0.96, 2)
+
+        cohens_d_result = cohens_d(
+            self.medrecord,
+            treatment_outcome_true_set=set({"P2", "P3"}),
+            control_outcome_true_set=set({"P1", "P4", "P7"}),
+            outcome_group=self.outcome_group,
+            outcome_variable="intensity",
+            reference="first",
+            time_attribute=None,
+        )
+
+        assert cohens_d_result == pytest.approx(-0.5)
 
     def test_invalid_cohens_d(self) -> None:
         with pytest.raises(ValueError, match="Outcome variable must be numeric"):
@@ -294,6 +322,42 @@ class TestContinuousEstimators(unittest.TestCase):
         )
 
         assert hedges_g_result == pytest.approx(-0.59, 2)
+
+        hedges_g_result = hedges_g(
+            self.medrecord,
+            treatment_outcome_true_set=set({"P2", "P3"}),
+            control_outcome_true_set=set({"P1", "P4", "P7"}),
+            outcome_group=self.outcome_group,
+            outcome_variable="intensity",
+            reference="first",
+            time_attribute=self.time_attribute,
+        )
+
+        assert hedges_g_result == pytest.approx(-0.96, 2)
+
+        hedges_g_result = hedges_g(
+            self.medrecord,
+            treatment_outcome_true_set=set({"P2", "P3"}),
+            control_outcome_true_set=set({"P1", "P4", "P7"}),
+            outcome_group=self.outcome_group,
+            outcome_variable="intensity",
+            reference="first",
+            time_attribute=None,
+        )
+
+        assert hedges_g_result == pytest.approx(-0.4)
+
+    def test_invalid_hedges_d(self) -> None:
+        with pytest.raises(ValueError, match="Outcome variable must be numeric"):
+            hedges_g(
+                self.medrecord,
+                treatment_outcome_true_set=set({"P2", "P3"}),
+                control_outcome_true_set=set({"P1", "P4", "P7"}),
+                outcome_group=self.outcome_group,
+                outcome_variable="type",
+                reference="last",
+                time_attribute=self.time_attribute,
+            )
 
 
 if __name__ == "__main__":

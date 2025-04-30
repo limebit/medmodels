@@ -28,31 +28,52 @@ class TreatmentEffectBuilder:
     time-dependent treatment effect estimation, the time_attribute must be set.
     """
 
-    treatment: Group
-    outcome: Group
+    _treatment: Optional[Group]
+    _outcome: Optional[Group]
 
-    patients_group: Optional[Group]
-    time_attribute: Optional[MedRecordAttribute]
+    _patients_group: Optional[Group]
+    _time_attribute: Optional[MedRecordAttribute]
 
-    washout_period_days: Optional[Dict[str, int]]
-    washout_period_reference: Optional[Literal["first", "last"]]
+    _washout_period_days: Optional[Dict[str, int]]
+    _washout_period_reference: Optional[Literal["first", "last"]]
 
-    grace_period_days: Optional[int]
-    grace_period_reference: Optional[Literal["first", "last"]]
+    _grace_period_days: Optional[int]
+    _grace_period_reference: Optional[Literal["first", "last"]]
 
-    follow_up_period_days: Optional[int]
-    follow_up_period_reference: Optional[Literal["first", "last"]]
+    _follow_up_period_days: Optional[int]
+    _follow_up_period_reference: Optional[Literal["first", "last"]]
 
-    outcome_before_treatment_days: Optional[int]
+    _outcome_before_treatment_days: Optional[int]
 
-    filter_controls_query: Optional[NodeQuery]
+    _filter_controls_query: Optional[NodeQuery]
 
-    matching_method: Optional[MatchingMethod]
-    matching_essential_covariates: Optional[MedRecordAttributeInputList]
-    matching_one_hot_covariates: Optional[MedRecordAttributeInputList]
-    matching_model: Optional[Model]
-    matching_number_of_neighbors: Optional[int]
-    matching_hyperparameters: Optional[Dict[str, Any]]
+    _matching_method: Optional[MatchingMethod]
+    _matching_essential_covariates: Optional[MedRecordAttributeInputList]
+    _matching_one_hot_covariates: Optional[MedRecordAttributeInputList]
+    _matching_model: Optional[Model]
+    _matching_number_of_neighbors: Optional[int]
+    _matching_hyperparameters: Optional[Dict[str, Any]]
+
+    def __init__(self) -> None:
+        """Initializes the TreatmentEffectBuilder with all attributes set to None."""
+        self._treatment = None
+        self._outcome = None
+        self._patients_group = None
+        self._time_attribute = None
+        self._washout_period_days = None
+        self._washout_period_reference = None
+        self._grace_period_days = None
+        self._grace_period_reference = None
+        self._follow_up_period_days = None
+        self._follow_up_period_reference = None
+        self._outcome_before_treatment_days = None
+        self._filter_controls_query = None
+        self._matching_method = None
+        self._matching_essential_covariates = None
+        self._matching_one_hot_covariates = None
+        self._matching_model = None
+        self._matching_number_of_neighbors = None
+        self._matching_hyperparameters = None
 
     def with_treatment(self, treatment: Group) -> TreatmentEffectBuilder:
         """Sets the treatment group for the treatment effect estimation.
@@ -63,7 +84,7 @@ class TreatmentEffectBuilder:
         Returns:
             TreatmentEffectBuilder: The current instance of the TreatmentEffectBuilder.
         """
-        self.treatment = treatment
+        self._treatment = treatment
 
         return self
 
@@ -77,7 +98,7 @@ class TreatmentEffectBuilder:
             TreatmentEffectBuilder: The current instance of the TreatmentEffectBuilder
                 with updated outcome group.
         """
-        self.outcome = outcome
+        self._outcome = outcome
 
         return self
 
@@ -91,7 +112,7 @@ class TreatmentEffectBuilder:
             TreatmentEffectBuilder: The current instance of the TreatmentEffectBuilder
                 with updated patients group.
         """
-        self.patients_group = group
+        self._patients_group = group
 
         return self
 
@@ -110,7 +131,7 @@ class TreatmentEffectBuilder:
             TreatmentEffectBuilder: The current instance of the TreatmentEffectBuilder
                 with updated time attribute.
         """
-        self.time_attribute = attribute
+        self._time_attribute = attribute
 
         return self
 
@@ -137,9 +158,9 @@ class TreatmentEffectBuilder:
                 with updated time attribute.
         """
         if days is not None:
-            self.washout_period_days = days
+            self._washout_period_days = days
         if reference is not None:
-            self.washout_period_reference = reference
+            self._washout_period_reference = reference
 
         return self
 
@@ -165,10 +186,10 @@ class TreatmentEffectBuilder:
                 with updated time attribute.
         """
         if days is not None:
-            self.grace_period_days = days
+            self._grace_period_days = days
 
         if reference is not None:
-            self.grace_period_reference = reference
+            self._grace_period_reference = reference
 
         return self
 
@@ -191,10 +212,10 @@ class TreatmentEffectBuilder:
                 with updated time attribute.
         """
         if days is not None:
-            self.follow_up_period_days = days
+            self._follow_up_period_days = days
 
         if reference is not None:
-            self.follow_up_period_reference = reference
+            self._follow_up_period_reference = reference
 
         return self
 
@@ -215,7 +236,7 @@ class TreatmentEffectBuilder:
             TreatmentEffectBuilder: The current instance of the TreatmentEffectBuilder
                 with updated time attribute.
         """
-        self.outcome_before_treatment_days = days
+        self._outcome_before_treatment_days = days
 
         return self
 
@@ -229,7 +250,7 @@ class TreatmentEffectBuilder:
             TreatmentEffectBuilder: The current instance of the TreatmentEffectBuilder
                 with updated time attribute.
         """
-        self.filter_controls_query = query
+        self._filter_controls_query = query
 
         return self
 
@@ -245,11 +266,9 @@ class TreatmentEffectBuilder:
 
         Args:
             essential_covariates (Optional[MedRecordAttributeInputList], optional):
-                Covariates that are essential for matching. Defaults to
-                ["gender", "age"].
+                Covariates that are essential for matching. Defaults to None.
             one_hot_covariates (Optional[MedRecordAttributeInputList], optional):
-                Covariates that are one-hot encoded for matching. Defaults to
-                ["gender"].
+                Covariates that are one-hot encoded for matching. Defaults to None.
             model (Model, optional): Model to choose for the matching. Defaults to
                 "logit".
             number_of_neighbors (int, optional): Number of neighbors to consider
@@ -261,17 +280,12 @@ class TreatmentEffectBuilder:
             TreatmentEffectBuilder: The current instance of the TreatmentEffectBuilder
                 with updated matching configurations.
         """
-        if essential_covariates is None:
-            essential_covariates = ["gender", "age"]
-        if one_hot_covariates is None:
-            one_hot_covariates = ["gender"]
-
-        self.matching_method = "propensity"
-        self.matching_essential_covariates = essential_covariates
-        self.matching_one_hot_covariates = one_hot_covariates
-        self.matching_model = model
-        self.matching_number_of_neighbors = number_of_neighbors
-        self.matching_hyperparameters = hyperparameters
+        self._matching_method = "propensity"
+        self._matching_essential_covariates = essential_covariates
+        self._matching_one_hot_covariates = one_hot_covariates
+        self._matching_model = model
+        self._matching_number_of_neighbors = number_of_neighbors
+        self._matching_hyperparameters = hyperparameters
 
         return self
 
@@ -285,11 +299,9 @@ class TreatmentEffectBuilder:
 
         Args:
             essential_covariates (Optional[MedRecordAttributeInputList], optional):
-                Covariates that are essential for matching. Defaults to
-                ["gender", "age"].
+                Covariates that are essential for matching. Defaults to None.
             one_hot_covariates (Optional[MedRecordAttributeInputList], optional):
-                Covariates that are one-hot encoded for matching. Defaults to
-                ["gender"].
+                Covariates that are one-hot encoded for matching. Defaults to None.
             number_of_neighbors (int, optional): Number of neighbors to consider for the
                 matching. Defaults to 1.
 
@@ -297,15 +309,10 @@ class TreatmentEffectBuilder:
             TreatmentEffectBuilder: The current instance of the TreatmentEffectBuilder
                 with updated matching configurations.
         """
-        if essential_covariates is None:
-            essential_covariates = ["gender", "age"]
-        if one_hot_covariates is None:
-            one_hot_covariates = ["gender"]
-
-        self.matching_method = "nearest_neighbors"
-        self.matching_essential_covariates = essential_covariates
-        self.matching_one_hot_covariates = one_hot_covariates
-        self.matching_number_of_neighbors = number_of_neighbors
+        self._matching_method = "nearest_neighbors"
+        self._matching_essential_covariates = essential_covariates
+        self._matching_one_hot_covariates = one_hot_covariates
+        self._matching_number_of_neighbors = number_of_neighbors
 
         return self
 
@@ -314,8 +321,22 @@ class TreatmentEffectBuilder:
 
         Returns:
             tee.TreatmentEffect: treatment effect object
+
+        Raises:
+            ValueError: If the treatment and outcome groups are not set before
+                building the treatment effect.
         """
+        if self._treatment is None or self._outcome is None:
+            msg = (
+                "Treatment and outcome groups must be set before "
+                + "building the treatment effect."
+            )
+            raise ValueError(msg)
+
+        # Only pass attributes that are not None
+        config = {k.lstrip("_"): v for k, v in vars(self).items() if v is not None}
+
         treatment_effect = tee.TreatmentEffect.__new__(tee.TreatmentEffect)
-        tee.TreatmentEffect._set_configuration(treatment_effect, **vars(self))
+        tee.TreatmentEffect._set_configuration(treatment_effect, **config)
 
         return treatment_effect

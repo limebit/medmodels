@@ -217,13 +217,9 @@ class MedRecordBuilder:
             medrecord.add_edges(edge, group)
 
         for group in self._groups:
-            if medrecord.contains_group(group):
-                medrecord.add_nodes_to_group(group, self._groups[group]["nodes"])
-                medrecord.add_edges_to_group(group, self._groups[group]["edges"])
-            else:
-                medrecord.add_group(
-                    group, self._groups[group]["nodes"], self._groups[group]["edges"]
-                )
+            medrecord.add_group(
+                group, self._groups[group]["nodes"], self._groups[group]["edges"]
+            )
 
         if self._schema is not None:
             medrecord.set_schema(self._schema)
