@@ -45,6 +45,8 @@ lines: 41
 
 The [`NodeOperand`](medmodels.medrecord.querying.NodeOperand){target="_blank"} querying class allow you to define specific criteria for selecting nodes within a [`MedRecord`](medmodels.medrecord.medrecord.MedRecord){target="_blank"}. These operands enable flexible and complex queries by combining multiple conditions, such as group membership, attributes' selection and querying, attribute values, and relationships to other nodes or edges. This section introduces the basic usage of node operands to create a powerful foundation for your data queries.
 
+The function [`query_nodes()`](medmodels.medrecord.medrecord.MedRecord.query_nodes){target="_blank"} and its counterpart [`query_edges()`](medmodels.medrecord.medrecord.MedRecord.query_edges){target="_blank"} are the main ways to use these queries. They can retrieve different types of data from the MedRecord, such as the indices of some nodes that fulfill some criteria (using [`index()`](medmodels.medrecord.querying.NodeOperand.index){target="_blank"}), or even the mean _age_ of those nodes ([`mean()`](medmodels.medrecord.querying.NodeMultipleValuesOperand.mean){target="_blank"}).
+
 ```{exec-literalinclude} scripts/02b_query_engine.py
 ---
 language: python
@@ -60,6 +62,11 @@ lines: 15-21
 - [`query_nodes()`](medmodels.medrecord.medrecord.MedRecord.query_nodes){target="_blank"} : Selects nodes from the MedRecord based on the provided query.
 
 :::
+
+:::{note}
+In this release, we will focus only on [`index()`](medmodels.medrecord.querying.NodeOperand.index){target="_blank"} return types, but this user guide will be further divided into smaller and more comprehensible modules after issue [#271](https://github.com/limebit/medmodels/issues/271) is completed.
+:::
+
 
 You can get to the same result via different approaches. That makes the query engine very versatile and adaptive to your specific needs. Let's complicate it a bit more involving more than one operand.
 
@@ -368,13 +375,23 @@ lines: 215-231
 
 In all previous snippets, we have used queries with the method [`query_nodes()`](medmodels.medrecord.medrecord.MedRecord.query_nodes){target="_blank"} for representation purposes of its capacities. However, queries can also be used as function arguments to other methods or indexers from the [`MedRecord`](medmodels.medrecord.medrecord.MedRecord){target="_blank"} that take edge/node indices or the queries that result on those indices as arguments. Here are some examples of those functions:
 
-- Using the [`node[]`](medmodels.medrecord.medrecord.MedRecord.node){target="_blank"}, an indexer that retrieves the attributes for the given node indices.
+- Using the [`add_group()`](medmodels.medrecord.medrecord.MedRecord.add_group){target="_blank"} to create groups in the MedRecord out of chosen subset of patients. We need to [`unfreeze_schema()`](medmodels.medrecord.medrecord.MedRecord.unfreeze_schema){target="_blank"} first, since this new group does not exist in the schema and we have a provided schema in the example dataset.
+
+```{exec-literalinclude} scripts/02b_query_engine.py
+---
+language: python
+setup-lines: 1-11, 25-32
+lines: 234-236
+---
+```
+
+- Using the [`node[]`](medmodels.medrecord.medrecord.MedRecord.node){target="_blank"} indexer, which retrieves the attributes for the given node indices.
 
 ```{exec-literalinclude} scripts/02b_query_engine.py
 ---
 language: python
 setup-lines: 1-11, 172-190
-lines: 234
+lines: 238
 ---
 ```
 
@@ -384,7 +401,7 @@ lines: 234
 ---
 language: python
 setup-lines: 1-32
-lines: 235
+lines: 239
 ---
 ```
 
@@ -394,12 +411,15 @@ lines: 235
 ---
 language: python
 setup-lines: 1-11, 136-145
-lines: 236
+lines: 240
 ---
 ```
 
 :::{dropdown} Methods used in the snippet
 
+- [`unfreeze_schema()`](medmodels.medrecord.medrecord.MedRecord.unfreeze_schema){target="_blank"} : Unfreezes the schema. Changes are automatically inferred.
+- [`add_group()`](medmodels.medrecord.medrecord.MedRecord.add_group){target="_blank"} : Adds a group to the MedRecord, optionally with node and edge indices.
+- [`groups`](medmodels.medrecord.medrecord.MedRecord.groups){target="_blank"} : Lists the groups in the MedRecord instance.
 - [`node[]`](medmodels.medrecord.medrecord.MedRecord.node){target="_blank"} : Provides access to node information within the MedRecord instance via an indexer, returning a dictionary with node indices as keys and node attributes as values.
 - [`groups_of_node()`](medmodels.medrecord.medrecord.MedRecord.groups_of_node){target="_blank"} : Retrieves the groups associated with the specified node(s) in the MedRecord.
 - [`edge_endpoints()`](medmodels.medrecord.medrecord.MedRecord.edge_endpoints){target="_blank"} : Retrieves the source and target nodes of the specified edge(s) in the MedRecord.
@@ -413,6 +433,6 @@ The full code examples for this chapter can be found here:
 ```{literalinclude} scripts/02b_query_engine.py
 ---
 language: python
-lines: 3-236
+lines: 3-240
 ---
 ```

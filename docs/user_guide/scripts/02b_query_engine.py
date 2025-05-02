@@ -1,5 +1,5 @@
 # pyright: reportAttributeAccessIssue=false
-# ruff: noqa: D100, D103
+# ruff: noqa: D100, D103, B018
 from medmodels import MedRecord
 from medmodels.medrecord.querying import (
     EdgeIndicesOperand,
@@ -231,6 +231,10 @@ def query_node_clone(node: NodeOperand) -> NodeIndicesOperand:
 medrecord.query_nodes(query_node_clone)
 
 # Node queries as function arguments
+medrecord.unfreeze_schema()
+medrecord.add_group("old_male_patient", nodes=query_node_patient_older_than_30)
+medrecord.groups
+
 medrecord.node[query_node_either_or]
 medrecord.groups_of_node(query_node_patient_older_than_30)
 medrecord.edge_endpoints(query_edge_old_patient_cheap_insulin)
