@@ -109,7 +109,7 @@ This will expand the MedRecord, adding several new nodes to the graph. However, 
 ```
 
 :::{note}
-Nodes can be added to the MedRecord in a lot of different formats, such as a Pandas Dataframe (as previously shown), but also from a [`NodeTuple`](medmodels.medrecord.types.NodeTuple){target="_blank"}:
+Nodes can be added to the MedRecord in a lot of different formats, such as a Pandas Dataframe (as previously shown), but also from a Polars Dataframe:
 
 ```{literalinclude} scripts/02_medrecord_intro.py
 ---
@@ -118,7 +118,7 @@ lines: 36-40
 ---
 ```
 
-Or a Polars Dataframe:
+Or from a [`NodeTuple`](medmodels.medrecord.types.NodeTuple){target="_blank"}:
 
 ```{literalinclude} scripts/02_medrecord_intro.py
 ---
