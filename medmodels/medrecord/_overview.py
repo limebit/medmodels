@@ -57,7 +57,7 @@ class TypeTable(Enum):
     Schema = auto()
 
 
-def style_datatype(raw: str) -> Text:
+def _style_datatype(raw: str) -> Text:
     """Style the datatype string.
 
     In case the datatype is "Option", we show it in yellow.
@@ -99,7 +99,7 @@ def prettify_table(  # noqa: C901
         Table: The formatted table.
     """
 
-    def format_detail(label: str, value: MedRecordValue) -> str:
+    def _format_detail(label: str, value: MedRecordValue) -> str:
         """Format the detail for the table.
 
         In case the label is "values", return the value as is. If the value is a float,
@@ -118,7 +118,7 @@ def prettify_table(  # noqa: C901
 
         return value_str if label == "values" else f"{label}: {value_str}"
 
-    def get_detailed_rows(attribute_info: AnyAttributeInfo) -> List[str]:
+    def _get_detailed_rows(attribute_info: AnyAttributeInfo) -> List[str]:
         """Returns formatted value rows for MedRecord table.
 
         Args:
@@ -135,7 +135,7 @@ def prettify_table(  # noqa: C901
         ]
 
         for label, value in detailed_values:
-            rows.append(format_detail(label, value))
+            rows.append(_format_detail(label, value))
 
         return rows
 
@@ -175,10 +175,10 @@ def prettify_table(  # noqa: C901
             group = group if i == 0 else ""
             count = count if i == 0 else ""
 
-            datatype = style_datatype(attribute_info.get("datatype", ""))
+            datatype = _style_datatype(attribute_info.get("datatype", ""))
 
             if type_table == TypeTable.MedRecord:
-                rows = get_detailed_rows(attribute_info)
+                rows = _get_detailed_rows(attribute_info)
                 table.add_row(
                     group, count, attribute_name, attribute_type, datatype, rows[0]
                 )
@@ -207,28 +207,8 @@ def join_tables_with_titles(
     Returns:
         str: The combined string representation of the two tables.
     """
-
-    def table_width(table: Table) -> int:
-        """Calculate the width of a table.
-
-        Args:
-            table (Table): The rich Table.
-
-        Returns:
-            int: The width of the table.
-        """
-        padding = 12
-        return (
-            sum(len(col.header) for col in table.columns) + len(table.columns) * padding  # pyright: ignore[reportArgumentType]
-        )
-
-    # Calculate needed width for both tables
-    width1 = table_width(table1)
-    width2 = table_width(table2)
-    width = max(width1, width2, 80)
-
     buffer = StringIO()
-    console = Console(file=buffer, force_terminal=True, width=width)
+    console = Console(file=buffer, force_terminal=True)
 
     console.rule(f"[bold green]{title1}")
     console.print(table1)
@@ -257,18 +237,18 @@ def get_values_from_attribute(
         Set[MedRecordValue]: The values of the attribute in the group.
     """
 
-    def query_node(node: NodeOperand) -> NodeMultipleValuesOperand:
+    def _query_node(node: NodeOperand) -> NodeMultipleValuesOperand:
         query(node)  # pyright: ignore[reportArgumentType]
         return node.attribute(attribute)
 
-    def query_edge(edge: EdgeOperand) -> EdgeMultipleValuesOperand:
+    def _query_edge(edge: EdgeOperand) -> EdgeMultipleValuesOperand:
         query(edge)  # pyright: ignore[reportArgumentType]
         return edge.attribute(attribute)
 
     return (
-        set(medrecord.query_nodes(query_node).values())
+        set(medrecord.query_nodes(_query_node).values())
         if type == "nodes"
-        else set(medrecord.query_edges(query_edge).values())
+        else set(medrecord.query_edges(_query_edge).values())
     )
 
 
@@ -293,20 +273,20 @@ def get_attribute_metric(
         AttributeInfo: The attribute metrics.
     """
 
-    def query_node(node: NodeOperand) -> NodeSingleValueOperand:
+    def _query_node(node: NodeOperand) -> NodeSingleValueOperand:
         query(node)  # pyright: ignore[reportArgumentType]
         node.exclude(lambda node: node.attribute(attribute).is_null())
         return getattr(node.attribute(attribute), metric.value)()
 
-    def query_edge(edge: EdgeOperand) -> EdgeSingleValueOperand:
+    def _query_edge(edge: EdgeOperand) -> EdgeSingleValueOperand:
         query(edge)  # pyright: ignore[reportArgumentType]
         edge.exclude(lambda edge: edge.attribute(attribute).is_null())
         return getattr(edge.attribute(attribute), metric.value)()
 
     result = (
-        medrecord.query_nodes(query_node)
+        medrecord.query_nodes(_query_node)
         if type == "nodes"
-        else medrecord.query_edges(query_edge)
+        else medrecord.query_edges(_query_edge)
     )
 
     return result[1] if isinstance(result, tuple) else result

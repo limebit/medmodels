@@ -13,6 +13,7 @@ simplified management and efficient querying.
 from __future__ import annotations
 
 import sys
+from datetime import datetime
 from enum import Enum, auto
 from io import StringIO
 from typing import (
@@ -202,7 +203,7 @@ class OverviewTable:
             str: The formatted table.
         """
         buffer = StringIO()
-        console = Console(file=buffer, force_terminal=True, width=120)
+        console = Console(file=buffer, force_terminal=True)
         console.print(self.table)
 
         return buffer.getvalue()
@@ -1770,18 +1771,26 @@ class MedRecord:
                 }
 
             elif attribute_type == AttributeType.Temporal:
+                minimum_date = get_attribute_metric(
+                    self, group_query, attribute, Metric.min, type=type
+                )
+                mean_date = get_attribute_metric(
+                    self, group_query, attribute, Metric.mean, type=type
+                )
+                maximum_date = get_attribute_metric(
+                    self, group_query, attribute, Metric.max, type=type
+                )
+
+                assert isinstance(minimum_date, datetime)
+                assert isinstance(mean_date, datetime)
+                assert isinstance(maximum_date, datetime)
+
                 attribute_summary[attribute] = {
                     "type": attribute_type.value,
                     "datatype": str(data_type),
-                    "min": get_attribute_metric(
-                        self, group_query, attribute, Metric.min, type=type
-                    ).strftime("%Y-%m-%d %H:%M:%S"),  # pyright: ignore[reportAttributeAccessIssue, reportOptionalMemberAccess]
-                    "mean": get_attribute_metric(
-                        self, group_query, attribute, Metric.mean, type=type
-                    ).strftime("%Y-%m-%d %H:%M:%S"),  # pyright: ignore[reportAttributeAccessIssue, reportOptionalMemberAccess]
-                    "max": get_attribute_metric(
-                        self, group_query, attribute, Metric.max, type=type
-                    ).strftime("%Y-%m-%d %H:%M:%S"),  # pyright: ignore[reportAttributeAccessIssue, reportOptionalMemberAccess]
+                    "min": minimum_date.strftime("%Y-%m-%d %H:%M:%S"),
+                    "mean": mean_date.strftime("%Y-%m-%d %H:%M:%S"),
+                    "max": maximum_date.strftime("%Y-%m-%d %H:%M:%S"),
                 }
 
             else:
@@ -1818,8 +1827,8 @@ class MedRecord:
             if not group_schema and schema.group(group).edges:
                 continue
 
-            def in_group_query(node: NodeOperand) -> None:
-                return node.in_group(group)  # noqa: B023
+            def in_group_query(node: NodeOperand, group: Group = group) -> None:
+                return node.in_group(group)
 
             nodes_info[group] = {
                 "count": len(self.group(group)["nodes"]),
@@ -1876,8 +1885,8 @@ class MedRecord:
             if not group_schema:
                 continue
 
-            def in_group_query(edge: EdgeOperand) -> None:
-                return edge.in_group(group)  # noqa: B023
+            def in_group_query(edge: EdgeOperand, group: Group = group) -> None:
+                return edge.in_group(group)
 
             edges_info[group] = {
                 "count": len(self.group(group)["edges"]),

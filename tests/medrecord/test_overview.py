@@ -317,7 +317,8 @@ class TestOverview(unittest.TestCase):
             metric=Metric.mean,
             type="nodes",
         )
-        result = round(float(result), 2)  # pyright: ignore[reportArgumentType]
+        assert isinstance(result, float)
+        result = round(result, 2)
 
         assert result == 32.67
 
@@ -349,7 +350,8 @@ class TestOverview(unittest.TestCase):
             metric=Metric.mean,
             type="edges",
         )
-        result = round(float(result), 2)  # pyright: ignore[reportArgumentType]
+        assert isinstance(result, float)
+        result = round(result, 2)
 
         assert result == 405.02
 
