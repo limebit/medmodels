@@ -1,3 +1,5 @@
+use std::ops::Deref;
+
 use super::values::{PyEdgeMultipleValuesOperand, PyNodeMultipleValuesOperand};
 use crate::medrecord::{attribute::PyMedRecordAttribute, errors::PyMedRecordError};
 use medmodels_core::{
@@ -26,6 +28,14 @@ impl From<SingleAttributeComparisonOperand> for PySingleAttributeComparisonOpera
 impl From<PySingleAttributeComparisonOperand> for SingleAttributeComparisonOperand {
     fn from(operand: PySingleAttributeComparisonOperand) -> Self {
         operand.0
+    }
+}
+
+impl Deref for PySingleAttributeComparisonOperand {
+    type Target = SingleAttributeComparisonOperand;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
     }
 }
 
@@ -61,6 +71,14 @@ impl From<MultipleAttributesComparisonOperand> for PyMultipleAttributesCompariso
 impl From<PyMultipleAttributesComparisonOperand> for MultipleAttributesComparisonOperand {
     fn from(operand: PyMultipleAttributesComparisonOperand) -> Self {
         operand.0
+    }
+}
+
+impl Deref for PyMultipleAttributesComparisonOperand {
+    type Target = MultipleAttributesComparisonOperand;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
     }
 }
 
@@ -103,6 +121,14 @@ macro_rules! implement_attributes_tree_operand {
         impl From<$name> for Wrapper<AttributesTreeOperand<$generic>> {
             fn from(operand: $name) -> Self {
                 operand.0
+            }
+        }
+
+        impl Deref for $name {
+            type Target = Wrapper<AttributesTreeOperand<$generic>>;
+
+            fn deref(&self) -> &Self::Target {
+                &self.0
             }
         }
 
@@ -296,6 +322,14 @@ macro_rules! implement_multiple_attributes_operand {
         impl From<$name> for Wrapper<MultipleAttributesOperand<$generic>> {
             fn from(operand: $name) -> Self {
                 operand.0
+            }
+        }
+
+        impl Deref for $name {
+            type Target = Wrapper<MultipleAttributesOperand<$generic>>;
+
+            fn deref(&self) -> &Self::Target {
+                &self.0
             }
         }
 
@@ -495,6 +529,14 @@ macro_rules! implement_single_attribute_operand {
         impl From<$name> for Wrapper<SingleAttributeOperand<$generic>> {
             fn from(operand: $name) -> Self {
                 operand.0
+            }
+        }
+
+        impl Deref for $name {
+            type Target = Wrapper<SingleAttributeOperand<$generic>>;
+
+            fn deref(&self) -> &Self::Target {
+                &self.0
             }
         }
 

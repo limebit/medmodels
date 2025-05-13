@@ -677,7 +677,7 @@ class TestNodeMultipleValuesOperand(unittest.TestCase):
 
         assert self.medrecord.query_nodes(query8) == ["pat_10"]
 
-    def test_node_multiple_values_operand_comparisons(self) -> None:  # noqa: C901
+    def test_node_multiple_values_operand_comparisons(self) -> None:
         def query1(node: NodeOperand) -> NodeIndicesOperand:
             node.attribute("age").is_max()
             return node.index()
@@ -770,7 +770,7 @@ class TestNodeMultipleValuesOperand(unittest.TestCase):
             "pat_5",
         ]
 
-    def test_node_multiple_values_operand_operations(self) -> None:  # noqa: C901  # noqa: C901
+    def test_node_multiple_values_operand_operations(self) -> None:
         def query1(node: NodeOperand) -> NodeMultipleValuesOperand:
             query_node(node)
             age = node.attribute("age")
@@ -972,7 +972,7 @@ class TestEdgeMultipleValuesOperand(unittest.TestCase):
             ]
         )
 
-    def test_edge_multiple_values_operand_numeric(self) -> None:  # noqa: C901
+    def test_edge_multiple_values_operand_numeric(self) -> None:
         def query_min(edge: EdgeOperand) -> EdgeSingleValueOperand:
             query_specific_edge(edge, 4)
             attribute = edge.attribute("duration_days")
@@ -1098,7 +1098,7 @@ class TestEdgeMultipleValuesOperand(unittest.TestCase):
 
         assert self.medrecord.query_edges(query8) == [162]
 
-    def test_edge_multiple_values_operand_comparisons(self) -> None:  # noqa: C901
+    def test_edge_multiple_values_operand_comparisons(self) -> None:
         def query1(edge: EdgeOperand) -> EdgeIndicesOperand:
             attribute = edge.attribute("duration_days")
             attribute.is_float()
@@ -1190,7 +1190,7 @@ class TestEdgeMultipleValuesOperand(unittest.TestCase):
 
         assert self.medrecord.query_edges(query13) == [160]
 
-    def test_edge_multiple_values_operand_operations(self) -> None:  # noqa: C901
+    def test_edge_multiple_values_operand_operations(self) -> None:
         def query1(edge: EdgeOperand) -> EdgeMultipleValuesOperand:
             query_specific_edge(edge, 3)
             duration = edge.attribute("duration_days")
@@ -1455,7 +1455,7 @@ class TestNodeSingleValueOperand(unittest.TestCase):
 
         assert self.medrecord.query_nodes(query8) == ["pat_10"]
 
-    def test_node_single_value_operand_comparisons(self) -> None:  # noqa: C901
+    def test_node_single_value_operand_comparisons(self) -> None:
         def query1(node: NodeOperand) -> NodeSingleValueOperand:
             maximum = node.attribute("age").max()
             maximum.greater_than(90)
@@ -1533,7 +1533,7 @@ class TestNodeSingleValueOperand(unittest.TestCase):
 
         assert self.medrecord.query_nodes(query11) == ("pat_3", 96)
 
-    def test_node_single_value_operand_operations(self) -> None:  # noqa: C901
+    def test_node_single_value_operand_operations(self) -> None:
         def query1(node: NodeOperand) -> NodeSingleValueOperand:
             maximum = node.attribute("age").max()
             maximum.add(10)
@@ -1783,7 +1783,7 @@ class TestEdgeSingleValueOperand(unittest.TestCase):
 
         assert self.medrecord.query_edges(query8) == (47, 3416)
 
-    def test_edge_single_value_operand_comparisons(self) -> None:  # noqa: C901
+    def test_edge_single_value_operand_comparisons(self) -> None:
         def query1(edge: EdgeOperand) -> EdgeSingleValueOperand:
             value = edge.attribute("integer_attribute").max()
             value.greater_than(4)
@@ -1861,7 +1861,7 @@ class TestEdgeSingleValueOperand(unittest.TestCase):
 
         assert self.medrecord.query_edges(query11) == (160, " Hello ")
 
-    def test_edge_single_value_operand_operations(self) -> None:  # noqa: C901
+    def test_edge_single_value_operand_operations(self) -> None:
         def query1(edge: EdgeOperand) -> EdgeSingleValueOperand:
             value = edge.attribute("integer_attribute").max()
             value.add(10)
@@ -2042,7 +2042,7 @@ class TestNodeIndicesOperand(unittest.TestCase):
     def setUp(self) -> None:
         self.medrecord = MedRecord.from_simple_example_dataset()
 
-    def test_node_indices_operand_comparisons(self) -> None:  # noqa: C901
+    def test_node_indices_operand_comparisons(self) -> None:
         def query1(node: NodeOperand) -> NodeIndicesOperand:
             node.index().equal_to("pat_1")
             return node.index()
@@ -2161,7 +2161,7 @@ class TestNodeIndicesOperand(unittest.TestCase):
 
         assert self.medrecord.query_nodes(query15) == [0]
 
-    def test_node_indices_operand_operations(self) -> None:  # noqa: C901
+    def test_node_indices_operand_operations(self) -> None:
         self.medrecord.unfreeze_schema()
         self.medrecord.add_nodes((10, {}))
         self.medrecord.add_nodes((11, {}))
@@ -2328,7 +2328,7 @@ class TestNodeIndexOperand(unittest.TestCase):
     def setUp(self) -> None:
         self.medrecord = MedRecord.from_simple_example_dataset()
 
-    def test_node_index_operand_comparisons(self) -> None:  # noqa: C901
+    def test_node_index_operand_comparisons(self) -> None:
         def query1(node: NodeOperand) -> NodeIndexOperand:
             node.in_group("patient")
             maximum = node.index().max()
@@ -2437,7 +2437,7 @@ class TestNodeIndexOperand(unittest.TestCase):
 
         assert self.medrecord.query_nodes(query13) == 1
 
-    def test_node_index_operand_operations(self) -> None:  # noqa: C901
+    def test_node_index_operand_operations(self) -> None:
         self.medrecord.unfreeze_schema()
         self.medrecord.add_nodes((10, {}))
         self.medrecord.add_nodes((11, {}))
@@ -2576,7 +2576,7 @@ class TestEdgeIndicesOperand(unittest.TestCase):
     def setUp(self) -> None:
         self.medrecord = MedRecord.from_simple_example_dataset()
 
-    def test_edge_indices_operand_comparisons(self) -> None:  # noqa: C901
+    def test_edge_indices_operand_comparisons(self) -> None:
         def query1(edge: EdgeOperand) -> EdgeIndicesOperand:
             edge.index().equal_to(0)
             return edge.index()
@@ -2665,7 +2665,7 @@ class TestEdgeIndicesOperand(unittest.TestCase):
 
         assert self.medrecord.query_edges(query13) == [0]
 
-    def test_edge_indices_operand_operations(self) -> None:  # noqa: C901
+    def test_edge_indices_operand_operations(self) -> None:
         def query1(edge: EdgeOperand) -> EdgeIndexOperand:
             edge.index().is_in([10, 11])
             return edge.index().max()
@@ -2764,7 +2764,7 @@ class TestEdgeIndexOperand(unittest.TestCase):
     def setUp(self) -> None:
         self.medrecord = MedRecord.from_simple_example_dataset()
 
-    def test_edge_index_operand_comparisons(self) -> None:  # noqa: C901
+    def test_edge_index_operand_comparisons(self) -> None:
         def query1(edge: EdgeOperand) -> EdgeIndexOperand:
             minimum = edge.index().min()
             minimum.equal_to(0)
@@ -2914,7 +2914,7 @@ class TestNodeAttributesTreeOperand(unittest.TestCase):
     def setUp(self) -> None:
         self.medrecord = MedRecord.from_simple_example_dataset()
 
-    def test_node_attributes_tree_operand_comparisons(self) -> None:  # noqa: C901
+    def test_node_attributes_tree_operand_comparisons(self) -> None:
         def query1(node: NodeOperand) -> NodeMultipleAttributesOperand:
             query_node(node)
             return node.attributes().max()
@@ -3082,7 +3082,7 @@ class TestNodeAttributesTreeOperand(unittest.TestCase):
 
         assert self.medrecord.query_nodes(query20) == {0: [2]}
 
-    def test_node_attributes_tree_operand_operations(self) -> None:  # noqa: C901
+    def test_node_attributes_tree_operand_operations(self) -> None:
         self.medrecord.unfreeze_schema()
         self.medrecord.add_nodes((0, {10: "value1", 11: "value2"}))
 
@@ -3251,7 +3251,7 @@ class TestEdgeAttributesTreeOperand(unittest.TestCase):
             [("pat_4", "pat_1", {"a_attribute": "v5", "b_attribute": "v6"})]
         )  # Edge index 164
 
-    def test_edge_attributes_tree_operand_comparisons(self) -> None:  # noqa: C901
+    def test_edge_attributes_tree_operand_comparisons(self) -> None:
         def query1(edge: EdgeOperand) -> EdgeMultipleAttributesOperand:
             query_specific_edge(edge, 164)
             return edge.attributes().max()
@@ -3415,7 +3415,7 @@ class TestEdgeAttributesTreeOperand(unittest.TestCase):
 
         assert self.medrecord.query_edges(query20) == {160: [2]}
 
-    def test_edge_attributes_tree_operand_operations(self) -> None:  # noqa: C901
+    def test_edge_attributes_tree_operand_operations(self) -> None:
         def query1(edge: EdgeOperand) -> EdgeAttributesTreeOperand:
             query_specific_edge(edge, 161)
             attributes = edge.attributes()
@@ -3564,7 +3564,7 @@ class TestNodeMultipleAttributesOperand(unittest.TestCase):
     def setUp(self) -> None:
         self.medrecord = MedRecord.from_simple_example_dataset()
 
-    def test_node_multiple_attributes_operand_comparisons(self) -> None:  # noqa: C901
+    def test_node_multiple_attributes_operand_comparisons(self) -> None:
         self.medrecord.unfreeze_schema()
         self.medrecord.add_nodes((0, {10: "value1", 11: "value2"}))
         self.medrecord.add_nodes((1, {12: "value3", 13: "value4"}))
@@ -3721,7 +3721,7 @@ class TestNodeMultipleAttributesOperand(unittest.TestCase):
 
         assert self.medrecord.query_nodes(query20) == {"pat_1": "gender"}
 
-    def test_node_multiple_attributes_operand_operations(self) -> None:  # noqa: C901
+    def test_node_multiple_attributes_operand_operations(self) -> None:
         self.medrecord.unfreeze_schema()
         self.medrecord.add_nodes((0, {10: "value1", 11: "value2"}))
         self.medrecord.add_nodes((1, {12: "value3", 13: "value4"}))
@@ -3876,7 +3876,7 @@ class TestEdgeMultipleAttributesOperand(unittest.TestCase):
         self.medrecord.add_edges([("pat_3", "pat_4", {12: "value3", 13: "value4"})])
         self.medrecord.add_edges([("pat_5", "pat_1", {" Hello ": "value5"})])
 
-    def test_edge_multiple_attributes_operand_comparisons(self) -> None:  # noqa: C901
+    def test_edge_multiple_attributes_operand_comparisons(self) -> None:
         def query1(edge: EdgeOperand) -> EdgeSingleAttributeOperand:
             edge.index().is_in([160, 161])
             return edge.attributes().max().max()
@@ -4029,7 +4029,7 @@ class TestEdgeMultipleAttributesOperand(unittest.TestCase):
 
         assert self.medrecord.query_edges(query20) == {0: "time"}
 
-    def test_edge_multiple_attributes_operand_operations(self) -> None:  # noqa: C901
+    def test_edge_multiple_attributes_operand_operations(self) -> None:
         def query1(edge: EdgeOperand) -> EdgeMultipleAttributesOperand:
             edge.index().is_in([160, 161])
             attribute = edge.attributes().max()
@@ -4173,7 +4173,7 @@ class TestNodeSingleAttributeOperand(unittest.TestCase):
     def setUp(self) -> None:
         self.medrecord = MedRecord.from_simple_example_dataset()
 
-    def test_single_attribute_operand_comparisons(self) -> None:  # noqa: C901
+    def test_single_attribute_operand_comparisons(self) -> None:
         self.medrecord.unfreeze_schema()
         self.medrecord.add_nodes((0, {10: "value1", 11: "value2"}))
         self.medrecord.add_nodes((1, {12: "value3", 13: "value4"}))
@@ -4425,7 +4425,7 @@ class TestEdgeSingleAttributeOperand(unittest.TestCase):
         self.medrecord.add_edges([("pat_3", "pat_4", {12: "value3", 13: "value4"})])
         self.medrecord.add_edges([("pat_5", "pat_1", {" Hello ": "value5"})])
 
-    def test_single_attribute_operand_comparisons(self) -> None:  # noqa: C901
+    def test_single_attribute_operand_comparisons(self) -> None:
         self.medrecord.unfreeze_schema()
 
         def query1(edge: EdgeOperand) -> EdgeSingleAttributeOperand:

@@ -50,27 +50,40 @@ pub(crate) fn convert_pyobject_to_medrecordvalue(
     ob: &Bound<'_, PyAny>,
 ) -> PyResult<MedRecordValue> {
     fn convert_string(ob: &Bound<'_, PyAny>) -> PyResult<MedRecordValue> {
-        Ok(MedRecordValue::String(ob.extract::<String>()?))
+        Ok(MedRecordValue::String(
+            ob.extract::<String>().expect("Extraction must succeed"),
+        ))
     }
 
     fn convert_int(ob: &Bound<'_, PyAny>) -> PyResult<MedRecordValue> {
-        Ok(MedRecordValue::Int(ob.extract::<i64>()?))
+        Ok(MedRecordValue::Int(
+            ob.extract::<i64>().expect("Extraction must succeed"),
+        ))
     }
 
     fn convert_float(ob: &Bound<'_, PyAny>) -> PyResult<MedRecordValue> {
-        Ok(MedRecordValue::Float(ob.extract::<f64>()?))
+        Ok(MedRecordValue::Float(
+            ob.extract::<f64>().expect("Extraction must succeed"),
+        ))
     }
 
     fn convert_bool(ob: &Bound<'_, PyAny>) -> PyResult<MedRecordValue> {
-        Ok(MedRecordValue::Bool(ob.extract::<bool>()?))
+        Ok(MedRecordValue::Bool(
+            ob.extract::<bool>().expect("Extraction must succeed"),
+        ))
     }
 
     fn convert_datetime(ob: &Bound<'_, PyAny>) -> PyResult<MedRecordValue> {
-        Ok(MedRecordValue::DateTime(ob.extract::<NaiveDateTime>()?))
+        Ok(MedRecordValue::DateTime(
+            ob.extract::<NaiveDateTime>()
+                .expect("Extraction must succeed"),
+        ))
     }
 
     fn convert_duration(ob: &Bound<'_, PyAny>) -> PyResult<MedRecordValue> {
-        Ok(MedRecordValue::Duration(ob.extract::<Duration>()?))
+        Ok(MedRecordValue::Duration(
+            ob.extract::<Duration>().expect("Extraction must succeed"),
+        ))
     }
 
     fn convert_null(_ob: &Bound<'_, PyAny>) -> PyResult<MedRecordValue> {

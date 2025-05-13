@@ -193,6 +193,19 @@ def is_node_index(value: object) -> TypeIs[NodeIndex]:
     return is_medrecord_attribute(value)
 
 
+def is_node_index_list(value: object) -> TypeIs[NodeIndexInputList]:
+    """Check if a value is a valid list of node indices.
+
+    Args:
+        value (object): The value to check.
+
+    Returns:
+        TypeIs[NodeIndexInputList]: True if the value is a valid list of node indices,
+            otherwise False.
+    """
+    return isinstance(value, list) and all(is_node_index(input) for input in value)
+
+
 def is_edge_index(value: object) -> TypeIs[EdgeIndex]:
     """Check if a value is a valid edge index.
 
@@ -203,6 +216,19 @@ def is_edge_index(value: object) -> TypeIs[EdgeIndex]:
         TypeIs[EdgeIndex]: True if the value is a valid edge index, otherwise False.
     """
     return isinstance(value, int)
+
+
+def is_edge_index_list(value: object) -> TypeIs[EdgeIndexInputList]:
+    """Check if a value is a valid list of edge indices.
+
+    Args:
+        value (object): The value to check.
+
+    Returns:
+        TypeIs[EdgeIndexInputList]: True if the value is a valid list of edge indices,
+            otherwise False.
+    """
+    return isinstance(value, list) and all(is_edge_index(input) for input in value)
 
 
 def is_group(value: object) -> TypeIs[Group]:
