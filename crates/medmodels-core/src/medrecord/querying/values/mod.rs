@@ -146,7 +146,6 @@ impl GetValues<EdgeIndex> for EdgeOperand {
     }
 }
 
-#[allow(clippy::enum_variant_names)]
 #[derive(Debug, Clone)]
 pub enum Context<O: Operand> {
     Operand((O, MedRecordAttribute)),

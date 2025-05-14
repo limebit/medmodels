@@ -12,8 +12,10 @@ pub use self::{
     group_mapping::Group,
     querying::{
         attributes::{
-            AttributesTreeOperand, MultipleAttributesComparisonOperand, MultipleAttributesOperand,
-            SingleAttributeComparisonOperand, SingleAttributeOperand,
+            AttributesTreeOperand, EdgeAttributesTreeOperand, EdgeMultipleAttributesOperand,
+            EdgeSingleAttributeOperand, MultipleAttributesComparisonOperand,
+            MultipleAttributesOperand, NodeAttributesTreeOperand, NodeMultipleAttributesOperand,
+            NodeSingleAttributeOperand, SingleAttributeComparisonOperand, SingleAttributeOperand,
         },
         edges::{
             EdgeIndexComparisonOperand, EdgeIndexOperand, EdgeIndicesComparisonOperand,
@@ -25,11 +27,12 @@ pub use self::{
         },
         traits::DeepClone,
         values::{
-            MultipleValuesComparisonOperand, MultipleValuesOperand, SingleValueComparisonOperand,
-            SingleValueOperand,
+            EdgeMultipleValuesOperand, EdgeSingleValueOperand, MultipleValuesComparisonOperand,
+            MultipleValuesOperand, NodeMultipleValuesOperand, NodeSingleValueOperand,
+            SingleValueComparisonOperand, SingleValueOperand,
         },
         wrapper::{CardinalityWrapper, Wrapper},
-        OptionalIndexWrapper, ReturnOperand, ReturnValue, Selection,
+        OptionalIndexWrapper, ReturnOperand, Selection,
     },
     schema::{AttributeDataType, AttributeSchema, AttributeType, GroupSchema, Schema, SchemaType},
 };
@@ -905,18 +908,18 @@ impl MedRecord {
         self.group_mapping.clear();
     }
 
-    pub fn query_nodes<Q, R>(&self, query: Q) -> Selection
+    pub fn query_nodes<'a, Q, R>(&'a self, query: Q) -> Selection<'a, R>
     where
         Q: FnOnce(&mut Wrapper<NodeOperand>) -> R,
-        R: Into<ReturnOperand>,
+        R: ReturnOperand<'a>,
     {
         Selection::new_node(self, query)
     }
 
-    pub fn query_edges<Q, R>(&self, query: Q) -> Selection
+    pub fn query_edges<'a, Q, R>(&'a self, query: Q) -> Selection<'a, R>
     where
         Q: FnOnce(&mut Wrapper<EdgeOperand>) -> R,
-        R: Into<ReturnOperand>,
+        R: ReturnOperand<'a>,
     {
         Selection::new_edge(self, query)
     }

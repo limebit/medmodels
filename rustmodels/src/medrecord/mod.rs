@@ -17,7 +17,7 @@ use medmodels_core::{
 };
 use pyo3::{prelude::*, types::PyFunction};
 use pyo3_polars::PyDataFrame;
-use querying::{edges::PyEdgeOperand, nodes::PyNodeOperand, parse_query_result, PyReturnValue};
+use querying::{edges::PyEdgeOperand, nodes::PyNodeOperand, PyReturnOperand, PyReturnValue};
 use schema::PySchema;
 use std::collections::HashMap;
 use traits::DeepInto;
@@ -706,11 +706,12 @@ impl PyMedRecord {
                     .call1((PyNodeOperand::from(node.clone()),))
                     .expect("Call must succeed");
 
-                parse_query_result(result)
+                result
+                    .extract::<PyReturnOperand>()
+                    .expect("Extraction must succeed")
             })
             .evaluate()
-            .map_err(PyMedRecordError::from)?
-            .into())
+            .map_err(PyMedRecordError::from)?)
     }
 
     pub fn query_edges(&self, query: &Bound<'_, PyFunction>) -> PyResult<PyReturnValue> {
@@ -721,11 +722,12 @@ impl PyMedRecord {
                     .call1((PyEdgeOperand::from(edge.clone()),))
                     .expect("Call must succeed");
 
-                parse_query_result(result)
+                result
+                    .extract::<PyReturnOperand>()
+                    .expect("Extraction must succeed")
             })
             .evaluate()
-            .map_err(PyMedRecordError::from)?
-            .into())
+            .map_err(PyMedRecordError::from)?)
     }
 
     pub fn clone(&self) -> Self {

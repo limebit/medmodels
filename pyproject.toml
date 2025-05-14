@@ -145,7 +145,7 @@ ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/*" = ["D", "DOC"]
+"tests/*" = ["D", "DOC", "C901"]
 "*/__init__.py" = ["D", "DOC"]
 
 [tool.ruff.lint.pydocstyle]

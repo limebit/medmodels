@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import Callable, Dict, List, Optional, Tuple, TypeAlias, Union
+from typing import Callable, Dict, List, Optional, Sequence, Tuple, TypeAlias, Union
 
 from medmodels._medmodels import (
     PyEdgeAttributesTreeOperand,
@@ -47,10 +47,11 @@ PyQueryReturnOperand: TypeAlias = Union[
     PyEdgeMultipleValuesOperand,
     PyNodeSingleValueOperand,
     PyEdgeSingleValueOperand,
+    Sequence["PyQueryReturnOperand"],
 ]
 
 #: A type alias for a query return operand.
-QueryReturnOperand = Union[
+QueryReturnOperand: TypeAlias = Union[
     "NodeAttributesTreeOperand",
     "EdgeAttributesTreeOperand",
     "NodeMultipleAttributesOperand",
@@ -65,45 +66,46 @@ QueryReturnOperand = Union[
     "EdgeMultipleValuesOperand",
     "NodeSingleValueOperand",
     "EdgeSingleValueOperand",
+    Sequence["QueryReturnOperand"],
 ]
 
-NodeAttributesTreeQueryResult = Dict[NodeIndex, List[MedRecordAttribute]]
-EdgeAttributesTreeQueryResult = Dict[EdgeIndex, List[MedRecordAttribute]]
+NodeAttributesTreeQueryResult: TypeAlias = Dict[NodeIndex, List[MedRecordAttribute]]
+EdgeAttributesTreeQueryResult: TypeAlias = Dict[EdgeIndex, List[MedRecordAttribute]]
 
-NodeMultipleAttributesQueryResult = Dict[NodeIndex, MedRecordAttribute]
-EdgeMultipleAttributesQueryResult = Dict[EdgeIndex, MedRecordAttribute]
+NodeMultipleAttributesQueryResult: TypeAlias = Dict[NodeIndex, MedRecordAttribute]
+EdgeMultipleAttributesQueryResult: TypeAlias = Dict[EdgeIndex, MedRecordAttribute]
 
-NodeSingleAttributeQueryResult = Union[
+NodeSingleAttributeQueryResult: TypeAlias = Union[
     Optional[Tuple[NodeIndex, MedRecordAttribute]],
     Optional[MedRecordAttribute],
 ]
-EdgeSingleAttributeQueryResult = Union[
+EdgeSingleAttributeQueryResult: TypeAlias = Union[
     Optional[Tuple[EdgeIndex, MedRecordAttribute]],
     Optional[MedRecordAttribute],
 ]
 
-EdgeIndicesQueryResult = List[EdgeIndex]
+EdgeIndicesQueryResult: TypeAlias = List[EdgeIndex]
 
-EdgeIndexQueryResult = Optional[EdgeIndex]
+EdgeIndexQueryResult: TypeAlias = Optional[EdgeIndex]
 
-NodeIndicesQueryResult = List[NodeIndex]
+NodeIndicesQueryResult: TypeAlias = List[NodeIndex]
 
-NodeIndexQueryResult = Optional[NodeIndex]
+NodeIndexQueryResult: TypeAlias = Optional[NodeIndex]
 
-NodeMultipleValuesQueryResult = Dict[NodeIndex, MedRecordValue]
-EdgeMultipleValuesQueryResult = Dict[EdgeIndex, MedRecordValue]
+NodeMultipleValuesQueryResult: TypeAlias = Dict[NodeIndex, MedRecordValue]
+EdgeMultipleValuesQueryResult: TypeAlias = Dict[EdgeIndex, MedRecordValue]
 
-NodeSingleValueQueryResult = Union[
+NodeSingleValueQueryResult: TypeAlias = Union[
     Optional[Tuple[NodeIndex, MedRecordValue]],
     Optional[MedRecordValue],
 ]
-EdgeSingleValueQueryResult = Union[
+EdgeSingleValueQueryResult: TypeAlias = Union[
     Optional[Tuple[EdgeIndex, MedRecordValue]],
     Optional[MedRecordValue],
 ]
 
 #: A type alias for a query result.
-QueryResult = Union[
+QueryResult: TypeAlias = Union[
     NodeAttributesTreeQueryResult,
     EdgeAttributesTreeQueryResult,
     NodeMultipleAttributesQueryResult,
@@ -118,6 +120,7 @@ QueryResult = Union[
     EdgeMultipleValuesQueryResult,
     NodeSingleValueQueryResult,
     EdgeSingleValueQueryResult,
+    List["QueryResult"],
 ]
 
 NodeQuery: TypeAlias = Callable[["NodeOperand"], QueryReturnOperand]
