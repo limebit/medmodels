@@ -9,6 +9,7 @@ from medmodels._medmodels import (
     PyGroupSchema,
     PySchema,
 )
+from tests.medrecord.test_medrecord import strip_ansi
 
 
 class TestAttributeType(unittest.TestCase):
@@ -452,12 +453,165 @@ class TestSchema(unittest.TestCase):
 
         assert schema.schema_type == mr.SchemaType.Inferred
 
+    def test_describe_nodes_schema(self) -> None:
+        medrecord = mr.MedRecord.from_simple_example_dataset()
+        schema = medrecord.get_schema()
+
+        assert schema._describe_nodes_schema() == {
+            "diagnosis": {
+                "attribute": {
+                    "description": {"type": "Unstructured", "datatype": "String"}
+                }
+            },
+            "drug": {
+                "attribute": {
+                    "description": {"type": "Unstructured", "datatype": "String"}
+                }
+            },
+            "patient": {
+                "attribute": {
+                    "age": {"type": "Continuous", "datatype": "Int"},
+                    "gender": {"type": "Categorical", "datatype": "String"},
+                }
+            },
+            "procedure": {
+                "attribute": {
+                    "description": {"type": "Unstructured", "datatype": "String"}
+                }
+            },
+        }
+
+        medrecord.unfreeze_schema()
+        medrecord.add_nodes((0, {"key1": 0}))
+        schema = medrecord.get_schema()
+
+        assert schema._describe_nodes_schema() == {
+            "diagnosis": {
+                "attribute": {
+                    "description": {"type": "Unstructured", "datatype": "String"}
+                }
+            },
+            "drug": {
+                "attribute": {
+                    "description": {"type": "Unstructured", "datatype": "String"}
+                }
+            },
+            "patient": {
+                "attribute": {
+                    "age": {"type": "Continuous", "datatype": "Int"},
+                    "gender": {"type": "Categorical", "datatype": "String"},
+                }
+            },
+            "procedure": {
+                "attribute": {
+                    "description": {"type": "Unstructured", "datatype": "String"}
+                }
+            },
+            "Ungrouped Nodes": {
+                "attribute": {"key1": {"type": "Continuous", "datatype": "Option(Int)"}}
+            },
+        }
+
+    def test_describe_edges_schema(self) -> None:
+        medrecord = mr.MedRecord.from_simple_example_dataset()
+        schema = medrecord.get_schema()
+
+        assert schema._describe_edges_schema() == {
+            "patient_diagnosis": {
+                "attribute": {
+                    "duration_days": {
+                        "type": "Continuous",
+                        "datatype": "Option(Float)",
+                    },
+                    "time": {"type": "Temporal", "datatype": "DateTime"},
+                }
+            },
+            "patient_drug": {
+                "attribute": {
+                    "cost": {"type": "Continuous", "datatype": "Float"},
+                    "quantity": {"type": "Continuous", "datatype": "Int"},
+                    "time": {"type": "Temporal", "datatype": "DateTime"},
+                }
+            },
+            "patient_procedure": {
+                "attribute": {
+                    "duration_minutes": {"type": "Continuous", "datatype": "Float"},
+                    "time": {"type": "Temporal", "datatype": "DateTime"},
+                }
+            },
+        }
+
+        medrecord.unfreeze_schema()
+        medrecord.add_edges(("pat_1", "pat_2", {"key1": 0}))
+        schema = medrecord.get_schema()
+
+        assert schema._describe_edges_schema() == {
+            "patient_diagnosis": {
+                "attribute": {
+                    "duration_days": {
+                        "type": "Continuous",
+                        "datatype": "Option(Float)",
+                    },
+                    "time": {"type": "Temporal", "datatype": "DateTime"},
+                }
+            },
+            "patient_drug": {
+                "attribute": {
+                    "cost": {"type": "Continuous", "datatype": "Float"},
+                    "quantity": {"type": "Continuous", "datatype": "Int"},
+                    "time": {"type": "Temporal", "datatype": "DateTime"},
+                }
+            },
+            "patient_procedure": {
+                "attribute": {
+                    "duration_minutes": {"type": "Continuous", "datatype": "Float"},
+                    "time": {"type": "Temporal", "datatype": "DateTime"},
+                }
+            },
+            "Ungrouped Edges": {
+                "attribute": {"key1": {"type": "Continuous", "datatype": "Option(Int)"}}
+            },
+        }
+
+    def test_repr(self) -> None:
+        medrecord = mr.MedRecord.from_simple_example_dataset()
+        schema = medrecord.get_schema()
+        schema_representation = strip_ansi(str(schema))
+
+        expected = "\n".join(
+            [
+                "──────────────────────────────────── Nodes ─────────────────────────────────────",
+                "┏━━━━━━━━━━━┳━━━━━━━━━━━━━┳━━━━━━━━━━━━━━┳━━━━━━━━━━┓",
+                "┃ Nodes     ┃ attribute   ┃ type         ┃ datatype ┃",
+                "┡━━━━━━━━━━━╇━━━━━━━━━━━━━╇━━━━━━━━━━━━━━╇━━━━━━━━━━┩",
+                "│ diagnosis │ description │ Unstructured │ String   │",
+                "│           │             │              │          │",
+                "│ drug      │ description │ Unstructured │ String   │",
+                "│           │             │              │          │",
+                "│ patient   │ age         │ Continuous   │ Int      │",
+                "│           │ gender      │ Categorical  │ String   │",
+                "│           │             │              │          │",
+                "│ procedure │ description │ Unstructured │ String   │",
+                "└───────────┴─────────────┴──────────────┴──────────┘",
+                "──────────────────────────────────── Edges ─────────────────────────────────────",
+                "┏━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━┳━━━━━━━━━━━━━━━┓",
+                "┃ Edges             ┃ attribute        ┃ type       ┃ datatype      ┃",
+                "┡━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━╇━━━━━━━━━━━━━━━┩",
+                "│ patient_diagnosis │ duration_days    │ Continuous │ Option(Float) │",
+                "│                   │ time             │ Temporal   │ DateTime      │",
+                "│                   │                  │            │               │",
+                "│ patient_drug      │ cost             │ Continuous │ Float         │",
+                "│                   │ quantity         │ Continuous │ Int           │",
+                "│                   │ time             │ Temporal   │ DateTime      │",
+                "│                   │                  │            │               │",
+                "│ patient_procedure │ duration_minutes │ Continuous │ Float         │",
+                "│                   │ time             │ Temporal   │ DateTime      │",
+                "└───────────────────┴──────────────────┴────────────┴───────────────┘",
+            ]
+        )
+
+        assert schema_representation.strip() == expected.strip()
+
 
 if __name__ == "__main__":
-    suite = unittest.TestSuite()
-
-    suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestAttributeType))
-    suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestGroupSchema))
-    suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestSchema))
-
-    unittest.TextTestRunner(verbosity=2).run(suite)
+    pytest.main(["-v", __file__])

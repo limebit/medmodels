@@ -1,3 +1,4 @@
+import re
 import sys
 import tempfile
 import unittest
@@ -37,6 +38,10 @@ from medmodels.medrecord.types import (
     is_edge_index_list,
     is_node_index_list,
 )
+
+
+def strip_ansi(text: str) -> str:
+    return re.sub(r"\x1b\[[0-9;]*m", "", text).strip()
 
 
 # TODO(#397): Change AttributesInput to Attributes
@@ -477,6 +482,20 @@ class TestMedRecord(unittest.TestCase):
         for node in medrecord.nodes:
             assert node in nodes
 
+    def test_node(self) -> None:
+        medrecord = create_medrecord()
+
+        node = medrecord.node["0"]
+
+        assert node == {"lorem": "ipsum", "dolor": "sit"}
+
+        node = medrecord.node[["0", "1"]]
+
+        assert node == {
+            "0": {"lorem": "ipsum", "dolor": "sit"},
+            "1": {"amet": "consectetur"},
+        }
+
     def test_edges(self) -> None:
         medrecord = create_medrecord()
 
@@ -484,6 +503,20 @@ class TestMedRecord(unittest.TestCase):
 
         for edge in medrecord.edges:
             assert edge in edges
+
+    def test_edge(self) -> None:
+        medrecord = create_medrecord()
+
+        edge = medrecord.edge[0]
+
+        assert edge == {"sed": "do", "eiusmod": "tempor"}
+
+        edge = medrecord.edge[[0, 1]]
+
+        assert edge == {
+            0: {"sed": "do", "eiusmod": "tempor"},
+            1: {"sed": "do", "eiusmod": "tempor"},
+        }
 
     def test_groups(self) -> None:
         medrecord = create_medrecord()
@@ -2396,6 +2429,42 @@ class TestMedRecord(unittest.TestCase):
 
     def test_describe_group_nodes(self) -> None:
         medrecord = create_medrecord()
+        medrecord.add_nodes([("4", {"continuous_attribute": 1})])
+
+        assert medrecord._describe_group_nodes() == {
+            "Ungrouped Nodes": {
+                "count": 5,
+                "attribute": {
+                    "adipiscing": {
+                        "type": "Unstructured",
+                        "datatype": "Option(String)",
+                        "values": "-",
+                    },
+                    "dolor": {
+                        "type": "Unstructured",
+                        "datatype": "Option(String)",
+                        "values": "-",
+                    },
+                    "lorem": {
+                        "type": "Unstructured",
+                        "datatype": "Option(String)",
+                        "values": "-",
+                    },
+                    "amet": {
+                        "type": "Unstructured",
+                        "datatype": "Option(String)",
+                        "values": "-",
+                    },
+                    "continuous_attribute": {
+                        "type": "Continuous",
+                        "datatype": "Option(Int)",
+                        "min": 1,
+                        "max": 1,
+                        "mean": 1.0,
+                    },
+                },
+            },
+        }
 
         medrecord.add_group("Float")
         medrecord.add_group(1, nodes=["2", "0"])
@@ -2404,15 +2473,55 @@ class TestMedRecord(unittest.TestCase):
             1: {
                 "count": 2,
                 "attribute": {
-                    "adipiscing": {"type": "Categorical", "values": "Categories: elit"},
-                    "dolor": {"type": "Categorical", "values": "Categories: sit"},
-                    "lorem": {"type": "Categorical", "values": "Categories: ipsum"},
+                    "adipiscing": {
+                        "type": "Unstructured",
+                        "datatype": "Option(String)",
+                        "values": "-",
+                    },
+                    "dolor": {
+                        "type": "Unstructured",
+                        "datatype": "Option(String)",
+                        "values": "-",
+                    },
+                    "lorem": {
+                        "type": "Unstructured",
+                        "datatype": "Option(String)",
+                        "values": "-",
+                    },
                 },
             },
             "Float": {"count": 0, "attribute": {}},
             "Ungrouped Nodes": {
-                "count": 2,
-                "attribute": {},
+                "count": 3,
+                "attribute": {
+                    "adipiscing": {
+                        "type": "Unstructured",
+                        "datatype": "Option(String)",
+                        "values": "-",
+                    },
+                    "dolor": {
+                        "type": "Unstructured",
+                        "datatype": "Option(String)",
+                        "values": "-",
+                    },
+                    "lorem": {
+                        "type": "Unstructured",
+                        "datatype": "Option(String)",
+                        "values": "-",
+                    },
+                    "amet": {
+                        "type": "Unstructured",
+                        "datatype": "Option(String)",
+                        "values": "-",
+                    },
+                    "continuous_attribute": {
+                        "type": "Continuous",
+                        "datatype": "Option(Int)",
+                        "min": 1,
+                        "max": 1,
+                        "mean": 1.0,
+                    },
+                },
             },
         }
 
@@ -2424,7 +2533,27 @@ class TestMedRecord(unittest.TestCase):
             "Odd": {
                 "count": 2,
                 "attribute": {
-                    "amet": {"type": "Categorical", "values": "Categories: consectetur"}
+                    "amet": {
+                        "type": "Unstructured",
+                        "datatype": "Option(String)",
+                        "values": "-",
+                    },
+                },
+            },
+        }
+
+        # test with groups with no nodes
+        medrecord.add_group("Even", edges=[0, 2])
+        assert medrecord._describe_group_nodes(groups=["Float", "Odd", "Even"]) == {
+            "Float": {"count": 0, "attribute": {}},
+            "Odd": {
+                "count": 2,
+                "attribute": {
+                    "amet": {
+                        "type": "Unstructured",
+                        "datatype": "Option(String)",
+                        "values": "-",
+                    },
                 },
             },
         }
@@ -2432,18 +2561,57 @@ class TestMedRecord(unittest.TestCase):
     def test_describe_group_edges(self) -> None:
         medrecord = create_medrecord()
 
+        medrecord.add_edges([("0", "1", {"continuous_attribute": 1})])
         medrecord.add_group("Even", edges=[0, 2])
 
         assert medrecord._describe_group_edges() == {
             "Even": {
                 "count": 2,
                 "attribute": {
-                    "eiusmod": {"type": "Categorical", "values": "Categories: tempor"},
-                    "incididunt": {"type": "Categorical", "values": "Categories: ut"},
-                    "sed": {"type": "Categorical", "values": "Categories: do"},
+                    "eiusmod": {
+                        "type": "Unstructured",
+                        "datatype": "Option(String)",
+                        "values": "-",
+                    },
+                    "incididunt": {
+                        "type": "Unstructured",
+                        "datatype": "Option(String)",
+                        "values": "-",
+                    },
+                    "sed": {
+                        "type": "Unstructured",
+                        "datatype": "Option(String)",
+                        "values": "-",
+                    },
                 },
             },
-            "Ungrouped Edges": {"count": 2, "attribute": {}},
+            "Ungrouped Edges": {
+                "count": 3,
+                "attribute": {
+                    "eiusmod": {
+                        "type": "Unstructured",
+                        "datatype": "Option(String)",
+                        "values": "-",
+                    },
+                    "incididunt": {
+                        "type": "Unstructured",
+                        "datatype": "Option(String)",
+                        "values": "-",
+                    },
+                    "sed": {
+                        "type": "Unstructured",
+                        "datatype": "Option(String)",
+                        "values": "-",
+                    },
+                    "continuous_attribute": {
+                        "type": "Continuous",
+                        "datatype": "Option(Int)",
+                        "min": 1,
+                        "max": 1,
+                        "mean": 1.0,
+                    },
+                },
+            },
         }
 
         # test the specified group list
@@ -2451,9 +2619,46 @@ class TestMedRecord(unittest.TestCase):
             "Even": {
                 "count": 2,
                 "attribute": {
-                    "eiusmod": {"type": "Categorical", "values": "Categories: tempor"},
-                    "incididunt": {"type": "Categorical", "values": "Categories: ut"},
-                    "sed": {"type": "Categorical", "values": "Categories: do"},
+                    "eiusmod": {
+                        "type": "Unstructured",
+                        "datatype": "Option(String)",
+                        "values": "-",
+                    },
+                    "incididunt": {
+                        "type": "Unstructured",
+                        "datatype": "Option(String)",
+                        "values": "-",
+                    },
+                    "sed": {
+                        "type": "Unstructured",
+                        "datatype": "Option(String)",
+                        "values": "-",
+                    },
+                },
+            },
+        }
+
+        medrecord.add_group("Odd", nodes=["1"])
+        # test with groups with no edges
+        assert medrecord._describe_group_edges(groups=["Even", "Odd"]) == {
+            "Even": {
+                "count": 2,
+                "attribute": {
+                    "eiusmod": {
+                        "type": "Unstructured",
+                        "datatype": "Option(String)",
+                        "values": "-",
+                    },
+                    "incididunt": {
+                        "type": "Unstructured",
+                        "datatype": "Option(String)",
+                        "values": "-",
+                    },
+                    "sed": {
+                        "type": "Unstructured",
+                        "datatype": "Option(String)",
+                        "values": "-",
+                    },
                 },
             },
         }
@@ -2461,129 +2666,161 @@ class TestMedRecord(unittest.TestCase):
     def test_overview_nodes(self) -> None:
         medrecord = MedRecord.from_simple_example_dataset()
 
-        assert "\n".join(
-            [
-                "-----------------------------------------------------------",
-                "Nodes Group Count Attribute   Type        Data             ",
-                "-----------------------------------------------------------",
-                "diagnosis   25    description Categorical 25 categories    ",
-                "drug        19    description Categorical 19 categories    ",
-                "patient     5     age         Continuous  min: 19          ",
-                "                                          max: 96          ",
-                "                                          mean: 43.20      ",
-                "                  gender      Categorical Categories: F, M ",
-                "procedure   24    description Categorical 24 categories    ",
-                "-----------------------------------------------------------",
-            ]
-        ) == str(medrecord.overview_nodes())
+        output = strip_ansi(str(medrecord.overview_nodes("patient")))
 
-        assert "\n".join(
+        expected = "\n".join(
             [
-                "---------------------------------------------------------",
-                "Nodes Group Count Attribute Type        Data             ",
-                "---------------------------------------------------------",
-                "patient     5     age       Continuous  min: 19          ",
-                "                                        max: 96          ",
-                "                                        mean: 43.20      ",
-                "                  gender    Categorical Categories: F, M ",
-                "---------------------------------------------------------",
+                "┏━━━━━━━━━━━━━┳━━━━━━━┳━━━━━━━━━━━┳━━━━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━┓",
+                "┃ Nodes Group ┃ count ┃ attribute ┃ type        ┃ datatype ┃ data             ┃",
+                "┡━━━━━━━━━━━━━╇━━━━━━━╇━━━━━━━━━━━╇━━━━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━┩",
+                "│ patient     │ 5     │ age       │ Continuous  │ Int      │ min: 19          │",
+                "│             │       │           │             │          │ mean: 43.2       │",
+                "│             │       │           │             │          │ max: 96          │",
+                "│             │       │ gender    │ Categorical │ String   │ Categories: F, M │",
+                "└─────────────┴───────┴───────────┴─────────────┴──────────┴──────────────────┘",
             ]
-        ) == str(medrecord.overview_nodes("patient"))
+        )
+
+        assert output == expected
+
+        output = strip_ansi(str(medrecord.overview_nodes()))
+
+        expected = "\n".join(
+            [
+                "┏━━━━━━━━━━━━━┳━━━━━━━┳━━━━━━━━━━━━━┳━━━━━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━┓",
+                "┃ Nodes Group ┃ count ┃ attribute   ┃ type         ┃ datatype ┃ data             ┃",
+                "┡━━━━━━━━━━━━━╇━━━━━━━╇━━━━━━━━━━━━━╇━━━━━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━┩",
+                "│ diagnosis   │ 25    │ description │ Unstructured │ String   │ -                │",
+                "│             │       │             │              │          │                  │",
+                "│ drug        │ 19    │ description │ Unstructured │ String   │ -                │",
+                "│             │       │             │              │          │                  │",
+                "│ patient     │ 5     │ age         │ Continuous   │ Int      │ min: 19          │",
+                "│             │       │             │              │          │ mean: 43.2       │",
+                "│             │       │             │              │          │ max: 96          │",
+                "│             │       │ gender      │ Categorical  │ String   │ Categories: F, M │",
+                "│             │       │             │              │          │                  │",
+                "│ procedure   │ 24    │ description │ Unstructured │ String   │ -                │",
+                "└─────────────┴───────┴─────────────┴──────────────┴──────────┴──────────────────┘",
+            ]
+        )
+
+        assert output == expected
 
     def test_overview_edges(self) -> None:
         medrecord = MedRecord.from_simple_example_dataset()
 
-        assert "\n".join(
-            [
-                "-----------------------------------------------------------------------------",
-                "Edges Group       Count Attribute        Type       Data                     ",
-                "-----------------------------------------------------------------------------",
-                "patient_diagnosis 60    duration_days    Continuous min: 0.00                ",
-                "                                                    max: 3416.00             ",
-                "                                                    mean: 405.02             ",
-                "                        time             Temporal   min: 1962-10-21 00:00:00 ",
-                "                                                    max: 2024-04-12 00:00:00 ",
-                "patient_drug      50    cost             Continuous min: 0.10                ",
-                "                                                    max: 7822.20             ",
-                "                                                    mean: 412.10             ",
-                "                        quantity         Continuous min: 1                   ",
-                "                                                    max: 12                  ",
-                "                                                    mean: 2.96               ",
-                "                        time             Temporal   min: 1995-03-26 02:00:40 ",
-                "                                                    max: 2024-04-12 11:59:55 ",
-                "patient_procedure 50    duration_minutes Continuous min: 4.00                ",
-                "                                                    max: 59.00               ",
-                "                                                    mean: 19.44              ",
-                "                        time             Temporal   min: 1993-03-14 02:42:31 ",
-                "                                                    max: 2024-04-24 03:38:35 ",
-                "-----------------------------------------------------------------------------",
-            ]
-        ) == str(medrecord.overview_edges())
+        output = strip_ansi(str(medrecord.overview_edges("patient_diagnosis")))
 
-        assert "\n".join(
+        expected = "\n".join(
             [
-                "--------------------------------------------------------------------------",
-                "Edges Group       Count Attribute     Type       Data                     ",
-                "--------------------------------------------------------------------------",
-                "patient_diagnosis 60    duration_days Continuous min: 0.00                ",
-                "                                                 max: 3416.00             ",
-                "                                                 mean: 405.02             ",
-                "                        time          Temporal   min: 1962-10-21 00:00:00 ",
-                "                                                 max: 2024-04-12 00:00:00 ",
-                "--------------------------------------------------------------------------",
+                "┏━━━━━━━━━━━━━━━━━━━┳━━━━━━━┳━━━━━━━━━━━━━━━┳━━━━━━━━━━━━┳━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━┓",
+                "┃ Edges Group       ┃ count ┃ attribute     ┃ type       ┃ datatype      ┃ data                      ┃",
+                "┡━━━━━━━━━━━━━━━━━━━╇━━━━━━━╇━━━━━━━━━━━━━━━╇━━━━━━━━━━━━╇━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━┩",
+                "│ patient_diagnosis │ 60    │ duration_days │ Continuous │ Option(Float) │ min: 0.0                  │",
+                "│                   │       │               │            │               │ mean: 405.02              │",
+                "│                   │       │               │            │               │ max: 3416.0               │",
+                "│                   │       │ time          │ Temporal   │ DateTime      │ min: 1962-10-21 00:00:00  │",
+                "│                   │       │               │            │               │ mean: 2012-01-25 11:12:00 │",
+                "│                   │       │               │            │               │ max: 2024-04-12 00:00:00  │",
+                "└───────────────────┴───────┴───────────────┴────────────┴───────────────┴───────────────────────────┘",
             ]
-        ) == str(medrecord.overview_edges("patient_diagnosis"))
+        )
+
+        assert output == expected
+
+        output = strip_ansi(str(medrecord.overview_edges()))
+
+        expected = "\n".join(
+            [
+                "┏━━━━━━━━━━━━━━━━━━━┳━━━━━━━┳━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━┳━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━┓",
+                "┃ Edges Group       ┃ count ┃ attribute        ┃ type       ┃ datatype      ┃ data                      ┃",
+                "┡━━━━━━━━━━━━━━━━━━━╇━━━━━━━╇━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━╇━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━┩",
+                "│ patient_diagnosis │ 60    │ duration_days    │ Continuous │ Option(Float) │ min: 0.0                  │",
+                "│                   │       │                  │            │               │ mean: 405.02              │",
+                "│                   │       │                  │            │               │ max: 3416.0               │",
+                "│                   │       │ time             │ Temporal   │ DateTime      │ min: 1962-10-21 00:00:00  │",
+                "│                   │       │                  │            │               │ mean: 2012-01-25 11:12:00 │",
+                "│                   │       │                  │            │               │ max: 2024-04-12 00:00:00  │",
+                "│                   │       │                  │            │               │                           │",
+                "│ patient_drug      │ 50    │ cost             │ Continuous │ Float         │ min: 0.1                  │",
+                "│                   │       │                  │            │               │ mean: 412.1               │",
+                "│                   │       │                  │            │               │ max: 7822.2               │",
+                "│                   │       │ quantity         │ Continuous │ Int           │ min: 1                    │",
+                "│                   │       │                  │            │               │ mean: 2.96                │",
+                "│                   │       │                  │            │               │ max: 12                   │",
+                "│                   │       │ time             │ Temporal   │ DateTime      │ min: 1995-03-26 02:00:40  │",
+                "│                   │       │                  │            │               │ mean: 2016-02-17 14:41:36 │",
+                "│                   │       │                  │            │               │ max: 2024-04-12 11:59:55  │",
+                "│                   │       │                  │            │               │                           │",
+                "│ patient_procedure │ 50    │ duration_minutes │ Continuous │ Float         │ min: 4.0                  │",
+                "│                   │       │                  │            │               │ mean: 19.44               │",
+                "│                   │       │                  │            │               │ max: 59.0                 │",
+                "│                   │       │ time             │ Temporal   │ DateTime      │ min: 1993-03-14 02:42:31  │",
+                "│                   │       │                  │            │               │ mean: 2015-07-29 12:05:08 │",
+                "│                   │       │                  │            │               │ max: 2024-04-24 03:38:35  │",
+                "└───────────────────┴───────┴──────────────────┴────────────┴───────────────┴───────────────────────────┘",
+            ]
+        )
+
+        assert output == expected
 
     def test_repr(self) -> None:
         medrecord = MedRecord.from_simple_example_dataset()
 
-        # Representation when in testing/debug mode
         expected = (
             "\n".join(
                 [
-                    "-----------------------------------------------------------",
-                    "Nodes Group Count Attribute   Type        Data             ",
-                    "-----------------------------------------------------------",
-                    "diagnosis   25    description Categorical 25 categories    ",
-                    "drug        19    description Categorical 19 categories    ",
-                    "patient     5     age         Continuous  min: 19          ",
-                    "                                          max: 96          ",
-                    "                                          mean: 43.20      ",
-                    "                  gender      Categorical Categories: F, M ",
-                    "procedure   24    description Categorical 24 categories    ",
-                    "-----------------------------------------------------------",
-                    "",
-                    "-----------------------------------------------------------------------------",
-                    "Edges Group       Count Attribute        Type       Data                     ",
-                    "-----------------------------------------------------------------------------",
-                    "patient_diagnosis 60    duration_days    Continuous min: 0.00                ",
-                    "                                                    max: 3416.00             ",
-                    "                                                    mean: 405.02             ",
-                    "                        time             Temporal   min: 1962-10-21 00:00:00 ",
-                    "                                                    max: 2024-04-12 00:00:00 ",
-                    "patient_drug      50    cost             Continuous min: 0.10                ",
-                    "                                                    max: 7822.20             ",
-                    "                                                    mean: 412.10             ",
-                    "                        quantity         Continuous min: 1                   ",
-                    "                                                    max: 12                  ",
-                    "                                                    mean: 2.96               ",
-                    "                        time             Temporal   min: 1995-03-26 02:00:40 ",
-                    "                                                    max: 2024-04-12 11:59:55 ",
-                    "patient_procedure 50    duration_minutes Continuous min: 4.00                ",
-                    "                                                    max: 59.00               ",
-                    "                                                    mean: 19.44              ",
-                    "                        time             Temporal   min: 1993-03-14 02:42:31 ",
-                    "                                                    max: 2024-04-24 03:38:35 ",
-                    "-----------------------------------------------------------------------------",
+                    "───────────────────────────────────────────────────── Nodes ─────────────────────────────────────────────────────",
+                    "┏━━━━━━━━━━━━━┳━━━━━━━┳━━━━━━━━━━━━━┳━━━━━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━┓",
+                    "┃ Nodes Group ┃ count ┃ attribute   ┃ type         ┃ datatype ┃ data             ┃",
+                    "┡━━━━━━━━━━━━━╇━━━━━━━╇━━━━━━━━━━━━━╇━━━━━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━┩",
+                    "│ diagnosis   │ 25    │ description │ Unstructured │ String   │ -                │",
+                    "│             │       │             │              │          │                  │",
+                    "│ drug        │ 19    │ description │ Unstructured │ String   │ -                │",
+                    "│             │       │             │              │          │                  │",
+                    "│ patient     │ 5     │ age         │ Continuous   │ Int      │ min: 19          │",
+                    "│             │       │             │              │          │ mean: 43.2       │",
+                    "│             │       │             │              │          │ max: 96          │",
+                    "│             │       │ gender      │ Categorical  │ String   │ Categories: F, M │",
+                    "│             │       │             │              │          │                  │",
+                    "│ procedure   │ 24    │ description │ Unstructured │ String   │ -                │",
+                    "└─────────────┴───────┴─────────────┴──────────────┴──────────┴──────────────────┘",
+                    "───────────────────────────────────────────────────── Edges ─────────────────────────────────────────────────────",
+                    "┏━━━━━━━━━━━━━━━━━━━┳━━━━━━━┳━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━┳━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━┓",
+                    "┃ Edges Group       ┃ count ┃ attribute        ┃ type       ┃ datatype      ┃ data                      ┃",
+                    "┡━━━━━━━━━━━━━━━━━━━╇━━━━━━━╇━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━╇━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━┩",
+                    "│ patient_diagnosis │ 60    │ duration_days    │ Continuous │ Option(Float) │ min: 0.0                  │",
+                    "│                   │       │                  │            │               │ mean: 405.02              │",
+                    "│                   │       │                  │            │               │ max: 3416.0               │",
+                    "│                   │       │ time             │ Temporal   │ DateTime      │ min: 1962-10-21 00:00:00  │",
+                    "│                   │       │                  │            │               │ mean: 2012-01-25 11:12:00 │",
+                    "│                   │       │                  │            │               │ max: 2024-04-12 00:00:00  │",
+                    "│                   │       │                  │            │               │                           │",
+                    "│ patient_drug      │ 50    │ cost             │ Continuous │ Float         │ min: 0.1                  │",
+                    "│                   │       │                  │            │               │ mean: 412.1               │",
+                    "│                   │       │                  │            │               │ max: 7822.2               │",
+                    "│                   │       │ quantity         │ Continuous │ Int           │ min: 1                    │",
+                    "│                   │       │                  │            │               │ mean: 2.96                │",
+                    "│                   │       │                  │            │               │ max: 12                   │",
+                    "│                   │       │ time             │ Temporal   │ DateTime      │ min: 1995-03-26 02:00:40  │",
+                    "│                   │       │                  │            │               │ mean: 2016-02-17 14:41:36 │",
+                    "│                   │       │                  │            │               │ max: 2024-04-12 11:59:55  │",
+                    "│                   │       │                  │            │               │                           │",
+                    "│ patient_procedure │ 50    │ duration_minutes │ Continuous │ Float         │ min: 4.0                  │",
+                    "│                   │       │                  │            │               │ mean: 19.44               │",
+                    "│                   │       │                  │            │               │ max: 59.0                 │",
+                    "│                   │       │ time             │ Temporal   │ DateTime      │ min: 1993-03-14 02:42:31  │",
+                    "│                   │       │                  │            │               │ mean: 2015-07-29 12:05:08 │",
+                    "│                   │       │                  │            │               │ max: 2024-04-24 03:38:35  │",
+                    "└───────────────────┴───────┴──────────────────┴────────────┴───────────────┴───────────────────────────┘",
                 ]
             )
             if sys.gettrace() is None
-            else "<MedRecord: 73 nodes, 160 edges>"
+            else "<MedRecord: 73 nodes, 160 edges>"  # Representation when in testing/debug mode
         )
 
-        assert repr(medrecord) == expected
+        assert expected == strip_ansi(repr(medrecord))
 
 
 if __name__ == "__main__":
-    run_test = unittest.TestLoader().loadTestsFromTestCase(TestMedRecord)
-    unittest.TextTestRunner(verbosity=2).run(run_test)
+    pytest.main(["-vv", __file__])

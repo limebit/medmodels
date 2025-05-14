@@ -4,7 +4,7 @@ from typing import List, Optional
 
 import pandas as pd
 
-from medmodels import MedRecord
+import medmodels.medrecord as mr
 from medmodels.medrecord.types import NodeIndex
 
 
@@ -38,7 +38,7 @@ def create_patients(patients_list: List[NodeIndex]) -> pd.DataFrame:
     return patients.loc[patients["index"].isin(patients_list)]
 
 
-def create_medrecord(patients_list: Optional[List[NodeIndex]] = None) -> MedRecord:
+def create_medrecord(patients_list: Optional[List[NodeIndex]] = None) -> mr.MedRecord:
     """Creates a MedRecord object.
 
     Args:
@@ -61,8 +61,58 @@ def create_medrecord(patients_list: Optional[List[NodeIndex]] = None) -> MedReco
             "P9",
         ]
     patients = create_patients(patients_list=patients_list)
-    medrecord = MedRecord.from_pandas(nodes=[(patients, "index")])
+    medrecord = mr.MedRecord()
+    schema = mr.Schema(
+        groups={
+            "patients": mr.GroupSchema(
+                nodes={
+                    "age": (mr.Option(mr.Int()), mr.AttributeType.Continuous),
+                    "gender": (mr.Option(mr.String()), mr.AttributeType.Categorical),
+                }
+            ),
+        },
+        ungrouped=mr.GroupSchema(
+            nodes={
+                "age": (mr.Option(mr.Int()), mr.AttributeType.Continuous),
+                "gender": (mr.Option(mr.String()), mr.AttributeType.Categorical),
+            }
+        ),
+    )
+    medrecord.set_schema(schema)
+    medrecord.add_nodes([(patients, "index")])
     medrecord.add_group(group="patients", nodes=patients["index"].to_list())
     medrecord.add_nodes(("P10", {}), "patients")
+
+    return medrecord
+
+
+def create_medrecord_with_inferred_schema(
+    patients_list: Optional[List[NodeIndex]] = None,
+) -> mr.MedRecord:
+    """Creates a MedRecord object with inferred schema.
+
+    Args:
+        patients_list (Optional[List[NodeIndex]], optional): List of patients to include
+            in the MedRecord. Defaults to None.
+
+    Returns:
+        MedRecord: A MedRecord object.
+    """
+    if patients_list is None:
+        patients_list = [
+            "P1",
+            "P2",
+            "P3",
+            "P4",
+            "P5",
+            "P6",
+            "P7",
+            "P8",
+            "P9",
+        ]
+    patients = create_patients(patients_list=patients_list)
+    medrecord = mr.MedRecord()
+    medrecord.add_nodes([(patients, "index")])
+    medrecord.add_group(group="patients", nodes=patients["index"].to_list())
 
     return medrecord
