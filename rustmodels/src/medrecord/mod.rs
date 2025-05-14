@@ -708,7 +708,7 @@ impl PyMedRecord {
 
                 result
                     .extract::<PyReturnOperand>()
-                    .expect("Extract must succeed")
+                    .expect("Extraction must succeed")
             })
             .evaluate()
             .map_err(PyMedRecordError::from)?)
@@ -724,7 +724,7 @@ impl PyMedRecord {
 
                 result
                     .extract::<PyReturnOperand>()
-                    .expect("Extract must succeed")
+                    .expect("Extraction must succeed")
             })
             .evaluate()
             .map_err(PyMedRecordError::from)?)
