@@ -233,7 +233,7 @@ lines: 126-132
 
 :::{dropdown} Methods used in the snippet
 
-- [`in_group()`](medmodels.medrecord.querying.EdgeOperand.in_group){target="_blank"} : Query nodes that belong to that group.
+- [`in_group()`](medmodels.medrecord.querying.EdgeOperand.in_group){target="_blank"} : Query edges that belong to that group.
 - [`index()`](medmodels.medrecord.querying.EdgeOperand.index){target="_blank"}: Returns a [`EdgeIndicesOperand`](medmodels.medrecord.querying.EdgeIndicesOperand){target="_blank"} representing the indices of the edges queried.
 - [`query_edges()`](medmodels.medrecord.medrecord.MedRecord.query_edges){target="_blank"} : Selects edges from the MedRecord based on the provided query.
 
@@ -251,11 +251,11 @@ lines: 136-145
 
 :::{dropdown} Methods used in the snippet
 
-- [`in_group()`](medmodels.medrecord.querying.EdgeOperand.in_group){target="_blank"} : Query nodes that belong to that group.
-- [`attribute()`](medmodels.medrecord.querying.EdgeOperand.attribute){target="_blank"} : Returns a [`EdgeMultipleValuesOperand()`](medmodels.medrecord.querying.EdgeMultipleValuesOperand){target="_blank"} to query on the values of the nodes for that attribute.
+- [`in_group()`](medmodels.medrecord.querying.EdgeOperand.in_group){target="_blank"} : Query edges that belong to that group.
+- [`attribute()`](medmodels.medrecord.querying.EdgeOperand.attribute){target="_blank"} : Returns a [`EdgeMultipleValuesOperand()`](medmodels.medrecord.querying.EdgeMultipleValuesOperand){target="_blank"} to query on the values of the edges for that attribute.
 - [`less_than()`](medmodels.medrecord.querying.EdgeMultipleValuesOperand.less_than){target="_blank"} : Query values that are less than that value.
 - [`source_node()`](medmodels.medrecord.querying.EdgeOperand.source_node){target="_blank"} : Returns a [`NodeOperand()`](medmodels.medrecord.querying.NodeOperand) to query on the source nodes for those edges.
-- [`is_max()`](medmodels.medrecord.querying.EdgeMultipleValuesOperand.is_max){target="_blank"} : Query on the values that hold on the maximum value among all of the.
+- [`is_max()`](medmodels.medrecord.querying.EdgeMultipleValuesOperand.is_max){target="_blank"} : Query on the values that hold the maximum value. 
 - [`target_node()`](medmodels.medrecord.querying.EdgeOperand.target_node){target="_blank"} : Returns a [`NodeOperand()`](medmodels.medrecord.querying.NodeOperand){target="_blank"} to query on the target nodes for those edges.
 - [`contains()`](medmodels.medrecord.querying.NodeIndexOperand.contains){target="_blank"} : Query node indices containing that argument.
 - [`index()`](medmodels.medrecord.querying.EdgeOperand.index){target="_blank"}: Returns a [`EdgeIndicesOperand`](medmodels.medrecord.querying.EdgeIndicesOperand){target="_blank"} representing the indices of the edges queried.
@@ -281,8 +281,8 @@ lines: 149-168
 
 :::{dropdown} Methods used in the snippet
 
-- [`in_group()`](medmodels.medrecord.querying.EdgeOperand.in_group){target="_blank"} : Query nodes that belong to that group.
-- [`attribute()`](medmodels.medrecord.querying.EdgeOperand.attribute){target="_blank"} : Returns a [`EdgeMultipleValuesOperand()`](medmodels.medrecord.querying.EdgeMultipleValuesOperand){target="_blank"} to query on the values of the nodes for that attribute.
+- [`in_group()`](medmodels.medrecord.querying.EdgeOperand.in_group){target="_blank"} : Query edges that belong to that group.
+- [`attribute()`](medmodels.medrecord.querying.EdgeOperand.attribute){target="_blank"} : Returns a [`EdgeMultipleValuesOperand()`](medmodels.medrecord.querying.EdgeMultipleValuesOperand){target="_blank"} to query on the values of the edges for that attribute.
 - [`less_than()`](medmodels.medrecord.querying.EdgeMultipleValuesOperand.less_than){target="_blank"} : Query values that are less than that value.
 - [`equal_to()`](medmodels.medrecord.querying.EdgeMultipleValuesOperand.equal_to){target="_blank"} : Query values that are equal to that value.
 - [`index()`](medmodels.medrecord.querying.EdgeOperand.index){target="_blank"}: Returns a [`EdgeIndicesOperand`](medmodels.medrecord.querying.EdgeIndicesOperand){target="_blank"} representing the indices of the edges queried.
@@ -308,8 +308,8 @@ lines: 172-193
 
 :::{dropdown} Methods used in the snippet
 
-- [`in_group()`](medmodels.medrecord.querying.EdgeOperand.in_group){target="_blank"} : Query nodes that belong to that group.
-- [`attribute()`](medmodels.medrecord.querying.EdgeOperand.attribute){target="_blank"} : Returns a [`EdgeMultipleValuesOperand()`](medmodels.medrecord.querying.EdgeMultipleValuesOperand){target="_blank"} to query on the values of the nodes for that attribute.
+- [`in_group()`](medmodels.medrecord.querying.EdgeOperand.in_group){target="_blank"} : Query edges that belong to that group.
+- [`attribute()`](medmodels.medrecord.querying.EdgeOperand.attribute){target="_blank"} : Returns a [`EdgeMultipleValuesOperand()`](medmodels.medrecord.querying.EdgeMultipleValuesOperand){target="_blank"} to query on the values of the edges for that attribute.
 - [`less_than()`](medmodels.medrecord.querying.EdgeMultipleValuesOperand.less_than){target="_blank"} : Query values that are less than that value.
 - [`equal_to()`](medmodels.medrecord.querying.EdgeMultipleValuesOperand.equal_to){target="_blank"} : Query values that are equal to that value.
 - [`greater_than()`](medmodels.medrecord.querying.EdgeMultipleValuesOperand.greater_than){target="_blank"} : Query values that are greater than that value.
@@ -332,7 +332,7 @@ lines: 196-211
 
 :::{dropdown} Methods used in the snippet
 
-- [`in_group()`](medmodels.medrecord.querying.EdgeOperand.in_group){target="_blank"} : Query nodes that belong to that group.: Query edges that belong to that group.
+- [`in_group()`](medmodels.medrecord.querying.EdgeOperand.in_group){target="_blank"} : Query edges that belong to that group.
 - [`exclude()`](medmodels.medrecord.querying.NodeOperand.exclude){target="_blank"} : Exclude the nodes that belong to the given query.
 - [`index()`](medmodels.medrecord.querying.NodeOperand.index){target="_blank"}: Returns a [`NodeIndicesOperand`](medmodels.medrecord.querying.NodeIndicesOperand){target="_blank"} representing the indices of the nodes queried.
 - [`query_nodes()`](medmodels.medrecord.medrecord.MedRecord.query_nodes){target="_blank"} : Selects nodes from the MedRecord based on the provided query.
@@ -357,7 +357,7 @@ lines: 215-231
 
 :::{dropdown} Methods used in the snippet
 
-- [`in_group()`](medmodels.medrecord.querying.EdgeOperand.in_group){target="_blank"} : Query nodes that belong to that group.: Query edges that belong to that group.
+- [`in_group()`](medmodels.medrecord.querying.EdgeOperand.in_group){target="_blank"} : Query edges that belong to that group.
 - [`index()`](medmodels.medrecord.querying.NodeOperand.index){target="_blank"}: Returns a [`NodeIndexOperand`](medmodels.medrecord.querying.NodeIndexOperand){target="_blank"} to query on the indices.
 - [`contains()`](medmodels.medrecord.querying.NodeIndexOperand.contains){target="_blank"} : Query node indices containing that argument.
 - [`contains()`](medmodels.medrecord.querying.EdgeOperand.attribute){target="_blank"} : Returns a [`EdgeMultipleValuesOperand()`](medmodels.medrecord.querying.EdgeMultipleValuesOperand){target="_blank"} to query on the values of the edges for that attribute.

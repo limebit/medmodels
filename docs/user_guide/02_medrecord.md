@@ -109,7 +109,7 @@ This will expand the MedRecord, adding several new nodes to the graph. However, 
 ```
 
 :::{note}
-Nodes can be added to the MedRecord in a lot of different formats, such as a Pandas Dataframe (as previously shown), but also from a Polars Dataframe:
+Nodes can be added to the MedRecord in a lot of different formats, such as a Pandas DataFrame (as previously shown), but also from a Polars DataFrame:
 
 ```{literalinclude} scripts/02_medrecord_intro.py
 ---
