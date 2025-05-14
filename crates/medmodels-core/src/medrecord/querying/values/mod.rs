@@ -5,7 +5,7 @@ use super::{
     attributes::{MultipleAttributesOperand, MultipleAttributesOperation},
     edges::EdgeOperand,
     nodes::NodeOperand,
-    BoxedIterator, Index, Operand,
+    BoxedIterator, EvaluateBackward, Index, RootOperand,
 };
 use crate::{
     errors::MedRecordResult,
@@ -147,12 +147,12 @@ impl GetValues<EdgeIndex> for EdgeOperand {
 }
 
 #[derive(Debug, Clone)]
-pub enum Context<O: Operand> {
+pub enum Context<O: RootOperand> {
     Operand((O, MedRecordAttribute)),
     MultipleAttributesOperand(MultipleAttributesOperand<O>),
 }
 
-impl<O: Operand> Context<O> {
+impl<O: RootOperand> Context<O> {
     pub(crate) fn get_values<'a>(
         &self,
         medrecord: &'a MedRecord,

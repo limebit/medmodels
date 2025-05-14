@@ -2,7 +2,7 @@
 
 use super::{traits::DeepFrom, Lut};
 use crate::{gil_hash_map::GILHashMap, medrecord::errors::PyMedRecordError};
-use medmodels_core::{errors::MedRecordError, medrecord::DataType};
+use medmodels_core::{errors::MedRecordError, medrecord::datatypes::DataType};
 use pyo3::{prelude::*, IntoPyObjectExt};
 
 macro_rules! implement_pymethods {

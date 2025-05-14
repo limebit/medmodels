@@ -17,12 +17,22 @@ use edges::{PyEdgeIndexOperand, PyEdgeIndicesOperand};
 use medmodels_core::{
     errors::{MedRecordError, MedRecordResult},
     medrecord::{
-        CardinalityWrapper, EdgeAttributesTreeOperand, EdgeIndexOperand, EdgeIndicesOperand,
-        EdgeMultipleAttributesOperand, EdgeMultipleValuesOperand, EdgeSingleAttributeOperand,
-        EdgeSingleValueOperand, MedRecordAttribute, NodeAttributesTreeOperand, NodeIndexOperand,
-        NodeIndicesOperand, NodeMultipleAttributesOperand, NodeMultipleValuesOperand,
-        NodeSingleAttributeOperand, NodeSingleValueOperand, OptionalIndexWrapper, ReturnOperand,
-        Wrapper,
+        querying::{
+            attributes::{
+                EdgeAttributesTreeOperand, EdgeMultipleAttributesOperand,
+                EdgeSingleAttributeOperand, NodeAttributesTreeOperand,
+                NodeMultipleAttributesOperand, NodeSingleAttributeOperand,
+            },
+            edges::{EdgeIndexOperand, EdgeIndicesOperand},
+            nodes::{NodeIndexOperand, NodeIndicesOperand},
+            values::{
+                EdgeMultipleValuesOperand, EdgeSingleValueOperand, NodeMultipleValuesOperand,
+                NodeSingleValueOperand,
+            },
+            wrapper::{CardinalityWrapper, Wrapper},
+            OptionalIndexWrapper, ReturnOperand,
+        },
+        MedRecordAttribute,
     },
     MedRecord,
 };
@@ -58,72 +68,52 @@ pub enum PyReturnOperand {
 impl<'a> ReturnOperand<'a> for PyReturnOperand {
     type ReturnValue = PyReturnValue<'a>;
 
-    fn evaluate(self, medrecord: &'a MedRecord) -> MedRecordResult<Self::ReturnValue> {
+    fn evaluate(&self, medrecord: &'a MedRecord) -> MedRecordResult<Self::ReturnValue> {
         match self {
-            PyReturnOperand::NodeAttributesTree(operand) => {
-                Wrapper::<NodeAttributesTreeOperand>::from(operand)
-                    .evaluate(medrecord)
-                    .map(PyReturnValue::NodeAttributesTree)
-            }
-            PyReturnOperand::EdgeAttributesTree(operand) => {
-                Wrapper::<EdgeAttributesTreeOperand>::from(operand)
-                    .evaluate(medrecord)
-                    .map(PyReturnValue::EdgeAttributesTree)
-            }
-            PyReturnOperand::NodeMultipleAttributes(operand) => {
-                Wrapper::<NodeMultipleAttributesOperand>::from(operand)
-                    .evaluate(medrecord)
-                    .map(PyReturnValue::NodeMultipleAttributes)
-            }
-            PyReturnOperand::EdgeMultipleAttributes(operand) => {
-                Wrapper::<EdgeMultipleAttributesOperand>::from(operand)
-                    .evaluate(medrecord)
-                    .map(PyReturnValue::EdgeMultipleAttributes)
-            }
-            PyReturnOperand::NodeSingleAttribute(operand) => {
-                Wrapper::<NodeSingleAttributeOperand>::from(operand)
-                    .evaluate(medrecord)
-                    .map(PyReturnValue::NodeSingleAttribute)
-            }
-            PyReturnOperand::EdgeSingleAttribute(operand) => {
-                Wrapper::<EdgeSingleAttributeOperand>::from(operand)
-                    .evaluate(medrecord)
-                    .map(PyReturnValue::EdgeSingleAttribute)
-            }
-            PyReturnOperand::EdgeIndices(operand) => Wrapper::<EdgeIndicesOperand>::from(operand)
+            PyReturnOperand::NodeAttributesTree(operand) => operand
                 .evaluate(medrecord)
-                .map(PyReturnValue::EdgeIndices),
-            PyReturnOperand::EdgeIndex(operand) => Wrapper::<EdgeIndexOperand>::from(operand)
+                .map(PyReturnValue::NodeAttributesTree),
+            PyReturnOperand::EdgeAttributesTree(operand) => operand
                 .evaluate(medrecord)
-                .map(PyReturnValue::EdgeIndex),
-            PyReturnOperand::NodeIndices(operand) => Wrapper::<NodeIndicesOperand>::from(operand)
+                .map(PyReturnValue::EdgeAttributesTree),
+            PyReturnOperand::NodeMultipleAttributes(operand) => operand
                 .evaluate(medrecord)
-                .map(PyReturnValue::NodeIndices),
-            PyReturnOperand::NodeIndex(operand) => Wrapper::<NodeIndexOperand>::from(operand)
+                .map(PyReturnValue::NodeMultipleAttributes),
+            PyReturnOperand::EdgeMultipleAttributes(operand) => operand
                 .evaluate(medrecord)
-                .map(PyReturnValue::NodeIndex),
-            PyReturnOperand::NodeMultipleValues(operand) => {
-                Wrapper::<NodeMultipleValuesOperand>::from(operand)
-                    .evaluate(medrecord)
-                    .map(PyReturnValue::NodeMultipleValues)
+                .map(PyReturnValue::EdgeMultipleAttributes),
+            PyReturnOperand::NodeSingleAttribute(operand) => operand
+                .evaluate(medrecord)
+                .map(PyReturnValue::NodeSingleAttribute),
+            PyReturnOperand::EdgeSingleAttribute(operand) => operand
+                .evaluate(medrecord)
+                .map(PyReturnValue::EdgeSingleAttribute),
+            PyReturnOperand::EdgeIndices(operand) => {
+                operand.evaluate(medrecord).map(PyReturnValue::EdgeIndices)
             }
-            PyReturnOperand::EdgeMultipleValues(operand) => {
-                Wrapper::<EdgeMultipleValuesOperand>::from(operand)
-                    .evaluate(medrecord)
-                    .map(PyReturnValue::EdgeMultipleValues)
+            PyReturnOperand::EdgeIndex(operand) => {
+                operand.evaluate(medrecord).map(PyReturnValue::EdgeIndex)
             }
-            PyReturnOperand::NodeSingleValue(operand) => {
-                Wrapper::<NodeSingleValueOperand>::from(operand)
-                    .evaluate(medrecord)
-                    .map(PyReturnValue::NodeSingleValue)
+            PyReturnOperand::NodeIndices(operand) => {
+                operand.evaluate(medrecord).map(PyReturnValue::NodeIndices)
             }
-            PyReturnOperand::EdgeSingleValue(operand) => {
-                Wrapper::<EdgeSingleValueOperand>::from(operand)
-                    .evaluate(medrecord)
-                    .map(PyReturnValue::EdgeSingleValue)
+            PyReturnOperand::NodeIndex(operand) => {
+                operand.evaluate(medrecord).map(PyReturnValue::NodeIndex)
             }
+            PyReturnOperand::NodeMultipleValues(operand) => operand
+                .evaluate(medrecord)
+                .map(PyReturnValue::NodeMultipleValues),
+            PyReturnOperand::EdgeMultipleValues(operand) => operand
+                .evaluate(medrecord)
+                .map(PyReturnValue::EdgeMultipleValues),
+            PyReturnOperand::NodeSingleValue(operand) => operand
+                .evaluate(medrecord)
+                .map(PyReturnValue::NodeSingleValue),
+            PyReturnOperand::EdgeSingleValue(operand) => operand
+                .evaluate(medrecord)
+                .map(PyReturnValue::EdgeSingleValue),
             PyReturnOperand::Vector(operand) => operand
-                .into_iter()
+                .iter()
                 .map(|item| item.evaluate(medrecord))
                 .collect::<MedRecordResult<Vec<_>>>()
                 .map(PyReturnValue::Vector),

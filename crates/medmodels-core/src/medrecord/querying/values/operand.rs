@@ -7,8 +7,8 @@ use crate::{
     errors::MedRecordResult,
     medrecord::{
         querying::{
-            traits::{DeepClone, ReadWriteOrPanic},
-            BoxedIterator, Operand, OptionalIndexWrapper,
+            operand_traits::Max, BoxedIterator, DeepClone, EvaluateBackward, EvaluateForward,
+            OptionalIndexWrapper, ReadWriteOrPanic, RootOperand,
         },
         EdgeOperand, MedRecordValue, NodeOperand, Wrapper,
     },
@@ -246,12 +246,12 @@ pub type NodeMultipleValuesOperand = MultipleValuesOperand<NodeOperand>;
 pub type EdgeMultipleValuesOperand = MultipleValuesOperand<EdgeOperand>;
 
 #[derive(Debug, Clone)]
-pub struct MultipleValuesOperand<O: Operand> {
+pub struct MultipleValuesOperand<O: RootOperand> {
     pub(crate) context: Context<O>,
     operations: Vec<MultipleValuesOperation<O>>,
 }
 
-impl<O: Operand> DeepClone for MultipleValuesOperand<O> {
+impl<O: RootOperand> DeepClone for MultipleValuesOperand<O> {
     fn deep_clone(&self) -> Self {
         Self {
             context: self.context.clone(),
@@ -260,22 +260,18 @@ impl<O: Operand> DeepClone for MultipleValuesOperand<O> {
     }
 }
 
-impl<O: Operand> MultipleValuesOperand<O> {
-    pub(crate) fn new(context: Context<O>) -> Self {
-        Self {
-            context,
-            operations: Vec::new(),
-        }
-    }
+impl<'a, O: RootOperand> EvaluateForward<'a> for MultipleValuesOperand<O>
+where
+    O: 'a,
+{
+    type InputValue = BoxedIterator<'a, (&'a O::Index, MedRecordValue)>;
+    type ReturnValue = BoxedIterator<'a, (&'a O::Index, MedRecordValue)>;
 
-    pub(crate) fn evaluate_forward<'a>(
+    fn evaluate_forward(
         &self,
         medrecord: &'a MedRecord,
-        values: impl Iterator<Item = (&'a O::Index, MedRecordValue)> + 'a,
-    ) -> MedRecordResult<impl Iterator<Item = (&'a O::Index, MedRecordValue)> + 'a>
-    where
-        O: 'a,
-    {
+        values: Self::InputValue,
+    ) -> MedRecordResult<Self::ReturnValue> {
         let values = Box::new(values) as BoxedIterator<_>;
 
         self.operations
@@ -284,20 +280,44 @@ impl<O: Operand> MultipleValuesOperand<O> {
                 operation.evaluate(medrecord, value_tuples)
             })
     }
+}
 
-    pub(crate) fn evaluate_backward<'a>(
-        &self,
-        medrecord: &'a MedRecord,
-    ) -> MedRecordResult<impl Iterator<Item = (&'a O::Index, MedRecordValue)> + 'a>
-    where
-        O: 'a,
-    {
+impl<'a, O: RootOperand> EvaluateBackward<'a> for MultipleValuesOperand<O>
+where
+    O: 'a,
+{
+    type ReturnValue = BoxedIterator<'a, (&'a O::Index, MedRecordValue)>;
+
+    fn evaluate_backward(&self, medrecord: &'a MedRecord) -> MedRecordResult<Self::ReturnValue> {
         let values = self.context.get_values(medrecord)?;
 
-        self.evaluate_forward(medrecord, values)
+        self.evaluate_forward(medrecord, Box::new(values))
+    }
+}
+
+impl<O: RootOperand> Max for MultipleValuesOperand<O> {
+    type ReturnOperand = SingleValueOperand<O>;
+
+    fn max(&mut self) -> Wrapper<Self::ReturnOperand> {
+        let operand = Wrapper::<SingleValueOperand<O>>::new(self.deep_clone(), SingleKind::Max);
+
+        self.operations
+            .push(MultipleValuesOperation::ValueOperation {
+                operand: operand.clone(),
+            });
+
+        operand
+    }
+}
+
+impl<O: RootOperand> MultipleValuesOperand<O> {
+    pub(crate) fn new(context: Context<O>) -> Self {
+        Self {
+            context,
+            operations: Vec::new(),
+        }
     }
 
-    implement_value_operation!(max, Max);
     implement_value_operation!(min, Min);
     implement_value_operation!(mean, Mean);
     implement_value_operation!(median, Median);
@@ -409,33 +429,11 @@ impl<O: Operand> MultipleValuesOperand<O> {
     }
 }
 
-impl<O: Operand> Wrapper<MultipleValuesOperand<O>> {
+impl<O: RootOperand> Wrapper<MultipleValuesOperand<O>> {
     pub(crate) fn new(context: Context<O>) -> Self {
         MultipleValuesOperand::new(context).into()
     }
 
-    pub(crate) fn evaluate_forward<'a>(
-        &self,
-        medrecord: &'a MedRecord,
-        values: impl Iterator<Item = (&'a O::Index, MedRecordValue)> + 'a,
-    ) -> MedRecordResult<impl Iterator<Item = (&'a O::Index, MedRecordValue)> + 'a>
-    where
-        O: 'a,
-    {
-        self.0.read_or_panic().evaluate_forward(medrecord, values)
-    }
-
-    pub(crate) fn evaluate_backward<'a>(
-        &self,
-        medrecord: &'a MedRecord,
-    ) -> MedRecordResult<impl Iterator<Item = (&'a O::Index, MedRecordValue)> + 'a>
-    where
-        O: 'a,
-    {
-        self.0.read_or_panic().evaluate_backward(medrecord)
-    }
-
-    implement_wrapper_operand_with_return!(max, SingleValueOperand<O>);
     implement_wrapper_operand_with_return!(min, SingleValueOperand<O>);
     implement_wrapper_operand_with_return!(mean, SingleValueOperand<O>);
     implement_wrapper_operand_with_return!(median, SingleValueOperand<O>);
@@ -515,13 +513,13 @@ pub type NodeSingleValueOperand = SingleValueOperand<NodeOperand>;
 pub type EdgeSingleValueOperand = SingleValueOperand<EdgeOperand>;
 
 #[derive(Debug, Clone)]
-pub struct SingleValueOperand<O: Operand> {
-    pub(crate) context: MultipleValuesOperand<O>,
+pub struct SingleValueOperand<O: RootOperand> {
+    context: MultipleValuesOperand<O>,
     pub(crate) kind: SingleKind,
     operations: Vec<SingleValueOperation<O>>,
 }
 
-impl<O: Operand> DeepClone for SingleValueOperand<O> {
+impl<O: RootOperand> DeepClone for SingleValueOperand<O> {
     fn deep_clone(&self) -> Self {
         Self {
             context: self.context.deep_clone(),
@@ -531,20 +529,18 @@ impl<O: Operand> DeepClone for SingleValueOperand<O> {
     }
 }
 
-impl<O: Operand> SingleValueOperand<O> {
-    pub(crate) fn new(context: MultipleValuesOperand<O>, kind: SingleKind) -> Self {
-        Self {
-            context,
-            kind,
-            operations: Vec::new(),
-        }
-    }
+impl<'a, O: RootOperand> EvaluateForward<'a> for SingleValueOperand<O>
+where
+    O: 'a,
+{
+    type InputValue = OptionalIndexWrapper<&'a O::Index, MedRecordValue>;
+    type ReturnValue = Option<OptionalIndexWrapper<&'a O::Index, MedRecordValue>>;
 
-    pub(crate) fn evaluate_forward<'a>(
+    fn evaluate_forward(
         &self,
-        medrecord: &MedRecord,
-        value: OptionalIndexWrapper<&'a O::Index, MedRecordValue>,
-    ) -> MedRecordResult<Option<OptionalIndexWrapper<&'a O::Index, MedRecordValue>>> {
+        medrecord: &'a MedRecord,
+        value: Self::InputValue,
+    ) -> MedRecordResult<Self::ReturnValue> {
         self.operations
             .iter()
             .try_fold(Some(value), |value, operation| {
@@ -555,14 +551,15 @@ impl<O: Operand> SingleValueOperand<O> {
                 }
             })
     }
+}
 
-    pub(crate) fn evaluate_backward<'a>(
-        &self,
-        medrecord: &'a MedRecord,
-    ) -> MedRecordResult<Option<OptionalIndexWrapper<&'a O::Index, MedRecordValue>>>
-    where
-        O: 'a,
-    {
+impl<'a, O: RootOperand> EvaluateBackward<'a> for SingleValueOperand<O>
+where
+    O: 'a,
+{
+    type ReturnValue = Option<OptionalIndexWrapper<&'a O::Index, MedRecordValue>>;
+
+    fn evaluate_backward(&self, medrecord: &'a MedRecord) -> MedRecordResult<Self::ReturnValue> {
         let values = self.context.evaluate_backward(medrecord)?;
 
         let value: OptionalIndexWrapper<_, _> = match self.kind {
@@ -579,6 +576,16 @@ impl<O: Operand> SingleValueOperand<O> {
         };
 
         self.evaluate_forward(medrecord, value)
+    }
+}
+
+impl<O: RootOperand> SingleValueOperand<O> {
+    pub(crate) fn new(context: MultipleValuesOperand<O>, kind: SingleKind) -> Self {
+        Self {
+            context,
+            kind,
+            operations: Vec::new(),
+        }
     }
 
     implement_single_value_comparison_operation!(greater_than, SingleValueOperation, GreaterThan);
@@ -679,27 +686,9 @@ impl<O: Operand> SingleValueOperand<O> {
     }
 }
 
-impl<O: Operand> Wrapper<SingleValueOperand<O>> {
+impl<O: RootOperand> Wrapper<SingleValueOperand<O>> {
     pub(crate) fn new(context: MultipleValuesOperand<O>, kind: SingleKind) -> Self {
         SingleValueOperand::new(context, kind).into()
-    }
-
-    pub(crate) fn evaluate_forward<'a>(
-        &self,
-        medrecord: &MedRecord,
-        value: OptionalIndexWrapper<&'a O::Index, MedRecordValue>,
-    ) -> MedRecordResult<Option<OptionalIndexWrapper<&'a O::Index, MedRecordValue>>> {
-        self.0.read_or_panic().evaluate_forward(medrecord, value)
-    }
-
-    pub(crate) fn evaluate_backward<'a>(
-        &self,
-        medrecord: &'a MedRecord,
-    ) -> MedRecordResult<Option<OptionalIndexWrapper<&'a O::Index, MedRecordValue>>>
-    where
-        O: 'a,
-    {
-        self.0.read_or_panic().evaluate_backward(medrecord)
     }
 
     implement_wrapper_operand_with_argument!(greater_than, impl Into<SingleValueComparisonOperand>);

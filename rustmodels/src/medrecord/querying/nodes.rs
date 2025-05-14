@@ -7,8 +7,15 @@ use crate::medrecord::{attribute::PyMedRecordAttribute, errors::PyMedRecordError
 use medmodels_core::{
     errors::MedRecordError,
     medrecord::{
-        DeepClone, EdgeDirection, NodeIndex, NodeIndexComparisonOperand, NodeIndexOperand,
-        NodeIndicesComparisonOperand, NodeIndicesOperand, NodeOperand, Wrapper,
+        querying::{
+            nodes::{
+                EdgeDirection, NodeIndexComparisonOperand, NodeIndexOperand,
+                NodeIndicesComparisonOperand, NodeIndicesOperand, NodeOperand,
+            },
+            wrapper::Wrapper,
+            DeepClone,
+        },
+        NodeIndex,
     },
 };
 use pyo3::{
@@ -16,6 +23,7 @@ use pyo3::{
     types::{PyAnyMethods, PyFunction},
     Bound, FromPyObject, PyAny, PyResult,
 };
+use std::ops::Deref;
 
 #[pyclass(eq, eq_int)]
 #[derive(Clone, PartialEq)]
@@ -204,6 +212,14 @@ impl From<PyNodeIndicesOperand> for Wrapper<NodeIndicesOperand> {
     }
 }
 
+impl Deref for PyNodeIndicesOperand {
+    type Target = Wrapper<NodeIndicesOperand>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
 #[pymethods]
 impl PyNodeIndicesOperand {
     pub fn max(&mut self) -> PyNodeIndexOperand {
@@ -375,6 +391,14 @@ impl From<Wrapper<NodeIndexOperand>> for PyNodeIndexOperand {
 impl From<PyNodeIndexOperand> for Wrapper<NodeIndexOperand> {
     fn from(operand: PyNodeIndexOperand) -> Self {
         operand.0
+    }
+}
+
+impl Deref for PyNodeIndexOperand {
+    type Target = Wrapper<NodeIndexOperand>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
     }
 }
 

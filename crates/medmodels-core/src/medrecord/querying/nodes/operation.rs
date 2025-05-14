@@ -10,18 +10,17 @@ use crate::{
     errors::{MedRecordError, MedRecordResult},
     medrecord::{
         datatypes::{
-            Abs, Contains, EndsWith, Lowercase, Mod, Pow, Slice, StartsWith, Trim, TrimEnd,
-            TrimStart, Uppercase,
+            Abs, Contains, DataType, EndsWith, Lowercase, Mod, Pow, Slice, StartsWith, Trim,
+            TrimEnd, TrimStart, Uppercase,
         },
         querying::{
             attributes::AttributesTreeOperand,
             edges::EdgeOperand,
-            traits::{DeepClone, ReadWriteOrPanic},
-            values::{self, MultipleValuesOperand},
+            values::{Context, MultipleValuesOperand},
             wrapper::{CardinalityWrapper, Wrapper},
-            BoxedIterator,
+            BoxedIterator, DeepClone, ReadWriteOrPanic,
         },
-        DataType, EdgeIndex, Group, MedRecord, MedRecordAttribute, MedRecordValue, NodeIndex,
+        EdgeIndex, Group, MedRecord, MedRecordAttribute, MedRecordValue, NodeIndex,
     },
 };
 use itertools::Itertools;
@@ -170,10 +169,11 @@ impl NodeOperation {
                 let (node_indices_2, node_indices_3) = rest.tee();
 
                 let either_set: HashSet<&NodeIndex> = either
-                    .evaluate_forward(medrecord, node_indices_1)?
+                    .evaluate_forward(medrecord, Box::new(node_indices_1))?
                     .collect();
-                let or_set: HashSet<&NodeIndex> =
-                    or.evaluate_forward(medrecord, node_indices_2)?.collect();
+                let or_set: HashSet<&NodeIndex> = or
+                    .evaluate_forward(medrecord, Box::new(node_indices_2))?
+                    .collect();
 
                 Box::new(node_indices_3.filter(move |node_index| {
                     either_set.contains(node_index) || or_set.contains(node_index)
@@ -183,7 +183,7 @@ impl NodeOperation {
                 let (node_indices_1, node_indices_2) = node_indices.tee();
 
                 let result: HashSet<_> = operand
-                    .evaluate_forward(medrecord, node_indices_1)?
+                    .evaluate_forward(medrecord, Box::new(node_indices_1))?
                     .collect();
 
                 Box::new(node_indices_2.filter(move |node_index| !result.contains(node_index)))
@@ -215,14 +215,14 @@ impl NodeOperation {
         node_indices: impl Iterator<Item = &'a NodeIndex> + 'a,
         operand: Wrapper<MultipleValuesOperand<NodeOperand>>,
     ) -> MedRecordResult<impl Iterator<Item = &'a NodeIndex>> {
-        let values::Context::Operand((_, ref attribute)) = operand.0.read_or_panic().context else {
+        let Context::Operand((_, ref attribute)) = operand.0.read_or_panic().context else {
             unreachable!()
         };
 
         let values = Self::get_values(medrecord, node_indices, attribute.clone());
 
         Ok(operand
-            .evaluate_forward(medrecord, values)?
+            .evaluate_forward(medrecord, Box::new(values))?
             .map(|value| value.0))
     }
 
@@ -251,7 +251,7 @@ impl NodeOperation {
         let attributes = Self::get_attributes(medrecord, node_indices);
 
         Ok(operand
-            .evaluate_forward(medrecord, attributes)?
+            .evaluate_forward(medrecord, Box::new(attributes))?
             .map(|value| value.0))
     }
 
@@ -264,7 +264,7 @@ impl NodeOperation {
         let (node_indices_1, node_indices_2) = Itertools::tee(node_indices);
 
         let result: HashSet<_> = operand
-            .evaluate_forward(medrecord, node_indices_1.cloned())?
+            .evaluate_forward(medrecord, Box::new(node_indices_1.cloned()))?
             .collect();
 
         Ok(node_indices_2
@@ -816,8 +816,8 @@ impl NodeIndicesOperation {
     ) -> MedRecordResult<BoxedIterator<'a, NodeIndex>> {
         let (indices_1, indices_2) = Itertools::tee(indices);
 
-        let either_indices = either.evaluate_forward(medrecord, indices_1)?;
-        let or_indices = or.evaluate_forward(medrecord, indices_2)?;
+        let either_indices = either.evaluate_forward(medrecord, Box::new(indices_1))?;
+        let or_indices = or.evaluate_forward(medrecord, Box::new(indices_2))?;
 
         Ok(Box::new(either_indices.chain(or_indices).unique()))
     }
@@ -830,7 +830,9 @@ impl NodeIndicesOperation {
     ) -> MedRecordResult<BoxedIterator<'a, NodeIndex>> {
         let (indices_1, indices_2) = Itertools::tee(indices);
 
-        let result: HashSet<_> = operand.evaluate_forward(medrecord, indices_1)?.collect();
+        let result: HashSet<_> = operand
+            .evaluate_forward(medrecord, Box::new(indices_1))?
+            .collect();
 
         Ok(Box::new(
             indices_2

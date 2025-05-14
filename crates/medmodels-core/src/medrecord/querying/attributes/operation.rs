@@ -10,15 +10,14 @@ use crate::{
     errors::{MedRecordError, MedRecordResult},
     medrecord::{
         datatypes::{
-            Abs, Contains, EndsWith, Lowercase, Mod, Pow, Slice, StartsWith, Trim, TrimEnd,
-            TrimStart, Uppercase,
+            Abs, Contains, DataType, EndsWith, Lowercase, Mod, Pow, Slice, StartsWith, Trim,
+            TrimEnd, TrimStart, Uppercase,
         },
         querying::{
-            traits::{DeepClone, ReadWriteOrPanic},
-            values::MultipleValuesOperand,
-            BoxedIterator, Operand, OptionalIndexWrapper,
+            values::MultipleValuesOperand, BoxedIterator, DeepClone, OptionalIndexWrapper,
+            ReadWriteOrPanic, RootOperand,
         },
-        DataType, MedRecordAttribute, MedRecordValue, Wrapper,
+        MedRecordAttribute, MedRecordValue, Wrapper,
     },
     MedRecord,
 };
@@ -32,7 +31,7 @@ use std::{
 };
 
 #[derive(Debug, Clone)]
-pub enum AttributesTreeOperation<O: Operand> {
+pub enum AttributesTreeOperation<O: RootOperand> {
     AttributesOperation {
         operand: Wrapper<MultipleAttributesOperand<O>>,
     },
@@ -69,7 +68,7 @@ pub enum AttributesTreeOperation<O: Operand> {
     },
 }
 
-impl<O: Operand> DeepClone for AttributesTreeOperation<O> {
+impl<O: RootOperand> DeepClone for AttributesTreeOperation<O> {
     fn deep_clone(&self) -> Self {
         match self {
             Self::AttributesOperation { operand } => Self::AttributesOperation {
@@ -110,7 +109,7 @@ impl<O: Operand> DeepClone for AttributesTreeOperation<O> {
     }
 }
 
-impl<O: Operand> AttributesTreeOperation<O> {
+impl<O: RootOperand> AttributesTreeOperation<O> {
     pub(crate) fn evaluate<'a>(
         &self,
         medrecord: &'a MedRecord,
@@ -649,8 +648,8 @@ impl<O: Operand> AttributesTreeOperation<O> {
     {
         let (attributes_1, attributes_2) = Itertools::tee(attributes);
 
-        let either_attributes = either.evaluate_forward(medrecord, attributes_1)?;
-        let or_attributes = or.evaluate_forward(medrecord, attributes_2)?;
+        let either_attributes = either.evaluate_forward(medrecord, Box::new(attributes_1))?;
+        let or_attributes = or.evaluate_forward(medrecord, Box::new(attributes_2))?;
 
         Ok(Box::new(
             either_attributes
@@ -675,8 +674,9 @@ impl<O: Operand> AttributesTreeOperation<O> {
     {
         let (attributes_1, attributes_2) = Itertools::tee(attributes);
 
-        let mut result: MrHashMap<_, _> =
-            operand.evaluate_forward(medrecord, attributes_1)?.collect();
+        let mut result: MrHashMap<_, _> = operand
+            .evaluate_forward(medrecord, Box::new(attributes_1))?
+            .collect();
 
         Ok(Box::new(attributes_2.map(move |(index, attributes)| {
             let entry = result.remove(&index).unwrap_or(Vec::new());
@@ -693,7 +693,7 @@ impl<O: Operand> AttributesTreeOperation<O> {
 }
 
 #[derive(Debug, Clone)]
-pub enum MultipleAttributesOperation<O: Operand> {
+pub enum MultipleAttributesOperation<O: RootOperand> {
     AttributeOperation {
         operand: Wrapper<SingleAttributeOperand<O>>,
     },
@@ -734,7 +734,7 @@ pub enum MultipleAttributesOperation<O: Operand> {
     },
 }
 
-impl<O: Operand> DeepClone for MultipleAttributesOperation<O> {
+impl<O: RootOperand> DeepClone for MultipleAttributesOperation<O> {
     fn deep_clone(&self) -> Self {
         match self {
             Self::AttributeOperation { operand } => Self::AttributeOperation {
@@ -778,7 +778,7 @@ impl<O: Operand> DeepClone for MultipleAttributesOperation<O> {
     }
 }
 
-impl<O: Operand> MultipleAttributesOperation<O> {
+impl<O: RootOperand> MultipleAttributesOperation<O> {
     pub(crate) fn evaluate<'a>(
         &self,
         medrecord: &'a MedRecord,
@@ -1158,7 +1158,7 @@ impl<O: Operand> MultipleAttributesOperation<O> {
 
         let mut attributes: HashMap<_, _> = attributes.into_iter().collect();
 
-        let values = operand.evaluate_forward(medrecord, values.into_iter())?;
+        let values = operand.evaluate_forward(medrecord, Box::new(values.into_iter()))?;
 
         Ok(values.map(move |(index, _)| {
             (
@@ -1191,8 +1191,8 @@ impl<O: Operand> MultipleAttributesOperation<O> {
     {
         let (attributes_1, attributes_2) = Itertools::tee(attributes);
 
-        let either_attributes = either.evaluate_forward(medrecord, attributes_1)?;
-        let or_attributes = or.evaluate_forward(medrecord, attributes_2)?;
+        let either_attributes = either.evaluate_forward(medrecord, Box::new(attributes_1))?;
+        let or_attributes = or.evaluate_forward(medrecord, Box::new(attributes_2))?;
 
         Ok(Box::new(
             either_attributes
@@ -1213,7 +1213,7 @@ impl<O: Operand> MultipleAttributesOperation<O> {
         let (attributes_1, attributes_2) = Itertools::tee(attributes);
 
         let result: MrHashSet<_> = operand
-            .evaluate_forward(medrecord, attributes_1)?
+            .evaluate_forward(medrecord, Box::new(attributes_1))?
             .map(|(index, _)| index)
             .collect();
 
@@ -1224,7 +1224,7 @@ impl<O: Operand> MultipleAttributesOperation<O> {
 }
 
 #[derive(Debug, Clone)]
-pub enum SingleAttributeOperation<O: Operand> {
+pub enum SingleAttributeOperation<O: RootOperand> {
     SingleAttributeComparisonOperation {
         operand: SingleAttributeComparisonOperand,
         kind: SingleComparisonKind,
@@ -1255,7 +1255,7 @@ pub enum SingleAttributeOperation<O: Operand> {
     },
 }
 
-impl<O: Operand> DeepClone for SingleAttributeOperation<O> {
+impl<O: RootOperand> DeepClone for SingleAttributeOperation<O> {
     fn deep_clone(&self) -> Self {
         match self {
             Self::SingleAttributeComparisonOperation { operand, kind } => {
@@ -1291,12 +1291,15 @@ impl<O: Operand> DeepClone for SingleAttributeOperation<O> {
     }
 }
 
-impl<O: Operand> SingleAttributeOperation<O> {
+impl<O: RootOperand> SingleAttributeOperation<O> {
     pub(crate) fn evaluate<'a>(
         &self,
-        medrecord: &MedRecord,
+        medrecord: &'a MedRecord,
         attribute: OptionalIndexWrapper<&'a O::Index, MedRecordAttribute>,
-    ) -> MedRecordResult<Option<OptionalIndexWrapper<&'a O::Index, MedRecordAttribute>>> {
+    ) -> MedRecordResult<Option<OptionalIndexWrapper<&'a O::Index, MedRecordAttribute>>>
+    where
+        O: 'a,
+    {
         match self {
             Self::SingleAttributeComparisonOperation { operand, kind } => {
                 Self::evaluate_single_attribute_comparison_operation(
@@ -1441,11 +1444,14 @@ impl<O: Operand> SingleAttributeOperation<O> {
 
     #[inline]
     fn evaluate_either_or<'a>(
-        medrecord: &MedRecord,
+        medrecord: &'a MedRecord,
         attribute: OptionalIndexWrapper<&'a O::Index, MedRecordAttribute>,
         either: &Wrapper<SingleAttributeOperand<O>>,
         or: &Wrapper<SingleAttributeOperand<O>>,
-    ) -> MedRecordResult<Option<OptionalIndexWrapper<&'a O::Index, MedRecordAttribute>>> {
+    ) -> MedRecordResult<Option<OptionalIndexWrapper<&'a O::Index, MedRecordAttribute>>>
+    where
+        O: 'a,
+    {
         let either_result = either.evaluate_forward(medrecord, attribute.clone())?;
         let or_result = or.evaluate_forward(medrecord, attribute)?;
 

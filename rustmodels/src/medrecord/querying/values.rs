@@ -2,9 +2,17 @@ use crate::medrecord::{errors::PyMedRecordError, value::PyMedRecordValue};
 use medmodels_core::{
     errors::MedRecordError,
     medrecord::{
-        DeepClone, EdgeOperand, MedRecordValue, MultipleValuesComparisonOperand,
-        MultipleValuesOperand, NodeOperand, SingleValueComparisonOperand, SingleValueOperand,
-        Wrapper,
+        querying::{
+            edges::EdgeOperand,
+            nodes::NodeOperand,
+            values::{
+                MultipleValuesComparisonOperand, MultipleValuesOperand,
+                SingleValueComparisonOperand, SingleValueOperand,
+            },
+            wrapper::Wrapper,
+            DeepClone,
+        },
+        MedRecordValue,
     },
 };
 use pyo3::{
@@ -12,6 +20,7 @@ use pyo3::{
     types::{PyAnyMethods, PyFunction},
     Bound, FromPyObject, PyAny, PyResult,
 };
+use std::ops::Deref;
 
 #[repr(transparent)]
 pub struct PySingleValueComparisonOperand(SingleValueComparisonOperand);
@@ -102,6 +111,14 @@ macro_rules! implement_multiple_values_operand {
         impl From<$name> for Wrapper<MultipleValuesOperand<$generic>> {
             fn from(operand: $name) -> Self {
                 operand.0
+            }
+        }
+
+        impl Deref for $name {
+            type Target = Wrapper<MultipleValuesOperand<$generic>>;
+
+            fn deref(&self) -> &Self::Target {
+                &self.0
             }
         }
 
@@ -355,6 +372,14 @@ macro_rules! implement_single_value_operand {
         impl From<$name> for Wrapper<SingleValueOperand<$generic>> {
             fn from(operand: $name) -> Self {
                 operand.0
+            }
+        }
+
+        impl Deref for $name {
+            type Target = Wrapper<SingleValueOperand<$generic>>;
+
+            fn deref(&self) -> &Self::Target {
+                &self.0
             }
         }
 

@@ -7,8 +7,15 @@ use crate::medrecord::{attribute::PyMedRecordAttribute, errors::PyMedRecordError
 use medmodels_core::{
     errors::MedRecordError,
     medrecord::{
-        DeepClone, EdgeIndex, EdgeIndexComparisonOperand, EdgeIndexOperand,
-        EdgeIndicesComparisonOperand, EdgeIndicesOperand, EdgeOperand, Wrapper,
+        querying::{
+            edges::{
+                EdgeIndexComparisonOperand, EdgeIndexOperand, EdgeIndicesComparisonOperand,
+                EdgeIndicesOperand, EdgeOperand,
+            },
+            wrapper::Wrapper,
+            DeepClone,
+        },
+        EdgeIndex,
     },
 };
 use pyo3::{
@@ -16,6 +23,7 @@ use pyo3::{
     types::{PyAnyMethods, PyFunction},
     Bound, FromPyObject, PyAny, PyResult,
 };
+use std::ops::Deref;
 
 #[pyclass]
 #[repr(transparent)]
@@ -173,6 +181,14 @@ impl From<PyEdgeIndicesOperand> for Wrapper<EdgeIndicesOperand> {
     }
 }
 
+impl Deref for PyEdgeIndicesOperand {
+    type Target = Wrapper<EdgeIndicesOperand>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
 #[pymethods]
 impl PyEdgeIndicesOperand {
     pub fn max(&mut self) -> PyEdgeIndexOperand {
@@ -308,6 +324,14 @@ impl From<Wrapper<EdgeIndexOperand>> for PyEdgeIndexOperand {
 impl From<PyEdgeIndexOperand> for Wrapper<EdgeIndexOperand> {
     fn from(operand: PyEdgeIndexOperand) -> Self {
         operand.0
+    }
+}
+
+impl Deref for PyEdgeIndexOperand {
+    type Target = Wrapper<EdgeIndexOperand>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
     }
 }
 

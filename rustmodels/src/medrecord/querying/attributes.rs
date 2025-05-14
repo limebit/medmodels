@@ -5,9 +5,18 @@ use crate::medrecord::{attribute::PyMedRecordAttribute, errors::PyMedRecordError
 use medmodels_core::{
     errors::MedRecordError,
     medrecord::{
-        AttributesTreeOperand, DeepClone, EdgeOperand, MedRecordAttribute,
-        MultipleAttributesComparisonOperand, MultipleAttributesOperand, NodeOperand,
-        SingleAttributeComparisonOperand, SingleAttributeOperand, Wrapper,
+        querying::{
+            attributes::{
+                AttributesTreeOperand, MultipleAttributesComparisonOperand,
+                MultipleAttributesOperand, SingleAttributeComparisonOperand,
+                SingleAttributeOperand,
+            },
+            edges::EdgeOperand,
+            nodes::NodeOperand,
+            wrapper::Wrapper,
+            DeepClone,
+        },
+        MedRecordAttribute,
     },
 };
 use pyo3::{

@@ -12,13 +12,13 @@ use crate::{
         querying::{
             attributes::AttributesTreeOperand,
             edges::SingleKind,
+            group_by::{GroupByOperand, PartitionGroups},
             nodes::NodeOperand,
-            traits::{DeepClone, ReadWriteOrPanic},
-            values::{self, MultipleValuesOperand},
-            wrapper::Wrapper,
-            BoxedIterator,
+            values::{Context, MultipleValuesOperand},
+            wrapper::{CardinalityWrapper, Wrapper},
+            BoxedIterator, DeepClone, ReadWriteOrPanic,
         },
-        CardinalityWrapper, EdgeIndex, Group, MedRecordAttribute, MedRecordValue,
+        EdgeIndex, Group, MedRecordAttribute, MedRecordValue,
     },
     MedRecord,
 };
@@ -62,6 +62,10 @@ pub enum EdgeOperation {
     Exclude {
         operand: Wrapper<EdgeOperand>,
     },
+
+    GroupBy {
+        operand: Wrapper<GroupByOperand<EdgeOperand, EdgeOperand>>,
+    },
 }
 
 impl DeepClone for EdgeOperation {
@@ -93,6 +97,9 @@ impl DeepClone for EdgeOperation {
                 or: or.deep_clone(),
             },
             Self::Exclude { operand } => Self::Exclude {
+                operand: operand.deep_clone(),
+            },
+            Self::GroupBy { operand } => Self::GroupBy {
                 operand: operand.deep_clone(),
             },
         }
@@ -146,9 +153,11 @@ impl EdgeOperation {
                 let (edge_indices_2, edge_indices_3) = rest.tee();
 
                 let either_set: HashSet<_> = either
-                    .evaluate_forward(medrecord, edge_indices_1)?
+                    .evaluate_forward(medrecord, Box::new(edge_indices_1))?
                     .collect();
-                let or_set: HashSet<_> = or.evaluate_forward(medrecord, edge_indices_2)?.collect();
+                let or_set: HashSet<_> = or
+                    .evaluate_forward(medrecord, Box::new(edge_indices_2))?
+                    .collect();
 
                 Box::new(
                     edge_indices_3
@@ -159,10 +168,13 @@ impl EdgeOperation {
                 let (edge_indices_1, edge_indices_2) = edge_indices.tee();
 
                 let result: HashSet<_> = operand
-                    .evaluate_forward(medrecord, edge_indices_1)?
+                    .evaluate_forward(medrecord, Box::new(edge_indices_1))?
                     .collect();
 
                 Box::new(edge_indices_2.filter(move |node_index| !result.contains(node_index)))
+            }
+            Self::GroupBy { operand } => {
+                Box::new(Self::evaluate_group_by(medrecord, edge_indices, operand)?)
             }
         })
     }
@@ -191,14 +203,14 @@ impl EdgeOperation {
         edge_indices: impl Iterator<Item = &'a EdgeIndex> + 'a,
         operand: Wrapper<MultipleValuesOperand<EdgeOperand>>,
     ) -> MedRecordResult<impl Iterator<Item = &'a EdgeIndex>> {
-        let values::Context::Operand((_, ref attribute)) = operand.0.read_or_panic().context else {
+        let Context::Operand((_, ref attribute)) = operand.0.read_or_panic().context else {
             unreachable!()
         };
 
         let values = Self::get_values(medrecord, edge_indices, attribute.clone());
 
         Ok(operand
-            .evaluate_forward(medrecord, values)?
+            .evaluate_forward(medrecord, Box::new(values))?
             .map(|value| value.0))
     }
 
@@ -227,7 +239,7 @@ impl EdgeOperation {
         let attributes = Self::get_attributes(medrecord, edge_indices);
 
         Ok(operand
-            .evaluate_forward(medrecord, attributes)?
+            .evaluate_forward(medrecord, Box::new(attributes))?
             .map(|value| value.0))
     }
 
@@ -240,7 +252,7 @@ impl EdgeOperation {
         let (edge_indices_1, edge_indices_2) = Itertools::tee(edge_indices);
 
         let result: HashSet<_> = operand
-            .evaluate_forward(medrecord, edge_indices_1.cloned())?
+            .evaluate_forward(medrecord, Box::new(edge_indices_1.cloned()))?
             .collect();
 
         Ok(edge_indices_2
@@ -309,7 +321,9 @@ impl EdgeOperation {
             edge_endpoints.0
         });
 
-        let node_indices: HashSet<_> = operand.evaluate_forward(medrecord, node_indices)?.collect();
+        let node_indices: HashSet<_> = operand
+            .evaluate_forward(medrecord, Box::new(node_indices))?
+            .collect();
 
         Ok(edge_indices_2.filter(move |edge_index| {
             let edge_endpoints = medrecord
@@ -336,7 +350,9 @@ impl EdgeOperation {
             edge_endpoints.1
         });
 
-        let node_indices: HashSet<_> = operand.evaluate_forward(medrecord, node_indices)?.collect();
+        let node_indices: HashSet<_> = operand
+            .evaluate_forward(medrecord, Box::new(node_indices))?
+            .collect();
 
         Ok(edge_indices_2.filter(move |edge_index| {
             let edge_endpoints = medrecord
@@ -345,6 +361,16 @@ impl EdgeOperation {
 
             node_indices.contains(edge_endpoints.1)
         }))
+    }
+
+    fn evaluate_group_by<'a>(
+        medrecord: &'a MedRecord,
+        edge_indices: impl Iterator<Item = &'a EdgeIndex> + 'a,
+        operand: &Wrapper<GroupByOperand<EdgeOperand, EdgeOperand>>,
+    ) -> MedRecordResult<impl Iterator<Item = &'a EdgeIndex>> {
+        Ok(EdgeOperand::merge(
+            operand.evaluate_forward(medrecord, Box::new(edge_indices))?,
+        ))
     }
 }
 
@@ -613,8 +639,8 @@ impl EdgeIndicesOperation {
     ) -> MedRecordResult<BoxedIterator<'a, EdgeIndex>> {
         let (indices_1, indices_2) = Itertools::tee(indices);
 
-        let either_indices = either.evaluate_forward(medrecord, indices_1)?;
-        let or_indices = or.evaluate_forward(medrecord, indices_2)?;
+        let either_indices = either.evaluate_forward(medrecord, Box::new(indices_1))?;
+        let or_indices = or.evaluate_forward(medrecord, Box::new(indices_2))?;
 
         Ok(Box::new(either_indices.chain(or_indices).unique()))
     }
@@ -627,7 +653,9 @@ impl EdgeIndicesOperation {
     ) -> MedRecordResult<BoxedIterator<'a, EdgeIndex>> {
         let (indices_1, indices_2) = Itertools::tee(indices);
 
-        let result: HashSet<_> = operand.evaluate_forward(medrecord, indices_1)?.collect();
+        let result: HashSet<_> = operand
+            .evaluate_forward(medrecord, Box::new(indices_1))?
+            .collect();
 
         Ok(Box::new(
             indices_2.filter(move |index| !result.contains(index)),
