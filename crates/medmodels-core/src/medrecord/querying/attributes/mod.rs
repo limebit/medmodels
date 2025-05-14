@@ -4,6 +4,7 @@ mod operation;
 use super::{
     edges::{EdgeOperand, EdgeOperation},
     nodes::{NodeOperand, NodeOperation},
+    EvaluateBackward,
 };
 use crate::{
     errors::MedRecordResult,

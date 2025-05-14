@@ -10,14 +10,11 @@ use crate::{
     errors::{MedRecordError, MedRecordResult},
     medrecord::{
         datatypes::{
-            Abs, Ceil, Contains, EndsWith, Floor, Lowercase, Mod, Pow, Round, Slice, Sqrt,
-            StartsWith, Trim, TrimEnd, TrimStart, Uppercase,
+            Abs, Ceil, Contains, DataType, EndsWith, Floor, Lowercase, Mod, Pow, Round, Slice,
+            Sqrt, StartsWith, Trim, TrimEnd, TrimStart, Uppercase,
         },
-        querying::{
-            traits::{DeepClone, ReadWriteOrPanic},
-            BoxedIterator, Operand, OptionalIndexWrapper,
-        },
-        DataType, MedRecordValue, Wrapper,
+        querying::{BoxedIterator, DeepClone, OptionalIndexWrapper, ReadWriteOrPanic, RootOperand},
+        MedRecordValue, Wrapper,
     },
     MedRecord,
 };
@@ -52,7 +49,7 @@ macro_rules! get_median {
 }
 
 #[derive(Debug, Clone)]
-pub enum MultipleValuesOperation<O: Operand> {
+pub enum MultipleValuesOperation<O: RootOperand> {
     ValueOperation {
         operand: Wrapper<SingleValueOperand<O>>,
     },
@@ -94,7 +91,7 @@ pub enum MultipleValuesOperation<O: Operand> {
     },
 }
 
-impl<O: Operand> DeepClone for MultipleValuesOperation<O> {
+impl<O: RootOperand> DeepClone for MultipleValuesOperation<O> {
     fn deep_clone(&self) -> Self {
         match self {
             Self::ValueOperation { operand } => Self::ValueOperation {
@@ -140,7 +137,7 @@ impl<O: Operand> DeepClone for MultipleValuesOperation<O> {
     }
 }
 
-impl<O: Operand> MultipleValuesOperation<O> {
+impl<O: RootOperand> MultipleValuesOperation<O> {
     pub(crate) fn evaluate<'a>(
         &self,
         medrecord: &'a MedRecord,
@@ -771,7 +768,7 @@ impl<O: Operand> MultipleValuesOperation<O> {
 }
 
 #[derive(Debug, Clone)]
-pub enum SingleValueOperation<O: Operand> {
+pub enum SingleValueOperation<O: RootOperand> {
     SingleValueComparisonOperation {
         operand: SingleValueComparisonOperand,
         kind: SingleComparisonKind,
@@ -807,7 +804,7 @@ pub enum SingleValueOperation<O: Operand> {
     },
 }
 
-impl<O: Operand> DeepClone for SingleValueOperation<O> {
+impl<O: RootOperand> DeepClone for SingleValueOperation<O> {
     fn deep_clone(&self) -> Self {
         match self {
             Self::SingleValueComparisonOperation { operand, kind } => {
@@ -848,7 +845,7 @@ impl<O: Operand> DeepClone for SingleValueOperation<O> {
     }
 }
 
-impl<O: Operand> SingleValueOperation<O> {
+impl<O: RootOperand> SingleValueOperation<O> {
     pub(crate) fn evaluate<'a>(
         &self,
         medrecord: &MedRecord,

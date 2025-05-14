@@ -7,9 +7,8 @@ use crate::{
     errors::MedRecordResult,
     medrecord::{
         querying::{
-            traits::{DeepClone, ReadWriteOrPanic},
-            values::{self, MultipleValuesOperand},
-            BoxedIterator, Operand, OptionalIndexWrapper,
+            values::{Context, MultipleValuesOperand},
+            BoxedIterator, DeepClone, OptionalIndexWrapper, ReadWriteOrPanic, RootOperand,
         },
         EdgeOperand, MedRecordAttribute, NodeOperand, Wrapper,
     },
@@ -279,12 +278,12 @@ pub type NodeAttributesTreeOperand = AttributesTreeOperand<NodeOperand>;
 pub type EdgeAttributesTreeOperand = AttributesTreeOperand<EdgeOperand>;
 
 #[derive(Debug, Clone)]
-pub struct AttributesTreeOperand<O: Operand> {
-    pub(crate) context: O,
+pub struct AttributesTreeOperand<O: RootOperand> {
+    context: O,
     operations: Vec<AttributesTreeOperation<O>>,
 }
 
-impl<O: Operand> DeepClone for AttributesTreeOperand<O> {
+impl<O: RootOperand> DeepClone for AttributesTreeOperand<O> {
     fn deep_clone(&self) -> Self {
         Self {
             context: self.context.clone(),
@@ -293,7 +292,7 @@ impl<O: Operand> DeepClone for AttributesTreeOperand<O> {
     }
 }
 
-impl<O: Operand> AttributesTreeOperand<O> {
+impl<O: RootOperand> AttributesTreeOperand<O> {
     pub(crate) fn new(context: O) -> Self {
         Self {
             context,
@@ -437,7 +436,7 @@ impl<O: Operand> AttributesTreeOperand<O> {
     }
 }
 
-impl<O: Operand> Wrapper<AttributesTreeOperand<O>> {
+impl<O: RootOperand> Wrapper<AttributesTreeOperand<O>> {
     pub(crate) fn new(context: O) -> Self {
         AttributesTreeOperand::new(context).into()
     }
@@ -548,13 +547,13 @@ pub type NodeMultipleAttributesOperand = MultipleAttributesOperand<NodeOperand>;
 pub type EdgeMultipleAttributesOperand = MultipleAttributesOperand<EdgeOperand>;
 
 #[derive(Debug, Clone)]
-pub struct MultipleAttributesOperand<O: Operand> {
-    pub(crate) context: AttributesTreeOperand<O>,
+pub struct MultipleAttributesOperand<O: RootOperand> {
+    context: AttributesTreeOperand<O>,
     pub(crate) kind: MultipleKind,
     operations: Vec<MultipleAttributesOperation<O>>,
 }
 
-impl<O: Operand> DeepClone for MultipleAttributesOperand<O> {
+impl<O: RootOperand> DeepClone for MultipleAttributesOperand<O> {
     fn deep_clone(&self) -> Self {
         Self {
             context: self.context.clone(),
@@ -564,7 +563,7 @@ impl<O: Operand> DeepClone for MultipleAttributesOperand<O> {
     }
 }
 
-impl<O: Operand> MultipleAttributesOperand<O> {
+impl<O: RootOperand> MultipleAttributesOperand<O> {
     pub(crate) fn new(context: AttributesTreeOperand<O>, kind: MultipleKind) -> Self {
         Self {
             context,
@@ -695,9 +694,9 @@ impl<O: Operand> MultipleAttributesOperand<O> {
 
     #[allow(clippy::wrong_self_convention)]
     pub fn to_values(&mut self) -> Wrapper<MultipleValuesOperand<O>> {
-        let operand = Wrapper::<MultipleValuesOperand<O>>::new(
-            values::Context::MultipleAttributesOperand(self.deep_clone()),
-        );
+        let operand = Wrapper::<MultipleValuesOperand<O>>::new(Context::MultipleAttributesOperand(
+            self.deep_clone(),
+        ));
 
         self.operations.push(MultipleAttributesOperation::ToValues {
             operand: operand.clone(),
@@ -749,7 +748,7 @@ impl<O: Operand> MultipleAttributesOperand<O> {
     }
 }
 
-impl<O: Operand> Wrapper<MultipleAttributesOperand<O>> {
+impl<O: RootOperand> Wrapper<MultipleAttributesOperand<O>> {
     pub(crate) fn new(context: AttributesTreeOperand<O>, kind: MultipleKind) -> Self {
         MultipleAttributesOperand::new(context, kind).into()
     }
@@ -862,13 +861,13 @@ pub type NodeSingleAttributeOperand = SingleAttributeOperand<NodeOperand>;
 pub type EdgeSingleAttributeOperand = SingleAttributeOperand<EdgeOperand>;
 
 #[derive(Debug, Clone)]
-pub struct SingleAttributeOperand<O: Operand> {
-    pub(crate) context: MultipleAttributesOperand<O>,
+pub struct SingleAttributeOperand<O: RootOperand> {
+    context: MultipleAttributesOperand<O>,
     pub(crate) kind: SingleKind,
     operations: Vec<SingleAttributeOperation<O>>,
 }
 
-impl<O: Operand> DeepClone for SingleAttributeOperand<O> {
+impl<O: RootOperand> DeepClone for SingleAttributeOperand<O> {
     fn deep_clone(&self) -> Self {
         Self {
             context: self.context.deep_clone(),
@@ -878,7 +877,7 @@ impl<O: Operand> DeepClone for SingleAttributeOperand<O> {
     }
 }
 
-impl<O: Operand> SingleAttributeOperand<O> {
+impl<O: RootOperand> SingleAttributeOperand<O> {
     pub(crate) fn new(context: MultipleAttributesOperand<O>, kind: SingleKind) -> Self {
         Self {
             context,
@@ -1025,7 +1024,7 @@ impl<O: Operand> SingleAttributeOperand<O> {
     }
 }
 
-impl<O: Operand> Wrapper<SingleAttributeOperand<O>> {
+impl<O: RootOperand> Wrapper<SingleAttributeOperand<O>> {
     pub(crate) fn new(context: MultipleAttributesOperand<O>, kind: SingleKind) -> Self {
         SingleAttributeOperand::new(context, kind).into()
     }

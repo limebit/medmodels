@@ -1,4 +1,4 @@
-use super::traits::{DeepClone, ReadWriteOrPanic};
+use super::{DeepClone, ReadWriteOrPanic};
 use std::sync::{Arc, RwLock};
 
 #[repr(transparent)]

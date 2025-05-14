@@ -9,10 +9,9 @@ use crate::{
         querying::{
             attributes::AttributesTreeOperand,
             edges::{self, EdgeOperand},
-            traits::{DeepClone, ReadWriteOrPanic},
             values::{self, MultipleValuesOperand},
             wrapper::{CardinalityWrapper, Wrapper},
-            BoxedIterator,
+            BoxedIterator, DeepClone, EvaluateBackward, EvaluateForward, ReadWriteOrPanic,
         },
         Group, MedRecordAttribute, NodeIndex,
     },
@@ -22,7 +21,7 @@ use std::{collections::HashSet, fmt::Debug};
 
 #[derive(Debug, Clone)]
 pub struct NodeOperand {
-    pub(crate) context: Option<Context>,
+    context: Option<Context>,
     operations: Vec<NodeOperation>,
 }
 
@@ -30,41 +29,32 @@ impl DeepClone for NodeOperand {
     fn deep_clone(&self) -> Self {
         Self {
             context: self.context.clone(),
-            operations: self
-                .operations
-                .iter()
-                .map(|operation| operation.deep_clone())
-                .collect(),
+            operations: self.operations.deep_clone(),
         }
     }
 }
 
-impl NodeOperand {
-    pub(crate) fn new(context: Option<Context>) -> Self {
-        Self {
-            context,
-            operations: Vec::new(),
-        }
-    }
+impl<'a> EvaluateForward<'a> for NodeOperand {
+    type Indices = BoxedIterator<'a, &'a NodeIndex>;
+    type ReturnValue = BoxedIterator<'a, &'a NodeIndex>;
 
-    pub(crate) fn evaluate_forward<'a>(
+    fn evaluate_forward(
         &self,
         medrecord: &'a MedRecord,
-        node_indices: impl Iterator<Item = &'a NodeIndex> + 'a,
-    ) -> MedRecordResult<BoxedIterator<'a, &'a NodeIndex>> {
-        let node_indices = Box::new(node_indices) as BoxedIterator<'a, &'a NodeIndex>;
-
+        node_indices: Self::Indices,
+    ) -> MedRecordResult<Self::ReturnValue> {
         self.operations
             .iter()
             .try_fold(node_indices, |node_indices, operation| {
                 operation.evaluate(medrecord, node_indices)
             })
     }
+}
 
-    pub(crate) fn evaluate_backward<'a>(
-        &self,
-        medrecord: &'a MedRecord,
-    ) -> MedRecordResult<BoxedIterator<'a, &'a NodeIndex>> {
+impl<'a> EvaluateBackward<'a> for NodeOperand {
+    type ReturnValue = BoxedIterator<'a, &'a NodeIndex>;
+
+    fn evaluate_backward(&self, medrecord: &'a MedRecord) -> MedRecordResult<Self::ReturnValue> {
         let node_indices: BoxedIterator<&NodeIndex> = match &self.context {
             Some(Context::Neighbors { operand, direction }) => {
                 let node_indices = operand.evaluate_backward(medrecord)?;
@@ -111,6 +101,15 @@ impl NodeOperand {
         };
 
         self.evaluate_forward(medrecord, node_indices)
+    }
+}
+
+impl NodeOperand {
+    pub(crate) fn new(context: Option<Context>) -> Self {
+        Self {
+            context,
+            operations: Vec::new(),
+        }
     }
 
     pub fn attribute(
@@ -227,16 +226,6 @@ impl NodeOperand {
 impl Wrapper<NodeOperand> {
     pub(crate) fn new(context: Option<Context>) -> Self {
         NodeOperand::new(context).into()
-    }
-
-    pub(crate) fn evaluate_forward<'a>(
-        &self,
-        medrecord: &'a MedRecord,
-        node_indices: impl Iterator<Item = &'a NodeIndex> + 'a,
-    ) -> MedRecordResult<BoxedIterator<'a, &'a NodeIndex>> {
-        self.0
-            .read_or_panic()
-            .evaluate_forward(medrecord, node_indices)
     }
 
     pub fn attribute<A>(&mut self, attribute: A) -> Wrapper<MultipleValuesOperand<NodeOperand>>
@@ -476,7 +465,7 @@ impl NodeIndicesComparisonOperand {
 
 #[derive(Debug, Clone)]
 pub struct NodeIndicesOperand {
-    pub(crate) context: NodeOperand,
+    context: NodeOperand,
     operations: Vec<NodeIndicesOperation>,
 }
 
@@ -696,7 +685,7 @@ impl Wrapper<NodeIndicesOperand> {
 
 #[derive(Debug, Clone)]
 pub struct NodeIndexOperand {
-    pub(crate) context: NodeIndicesOperand,
+    context: NodeIndicesOperand,
     pub(crate) kind: SingleKind,
     operations: Vec<NodeIndexOperation>,
 }

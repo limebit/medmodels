@@ -8,12 +8,11 @@ use crate::{
         querying::{
             attributes::AttributesTreeOperand,
             nodes::{self, NodeOperand},
-            traits::{DeepClone, ReadWriteOrPanic},
             values::{self, MultipleValuesOperand},
-            wrapper::Wrapper,
-            BoxedIterator,
+            wrapper::{CardinalityWrapper, Wrapper},
+            BoxedIterator, DeepClone, EvaluateBackward, EvaluateForward, ReadWriteOrPanic,
         },
-        CardinalityWrapper, EdgeIndex, Group, MedRecordAttribute,
+        EdgeIndex, Group, MedRecordAttribute,
     },
     MedRecord,
 };
@@ -23,7 +22,7 @@ use std::{collections::HashSet, fmt::Debug};
 #[derive(Debug, Clone)]
 pub struct EdgeOperand {
     context: Option<Context>,
-    operations: Vec<EdgeOperation>,
+    pub(crate) operations: Vec<EdgeOperation>,
 }
 
 impl DeepClone for EdgeOperand {
@@ -39,32 +38,27 @@ impl DeepClone for EdgeOperand {
     }
 }
 
-impl EdgeOperand {
-    pub(crate) fn new(context: Option<Context>) -> Self {
-        Self {
-            context,
-            operations: Vec::new(),
-        }
-    }
+impl<'a> EvaluateForward<'a> for EdgeOperand {
+    type Indices = BoxedIterator<'a, &'a EdgeIndex>;
+    type ReturnValue = BoxedIterator<'a, &'a EdgeIndex>;
 
-    pub(crate) fn evaluate_forward<'a>(
+    fn evaluate_forward(
         &self,
         medrecord: &'a MedRecord,
-        edge_indices: impl Iterator<Item = &'a EdgeIndex> + 'a,
-    ) -> MedRecordResult<impl Iterator<Item = &'a EdgeIndex>> {
-        let edge_indices = Box::new(edge_indices) as BoxedIterator<&'a EdgeIndex>;
-
+        edge_indices: Self::Indices,
+    ) -> MedRecordResult<Self::ReturnValue> {
         self.operations
             .iter()
             .try_fold(edge_indices, |edge_indices, operation| {
                 operation.evaluate(medrecord, edge_indices)
             })
     }
+}
 
-    pub(crate) fn evaluate_backward<'a>(
-        &self,
-        medrecord: &'a MedRecord,
-    ) -> MedRecordResult<impl Iterator<Item = &'a EdgeIndex>> {
+impl<'a> EvaluateBackward<'a> for EdgeOperand {
+    type ReturnValue = BoxedIterator<'a, &'a EdgeIndex>;
+
+    fn evaluate_backward(&self, medrecord: &'a MedRecord) -> MedRecordResult<Self::ReturnValue> {
         let edge_indices: BoxedIterator<&EdgeIndex> = match &self.context {
             Some(Context::Edges { operand, kind }) => {
                 let node_indices = operand.evaluate_backward(medrecord)?;
@@ -96,10 +90,20 @@ impl EdgeOperand {
                     })),
                 }
             }
+            Some(Context::GroupBy { operand }) => operand.evaluate_backward(medrecord)?,
             None => Box::new(medrecord.edge_indices()),
         };
 
         self.evaluate_forward(medrecord, edge_indices)
+    }
+}
+
+impl EdgeOperand {
+    pub(crate) fn new(context: Option<Context>) -> Self {
+        Self {
+            context,
+            operations: Vec::new(),
+        }
     }
 
     pub fn attribute(
@@ -158,7 +162,7 @@ impl EdgeOperand {
 
     pub fn source_node(&mut self) -> Wrapper<NodeOperand> {
         let operand = Wrapper::<NodeOperand>::new(Some(nodes::Context::SourceNode {
-            operand: self.clone(),
+            operand: self.deep_clone(),
         }));
 
         self.operations.push(EdgeOperation::SourceNode {
@@ -170,7 +174,7 @@ impl EdgeOperand {
 
     pub fn target_node(&mut self) -> Wrapper<NodeOperand> {
         let operand = Wrapper::<NodeOperand>::new(Some(nodes::Context::TargetNode {
-            operand: self.clone(),
+            operand: self.deep_clone(),
         }));
 
         self.operations.push(EdgeOperation::TargetNode {
@@ -185,8 +189,8 @@ impl EdgeOperand {
         EQ: FnOnce(&mut Wrapper<EdgeOperand>),
         OQ: FnOnce(&mut Wrapper<EdgeOperand>),
     {
-        let mut either_operand = Wrapper::<EdgeOperand>::new(self.context.clone());
-        let mut or_operand = Wrapper::<EdgeOperand>::new(self.context.clone());
+        let mut either_operand = Wrapper::<EdgeOperand>::new(self.context.deep_clone());
+        let mut or_operand = Wrapper::<EdgeOperand>::new(self.context.deep_clone());
 
         either_query(&mut either_operand);
         or_query(&mut or_operand);
@@ -201,7 +205,7 @@ impl EdgeOperand {
     where
         Q: FnOnce(&mut Wrapper<EdgeOperand>),
     {
-        let mut operand = Wrapper::<EdgeOperand>::new(self.context.clone());
+        let mut operand = Wrapper::<EdgeOperand>::new(self.context.deep_clone());
 
         query(&mut operand);
 
@@ -212,16 +216,6 @@ impl EdgeOperand {
 impl Wrapper<EdgeOperand> {
     pub(crate) fn new(context: Option<Context>) -> Self {
         EdgeOperand::new(context).into()
-    }
-
-    pub(crate) fn evaluate_forward<'a>(
-        &self,
-        medrecord: &'a MedRecord,
-        edge_indices: impl Iterator<Item = &'a EdgeIndex> + 'a,
-    ) -> MedRecordResult<impl Iterator<Item = &'a EdgeIndex>> {
-        self.0
-            .read_or_panic()
-            .evaluate_forward(medrecord, edge_indices)
     }
 
     pub fn attribute<A>(&self, attribute: A) -> Wrapper<MultipleValuesOperand<EdgeOperand>>
@@ -457,7 +451,7 @@ impl EdgeIndicesComparisonOperand {
 
 #[derive(Debug, Clone)]
 pub struct EdgeIndicesOperand {
-    pub(crate) context: EdgeOperand,
+    context: EdgeOperand,
     operations: Vec<EdgeIndicesOperation>,
 }
 
@@ -650,7 +644,7 @@ impl Wrapper<EdgeIndicesOperand> {
 
 #[derive(Debug, Clone)]
 pub struct EdgeIndexOperand {
-    pub(crate) context: EdgeIndicesOperand,
+    context: EdgeIndicesOperand,
     pub(crate) kind: SingleKind,
     operations: Vec<EdgeIndexOperation>,
 }
