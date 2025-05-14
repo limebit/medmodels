@@ -45,11 +45,12 @@ developer_guide/index
 The MedModels documentation is your go-to resource for exploring the package. It offers complete API descriptions and a detailed user guide, giving you everything you need to effectively utilize its features.
 
 ```{only} html
-[![ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 ![python versions](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-blue)
 [![license](https://img.shields.io/github/license/limebit/medmodels.svg)](https://github.com/limebit/medmodels/blob/main/LICENSE)
-[![license](https://github.com/limebit/medmodels/actions/workflows/testing.yml/badge.svg?branch=main)](https://github.com/limebit/medmodels/actions/workflows/testing.yml)
+[![test passing](https://github.com/limebit/medmodels/actions/workflows/testing.yml/badge.svg?branch=main)](https://github.com/limebit/medmodels/actions/workflows/testing.yml)
+![coverage](https://raw.githubusercontent.com/limebit/medmodels-static/refs/heads/main/icons/coverage-badge.svg)
 [![PyPI](https://img.shields.io/pypi/v/medmodels)](https://pypi.org/project/medmodels/)
+[![ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 ```
 
 :::

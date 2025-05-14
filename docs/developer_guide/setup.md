@@ -18,9 +18,10 @@ MedModels utilizes a `Makefile` to manage development tasks. Here's a breakdown 
 - **build-dev:** Builds the Rust crate and installs it as a python module (using `maturin develop`).
 - **test:** Runs both Python (using `pytest`) and Rust unit tests (using `cargo test`).
 - **test-python-coverage:** Runs Python tests and shows the line numbers of statements in each module that weren't executed.
-- **docs** Builds the docs using `sphinx`.
-- **docs-serve** Builds docs and live serves them to the localhost.
-- **docs-clean** Removes all locally generated documentation files.
+- **test-python-coverage-non-isolated:** Runs Python tests in a non-isolated manner, showing whether all modules are covered (including tests and `__init__.py` files).
+- **docs:** Builds the docs using `sphinx`.
+- **docs-serve:** Builds docs and live serves them to the localhost.
+- **docs-clean:** Removes all locally generated documentation files.
 - **lint:** Runs code linters for both Python (using `ruff`) and Rust (using `cargo clippy`).
 - **format:** Formats Python code (using `ruff`) and Rust code (using `rustfmt`).
 - **clean:** Removes the virtual environment, cache directories, build artifacts, and other temporary files.

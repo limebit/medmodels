@@ -4,8 +4,8 @@
 :maxdepth: 1
 :caption: Contents:
 :hidden:
-02a_schema
-02b_query_engine
+02a_query_engine
+02b_schema
 ```
 
 ## Preface
@@ -259,7 +259,7 @@ lines: 71, 73
 :::
 
 :::{note}
- In this case, we are using the [`edges`](medmodels.medrecord.medrecord.MedRecord.edges){target="_blank"} property to add all edges in the MedRecord to that group since there are no type of edges in our MedRecord. In any other case, you should provide the specific indices of the edges you want to add to that group. You can learn how to select specific edges in the [Query Engine](02b_query_engine.md) user guide.
+ In this case, we are using the [`edges`](medmodels.medrecord.medrecord.MedRecord.edges){target="_blank"} property to add all edges in the MedRecord to that group since there are no type of edges in our MedRecord. In any other case, you should provide the specific indices of the edges you want to add to that group. You can learn how to select specific edges in the [Query Engine](02a_query_engine.md) user guide.
 :::
 
 ## Accessing Elements in a MedRecord
@@ -325,7 +325,7 @@ lines: 88
 - [`nodes_in_group()`](medmodels.medrecord.medrecord.MedRecord.nodes_in_group){target="_blank"} : Retrieves the node indices associated with the specified group(s) in the MedRecord.
 :::
 
-The MedRecord can be queried in very advanced ways in order to find very specific nodes based on time, relations, neighbors or other. These advanced querying methods are covered in one of the next sections of the user guide, [Query Engine](02b_query_engine.md).
+The MedRecord can be queried in very advanced ways in order to find very specific nodes based on time, relations, neighbors or other. These advanced querying methods are covered in one of the next sections of the user guide, [Query Engine](02a_query_engine.md).
 
 ## Full example Code
 

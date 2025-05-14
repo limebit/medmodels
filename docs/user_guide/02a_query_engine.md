@@ -8,7 +8,7 @@ The **MedRecord Query Engine** enables users to find node and edges' indices sto
 
 An example dataset for the following demonstrations was generated with the method [`from_simple_example_dataset`](medmodels.medrecord.medrecord.MedRecord.from_simple_example_dataset){target="_blank"} from the [`MedRecord`](medmodels.medrecord.medrecord.MedRecord){target="_blank"} class.
 
-```{literalinclude} scripts/02b_show_dataset.py
+```{literalinclude} scripts/02a_show_dataset.py
 ---
 language: python
 lines: 8
@@ -17,7 +17,7 @@ lines: 8
 
 This example dataset includes a set of patients, drugs, diagnoses and procedures. For this section, we will only use the patients, drugs and the edges that connect these two groups.
 
-```{exec-literalinclude} scripts/02b_show_dataset.py
+```{exec-literalinclude} scripts/02a_show_dataset.py
 ---
 language: python
 setup-lines: 1-37
@@ -25,7 +25,7 @@ lines: 39
 ---
 ```
 
-```{exec-literalinclude} scripts/02b_show_dataset.py
+```{exec-literalinclude} scripts/02a_show_dataset.py
 ---
 language: python
 setup-lines: 1-37
@@ -33,7 +33,7 @@ lines: 40
 ---
 ```
 
-```{exec-literalinclude} scripts/02b_show_dataset.py
+```{exec-literalinclude} scripts/02a_show_dataset.py
 ---
 language: python
 setup-lines: 1-37
@@ -47,7 +47,7 @@ The [`NodeOperand`](medmodels.medrecord.querying.NodeOperand){target="_blank"} q
 
 The function [`query_nodes()`](medmodels.medrecord.medrecord.MedRecord.query_nodes){target="_blank"} and its counterpart [`query_edges()`](medmodels.medrecord.medrecord.MedRecord.query_edges){target="_blank"} are the main ways to use these queries. They can retrieve different types of data from the MedRecord, such as the indices of some nodes that fulfill some criteria (using [`index()`](medmodels.medrecord.querying.NodeOperand.index){target="_blank"}), or even the mean _age_ of those nodes ([`mean()`](medmodels.medrecord.querying.NodeMultipleValuesOperand.mean){target="_blank"}).
 
-```{exec-literalinclude} scripts/02b_query_engine.py
+```{exec-literalinclude} scripts/02a_query_engine.py
 ---
 language: python
 setup-lines: 1-11
@@ -70,7 +70,7 @@ In this release, we will focus only on [`index()`](medmodels.medrecord.querying.
 
 You can get to the same result via different approaches. That makes the query engine very versatile and adaptive to your specific needs. Let's complicate it a bit more involving more than one operand.
 
-```{exec-literalinclude} scripts/02b_query_engine.py
+```{exec-literalinclude} scripts/02a_query_engine.py
 ---
 language: python
 setup-lines: 1-11
@@ -98,7 +98,7 @@ The [`has_attribute()`](medmodels.medrecord.querying.NodeOperand.has_attribute){
 
 As you can see, the query engine can prove to be highly useful for finding nodes that fulfill different criteria, these criteria being as specific and narrowing as we like. A key feature of the query engine is that it allows for re-using previous queries in new ones. For instance, the previous query can be written as follows:
 
-```{exec-literalinclude} scripts/02b_query_engine.py
+```{exec-literalinclude} scripts/02a_query_engine.py
 ---
 language: python
 setup-lines: 1-18
@@ -129,7 +129,7 @@ It is important to note that modifying these values **does not** change the actu
 
 You can also perform mathematical calculations like [`mean()`](medmodels.medrecord.querying.NodeMultipleValuesOperand.mean){target="_blank"}, [`median()`](medmodels.medrecord.querying.NodeMultipleValuesOperand.median){target="_blank"} or [`min()`](medmodels.medrecord.querying.NodeMultipleValuesOperand.min){target="_blank"} and assign them to a variable. Also, you can keep manipulating the operand, like in the following example, where we are subtracting _5_ years from the `mean_age` to query on that value.
 
-```{exec-literalinclude} scripts/02b_query_engine.py
+```{exec-literalinclude} scripts/02a_query_engine.py
 ---
 language: python
 setup-lines: 1-11
@@ -159,7 +159,7 @@ lines: 53-70
 :::{note}
 Query methods used for changing the operands cannot be assigned to variables for further querying, since their return type is `None`. The following code snippet shows an example, where the variable `gender_lowercase` evaluates to None. An `AttributeError` is thrown as a consequence when trying to further query with the `equal_to` querying method:
 
-```{exec-literalinclude} scripts/02b_query_engine.py
+```{exec-literalinclude} scripts/02a_query_engine.py
 ---
 language: python
 setup-lines: 1-11
@@ -170,7 +170,7 @@ expect-error: PanicException
 
 Nor does the concatenation of querying methods:
 
-```{exec-literalinclude} scripts/02b_query_engine.py
+```{exec-literalinclude} scripts/02a_query_engine.py
 ---
 language: python
 setup-lines: 1-11
@@ -181,7 +181,7 @@ expect-error: PanicException
 
 **Correct implementation**:
 
-```{exec-literalinclude} scripts/02b_query_engine.py
+```{exec-literalinclude} scripts/02a_query_engine.py
 ---
 language: python
 setup-lines: 1-11
@@ -200,7 +200,7 @@ In this following example we are selecting the nodes that fulfill the following 
 - Their attribute `age` is greater than 30, and their attribute `gender` is equal to _"M"_.
 - They are connected to nodes which attribute `description` contains the word _"fentanyl"_ in either upper or lowercase.
 
-```{exec-literalinclude} scripts/02b_query_engine.py
+```{exec-literalinclude} scripts/02a_query_engine.py
 ---
 language: python
 setup-lines: 1-11, 25-35
@@ -223,7 +223,7 @@ lines: 112-122
 
 The querying class [`EdgeOperand`](medmodels.medrecord.querying.EdgeOperand){target="_blank"} provides a way to query through the edges contained in a [`MedRecord`](medmodels.medrecord.medrecord.MedRecord){target="_blank"}. Edge operands show the same functionalities as Node operands, creating a very powerful tandem to query throughout your data. In this section, we will portray different ways the edge operands can be employed.
 
-```{exec-literalinclude} scripts/02b_query_engine.py
+```{exec-literalinclude} scripts/02a_query_engine.py
 ---
 language: python
 setup-lines: 1-11
@@ -241,7 +241,7 @@ lines: 126-132
 
 The edge operand follows the same principles as the node operand, with some extra queries applicable only to edges like [`source_node()`](medmodels.medrecord.querying.EdgeOperand.source_node){target="_blank"} or [`target_node()`](medmodels.medrecord.querying.EdgeOperand.target_node){target="_blank"} (instead of [`neighbors()`](medmodels.medrecord.querying.NodeOperand.neighbors){target="_blank"}).
 
-```{exec-literalinclude} scripts/02b_query_engine.py
+```{exec-literalinclude} scripts/02a_query_engine.py
 ---
 language: python
 setup-lines: 1-11
@@ -271,7 +271,7 @@ The full power of the query engine appears once you combine both operands inside
 - Their attribute `age` is greater than 30, and their attribute `gender` is equal to _"M"_.
 - They have at least an edge that is in in the `patient_drug` group, which attribute `cost` is less than 200 and its attribute `quantity` is equal to 1.
 
-```{exec-literalinclude} scripts/02b_query_engine.py
+```{exec-literalinclude} scripts/02a_query_engine.py
 ---
 language: python
 setup-lines: 1-11
@@ -298,7 +298,7 @@ lines: 149-168
 
 The inherent structure of the query engine works with logical **AND** operations. However, a complete query engine should also include **OR** and **NOT** operations to be able to address all scenarios. For that the methods [`exclude()`](medmodels.medrecord.querying.NodeOperand.exclude){target="_blank"} and [`either_or()`](medmodels.medrecord.querying.NodeOperand.either_or){target="_blank"}.
 
-```{exec-literalinclude} scripts/02b_query_engine.py
+```{exec-literalinclude} scripts/02a_query_engine.py
 ---
 language: python
 setup-lines: 1-11
@@ -322,7 +322,7 @@ lines: 172-193
 
 This includes also _"pat_3"_, that was not included in the previous section because none of its edges was included in the `query_edge_either()`, but it can be found in the `query_edge_or()` now.
 
-```{exec-literalinclude} scripts/02b_query_engine.py
+```{exec-literalinclude} scripts/02a_query_engine.py
 ---
 language: python
 setup-lines: 1-11, 172-181
@@ -347,7 +347,7 @@ Since the statements in the query engine are additive, every operation modifies 
 
 To address this limitation, the [`clone()`](medmodels.medrecord.querying.EdgeSingleValueOperand.clone){target="_blank"} method was introduced. This method allows users to create independent copies - or **clones** - of operands or computed values at any point in the query chain. Clones are completely decoupled from the original object, meaning that modifications of the clone do not affect the original, and vice versa. This functionality applies to all types of operands.
 
-```{exec-literalinclude} scripts/02b_query_engine.py
+```{exec-literalinclude} scripts/02a_query_engine.py
 ---
 language: python
 setup-lines: 1-11
@@ -377,7 +377,7 @@ In all previous snippets, we have used queries with the method [`query_nodes()`]
 
 - Using the [`add_group()`](medmodels.medrecord.medrecord.MedRecord.add_group){target="_blank"} to create groups in the MedRecord out of chosen subset of patients. We need to [`unfreeze_schema()`](medmodels.medrecord.medrecord.MedRecord.unfreeze_schema){target="_blank"} first, since this new group does not exist in the schema and we have a provided schema in the example dataset.
 
-```{exec-literalinclude} scripts/02b_query_engine.py
+```{exec-literalinclude} scripts/02a_query_engine.py
 ---
 language: python
 setup-lines: 1-11, 25-32
@@ -387,7 +387,7 @@ lines: 234-236
 
 - Using the [`node[]`](medmodels.medrecord.medrecord.MedRecord.node){target="_blank"} indexer, which retrieves the attributes for the given node indices.
 
-```{exec-literalinclude} scripts/02b_query_engine.py
+```{exec-literalinclude} scripts/02a_query_engine.py
 ---
 language: python
 setup-lines: 1-11, 172-190
@@ -397,7 +397,7 @@ lines: 238
 
 - Using [`groups_of_node()`](medmodels.medrecord.medrecord.MedRecord.groups_of_node){target="_blank"}, a method that retrieves the groups to which a specific node index belongs to.
 
-```{exec-literalinclude} scripts/02b_query_engine.py
+```{exec-literalinclude} scripts/02a_query_engine.py
 ---
 language: python
 setup-lines: 1-32
@@ -407,7 +407,7 @@ lines: 239
 
 - Using [`edge_endpoints()`](medmodels.medrecord.medrecord.MedRecord.edge_endpoints){target="_blank"}, a method that retrieves the source and target nodes of the specified edge(s) in the MedRecord.
 
-```{exec-literalinclude} scripts/02b_query_engine.py
+```{exec-literalinclude} scripts/02a_query_engine.py
 ---
 language: python
 setup-lines: 1-11, 136-145
@@ -430,7 +430,7 @@ lines: 240
 
 The full code examples for this chapter can be found here:
 
-```{literalinclude} scripts/02b_query_engine.py
+```{literalinclude} scripts/02a_query_engine.py
 ---
 language: python
 lines: 3-240
