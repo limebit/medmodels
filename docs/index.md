@@ -49,6 +49,7 @@ The MedModels documentation is your go-to resource for exploring the package. It
 ![python versions](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-blue)
 [![license](https://img.shields.io/github/license/limebit/medmodels.svg)](https://github.com/limebit/medmodels/blob/main/LICENSE)
 [![license](https://github.com/limebit/medmodels/actions/workflows/testing.yml/badge.svg?branch=main)](https://github.com/limebit/medmodels/actions/workflows/testing.yml)
+![license](https://raw.githubusercontent.com/limebit/medmodels-static/refs/heads/main/icons/coverage-badge.svg)
 [![PyPI](https://img.shields.io/pypi/v/medmodels)](https://pypi.org/project/medmodels/)
 ```
 

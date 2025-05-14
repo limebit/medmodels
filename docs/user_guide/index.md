@@ -24,4 +24,4 @@ MedModels is a powerful and versatile open-source Python package designed to str
 
 MedModels' central object is the [`MedRecord`](medmodels.medrecord.medrecord.MedRecord){target="_blank"} class. Thanks to its Rust backend implementation, MedRecord provides high efficiency and performance, even when working with large datasets. Learn more about how to use it here: [MedRecord Guide](02_medrecord.md).
 
-Once you have your data stored in a MedRecord object, you will be able to use all MedModels' modules, such as [`TreatmentEffect`](medmodels.treatment_effect.treatment_effect){target="_blank"}.
+Once you have your data stored in a MedRecord object, you will be able to use all MedModels' modules, such as [`TreatmentEffect`](medmodels.treatment_effect.treatment_effect.TreatmentEffect){target="_blank"}.
