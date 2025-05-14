@@ -1,7 +1,8 @@
 pub mod attributes;
 pub mod edges;
+pub mod group_by;
 pub mod nodes;
-pub mod traits;
+mod operand_traits;
 pub mod values;
 pub mod wrapper;
 
@@ -13,10 +14,12 @@ use attributes::{
     NodeSingleAttributeOperand,
 };
 use edges::{EdgeIndexOperand, EdgeIndicesOperand, EdgeOperand};
+use group_by::{GroupByOperand, GroupableOperand};
 use nodes::{NodeIndexOperand, NodeIndicesOperand, NodeOperand};
 use std::{
     fmt::{Debug, Display},
     hash::Hash,
+    sync::{RwLock, RwLockReadGuard, RwLockWriteGuard},
 };
 use values::{
     EdgeMultipleValuesOperand, EdgeSingleValueOperand, GetValues, NodeMultipleValuesOperand,
@@ -29,7 +32,7 @@ macro_rules! impl_return_operand_for_tuples {
             type ReturnValue = ($($T::ReturnValue,)+);
 
             #[allow(non_snake_case)]
-            fn evaluate(self, medrecord: &'a MedRecord) -> MedRecordResult<Self::ReturnValue> {
+            fn evaluate(&self, medrecord: &'a MedRecord) -> MedRecordResult<Self::ReturnValue> {
                 let ($($T,)+) = self;
 
                 $(let $T = $T.evaluate(medrecord)?;)+
@@ -46,7 +49,7 @@ macro_rules! impl_iterator_return_operand {
             impl<'a> ReturnOperand<'a> for Wrapper<$Operand> {
                 type ReturnValue = Box<dyn Iterator<Item = $Item> + 'a>;
 
-                fn evaluate(self, medrecord: &'a MedRecord) -> MedRecordResult<Self::ReturnValue> {
+                fn evaluate(&self, medrecord: &'a MedRecord) -> MedRecordResult<Self::ReturnValue> {
                     Ok(Box::new(self.evaluate_backward(medrecord)?))
                 }
             }
@@ -60,7 +63,7 @@ macro_rules! impl_direct_return_operand {
             impl<'a> ReturnOperand<'a> for Wrapper<$Operand> {
                 type ReturnValue = $ReturnValue;
 
-                fn evaluate(self, medrecord: &'a MedRecord) -> MedRecordResult<Self::ReturnValue> {
+                fn evaluate(&self, medrecord: &'a MedRecord) -> MedRecordResult<Self::ReturnValue> {
                     self.evaluate_backward(medrecord)
                 }
             }
@@ -76,16 +79,92 @@ impl Index for EdgeIndex {}
 
 impl<I: Index> Index for &I {}
 
-pub trait Operand: GetAllAttributes<Self::Index> + GetValues<Self::Index> + Debug + Clone {
+pub trait RootOperand:
+    GetAllAttributes<Self::Index> + GetValues<Self::Index> + Debug + Clone
+{
     type Index: Index;
 }
 
-impl Operand for NodeOperand {
+impl RootOperand for NodeOperand {
     type Index = NodeIndex;
 }
 
-impl Operand for EdgeOperand {
+impl RootOperand for EdgeOperand {
     type Index = EdgeIndex;
+}
+
+pub trait EvaluateForward<'a> {
+    type InputValue;
+    type ReturnValue;
+
+    fn evaluate_forward(
+        &self,
+        medrecord: &'a MedRecord,
+        values: Self::InputValue,
+    ) -> MedRecordResult<Self::ReturnValue>;
+}
+
+impl<'a, O: EvaluateForward<'a>> Wrapper<O> {
+    pub(crate) fn evaluate_forward(
+        &self,
+        medrecord: &'a MedRecord,
+        values: O::InputValue,
+    ) -> MedRecordResult<O::ReturnValue> {
+        self.0.read_or_panic().evaluate_forward(medrecord, values)
+    }
+}
+
+pub trait EvaluateBackward<'a> {
+    type ReturnValue;
+
+    fn evaluate_backward(&self, medrecord: &'a MedRecord) -> MedRecordResult<Self::ReturnValue>;
+}
+
+impl<'a, O: EvaluateBackward<'a>> Wrapper<O> {
+    pub(crate) fn evaluate_backward(
+        &self,
+        medrecord: &'a MedRecord,
+    ) -> MedRecordResult<O::ReturnValue> {
+        self.0.read_or_panic().evaluate_backward(medrecord)
+    }
+}
+
+pub trait DeepClone {
+    fn deep_clone(&self) -> Self;
+}
+
+impl<T: DeepClone> DeepClone for Option<T> {
+    fn deep_clone(&self) -> Self {
+        self.as_ref().map(|value| value.deep_clone())
+    }
+}
+
+impl<T: DeepClone> DeepClone for Box<T> {
+    fn deep_clone(&self) -> Self {
+        Box::new(T::deep_clone(self))
+    }
+}
+
+impl<T: DeepClone> DeepClone for Vec<T> {
+    fn deep_clone(&self) -> Self {
+        self.iter().map(|value| value.deep_clone()).collect()
+    }
+}
+
+pub(crate) trait ReadWriteOrPanic<T> {
+    fn read_or_panic(&self) -> RwLockReadGuard<'_, T>;
+
+    fn write_or_panic(&self) -> RwLockWriteGuard<'_, T>;
+}
+
+impl<T> ReadWriteOrPanic<T> for RwLock<T> {
+    fn read_or_panic(&self) -> RwLockReadGuard<'_, T> {
+        self.read().unwrap()
+    }
+
+    fn write_or_panic(&self) -> RwLockWriteGuard<'_, T> {
+        self.write().unwrap()
+    }
 }
 
 pub(crate) type BoxedIterator<'a, T> = Box<dyn Iterator<Item = T> + 'a>;
@@ -176,7 +255,7 @@ impl<'a, R: ReturnOperand<'a>> Selection<'a, R> {
         }
     }
 
-    pub fn evaluate(self) -> MedRecordResult<R::ReturnValue> {
+    pub fn evaluate(&self) -> MedRecordResult<R::ReturnValue> {
         self.return_operand.evaluate(self.medrecord)
     }
 }
@@ -184,7 +263,7 @@ impl<'a, R: ReturnOperand<'a>> Selection<'a, R> {
 pub trait ReturnOperand<'a> {
     type ReturnValue;
 
-    fn evaluate(self, medrecord: &'a MedRecord) -> MedRecordResult<Self::ReturnValue>;
+    fn evaluate(&self, medrecord: &'a MedRecord) -> MedRecordResult<Self::ReturnValue>;
 }
 
 impl_iterator_return_operand!(
@@ -207,6 +286,18 @@ impl_direct_return_operand!(
     EdgeSingleValueOperand     => Option<OptionalIndexWrapper<&'a EdgeIndex, MedRecordValue>>,
 );
 
+impl<'a, CO: GroupableOperand, O: EvaluateBackward<'a>> ReturnOperand<'a>
+    for Wrapper<GroupByOperand<CO, O>>
+{
+    type ReturnValue = BoxedIterator<'a, O::ReturnValue>;
+
+    fn evaluate(&self, _medrecord: &'a MedRecord) -> MedRecordResult<Self::ReturnValue> {
+        // self.evaluate_backward(medrecord)
+        todo!()
+    }
+}
+
+impl_return_operand_for_tuples!(R1);
 impl_return_operand_for_tuples!(R1, R2);
 impl_return_operand_for_tuples!(R1, R2, R3);
 impl_return_operand_for_tuples!(R1, R2, R3, R4);
@@ -221,3 +312,19 @@ impl_return_operand_for_tuples!(R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R11, R1
 impl_return_operand_for_tuples!(R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R11, R12, R13);
 impl_return_operand_for_tuples!(R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R11, R12, R13, R14);
 impl_return_operand_for_tuples!(R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R11, R12, R13, R14, R15);
+
+impl<'a, R: ReturnOperand<'a>> ReturnOperand<'a> for &R {
+    type ReturnValue = R::ReturnValue;
+
+    fn evaluate(&self, medrecord: &'a MedRecord) -> MedRecordResult<Self::ReturnValue> {
+        R::evaluate(self, medrecord)
+    }
+}
+
+impl<'a, R: ReturnOperand<'a>> ReturnOperand<'a> for &mut R {
+    type ReturnValue = R::ReturnValue;
+
+    fn evaluate(&self, medrecord: &'a MedRecord) -> MedRecordResult<Self::ReturnValue> {
+        R::evaluate(self, medrecord)
+    }
+}

@@ -1,7 +1,10 @@
 mod operand;
 mod operation;
 
-use super::nodes::{EdgeDirection, NodeOperand};
+use super::{
+    nodes::{EdgeDirection, NodeOperand},
+    DeepClone,
+};
 pub use operand::{
     EdgeIndexComparisonOperand, EdgeIndexOperand, EdgeIndicesComparisonOperand, EdgeIndicesOperand,
     EdgeOperand,
@@ -15,6 +18,17 @@ pub enum Context {
         operand: Box<NodeOperand>,
         kind: EdgeDirection,
     },
+}
+
+impl DeepClone for Context {
+    fn deep_clone(&self) -> Self {
+        match self {
+            Context::Edges { operand, kind } => Context::Edges {
+                operand: operand.deep_clone(),
+                kind: kind.clone(),
+            },
+        }
+    }
 }
 
 #[derive(Debug, Clone)]

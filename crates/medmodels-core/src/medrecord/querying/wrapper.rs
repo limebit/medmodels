@@ -1,4 +1,4 @@
-use super::traits::{DeepClone, ReadWriteOrPanic};
+use super::{DeepClone, ReadWriteOrPanic};
 use std::sync::{Arc, RwLock};
 
 #[repr(transparent)]
@@ -18,6 +18,17 @@ where
     fn deep_clone(&self) -> Self {
         self.0.read_or_panic().deep_clone().into()
     }
+}
+
+impl<T> Wrapper<T> {
+    // pub(crate) fn try_unwrap(self) -> MedRecordResult<T> {
+    //     Ok(Arc::try_unwrap(self.0)
+    //         .map_err(|_| {
+    //             MedRecordError::AssertionError("Failed to unwrap Arc<RwLock<T>>".to_string())
+    //         })?
+    //         .into_inner()
+    //         .expect("RwLock should not be poisoned"))
+    // }
 }
 
 #[derive(Debug, Clone)]
