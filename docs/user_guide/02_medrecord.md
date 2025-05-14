@@ -17,7 +17,7 @@ MedModels delivers advanced data analytics methods out-of-the-box by utilizing a
 ```{literalinclude} scripts/02_medrecord_intro.py
 ---
 language: python
-lines: 4
+lines: 5
 ---
 ```
 
@@ -52,7 +52,7 @@ This data, stored for example in a Pandas DataFrame, looks like this:
 ```{literalinclude} scripts/02_medrecord_intro.py
 ---
 language: python
-lines: 7-14
+lines: 8-15
 ---
 ```
 
@@ -62,7 +62,7 @@ The Builder Pattern simplifies creating complex objects by constructing them ste
 ```{literalinclude} scripts/02_medrecord_intro.py
 ---
 language: python
-lines: 31
+lines: 32
 ---
 ```
 
@@ -84,7 +84,7 @@ We can now proceed by adding additional data, such as the following medications.
 ```{literalinclude} scripts/02_medrecord_intro.py
 ---
 language: python
-lines: 17-19
+lines: 18-20
 ---
 ```
 
@@ -93,7 +93,7 @@ Using the builder pattern to construct the MedRecord allows us to pass as many n
 ```{literalinclude} scripts/02_medrecord_intro.py
 ---
 language: python
-lines: 33
+lines: 34
 ---
 ```
 
@@ -107,6 +107,27 @@ This will expand the MedRecord, adding several new nodes to the graph. However, 
 ```{image} https://raw.githubusercontent.com/limebit/medmodels-static/main/imgs/user_guide/02/02_medrecord_intro_02.png
 :class: transparent-image
 ```
+
+:::{note}
+Nodes can be added to the MedRecord in a lot of different formats, such as a Pandas DataFrame (as previously shown), but also from a Polars DataFrame:
+
+```{literalinclude} scripts/02_medrecord_intro.py
+---
+language: python
+lines: 36-40
+---
+```
+
+Or from a [`NodeTuple`](medmodels.medrecord.types.NodeTuple){target="_blank"}:
+
+```{literalinclude} scripts/02_medrecord_intro.py
+---
+language: python
+lines: 42-51
+---
+```
+
+:::
 
 ## Adding Edges to a MedRecord
 
@@ -135,7 +156,7 @@ We can add these edges then to our MedRecord Graph:
 ```{literalinclude} scripts/02_medrecord_intro.py
 ---
 language: python
-lines: 35
+lines: 53
 ---
 ```
 
@@ -158,7 +179,7 @@ For certain analyses, we may want to define specific subcohorts within our MedRe
 ```{literalinclude} scripts/02_medrecord_intro.py
 ---
 language: python
-lines: 37
+lines: 55
 ---
 ```
 
@@ -181,7 +202,7 @@ When building a MedRecord, you may want to save it to create a persistent versio
 ```{literalinclude} scripts/02_medrecord_intro.py
 ---
 language: python
-lines: 69-70
+lines: 90-91
 ---
 ```
 
@@ -198,8 +219,8 @@ The MedRecord class is designed to efficiently handle large datasets while maint
 ```{exec-literalinclude} scripts/02_medrecord_intro.py
 ---
 language: python
-setup-lines: 1-46
-lines: 48
+setup-lines: 1-64
+lines: 66
 ---
 ```
 
@@ -208,15 +229,15 @@ lines: 48
 - [`overview_nodes()`](medmodels.medrecord.medrecord.MedRecord.overview_nodes){target="_blank"} : Gets a summary for all nodes in groups and their attributes.
 :::
 
-As shown, we have two groups of nodes - Patients and Medications - created when adding the nodes. Additionally, there’s a group called _'US-Patients'_ that we created. For each group of nodes, we can view their attributes along with a brief statistical summary, such as the minimum, maximum, and mean for numeric variables.
+As shown, we have two groups of nodes - Patients and Medications - created when adding the nodes. Additionally, there’s a group called _'US-Patients'_ that we created. For each group of nodes, we can view their attributes along with a brief statistical summary, such as the minimum, maximum, and mean for numeric variables. It also shows the number of _Ungrouped Nodes_ we have in the MedRecord.
 
 We can do the same to get an overview over edges in our MedRecord by using the [`overview_edges()`](medmodels.medrecord.medrecord.MedRecord.overview_nodes){target="_blank"} method:
 
 ```{exec-literalinclude} scripts/02_medrecord_intro.py
 ---
 language: python
-setup-lines: 1-46
-lines: 50
+setup-lines: 1-64
+lines: 68
 ---
 ```
 
@@ -225,8 +246,8 @@ However, they need to belong to a group in order to show their attributes in the
 ```{exec-literalinclude} scripts/02_medrecord_intro.py
 ---
 language: python
-setup-lines: 1-46
-lines: 53, 55
+setup-lines: 1-64
+lines: 71, 73
 ---
 ```
 
@@ -250,8 +271,8 @@ We can, for example, get all available nodes:
 ```{exec-literalinclude} scripts/02_medrecord_intro.py
 ---
 language: python
-setup-lines: 1-53
-lines: 58
+setup-lines: 1-64
+lines: 76
 ---
 ```
 
@@ -260,8 +281,18 @@ Or access the attributes of a specific node:
 ```{exec-literalinclude} scripts/02_medrecord_intro.py
 ---
 language: python
-setup-lines: 1-53
-lines: 61
+setup-lines: 1-32
+lines: 79
+---
+```
+
+Or a specific edge:
+
+```{exec-literalinclude} scripts/02_medrecord_intro.py
+---
+language: python
+setup-lines: 1-54
+lines: 82
 ---
 ```
 
@@ -270,8 +301,8 @@ Or get all available groups:
 ```{exec-literalinclude} scripts/02_medrecord_intro.py
 ---
 language: python
-setup-lines: 1-53
-lines: 64
+setup-lines: 1-71
+lines: 85
 ---
 ```
 
@@ -280,8 +311,8 @@ Or get all that nodes belong to a certain group:
 ```{exec-literalinclude} scripts/02_medrecord_intro.py
 ---
 language: python
-setup-lines: 1-53
-lines: 67
+setup-lines: 1-34
+lines: 88
 ---
 ```
 
@@ -289,6 +320,7 @@ lines: 67
 
 - [`nodes()`](medmodels.medrecord.medrecord.MedRecord.nodes){target="_blank"} : Lists the node indices in the MedRecord instance.
 - [`node[]`](medmodels.medrecord.medrecord.MedRecord.node){target="_blank"} : Provides access to node information within the MedRecord instance via an indexer, returning a dictionary with node indices as keys and node attributes as values.
+- [`edge[]`](medmodels.medrecord.medrecord.MedRecord.edge){target="_blank"} : Provides access to edge attributes within the MedRecord via an indexer, returning a dictionary with edge indices and edge attributes as values.
 - [`groups()`](medmodels.medrecord.medrecord.MedRecord.groups){target="_blank"} : Lists the groups in the MedRecord instance.
 - [`nodes_in_group()`](medmodels.medrecord.medrecord.MedRecord.nodes_in_group){target="_blank"} : Retrieves the node indices associated with the specified group(s) in the MedRecord.
 :::
@@ -302,6 +334,6 @@ The full code examples for this chapter can be found here:
 ```{literalinclude} scripts/02_medrecord_intro.py
 ---
 language: python
-lines: 2-70
+lines: 2-91
 ---
 ```

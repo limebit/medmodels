@@ -1,5 +1,6 @@
 # ruff: noqa: D100, B018
 import pandas as pd
+import polars as pl
 
 import medmodels as mm
 
@@ -32,6 +33,23 @@ record = mm.MedRecord.builder().add_nodes((patients, "ID"), group="Patients").bu
 
 record.add_nodes((medications, "ID"), group="Medications")
 
+patient_tuples = [
+    ("Patient 04", {"Age": 45, "Sex": "F", "Loc": "CHI"}),
+    ("Patient 05", {"Age": 26, "Sex": "M", "Loc": "SPA"}),
+]
+record.add_nodes(patient_tuples, group="Patients")
+
+patient_polars = pl.DataFrame(
+    [
+        ["Patient 06", 55, "F", "GER"],
+        ["Patient 07", 61, "F", "USA"],
+        ["Patient 08", 73, "M", "CHI"],
+    ],
+    schema=["ID", "Age", "Sex", "Loc"],
+    orient="row",
+)
+record.add_nodes((patient_polars, "ID"), group="Patients")
+
 record.add_edges((patient_medication, "Pat_ID", "Med_ID"))
 
 record.add_group("US-Patients", nodes=["Patient 01", "Patient 02"])
@@ -39,7 +57,7 @@ record.add_group("US-Patients", nodes=["Patient 01", "Patient 02"])
 record.add_nodes(
     (
         pd.DataFrame(
-            [["Patient 04", 65, "M", "USA"]], columns=["ID", "Age", "Sex", "Loc"]
+            [["Patient 09", 65, "M", "USA"]], columns=["ID", "Age", "Sex", "Loc"]
         ),
         "ID",
     ),
@@ -59,6 +77,9 @@ record.nodes
 
 # Accessing a certain node
 record.node["Patient 01"]
+
+# Accessing a certain edge
+record.edge[0]
 
 # Getting all available groups
 record.groups
