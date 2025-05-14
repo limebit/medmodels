@@ -747,14 +747,14 @@ dependencies = [
 
 [[package]]
 name = "medmodels"
-version = "0.2.1"
+version = "0.3.0"
 dependencies = [
  "medmodels-core",
 ]
 
 [[package]]
 name = "medmodels-core"
-version = "0.2.1"
+version = "0.3.0"
 dependencies = [
  "chrono",
  "itertools",
@@ -768,7 +768,7 @@ dependencies = [
 
 [[package]]
 name = "medmodels-utils"
-version = "0.2.1"
+version = "0.3.0"
 dependencies = [
  "hashbrown 0.14.5",
 ]
@@ -1508,7 +1508,7 @@ dependencies = [
 
 [[package]]
 name = "py-medmodels"
-version = "0.2.1"
+version = "0.3.0"
 dependencies = [
  "chrono",
  "medmodels-core",
