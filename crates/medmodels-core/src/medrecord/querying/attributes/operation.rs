@@ -10,15 +10,14 @@ use crate::{
     errors::{MedRecordError, MedRecordResult},
     medrecord::{
         datatypes::{
-            Abs, Contains, EndsWith, Lowercase, Mod, Pow, Slice, StartsWith, Trim, TrimEnd,
-            TrimStart, Uppercase,
+            Abs, Contains, DataType, EndsWith, Lowercase, Mod, Pow, Slice, StartsWith, Trim,
+            TrimEnd, TrimStart, Uppercase,
         },
         querying::{
-            traits::{DeepClone, ReadWriteOrPanic},
-            values::MultipleValuesOperand,
-            BoxedIterator, Operand, OptionalIndexWrapper,
+            values::MultipleValuesOperand, BoxedIterator, DeepClone, OptionalIndexWrapper,
+            ReadWriteOrPanic, RootOperand,
         },
-        DataType, MedRecordAttribute, MedRecordValue, Wrapper,
+        MedRecordAttribute, MedRecordValue, Wrapper,
     },
     MedRecord,
 };
@@ -32,7 +31,7 @@ use std::{
 };
 
 #[derive(Debug, Clone)]
-pub enum AttributesTreeOperation<O: Operand> {
+pub enum AttributesTreeOperation<O: RootOperand> {
     AttributesOperation {
         operand: Wrapper<MultipleAttributesOperand<O>>,
     },
@@ -69,7 +68,7 @@ pub enum AttributesTreeOperation<O: Operand> {
     },
 }
 
-impl<O: Operand> DeepClone for AttributesTreeOperation<O> {
+impl<O: RootOperand> DeepClone for AttributesTreeOperation<O> {
     fn deep_clone(&self) -> Self {
         match self {
             Self::AttributesOperation { operand } => Self::AttributesOperation {
@@ -110,7 +109,7 @@ impl<O: Operand> DeepClone for AttributesTreeOperation<O> {
     }
 }
 
-impl<O: Operand> AttributesTreeOperation<O> {
+impl<O: RootOperand> AttributesTreeOperation<O> {
     pub(crate) fn evaluate<'a>(
         &self,
         medrecord: &'a MedRecord,
@@ -693,7 +692,7 @@ impl<O: Operand> AttributesTreeOperation<O> {
 }
 
 #[derive(Debug, Clone)]
-pub enum MultipleAttributesOperation<O: Operand> {
+pub enum MultipleAttributesOperation<O: RootOperand> {
     AttributeOperation {
         operand: Wrapper<SingleAttributeOperand<O>>,
     },
@@ -734,7 +733,7 @@ pub enum MultipleAttributesOperation<O: Operand> {
     },
 }
 
-impl<O: Operand> DeepClone for MultipleAttributesOperation<O> {
+impl<O: RootOperand> DeepClone for MultipleAttributesOperation<O> {
     fn deep_clone(&self) -> Self {
         match self {
             Self::AttributeOperation { operand } => Self::AttributeOperation {
@@ -778,7 +777,7 @@ impl<O: Operand> DeepClone for MultipleAttributesOperation<O> {
     }
 }
 
-impl<O: Operand> MultipleAttributesOperation<O> {
+impl<O: RootOperand> MultipleAttributesOperation<O> {
     pub(crate) fn evaluate<'a>(
         &self,
         medrecord: &'a MedRecord,
@@ -1224,7 +1223,7 @@ impl<O: Operand> MultipleAttributesOperation<O> {
 }
 
 #[derive(Debug, Clone)]
-pub enum SingleAttributeOperation<O: Operand> {
+pub enum SingleAttributeOperation<O: RootOperand> {
     SingleAttributeComparisonOperation {
         operand: SingleAttributeComparisonOperand,
         kind: SingleComparisonKind,
@@ -1255,7 +1254,7 @@ pub enum SingleAttributeOperation<O: Operand> {
     },
 }
 
-impl<O: Operand> DeepClone for SingleAttributeOperation<O> {
+impl<O: RootOperand> DeepClone for SingleAttributeOperation<O> {
     fn deep_clone(&self) -> Self {
         match self {
             Self::SingleAttributeComparisonOperation { operand, kind } => {
@@ -1291,7 +1290,7 @@ impl<O: Operand> DeepClone for SingleAttributeOperation<O> {
     }
 }
 
-impl<O: Operand> SingleAttributeOperation<O> {
+impl<O: RootOperand> SingleAttributeOperation<O> {
     pub(crate) fn evaluate<'a>(
         &self,
         medrecord: &MedRecord,

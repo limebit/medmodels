@@ -6,10 +6,7 @@ use super::{
 use crate::{
     errors::MedRecordResult,
     medrecord::{
-        querying::{
-            traits::{DeepClone, ReadWriteOrPanic},
-            BoxedIterator, Operand, OptionalIndexWrapper,
-        },
+        querying::{BoxedIterator, DeepClone, OptionalIndexWrapper, ReadWriteOrPanic, RootOperand},
         EdgeOperand, MedRecordValue, NodeOperand, Wrapper,
     },
     MedRecord,
@@ -246,12 +243,12 @@ pub type NodeMultipleValuesOperand = MultipleValuesOperand<NodeOperand>;
 pub type EdgeMultipleValuesOperand = MultipleValuesOperand<EdgeOperand>;
 
 #[derive(Debug, Clone)]
-pub struct MultipleValuesOperand<O: Operand> {
+pub struct MultipleValuesOperand<O: RootOperand> {
     pub(crate) context: Context<O>,
     operations: Vec<MultipleValuesOperation<O>>,
 }
 
-impl<O: Operand> DeepClone for MultipleValuesOperand<O> {
+impl<O: RootOperand> DeepClone for MultipleValuesOperand<O> {
     fn deep_clone(&self) -> Self {
         Self {
             context: self.context.clone(),
@@ -260,7 +257,7 @@ impl<O: Operand> DeepClone for MultipleValuesOperand<O> {
     }
 }
 
-impl<O: Operand> MultipleValuesOperand<O> {
+impl<O: RootOperand> MultipleValuesOperand<O> {
     pub(crate) fn new(context: Context<O>) -> Self {
         Self {
             context,
@@ -409,7 +406,7 @@ impl<O: Operand> MultipleValuesOperand<O> {
     }
 }
 
-impl<O: Operand> Wrapper<MultipleValuesOperand<O>> {
+impl<O: RootOperand> Wrapper<MultipleValuesOperand<O>> {
     pub(crate) fn new(context: Context<O>) -> Self {
         MultipleValuesOperand::new(context).into()
     }
@@ -515,13 +512,13 @@ pub type NodeSingleValueOperand = SingleValueOperand<NodeOperand>;
 pub type EdgeSingleValueOperand = SingleValueOperand<EdgeOperand>;
 
 #[derive(Debug, Clone)]
-pub struct SingleValueOperand<O: Operand> {
-    pub(crate) context: MultipleValuesOperand<O>,
+pub struct SingleValueOperand<O: RootOperand> {
+    context: MultipleValuesOperand<O>,
     pub(crate) kind: SingleKind,
     operations: Vec<SingleValueOperation<O>>,
 }
 
-impl<O: Operand> DeepClone for SingleValueOperand<O> {
+impl<O: RootOperand> DeepClone for SingleValueOperand<O> {
     fn deep_clone(&self) -> Self {
         Self {
             context: self.context.deep_clone(),
@@ -531,7 +528,7 @@ impl<O: Operand> DeepClone for SingleValueOperand<O> {
     }
 }
 
-impl<O: Operand> SingleValueOperand<O> {
+impl<O: RootOperand> SingleValueOperand<O> {
     pub(crate) fn new(context: MultipleValuesOperand<O>, kind: SingleKind) -> Self {
         Self {
             context,
@@ -679,7 +676,7 @@ impl<O: Operand> SingleValueOperand<O> {
     }
 }
 
-impl<O: Operand> Wrapper<SingleValueOperand<O>> {
+impl<O: RootOperand> Wrapper<SingleValueOperand<O>> {
     pub(crate) fn new(context: MultipleValuesOperand<O>, kind: SingleKind) -> Self {
         SingleValueOperand::new(context, kind).into()
     }
