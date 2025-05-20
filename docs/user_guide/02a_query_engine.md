@@ -59,7 +59,7 @@ lines: 15-21
 
 - [`in_group()`](medmodels.medrecord.querying.NodeOperand.in_group){target="_blank"} : Query nodes that belong to that group.
 - [`index()`](medmodels.medrecord.querying.NodeOperand.index){target="_blank"} : Returns a [`NodeIndicesOperand`](medmodels.medrecord.querying.NodeIndicesOperand){target="_blank"} representing the indices of the nodes queried.
-- [`query_nodes()`](medmodels.medrecord.medrecord.MedRecord.query_nodes){target="_blank"} : Selects nodes from the MedRecord based on the provided query.
+- [`query_nodes()`](medmodels.medrecord.medrecord.MedRecord.query_nodes){target="_blank"} : Retrieves information on the nodes from the MedRecord given the query.
 
 :::
 
@@ -86,7 +86,7 @@ lines: 25-35
 - [`has_attribute()`](medmodels.medrecord.querying.NodeOperand.has_attribute){target="_blank"} : Query nodes that have that attribute.
 - [`attribute()`](medmodels.medrecord.querying.NodeOperand.attribute){target="_blank"} : Returns a [`NodeMultipleValuesOperand`](medmodels.medrecord.querying.NodeMultipleValuesOperand){target="_blank"} to query on the values of the nodes for that attribute.
 - [`greater_than()`](medmodels.medrecord.querying.NodeMultipleValuesOperand.greater_than){target="_blank"} : Query values that are greater than that value.
-- [`query_nodes()`](medmodels.medrecord.medrecord.MedRecord.query_nodes){target="_blank"} : Selects nodes from the MedRecord based on the provided query.
+- [`query_nodes()`](medmodels.medrecord.medrecord.MedRecord.query_nodes){target="_blank"} : Retrieves information on the nodes from the MedRecord given the query.
 
 :::
 
@@ -113,7 +113,7 @@ lines: 39-49
 - [`has_attribute()`](medmodels.medrecord.querying.NodeOperand.has_attribute){target="_blank"} : Query nodes that have that attribute.
 - [`attribute()`](medmodels.medrecord.querying.NodeOperand.attribute){target="_blank"} : Returns a [`NodeMultipleValuesOperand`](medmodels.medrecord.querying.NodeMultipleValuesOperand){target="_blank"} to query on the values of the nodes for that attribute.
 - [`greater_than()`](medmodels.medrecord.querying.NodeMultipleValuesOperand.greater_than){target="_blank"} : Query values that are greater than that value.
-- [`query_nodes()`](medmodels.medrecord.medrecord.MedRecord.query_nodes){target="_blank"} : Selects nodes from the MedRecord based on the provided query.
+- [`query_nodes()`](medmodels.medrecord.medrecord.MedRecord.query_nodes){target="_blank"} : Retrieves information on the nodes from the MedRecord given the query.
 
 :::
 
@@ -152,7 +152,7 @@ lines: 53-70
 - [`subtract()`](medmodels.medrecord.querying.NodeSingleValueOperand.subtract){target="_blank"} : Subtract the argument from the single value operand.
 
 - [`less_than()`](medmodels.medrecord.querying.NodeMultipleValuesOperand.less_than){target="_blank"} : Query values that are less than that value.
-- [`query_nodes()`](medmodels.medrecord.medrecord.MedRecord.query_nodes){target="_blank"} : Selects nodes from the MedRecord based on the provided query.
+- [`query_nodes()`](medmodels.medrecord.medrecord.MedRecord.query_nodes){target="_blank"} : Retrieves information on the nodes from the MedRecord given the query.
 
 :::
 
@@ -215,7 +215,7 @@ lines: 112-122
 - [`lowercase()`](medmodels.medrecord.querying.NodeMultipleValuesOperand.lowercase){target="_blank"} : Converts the values that are strings to lowercase.
 - [`contains()`](medmodels.medrecord.querying.NodeIndexOperand.contains){target="_blank"} : Query node indices containing that argument.
 - [`index()`](medmodels.medrecord.querying.NodeOperand.index){target="_blank"}: Returns a [`NodeIndicesOperand`](medmodels.medrecord.querying.NodeIndicesOperand){target="_blank"} representing the indices of the nodes queried.
-- [`query_nodes()`](medmodels.medrecord.medrecord.MedRecord.query_nodes){target="_blank"} : Selects nodes from the MedRecord based on the provided query.
+- [`query_nodes()`](medmodels.medrecord.medrecord.MedRecord.query_nodes){target="_blank"} : Retrieves information on the nodes from the MedRecord given the query.
 
 :::
 
@@ -235,7 +235,7 @@ lines: 126-132
 
 - [`in_group()`](medmodels.medrecord.querying.EdgeOperand.in_group){target="_blank"} : Query edges that belong to that group.
 - [`index()`](medmodels.medrecord.querying.EdgeOperand.index){target="_blank"}: Returns a [`EdgeIndicesOperand`](medmodels.medrecord.querying.EdgeIndicesOperand){target="_blank"} representing the indices of the edges queried.
-- [`query_edges()`](medmodels.medrecord.medrecord.MedRecord.query_edges){target="_blank"} : Selects edges from the MedRecord based on the provided query.
+- [`query_edges()`](medmodels.medrecord.medrecord.MedRecord.query_edges){target="_blank"} : Retrieves information on the edges from the MedRecord given the query.
 
 :::
 
@@ -259,7 +259,7 @@ lines: 136-145
 - [`target_node()`](medmodels.medrecord.querying.EdgeOperand.target_node){target="_blank"} : Returns a [`NodeOperand()`](medmodels.medrecord.querying.NodeOperand){target="_blank"} to query on the target nodes for those edges.
 - [`contains()`](medmodels.medrecord.querying.NodeIndexOperand.contains){target="_blank"} : Query node indices containing that argument.
 - [`index()`](medmodels.medrecord.querying.EdgeOperand.index){target="_blank"}: Returns a [`EdgeIndicesOperand`](medmodels.medrecord.querying.EdgeIndicesOperand){target="_blank"} representing the indices of the edges queried.
-- [`query_edges()`](medmodels.medrecord.medrecord.MedRecord.query_edges){target="_blank"} : Selects edges from the MedRecord based on the provided query.
+- [`query_edges()`](medmodels.medrecord.medrecord.MedRecord.query_edges){target="_blank"} :  Retrieves information on the edges from the MedRecord given the query.
 
 :::
 
@@ -290,7 +290,7 @@ lines: 149-168
 - [`greater_than()`](medmodels.medrecord.querying.EdgeMultipleValuesOperand.greater_than){target="_blank"} : Query values that are greater than that value.
 - [`edges()`](medmodels.medrecord.querying.NodeOperand.edges){target="_blank"} : Returns a [`EdgeOperand()`](medmodels.medrecord.querying.EdgeOperand){target="_blank"} to query on the edges of those nodes.
 - [`index()`](medmodels.medrecord.querying.NodeOperand.index){target="_blank"}: Returns a [`NodeIndicesOperand`](medmodels.medrecord.querying.NodeIndicesOperand){target="_blank"} representing the indices of the nodes queried.
-- [`query_nodes()`](medmodels.medrecord.medrecord.MedRecord.query_nodes){target="_blank"} : Selects nodes from the MedRecord based on the provided query.
+- [`query_nodes()`](medmodels.medrecord.medrecord.MedRecord.query_nodes){target="_blank"} : Retrieves information on the nodes from the MedRecord given the query.
 
 :::
 
@@ -316,7 +316,7 @@ lines: 172-193
 - [`edges()`](medmodels.medrecord.querying.NodeOperand.edges){target="_blank"} : Returns a [`EdgeOperand()`](medmodels.medrecord.querying.EdgeOperand){target="_blank"} to query on the edges of those nodes.
 - [`either_or()`](medmodels.medrecord.querying.NodeOperand.either_or){target="_blank"} : Queries edges that match either one or the other given queries.
 - [`index()`](medmodels.medrecord.querying.NodeOperand.index){target="_blank"}: Returns a [`NodeIndicesOperand`](medmodels.medrecord.querying.NodeIndicesOperand){target="_blank"} representing the indices of the nodes queried.
-- [`query_nodes()`](medmodels.medrecord.medrecord.MedRecord.query_nodes){target="_blank"} : Selects nodes from the MedRecord based on the provided query.
+- [`query_nodes()`](medmodels.medrecord.medrecord.MedRecord.query_nodes){target="_blank"} : Retrieves information on the nodes from the MedRecord given the query.
 
 :::
 
@@ -335,8 +335,7 @@ lines: 196-211
 - [`in_group()`](medmodels.medrecord.querying.EdgeOperand.in_group){target="_blank"} : Query edges that belong to that group.
 - [`exclude()`](medmodels.medrecord.querying.NodeOperand.exclude){target="_blank"} : Exclude the nodes that belong to the given query.
 - [`index()`](medmodels.medrecord.querying.NodeOperand.index){target="_blank"}: Returns a [`NodeIndicesOperand`](medmodels.medrecord.querying.NodeIndicesOperand){target="_blank"} representing the indices of the nodes queried.
-- [`query_nodes()`](medmodels.medrecord.medrecord.MedRecord.query_nodes){target="_blank"} : Selects nodes from the MedRecord based on the provided query.
-
+- [`query_nodes()`](medmodels.medrecord.medrecord.MedRecord.query_nodes){target="_blank"} : Retrieves information on the nodes from the MedRecord given the query.
 :::
 
 So this gives us all the patient nodes that were not selected with the previous query (logical **NOT** applied).
@@ -367,7 +366,7 @@ lines: 215-231
 - [`greater_than()`](medmodels.medrecord.querying.EdgeMultipleValuesOperand.greater_than){target="_blank"} : Query values that are greater than that value.
 - [`less_than()`](medmodels.medrecord.querying.EdgeMultipleValuesOperand.less_than){target="_blank"} : Query values that are less than that value.
 - [`index()`](medmodels.medrecord.querying.EdgeOperand.index){target="_blank"}: Returns a [`EdgeIndicesOperand`](medmodels.medrecord.querying.NodeIndicesOperand){target="_blank"} representing the indices of the edges queried.
-- [`query_nodes()`](medmodels.medrecord.medrecord.MedRecord.query_nodes){target="_blank"} : Selects nodes from the MedRecord based on the provided query.
+- [`query_nodes()`](medmodels.medrecord.medrecord.MedRecord.query_nodes){target="_blank"} : Retrieves information on the nodes from the MedRecord given the query.
 
 :::
 
