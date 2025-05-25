@@ -1,7 +1,7 @@
 use super::{
     datatypes::DataType,
-    schema::{GroupSchema, Schema},
-    AttributeSchema, AttributeType, MedRecordAttribute,
+    schema::{AttributeSchema, AttributeType, GroupSchema, Schema},
+    MedRecordAttribute,
 };
 use crate::MedRecord;
 use polars::{
@@ -1174,10 +1174,7 @@ impl MedRecord {
 mod test {
     use super::{AttributeType, DataType};
     use crate::{
-        medrecord::{
-            schema::{GroupSchema, Schema},
-            AttributeSchema,
-        },
+        medrecord::schema::{AttributeSchema, GroupSchema, Schema},
         MedRecord,
     };
     use std::collections::HashMap;

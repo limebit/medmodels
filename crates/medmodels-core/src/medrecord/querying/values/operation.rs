@@ -10,14 +10,11 @@ use crate::{
     errors::{MedRecordError, MedRecordResult},
     medrecord::{
         datatypes::{
-            Abs, Ceil, Contains, EndsWith, Floor, Lowercase, Mod, Pow, Round, Slice, Sqrt,
-            StartsWith, Trim, TrimEnd, TrimStart, Uppercase,
+            Abs, Ceil, Contains, DataType, EndsWith, Floor, Lowercase, Mod, Pow, Round, Slice,
+            Sqrt, StartsWith, Trim, TrimEnd, TrimStart, Uppercase,
         },
-        querying::{
-            traits::{DeepClone, ReadWriteOrPanic},
-            BoxedIterator, Operand, OptionalIndexWrapper,
-        },
-        DataType, MedRecordValue, Wrapper,
+        querying::{BoxedIterator, DeepClone, OptionalIndexWrapper, ReadWriteOrPanic, RootOperand},
+        MedRecordValue, Wrapper,
     },
     MedRecord,
 };
@@ -52,7 +49,7 @@ macro_rules! get_median {
 }
 
 #[derive(Debug, Clone)]
-pub enum MultipleValuesOperation<O: Operand> {
+pub enum MultipleValuesOperation<O: RootOperand> {
     ValueOperation {
         operand: Wrapper<SingleValueOperand<O>>,
     },
@@ -94,7 +91,7 @@ pub enum MultipleValuesOperation<O: Operand> {
     },
 }
 
-impl<O: Operand> DeepClone for MultipleValuesOperation<O> {
+impl<O: RootOperand> DeepClone for MultipleValuesOperation<O> {
     fn deep_clone(&self) -> Self {
         match self {
             Self::ValueOperation { operand } => Self::ValueOperation {
@@ -140,7 +137,7 @@ impl<O: Operand> DeepClone for MultipleValuesOperation<O> {
     }
 }
 
-impl<O: Operand> MultipleValuesOperation<O> {
+impl<O: RootOperand> MultipleValuesOperation<O> {
     pub(crate) fn evaluate<'a>(
         &self,
         medrecord: &'a MedRecord,
@@ -740,8 +737,8 @@ impl<O: Operand> MultipleValuesOperation<O> {
     {
         let (values_1, values_2) = Itertools::tee(values);
 
-        let either_values = either.evaluate_forward(medrecord, values_1)?;
-        let or_values = or.evaluate_forward(medrecord, values_2)?;
+        let either_values = either.evaluate_forward(medrecord, Box::new(values_1))?;
+        let or_values = or.evaluate_forward(medrecord, Box::new(values_2))?;
 
         Ok(Box::new(
             either_values
@@ -762,7 +759,7 @@ impl<O: Operand> MultipleValuesOperation<O> {
         let (values_1, values_2) = Itertools::tee(values);
 
         let result: MrHashSet<_> = operand
-            .evaluate_forward(medrecord, values_1)?
+            .evaluate_forward(medrecord, Box::new(values_1))?
             .map(|(t, _)| t)
             .collect();
 
@@ -771,7 +768,7 @@ impl<O: Operand> MultipleValuesOperation<O> {
 }
 
 #[derive(Debug, Clone)]
-pub enum SingleValueOperation<O: Operand> {
+pub enum SingleValueOperation<O: RootOperand> {
     SingleValueComparisonOperation {
         operand: SingleValueComparisonOperand,
         kind: SingleComparisonKind,
@@ -807,7 +804,7 @@ pub enum SingleValueOperation<O: Operand> {
     },
 }
 
-impl<O: Operand> DeepClone for SingleValueOperation<O> {
+impl<O: RootOperand> DeepClone for SingleValueOperation<O> {
     fn deep_clone(&self) -> Self {
         match self {
             Self::SingleValueComparisonOperation { operand, kind } => {
@@ -848,12 +845,15 @@ impl<O: Operand> DeepClone for SingleValueOperation<O> {
     }
 }
 
-impl<O: Operand> SingleValueOperation<O> {
+impl<O: RootOperand> SingleValueOperation<O> {
     pub(crate) fn evaluate<'a>(
         &self,
-        medrecord: &MedRecord,
+        medrecord: &'a MedRecord,
         value: OptionalIndexWrapper<&'a O::Index, MedRecordValue>,
-    ) -> MedRecordResult<Option<OptionalIndexWrapper<&'a O::Index, MedRecordValue>>> {
+    ) -> MedRecordResult<Option<OptionalIndexWrapper<&'a O::Index, MedRecordValue>>>
+    where
+        O: 'a,
+    {
         match self {
             Self::SingleValueComparisonOperation { operand, kind } => {
                 Self::evaluate_single_value_comparison_operation(medrecord, value, operand, kind)
@@ -998,11 +998,14 @@ impl<O: Operand> SingleValueOperation<O> {
 
     #[inline]
     fn evaluate_either_or<'a>(
-        medrecord: &MedRecord,
+        medrecord: &'a MedRecord,
         value: OptionalIndexWrapper<&'a O::Index, MedRecordValue>,
         either: &Wrapper<SingleValueOperand<O>>,
         or: &Wrapper<SingleValueOperand<O>>,
-    ) -> MedRecordResult<Option<OptionalIndexWrapper<&'a O::Index, MedRecordValue>>> {
+    ) -> MedRecordResult<Option<OptionalIndexWrapper<&'a O::Index, MedRecordValue>>>
+    where
+        O: 'a,
+    {
         let either_result = either.evaluate_forward(medrecord, value.clone())?;
         let or_result = or.evaluate_forward(medrecord, value)?;
 
