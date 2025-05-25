@@ -1,16 +1,18 @@
 mod operand;
 
 use super::DeepClone;
-pub use operand::GroupByOperand;
-pub(crate) use operand::{GroupableOperand, PartitionGroups};
+pub use operand::RootGroupOperand;
+pub(crate) use operand::{
+    EvaluateBackwardGrouped, GroupOperand, GroupableOperand, PartitionGroups,
+};
 
 #[derive(Debug, Clone)]
-pub struct Context<CO: GroupableOperand> {
+pub struct RootContext<CO: GroupableOperand> {
     operand: CO,
     discriminator: CO::Discriminator,
 }
 
-impl<CO: GroupableOperand> DeepClone for Context<CO> {
+impl<CO: GroupableOperand> DeepClone for RootContext<CO> {
     fn deep_clone(&self) -> Self {
         Self {
             operand: self.operand.deep_clone(),
@@ -19,7 +21,7 @@ impl<CO: GroupableOperand> DeepClone for Context<CO> {
     }
 }
 
-impl<CO: GroupableOperand> Context<CO> {
+impl<CO: GroupableOperand> RootContext<CO> {
     pub(crate) fn new(operand: CO, discriminator: CO::Discriminator) -> Self {
         Self {
             operand,

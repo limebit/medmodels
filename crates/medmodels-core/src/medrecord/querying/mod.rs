@@ -14,7 +14,7 @@ use attributes::{
     NodeSingleAttributeOperand,
 };
 use edges::{EdgeIndexOperand, EdgeIndicesOperand, EdgeOperand};
-use group_by::{GroupByOperand, GroupableOperand};
+use group_by::{EvaluateBackwardGrouped, GroupOperand, GroupableOperand, RootGroupOperand};
 use nodes::{NodeIndexOperand, NodeIndicesOperand, NodeOperand};
 use std::{
     fmt::{Debug, Display},
@@ -286,14 +286,15 @@ impl_direct_return_operand!(
     EdgeSingleValueOperand     => Option<OptionalIndexWrapper<&'a EdgeIndex, MedRecordValue>>,
 );
 
-impl<'a, CO: GroupableOperand, O: EvaluateBackward<'a>> ReturnOperand<'a>
-    for Wrapper<GroupByOperand<CO, O>>
+impl<'a, CO, O> ReturnOperand<'a> for Wrapper<GroupOperand<CO, O>>
+where
+    CO: EvaluateBackwardGrouped<'a>,
+    O: 'a + EvaluateForward<'a, InputValue = CO::ReturnValue>,
 {
-    type ReturnValue = BoxedIterator<'a, O::ReturnValue>;
+    type ReturnValue = <GroupOperand<CO, O> as EvaluateBackward<'a>>::ReturnValue;
 
-    fn evaluate(&self, _medrecord: &'a MedRecord) -> MedRecordResult<Self::ReturnValue> {
-        // self.evaluate_backward(medrecord)
-        todo!()
+    fn evaluate(&self, medrecord: &'a MedRecord) -> MedRecordResult<Self::ReturnValue> {
+        self.evaluate_backward(medrecord)
     }
 }
 
