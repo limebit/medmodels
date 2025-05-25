@@ -12,6 +12,7 @@ use crate::{
             values::{self, MultipleValuesOperand},
             wrapper::{CardinalityWrapper, Wrapper},
             BoxedIterator, DeepClone, EvaluateBackward, EvaluateForward, ReadWriteOrPanic,
+            ReduceInput,
         },
         EdgeIndex, Group, MedRecordAttribute,
     },
@@ -95,6 +96,19 @@ impl<'a> EvaluateBackward<'a> for EdgeOperand {
         };
 
         self.evaluate_forward(medrecord, edge_indices)
+    }
+}
+
+impl<'a> ReduceInput<'a, <EdgeOperand as EvaluateBackward<'a>>::ReturnValue> for EdgeOperand {
+    type ReturnValue = <EdgeOperand as EvaluateForward<'a>>::InputValue;
+
+    #[inline]
+    fn reduce_input(
+        &self,
+        _medrecord: &'a MedRecord,
+        edge_indices: <EdgeOperand as EvaluateBackward<'a>>::ReturnValue,
+    ) -> MedRecordResult<Self::ReturnValue> {
+        Ok(edge_indices)
     }
 }
 
@@ -481,9 +495,26 @@ impl<'a> EvaluateBackward<'a> for EdgeIndicesOperand {
     type ReturnValue = BoxedIterator<'a, EdgeIndex>;
 
     fn evaluate_backward(&self, medrecord: &'a MedRecord) -> MedRecordResult<Self::ReturnValue> {
-        let edge_indices = self.context.evaluate_backward(medrecord)?.cloned();
+        let edge_indices = self.context.evaluate_backward(medrecord)?;
 
-        self.evaluate_forward(medrecord, Box::new(edge_indices))
+        let edge_indices = self.reduce_input(medrecord, edge_indices)?;
+
+        self.evaluate_forward(medrecord, edge_indices)
+    }
+}
+
+impl<'a> ReduceInput<'a, <EdgeOperand as EvaluateBackward<'a>>::ReturnValue>
+    for EdgeIndicesOperand
+{
+    type ReturnValue = <EdgeIndicesOperand as EvaluateForward<'a>>::InputValue;
+
+    #[inline]
+    fn reduce_input(
+        &self,
+        _medrecord: &'a MedRecord,
+        edge_indices: <EdgeOperand as EvaluateBackward<'a>>::ReturnValue,
+    ) -> MedRecordResult<Self::ReturnValue> {
+        Ok(Box::new(edge_indices.cloned()))
     }
 }
 
@@ -671,15 +702,30 @@ impl<'a> EvaluateBackward<'a> for EdgeIndexOperand {
     fn evaluate_backward(&self, medrecord: &'a MedRecord) -> MedRecordResult<Self::ReturnValue> {
         let edge_indices = self.context.evaluate_backward(medrecord)?;
 
-        let edge_index = match self.kind {
+        let edge_index = self.reduce_input(medrecord, edge_indices)?;
+
+        self.evaluate_forward(medrecord, edge_index)
+    }
+}
+
+impl<'a> ReduceInput<'a, <EdgeIndicesOperand as EvaluateBackward<'a>>::ReturnValue>
+    for EdgeIndexOperand
+{
+    type ReturnValue = <EdgeIndexOperand as EvaluateForward<'a>>::InputValue;
+
+    #[inline]
+    fn reduce_input(
+        &self,
+        _medrecord: &'a MedRecord,
+        edge_indices: <EdgeIndicesOperand as EvaluateBackward<'a>>::ReturnValue,
+    ) -> MedRecordResult<Self::ReturnValue> {
+        Ok(match self.kind {
             SingleKind::Max => EdgeIndicesOperation::get_max(edge_indices)?,
             SingleKind::Min => EdgeIndicesOperation::get_min(edge_indices)?,
             SingleKind::Count => EdgeIndicesOperation::get_count(edge_indices),
             SingleKind::Sum => EdgeIndicesOperation::get_sum(edge_indices),
             SingleKind::Random => EdgeIndicesOperation::get_random(edge_indices)?,
-        };
-
-        self.evaluate_forward(medrecord, edge_index)
+        })
     }
 }
 

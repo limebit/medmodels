@@ -8,7 +8,7 @@ use crate::{
     medrecord::{
         querying::{
             operand_traits::Max, BoxedIterator, DeepClone, EvaluateBackward, EvaluateForward,
-            OptionalIndexWrapper, ReadWriteOrPanic, RootOperand,
+            OptionalIndexWrapper, ReadWriteOrPanic, ReduceInput, RootOperand,
         },
         EdgeOperand, MedRecordValue, NodeOperand, Wrapper,
     },
@@ -260,10 +260,7 @@ impl<O: RootOperand> DeepClone for MultipleValuesOperand<O> {
     }
 }
 
-impl<'a, O: RootOperand> EvaluateForward<'a> for MultipleValuesOperand<O>
-where
-    O: 'a,
-{
+impl<'a, O: 'a + RootOperand> EvaluateForward<'a> for MultipleValuesOperand<O> {
     type InputValue = BoxedIterator<'a, (&'a O::Index, MedRecordValue)>;
     type ReturnValue = BoxedIterator<'a, (&'a O::Index, MedRecordValue)>;
 
@@ -282,16 +279,43 @@ where
     }
 }
 
-impl<'a, O: RootOperand> EvaluateBackward<'a> for MultipleValuesOperand<O>
-where
-    O: 'a,
-{
+impl<'a, O: 'a + RootOperand> EvaluateBackward<'a> for MultipleValuesOperand<O> {
     type ReturnValue = BoxedIterator<'a, (&'a O::Index, MedRecordValue)>;
 
     fn evaluate_backward(&self, medrecord: &'a MedRecord) -> MedRecordResult<Self::ReturnValue> {
         let values = self.context.get_values(medrecord)?;
 
         self.evaluate_forward(medrecord, Box::new(values))
+    }
+}
+
+impl<'a> ReduceInput<'a, <EdgeOperand as EvaluateBackward<'a>>::ReturnValue>
+    for MultipleValuesOperand<EdgeOperand>
+{
+    type ReturnValue = <Self as EvaluateForward<'a>>::InputValue;
+
+    #[inline]
+    fn reduce_input(
+        &self,
+        medrecord: &'a MedRecord,
+        edge_indices: <EdgeOperand as EvaluateBackward<'a>>::ReturnValue,
+    ) -> MedRecordResult<Self::ReturnValue> {
+        let Context::Operand((_, attribute)) = &self.context else {
+            unreachable!()
+        };
+
+        let attribute = attribute.clone();
+
+        Ok(Box::new(edge_indices.flat_map(move |edge_index| {
+            Some((
+                edge_index,
+                medrecord
+                    .edge_attributes(edge_index)
+                    .expect("Edge must exist")
+                    .get(&attribute)?
+                    .clone(),
+            ))
+        })))
     }
 }
 
@@ -529,10 +553,7 @@ impl<O: RootOperand> DeepClone for SingleValueOperand<O> {
     }
 }
 
-impl<'a, O: RootOperand> EvaluateForward<'a> for SingleValueOperand<O>
-where
-    O: 'a,
-{
+impl<'a, O: 'a + RootOperand> EvaluateForward<'a> for SingleValueOperand<O> {
     type InputValue = OptionalIndexWrapper<&'a O::Index, MedRecordValue>;
     type ReturnValue = Option<OptionalIndexWrapper<&'a O::Index, MedRecordValue>>;
 
@@ -553,16 +574,31 @@ where
     }
 }
 
-impl<'a, O: RootOperand> EvaluateBackward<'a> for SingleValueOperand<O>
-where
-    O: 'a,
-{
+impl<'a, O: 'a + RootOperand> EvaluateBackward<'a> for SingleValueOperand<O> {
     type ReturnValue = Option<OptionalIndexWrapper<&'a O::Index, MedRecordValue>>;
 
     fn evaluate_backward(&self, medrecord: &'a MedRecord) -> MedRecordResult<Self::ReturnValue> {
         let values = self.context.evaluate_backward(medrecord)?;
 
-        let value: OptionalIndexWrapper<_, _> = match self.kind {
+        let value = self.reduce_input(medrecord, values)?;
+
+        self.evaluate_forward(medrecord, value)
+    }
+}
+
+impl<'a, O: 'a + RootOperand>
+    ReduceInput<'a, <MultipleValuesOperand<O> as EvaluateBackward<'a>>::ReturnValue>
+    for SingleValueOperand<O>
+{
+    type ReturnValue = <Self as EvaluateForward<'a>>::InputValue;
+
+    #[inline]
+    fn reduce_input(
+        &self,
+        _medrecord: &'a MedRecord,
+        values: <MultipleValuesOperand<O> as EvaluateBackward<'a>>::ReturnValue,
+    ) -> MedRecordResult<Self::ReturnValue> {
+        Ok(match self.kind {
             SingleKind::Max => MultipleValuesOperation::<O>::get_max(values)?.into(),
             SingleKind::Min => MultipleValuesOperation::<O>::get_min(values)?.into(),
             SingleKind::Mean => MultipleValuesOperation::<O>::get_mean(values)?.into(),
@@ -573,9 +609,7 @@ where
             SingleKind::Count => MultipleValuesOperation::<O>::get_count(values).into(),
             SingleKind::Sum => MultipleValuesOperation::<O>::get_sum(values)?.into(),
             SingleKind::Random => MultipleValuesOperation::<O>::get_random(values)?.into(),
-        };
-
-        self.evaluate_forward(medrecord, value)
+        })
     }
 }
 
