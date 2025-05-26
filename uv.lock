@@ -608,7 +608,7 @@ dev = [
     { name = "pandas-stubs", specifier = ">=2.2.2.240603" },
     { name = "py-spy" },
     { name = "pydata-sphinx-theme", specifier = "==0.15.4" },
-    { name = "pyright", specifier = ">=1.1.400" },
+    { name = "pyright", specifier = ">=1.1.401" },
     { name = "pytest", specifier = ">=8.2.2" },
     { name = "ruff", specifier = ">=0.4.9" },
     { name = "scipy-stubs", specifier = ">=1.15.1.0" },

@@ -105,19 +105,6 @@ impl<'a> EvaluateBackward<'a> for NodeOperand {
     }
 }
 
-impl<'a> ReduceInput<'a, <Self as EvaluateBackward<'a>>::ReturnValue> for NodeOperand {
-    type ReturnValue = <Self as EvaluateBackward<'a>>::ReturnValue;
-
-    #[inline]
-    fn reduce_input(
-        &self,
-        _medrecord: &'a MedRecord,
-        node_indices: <Self as EvaluateBackward<'a>>::ReturnValue,
-    ) -> MedRecordResult<Self::ReturnValue> {
-        Ok(node_indices)
-    }
-}
-
 impl NodeOperand {
     pub(crate) fn new(context: Option<Context>) -> Self {
         Self {
@@ -517,23 +504,20 @@ impl<'a> EvaluateBackward<'a> for NodeIndicesOperand {
     fn evaluate_backward(&self, medrecord: &'a MedRecord) -> MedRecordResult<Self::ReturnValue> {
         let node_indices = self.context.evaluate_backward(medrecord)?;
 
-        let node_indices = self.reduce_input(medrecord, node_indices)?;
+        let node_indices = self.reduce_input(node_indices)?;
 
         self.evaluate_forward(medrecord, Box::new(node_indices))
     }
 }
 
-impl<'a> ReduceInput<'a, <NodeOperand as EvaluateBackward<'a>>::ReturnValue>
-    for NodeIndicesOperand
-{
-    type ReturnValue = <Self as EvaluateForward<'a>>::InputValue;
+impl<'a> ReduceInput<'a> for NodeIndicesOperand {
+    type Context = NodeOperand;
 
     #[inline]
     fn reduce_input(
         &self,
-        _medrecord: &'a MedRecord,
-        node_indices: <NodeOperand as EvaluateBackward<'a>>::ReturnValue,
-    ) -> MedRecordResult<Self::ReturnValue> {
+        node_indices: <Self::Context as EvaluateBackward<'a>>::ReturnValue,
+    ) -> MedRecordResult<<Self as EvaluateForward<'a>>::InputValue> {
         Ok(Box::new(node_indices.cloned()))
     }
 }
@@ -749,23 +733,20 @@ impl<'a> EvaluateBackward<'a> for NodeIndexOperand {
     fn evaluate_backward(&self, medrecord: &'a MedRecord) -> MedRecordResult<Self::ReturnValue> {
         let node_indices = self.context.evaluate_backward(medrecord)?;
 
-        let node_index = self.reduce_input(medrecord, node_indices)?;
+        let node_index = self.reduce_input(node_indices)?;
 
         self.evaluate_forward(medrecord, node_index)
     }
 }
 
-impl<'a> ReduceInput<'a, <NodeIndicesOperand as EvaluateBackward<'a>>::ReturnValue>
-    for NodeIndexOperand
-{
-    type ReturnValue = <Self as EvaluateForward<'a>>::InputValue;
+impl<'a> ReduceInput<'a> for NodeIndexOperand {
+    type Context = NodeIndicesOperand;
 
     #[inline]
     fn reduce_input(
         &self,
-        _medrecord: &'a MedRecord,
-        node_indices: <NodeIndicesOperand as EvaluateBackward<'a>>::ReturnValue,
-    ) -> MedRecordResult<Self::ReturnValue> {
+        node_indices: <Self::Context as EvaluateBackward<'a>>::ReturnValue,
+    ) -> MedRecordResult<<Self as EvaluateForward<'a>>::InputValue> {
         Ok(match self.kind {
             SingleKind::Max => NodeIndicesOperation::get_max(node_indices)?.clone(),
             SingleKind::Min => NodeIndicesOperation::get_min(node_indices)?.clone(),

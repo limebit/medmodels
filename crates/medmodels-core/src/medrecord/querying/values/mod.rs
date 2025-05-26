@@ -1,9 +1,11 @@
+mod group_by;
 mod operand;
 mod operation;
 
 use super::{
     attributes::{MultipleAttributesOperand, MultipleAttributesOperation},
     edges::EdgeOperand,
+    group_by::{GroupOperand, GroupedOperand},
     nodes::NodeOperand,
     BoxedIterator, EvaluateBackward, Index, RootOperand,
 };
@@ -97,6 +99,14 @@ pub trait GetValues<I: Index> {
     ) -> MedRecordResult<impl Iterator<Item = (&'a I, MedRecordValue)> + 'a>
     where
         I: 'a;
+
+    fn get_values_from_indices<'a>(
+        medrecord: &'a MedRecord,
+        attribute: MedRecordAttribute,
+        indices: impl Iterator<Item = &'a I> + 'a,
+    ) -> impl Iterator<Item = (&'a I, MedRecordValue)> + 'a
+    where
+        I: 'a;
 }
 
 impl GetValues<NodeIndex> for NodeOperand {
@@ -110,7 +120,22 @@ impl GetValues<NodeIndex> for NodeOperand {
     {
         let node_indices = self.evaluate_backward(medrecord)?;
 
-        Ok(node_indices.flat_map(move |node_index| {
+        Ok(Self::get_values_from_indices(
+            medrecord,
+            attribute,
+            node_indices,
+        ))
+    }
+
+    fn get_values_from_indices<'a>(
+        medrecord: &'a MedRecord,
+        attribute: MedRecordAttribute,
+        node_indices: impl Iterator<Item = &'a NodeIndex> + 'a,
+    ) -> impl Iterator<Item = (&'a NodeIndex, MedRecordValue)> + 'a
+    where
+        NodeIndex: 'a,
+    {
+        node_indices.flat_map(move |node_index| {
             let attribute = medrecord
                 .node_attributes(node_index)
                 .expect("Node must exist")
@@ -118,7 +143,7 @@ impl GetValues<NodeIndex> for NodeOperand {
                 .clone();
 
             Some((node_index, attribute))
-        }))
+        })
     }
 }
 
@@ -133,7 +158,22 @@ impl GetValues<EdgeIndex> for EdgeOperand {
     {
         let edge_indices = self.evaluate_backward(medrecord)?;
 
-        Ok(edge_indices.flat_map(move |edge_index| {
+        Ok(Self::get_values_from_indices(
+            medrecord,
+            attribute,
+            edge_indices,
+        ))
+    }
+
+    fn get_values_from_indices<'a>(
+        medrecord: &'a MedRecord,
+        attribute: MedRecordAttribute,
+        edge_indices: impl Iterator<Item = &'a EdgeIndex> + 'a,
+    ) -> impl Iterator<Item = (&'a EdgeIndex, MedRecordValue)> + 'a
+    where
+        EdgeIndex: 'a,
+    {
+        edge_indices.flat_map(move |edge_index| {
             Some((
                 edge_index,
                 medrecord
@@ -142,14 +182,15 @@ impl GetValues<EdgeIndex> for EdgeOperand {
                     .get(&attribute)?
                     .clone(),
             ))
-        }))
+        })
     }
 }
 
 #[derive(Debug, Clone)]
-pub enum Context<O: RootOperand> {
+pub enum Context<O: RootOperand + GroupedOperand> {
     Operand((O, MedRecordAttribute)),
     MultipleAttributesOperand(MultipleAttributesOperand<O>),
+    GroupByOperand(GroupOperand<SingleValueOperand<O>>),
 }
 
 impl<O: RootOperand> Context<O> {
@@ -164,12 +205,17 @@ impl<O: RootOperand> Context<O> {
             Self::Operand((operand, attribute)) => {
                 Box::new(operand.get_values(medrecord, attribute.clone())?)
             }
-            Self::MultipleAttributesOperand(multiple_attributes_operand) => {
-                let attributes = multiple_attributes_operand.evaluate_backward(medrecord)?;
+            Self::MultipleAttributesOperand(operand) => {
+                let attributes = operand.evaluate_backward(medrecord)?;
 
                 Box::new(MultipleAttributesOperation::<O>::get_values(
                     medrecord, attributes,
                 )?)
+            }
+            Self::GroupByOperand(_operand) => {
+                // let values = operand.evaluate_backward(medrecord)?;
+
+                todo!()
             }
         };
 

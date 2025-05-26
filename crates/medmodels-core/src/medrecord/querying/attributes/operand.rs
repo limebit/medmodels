@@ -322,21 +322,6 @@ impl<'a, O: 'a + RootOperand> EvaluateBackward<'a> for AttributesTreeOperand<O> 
     }
 }
 
-impl<'a, O: 'a + RootOperand> ReduceInput<'a, <Self as EvaluateBackward<'a>>::ReturnValue>
-    for AttributesTreeOperand<O>
-{
-    type ReturnValue = <Self as EvaluateBackward<'a>>::ReturnValue;
-
-    #[inline]
-    fn reduce_input(
-        &self,
-        _medrecord: &'a MedRecord,
-        attributes: <Self as EvaluateBackward<'a>>::ReturnValue,
-    ) -> MedRecordResult<Self::ReturnValue> {
-        Ok(attributes)
-    }
-}
-
 impl<O: RootOperand> AttributesTreeOperand<O> {
     pub(crate) fn new(context: O) -> Self {
         Self {
@@ -581,24 +566,20 @@ impl<'a, O: 'a + RootOperand> EvaluateBackward<'a> for MultipleAttributesOperand
     fn evaluate_backward(&self, medrecord: &'a MedRecord) -> MedRecordResult<Self::ReturnValue> {
         let attributes = self.context.evaluate_backward(medrecord)?;
 
-        let attributes = self.reduce_input(medrecord, attributes)?;
+        let attributes = self.reduce_input(attributes)?;
 
         self.evaluate_forward(medrecord, attributes)
     }
 }
 
-impl<'a, O: 'a + RootOperand>
-    ReduceInput<'a, <AttributesTreeOperand<O> as EvaluateBackward<'a>>::ReturnValue>
-    for MultipleAttributesOperand<O>
-{
-    type ReturnValue = <Self as EvaluateForward<'a>>::InputValue;
+impl<'a, O: 'a + RootOperand> ReduceInput<'a> for MultipleAttributesOperand<O> {
+    type Context = AttributesTreeOperand<O>;
 
     #[inline]
     fn reduce_input(
         &self,
-        _medrecord: &'a MedRecord,
-        attributes: <AttributesTreeOperand<O> as EvaluateBackward<'a>>::ReturnValue,
-    ) -> MedRecordResult<Self::ReturnValue> {
+        attributes: <Self::Context as EvaluateBackward<'a>>::ReturnValue,
+    ) -> MedRecordResult<<Self as EvaluateForward<'a>>::InputValue> {
         Ok(match self.kind {
             MultipleKind::Max => Box::new(AttributesTreeOperation::<O>::get_max(attributes)?),
             MultipleKind::Min => Box::new(AttributesTreeOperation::<O>::get_min(attributes)?),
@@ -890,24 +871,20 @@ impl<'a, O: 'a + RootOperand> EvaluateBackward<'a> for SingleAttributeOperand<O>
     fn evaluate_backward(&self, medrecord: &'a MedRecord) -> MedRecordResult<Self::ReturnValue> {
         let attributes = self.context.evaluate_backward(medrecord)?;
 
-        let attribute = self.reduce_input(medrecord, attributes)?;
+        let attribute = self.reduce_input(attributes)?;
 
         self.evaluate_forward(medrecord, attribute)
     }
 }
 
-impl<'a, O: 'a + RootOperand>
-    ReduceInput<'a, <MultipleAttributesOperand<O> as EvaluateBackward<'a>>::ReturnValue>
-    for SingleAttributeOperand<O>
-{
-    type ReturnValue = <Self as EvaluateForward<'a>>::InputValue;
+impl<'a, O: 'a + RootOperand> ReduceInput<'a> for SingleAttributeOperand<O> {
+    type Context = MultipleAttributesOperand<O>;
 
     #[inline]
     fn reduce_input(
         &self,
-        _medrecord: &'a MedRecord,
-        attributes: <MultipleAttributesOperand<O> as EvaluateBackward<'a>>::ReturnValue,
-    ) -> MedRecordResult<Self::ReturnValue> {
+        attributes: <Self::Context as EvaluateBackward<'a>>::ReturnValue,
+    ) -> MedRecordResult<<Self as EvaluateForward<'a>>::InputValue> {
         Ok(match self.kind {
             SingleKind::Max => MultipleAttributesOperation::<O>::get_max(attributes)?.into(),
             SingleKind::Min => MultipleAttributesOperation::<O>::get_min(attributes)?.into(),

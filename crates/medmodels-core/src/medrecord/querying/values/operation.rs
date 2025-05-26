@@ -13,7 +13,10 @@ use crate::{
             Abs, Ceil, Contains, DataType, EndsWith, Floor, Lowercase, Mod, Pow, Round, Slice,
             Sqrt, StartsWith, Trim, TrimEnd, TrimStart, Uppercase,
         },
-        querying::{BoxedIterator, DeepClone, OptionalIndexWrapper, ReadWriteOrPanic, RootOperand},
+        querying::{
+            BoxedIterator, DeepClone, EvaluateForward, OptionalIndexWrapper, ReadWriteOrPanic,
+            RootOperand,
+        },
         MedRecordValue, Wrapper,
     },
     MedRecord,

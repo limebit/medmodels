@@ -20,17 +20,6 @@ where
     }
 }
 
-impl<T> Wrapper<T> {
-    // pub(crate) fn try_unwrap(self) -> MedRecordResult<T> {
-    //     Ok(Arc::try_unwrap(self.0)
-    //         .map_err(|_| {
-    //             MedRecordError::AssertionError("Failed to unwrap Arc<RwLock<T>>".to_string())
-    //         })?
-    //         .into_inner()
-    //         .expect("RwLock should not be poisoned"))
-    // }
-}
-
 #[derive(Debug, Clone)]
 pub enum CardinalityWrapper<T> {
     Single(T),

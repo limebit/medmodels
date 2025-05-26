@@ -18,7 +18,7 @@ use crate::{
             edges::EdgeOperand,
             values::{Context, MultipleValuesOperand},
             wrapper::{CardinalityWrapper, Wrapper},
-            BoxedIterator, DeepClone, ReadWriteOrPanic,
+            BoxedIterator, DeepClone, EvaluateForward, ReadWriteOrPanic,
         },
         EdgeIndex, Group, MedRecord, MedRecordAttribute, MedRecordValue, NodeIndex,
     },

@@ -1,3 +1,4 @@
+mod group_by;
 mod operand;
 mod operation;
 
@@ -5,6 +6,7 @@ use super::{
     nodes::{EdgeDirection, NodeOperand},
     DeepClone,
 };
+pub use group_by::EdgeOperandGroupDiscriminator;
 pub use operand::{
     EdgeIndexComparisonOperand, EdgeIndexOperand, EdgeIndicesComparisonOperand, EdgeIndicesOperand,
     EdgeOperand,

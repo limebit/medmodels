@@ -14,7 +14,7 @@ use attributes::{
     NodeSingleAttributeOperand,
 };
 use edges::{EdgeIndexOperand, EdgeIndicesOperand, EdgeOperand};
-use group_by::{EvaluateBackwardGrouped, GroupOperand};
+use group_by::{GroupOperand, GroupedOperand};
 use nodes::{NodeIndexOperand, NodeIndicesOperand, NodeOperand};
 use std::{
     fmt::{Debug, Display},
@@ -80,7 +80,7 @@ impl Index for EdgeIndex {}
 impl<I: Index> Index for &I {}
 
 pub trait RootOperand:
-    GetAllAttributes<Self::Index> + GetValues<Self::Index> + Debug + Clone
+    GetAllAttributes<Self::Index> + GetValues<Self::Index> + GroupedOperand + Debug + Clone + DeepClone
 {
     type Index: Index;
 }
@@ -104,12 +104,15 @@ pub trait EvaluateForward<'a> {
     ) -> MedRecordResult<Self::ReturnValue>;
 }
 
-impl<'a, O: EvaluateForward<'a>> Wrapper<O> {
-    pub(crate) fn evaluate_forward(
+impl<'a, O: EvaluateForward<'a>> EvaluateForward<'a> for Wrapper<O> {
+    type InputValue = O::InputValue;
+    type ReturnValue = O::ReturnValue;
+
+    fn evaluate_forward(
         &self,
         medrecord: &'a MedRecord,
-        values: O::InputValue,
-    ) -> MedRecordResult<O::ReturnValue> {
+        values: Self::InputValue,
+    ) -> MedRecordResult<Self::ReturnValue> {
         self.0.read_or_panic().evaluate_forward(medrecord, values)
     }
 }
@@ -120,35 +123,32 @@ pub trait EvaluateBackward<'a> {
     fn evaluate_backward(&self, medrecord: &'a MedRecord) -> MedRecordResult<Self::ReturnValue>;
 }
 
-impl<'a, O: EvaluateBackward<'a>> Wrapper<O> {
-    pub(crate) fn evaluate_backward(
-        &self,
-        medrecord: &'a MedRecord,
-    ) -> MedRecordResult<O::ReturnValue> {
+impl<'a, O: EvaluateBackward<'a>> EvaluateBackward<'a> for Wrapper<O> {
+    type ReturnValue = O::ReturnValue;
+
+    fn evaluate_backward(&self, medrecord: &'a MedRecord) -> MedRecordResult<Self::ReturnValue> {
         self.0.read_or_panic().evaluate_backward(medrecord)
     }
 }
 
-pub trait ReduceInput<'a, I> {
-    type ReturnValue;
+pub trait ReduceInput<'a>: EvaluateForward<'a> {
+    type Context: EvaluateBackward<'a>;
 
     fn reduce_input(
         &self,
-        medrecord: &'a MedRecord,
-        values: I,
-    ) -> MedRecordResult<Self::ReturnValue>;
+        values: <Self::Context as EvaluateBackward<'a>>::ReturnValue,
+    ) -> MedRecordResult<<Self as EvaluateForward<'a>>::InputValue>;
 }
 
 impl<'a, O> Wrapper<O> {
-    pub(crate) fn reduce_input<I>(
+    pub(crate) fn reduce_input(
         &self,
-        medrecord: &'a MedRecord,
-        values: I,
-    ) -> MedRecordResult<O::ReturnValue>
+        values: <<O as ReduceInput<'a>>::Context as EvaluateBackward<'a>>::ReturnValue,
+    ) -> MedRecordResult<<O as EvaluateForward<'a>>::InputValue>
     where
-        O: ReduceInput<'a, I>,
+        O: ReduceInput<'a>,
     {
-        self.0.read_or_panic().reduce_input(medrecord, values)
+        self.0.read_or_panic().reduce_input(values)
     }
 }
 
@@ -309,14 +309,12 @@ impl_direct_return_operand!(
     EdgeSingleValueOperand     => Option<OptionalIndexWrapper<&'a EdgeIndex, MedRecordValue>>,
 );
 
-impl<'a, CO, O> ReturnOperand<'a> for Wrapper<GroupOperand<CO, O>>
+impl<'a, O: GroupedOperand> ReturnOperand<'a> for Wrapper<GroupOperand<O>>
 where
-    CO: EvaluateBackwardGrouped<'a>,
-    O: 'a
-        + EvaluateForward<'a, InputValue = <O as ReduceInput<'a, CO::ReturnValue>>::ReturnValue>
-        + ReduceInput<'a, CO::ReturnValue>,
+    GroupOperand<O>: EvaluateBackward<'a>,
+    Wrapper<O>: ReturnOperand<'a>,
 {
-    type ReturnValue = <GroupOperand<CO, O> as EvaluateBackward<'a>>::ReturnValue;
+    type ReturnValue = <Self as EvaluateBackward<'a>>::ReturnValue;
 
     fn evaluate(&self, medrecord: &'a MedRecord) -> MedRecordResult<Self::ReturnValue> {
         self.evaluate_backward(medrecord)

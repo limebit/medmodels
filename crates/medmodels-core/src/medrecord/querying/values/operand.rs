@@ -289,36 +289,6 @@ impl<'a, O: 'a + RootOperand> EvaluateBackward<'a> for MultipleValuesOperand<O> 
     }
 }
 
-impl<'a> ReduceInput<'a, <EdgeOperand as EvaluateBackward<'a>>::ReturnValue>
-    for MultipleValuesOperand<EdgeOperand>
-{
-    type ReturnValue = <Self as EvaluateForward<'a>>::InputValue;
-
-    #[inline]
-    fn reduce_input(
-        &self,
-        medrecord: &'a MedRecord,
-        edge_indices: <EdgeOperand as EvaluateBackward<'a>>::ReturnValue,
-    ) -> MedRecordResult<Self::ReturnValue> {
-        let Context::Operand((_, attribute)) = &self.context else {
-            unreachable!()
-        };
-
-        let attribute = attribute.clone();
-
-        Ok(Box::new(edge_indices.flat_map(move |edge_index| {
-            Some((
-                edge_index,
-                medrecord
-                    .edge_attributes(edge_index)
-                    .expect("Edge must exist")
-                    .get(&attribute)?
-                    .clone(),
-            ))
-        })))
-    }
-}
-
 impl<O: RootOperand> Max for MultipleValuesOperand<O> {
     type ReturnOperand = SingleValueOperand<O>;
 
@@ -580,24 +550,20 @@ impl<'a, O: 'a + RootOperand> EvaluateBackward<'a> for SingleValueOperand<O> {
     fn evaluate_backward(&self, medrecord: &'a MedRecord) -> MedRecordResult<Self::ReturnValue> {
         let values = self.context.evaluate_backward(medrecord)?;
 
-        let value = self.reduce_input(medrecord, values)?;
+        let value = self.reduce_input(values)?;
 
         self.evaluate_forward(medrecord, value)
     }
 }
 
-impl<'a, O: 'a + RootOperand>
-    ReduceInput<'a, <MultipleValuesOperand<O> as EvaluateBackward<'a>>::ReturnValue>
-    for SingleValueOperand<O>
-{
-    type ReturnValue = <Self as EvaluateForward<'a>>::InputValue;
+impl<'a, O: 'a + RootOperand> ReduceInput<'a> for SingleValueOperand<O> {
+    type Context = MultipleValuesOperand<O>;
 
     #[inline]
     fn reduce_input(
         &self,
-        _medrecord: &'a MedRecord,
-        values: <MultipleValuesOperand<O> as EvaluateBackward<'a>>::ReturnValue,
-    ) -> MedRecordResult<Self::ReturnValue> {
+        values: <Self::Context as EvaluateBackward<'a>>::ReturnValue,
+    ) -> MedRecordResult<<Self as EvaluateForward<'a>>::InputValue> {
         Ok(match self.kind {
             SingleKind::Max => MultipleValuesOperation::<O>::get_max(values)?.into(),
             SingleKind::Min => MultipleValuesOperation::<O>::get_min(values)?.into(),

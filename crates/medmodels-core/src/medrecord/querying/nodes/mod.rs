@@ -1,3 +1,4 @@
+mod group_by;
 mod operand;
 mod operation;
 

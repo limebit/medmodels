@@ -12,11 +12,11 @@ use crate::{
         querying::{
             attributes::AttributesTreeOperand,
             edges::SingleKind,
-            group_by::{PartitionGroups, RootGroupOperand},
+            group_by::{GroupOperand, PartitionGroups},
             nodes::NodeOperand,
             values::{Context, MultipleValuesOperand},
             wrapper::{CardinalityWrapper, Wrapper},
-            BoxedIterator, DeepClone, ReadWriteOrPanic,
+            BoxedIterator, DeepClone, EvaluateForward, ReadWriteOrPanic,
         },
         EdgeIndex, Group, MedRecordAttribute, MedRecordValue,
     },
@@ -64,7 +64,7 @@ pub enum EdgeOperation {
     },
 
     GroupBy {
-        operand: Wrapper<RootGroupOperand<EdgeOperand>>,
+        operand: Wrapper<GroupOperand<EdgeOperand>>,
     },
 }
 
@@ -366,7 +366,7 @@ impl EdgeOperation {
     fn evaluate_group_by<'a>(
         medrecord: &'a MedRecord,
         edge_indices: impl Iterator<Item = &'a EdgeIndex> + 'a,
-        operand: &Wrapper<RootGroupOperand<EdgeOperand>>,
+        operand: &Wrapper<GroupOperand<EdgeOperand>>,
     ) -> MedRecordResult<impl Iterator<Item = &'a EdgeIndex>> {
         Ok(EdgeOperand::merge(
             operand.evaluate_forward(medrecord, Box::new(edge_indices))?,

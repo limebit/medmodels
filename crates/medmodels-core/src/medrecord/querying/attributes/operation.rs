@@ -14,8 +14,8 @@ use crate::{
             TrimEnd, TrimStart, Uppercase,
         },
         querying::{
-            values::MultipleValuesOperand, BoxedIterator, DeepClone, OptionalIndexWrapper,
-            ReadWriteOrPanic, RootOperand,
+            values::MultipleValuesOperand, BoxedIterator, DeepClone, EvaluateForward,
+            OptionalIndexWrapper, ReadWriteOrPanic, RootOperand,
         },
         MedRecordAttribute, MedRecordValue, Wrapper,
     },
