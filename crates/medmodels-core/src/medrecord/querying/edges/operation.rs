@@ -12,7 +12,7 @@ use crate::{
         querying::{
             attributes::AttributesTreeOperand,
             edges::SingleKind,
-            group_by::{GroupOperand, PartitionGroups},
+            group_by::GroupOperand,
             nodes::NodeOperand,
             values::{Context, MultipleValuesOperand},
             wrapper::{CardinalityWrapper, Wrapper},
@@ -177,6 +177,14 @@ impl EdgeOperation {
                 Box::new(Self::evaluate_group_by(medrecord, edge_indices, operand)?)
             }
         })
+    }
+
+    pub(crate) fn _evaluate_grouped<'a>(
+        &self,
+        _medrecord: &'a MedRecord,
+        _edge_indices: BoxedIterator<'a, BoxedIterator<'a, &'a EdgeIndex>>,
+    ) -> MedRecordResult<BoxedIterator<'a, &'a EdgeIndex>> {
+        todo!()
     }
 
     #[inline]
@@ -368,9 +376,7 @@ impl EdgeOperation {
         edge_indices: impl Iterator<Item = &'a EdgeIndex> + 'a,
         operand: &Wrapper<GroupOperand<EdgeOperand>>,
     ) -> MedRecordResult<impl Iterator<Item = &'a EdgeIndex>> {
-        Ok(EdgeOperand::merge(
-            operand.evaluate_forward(medrecord, Box::new(edge_indices))?,
-        ))
+        operand.evaluate_forward(medrecord, Box::new(edge_indices))
     }
 }
 

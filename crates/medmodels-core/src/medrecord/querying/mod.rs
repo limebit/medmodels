@@ -117,6 +117,26 @@ impl<'a, O: EvaluateForward<'a>> EvaluateForward<'a> for Wrapper<O> {
     }
 }
 
+pub trait EvaluateForwardGrouped<'a>: EvaluateForward<'a> {
+    fn evaluate_forward_grouped(
+        &self,
+        medrecord: &'a MedRecord,
+        values: BoxedIterator<'a, Self::InputValue>,
+    ) -> MedRecordResult<Self::ReturnValue>;
+}
+
+impl<'a, O: EvaluateForwardGrouped<'a>> EvaluateForwardGrouped<'a> for Wrapper<O> {
+    fn evaluate_forward_grouped(
+        &self,
+        medrecord: &'a MedRecord,
+        values: BoxedIterator<'a, Self::InputValue>,
+    ) -> MedRecordResult<Self::ReturnValue> {
+        self.0
+            .read_or_panic()
+            .evaluate_forward_grouped(medrecord, values)
+    }
+}
+
 pub trait EvaluateBackward<'a> {
     type ReturnValue;
 

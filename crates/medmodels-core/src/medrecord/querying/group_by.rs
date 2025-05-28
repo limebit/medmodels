@@ -10,7 +10,7 @@ pub trait GroupedOperand {
     type Context: Debug + Clone + DeepClone;
 }
 
-pub trait GroupableOperand: GroupedOperand {
+pub trait GroupBy: GroupedOperand {
     type Discriminator: Debug + Clone + DeepClone;
 
     fn group_by(&mut self, discriminator: Self::Discriminator) -> Wrapper<GroupOperand<Self>>
@@ -18,13 +18,13 @@ pub trait GroupableOperand: GroupedOperand {
         Self: Sized;
 }
 
-impl<O: GroupableOperand> Wrapper<O> {
+impl<O: GroupBy> Wrapper<O> {
     pub fn group_by(&self, discriminator: O::Discriminator) -> Wrapper<GroupOperand<O>> {
         self.0.write_or_panic().group_by(discriminator)
     }
 }
 
-pub trait PartitionGroups<'a>: GroupableOperand {
+pub trait PartitionGroups<'a>: GroupBy {
     type GroupKey;
     type Values;
 
@@ -122,7 +122,7 @@ impl<O: GroupedOperand> Wrapper<GroupOperand<O>> {
 //     fn test_group_by() {
 //         let medrecord = MedRecord::from_admissions_example_dataset();
 
-//         let result = medrecord
+//         let result: Vec<_> = medrecord
 //             .query_nodes(|nodes| {
 //                 let mut edges = nodes.edges(EdgeDirection::Outgoing);
 
@@ -130,10 +130,13 @@ impl<O: GroupedOperand> Wrapper<GroupOperand<O>> {
 
 //                 let group_by = edges.group_by(EdgeOperandGroupDiscriminator::SourceNode);
 
-//                 group_by.attribute("duration_days").max().merge().max()
+//                 group_by.attribute("duration_days").max().merge().max();
+
+//                 edges.index()
 //             })
 //             .evaluate()
-//             .unwrap();
+//             .unwrap()
+//             .collect();
 
 //         println!("{:?}", result);
 //     }

@@ -11,8 +11,8 @@ use crate::{
             operand_traits::Attribute,
             values::{self, MultipleValuesOperand},
             wrapper::{CardinalityWrapper, Wrapper},
-            BoxedIterator, DeepClone, EvaluateBackward, EvaluateForward, ReadWriteOrPanic,
-            ReduceInput,
+            BoxedIterator, DeepClone, EvaluateBackward, EvaluateForward, EvaluateForwardGrouped,
+            ReadWriteOrPanic, ReduceInput,
         },
         EdgeIndex, Group, MedRecordAttribute,
     },
@@ -54,6 +54,16 @@ impl<'a> EvaluateForward<'a> for EdgeOperand {
             .try_fold(edge_indices, |edge_indices, operation| {
                 operation.evaluate(medrecord, edge_indices)
             })
+    }
+}
+
+impl<'a> EvaluateForwardGrouped<'a> for EdgeOperand {
+    fn evaluate_forward_grouped(
+        &self,
+        _medrecord: &'a MedRecord,
+        _edge_indices: BoxedIterator<'a, Self::InputValue>,
+    ) -> MedRecordResult<Self::ReturnValue> {
+        todo!()
     }
 }
 
