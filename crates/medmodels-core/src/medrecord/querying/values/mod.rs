@@ -212,11 +212,16 @@ impl<O: RootOperand> Context<O> {
                     medrecord, attributes,
                 )?)
             }
-            Self::GroupByOperand(_operand) => {
-                // let values = operand.evaluate_backward(medrecord)?;
-
-                todo!()
-            }
+            Self::GroupByOperand(operand) => Box::new(
+                operand
+                    .evaluate_backward(medrecord)?
+                    .filter_map(|value| match value? {
+                        super::OptionalIndexWrapper::WithIndex((value, index)) => {
+                            Some((value, index))
+                        }
+                        super::OptionalIndexWrapper::WithoutIndex(_) => unreachable!(),
+                    }),
+            ),
         };
 
         Ok(values)

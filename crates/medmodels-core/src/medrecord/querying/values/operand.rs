@@ -7,7 +7,8 @@ use crate::{
     errors::MedRecordResult,
     medrecord::{
         querying::{
-            operand_traits::Max, BoxedIterator, DeepClone, EvaluateBackward, EvaluateForward,
+            operand_traits::{Count, Max},
+            BoxedIterator, DeepClone, EvaluateBackward, EvaluateForward, EvaluateForwardGrouped,
             OptionalIndexWrapper, ReadWriteOrPanic, ReduceInput, RootOperand,
         },
         EdgeOperand, MedRecordValue, NodeOperand, Wrapper,
@@ -279,6 +280,16 @@ impl<'a, O: 'a + RootOperand> EvaluateForward<'a> for MultipleValuesOperand<O> {
     }
 }
 
+impl<'a, O: 'a + RootOperand> EvaluateForwardGrouped<'a> for MultipleValuesOperand<O> {
+    fn evaluate_forward_grouped(
+        &self,
+        _medrecord: &'a MedRecord,
+        _values: BoxedIterator<'a, Self::InputValue>,
+    ) -> MedRecordResult<BoxedIterator<'a, Self::ReturnValue>> {
+        todo!()
+    }
+}
+
 impl<'a, O: 'a + RootOperand> EvaluateBackward<'a> for MultipleValuesOperand<O> {
     type ReturnValue = BoxedIterator<'a, (&'a O::Index, MedRecordValue)>;
 
@@ -294,6 +305,21 @@ impl<O: RootOperand> Max for MultipleValuesOperand<O> {
 
     fn max(&mut self) -> Wrapper<Self::ReturnOperand> {
         let operand = Wrapper::<SingleValueOperand<O>>::new(self.deep_clone(), SingleKind::Max);
+
+        self.operations
+            .push(MultipleValuesOperation::ValueOperation {
+                operand: operand.clone(),
+            });
+
+        operand
+    }
+}
+
+impl<O: RootOperand> Count for MultipleValuesOperand<O> {
+    type ReturnOperand = SingleValueOperand<O>;
+
+    fn count(&mut self) -> Wrapper<Self::ReturnOperand> {
+        let operand = Wrapper::<SingleValueOperand<O>>::new(self.deep_clone(), SingleKind::Count);
 
         self.operations
             .push(MultipleValuesOperation::ValueOperation {
@@ -434,7 +460,6 @@ impl<O: RootOperand> Wrapper<MultipleValuesOperand<O>> {
     implement_wrapper_operand_with_return!(mode, SingleValueOperand<O>);
     implement_wrapper_operand_with_return!(std, SingleValueOperand<O>);
     implement_wrapper_operand_with_return!(var, SingleValueOperand<O>);
-    implement_wrapper_operand_with_return!(count, SingleValueOperand<O>);
     implement_wrapper_operand_with_return!(sum, SingleValueOperand<O>);
     implement_wrapper_operand_with_return!(random, SingleValueOperand<O>);
 

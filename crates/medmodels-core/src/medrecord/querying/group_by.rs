@@ -3,7 +3,11 @@ use super::{
     wrapper::Wrapper,
     BoxedIterator, DeepClone, ReadWriteOrPanic,
 };
-use crate::{prelude::MedRecordAttribute, MedRecord};
+use crate::{
+    medrecord::querying::operand_traits::Count,
+    prelude::{EdgeIndex, MedRecordAttribute, MedRecordValue, NodeIndex},
+    MedRecord,
+};
 use std::fmt::Debug;
 
 pub trait GroupedOperand {
@@ -24,17 +28,25 @@ impl<O: GroupBy> Wrapper<O> {
     }
 }
 
+pub enum GroupKey<'a> {
+    NodeIndex(&'a NodeIndex),
+    EdgeIndex(&'a EdgeIndex),
+    Attribute(&'a MedRecordAttribute),
+    Value(&'a MedRecordValue),
+    OptionalValue(Option<&'a MedRecordValue>),
+    TupleKey((Box<GroupKey<'a>>, Box<GroupKey<'a>>)),
+}
+
 pub trait PartitionGroups<'a>: GroupBy {
-    type GroupKey;
     type Values;
 
     fn partition(
         medrecord: &'a MedRecord,
         values: Self::Values,
         discriminator: &Self::Discriminator,
-    ) -> BoxedIterator<'a, (Self::GroupKey, Self::Values)>;
+    ) -> BoxedIterator<'a, (GroupKey<'a>, Self::Values)>;
 
-    fn merge(values: BoxedIterator<'a, (Self::GroupKey, Self::Values)>) -> Self::Values;
+    fn merge(values: BoxedIterator<'a, Self::Values>) -> Self::Values;
 }
 
 pub trait Merge {
@@ -96,6 +108,21 @@ where
     }
 }
 
+impl<O: GroupedOperand + Count> Count for GroupOperand<O>
+where
+    Self: DeepClone,
+    O::ReturnOperand: GroupedOperand,
+    <O::ReturnOperand as GroupedOperand>::Context: From<Self>,
+{
+    type ReturnOperand = GroupOperand<O::ReturnOperand>;
+
+    fn count(&mut self) -> Wrapper<Self::ReturnOperand> {
+        let operand = self.operand.count();
+
+        Wrapper::<GroupOperand<O::ReturnOperand>>::new(self.deep_clone().into(), operand)
+    }
+}
+
 impl<O: GroupedOperand> GroupOperand<O> {
     pub(crate) fn new(context: O::Context, operand: Wrapper<O>) -> Self {
         Self { context, operand }
@@ -108,36 +135,33 @@ impl<O: GroupedOperand> Wrapper<GroupOperand<O>> {
     }
 }
 
-// #[cfg(test)]
-// mod tests {
-//     use crate::{
-//         medrecord::querying::{
-//             edges::EdgeOperandGroupDiscriminator, group_by::Merge, nodes::EdgeDirection,
-//         },
-//         prelude::MedRecordAttribute,
-//         MedRecord,
-//     };
+#[cfg(test)]
+mod tests {
+    use crate::{
+        medrecord::querying::{
+            edges::EdgeOperandGroupDiscriminator, group_by::Merge, nodes::EdgeDirection,
+        },
+        prelude::MedRecordAttribute,
+        MedRecord,
+    };
 
-//     #[test]
-//     fn test_group_by() {
-//         let medrecord = MedRecord::from_admissions_example_dataset();
+    #[test]
+    fn test_group_by() {
+        let medrecord = MedRecord::from_admissions_example_dataset();
 
-//         let result: Vec<_> = medrecord
-//             .query_nodes(|nodes| {
-//                 let mut edges = nodes.edges(EdgeDirection::Outgoing);
+        let result = medrecord
+            .query_nodes(|nodes| {
+                let mut edges = nodes.edges(EdgeDirection::Outgoing);
 
-//                 edges.has_attribute(MedRecordAttribute::from("duration_days"));
+                edges.has_attribute(MedRecordAttribute::from("duration_days"));
 
-//                 let group_by = edges.group_by(EdgeOperandGroupDiscriminator::SourceNode);
+                let group_by = edges.group_by(EdgeOperandGroupDiscriminator::Parallel);
 
-//                 group_by.attribute("duration_days").max().merge().max();
+                group_by.attribute("duration_days").max().merge().max()
+            })
+            .evaluate()
+            .unwrap();
 
-//                 edges.index()
-//             })
-//             .evaluate()
-//             .unwrap()
-//             .collect();
-
-//         println!("{:?}", result);
-//     }
-// }
+        println!("{:?}", result);
+    }
+}

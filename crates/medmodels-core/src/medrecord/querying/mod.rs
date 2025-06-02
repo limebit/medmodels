@@ -7,7 +7,10 @@ pub mod values;
 pub mod wrapper;
 
 use super::{EdgeIndex, MedRecord, MedRecordAttribute, MedRecordValue, NodeIndex, Wrapper};
-use crate::errors::MedRecordResult;
+use crate::{
+    errors::MedRecordResult,
+    medrecord::querying::group_by::{GroupBy, GroupKey, PartitionGroups},
+};
 use attributes::{
     EdgeAttributesTreeOperand, EdgeMultipleAttributesOperand, EdgeSingleAttributeOperand,
     GetAllAttributes, GetAttributes, NodeAttributesTreeOperand, NodeMultipleAttributesOperand,
@@ -83,14 +86,122 @@ pub trait RootOperand:
     GetAllAttributes<Self::Index> + GetValues<Self::Index> + GroupedOperand + Debug + Clone + DeepClone
 {
     type Index: Index;
+    type Discriminator: Debug + Clone + DeepClone;
+
+    fn _evaluate_forward<'a>(
+        &self,
+        medrecord: &'a MedRecord,
+        indices: BoxedIterator<'a, &'a Self::Index>,
+    ) -> MedRecordResult<BoxedIterator<'a, &'a Self::Index>>;
+
+    fn _evaluate_forward_grouped<'a>(
+        &self,
+        medrecord: &'a MedRecord,
+        indices: BoxedIterator<'a, BoxedIterator<'a, &'a Self::Index>>,
+    ) -> MedRecordResult<BoxedIterator<'a, BoxedIterator<'a, &'a Self::Index>>>;
+
+    fn _evaluate_backward<'a>(
+        &self,
+        medrecord: &'a MedRecord,
+    ) -> MedRecordResult<BoxedIterator<'a, &'a Self::Index>>;
+
+    fn _evaluate_backward_grouped_operand<'a>(
+        group_operand: &GroupOperand<Self>,
+        medrecord: &'a MedRecord,
+    ) -> MedRecordResult<BoxedIterator<'a, BoxedIterator<'a, &'a Self::Index>>>;
+
+    fn _group_by(&mut self, discriminator: Self::Discriminator) -> Wrapper<GroupOperand<Self>>;
+
+    fn _partition<'a>(
+        medrecord: &'a MedRecord,
+        indices: BoxedIterator<'a, &'a Self::Index>,
+        discriminator: &Self::Discriminator,
+    ) -> BoxedIterator<'a, (GroupKey<'a>, BoxedIterator<'a, &'a Self::Index>)>;
+
+    fn _merge<'a>(
+        indices: BoxedIterator<'a, BoxedIterator<'a, &'a Self::Index>>,
+    ) -> BoxedIterator<'a, &'a Self::Index>;
 }
 
-impl RootOperand for NodeOperand {
-    type Index = NodeIndex;
+impl<'a, O: RootOperand> EvaluateForward<'a> for O
+where
+    O: 'a,
+{
+    type InputValue = BoxedIterator<'a, &'a O::Index>;
+    type ReturnValue = BoxedIterator<'a, &'a O::Index>;
+
+    fn evaluate_forward(
+        &self,
+        medrecord: &'a MedRecord,
+        indices: Self::InputValue,
+    ) -> MedRecordResult<Self::ReturnValue> {
+        self._evaluate_forward(medrecord, indices)
+    }
 }
 
-impl RootOperand for EdgeOperand {
-    type Index = EdgeIndex;
+impl<'a, O: RootOperand> EvaluateForwardGrouped<'a> for O
+where
+    O: 'a,
+{
+    fn evaluate_forward_grouped(
+        &self,
+        medrecord: &'a MedRecord,
+        indices: BoxedIterator<'a, BoxedIterator<'a, &'a O::Index>>,
+    ) -> MedRecordResult<BoxedIterator<'a, BoxedIterator<'a, &'a O::Index>>> {
+        self._evaluate_forward_grouped(medrecord, indices)
+    }
+}
+
+impl<'a, O: RootOperand> EvaluateBackward<'a> for O
+where
+    O: 'a,
+{
+    type ReturnValue = BoxedIterator<'a, &'a O::Index>;
+
+    fn evaluate_backward(&self, medrecord: &'a MedRecord) -> MedRecordResult<Self::ReturnValue> {
+        self._evaluate_backward(medrecord)
+    }
+}
+
+impl<'a, O: RootOperand> EvaluateBackward<'a> for GroupOperand<O>
+where
+    O: 'a,
+{
+    type ReturnValue = BoxedIterator<'a, BoxedIterator<'a, &'a O::Index>>;
+
+    fn evaluate_backward(&self, medrecord: &'a MedRecord) -> MedRecordResult<Self::ReturnValue> {
+        O::_evaluate_backward_grouped_operand(self, medrecord)
+    }
+}
+
+impl<O: RootOperand> GroupBy for O {
+    type Discriminator = <Self as RootOperand>::Discriminator;
+
+    fn group_by(&mut self, discriminator: Self::Discriminator) -> Wrapper<GroupOperand<Self>>
+    where
+        Self: Sized,
+    {
+        self._group_by(discriminator)
+    }
+}
+
+impl<'a, O: RootOperand> PartitionGroups<'a> for O
+where
+    O: 'a,
+{
+    type Values = BoxedIterator<'a, &'a O::Index>;
+
+    fn partition(
+        medrecord: &'a MedRecord,
+        indices: Self::Values,
+        discriminator: &Self::Discriminator,
+    ) -> BoxedIterator<'a, (GroupKey<'a>, Self::Values)> {
+        Self::_partition(medrecord, indices, discriminator)
+    }
+
+    fn merge(indices: BoxedIterator<'a, Self::Values>) -> Self::Values {
+        Self::_merge(indices)
+    }
 }
 
 pub trait EvaluateForward<'a> {
@@ -122,7 +233,7 @@ pub trait EvaluateForwardGrouped<'a>: EvaluateForward<'a> {
         &self,
         medrecord: &'a MedRecord,
         values: BoxedIterator<'a, Self::InputValue>,
-    ) -> MedRecordResult<Self::ReturnValue>;
+    ) -> MedRecordResult<BoxedIterator<'a, Self::ReturnValue>>;
 }
 
 impl<'a, O: EvaluateForwardGrouped<'a>> EvaluateForwardGrouped<'a> for Wrapper<O> {
@@ -130,7 +241,7 @@ impl<'a, O: EvaluateForwardGrouped<'a>> EvaluateForwardGrouped<'a> for Wrapper<O
         &self,
         medrecord: &'a MedRecord,
         values: BoxedIterator<'a, Self::InputValue>,
-    ) -> MedRecordResult<Self::ReturnValue> {
+    ) -> MedRecordResult<BoxedIterator<'a, Self::ReturnValue>> {
         self.0
             .read_or_panic()
             .evaluate_forward_grouped(medrecord, values)

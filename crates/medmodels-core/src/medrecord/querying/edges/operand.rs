@@ -7,24 +7,30 @@ use crate::{
     medrecord::{
         querying::{
             attributes::AttributesTreeOperand,
+            edges::{group_by::EdgeOperandContext, EdgeOperandGroupDiscriminator},
+            group_by::{GroupKey, GroupOperand, PartitionGroups},
             nodes::{self, NodeOperand},
             operand_traits::Attribute,
             values::{self, MultipleValuesOperand},
             wrapper::{CardinalityWrapper, Wrapper},
-            BoxedIterator, DeepClone, EvaluateBackward, EvaluateForward, EvaluateForwardGrouped,
-            ReadWriteOrPanic, ReduceInput,
+            BoxedIterator, DeepClone, EvaluateBackward, EvaluateForward, ReadWriteOrPanic,
+            ReduceInput, RootOperand,
         },
         EdgeIndex, Group, MedRecordAttribute,
     },
+    prelude::MedRecordValue,
     MedRecord,
 };
 use medmodels_utils::aliases::MrHashSet;
-use std::{collections::HashSet, fmt::Debug};
+use std::{
+    collections::{HashMap, HashSet},
+    fmt::Debug,
+};
 
 #[derive(Debug, Clone)]
 pub struct EdgeOperand {
     context: Option<Context>,
-    pub(crate) operations: Vec<EdgeOperation>,
+    operations: Vec<EdgeOperation>,
 }
 
 impl DeepClone for EdgeOperand {
@@ -40,37 +46,38 @@ impl DeepClone for EdgeOperand {
     }
 }
 
-impl<'a> EvaluateForward<'a> for EdgeOperand {
-    type InputValue = BoxedIterator<'a, &'a EdgeIndex>;
-    type ReturnValue = BoxedIterator<'a, &'a EdgeIndex>;
+impl RootOperand for EdgeOperand {
+    type Index = EdgeIndex;
+    type Discriminator = EdgeOperandGroupDiscriminator;
 
-    fn evaluate_forward(
+    fn _evaluate_forward<'a>(
         &self,
         medrecord: &'a MedRecord,
-        edge_indices: Self::InputValue,
-    ) -> MedRecordResult<Self::ReturnValue> {
+        edge_indices: BoxedIterator<'a, &'a Self::Index>,
+    ) -> MedRecordResult<BoxedIterator<'a, &'a Self::Index>> {
         self.operations
             .iter()
             .try_fold(edge_indices, |edge_indices, operation| {
                 operation.evaluate(medrecord, edge_indices)
             })
     }
-}
 
-impl<'a> EvaluateForwardGrouped<'a> for EdgeOperand {
-    fn evaluate_forward_grouped(
+    fn _evaluate_forward_grouped<'a>(
         &self,
-        _medrecord: &'a MedRecord,
-        _edge_indices: BoxedIterator<'a, Self::InputValue>,
-    ) -> MedRecordResult<Self::ReturnValue> {
-        todo!()
+        medrecord: &'a MedRecord,
+        edge_indices: BoxedIterator<'a, BoxedIterator<'a, &'a Self::Index>>,
+    ) -> MedRecordResult<BoxedIterator<'a, BoxedIterator<'a, &'a Self::Index>>> {
+        self.operations
+            .iter()
+            .try_fold(edge_indices, |edge_indices, operation| {
+                operation.evaluate_grouped(medrecord, edge_indices)
+            })
     }
-}
 
-impl<'a> EvaluateBackward<'a> for EdgeOperand {
-    type ReturnValue = BoxedIterator<'a, &'a EdgeIndex>;
-
-    fn evaluate_backward(&self, medrecord: &'a MedRecord) -> MedRecordResult<Self::ReturnValue> {
+    fn _evaluate_backward<'a>(
+        &self,
+        medrecord: &'a MedRecord,
+    ) -> MedRecordResult<BoxedIterator<'a, &'a Self::Index>> {
         let edge_indices: BoxedIterator<&EdgeIndex> = match &self.context {
             Some(Context::Edges { operand, kind }) => {
                 let node_indices = operand.evaluate_backward(medrecord)?;
@@ -106,6 +113,138 @@ impl<'a> EvaluateBackward<'a> for EdgeOperand {
         };
 
         self.evaluate_forward(medrecord, edge_indices)
+    }
+
+    fn _evaluate_backward_grouped_operand<'a>(
+        group_operand: &GroupOperand<Self>,
+        medrecord: &'a MedRecord,
+    ) -> MedRecordResult<BoxedIterator<'a, BoxedIterator<'a, &'a Self::Index>>> {
+        match &group_operand.context {
+            EdgeOperandContext::Discriminator(discriminator) => {
+                let values = group_operand.operand.evaluate_backward(medrecord)?;
+
+                Ok(Box::new(
+                    EdgeOperand::partition(medrecord, values, discriminator)
+                        .map(|(_, partition)| partition),
+                ))
+            }
+        }
+    }
+
+    fn _group_by(&mut self, discriminator: Self::Discriminator) -> Wrapper<GroupOperand<Self>> {
+        let operand =
+            Wrapper::<GroupOperand<Self>>::new(discriminator.into(), self.deep_clone().into());
+
+        self.operations.push(EdgeOperation::GroupBy {
+            operand: operand.clone(),
+        });
+
+        operand
+    }
+
+    fn _partition<'a>(
+        medrecord: &'a MedRecord,
+        edge_indices: BoxedIterator<'a, &'a Self::Index>,
+        discriminator: &Self::Discriminator,
+    ) -> BoxedIterator<'a, (GroupKey<'a>, BoxedIterator<'a, &'a Self::Index>)> {
+        match discriminator {
+            EdgeOperandGroupDiscriminator::SourceNode => {
+                let mut buckets: HashMap<&'a MedRecordAttribute, Vec<&'a EdgeIndex>> =
+                    HashMap::new();
+
+                for edge_index in edge_indices {
+                    let source_node = medrecord
+                        .edge_endpoints(edge_index)
+                        .expect("Edge must exist")
+                        .0;
+
+                    buckets.entry(source_node).or_default().push(edge_index);
+                }
+
+                Box::new(buckets.into_iter().map(|(key, group)| {
+                    (
+                        GroupKey::NodeIndex(key),
+                        Box::new(group.into_iter()) as BoxedIterator<'a, &'a Self::Index>,
+                    )
+                }))
+            }
+            EdgeOperandGroupDiscriminator::TargetNode => {
+                let mut buckets: HashMap<&'a MedRecordAttribute, Vec<&'a EdgeIndex>> =
+                    HashMap::new();
+
+                for edge_index in edge_indices {
+                    let target_node = medrecord
+                        .edge_endpoints(edge_index)
+                        .expect("Edge must exist")
+                        .1;
+
+                    buckets.entry(target_node).or_default().push(edge_index);
+                }
+
+                Box::new(buckets.into_iter().map(|(key, group)| {
+                    (
+                        GroupKey::NodeIndex(key),
+                        Box::new(group.into_iter()) as BoxedIterator<'a, &'a Self::Index>,
+                    )
+                }))
+            }
+            EdgeOperandGroupDiscriminator::Parallel => {
+                let mut buckets: HashMap<
+                    (&'a MedRecordAttribute, &'a MedRecordAttribute),
+                    Vec<&'a EdgeIndex>,
+                > = HashMap::new();
+
+                for edge_index in edge_indices {
+                    let endpoints = medrecord
+                        .edge_endpoints(edge_index)
+                        .expect("Edge must exist");
+
+                    buckets
+                        .entry((endpoints.0, endpoints.1))
+                        .or_default()
+                        .push(edge_index);
+                }
+
+                Box::new(buckets.into_iter().map(|(key, group)| {
+                    (
+                        GroupKey::TupleKey((
+                            Box::new(GroupKey::NodeIndex(key.0)),
+                            Box::new(GroupKey::NodeIndex(key.1)),
+                        )),
+                        Box::new(group.into_iter()) as BoxedIterator<'a, &'a Self::Index>,
+                    )
+                }))
+            }
+            EdgeOperandGroupDiscriminator::Attribute(attr) => {
+                let mut buckets: Vec<(Option<&'a MedRecordValue>, Vec<&'a EdgeIndex>)> = Vec::new();
+
+                for edge_index in edge_indices {
+                    let value = medrecord
+                        .edge_attributes(edge_index)
+                        .expect("Edge must exist")
+                        .get(attr);
+
+                    if let Some((_, bucket)) = buckets.iter_mut().find(|(k, _)| *k == value) {
+                        bucket.push(edge_index);
+                    } else {
+                        buckets.push((value, vec![edge_index]));
+                    }
+                }
+
+                Box::new(buckets.into_iter().map(|(key, group)| {
+                    (
+                        GroupKey::OptionalValue(key),
+                        Box::new(group.into_iter()) as BoxedIterator<'a, &'a Self::Index>,
+                    )
+                }))
+            }
+        }
+    }
+
+    fn _merge<'a>(
+        edge_indices: BoxedIterator<'a, BoxedIterator<'a, &'a Self::Index>>,
+    ) -> BoxedIterator<'a, &'a Self::Index> {
+        Box::new(edge_indices.flatten())
     }
 }
 

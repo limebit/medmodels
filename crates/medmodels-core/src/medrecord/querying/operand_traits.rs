@@ -24,3 +24,15 @@ impl<O: Max> Wrapper<O> {
         self.0.write_or_panic().max()
     }
 }
+
+pub trait Count {
+    type ReturnOperand;
+
+    fn count(&mut self) -> Wrapper<Self::ReturnOperand>;
+}
+
+impl<O: Count> Wrapper<O> {
+    pub fn count(&self) -> Wrapper<O::ReturnOperand> {
+        self.0.write_or_panic().count()
+    }
+}

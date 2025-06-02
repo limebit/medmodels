@@ -3,7 +3,7 @@ use crate::{
     errors::MedRecordResult,
     medrecord::querying::{
         edges::EdgeOperand,
-        group_by::{GroupOperand, GroupedOperand, Merge, PartitionGroups},
+        group_by::{GroupOperand, GroupedOperand, Merge},
         values::Context,
         wrapper::Wrapper,
         BoxedIterator, DeepClone, EvaluateBackward, EvaluateForward, ReadWriteOrPanic, RootOperand,
@@ -39,13 +39,7 @@ impl<O: RootOperand> GroupedOperand for MultipleValuesOperand<O> {
 
 impl<'a, O: RootOperand> EvaluateBackward<'a> for GroupOperand<MultipleValuesOperand<O>>
 where
-    O: 'a
-        + PartitionGroups<'a, Values = <O as EvaluateBackward<'a>>::ReturnValue>
-        + EvaluateBackward<'a, ReturnValue = BoxedIterator<'a, &'a O::Index>>,
-    GroupOperand<O>: EvaluateBackward<
-        'a,
-        ReturnValue = BoxedIterator<'a, <O as EvaluateBackward<'a>>::ReturnValue>,
-    >,
+    O: 'a,
 {
     type ReturnValue =
         BoxedIterator<'a, <MultipleValuesOperand<O> as EvaluateBackward<'a>>::ReturnValue>;
@@ -102,16 +96,7 @@ impl<O: RootOperand> GroupedOperand for SingleValueOperand<O> {
     type Context = SingleValueOperandContext<O>;
 }
 
-impl<'a, O: 'a + RootOperand> EvaluateBackward<'a> for GroupOperand<SingleValueOperand<O>>
-where
-    O: 'a
-        + PartitionGroups<'a, Values = <O as EvaluateBackward<'a>>::ReturnValue>
-        + EvaluateBackward<'a, ReturnValue = BoxedIterator<'a, &'a O::Index>>,
-    GroupOperand<O>: EvaluateBackward<
-        'a,
-        ReturnValue = BoxedIterator<'a, <O as EvaluateBackward<'a>>::ReturnValue>,
-    >,
-{
+impl<'a, O: 'a + RootOperand> EvaluateBackward<'a> for GroupOperand<SingleValueOperand<O>> {
     type ReturnValue =
         BoxedIterator<'a, <SingleValueOperand<O> as EvaluateBackward<'a>>::ReturnValue>;
 
