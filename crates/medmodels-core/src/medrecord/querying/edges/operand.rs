@@ -13,8 +13,8 @@ use crate::{
             operand_traits::Attribute,
             values::{self, MultipleValuesOperand},
             wrapper::{CardinalityWrapper, Wrapper},
-            BoxedIterator, DeepClone, EvaluateBackward, EvaluateForward, ReadWriteOrPanic,
-            ReduceInput, RootOperand,
+            BoxedIterator, DeepClone, EvaluateBackward, EvaluateForward, EvaluateForwardGrouped,
+            ReadWriteOrPanic, ReduceInput, RootOperand,
         },
         EdgeIndex, Group, MedRecordAttribute,
     },
@@ -627,6 +627,20 @@ impl<'a> EvaluateForward<'a> for EdgeIndicesOperand {
     }
 }
 
+impl<'a> EvaluateForwardGrouped<'a> for EdgeIndicesOperand {
+    fn evaluate_forward_grouped(
+        &self,
+        medrecord: &'a MedRecord,
+        edge_indices: BoxedIterator<'a, Self::InputValue>,
+    ) -> MedRecordResult<BoxedIterator<'a, Self::ReturnValue>> {
+        self.operations
+            .iter()
+            .try_fold(edge_indices, |index_tuples, operation| {
+                operation.evaluate_grouped(medrecord, index_tuples)
+            })
+    }
+}
+
 impl<'a> EvaluateBackward<'a> for EdgeIndicesOperand {
     type ReturnValue = BoxedIterator<'a, EdgeIndex>;
 
@@ -825,6 +839,22 @@ impl<'a> EvaluateForward<'a> for EdgeIndexOperand {
                 } else {
                     Ok(None)
                 }
+            })
+    }
+}
+
+impl<'a> EvaluateForwardGrouped<'a> for EdgeIndexOperand {
+    fn evaluate_forward_grouped(
+        &self,
+        medrecord: &'a MedRecord,
+        edge_indices: BoxedIterator<'a, Self::InputValue>,
+    ) -> MedRecordResult<BoxedIterator<'a, Self::ReturnValue>> {
+        let edge_indices = Box::new(edge_indices.map(Some)) as BoxedIterator<'a, Self::ReturnValue>;
+
+        self.operations
+            .iter()
+            .try_fold(edge_indices, |indices, operation| {
+                operation.evaluate_grouped(medrecord, indices)
             })
     }
 }

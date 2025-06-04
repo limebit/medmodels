@@ -770,6 +770,20 @@ impl<O: RootOperand> MultipleValuesOperation<O> {
     }
 }
 
+impl<O: RootOperand> MultipleValuesOperation<O> {
+    #[allow(clippy::type_complexity)]
+    pub(crate) fn evaluate_grouped<'a>(
+        &self,
+        _medrecord: &'a MedRecord,
+        _values: BoxedIterator<'a, BoxedIterator<'a, (&'a O::Index, MedRecordValue)>>,
+    ) -> MedRecordResult<BoxedIterator<'a, BoxedIterator<'a, (&'a O::Index, MedRecordValue)>>>
+    where
+        O: 'a,
+    {
+        todo!()
+    }
+}
+
 #[derive(Debug, Clone)]
 pub enum SingleValueOperation<O: RootOperand> {
     SingleValueComparisonOperation {
@@ -804,6 +818,10 @@ pub enum SingleValueOperation<O: RootOperand> {
     },
     Exclude {
         operand: Wrapper<SingleValueOperand<O>>,
+    },
+
+    Merge {
+        operand: Wrapper<MultipleValuesOperand<O>>,
     },
 }
 
@@ -842,6 +860,9 @@ impl<O: RootOperand> DeepClone for SingleValueOperation<O> {
                 or: or.deep_clone(),
             },
             Self::Exclude { operand } => Self::Exclude {
+                operand: operand.deep_clone(),
+            },
+            Self::Merge { operand } => Self::Merge {
                 operand: operand.deep_clone(),
             },
         }
@@ -914,6 +935,9 @@ impl<O: RootOperand> SingleValueOperation<O> {
                     Some(_) => None,
                     None => Some(value),
                 })
+            }
+            Self::Merge { operand: _ } => {
+                unreachable!()
             }
         }
     }
@@ -1017,5 +1041,18 @@ impl<O: RootOperand> SingleValueOperation<O> {
             (None, Some(or_result)) => Ok(Some(or_result)),
             _ => Ok(None),
         }
+    }
+}
+
+impl<O: RootOperand> SingleValueOperation<O> {
+    #[allow(clippy::type_complexity)]
+    pub(crate) fn evaluate_grouped<'a>(
+        &self,
+        _medrecord: &'a MedRecord,
+        _values: BoxedIterator<'a, Option<OptionalIndexWrapper<&'a O::Index, MedRecordValue>>>,
+    ) -> MedRecordResult<
+        BoxedIterator<'a, Option<OptionalIndexWrapper<&'a O::Index, MedRecordValue>>>,
+    > {
+        todo!()
     }
 }

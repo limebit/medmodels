@@ -8,8 +8,8 @@ use crate::{
     medrecord::{
         querying::{
             values::{Context, MultipleValuesOperand},
-            BoxedIterator, DeepClone, EvaluateBackward, EvaluateForward, OptionalIndexWrapper,
-            ReadWriteOrPanic, ReduceInput, RootOperand,
+            BoxedIterator, DeepClone, EvaluateBackward, EvaluateForward, EvaluateForwardGrouped,
+            OptionalIndexWrapper, ReadWriteOrPanic, ReduceInput, RootOperand,
         },
         EdgeOperand, MedRecordAttribute, NodeOperand, Wrapper,
     },
@@ -312,6 +312,20 @@ impl<'a, O: 'a + RootOperand> EvaluateForward<'a> for AttributesTreeOperand<O> {
     }
 }
 
+impl<'a, O: 'a + RootOperand> EvaluateForwardGrouped<'a> for AttributesTreeOperand<O> {
+    fn evaluate_forward_grouped(
+        &self,
+        medrecord: &'a MedRecord,
+        attributes: BoxedIterator<'a, Self::InputValue>,
+    ) -> MedRecordResult<BoxedIterator<'a, Self::ReturnValue>> {
+        self.operations
+            .iter()
+            .try_fold(attributes, |attribute_tuples, operation| {
+                operation.evaluate_grouped(medrecord, attribute_tuples)
+            })
+    }
+}
+
 impl<'a, O: 'a + RootOperand> EvaluateBackward<'a> for AttributesTreeOperand<O> {
     type ReturnValue = BoxedIterator<'a, (&'a O::Index, Vec<MedRecordAttribute>)>;
 
@@ -556,6 +570,20 @@ impl<'a, O: 'a + RootOperand> EvaluateForward<'a> for MultipleAttributesOperand<
             .iter()
             .try_fold(attributes, |attribute_tuples, operation| {
                 operation.evaluate(medrecord, attribute_tuples)
+            })
+    }
+}
+
+impl<'a, O: 'a + RootOperand> EvaluateForwardGrouped<'a> for MultipleAttributesOperand<O> {
+    fn evaluate_forward_grouped(
+        &self,
+        medrecord: &'a MedRecord,
+        attributes: BoxedIterator<'a, Self::InputValue>,
+    ) -> MedRecordResult<BoxedIterator<'a, Self::ReturnValue>> {
+        self.operations
+            .iter()
+            .try_fold(attributes, |attribute_tuples, operation| {
+                operation.evaluate_grouped(medrecord, attribute_tuples)
             })
     }
 }
@@ -861,6 +889,22 @@ impl<'a, O: 'a + RootOperand> EvaluateForward<'a> for SingleAttributeOperand<O> 
                 } else {
                     Ok(None)
                 }
+            })
+    }
+}
+
+impl<'a, O: 'a + RootOperand> EvaluateForwardGrouped<'a> for SingleAttributeOperand<O> {
+    fn evaluate_forward_grouped(
+        &self,
+        medrecord: &'a MedRecord,
+        attributes: BoxedIterator<'a, Self::InputValue>,
+    ) -> MedRecordResult<BoxedIterator<'a, Self::ReturnValue>> {
+        let attributes = Box::new(attributes.map(Some)) as BoxedIterator<'a, Self::ReturnValue>;
+
+        self.operations
+            .iter()
+            .try_fold(attributes, |attributes, operation| {
+                operation.evaluate_grouped(medrecord, attributes)
             })
     }
 }

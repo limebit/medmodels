@@ -692,6 +692,22 @@ impl<O: RootOperand> AttributesTreeOperation<O> {
     }
 }
 
+impl<O: RootOperand> AttributesTreeOperation<O> {
+    #[allow(clippy::type_complexity)]
+    pub(crate) fn evaluate_grouped<'a>(
+        &self,
+        _medrecord: &'a MedRecord,
+        _attributes: BoxedIterator<'a, BoxedIterator<'a, (&'a O::Index, Vec<MedRecordAttribute>)>>,
+    ) -> MedRecordResult<
+        BoxedIterator<'a, BoxedIterator<'a, (&'a O::Index, Vec<MedRecordAttribute>)>>,
+    >
+    where
+        O: 'a,
+    {
+        todo!()
+    }
+}
+
 #[derive(Debug, Clone)]
 pub enum MultipleAttributesOperation<O: RootOperand> {
     AttributeOperation {
@@ -1223,6 +1239,20 @@ impl<O: RootOperand> MultipleAttributesOperation<O> {
     }
 }
 
+impl<O: RootOperand> MultipleAttributesOperation<O> {
+    #[allow(clippy::type_complexity)]
+    pub(crate) fn evaluate_grouped<'a>(
+        &self,
+        _medrecord: &'a MedRecord,
+        _attributes: BoxedIterator<'a, BoxedIterator<'a, (&'a O::Index, MedRecordAttribute)>>,
+    ) -> MedRecordResult<BoxedIterator<'a, BoxedIterator<'a, (&'a O::Index, MedRecordAttribute)>>>
+    where
+        O: 'a,
+    {
+        todo!()
+    }
+}
+
 #[derive(Debug, Clone)]
 pub enum SingleAttributeOperation<O: RootOperand> {
     SingleAttributeComparisonOperation {
@@ -1460,5 +1490,24 @@ impl<O: RootOperand> SingleAttributeOperation<O> {
             (None, Some(or_result)) => Ok(Some(or_result)),
             _ => Ok(None),
         }
+    }
+}
+
+impl<O: RootOperand> SingleAttributeOperation<O> {
+    #[allow(clippy::type_complexity)]
+    pub(crate) fn evaluate_grouped<'a>(
+        &self,
+        _medrecord: &'a MedRecord,
+        _attributes: BoxedIterator<
+            'a,
+            Option<OptionalIndexWrapper<&'a O::Index, MedRecordAttribute>>,
+        >,
+    ) -> MedRecordResult<
+        BoxedIterator<'a, Option<OptionalIndexWrapper<&'a O::Index, MedRecordAttribute>>>,
+    >
+    where
+        O: 'a,
+    {
+        todo!()
     }
 }

@@ -179,29 +179,6 @@ impl EdgeOperation {
         })
     }
 
-    pub(crate) fn evaluate_grouped<'a>(
-        &self,
-        medrecord: &'a MedRecord,
-        edge_indices: BoxedIterator<'a, BoxedIterator<'a, &'a EdgeIndex>>,
-    ) -> MedRecordResult<BoxedIterator<'a, BoxedIterator<'a, &'a EdgeIndex>>> {
-        Ok(match self {
-            EdgeOperation::Values { operand } => Box::new(Self::evaluate_values_grouped(
-                medrecord,
-                edge_indices,
-                operand.clone(),
-            )?),
-            EdgeOperation::Attributes { operand: _ } => todo!(),
-            EdgeOperation::Indices { operand: _ } => todo!(),
-            EdgeOperation::InGroup { group: _ } => todo!(),
-            EdgeOperation::HasAttribute { attribute: _ } => todo!(),
-            EdgeOperation::SourceNode { operand: _ } => todo!(),
-            EdgeOperation::TargetNode { operand: _ } => todo!(),
-            EdgeOperation::EitherOr { either: _, or: _ } => todo!(),
-            EdgeOperation::Exclude { operand: _ } => todo!(),
-            EdgeOperation::GroupBy { operand: _ } => todo!(),
-        })
-    }
-
     #[inline]
     pub(crate) fn get_values<'a>(
         medrecord: &'a MedRecord,
@@ -235,32 +212,6 @@ impl EdgeOperation {
         Ok(operand
             .evaluate_forward(medrecord, Box::new(values))?
             .map(|value| value.0))
-    }
-
-    #[inline]
-    fn evaluate_values_grouped<'a>(
-        medrecord: &'a MedRecord,
-        edge_indices: BoxedIterator<'a, BoxedIterator<'a, &'a EdgeIndex>>,
-        operand: Wrapper<MultipleValuesOperand<EdgeOperand>>,
-    ) -> MedRecordResult<BoxedIterator<'a, BoxedIterator<'a, &'a EdgeIndex>>> {
-        let Context::Operand((_, ref attribute)) = operand.0.read_or_panic().context else {
-            unreachable!()
-        };
-
-        let values: Vec<_> = edge_indices
-            .map(|edge_indices| {
-                Box::new(Self::get_values(medrecord, edge_indices, attribute.clone()))
-                    as <MultipleValuesOperand<EdgeOperand> as EvaluateForward<'a>>::InputValue
-            })
-            .collect();
-
-        Ok(Box::new(
-            operand
-                .evaluate_forward_grouped(medrecord, Box::new(values.into_iter()))?
-                .map(|values| {
-                    Box::new(values.map(|value| value.0)) as BoxedIterator<'a, &'a EdgeIndex>
-                }),
-        ))
     }
 
     #[inline]
@@ -420,6 +371,175 @@ impl EdgeOperation {
         Ok(EdgeOperand::merge(
             operand.evaluate_forward(medrecord, Box::new(edge_indices))?,
         ))
+    }
+}
+
+impl EdgeOperation {
+    pub(crate) fn evaluate_grouped<'a>(
+        &self,
+        medrecord: &'a MedRecord,
+        edge_indices: BoxedIterator<'a, BoxedIterator<'a, &'a EdgeIndex>>,
+    ) -> MedRecordResult<BoxedIterator<'a, BoxedIterator<'a, &'a EdgeIndex>>> {
+        Ok(match self {
+            EdgeOperation::Values { operand } => Box::new(Self::evaluate_values_grouped(
+                medrecord,
+                edge_indices,
+                operand.clone(),
+            )?),
+            EdgeOperation::Attributes { operand } => Box::new(Self::evaluate_attributes_grouped(
+                medrecord,
+                edge_indices,
+                operand.clone(),
+            )?),
+            EdgeOperation::Indices { operand } => Box::new(Self::evaluate_indices_grouped(
+                medrecord,
+                edge_indices,
+                operand.clone(),
+            )?),
+            EdgeOperation::InGroup { group } => {
+                let group = group.clone();
+
+                Box::new(edge_indices.map(move |edge_indices| {
+                    Box::new(Self::evaluate_in_group(
+                        medrecord,
+                        edge_indices,
+                        group.clone(),
+                    )) as BoxedIterator<'a, &'a EdgeIndex>
+                }))
+            }
+            EdgeOperation::HasAttribute { attribute } => {
+                let attribute = attribute.clone();
+
+                Box::new(edge_indices.map(move |edge_indices| {
+                    Box::new(Self::evaluate_has_attribute(
+                        medrecord,
+                        edge_indices,
+                        attribute.clone(),
+                    )) as BoxedIterator<'a, &'a EdgeIndex>
+                }))
+            }
+            EdgeOperation::SourceNode { operand } => Box::new(Self::evaluate_source_node_grouped(
+                medrecord,
+                edge_indices,
+                operand,
+            )?),
+            EdgeOperation::TargetNode { operand } => Box::new(Self::evaluate_target_node_grouped(
+                medrecord,
+                edge_indices,
+                operand,
+            )?),
+            EdgeOperation::EitherOr { either, or } => Box::new(Self::evaluate_either_or_grouped(
+                medrecord,
+                edge_indices,
+                either,
+                or,
+            )?),
+            EdgeOperation::Exclude { operand } => {
+                Box::new(Self::evaluate_exclude(medrecord, edge_indices, operand)?)
+            }
+            EdgeOperation::GroupBy { operand: _ } => unreachable!(),
+        })
+    }
+
+    #[inline]
+    fn evaluate_values_grouped<'a>(
+        medrecord: &'a MedRecord,
+        edge_indices: BoxedIterator<'a, BoxedIterator<'a, &'a EdgeIndex>>,
+        operand: Wrapper<MultipleValuesOperand<EdgeOperand>>,
+    ) -> MedRecordResult<BoxedIterator<'a, BoxedIterator<'a, &'a EdgeIndex>>> {
+        let Context::Operand((_, ref attribute)) = operand.0.read_or_panic().context else {
+            unreachable!()
+        };
+
+        let values: Vec<_> = edge_indices
+            .map(|edge_indices| {
+                Box::new(Self::get_values(medrecord, edge_indices, attribute.clone()))
+                    as <MultipleValuesOperand<EdgeOperand> as EvaluateForward<'a>>::InputValue
+            })
+            .collect();
+
+        Ok(Box::new(
+            operand
+                .evaluate_forward_grouped(medrecord, Box::new(values.into_iter()))?
+                .map(|values| {
+                    Box::new(values.map(|value| value.0)) as BoxedIterator<'a, &'a EdgeIndex>
+                }),
+        ))
+    }
+
+    #[inline]
+    fn evaluate_attributes_grouped<'a>(
+        medrecord: &'a MedRecord,
+        edge_indices: BoxedIterator<'a, BoxedIterator<'a, &'a EdgeIndex>>,
+        operand: Wrapper<AttributesTreeOperand<EdgeOperand>>,
+    ) -> MedRecordResult<BoxedIterator<'a, BoxedIterator<'a, &'a EdgeIndex>>> {
+        let attributes = edge_indices.map(|edge_indices| {
+            Box::new(Self::get_attributes(medrecord, edge_indices))
+                as <AttributesTreeOperand<EdgeOperand> as EvaluateForward<'a>>::InputValue
+        });
+
+        Ok(Box::new(
+            operand
+                .evaluate_forward_grouped(medrecord, Box::new(attributes))?
+                .map(|attributes| {
+                    Box::new(attributes.map(|value| value.0)) as BoxedIterator<'a, &'a EdgeIndex>
+                }),
+        ))
+    }
+
+    #[inline]
+    fn evaluate_indices_grouped<'a>(
+        _medrecord: &MedRecord,
+        _edge_indices: BoxedIterator<'a, BoxedIterator<'a, &'a EdgeIndex>>,
+        _operand: Wrapper<EdgeIndicesOperand>,
+    ) -> MedRecordResult<BoxedIterator<'a, BoxedIterator<'a, &'a EdgeIndex>>> {
+        // let (edge_indices_1, edge_indices_2) = Itertools::tee(edge_indices);
+
+        // let result: HashSet<_> = operand
+        //     .evaluate_forward(medrecord, Box::new(edge_indices_1.cloned()))?
+        //     .collect();
+
+        // Ok(edge_indices_2
+        //     .into_iter()
+        //     .filter(move |index| result.contains(index)))
+        todo!()
+    }
+
+    #[inline]
+    fn evaluate_source_node_grouped<'a>(
+        _medrecord: &'a MedRecord,
+        _edge_indices: BoxedIterator<'a, BoxedIterator<'a, &'a EdgeIndex>>,
+        _operand: &Wrapper<NodeOperand>,
+    ) -> MedRecordResult<BoxedIterator<'a, BoxedIterator<'a, &'a EdgeIndex>>> {
+        todo!()
+    }
+
+    #[inline]
+    fn evaluate_target_node_grouped<'a>(
+        _medrecord: &'a MedRecord,
+        _edge_indices: BoxedIterator<'a, BoxedIterator<'a, &'a EdgeIndex>>,
+        _operand: &Wrapper<NodeOperand>,
+    ) -> MedRecordResult<BoxedIterator<'a, BoxedIterator<'a, &'a EdgeIndex>>> {
+        todo!()
+    }
+
+    #[inline]
+    fn evaluate_either_or_grouped<'a>(
+        _medrecord: &'a MedRecord,
+        _edge_indices: BoxedIterator<'a, BoxedIterator<'a, &'a EdgeIndex>>,
+        _either_operand: &Wrapper<EdgeOperand>,
+        _or_operand: &Wrapper<EdgeOperand>,
+    ) -> MedRecordResult<BoxedIterator<'a, BoxedIterator<'a, &'a EdgeIndex>>> {
+        todo!()
+    }
+
+    #[inline]
+    fn evaluate_exclude<'a>(
+        _medrecord: &'a MedRecord,
+        _edge_indices: BoxedIterator<'a, BoxedIterator<'a, &'a EdgeIndex>>,
+        _exlude_operand: &Wrapper<EdgeOperand>,
+    ) -> MedRecordResult<BoxedIterator<'a, BoxedIterator<'a, &'a EdgeIndex>>> {
+        todo!()
     }
 }
 
@@ -712,6 +832,16 @@ impl EdgeIndicesOperation {
     }
 }
 
+impl EdgeIndicesOperation {
+    pub(crate) fn evaluate_grouped<'a>(
+        &self,
+        _medrecord: &'a MedRecord,
+        _indices: BoxedIterator<'a, BoxedIterator<'a, EdgeIndex>>,
+    ) -> MedRecordResult<BoxedIterator<'a, BoxedIterator<'a, EdgeIndex>>> {
+        todo!()
+    }
+}
+
 #[derive(Debug, Clone)]
 pub enum EdgeIndexOperation {
     EdgeIndexComparisonOperation {
@@ -875,5 +1005,15 @@ impl EdgeIndexOperation {
             (None, Some(or_result)) => Ok(Some(or_result)),
             _ => Ok(None),
         }
+    }
+}
+
+impl EdgeIndexOperation {
+    pub(crate) fn evaluate_grouped<'a>(
+        &self,
+        _medrecord: &'a MedRecord,
+        _indices: BoxedIterator<'a, Option<EdgeIndex>>,
+    ) -> MedRecordResult<BoxedIterator<'a, Option<EdgeIndex>>> {
+        todo!()
     }
 }

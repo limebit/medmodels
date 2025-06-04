@@ -283,10 +283,14 @@ impl<'a, O: 'a + RootOperand> EvaluateForward<'a> for MultipleValuesOperand<O> {
 impl<'a, O: 'a + RootOperand> EvaluateForwardGrouped<'a> for MultipleValuesOperand<O> {
     fn evaluate_forward_grouped(
         &self,
-        _medrecord: &'a MedRecord,
-        _values: BoxedIterator<'a, Self::InputValue>,
+        medrecord: &'a MedRecord,
+        values: BoxedIterator<'a, Self::InputValue>,
     ) -> MedRecordResult<BoxedIterator<'a, Self::ReturnValue>> {
-        todo!()
+        self.operations
+            .iter()
+            .try_fold(values, |value_tuples, operation| {
+                operation.evaluate_grouped(medrecord, value_tuples)
+            })
     }
 }
 
@@ -569,6 +573,22 @@ impl<'a, O: 'a + RootOperand> EvaluateForward<'a> for SingleValueOperand<O> {
     }
 }
 
+impl<'a, O: 'a + RootOperand> EvaluateForwardGrouped<'a> for SingleValueOperand<O> {
+    fn evaluate_forward_grouped(
+        &self,
+        medrecord: &'a MedRecord,
+        values: BoxedIterator<'a, Self::InputValue>,
+    ) -> MedRecordResult<BoxedIterator<'a, Self::ReturnValue>> {
+        let values = Box::new(values.map(Some)) as BoxedIterator<'a, Self::ReturnValue>;
+
+        self.operations
+            .iter()
+            .try_fold(values, |values, operation| {
+                operation.evaluate_grouped(medrecord, values)
+            })
+    }
+}
+
 impl<'a, O: 'a + RootOperand> EvaluateBackward<'a> for SingleValueOperand<O> {
     type ReturnValue = Option<OptionalIndexWrapper<&'a O::Index, MedRecordValue>>;
 
@@ -709,6 +729,11 @@ impl<O: RootOperand> SingleValueOperand<O> {
         self.operations
             .push(SingleValueOperation::Exclude { operand });
     }
+
+    pub(crate) fn push_merge_operation(&mut self, operand: Wrapper<MultipleValuesOperand<O>>) {
+        self.operations
+            .push(SingleValueOperation::Merge { operand });
+    }
 }
 
 impl<O: RootOperand> Wrapper<SingleValueOperand<O>> {
@@ -776,5 +801,9 @@ impl<O: RootOperand> Wrapper<SingleValueOperand<O>> {
         Q: FnOnce(&mut Wrapper<SingleValueOperand<O>>),
     {
         self.0.write_or_panic().exclude(query);
+    }
+
+    pub(crate) fn push_merge_operation(&self, operand: Wrapper<MultipleValuesOperand<O>>) {
+        self.0.write_or_panic().push_merge_operation(operand);
     }
 }

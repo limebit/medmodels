@@ -123,6 +123,11 @@ impl<O: RootOperand> Merge for GroupOperand<SingleValueOperand<O>> {
     type OutputOperand = MultipleValuesOperand<O>;
 
     fn merge(&self) -> Wrapper<Self::OutputOperand> {
-        Wrapper::<Self::OutputOperand>::new(Context::GroupByOperand(self.deep_clone()))
+        let operand =
+            Wrapper::<Self::OutputOperand>::new(Context::GroupByOperand(self.deep_clone()));
+
+        self.operand.push_merge_operation(operand.clone());
+
+        operand
     }
 }

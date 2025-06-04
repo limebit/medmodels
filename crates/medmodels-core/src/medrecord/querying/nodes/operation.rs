@@ -432,6 +432,16 @@ impl NodeOperation {
     }
 }
 
+impl NodeOperation {
+    pub(crate) fn evaluate_grouped<'a>(
+        &self,
+        _medrecord: &'a MedRecord,
+        _node_indices: BoxedIterator<'a, BoxedIterator<'a, &'a NodeIndex>>,
+    ) -> MedRecordResult<BoxedIterator<'a, BoxedIterator<'a, &'a NodeIndex>>> {
+        todo!()
+    }
+}
+
 #[derive(Debug, Clone)]
 pub enum NodeIndicesOperation {
     NodeIndexOperation {
@@ -842,6 +852,16 @@ impl NodeIndicesOperation {
     }
 }
 
+impl NodeIndicesOperation {
+    pub(crate) fn evaluate_grouped<'a>(
+        &self,
+        _medrecord: &'a MedRecord,
+        _node_indices: BoxedIterator<'a, BoxedIterator<'a, NodeIndex>>,
+    ) -> MedRecordResult<BoxedIterator<'a, BoxedIterator<'a, NodeIndex>>> {
+        todo!()
+    }
+}
+
 #[derive(Debug, Clone)]
 pub enum NodeIndexOperation {
     NodeIndexComparisonOperation {
@@ -1038,5 +1058,15 @@ impl NodeIndexOperation {
             (None, Some(or_result)) => Ok(Some(or_result)),
             _ => Ok(None),
         }
+    }
+}
+
+impl NodeIndexOperation {
+    pub(crate) fn evaluate_grouped<'a>(
+        &self,
+        _medrecord: &'a MedRecord,
+        _node_indices: BoxedIterator<'a, Option<NodeIndex>>,
+    ) -> MedRecordResult<BoxedIterator<'a, Option<NodeIndex>>> {
+        todo!()
     }
 }
