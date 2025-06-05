@@ -1,10 +1,10 @@
 use super::{
     operand_traits::{Attribute, Max},
     wrapper::Wrapper,
-    BoxedIterator, DeepClone, ReadWriteOrPanic,
+    DeepClone, ReadWriteOrPanic,
 };
 use crate::{
-    medrecord::querying::operand_traits::Count,
+    medrecord::querying::{operand_traits::Count, GroupedIterator},
     prelude::{EdgeIndex, MedRecordAttribute, MedRecordValue, NodeIndex},
     MedRecord,
 };
@@ -28,6 +28,7 @@ impl<O: GroupBy> Wrapper<O> {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, PartialOrd)]
 pub enum GroupKey<'a> {
     NodeIndex(&'a NodeIndex),
     EdgeIndex(&'a EdgeIndex),
@@ -44,9 +45,9 @@ pub trait PartitionGroups<'a>: GroupBy {
         medrecord: &'a MedRecord,
         values: Self::Values,
         discriminator: &Self::Discriminator,
-    ) -> BoxedIterator<'a, (GroupKey<'a>, Self::Values)>;
+    ) -> GroupedIterator<'a, Self::Values>;
 
-    fn merge(values: BoxedIterator<'a, Self::Values>) -> Self::Values;
+    fn merge(values: GroupedIterator<'a, Self::Values>) -> Self::Values;
 }
 
 pub trait Merge {

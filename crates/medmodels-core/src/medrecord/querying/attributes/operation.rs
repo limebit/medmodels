@@ -15,7 +15,7 @@ use crate::{
         },
         querying::{
             values::MultipleValuesOperand, BoxedIterator, DeepClone, EvaluateForward,
-            OptionalIndexWrapper, ReadWriteOrPanic, RootOperand,
+            GroupedIterator, OptionalIndexWrapper, ReadWriteOrPanic, RootOperand,
         },
         MedRecordAttribute, MedRecordValue, Wrapper,
     },
@@ -697,9 +697,12 @@ impl<O: RootOperand> AttributesTreeOperation<O> {
     pub(crate) fn evaluate_grouped<'a>(
         &self,
         _medrecord: &'a MedRecord,
-        _attributes: BoxedIterator<'a, BoxedIterator<'a, (&'a O::Index, Vec<MedRecordAttribute>)>>,
+        _attributes: GroupedIterator<
+            'a,
+            BoxedIterator<'a, (&'a O::Index, Vec<MedRecordAttribute>)>,
+        >,
     ) -> MedRecordResult<
-        BoxedIterator<'a, BoxedIterator<'a, (&'a O::Index, Vec<MedRecordAttribute>)>>,
+        GroupedIterator<'a, BoxedIterator<'a, (&'a O::Index, Vec<MedRecordAttribute>)>>,
     >
     where
         O: 'a,
@@ -1244,8 +1247,8 @@ impl<O: RootOperand> MultipleAttributesOperation<O> {
     pub(crate) fn evaluate_grouped<'a>(
         &self,
         _medrecord: &'a MedRecord,
-        _attributes: BoxedIterator<'a, BoxedIterator<'a, (&'a O::Index, MedRecordAttribute)>>,
-    ) -> MedRecordResult<BoxedIterator<'a, BoxedIterator<'a, (&'a O::Index, MedRecordAttribute)>>>
+        _attributes: GroupedIterator<'a, BoxedIterator<'a, (&'a O::Index, MedRecordAttribute)>>,
+    ) -> MedRecordResult<GroupedIterator<'a, BoxedIterator<'a, (&'a O::Index, MedRecordAttribute)>>>
     where
         O: 'a,
     {
@@ -1498,12 +1501,12 @@ impl<O: RootOperand> SingleAttributeOperation<O> {
     pub(crate) fn evaluate_grouped<'a>(
         &self,
         _medrecord: &'a MedRecord,
-        _attributes: BoxedIterator<
+        _attributes: GroupedIterator<
             'a,
             Option<OptionalIndexWrapper<&'a O::Index, MedRecordAttribute>>,
         >,
     ) -> MedRecordResult<
-        BoxedIterator<'a, Option<OptionalIndexWrapper<&'a O::Index, MedRecordAttribute>>>,
+        GroupedIterator<'a, Option<OptionalIndexWrapper<&'a O::Index, MedRecordAttribute>>>,
     >
     where
         O: 'a,

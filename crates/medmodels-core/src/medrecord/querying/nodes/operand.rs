@@ -9,11 +9,11 @@ use crate::{
         querying::{
             attributes::AttributesTreeOperand,
             edges::{self, EdgeOperand, EdgeOperandGroupDiscriminator},
-            group_by::{GroupKey, GroupOperand},
+            group_by::GroupOperand,
             values::{self, MultipleValuesOperand},
             wrapper::{CardinalityWrapper, Wrapper},
             BoxedIterator, DeepClone, EvaluateBackward, EvaluateForward, EvaluateForwardGrouped,
-            ReadWriteOrPanic, ReduceInput, RootOperand,
+            GroupedIterator, ReadWriteOrPanic, ReduceInput, RootOperand,
         },
         Group, MedRecordAttribute, NodeIndex,
     },
@@ -55,8 +55,8 @@ impl RootOperand for NodeOperand {
     fn _evaluate_forward_grouped<'a>(
         &self,
         medrecord: &'a MedRecord,
-        node_indices: BoxedIterator<'a, BoxedIterator<'a, &'a Self::Index>>,
-    ) -> MedRecordResult<BoxedIterator<'a, BoxedIterator<'a, &'a Self::Index>>> {
+        node_indices: GroupedIterator<'a, BoxedIterator<'a, &'a Self::Index>>,
+    ) -> MedRecordResult<GroupedIterator<'a, BoxedIterator<'a, &'a Self::Index>>> {
         self.operations
             .iter()
             .try_fold(node_indices, |node_indices, operation| {
@@ -131,12 +131,12 @@ impl RootOperand for NodeOperand {
         _medrecord: &'a MedRecord,
         _node_indices: BoxedIterator<'a, &'a Self::Index>,
         _discriminator: &Self::Discriminator,
-    ) -> BoxedIterator<'a, (GroupKey<'a>, BoxedIterator<'a, &'a Self::Index>)> {
+    ) -> GroupedIterator<'a, BoxedIterator<'a, &'a Self::Index>> {
         todo!()
     }
 
     fn _merge<'a>(
-        _node_indices: BoxedIterator<'a, BoxedIterator<'a, &'a Self::Index>>,
+        _node_indices: GroupedIterator<'a, BoxedIterator<'a, &'a Self::Index>>,
     ) -> BoxedIterator<'a, &'a Self::Index> {
         todo!()
     }
@@ -539,8 +539,8 @@ impl<'a> EvaluateForwardGrouped<'a> for NodeIndicesOperand {
     fn evaluate_forward_grouped(
         &self,
         medrecord: &'a MedRecord,
-        node_indices: BoxedIterator<'a, Self::InputValue>,
-    ) -> MedRecordResult<BoxedIterator<'a, Self::ReturnValue>> {
+        node_indices: GroupedIterator<'a, Self::InputValue>,
+    ) -> MedRecordResult<GroupedIterator<'a, Self::ReturnValue>> {
         self.operations
             .iter()
             .try_fold(node_indices, |index_tuples, operation| {
@@ -782,9 +782,10 @@ impl<'a> EvaluateForwardGrouped<'a> for NodeIndexOperand {
     fn evaluate_forward_grouped(
         &self,
         medrecord: &'a MedRecord,
-        node_indices: BoxedIterator<'a, Self::InputValue>,
-    ) -> MedRecordResult<BoxedIterator<'a, Self::ReturnValue>> {
-        let node_indices = Box::new(node_indices.map(Some)) as BoxedIterator<'a, Self::ReturnValue>;
+        node_indices: GroupedIterator<'a, Self::InputValue>,
+    ) -> MedRecordResult<GroupedIterator<'a, Self::ReturnValue>> {
+        let node_indices = Box::new(node_indices.map(|(key, node_index)| (key, Some(node_index))))
+            as GroupedIterator<'a, Self::ReturnValue>;
 
         self.operations
             .iter()

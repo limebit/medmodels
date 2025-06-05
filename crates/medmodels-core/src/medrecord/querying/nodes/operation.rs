@@ -18,7 +18,7 @@ use crate::{
             edges::EdgeOperand,
             values::{Context, MultipleValuesOperand},
             wrapper::{CardinalityWrapper, Wrapper},
-            BoxedIterator, DeepClone, EvaluateForward, ReadWriteOrPanic,
+            BoxedIterator, DeepClone, EvaluateForward, GroupedIterator, ReadWriteOrPanic,
         },
         EdgeIndex, Group, MedRecord, MedRecordAttribute, MedRecordValue, NodeIndex,
     },
@@ -436,8 +436,8 @@ impl NodeOperation {
     pub(crate) fn evaluate_grouped<'a>(
         &self,
         _medrecord: &'a MedRecord,
-        _node_indices: BoxedIterator<'a, BoxedIterator<'a, &'a NodeIndex>>,
-    ) -> MedRecordResult<BoxedIterator<'a, BoxedIterator<'a, &'a NodeIndex>>> {
+        _node_indices: GroupedIterator<'a, BoxedIterator<'a, &'a NodeIndex>>,
+    ) -> MedRecordResult<GroupedIterator<'a, BoxedIterator<'a, &'a NodeIndex>>> {
         todo!()
     }
 }
@@ -856,8 +856,8 @@ impl NodeIndicesOperation {
     pub(crate) fn evaluate_grouped<'a>(
         &self,
         _medrecord: &'a MedRecord,
-        _node_indices: BoxedIterator<'a, BoxedIterator<'a, NodeIndex>>,
-    ) -> MedRecordResult<BoxedIterator<'a, BoxedIterator<'a, NodeIndex>>> {
+        _node_indices: GroupedIterator<'a, BoxedIterator<'a, NodeIndex>>,
+    ) -> MedRecordResult<GroupedIterator<'a, BoxedIterator<'a, NodeIndex>>> {
         todo!()
     }
 }
@@ -1065,8 +1065,8 @@ impl NodeIndexOperation {
     pub(crate) fn evaluate_grouped<'a>(
         &self,
         _medrecord: &'a MedRecord,
-        _node_indices: BoxedIterator<'a, Option<NodeIndex>>,
-    ) -> MedRecordResult<BoxedIterator<'a, Option<NodeIndex>>> {
+        _node_indices: GroupedIterator<'a, Option<NodeIndex>>,
+    ) -> MedRecordResult<GroupedIterator<'a, Option<NodeIndex>>> {
         todo!()
     }
 }

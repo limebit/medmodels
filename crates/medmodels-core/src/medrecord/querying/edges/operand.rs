@@ -14,7 +14,7 @@ use crate::{
             values::{self, MultipleValuesOperand},
             wrapper::{CardinalityWrapper, Wrapper},
             BoxedIterator, DeepClone, EvaluateBackward, EvaluateForward, EvaluateForwardGrouped,
-            ReadWriteOrPanic, ReduceInput, RootOperand,
+            GroupedIterator, ReadWriteOrPanic, ReduceInput, RootOperand,
         },
         EdgeIndex, Group, MedRecordAttribute,
     },
@@ -65,8 +65,8 @@ impl RootOperand for EdgeOperand {
     fn _evaluate_forward_grouped<'a>(
         &self,
         medrecord: &'a MedRecord,
-        edge_indices: BoxedIterator<'a, BoxedIterator<'a, &'a Self::Index>>,
-    ) -> MedRecordResult<BoxedIterator<'a, BoxedIterator<'a, &'a Self::Index>>> {
+        edge_indices: GroupedIterator<'a, BoxedIterator<'a, &'a Self::Index>>,
+    ) -> MedRecordResult<GroupedIterator<'a, BoxedIterator<'a, &'a Self::Index>>> {
         self.operations
             .iter()
             .try_fold(edge_indices, |edge_indices, operation| {
@@ -146,7 +146,7 @@ impl RootOperand for EdgeOperand {
         medrecord: &'a MedRecord,
         edge_indices: BoxedIterator<'a, &'a Self::Index>,
         discriminator: &Self::Discriminator,
-    ) -> BoxedIterator<'a, (GroupKey<'a>, BoxedIterator<'a, &'a Self::Index>)> {
+    ) -> GroupedIterator<'a, BoxedIterator<'a, &'a Self::Index>> {
         match discriminator {
             EdgeOperandGroupDiscriminator::SourceNode => {
                 let mut buckets: HashMap<&'a MedRecordAttribute, Vec<&'a EdgeIndex>> =
@@ -242,9 +242,9 @@ impl RootOperand for EdgeOperand {
     }
 
     fn _merge<'a>(
-        edge_indices: BoxedIterator<'a, BoxedIterator<'a, &'a Self::Index>>,
+        edge_indices: GroupedIterator<'a, BoxedIterator<'a, &'a Self::Index>>,
     ) -> BoxedIterator<'a, &'a Self::Index> {
-        Box::new(edge_indices.flatten())
+        Box::new(edge_indices.flat_map(|(_, edge_indices)| edge_indices))
     }
 }
 
@@ -631,8 +631,8 @@ impl<'a> EvaluateForwardGrouped<'a> for EdgeIndicesOperand {
     fn evaluate_forward_grouped(
         &self,
         medrecord: &'a MedRecord,
-        edge_indices: BoxedIterator<'a, Self::InputValue>,
-    ) -> MedRecordResult<BoxedIterator<'a, Self::ReturnValue>> {
+        edge_indices: GroupedIterator<'a, Self::InputValue>,
+    ) -> MedRecordResult<GroupedIterator<'a, Self::ReturnValue>> {
         self.operations
             .iter()
             .try_fold(edge_indices, |index_tuples, operation| {
@@ -847,9 +847,10 @@ impl<'a> EvaluateForwardGrouped<'a> for EdgeIndexOperand {
     fn evaluate_forward_grouped(
         &self,
         medrecord: &'a MedRecord,
-        edge_indices: BoxedIterator<'a, Self::InputValue>,
-    ) -> MedRecordResult<BoxedIterator<'a, Self::ReturnValue>> {
-        let edge_indices = Box::new(edge_indices.map(Some)) as BoxedIterator<'a, Self::ReturnValue>;
+        edge_indices: GroupedIterator<'a, Self::InputValue>,
+    ) -> MedRecordResult<GroupedIterator<'a, Self::ReturnValue>> {
+        let edge_indices = Box::new(edge_indices.map(|(key, edge_index)| (key, Some(edge_index))))
+            as GroupedIterator<'a, Self::ReturnValue>;
 
         self.operations
             .iter()

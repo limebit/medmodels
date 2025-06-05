@@ -9,7 +9,7 @@ use crate::{
         querying::{
             operand_traits::{Count, Max},
             BoxedIterator, DeepClone, EvaluateBackward, EvaluateForward, EvaluateForwardGrouped,
-            OptionalIndexWrapper, ReadWriteOrPanic, ReduceInput, RootOperand,
+            GroupedIterator, OptionalIndexWrapper, ReadWriteOrPanic, ReduceInput, RootOperand,
         },
         EdgeOperand, MedRecordValue, NodeOperand, Wrapper,
     },
@@ -284,8 +284,8 @@ impl<'a, O: 'a + RootOperand> EvaluateForwardGrouped<'a> for MultipleValuesOpera
     fn evaluate_forward_grouped(
         &self,
         medrecord: &'a MedRecord,
-        values: BoxedIterator<'a, Self::InputValue>,
-    ) -> MedRecordResult<BoxedIterator<'a, Self::ReturnValue>> {
+        values: GroupedIterator<'a, Self::InputValue>,
+    ) -> MedRecordResult<GroupedIterator<'a, Self::ReturnValue>> {
         self.operations
             .iter()
             .try_fold(values, |value_tuples, operation| {
@@ -577,9 +577,10 @@ impl<'a, O: 'a + RootOperand> EvaluateForwardGrouped<'a> for SingleValueOperand<
     fn evaluate_forward_grouped(
         &self,
         medrecord: &'a MedRecord,
-        values: BoxedIterator<'a, Self::InputValue>,
-    ) -> MedRecordResult<BoxedIterator<'a, Self::ReturnValue>> {
-        let values = Box::new(values.map(Some)) as BoxedIterator<'a, Self::ReturnValue>;
+        values: GroupedIterator<'a, Self::InputValue>,
+    ) -> MedRecordResult<GroupedIterator<'a, Self::ReturnValue>> {
+        let values = Box::new(values.map(|(key, value)| (key, Some(value))))
+            as GroupedIterator<'a, Self::ReturnValue>;
 
         self.operations
             .iter()

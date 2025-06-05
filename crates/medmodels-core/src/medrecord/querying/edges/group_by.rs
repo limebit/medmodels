@@ -3,7 +3,7 @@ use crate::{
     errors::MedRecordResult,
     medrecord::querying::{
         group_by::{GroupBy, GroupOperand, GroupedOperand, PartitionGroups},
-        BoxedIterator, DeepClone, EvaluateForward, EvaluateForwardGrouped,
+        DeepClone, EvaluateForward, EvaluateForwardGrouped, GroupedIterator,
     },
     prelude::MedRecordAttribute,
     MedRecord,
@@ -64,7 +64,7 @@ impl<'a> EvaluateForward<'a> for GroupOperand<EdgeOperand> {
     //         <EdgeOperand as EvaluateForward<'a>>::ReturnValue,
     //     ),
     // >;
-    type ReturnValue = BoxedIterator<'a, <EdgeOperand as EvaluateForward<'a>>::ReturnValue>;
+    type ReturnValue = GroupedIterator<'a, <EdgeOperand as EvaluateForward<'a>>::ReturnValue>;
     // type ReturnValue = <EdgeOperand as EvaluateForward<'a>>::ReturnValue;
 
     fn evaluate_forward(
@@ -76,10 +76,9 @@ impl<'a> EvaluateForward<'a> for GroupOperand<EdgeOperand> {
 
         let partitions = EdgeOperand::partition(medrecord, indices, discriminator);
 
-        let indices = self.operand.evaluate_forward_grouped(
-            medrecord,
-            Box::new(partitions.map(|(_, parition)| parition)),
-        )?;
+        let indices = self
+            .operand
+            .evaluate_forward_grouped(medrecord, Box::new(partitions))?;
 
         // let indices: Vec<_> = partitions
         //     .map(|(key, partition)| Ok((key, self.operand.evaluate_forward(medrecord, partition)?)))

@@ -9,7 +9,7 @@ use crate::{
         querying::{
             values::{Context, MultipleValuesOperand},
             BoxedIterator, DeepClone, EvaluateBackward, EvaluateForward, EvaluateForwardGrouped,
-            OptionalIndexWrapper, ReadWriteOrPanic, ReduceInput, RootOperand,
+            GroupedIterator, OptionalIndexWrapper, ReadWriteOrPanic, ReduceInput, RootOperand,
         },
         EdgeOperand, MedRecordAttribute, NodeOperand, Wrapper,
     },
@@ -316,8 +316,8 @@ impl<'a, O: 'a + RootOperand> EvaluateForwardGrouped<'a> for AttributesTreeOpera
     fn evaluate_forward_grouped(
         &self,
         medrecord: &'a MedRecord,
-        attributes: BoxedIterator<'a, Self::InputValue>,
-    ) -> MedRecordResult<BoxedIterator<'a, Self::ReturnValue>> {
+        attributes: GroupedIterator<'a, Self::InputValue>,
+    ) -> MedRecordResult<GroupedIterator<'a, Self::ReturnValue>> {
         self.operations
             .iter()
             .try_fold(attributes, |attribute_tuples, operation| {
@@ -578,8 +578,8 @@ impl<'a, O: 'a + RootOperand> EvaluateForwardGrouped<'a> for MultipleAttributesO
     fn evaluate_forward_grouped(
         &self,
         medrecord: &'a MedRecord,
-        attributes: BoxedIterator<'a, Self::InputValue>,
-    ) -> MedRecordResult<BoxedIterator<'a, Self::ReturnValue>> {
+        attributes: GroupedIterator<'a, Self::InputValue>,
+    ) -> MedRecordResult<GroupedIterator<'a, Self::ReturnValue>> {
         self.operations
             .iter()
             .try_fold(attributes, |attribute_tuples, operation| {
@@ -897,9 +897,10 @@ impl<'a, O: 'a + RootOperand> EvaluateForwardGrouped<'a> for SingleAttributeOper
     fn evaluate_forward_grouped(
         &self,
         medrecord: &'a MedRecord,
-        attributes: BoxedIterator<'a, Self::InputValue>,
-    ) -> MedRecordResult<BoxedIterator<'a, Self::ReturnValue>> {
-        let attributes = Box::new(attributes.map(Some)) as BoxedIterator<'a, Self::ReturnValue>;
+        attributes: GroupedIterator<'a, Self::InputValue>,
+    ) -> MedRecordResult<GroupedIterator<'a, Self::ReturnValue>> {
+        let attributes = Box::new(attributes.map(|attribute| (attribute.0, Some(attribute.1))))
+            as GroupedIterator<'a, Self::ReturnValue>;
 
         self.operations
             .iter()

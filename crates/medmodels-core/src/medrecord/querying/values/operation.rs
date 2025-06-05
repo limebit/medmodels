@@ -14,8 +14,8 @@ use crate::{
             Sqrt, StartsWith, Trim, TrimEnd, TrimStart, Uppercase,
         },
         querying::{
-            BoxedIterator, DeepClone, EvaluateForward, OptionalIndexWrapper, ReadWriteOrPanic,
-            RootOperand,
+            BoxedIterator, DeepClone, EvaluateForward, GroupedIterator, OptionalIndexWrapper,
+            ReadWriteOrPanic, RootOperand,
         },
         MedRecordValue, Wrapper,
     },
@@ -775,8 +775,8 @@ impl<O: RootOperand> MultipleValuesOperation<O> {
     pub(crate) fn evaluate_grouped<'a>(
         &self,
         _medrecord: &'a MedRecord,
-        _values: BoxedIterator<'a, BoxedIterator<'a, (&'a O::Index, MedRecordValue)>>,
-    ) -> MedRecordResult<BoxedIterator<'a, BoxedIterator<'a, (&'a O::Index, MedRecordValue)>>>
+        _values: GroupedIterator<'a, BoxedIterator<'a, (&'a O::Index, MedRecordValue)>>,
+    ) -> MedRecordResult<GroupedIterator<'a, BoxedIterator<'a, (&'a O::Index, MedRecordValue)>>>
     where
         O: 'a,
     {
@@ -1049,9 +1049,9 @@ impl<O: RootOperand> SingleValueOperation<O> {
     pub(crate) fn evaluate_grouped<'a>(
         &self,
         _medrecord: &'a MedRecord,
-        _values: BoxedIterator<'a, Option<OptionalIndexWrapper<&'a O::Index, MedRecordValue>>>,
+        _values: GroupedIterator<'a, Option<OptionalIndexWrapper<&'a O::Index, MedRecordValue>>>,
     ) -> MedRecordResult<
-        BoxedIterator<'a, Option<OptionalIndexWrapper<&'a O::Index, MedRecordValue>>>,
+        GroupedIterator<'a, Option<OptionalIndexWrapper<&'a O::Index, MedRecordValue>>>,
     > {
         todo!()
     }
