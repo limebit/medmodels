@@ -7,13 +7,13 @@ from typing import TYPE_CHECKING, List, Optional
 
 import pandas as pd
 
-from medmodels import MedRecord
+import medmodels.medrecord as mr
 
 if TYPE_CHECKING:
     from medmodels.medrecord.types import NodeIndex
 
 
-def create_patients(patient_list: List[NodeIndex]) -> pd.DataFrame:
+def _create_patients(patient_list: List[NodeIndex]) -> pd.DataFrame:
     """Creates a patients dataframe.
 
     Returns:
@@ -40,7 +40,7 @@ def create_patients(patient_list: List[NodeIndex]) -> pd.DataFrame:
     return patients.loc[patients["index"].isin(patient_list)]
 
 
-def create_diagnoses() -> pd.DataFrame:
+def _create_diagnoses() -> pd.DataFrame:
     """Creates a diagnoses dataframe.
 
     Returns:
@@ -54,7 +54,7 @@ def create_diagnoses() -> pd.DataFrame:
     )
 
 
-def create_prescriptions() -> pd.DataFrame:
+def _create_prescriptions() -> pd.DataFrame:
     """Creates a prescriptions dataframe.
 
     Returns:
@@ -68,7 +68,7 @@ def create_prescriptions() -> pd.DataFrame:
     )
 
 
-def create_edges1(patient_list: List[NodeIndex]) -> pd.DataFrame:
+def _create_edges1(patient_list: List[NodeIndex]) -> pd.DataFrame:
     """Creates an edges dataframe.
 
     Returns:
@@ -108,7 +108,7 @@ def create_edges1(patient_list: List[NodeIndex]) -> pd.DataFrame:
     return edges.loc[edges["target"].isin(patient_list)]
 
 
-def create_edges2(patient_list: List[NodeIndex]) -> pd.DataFrame:
+def _create_edges2(patient_list: List[NodeIndex]) -> pd.DataFrame:
     """Creates an edges dataframe with attribute "intensity".
 
     Returns:
@@ -155,7 +155,7 @@ def create_edges2(patient_list: List[NodeIndex]) -> pd.DataFrame:
 
 def create_medrecord(
     patient_list: Optional[List[NodeIndex]] = None,
-) -> MedRecord:
+) -> mr.MedRecord:
     """Creates a MedRecord object.
 
     Returns:
@@ -163,15 +163,48 @@ def create_medrecord(
     """
     if patient_list is None:
         patient_list = ["P1", "P2", "P3", "P4", "P5", "P6", "P7", "P8", "P9"]
-    patients = create_patients(patient_list=patient_list)
-    diagnoses = create_diagnoses()
-    prescriptions = create_prescriptions()
-    edges1 = create_edges1(patient_list=patient_list)
-    edges2 = create_edges2(patient_list=patient_list)
-    medrecord = MedRecord.from_pandas(
-        nodes=[(patients, "index"), (diagnoses, "index"), (prescriptions, "index")],
-        edges=[(edges1, "source", "target")],
+    patients = _create_patients(patient_list=patient_list)
+    diagnoses = _create_diagnoses()
+    prescriptions = _create_prescriptions()
+    edges1 = _create_edges1(patient_list=patient_list)
+    edges2 = _create_edges2(patient_list=patient_list)
+
+    medrecord = mr.MedRecord()
+    schema = mr.Schema(
+        groups={
+            "patients": mr.GroupSchema(
+                nodes={
+                    "age": (mr.Int(), mr.AttributeType.Continuous),
+                    "gender": (mr.String(), mr.AttributeType.Categorical),
+                }
+            ),
+            "Rivaroxaban": mr.GroupSchema(
+                nodes={"name": (mr.String(), mr.AttributeType.Unstructured)},
+            ),
+            "Warfarin": mr.GroupSchema(
+                nodes={"name": (mr.String(), mr.AttributeType.Unstructured)},
+            ),
+            "Stroke": mr.GroupSchema(
+                nodes={"name": (mr.String(), mr.AttributeType.Unstructured)},
+            ),
+        },
+        ungrouped=mr.GroupSchema(
+            nodes={
+                "name": (mr.Option(mr.String()), mr.AttributeType.Unstructured),
+                "age": (mr.Option(mr.Int()), mr.AttributeType.Continuous),
+                "gender": (mr.Option(mr.String()), mr.AttributeType.Categorical),
+            },
+            edges={
+                "time": (mr.DateTime(), mr.AttributeType.Temporal),
+                "intensity": (mr.Option(mr.Float()), mr.AttributeType.Continuous),
+            },
+        ),
     )
+    medrecord.set_schema(schema)
+    medrecord.add_nodes(
+        [(patients, "index"), (diagnoses, "index"), (prescriptions, "index")],
+    )
+    medrecord.add_edges((edges1, "source", "target"))
     medrecord.add_group(group="patients", nodes=patients["index"].to_list())
     medrecord.add_group(
         "Stroke",
