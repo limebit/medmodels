@@ -1551,13 +1551,16 @@ class MedRecord:
     ) -> List[QueryResult]: ...
 
     def query_nodes(self, query: NodeQuery) -> QueryResult:
-        """Selects nodes from the MedRecord based on the provided query.
+        """Retrieves information on the nodes from the MedRecord given the query.
 
         Args:
-            query (NodeQuery): A query to filter nodes.
+            query (NodeQuery): A query to define the information to be retrieved.
+                The query should be a callable that takes a NodeOperand and returns
+                a QueryReturnOperand.
 
         Returns:
-            List[NodeIndex]: A list of node indices that satisfy the query.
+            QueryResult: The result of the query, which can be a list of node indices
+                or a dictionary of node attributes, among others.
         """
 
         def _query(node: PyNodeOperand) -> PyQueryReturnOperand:
@@ -1629,13 +1632,16 @@ class MedRecord:
     ) -> List[QueryResult]: ...
 
     def query_edges(self, query: EdgeQuery) -> QueryResult:
-        """Selects edges from the MedRecord based on the provided query.
+        """Retrieves information on the edges from the MedRecord given the query.
 
         Args:
-            query (EdgeQuery): A query to filter edges.
+            query (EdgeQuery): A query to define the information to be retrieved.
+                The query should be a callable that takes an EdgeOperand and returns
+                a QueryReturnOperand.
 
         Returns:
-            List[EdgeIndex]: A list of edge indices that satisfy the query.
+            QueryResult: The result of the query, which can be a list of edge indices or
+                a dictionary of edge attributes, among others.
         """
 
         def _query(edge: PyEdgeOperand) -> PyQueryReturnOperand:
