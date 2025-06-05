@@ -14,8 +14,9 @@ use crate::{
             Sqrt, StartsWith, Trim, TrimEnd, TrimStart, Uppercase,
         },
         querying::{
-            BoxedIterator, DeepClone, EvaluateForward, GroupedIterator, OptionalIndexWrapper,
-            ReadWriteOrPanic, RootOperand,
+            tee_grouped_iterator, BoxedIterator, DeepClone, EvaluateForward,
+            EvaluateForwardGrouped, GroupedIterator, OptionalIndexWrapper, ReadWriteOrPanic,
+            RootOperand,
         },
         MedRecordValue, Wrapper,
     },
@@ -774,13 +775,174 @@ impl<O: RootOperand> MultipleValuesOperation<O> {
     #[allow(clippy::type_complexity)]
     pub(crate) fn evaluate_grouped<'a>(
         &self,
-        _medrecord: &'a MedRecord,
-        _values: GroupedIterator<'a, BoxedIterator<'a, (&'a O::Index, MedRecordValue)>>,
+        medrecord: &'a MedRecord,
+        values: GroupedIterator<'a, BoxedIterator<'a, (&'a O::Index, MedRecordValue)>>,
     ) -> MedRecordResult<GroupedIterator<'a, BoxedIterator<'a, (&'a O::Index, MedRecordValue)>>>
     where
         O: 'a,
     {
-        todo!()
+        Ok(match self {
+            MultipleValuesOperation::ValueOperation { operand } => Box::new(
+                Self::evaluate_value_operation_grouped(medrecord, values, operand)?,
+            ),
+            MultipleValuesOperation::SingleValueComparisonOperation { operand, kind } => Box::new(
+                values
+                    .map(move |(key, values)| {
+                        Ok((
+                            key,
+                            Box::new(Self::evaluate_single_value_comparison_operation(
+                                medrecord, values, operand, kind,
+                            )?)
+                                as BoxedIterator<'a, (&'a O::Index, MedRecordValue)>,
+                        ))
+                    })
+                    .collect::<MedRecordResult<Vec<_>>>()?
+                    .into_iter(),
+            ),
+            MultipleValuesOperation::MultipleValuesComparisonOperation { operand, kind } => {
+                Box::new(
+                    values
+                        .map(move |(key, values)| {
+                            Ok((
+                                key,
+                                Box::new(Self::evaluate_multiple_values_comparison_operation(
+                                    medrecord, values, operand, kind,
+                                )?)
+                                    as BoxedIterator<'a, (&'a O::Index, MedRecordValue)>,
+                            ))
+                        })
+                        .collect::<MedRecordResult<Vec<_>>>()?
+                        .into_iter(),
+                )
+            }
+            MultipleValuesOperation::BinaryArithmeticOpration { operand, kind } => Box::new(
+                values
+                    .map(move |(key, values)| {
+                        Ok((
+                            key,
+                            Box::new(Self::evaluate_binary_arithmetic_operation(
+                                medrecord, values, operand, kind,
+                            )?)
+                                as BoxedIterator<'a, (&'a O::Index, MedRecordValue)>,
+                        ))
+                    })
+                    .collect::<MedRecordResult<Vec<_>>>()?
+                    .into_iter(),
+            ),
+            MultipleValuesOperation::UnaryArithmeticOperation { kind } => Box::new(
+                values
+                    .map(move |(key, values)| {
+                        Ok((
+                            key,
+                            Box::new(Self::evaluate_unary_arithmetic_operation(
+                                values,
+                                kind.clone(),
+                            ))
+                                as BoxedIterator<'a, (&'a O::Index, MedRecordValue)>,
+                        ))
+                    })
+                    .collect::<MedRecordResult<Vec<_>>>()?
+                    .into_iter(),
+            ),
+            MultipleValuesOperation::Slice(range) => Box::new(
+                values
+                    .map(move |(key, values)| {
+                        Ok((
+                            key,
+                            Box::new(Self::evaluate_slice(values, range.clone()))
+                                as BoxedIterator<'a, (&'a O::Index, MedRecordValue)>,
+                        ))
+                    })
+                    .collect::<MedRecordResult<Vec<_>>>()?
+                    .into_iter(),
+            ),
+            MultipleValuesOperation::IsString => todo!(),
+            MultipleValuesOperation::IsInt => todo!(),
+            MultipleValuesOperation::IsFloat => todo!(),
+            MultipleValuesOperation::IsBool => todo!(),
+            MultipleValuesOperation::IsDateTime => todo!(),
+            MultipleValuesOperation::IsDuration => todo!(),
+            MultipleValuesOperation::IsNull => todo!(),
+            MultipleValuesOperation::IsMax => todo!(),
+            MultipleValuesOperation::IsMin => todo!(),
+            MultipleValuesOperation::EitherOr { either: _, or: _ } => todo!(),
+            MultipleValuesOperation::Exclude { operand: _ } => todo!(),
+        })
+    }
+
+    #[allow(clippy::type_complexity)]
+    #[inline]
+    fn evaluate_value_operation_grouped<'a>(
+        medrecord: &'a MedRecord,
+        values: GroupedIterator<'a, BoxedIterator<'a, (&'a O::Index, MedRecordValue)>>,
+        operand: &Wrapper<SingleValueOperand<O>>,
+    ) -> MedRecordResult<GroupedIterator<'a, BoxedIterator<'a, (&'a O::Index, MedRecordValue)>>>
+    where
+        O: 'a,
+    {
+        // let (values_1, values_2) = Itertools::tee(values);
+
+        // let kind = &operand.0.read_or_panic().kind;
+
+        // let value: OptionalIndexWrapper<_, _> = match kind {
+        //     SingleKind::Max => MultipleValuesOperation::<O>::get_max(values_1)?.into(),
+        //     SingleKind::Min => MultipleValuesOperation::<O>::get_min(values_1)?.into(),
+        //     SingleKind::Mean => MultipleValuesOperation::<O>::get_mean(values_1)?.into(),
+        //     SingleKind::Median => MultipleValuesOperation::<O>::get_median(values_1)?.into(),
+        //     SingleKind::Mode => MultipleValuesOperation::<O>::get_mode(values_1)?.into(),
+        //     SingleKind::Std => MultipleValuesOperation::<O>::get_std(values_1)?.into(),
+        //     SingleKind::Var => MultipleValuesOperation::<O>::get_var(values_1)?.into(),
+        //     SingleKind::Count => MultipleValuesOperation::<O>::get_count(values_1).into(),
+        //     SingleKind::Sum => MultipleValuesOperation::<O>::get_sum(values_1)?.into(),
+        //     SingleKind::Random => MultipleValuesOperation::<O>::get_random(values_1)?.into(),
+        // };
+
+        // Ok(match operand.evaluate_forward(medrecord, value)? {
+        //     Some(_) => Box::new(values_2),
+        //     None => Box::new(std::iter::empty()),
+        // })
+
+        let (values_1, values_2) = tee_grouped_iterator(values);
+        let mut values_2 = values_2.collect::<Vec<_>>();
+
+        let kind = &operand.0.read_or_panic().kind;
+
+        let values_1: Vec<_> = values_1
+            .map(|(key, values)| {
+                let value: OptionalIndexWrapper<_, _> = match kind {
+                    SingleKind::Max => MultipleValuesOperation::<O>::get_max(values)?.into(),
+                    SingleKind::Min => MultipleValuesOperation::<O>::get_min(values)?.into(),
+                    SingleKind::Mean => MultipleValuesOperation::<O>::get_mean(values)?.into(),
+                    SingleKind::Median => MultipleValuesOperation::<O>::get_median(values)?.into(),
+                    SingleKind::Mode => MultipleValuesOperation::<O>::get_mode(values)?.into(),
+                    SingleKind::Std => MultipleValuesOperation::<O>::get_std(values)?.into(),
+                    SingleKind::Var => MultipleValuesOperation::<O>::get_var(values)?.into(),
+                    SingleKind::Count => MultipleValuesOperation::<O>::get_count(values).into(),
+                    SingleKind::Sum => MultipleValuesOperation::<O>::get_sum(values)?.into(),
+                    SingleKind::Random => MultipleValuesOperation::<O>::get_random(values)?.into(),
+                };
+
+                Ok((key, value))
+            })
+            .collect::<MedRecordResult<_>>()?;
+
+        let values_1 =
+            operand.evaluate_forward_grouped(medrecord, Box::new(values_1.into_iter()))?;
+
+        Ok(Box::new(values_1.map(move |(key, value)| match value {
+            Some(_) => {
+                let values_position = values_2
+                    .iter()
+                    .position(|(k, _)| k == &key)
+                    .expect("Entry must exist");
+
+                values_2.remove(values_position)
+            }
+            None => (
+                key,
+                Box::new(std::iter::empty()) as BoxedIterator<'a, (&'a O::Index, MedRecordValue)>,
+            ),
+        })))
     }
 }
 
@@ -1048,11 +1210,109 @@ impl<O: RootOperand> SingleValueOperation<O> {
     #[allow(clippy::type_complexity)]
     pub(crate) fn evaluate_grouped<'a>(
         &self,
-        _medrecord: &'a MedRecord,
-        _values: GroupedIterator<'a, Option<OptionalIndexWrapper<&'a O::Index, MedRecordValue>>>,
+        medrecord: &'a MedRecord,
+        values: GroupedIterator<'a, Option<OptionalIndexWrapper<&'a O::Index, MedRecordValue>>>,
     ) -> MedRecordResult<
         GroupedIterator<'a, Option<OptionalIndexWrapper<&'a O::Index, MedRecordValue>>>,
-    > {
-        todo!()
+    >
+    where
+        O: 'a,
+    {
+        Ok(match self {
+            SingleValueOperation::SingleValueComparisonOperation { operand, kind } => Box::new(
+                values
+                    .map(move |(key, values)| {
+                        let Some(values) = values else {
+                            return Ok((key, None));
+                        };
+
+                        Ok((
+                            key,
+                            Self::evaluate_single_value_comparison_operation(
+                                medrecord, values, operand, kind,
+                            )?,
+                        ))
+                    })
+                    .collect::<MedRecordResult<Vec<_>>>()?
+                    .into_iter(),
+            ),
+            SingleValueOperation::MultipleValuesComparisonOperation { operand, kind } => Box::new(
+                values
+                    .map(move |(key, values)| {
+                        let Some(values) = values else {
+                            return Ok((key, None));
+                        };
+
+                        Ok((
+                            key,
+                            Self::evaluate_multiple_values_comparison_operation(
+                                medrecord, values, operand, kind,
+                            )?,
+                        ))
+                    })
+                    .collect::<MedRecordResult<Vec<_>>>()?
+                    .into_iter(),
+            ),
+            SingleValueOperation::BinaryArithmeticOpration { operand, kind } => Box::new(
+                values
+                    .map(move |(key, values)| {
+                        let Some(values) = values else {
+                            return Ok((key, None));
+                        };
+
+                        Ok((
+                            key,
+                            Self::evaluate_binary_arithmetic_operation(
+                                medrecord, values, operand, kind,
+                            )?,
+                        ))
+                    })
+                    .collect::<MedRecordResult<Vec<_>>>()?
+                    .into_iter(),
+            ),
+            SingleValueOperation::UnaryArithmeticOperation { kind: _ } => todo!(),
+            SingleValueOperation::Slice(_range) => todo!(),
+            SingleValueOperation::IsString => todo!(),
+            SingleValueOperation::IsInt => todo!(),
+            SingleValueOperation::IsFloat => todo!(),
+            SingleValueOperation::IsBool => todo!(),
+            SingleValueOperation::IsDateTime => todo!(),
+            SingleValueOperation::IsDuration => todo!(),
+            SingleValueOperation::IsNull => todo!(),
+            SingleValueOperation::EitherOr { either: _, or: _ } => todo!(),
+            SingleValueOperation::Exclude { operand: _ } => todo!(),
+            SingleValueOperation::Merge { operand } => {
+                let (values_1, values_2) = Itertools::tee(values);
+
+                let values_1 = values_1.filter_map(|(_, value)| match value? {
+                    OptionalIndexWrapper::WithIndex(value) => Some(value),
+                    OptionalIndexWrapper::WithoutIndex(_) => todo!(),
+                });
+
+                let values_1 = operand
+                    .evaluate_forward(medrecord, Box::new(values_1))?
+                    .map(|(index, _)| index)
+                    .collect::<Vec<_>>();
+
+                Box::new(values_2.map(move |(key, value)| {
+                    (
+                        key,
+                        match value {
+                            Some(value) => match value {
+                                OptionalIndexWrapper::WithIndex((index, value)) => {
+                                    if values_1.contains(&index) {
+                                        Some(OptionalIndexWrapper::WithIndex((index, value)))
+                                    } else {
+                                        None
+                                    }
+                                }
+                                OptionalIndexWrapper::WithoutIndex(_) => todo!(),
+                            },
+                            None => None,
+                        },
+                    )
+                }))
+            }
+        })
     }
 }

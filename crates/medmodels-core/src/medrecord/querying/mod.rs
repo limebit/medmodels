@@ -18,6 +18,7 @@ use attributes::{
 };
 use edges::{EdgeIndexOperand, EdgeIndicesOperand, EdgeOperand};
 use group_by::{GroupOperand, GroupedOperand};
+use itertools::Itertools;
 use nodes::{NodeIndexOperand, NodeIndicesOperand, NodeOperand};
 use std::{
     fmt::{Debug, Display},
@@ -140,6 +141,32 @@ where
 }
 
 pub type GroupedIterator<'a, O> = BoxedIterator<'a, (GroupKey<'a>, O)>;
+
+pub(crate) fn tee_grouped_iterator<'a, O: 'a + Clone>(
+    iterator: GroupedIterator<'a, BoxedIterator<'a, O>>,
+) -> (
+    GroupedIterator<'a, BoxedIterator<'a, O>>,
+    GroupedIterator<'a, BoxedIterator<'a, O>>,
+) {
+    let mut iterators = (Vec::new(), Vec::new());
+
+    iterator.for_each(|(key, inner_iterator)| {
+        let (inner_iterator_1, inner_iterator_2) = Itertools::tee(inner_iterator);
+
+        iterators.0.push((
+            key.clone(),
+            Box::new(inner_iterator_1) as BoxedIterator<'a, O>,
+        ));
+        iterators
+            .1
+            .push((key, Box::new(inner_iterator_2) as BoxedIterator<'a, O>));
+    });
+
+    (
+        Box::new(iterators.0.into_iter()),
+        Box::new(iterators.1.into_iter()),
+    )
+}
 
 impl<'a, O: RootOperand> EvaluateForwardGrouped<'a> for O
 where

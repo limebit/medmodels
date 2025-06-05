@@ -14,6 +14,7 @@ use crate::{
             edges::SingleKind,
             group_by::{GroupOperand, PartitionGroups},
             nodes::NodeOperand,
+            tee_grouped_iterator,
             values::{Context, MultipleValuesOperand},
             wrapper::{CardinalityWrapper, Wrapper},
             BoxedIterator, DeepClone, EvaluateForward, EvaluateForwardGrouped, GroupedIterator,
@@ -912,46 +913,49 @@ impl EdgeIndicesOperation {
 
     #[inline]
     fn evaluate_edge_index_operation_grouped<'a>(
-        _medrecord: &MedRecord,
+        medrecord: &'a MedRecord,
         edge_indices: GroupedIterator<'a, BoxedIterator<'a, EdgeIndex>>,
         operand: &Wrapper<EdgeIndexOperand>,
     ) -> MedRecordResult<GroupedIterator<'a, BoxedIterator<'a, EdgeIndex>>> {
-        // let (indices_1, indices_2) = Itertools::tee(indices);
-
-        // let kind = &operand.0.read_or_panic().kind;
-
-        // let index = match kind {
-        //     SingleKind::Max => EdgeIndicesOperation::get_max(indices_1)?,
-        //     SingleKind::Min => EdgeIndicesOperation::get_min(indices_1)?,
-        //     SingleKind::Count => EdgeIndicesOperation::get_count(indices_1),
-        //     SingleKind::Sum => EdgeIndicesOperation::get_sum(indices_1),
-        //     SingleKind::Random => EdgeIndicesOperation::get_random(indices_1)?,
-        // };
-
-        // Ok(match operand.evaluate_forward(medrecord, index)? {
-        //     Some(_) => Box::new(indices_2.into_iter()),
-        //     None => Box::new(std::iter::empty()),
-        // })
+        let (edge_indices_1, edge_indices_2) = tee_grouped_iterator(edge_indices);
+        let mut edge_indices_2 = edge_indices_2.collect::<Vec<_>>();
 
         let kind = &operand.0.read_or_panic().kind;
 
-        let _indices: Vec<_> = edge_indices
-            .map(move |(_, edge_indices)| {
-                Ok(match kind {
-                    SingleKind::Max => EdgeIndicesOperation::get_max(edge_indices)?,
-                    SingleKind::Min => EdgeIndicesOperation::get_min(edge_indices)?,
-                    SingleKind::Count => EdgeIndicesOperation::get_count(edge_indices),
-                    SingleKind::Sum => EdgeIndicesOperation::get_sum(edge_indices),
-                    SingleKind::Random => EdgeIndicesOperation::get_random(edge_indices)?,
-                })
+        let edge_indices_1: Vec<_> = edge_indices_1
+            .map(move |(key, edge_indices)| {
+                Ok((
+                    key,
+                    match kind {
+                        SingleKind::Max => EdgeIndicesOperation::get_max(edge_indices)?,
+                        SingleKind::Min => EdgeIndicesOperation::get_min(edge_indices)?,
+                        SingleKind::Count => EdgeIndicesOperation::get_count(edge_indices),
+                        SingleKind::Sum => EdgeIndicesOperation::get_sum(edge_indices),
+                        SingleKind::Random => EdgeIndicesOperation::get_random(edge_indices)?,
+                    },
+                ))
             })
             .collect::<MedRecordResult<_>>()?;
 
-        // Ok(Box::new(operand.evaluate_forward_grouped(
-        //     medrecord,
-        //     Box::new(indices.into_iter()),
-        // )?).map(|index| ))
-        todo!()
+        let edge_indices_1 =
+            operand.evaluate_forward_grouped(medrecord, Box::new(edge_indices_1.into_iter()))?;
+
+        Ok(Box::new(edge_indices_1.map(
+            move |(key, value)| match value {
+                Some(_) => {
+                    let edge_indices_position = edge_indices_2
+                        .iter()
+                        .position(|(k, _)| k == &key)
+                        .expect("Entry must exist");
+
+                    edge_indices_2.remove(edge_indices_position)
+                }
+                None => (
+                    key,
+                    Box::new(std::iter::empty()) as BoxedIterator<'a, EdgeIndex>,
+                ),
+            },
+        )))
     }
 }
 

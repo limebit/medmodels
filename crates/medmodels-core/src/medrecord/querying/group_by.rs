@@ -150,7 +150,7 @@ mod tests {
     fn test_group_by() {
         let medrecord = MedRecord::from_admissions_example_dataset();
 
-        let result = medrecord
+        let result: Vec<_> = medrecord
             .query_nodes(|nodes| {
                 let mut edges = nodes.edges(EdgeDirection::Outgoing);
 
@@ -158,10 +158,13 @@ mod tests {
 
                 let group_by = edges.group_by(EdgeOperandGroupDiscriminator::Parallel);
 
-                group_by.attribute("duration_days").max().merge().max()
+                group_by.attribute("duration_days").max().merge().is_max();
+
+                edges.index()
             })
             .evaluate()
-            .unwrap();
+            .unwrap()
+            .collect();
 
         println!("{:?}", result);
     }
