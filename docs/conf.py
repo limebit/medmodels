@@ -33,7 +33,6 @@ extensions = [
     "sphinx_pyscript",
     "sphinx_tippy",
     "sphinx_togglebutton",
-    "sphinx_multiversion",
     "sphinx.ext.extlinks",
 ]
 
@@ -160,7 +159,7 @@ html_theme_options = {
         "json_url": "https://www.medmodels.de/docs/switcher.json",
         "version_match": version,
     },
-    "show_version_warning_banner": True,
+    "show_version_warning_banner": False,
 }
 
 html_context = {
