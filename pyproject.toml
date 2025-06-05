@@ -56,7 +56,6 @@ docs = [
     "sphinx-toolbox==3.6.0",
     "myst-parser==3.0.1",
     "livereload==2.7.0",
-    "sphinx-multiversion==0.2.4",
 ]
 dev = [
     { include-group = "docs" },
