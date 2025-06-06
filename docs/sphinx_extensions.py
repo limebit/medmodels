@@ -15,7 +15,6 @@ Example:
     ---
     ```
 """
-# ruff: noqa: D100, D103
 
 import contextlib
 import io

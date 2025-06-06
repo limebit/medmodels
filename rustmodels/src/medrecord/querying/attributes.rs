@@ -1,13 +1,27 @@
 use std::ops::Deref;
 
-use super::values::{PyEdgeMultipleValuesOperand, PyNodeMultipleValuesOperand};
-use crate::medrecord::{attribute::PyMedRecordAttribute, errors::PyMedRecordError};
+use crate::medrecord::{
+    attribute::PyMedRecordAttribute,
+    errors::PyMedRecordError,
+    querying::values::{
+        PyEdgeMultipleValuesOperandWithIndex, PyNodeMultipleValuesOperandWithIndex,
+    },
+};
 use medmodels_core::{
     errors::MedRecordError,
     medrecord::{
-        AttributesTreeOperand, DeepClone, EdgeOperand, MedRecordAttribute,
-        MultipleAttributesComparisonOperand, MultipleAttributesOperand, NodeOperand,
-        SingleAttributeComparisonOperand, SingleAttributeOperand, Wrapper,
+        querying::{
+            attributes::{
+                AttributesTreeOperand, MultipleAttributesComparisonOperand,
+                MultipleAttributesOperand, SingleAttributeComparisonOperand,
+                SingleAttributeOperand,
+            },
+            edges::EdgeOperand,
+            nodes::NodeOperand,
+            wrapper::Wrapper,
+            DeepClone,
+        },
+        MedRecordAttribute,
     },
 };
 use pyo3::{
@@ -504,13 +518,13 @@ implement_multiple_attributes_operand!(
     PyNodeMultipleAttributesOperand,
     NodeOperand,
     PyNodeSingleAttributeOperand,
-    PyNodeMultipleValuesOperand
+    PyNodeMultipleValuesOperandWithIndex
 );
 implement_multiple_attributes_operand!(
     PyEdgeMultipleAttributesOperand,
     EdgeOperand,
     PyEdgeSingleAttributeOperand,
-    PyEdgeMultipleValuesOperand
+    PyEdgeMultipleValuesOperandWithIndex
 );
 
 macro_rules! implement_single_attribute_operand {

@@ -1,14 +1,23 @@
 use super::{
-    attributes::PyEdgeAttributesTreeOperand, nodes::PyNodeOperand,
-    values::PyEdgeMultipleValuesOperand, PyGroupCardinalityWrapper,
+    attributes::PyEdgeAttributesTreeOperand, nodes::PyNodeOperand, PyGroupCardinalityWrapper,
     PyMedRecordAttributeCardinalityWrapper,
 };
-use crate::medrecord::{attribute::PyMedRecordAttribute, errors::PyMedRecordError};
+use crate::medrecord::{
+    attribute::PyMedRecordAttribute, errors::PyMedRecordError,
+    querying::values::PyEdgeMultipleValuesOperandWithIndex,
+};
 use medmodels_core::{
     errors::MedRecordError,
     medrecord::{
-        DeepClone, EdgeIndex, EdgeIndexComparisonOperand, EdgeIndexOperand,
-        EdgeIndicesComparisonOperand, EdgeIndicesOperand, EdgeOperand, Wrapper,
+        querying::{
+            edges::{
+                EdgeIndexComparisonOperand, EdgeIndexOperand, EdgeIndicesComparisonOperand,
+                EdgeIndicesOperand, EdgeOperand,
+            },
+            wrapper::Wrapper,
+            DeepClone,
+        },
+        EdgeIndex,
     },
 };
 use pyo3::{
@@ -16,6 +25,7 @@ use pyo3::{
     types::{PyAnyMethods, PyFunction},
     Bound, FromPyObject, PyAny, PyResult,
 };
+use std::ops::Deref;
 
 #[pyclass]
 #[repr(transparent)]
@@ -35,7 +45,10 @@ impl From<PyEdgeOperand> for Wrapper<EdgeOperand> {
 
 #[pymethods]
 impl PyEdgeOperand {
-    pub fn attribute(&mut self, attribute: PyMedRecordAttribute) -> PyEdgeMultipleValuesOperand {
+    pub fn attribute(
+        &mut self,
+        attribute: PyMedRecordAttribute,
+    ) -> PyEdgeMultipleValuesOperandWithIndex {
         self.0.attribute(attribute).into()
     }
 
@@ -170,6 +183,14 @@ impl From<Wrapper<EdgeIndicesOperand>> for PyEdgeIndicesOperand {
 impl From<PyEdgeIndicesOperand> for Wrapper<EdgeIndicesOperand> {
     fn from(operand: PyEdgeIndicesOperand) -> Self {
         operand.0
+    }
+}
+
+impl Deref for PyEdgeIndicesOperand {
+    type Target = Wrapper<EdgeIndicesOperand>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
     }
 }
 
@@ -308,6 +329,14 @@ impl From<Wrapper<EdgeIndexOperand>> for PyEdgeIndexOperand {
 impl From<PyEdgeIndexOperand> for Wrapper<EdgeIndexOperand> {
     fn from(operand: PyEdgeIndexOperand) -> Self {
         operand.0
+    }
+}
+
+impl Deref for PyEdgeIndexOperand {
+    type Target = Wrapper<EdgeIndexOperand>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
     }
 }
 

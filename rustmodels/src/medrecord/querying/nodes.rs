@@ -1,14 +1,23 @@
 use super::{
-    attributes::PyNodeAttributesTreeOperand, edges::PyEdgeOperand,
-    values::PyNodeMultipleValuesOperand, PyGroupCardinalityWrapper,
+    attributes::PyNodeAttributesTreeOperand, edges::PyEdgeOperand, PyGroupCardinalityWrapper,
     PyMedRecordAttributeCardinalityWrapper,
 };
-use crate::medrecord::{attribute::PyMedRecordAttribute, errors::PyMedRecordError, PyNodeIndex};
+use crate::medrecord::{
+    attribute::PyMedRecordAttribute, errors::PyMedRecordError,
+    querying::values::PyNodeMultipleValuesOperandWithIndex, PyNodeIndex,
+};
 use medmodels_core::{
     errors::MedRecordError,
     medrecord::{
-        DeepClone, EdgeDirection, NodeIndex, NodeIndexComparisonOperand, NodeIndexOperand,
-        NodeIndicesComparisonOperand, NodeIndicesOperand, NodeOperand, Wrapper,
+        querying::{
+            nodes::{
+                EdgeDirection, NodeIndexComparisonOperand, NodeIndexOperand,
+                NodeIndicesComparisonOperand, NodeIndicesOperand, NodeOperand,
+            },
+            wrapper::Wrapper,
+            DeepClone,
+        },
+        NodeIndex,
     },
 };
 use pyo3::{
@@ -16,6 +25,7 @@ use pyo3::{
     types::{PyAnyMethods, PyFunction},
     Bound, FromPyObject, PyAny, PyResult,
 };
+use std::ops::Deref;
 
 #[pyclass(eq, eq_int)]
 #[derive(Clone, PartialEq)]
@@ -63,7 +73,10 @@ impl From<PyNodeOperand> for Wrapper<NodeOperand> {
 
 #[pymethods]
 impl PyNodeOperand {
-    pub fn attribute(&mut self, attribute: PyMedRecordAttribute) -> PyNodeMultipleValuesOperand {
+    pub fn attribute(
+        &mut self,
+        attribute: PyMedRecordAttribute,
+    ) -> PyNodeMultipleValuesOperandWithIndex {
         self.0.attribute(attribute).into()
     }
 
@@ -201,6 +214,14 @@ impl From<Wrapper<NodeIndicesOperand>> for PyNodeIndicesOperand {
 impl From<PyNodeIndicesOperand> for Wrapper<NodeIndicesOperand> {
     fn from(operand: PyNodeIndicesOperand) -> Self {
         operand.0
+    }
+}
+
+impl Deref for PyNodeIndicesOperand {
+    type Target = Wrapper<NodeIndicesOperand>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
     }
 }
 
@@ -375,6 +396,14 @@ impl From<Wrapper<NodeIndexOperand>> for PyNodeIndexOperand {
 impl From<PyNodeIndexOperand> for Wrapper<NodeIndexOperand> {
     fn from(operand: PyNodeIndexOperand) -> Self {
         operand.0
+    }
+}
+
+impl Deref for PyNodeIndexOperand {
+    type Target = Wrapper<NodeIndexOperand>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
     }
 }
 
