@@ -357,11 +357,11 @@ impl NodeOperation {
         Ok(node_indices_2.filter(move |node_index| {
             let connected_indices: RoaringBitmap = match direction {
                 EdgeDirection::Incoming => medrecord
-                    .outgoing_edges(node_index)
+                    .incoming_edges(node_index)
                     .expect("Node must exist")
                     .collect(),
                 EdgeDirection::Outgoing => medrecord
-                    .incoming_edges(node_index)
+                    .outgoing_edges(node_index)
                     .expect("Node must exist")
                     .collect(),
                 EdgeDirection::Both => medrecord
