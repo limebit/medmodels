@@ -9,7 +9,10 @@ pub mod wrapper;
 use super::{EdgeIndex, MedRecord, MedRecordAttribute, MedRecordValue, NodeIndex, Wrapper};
 use crate::{
     errors::MedRecordResult,
-    medrecord::querying::group_by::{GroupBy, GroupKey, PartitionGroups},
+    medrecord::querying::{
+        group_by::{GroupBy, GroupKey, PartitionGroups},
+        values::{EdgeSingleValueOperandWithoutIndex, NodeSingleValueOperandWithoutIndex},
+    },
 };
 use attributes::{
     EdgeAttributesTreeOperand, EdgeMultipleAttributesOperand, EdgeSingleAttributeOperand,
@@ -26,8 +29,8 @@ use std::{
     sync::{RwLock, RwLockReadGuard, RwLockWriteGuard},
 };
 use values::{
-    EdgeMultipleValuesOperand, EdgeSingleValueOperand, GetValues, NodeMultipleValuesOperand,
-    NodeSingleValueOperand,
+    EdgeMultipleValuesOperand, EdgeSingleValueOperandWithIndex, GetValues,
+    NodeMultipleValuesOperand, NodeSingleValueOperandWithIndex,
 };
 
 macro_rules! impl_return_operand_for_tuples {
@@ -465,8 +468,10 @@ impl_direct_return_operand!(
     EdgeSingleAttributeOperand => Option<OptionalIndexWrapper<&'a EdgeIndex, MedRecordAttribute>>,
     EdgeIndexOperand           => Option<EdgeIndex>,
     NodeIndexOperand           => Option<NodeIndex>,
-    NodeSingleValueOperand     => Option<OptionalIndexWrapper<&'a NodeIndex, MedRecordValue>>,
-    EdgeSingleValueOperand     => Option<OptionalIndexWrapper<&'a EdgeIndex, MedRecordValue>>,
+    NodeSingleValueOperandWithIndex     => Option<(&'a NodeIndex, MedRecordValue)>,
+    NodeSingleValueOperandWithoutIndex     => Option<MedRecordValue>,
+    EdgeSingleValueOperandWithIndex     => Option<(&'a EdgeIndex, MedRecordValue)>,
+    EdgeSingleValueOperandWithoutIndex     => Option<MedRecordValue>,
 );
 
 impl<'a, O: GroupedOperand> ReturnOperand<'a> for Wrapper<GroupOperand<O>>

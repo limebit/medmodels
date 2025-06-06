@@ -15,16 +15,22 @@ use crate::{
     MedRecord,
 };
 pub use operand::{
-    EdgeMultipleValuesOperand, EdgeSingleValueOperand, MultipleValuesComparisonOperand,
-    MultipleValuesOperand, NodeMultipleValuesOperand, NodeSingleValueOperand,
-    SingleValueComparisonOperand, SingleValueOperand,
+    EdgeMultipleValuesOperand, EdgeSingleValueOperandWithIndex, EdgeSingleValueOperandWithoutIndex,
+    MultipleValuesComparisonOperand, MultipleValuesOperand, NodeMultipleValuesOperand,
+    NodeSingleValueOperandWithIndex, NodeSingleValueOperandWithoutIndex,
+    SingleValueComparisonOperand, SingleValueOperandWithIndex, SingleValueOperandWithoutIndex,
 };
 use std::fmt::Display;
 
 #[derive(Debug, Clone)]
-pub enum SingleKind {
+pub enum SingleKindWithIndex {
     Max,
     Min,
+    Random,
+}
+
+#[derive(Debug, Clone)]
+pub enum SingleKindWithoutIndex {
     Mean,
     Median,
     Mode,
@@ -32,7 +38,6 @@ pub enum SingleKind {
     Var,
     Count,
     Sum,
-    Random,
 }
 
 #[derive(Debug, Clone)]
@@ -190,7 +195,7 @@ impl GetValues<EdgeIndex> for EdgeOperand {
 pub enum Context<O: RootOperand + GroupedOperand> {
     Operand((O, MedRecordAttribute)),
     MultipleAttributesOperand(MultipleAttributesOperand<O>),
-    GroupByOperand(GroupOperand<SingleValueOperand<O>>),
+    GroupByOperand(GroupOperand<SingleValueOperandWithIndex<O>>),
 }
 
 impl<O: RootOperand> Context<O> {
@@ -212,16 +217,9 @@ impl<O: RootOperand> Context<O> {
                     medrecord, attributes,
                 )?)
             }
-            Self::GroupByOperand(operand) => Box::new(
-                operand
-                    .evaluate_backward(medrecord)?
-                    .filter_map(|value| match value? {
-                        super::OptionalIndexWrapper::WithIndex((value, index)) => {
-                            Some((value, index))
-                        }
-                        super::OptionalIndexWrapper::WithoutIndex(_) => unreachable!(),
-                    }),
-            ),
+            Self::GroupByOperand(operand) => {
+                Box::new(operand.evaluate_backward(medrecord)?.flatten())
+            }
         };
 
         Ok(values)

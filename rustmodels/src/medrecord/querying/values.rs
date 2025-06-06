@@ -7,7 +7,8 @@ use medmodels_core::{
             nodes::NodeOperand,
             values::{
                 MultipleValuesComparisonOperand, MultipleValuesOperand,
-                SingleValueComparisonOperand, SingleValueOperand,
+                SingleValueComparisonOperand, SingleValueOperandWithIndex,
+                SingleValueOperandWithoutIndex,
             },
             wrapper::Wrapper,
             DeepClone,
@@ -41,9 +42,9 @@ impl FromPyObject<'_> for PySingleValueComparisonOperand {
     fn extract_bound(ob: &Bound<'_, PyAny>) -> PyResult<Self> {
         if let Ok(value) = ob.extract::<PyMedRecordValue>() {
             Ok(SingleValueComparisonOperand::Value(value.into()).into())
-        } else if let Ok(operand) = ob.extract::<PyNodeSingleValueOperand>() {
+        } else if let Ok(operand) = ob.extract::<PyNodeSingleValueOperandWithIndex>() {
             Ok(PySingleValueComparisonOperand(operand.0.into()))
-        } else if let Ok(operand) = ob.extract::<PyEdgeSingleValueOperand>() {
+        } else if let Ok(operand) = ob.extract::<PyEdgeSingleValueOperandWithIndex>() {
             Ok(PySingleValueComparisonOperand(operand.0.into()))
         } else {
             Err(
@@ -96,7 +97,7 @@ impl FromPyObject<'_> for PyMultipleValuesComparisonOperand {
 }
 
 macro_rules! implement_multiple_values_operand {
-    ($name:ident, $generic:ty, $py_single_value_operand:ty) => {
+    ($name:ident, $generic:ty, $py_single_value_operand_with_index:ty, $py_single_value_operand_without_index:ty) => {
         #[pyclass]
         #[repr(transparent)]
         #[derive(Clone)]
@@ -124,43 +125,43 @@ macro_rules! implement_multiple_values_operand {
 
         #[pymethods]
         impl $name {
-            pub fn max(&self) -> $py_single_value_operand {
+            pub fn max(&self) -> $py_single_value_operand_with_index {
                 self.0.max().into()
             }
 
-            pub fn min(&self) -> $py_single_value_operand {
+            pub fn min(&self) -> $py_single_value_operand_with_index {
                 self.0.min().into()
             }
 
-            pub fn mean(&self) -> $py_single_value_operand {
+            pub fn mean(&self) -> $py_single_value_operand_without_index {
                 self.0.mean().into()
             }
 
-            pub fn median(&self) -> $py_single_value_operand {
+            pub fn median(&self) -> $py_single_value_operand_without_index {
                 self.0.median().into()
             }
 
-            pub fn mode(&self) -> $py_single_value_operand {
+            pub fn mode(&self) -> $py_single_value_operand_without_index {
                 self.0.mode().into()
             }
 
-            pub fn std(&self) -> $py_single_value_operand {
+            pub fn std(&self) -> $py_single_value_operand_without_index {
                 self.0.std().into()
             }
 
-            pub fn var(&self) -> $py_single_value_operand {
+            pub fn var(&self) -> $py_single_value_operand_without_index {
                 self.0.var().into()
             }
 
-            pub fn count(&self) -> $py_single_value_operand {
+            pub fn count(&self) -> $py_single_value_operand_without_index {
                 self.0.count().into()
             }
 
-            pub fn sum(&self) -> $py_single_value_operand {
+            pub fn sum(&self) -> $py_single_value_operand_without_index {
                 self.0.sum().into()
             }
 
-            pub fn random(&self) -> $py_single_value_operand {
+            pub fn random(&self) -> $py_single_value_operand_with_index {
                 self.0.random().into()
             }
 
@@ -348,35 +349,37 @@ macro_rules! implement_multiple_values_operand {
 implement_multiple_values_operand!(
     PyNodeMultipleValuesOperand,
     NodeOperand,
-    PyNodeSingleValueOperand
+    PyNodeSingleValueOperandWithIndex,
+    PyNodeSingleValueOperandWithoutIndex
 );
 implement_multiple_values_operand!(
     PyEdgeMultipleValuesOperand,
     EdgeOperand,
-    PyEdgeSingleValueOperand
+    PyEdgeSingleValueOperandWithIndex,
+    PyEdgeSingleValueOperandWithoutIndex
 );
 
 macro_rules! implement_single_value_operand {
-    ($name:ident, $generic:ty) => {
+    ($name:ident, $kind:ident, $generic:ty) => {
         #[pyclass]
         #[repr(transparent)]
         #[derive(Clone)]
-        pub struct $name(Wrapper<SingleValueOperand<$generic>>);
+        pub struct $name(Wrapper<$kind<$generic>>);
 
-        impl From<Wrapper<SingleValueOperand<$generic>>> for $name {
-            fn from(operand: Wrapper<SingleValueOperand<$generic>>) -> Self {
+        impl From<Wrapper<$kind<$generic>>> for $name {
+            fn from(operand: Wrapper<$kind<$generic>>) -> Self {
                 Self(operand)
             }
         }
 
-        impl From<$name> for Wrapper<SingleValueOperand<$generic>> {
+        impl From<$name> for Wrapper<$kind<$generic>> {
             fn from(operand: $name) -> Self {
                 operand.0
             }
         }
 
         impl Deref for $name {
-            type Target = Wrapper<SingleValueOperand<$generic>>;
+            type Target = Wrapper<$kind<$generic>>;
 
             fn deref(&self) -> &Self::Target {
                 &self.0
@@ -558,5 +561,23 @@ macro_rules! implement_single_value_operand {
     };
 }
 
-implement_single_value_operand!(PyNodeSingleValueOperand, NodeOperand);
-implement_single_value_operand!(PyEdgeSingleValueOperand, EdgeOperand);
+implement_single_value_operand!(
+    PyNodeSingleValueOperandWithIndex,
+    SingleValueOperandWithIndex,
+    NodeOperand
+);
+implement_single_value_operand!(
+    PyEdgeSingleValueOperandWithIndex,
+    SingleValueOperandWithIndex,
+    EdgeOperand
+);
+implement_single_value_operand!(
+    PyNodeSingleValueOperandWithoutIndex,
+    SingleValueOperandWithoutIndex,
+    NodeOperand
+);
+implement_single_value_operand!(
+    PyEdgeSingleValueOperandWithoutIndex,
+    SingleValueOperandWithoutIndex,
+    EdgeOperand
+);

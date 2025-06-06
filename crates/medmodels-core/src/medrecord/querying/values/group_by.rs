@@ -1,4 +1,4 @@
-use super::{MultipleValuesOperand, SingleValueOperand};
+use super::{MultipleValuesOperand, SingleValueOperandWithIndex};
 use crate::{
     errors::MedRecordResult,
     medrecord::querying::{
@@ -92,13 +92,15 @@ impl<O: RootOperand> From<GroupOperand<MultipleValuesOperand<O>>> for SingleValu
     }
 }
 
-impl<O: RootOperand> GroupedOperand for SingleValueOperand<O> {
+impl<O: RootOperand> GroupedOperand for SingleValueOperandWithIndex<O> {
     type Context = SingleValueOperandContext<O>;
 }
 
-impl<'a, O: 'a + RootOperand> EvaluateBackward<'a> for GroupOperand<SingleValueOperand<O>> {
+impl<'a, O: 'a + RootOperand> EvaluateBackward<'a>
+    for GroupOperand<SingleValueOperandWithIndex<O>>
+{
     type ReturnValue =
-        BoxedIterator<'a, <SingleValueOperand<O> as EvaluateBackward<'a>>::ReturnValue>;
+        BoxedIterator<'a, <SingleValueOperandWithIndex<O> as EvaluateBackward<'a>>::ReturnValue>;
 
     fn evaluate_backward(&self, medrecord: &'a MedRecord) -> MedRecordResult<Self::ReturnValue> {
         match &self.context {
@@ -119,7 +121,7 @@ impl<'a, O: 'a + RootOperand> EvaluateBackward<'a> for GroupOperand<SingleValueO
     }
 }
 
-impl<O: RootOperand> Merge for GroupOperand<SingleValueOperand<O>> {
+impl<O: RootOperand> Merge for GroupOperand<SingleValueOperandWithIndex<O>> {
     type OutputOperand = MultipleValuesOperand<O>;
 
     fn merge(&self) -> Wrapper<Self::OutputOperand> {

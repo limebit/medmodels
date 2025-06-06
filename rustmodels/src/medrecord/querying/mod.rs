@@ -26,8 +26,9 @@ use medmodels_core::{
             edges::{EdgeIndexOperand, EdgeIndicesOperand},
             nodes::{NodeIndexOperand, NodeIndicesOperand},
             values::{
-                EdgeMultipleValuesOperand, EdgeSingleValueOperand, NodeMultipleValuesOperand,
-                NodeSingleValueOperand,
+                EdgeMultipleValuesOperand, EdgeSingleValueOperandWithIndex,
+                EdgeSingleValueOperandWithoutIndex, NodeMultipleValuesOperand,
+                NodeSingleValueOperandWithIndex, NodeSingleValueOperandWithoutIndex,
             },
             wrapper::{CardinalityWrapper, Wrapper},
             OptionalIndexWrapper, ReturnOperand,
@@ -43,8 +44,9 @@ use pyo3::{
 };
 use std::collections::HashMap;
 use values::{
-    PyEdgeMultipleValuesOperand, PyEdgeSingleValueOperand, PyNodeMultipleValuesOperand,
-    PyNodeSingleValueOperand,
+    PyEdgeMultipleValuesOperand, PyEdgeSingleValueOperandWithIndex,
+    PyEdgeSingleValueOperandWithoutIndex, PyNodeMultipleValuesOperand,
+    PyNodeSingleValueOperandWithIndex, PyNodeSingleValueOperandWithoutIndex,
 };
 
 pub enum PyReturnOperand {
@@ -60,8 +62,10 @@ pub enum PyReturnOperand {
     NodeIndex(PyNodeIndexOperand),
     NodeMultipleValues(PyNodeMultipleValuesOperand),
     EdgeMultipleValues(PyEdgeMultipleValuesOperand),
-    NodeSingleValue(PyNodeSingleValueOperand),
-    EdgeSingleValue(PyEdgeSingleValueOperand),
+    NodeSingleValueWithIndex(PyNodeSingleValueOperandWithIndex),
+    NodeSingleValueWithoutIndex(PyNodeSingleValueOperandWithoutIndex),
+    EdgeSingleValueWithIndex(PyEdgeSingleValueOperandWithIndex),
+    EdgeSingleValueWithoutIndex(PyEdgeSingleValueOperandWithoutIndex),
     Vector(Vec<Self>),
 }
 
@@ -106,12 +110,18 @@ impl<'a> ReturnOperand<'a> for PyReturnOperand {
             PyReturnOperand::EdgeMultipleValues(operand) => operand
                 .evaluate(medrecord)
                 .map(PyReturnValue::EdgeMultipleValues),
-            PyReturnOperand::NodeSingleValue(operand) => operand
+            PyReturnOperand::NodeSingleValueWithIndex(operand) => operand
                 .evaluate(medrecord)
-                .map(PyReturnValue::NodeSingleValue),
-            PyReturnOperand::EdgeSingleValue(operand) => operand
+                .map(PyReturnValue::NodeSingleValueWithIndex),
+            PyReturnOperand::NodeSingleValueWithoutIndex(operand) => operand
                 .evaluate(medrecord)
-                .map(PyReturnValue::EdgeSingleValue),
+                .map(PyReturnValue::NodeSingleValueWithoutIndex),
+            PyReturnOperand::EdgeSingleValueWithIndex(operand) => operand
+                .evaluate(medrecord)
+                .map(PyReturnValue::EdgeSingleValueWithIndex),
+            PyReturnOperand::EdgeSingleValueWithoutIndex(operand) => operand
+                .evaluate(medrecord)
+                .map(PyReturnValue::EdgeSingleValueWithoutIndex),
             PyReturnOperand::Vector(operand) => operand
                 .iter()
                 .map(|item| item.evaluate(medrecord))
@@ -218,16 +228,37 @@ pub(crate) fn convert_pyobject_to_pyreturnoperand(
         ))
     }
 
-    fn convert_py_node_single_value_operand(ob: &Bound<'_, PyAny>) -> PyResult<PyReturnOperand> {
-        Ok(PyReturnOperand::NodeSingleValue(
-            ob.extract::<PyNodeSingleValueOperand>()
+    fn convert_py_node_single_value_operand_with_index(
+        ob: &Bound<'_, PyAny>,
+    ) -> PyResult<PyReturnOperand> {
+        Ok(PyReturnOperand::NodeSingleValueWithIndex(
+            ob.extract::<PyNodeSingleValueOperandWithIndex>()
                 .expect("Extraction must succeed"),
         ))
     }
 
-    fn convert_py_edge_single_value_operand(ob: &Bound<'_, PyAny>) -> PyResult<PyReturnOperand> {
-        Ok(PyReturnOperand::EdgeSingleValue(
-            ob.extract::<PyEdgeSingleValueOperand>()
+    fn convert_py_node_single_value_operand_without_index(
+        ob: &Bound<'_, PyAny>,
+    ) -> PyResult<PyReturnOperand> {
+        Ok(PyReturnOperand::NodeSingleValueWithoutIndex(
+            ob.extract::<PyNodeSingleValueOperandWithoutIndex>()
+                .expect("Extraction must succeed"),
+        ))
+    }
+
+    fn convert_py_edge_single_value_operand_with_index(
+        ob: &Bound<'_, PyAny>,
+    ) -> PyResult<PyReturnOperand> {
+        Ok(PyReturnOperand::EdgeSingleValueWithIndex(
+            ob.extract::<PyEdgeSingleValueOperandWithIndex>()
+                .expect("Extraction must succeed"),
+        ))
+    }
+    fn convert_py_edge_single_value_operand_without_index(
+        ob: &Bound<'_, PyAny>,
+    ) -> PyResult<PyReturnOperand> {
+        Ok(PyReturnOperand::EdgeSingleValueWithoutIndex(
+            ob.extract::<PyEdgeSingleValueOperandWithoutIndex>()
                 .expect("Extraction must succeed"),
         ))
     }
@@ -277,10 +308,14 @@ pub(crate) fn convert_pyobject_to_pyreturnoperand(
                     convert_py_node_multiple_values_operand
                 } else if ob.is_instance_of::<PyEdgeMultipleValuesOperand>() {
                     convert_py_edge_multiple_values_operand
-                } else if ob.is_instance_of::<PyNodeSingleValueOperand>() {
-                    convert_py_node_single_value_operand
-                } else if ob.is_instance_of::<PyEdgeSingleValueOperand>() {
-                    convert_py_edge_single_value_operand
+                } else if ob.is_instance_of::<PyNodeSingleValueOperandWithIndex>() {
+                    convert_py_node_single_value_operand_with_index
+                } else if ob.is_instance_of::<PyNodeSingleValueOperandWithoutIndex>() {
+                    convert_py_node_single_value_operand_without_index
+                } else if ob.is_instance_of::<PyEdgeSingleValueOperandWithIndex>() {
+                    convert_py_edge_single_value_operand_with_index
+                } else if ob.is_instance_of::<PyEdgeSingleValueOperandWithoutIndex>() {
+                    convert_py_edge_single_value_operand_without_index
                 } else if ob.is_instance_of::<PyList>() {
                     convert_py_list
                 } else {
@@ -316,8 +351,18 @@ pub enum PyReturnValue<'a> {
     NodeIndex(<Wrapper<NodeIndexOperand> as ReturnOperand<'a>>::ReturnValue),
     NodeMultipleValues(<Wrapper<NodeMultipleValuesOperand> as ReturnOperand<'a>>::ReturnValue),
     EdgeMultipleValues(<Wrapper<EdgeMultipleValuesOperand> as ReturnOperand<'a>>::ReturnValue),
-    NodeSingleValue(<Wrapper<NodeSingleValueOperand> as ReturnOperand<'a>>::ReturnValue),
-    EdgeSingleValue(<Wrapper<EdgeSingleValueOperand> as ReturnOperand<'a>>::ReturnValue),
+    NodeSingleValueWithIndex(
+        <Wrapper<NodeSingleValueOperandWithIndex> as ReturnOperand<'a>>::ReturnValue,
+    ),
+    NodeSingleValueWithoutIndex(
+        <Wrapper<NodeSingleValueOperandWithoutIndex> as ReturnOperand<'a>>::ReturnValue,
+    ),
+    EdgeSingleValueWithIndex(
+        <Wrapper<EdgeSingleValueOperandWithIndex> as ReturnOperand<'a>>::ReturnValue,
+    ),
+    EdgeSingleValueWithoutIndex(
+        <Wrapper<EdgeSingleValueOperandWithoutIndex> as ReturnOperand<'a>>::ReturnValue,
+    ),
     Vector(Vec<Self>),
 }
 
@@ -402,30 +447,23 @@ impl<'py> IntoPyObject<'py> for PyReturnValue<'_> {
                 .map(|item| (item.0, PyMedRecordValue::from(item.1)))
                 .collect::<HashMap<_, _>>()
                 .into_bound_py_any(py),
-            PyReturnValue::NodeSingleValue(value) => match value {
-                Some(value) => match value {
-                    OptionalIndexWrapper::WithIndex((index, value)) => (
-                        PyNodeIndex::from(index.clone()),
+            PyReturnValue::NodeSingleValueWithIndex(value) => value
+                .map(|(index, value)| {
+                    (
+                        PyMedRecordAttribute::from(index.clone()),
                         PyMedRecordValue::from(value),
                     )
-                        .into_bound_py_any(py),
-                    OptionalIndexWrapper::WithoutIndex(value) => {
-                        PyMedRecordValue::from(value).into_bound_py_any(py)
-                    }
-                },
-                None => PyNone::get(py).into_bound_py_any(py),
-            },
-            PyReturnValue::EdgeSingleValue(value) => match value {
-                Some(value) => match value {
-                    OptionalIndexWrapper::WithIndex((index, value)) => {
-                        (index, PyMedRecordValue::from(value)).into_bound_py_any(py)
-                    }
-                    OptionalIndexWrapper::WithoutIndex(value) => {
-                        PyMedRecordValue::from(value).into_bound_py_any(py)
-                    }
-                },
-                None => PyNone::get(py).into_bound_py_any(py),
-            },
+                })
+                .into_bound_py_any(py),
+            PyReturnValue::NodeSingleValueWithoutIndex(value) => {
+                value.map(PyMedRecordValue::from).into_bound_py_any(py)
+            }
+            PyReturnValue::EdgeSingleValueWithIndex(value) => value
+                .map(|(index, value)| (index, PyMedRecordValue::from(value)))
+                .into_bound_py_any(py),
+            PyReturnValue::EdgeSingleValueWithoutIndex(value) => {
+                value.map(PyMedRecordValue::from).into_bound_py_any(py)
+            }
             PyReturnValue::Vector(vector) => vector.into_bound_py_any(py),
         }
     }
