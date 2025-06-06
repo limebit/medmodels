@@ -4,7 +4,10 @@ use super::{
     DeepClone, ReadWriteOrPanic,
 };
 use crate::{
-    medrecord::querying::{operand_traits::Count, GroupedIterator},
+    medrecord::querying::{
+        operand_traits::{Count, Index},
+        GroupedIterator,
+    },
     prelude::{EdgeIndex, MedRecordAttribute, MedRecordValue, NodeIndex},
     MedRecord,
 };
@@ -124,6 +127,21 @@ where
     }
 }
 
+impl<O: GroupedOperand + Index> Index for GroupOperand<O>
+where
+    Self: DeepClone,
+    O::ReturnOperand: GroupedOperand,
+    <O::ReturnOperand as GroupedOperand>::Context: From<Self>,
+{
+    type ReturnOperand = GroupOperand<O::ReturnOperand>;
+
+    fn index(&mut self) -> Wrapper<Self::ReturnOperand> {
+        let operand = self.operand.index();
+
+        Wrapper::<GroupOperand<O::ReturnOperand>>::new(self.deep_clone().into(), operand)
+    }
+}
+
 impl<O: GroupedOperand> GroupOperand<O> {
     pub(crate) fn new(context: O::Context, operand: Wrapper<O>) -> Self {
         Self { context, operand }
@@ -150,23 +168,20 @@ mod tests {
     fn test_group_by() {
         let medrecord = MedRecord::from_admissions_example_dataset();
 
-        let result: Vec<_> = medrecord
+        let result = medrecord
             .query_nodes(|nodes| {
-                let mut edges = nodes.edges(EdgeDirection::Outgoing);
+                let mut edges = nodes.edges(EdgeDirection::Incoming);
 
                 edges.has_attribute(MedRecordAttribute::from("duration_days"));
 
-                let group_by = edges.group_by(EdgeOperandGroupDiscriminator::Parallel);
+                let group_by = edges.group_by(EdgeOperandGroupDiscriminator::TargetNode);
 
-                let test = group_by.attribute("duration_days").max();
+                let test = group_by.attribute("duration_days").count();
 
-                test.merge().is_max();
-
-                edges.index()
+                test.merge().max()
             })
             .evaluate()
-            .unwrap()
-            .collect();
+            .unwrap();
 
         println!("{:?}", result);
     }

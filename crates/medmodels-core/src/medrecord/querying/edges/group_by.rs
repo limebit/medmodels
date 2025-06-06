@@ -2,8 +2,11 @@ use super::EdgeOperand;
 use crate::{
     errors::MedRecordResult,
     medrecord::querying::{
-        group_by::{GroupBy, GroupOperand, GroupedOperand, PartitionGroups},
-        DeepClone, EvaluateForward, EvaluateForwardGrouped, GroupedIterator,
+        edges::{EdgeIndexOperand, EdgeIndicesOperand, EdgeIndicesOperandContext},
+        group_by::{GroupBy, GroupOperand, GroupedOperand, Merge, PartitionGroups},
+        wrapper::Wrapper,
+        BoxedIterator, DeepClone, EvaluateBackward, EvaluateForward, EvaluateForwardGrouped,
+        GroupedIterator,
     },
     prelude::MedRecordAttribute,
     MedRecord,
@@ -85,5 +88,62 @@ impl<'a> EvaluateForward<'a> for GroupOperand<EdgeOperand> {
         //     .collect::<MedRecordResult<_>>()?;
 
         Ok(Box::new(indices.into_iter()))
+    }
+}
+
+impl GroupedOperand for EdgeIndicesOperand {
+    type Context = GroupOperand<EdgeOperand>;
+}
+
+impl<'a> EvaluateBackward<'a> for GroupOperand<EdgeIndicesOperand> {
+    type ReturnValue = BoxedIterator<'a, <EdgeIndicesOperand as EvaluateBackward<'a>>::ReturnValue>;
+
+    fn evaluate_backward(&self, medrecord: &'a MedRecord) -> MedRecordResult<Self::ReturnValue> {
+        let partitions = self.context.evaluate_backward(medrecord)?;
+
+        let indices: Vec<_> = partitions
+            .map(|partition| {
+                self.operand
+                    .evaluate_forward(medrecord, Box::new(partition.cloned()))
+            })
+            .collect::<MedRecordResult<_>>()?;
+
+        Ok(Box::new(indices.into_iter()))
+    }
+}
+
+impl GroupedOperand for EdgeIndexOperand {
+    type Context = GroupOperand<EdgeIndicesOperand>;
+}
+
+impl<'a> EvaluateBackward<'a> for GroupOperand<EdgeIndexOperand> {
+    type ReturnValue = BoxedIterator<'a, <EdgeIndexOperand as EvaluateBackward<'a>>::ReturnValue>;
+
+    fn evaluate_backward(&self, medrecord: &'a MedRecord) -> MedRecordResult<Self::ReturnValue> {
+        let partitions = self.context.evaluate_backward(medrecord)?;
+
+        let indices: Vec<_> = partitions
+            .map(|partition| {
+                let reduced_partition = self.operand.reduce_input(partition)?;
+
+                self.operand.evaluate_forward(medrecord, reduced_partition)
+            })
+            .collect::<MedRecordResult<_>>()?;
+
+        Ok(Box::new(indices.into_iter()))
+    }
+}
+
+impl Merge for GroupOperand<EdgeIndexOperand> {
+    type OutputOperand = EdgeIndicesOperand;
+
+    fn merge(&self) -> Wrapper<Self::OutputOperand> {
+        let operand = Wrapper::<Self::OutputOperand>::new(EdgeIndicesOperandContext::GroupBy(
+            self.deep_clone(),
+        ));
+
+        self.operand.push_merge_operation(operand.clone());
+
+        operand
     }
 }

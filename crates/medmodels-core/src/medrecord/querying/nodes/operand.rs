@@ -204,7 +204,7 @@ impl NodeOperand {
     }
 
     pub fn edges(&mut self, direction: EdgeDirection) -> Wrapper<EdgeOperand> {
-        let operand = Wrapper::<EdgeOperand>::new(Some(edges::Context::Edges {
+        let operand = Wrapper::<EdgeOperand>::new(Some(edges::EdgeOperandContext::Edges {
             operand: Box::new(self.clone()),
             kind: direction.clone(),
         }));

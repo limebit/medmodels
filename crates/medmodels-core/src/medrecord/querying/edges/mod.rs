@@ -2,6 +2,13 @@ mod group_by;
 mod operand;
 mod operation;
 
+use crate::{
+    errors::MedRecordResult,
+    medrecord::querying::{group_by::GroupOperand, BoxedIterator, EvaluateBackward},
+    prelude::EdgeIndex,
+    MedRecord,
+};
+
 use super::{
     nodes::{EdgeDirection, NodeOperand},
     DeepClone,
@@ -15,21 +22,55 @@ pub use operation::EdgeOperation;
 use std::fmt::Display;
 
 #[derive(Debug, Clone)]
-pub enum Context {
+pub enum EdgeOperandContext {
     Edges {
         operand: Box<NodeOperand>,
         kind: EdgeDirection,
     },
 }
 
-impl DeepClone for Context {
+impl DeepClone for EdgeOperandContext {
     fn deep_clone(&self) -> Self {
         match self {
-            Context::Edges { operand, kind } => Context::Edges {
+            EdgeOperandContext::Edges { operand, kind } => EdgeOperandContext::Edges {
                 operand: operand.deep_clone(),
                 kind: kind.clone(),
             },
         }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub enum EdgeIndicesOperandContext {
+    EdgeOperand(EdgeOperand),
+    GroupBy(GroupOperand<EdgeIndexOperand>),
+}
+
+impl DeepClone for EdgeIndicesOperandContext {
+    fn deep_clone(&self) -> Self {
+        match self {
+            EdgeIndicesOperandContext::EdgeOperand(operand) => {
+                EdgeIndicesOperandContext::EdgeOperand(operand.deep_clone())
+            }
+            EdgeIndicesOperandContext::GroupBy(group_by) => {
+                EdgeIndicesOperandContext::GroupBy(group_by.deep_clone())
+            }
+        }
+    }
+}
+
+impl<'a> EvaluateBackward<'a> for EdgeIndicesOperandContext {
+    type ReturnValue = BoxedIterator<'a, EdgeIndex>;
+
+    fn evaluate_backward(&self, medrecord: &'a MedRecord) -> MedRecordResult<Self::ReturnValue> {
+        Ok(match self {
+            EdgeIndicesOperandContext::EdgeOperand(operand) => {
+                Box::new(operand.evaluate_backward(medrecord)?.cloned())
+            }
+            EdgeIndicesOperandContext::GroupBy(operand) => {
+                Box::new(operand.evaluate_backward(medrecord)?.flatten())
+            }
+        })
     }
 }
 

@@ -36,3 +36,15 @@ impl<O: Count> Wrapper<O> {
         self.0.write_or_panic().count()
     }
 }
+
+pub trait Index {
+    type ReturnOperand;
+
+    fn index(&mut self) -> Wrapper<Self::ReturnOperand>;
+}
+
+impl<O: Index> Wrapper<O> {
+    pub fn index(&self) -> Wrapper<O::ReturnOperand> {
+        self.0.write_or_panic().index()
+    }
+}

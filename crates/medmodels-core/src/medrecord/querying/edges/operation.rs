@@ -989,6 +989,10 @@ pub enum EdgeIndexOperation {
     Exclude {
         operand: Wrapper<EdgeIndexOperand>,
     },
+
+    Merge {
+        operand: Wrapper<EdgeIndicesOperand>,
+    },
 }
 
 impl DeepClone for EdgeIndexOperation {
@@ -1017,6 +1021,9 @@ impl DeepClone for EdgeIndexOperation {
             Self::Exclude { operand } => Self::Exclude {
                 operand: operand.deep_clone(),
             },
+            Self::Merge { operand } => Self::Merge {
+                operand: operand.deep_clone(),
+            },
         }
     }
 }
@@ -1043,6 +1050,7 @@ impl EdgeIndexOperation {
 
                 Ok(if result { None } else { Some(index) })
             }
+            Self::Merge { operand: _ } => unreachable!(),
         }
     }
 
