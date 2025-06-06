@@ -180,11 +180,13 @@ mod tests {
 
                 let grouped_edges = edges.group_by(EdgeOperandGroupDiscriminator::SourceNode);
 
-                grouped_edges.index().count().merge().max()
+                (grouped_edges.index().count().merge().max(), nodes.index())
             })
             .evaluate()
             .unwrap();
 
-        println!("{:?}", result);
+        let result = (result.0, result.1.collect::<Vec<_>>());
+
+        println!("{:?} {:?}", result.0, result.1);
     }
 }

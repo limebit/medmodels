@@ -110,6 +110,9 @@ impl RootOperand for EdgeOperand {
                     })),
                 }
             }
+            Some(EdgeOperandContext::GroupBy { operand }) => {
+                operand.evaluate_backward(medrecord)?
+            }
             None => Box::new(medrecord.edge_indices()),
         };
 
@@ -133,8 +136,10 @@ impl RootOperand for EdgeOperand {
     }
 
     fn _group_by(&mut self, discriminator: Self::Discriminator) -> Wrapper<GroupOperand<Self>> {
-        let operand =
-            Wrapper::<GroupOperand<Self>>::new(discriminator.into(), self.deep_clone().into());
+        let edge_operand = Wrapper::<Self>::new(Some(EdgeOperandContext::GroupBy {
+            operand: Box::new(self.deep_clone()),
+        }));
+        let operand = Wrapper::<GroupOperand<Self>>::new(discriminator.into(), edge_operand);
 
         self.operations.push(EdgeOperation::GroupBy {
             operand: operand.clone(),

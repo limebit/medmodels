@@ -60,15 +60,7 @@ impl DeepClone for EdgeOperandGroupDiscriminator {
 
 impl<'a> EvaluateForward<'a> for GroupOperand<EdgeOperand> {
     type InputValue = <EdgeOperand as EvaluateForward<'a>>::InputValue;
-    // type ReturnValue = BoxedIterator<
-    //     'a,
-    //     (
-    //         <EdgeOperand as PartitionGroups<'a>>::GroupKey,
-    //         <EdgeOperand as EvaluateForward<'a>>::ReturnValue,
-    //     ),
-    // >;
     type ReturnValue = GroupedIterator<'a, <EdgeOperand as EvaluateForward<'a>>::ReturnValue>;
-    // type ReturnValue = <EdgeOperand as EvaluateForward<'a>>::ReturnValue;
 
     fn evaluate_forward(
         &self,
@@ -79,15 +71,8 @@ impl<'a> EvaluateForward<'a> for GroupOperand<EdgeOperand> {
 
         let partitions = EdgeOperand::partition(medrecord, indices, discriminator);
 
-        let indices = self
-            .operand
-            .evaluate_forward_grouped(medrecord, Box::new(partitions))?;
-
-        // let indices: Vec<_> = partitions
-        //     .map(|(key, partition)| Ok((key, self.operand.evaluate_forward(medrecord, partition)?)))
-        //     .collect::<MedRecordResult<_>>()?;
-
-        Ok(Box::new(indices.into_iter()))
+        self.operand
+            .evaluate_forward_grouped(medrecord, Box::new(partitions))
     }
 }
 

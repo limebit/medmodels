@@ -27,6 +27,9 @@ pub enum EdgeOperandContext {
         operand: Box<NodeOperand>,
         kind: EdgeDirection,
     },
+    GroupBy {
+        operand: Box<EdgeOperand>,
+    },
 }
 
 impl DeepClone for EdgeOperandContext {
@@ -35,6 +38,9 @@ impl DeepClone for EdgeOperandContext {
             EdgeOperandContext::Edges { operand, kind } => EdgeOperandContext::Edges {
                 operand: operand.deep_clone(),
                 kind: kind.clone(),
+            },
+            EdgeOperandContext::GroupBy { operand } => EdgeOperandContext::GroupBy {
+                operand: operand.deep_clone(),
             },
         }
     }
