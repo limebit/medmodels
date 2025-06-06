@@ -566,12 +566,20 @@ impl NodeIndicesOperation {
 
                 let max_index = Self::get_max(indices_1)?;
 
+                let Some(max_index) = max_index else {
+                    return Ok(Box::new(std::iter::empty()));
+                };
+
                 Ok(Box::new(indices_2.filter(move |index| *index == max_index)))
             }
             Self::IsMin => {
                 let (indices_1, indices_2) = Itertools::tee(indices);
 
                 let min_index = Self::get_min(indices_1)?;
+
+                let Some(min_index) = min_index else {
+                    return Ok(Box::new(std::iter::empty()));
+                };
 
                 Ok(Box::new(indices_2.filter(move |index| *index == min_index)))
             }
@@ -585,12 +593,14 @@ impl NodeIndicesOperation {
     #[inline]
     pub(crate) fn get_max(
         mut indices: impl Iterator<Item = NodeIndex>,
-    ) -> MedRecordResult<NodeIndex> {
-        let max_index = indices.next().ok_or(MedRecordError::QueryError(
-            "No indices to compare".to_string(),
-        ))?;
+    ) -> MedRecordResult<Option<NodeIndex>> {
+        let max_index = indices.next();
 
-        indices.try_fold(max_index, |max_index, index| {
+        let Some(max_index) = max_index else {
+            return Ok(None);
+        };
+
+        let max_index = indices.try_fold(max_index, |max_index, index| {
             match index
             .partial_cmp(&max_index) {
                 Some(Ordering::Greater) => Ok(index),
@@ -605,18 +615,22 @@ impl NodeIndicesOperation {
                 }
                 _ => Ok(max_index),
             }
-        })
+        })?;
+
+        Ok(Some(max_index))
     }
 
     #[inline]
     pub(crate) fn get_min(
         mut indices: impl Iterator<Item = NodeIndex>,
-    ) -> MedRecordResult<NodeIndex> {
-        let min_index = indices.next().ok_or(MedRecordError::QueryError(
-            "No indices to compare".to_string(),
-        ))?;
+    ) -> MedRecordResult<Option<NodeIndex>> {
+        let min_index = indices.next();
 
-        indices.try_fold(min_index, |min_index, index| {
+        let Some(min_index) = min_index else {
+            return Ok(None);
+        };
+
+        let min_index = indices.try_fold(min_index, |min_index, index| {
             match index.partial_cmp(&min_index) {
                 Some(Ordering::Less) => Ok(index),
                 None => {
@@ -630,7 +644,9 @@ impl NodeIndicesOperation {
                 }
                 _ => Ok(min_index),
             }
-        })
+        })?;
+
+        Ok(Some(min_index))
     }
     #[inline]
     pub(crate) fn get_count(indices: impl Iterator<Item = NodeIndex>) -> NodeIndex {
@@ -641,12 +657,14 @@ impl NodeIndicesOperation {
     // 🥊💥
     pub(crate) fn get_sum(
         mut indices: impl Iterator<Item = NodeIndex>,
-    ) -> MedRecordResult<NodeIndex> {
-        let first_index = indices
-            .next()
-            .ok_or(MedRecordError::QueryError("No indices to sum".to_string()))?;
+    ) -> MedRecordResult<Option<NodeIndex>> {
+        let first_index = indices.next();
 
-        indices.try_fold(first_index, |sum, index| {
+        let Some(first_index) = first_index else {
+            return Ok(None);
+        };
+
+        let sum = indices.try_fold(first_index, |sum, index| {
             let first_dtype = DataType::from(&sum);
             let second_dtype = DataType::from(&index);
 
@@ -656,16 +674,14 @@ impl NodeIndicesOperation {
                     first_dtype, second_dtype
                 ))
             })
-        })
+        })?;
+
+        Ok(Some(sum))
     }
 
     #[inline]
-    pub(crate) fn get_random(
-        indices: impl Iterator<Item = NodeIndex>,
-    ) -> MedRecordResult<NodeIndex> {
-        indices.choose(&mut rng()).ok_or(MedRecordError::QueryError(
-            "No indices to get the first".to_string(),
-        ))
+    pub(crate) fn get_random(indices: impl Iterator<Item = NodeIndex>) -> Option<NodeIndex> {
+        indices.choose(&mut rng())
     }
 
     #[inline]
@@ -679,11 +695,11 @@ impl NodeIndicesOperation {
         let kind = &operand.0.read_or_panic().kind;
 
         let index = match kind {
-            SingleKind::Max => NodeIndicesOperation::get_max(indices_1)?.clone(),
-            SingleKind::Min => NodeIndicesOperation::get_min(indices_1)?.clone(),
-            SingleKind::Count => NodeIndicesOperation::get_count(indices_1),
+            SingleKind::Max => NodeIndicesOperation::get_max(indices_1)?,
+            SingleKind::Min => NodeIndicesOperation::get_min(indices_1)?,
+            SingleKind::Count => Some(NodeIndicesOperation::get_count(indices_1)),
             SingleKind::Sum => NodeIndicesOperation::get_sum(indices_1)?,
-            SingleKind::Random => NodeIndicesOperation::get_random(indices_1)?,
+            SingleKind::Random => NodeIndicesOperation::get_random(indices_1),
         };
 
         Ok(match operand.evaluate_forward(medrecord, index)? {
@@ -936,8 +952,12 @@ impl NodeIndexOperation {
     pub(crate) fn evaluate(
         &self,
         medrecord: &MedRecord,
-        index: NodeIndex,
+        index: Option<NodeIndex>,
     ) -> MedRecordResult<Option<NodeIndex>> {
+        let Some(index) = index else {
+            return Ok(None);
+        };
+
         match self {
             Self::NodeIndexComparisonOperation { operand, kind } => {
                 Self::evaluate_node_index_comparison_operation(medrecord, index, operand, kind)
@@ -968,7 +988,7 @@ impl NodeIndexOperation {
             Self::EitherOr { either, or } => Self::evaluate_either_or(medrecord, index, either, or),
             Self::Exclude { operand } => {
                 let result = operand
-                    .evaluate_forward(medrecord, index.clone())?
+                    .evaluate_forward(medrecord, Some(index.clone()))?
                     .is_some();
 
                 Ok(if result { None } else { Some(index) })
@@ -1052,8 +1072,8 @@ impl NodeIndexOperation {
         either: &Wrapper<NodeIndexOperand>,
         or: &Wrapper<NodeIndexOperand>,
     ) -> MedRecordResult<Option<NodeIndex>> {
-        let either_result = either.evaluate_forward(medrecord, index.clone())?;
-        let or_result = or.evaluate_forward(medrecord, index)?;
+        let either_result = either.evaluate_forward(medrecord, Some(index.clone()))?;
+        let or_result = or.evaluate_forward(medrecord, Some(index))?;
 
         match (either_result, or_result) {
             (Some(either_result), _) => Ok(Some(either_result)),

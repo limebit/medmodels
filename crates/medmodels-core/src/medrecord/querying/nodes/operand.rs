@@ -760,7 +760,7 @@ impl DeepClone for NodeIndexOperand {
 }
 
 impl<'a> EvaluateForward<'a> for NodeIndexOperand {
-    type InputValue = NodeIndex;
+    type InputValue = Option<NodeIndex>;
     type ReturnValue = Option<NodeIndex>;
 
     fn evaluate_forward(
@@ -770,12 +770,8 @@ impl<'a> EvaluateForward<'a> for NodeIndexOperand {
     ) -> MedRecordResult<Self::ReturnValue> {
         self.operations
             .iter()
-            .try_fold(Some(node_index), |index, operation| {
-                if let Some(index) = index {
-                    operation.evaluate(medrecord, index)
-                } else {
-                    Ok(None)
-                }
+            .try_fold(node_index, |node_index, operation| {
+                operation.evaluate(medrecord, node_index)
             })
     }
 }
@@ -786,13 +782,10 @@ impl<'a> EvaluateForwardGrouped<'a> for NodeIndexOperand {
         medrecord: &'a MedRecord,
         node_indices: GroupedIterator<'a, Self::InputValue>,
     ) -> MedRecordResult<GroupedIterator<'a, Self::ReturnValue>> {
-        let node_indices = Box::new(node_indices.map(|(key, node_index)| (key, Some(node_index))))
-            as GroupedIterator<'a, Self::ReturnValue>;
-
         self.operations
             .iter()
-            .try_fold(node_indices, |indices, operation| {
-                operation.evaluate_grouped(medrecord, indices)
+            .try_fold(node_indices, |node_indices, operation| {
+                operation.evaluate_grouped(medrecord, node_indices)
             })
     }
 }
@@ -818,11 +811,11 @@ impl<'a> ReduceInput<'a> for NodeIndexOperand {
         node_indices: <Self::Context as EvaluateBackward<'a>>::ReturnValue,
     ) -> MedRecordResult<<Self as EvaluateForward<'a>>::InputValue> {
         Ok(match self.kind {
-            SingleKind::Max => NodeIndicesOperation::get_max(node_indices)?.clone(),
-            SingleKind::Min => NodeIndicesOperation::get_min(node_indices)?.clone(),
-            SingleKind::Count => NodeIndicesOperation::get_count(node_indices),
+            SingleKind::Max => NodeIndicesOperation::get_max(node_indices)?,
+            SingleKind::Min => NodeIndicesOperation::get_min(node_indices)?,
+            SingleKind::Count => Some(NodeIndicesOperation::get_count(node_indices)),
             SingleKind::Sum => NodeIndicesOperation::get_sum(node_indices)?,
-            SingleKind::Random => NodeIndicesOperation::get_random(node_indices)?,
+            SingleKind::Random => NodeIndicesOperation::get_random(node_indices),
         })
     }
 }

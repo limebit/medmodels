@@ -1047,7 +1047,7 @@ impl<O: RootOperand> DeepClone for SingleValueOperandWithIndex<O> {
 }
 
 impl<'a, O: 'a + RootOperand> EvaluateForward<'a> for SingleValueOperandWithIndex<O> {
-    type InputValue = (&'a O::Index, MedRecordValue);
+    type InputValue = Option<(&'a O::Index, MedRecordValue)>;
     type ReturnValue = Option<(&'a O::Index, MedRecordValue)>;
 
     fn evaluate_forward(
@@ -1055,15 +1055,9 @@ impl<'a, O: 'a + RootOperand> EvaluateForward<'a> for SingleValueOperandWithInde
         medrecord: &'a MedRecord,
         value: Self::InputValue,
     ) -> MedRecordResult<Self::ReturnValue> {
-        self.operations
-            .iter()
-            .try_fold(Some(value), |value, operation| {
-                if let Some(value) = value {
-                    operation.evaluate(medrecord, value)
-                } else {
-                    Ok(None)
-                }
-            })
+        self.operations.iter().try_fold(value, |value, operation| {
+            operation.evaluate(medrecord, value)
+        })
     }
 }
 
@@ -1073,9 +1067,6 @@ impl<'a, O: 'a + RootOperand> EvaluateForwardGrouped<'a> for SingleValueOperandW
         medrecord: &'a MedRecord,
         values: GroupedIterator<'a, Self::InputValue>,
     ) -> MedRecordResult<GroupedIterator<'a, Self::ReturnValue>> {
-        let values = Box::new(values.map(|(key, value)| (key, Some(value))))
-            as GroupedIterator<'a, Self::ReturnValue>;
-
         self.operations
             .iter()
             .try_fold(values, |values, operation| {
@@ -1108,7 +1099,7 @@ impl<'a, O: 'a + RootOperand> ReduceInput<'a> for SingleValueOperandWithIndex<O>
             SingleKindWithIndex::Max => MultipleValuesOperationWithIndex::<O>::get_max(values)?,
             SingleKindWithIndex::Min => MultipleValuesOperationWithIndex::<O>::get_min(values)?,
             SingleKindWithIndex::Random => {
-                MultipleValuesOperationWithIndex::<O>::get_random(values)?
+                MultipleValuesOperationWithIndex::<O>::get_random(values)
             }
         })
     }
@@ -1351,7 +1342,7 @@ impl<O: RootOperand> DeepClone for SingleValueOperandWithoutIndex<O> {
 }
 
 impl<'a, O: 'a + RootOperand> EvaluateForward<'a> for SingleValueOperandWithoutIndex<O> {
-    type InputValue = MedRecordValue;
+    type InputValue = Option<MedRecordValue>;
     type ReturnValue = Option<MedRecordValue>;
 
     fn evaluate_forward(
@@ -1359,15 +1350,9 @@ impl<'a, O: 'a + RootOperand> EvaluateForward<'a> for SingleValueOperandWithoutI
         medrecord: &'a MedRecord,
         value: Self::InputValue,
     ) -> MedRecordResult<Self::ReturnValue> {
-        self.operations
-            .iter()
-            .try_fold(Some(value), |value, operation| {
-                if let Some(value) = value {
-                    operation.evaluate(medrecord, value)
-                } else {
-                    Ok(None)
-                }
-            })
+        self.operations.iter().try_fold(value, |value, operation| {
+            operation.evaluate(medrecord, value)
+        })
     }
 }
 
@@ -1377,9 +1362,6 @@ impl<'a, O: 'a + RootOperand> EvaluateForwardGrouped<'a> for SingleValueOperandW
         medrecord: &'a MedRecord,
         values: GroupedIterator<'a, Self::InputValue>,
     ) -> MedRecordResult<GroupedIterator<'a, Self::ReturnValue>> {
-        let values = Box::new(values.map(|(key, value)| (key, Some(value))))
-            as GroupedIterator<'a, Self::ReturnValue>;
-
         self.operations
             .iter()
             .try_fold(values, |values, operation| {
@@ -1413,11 +1395,11 @@ impl<'a, O: 'a + RootOperand> EvaluateBackward<'a> for SingleValueOperandWithout
             SingleKindWithoutIndex::Std => MultipleValuesOperationWithIndex::<O>::get_std(values)?,
             SingleKindWithoutIndex::Var => MultipleValuesOperationWithIndex::<O>::get_var(values)?,
             SingleKindWithoutIndex::Count => {
-                MultipleValuesOperationWithIndex::<O>::get_count(values)
+                Some(MultipleValuesOperationWithIndex::<O>::get_count(values))
             }
             SingleKindWithoutIndex::Sum => MultipleValuesOperationWithIndex::<O>::get_sum(values)?,
             SingleKindWithoutIndex::Random => {
-                MultipleValuesOperationWithoutIndex::<O>::get_random(values)?
+                MultipleValuesOperationWithoutIndex::<O>::get_random(values)
             }
         };
 

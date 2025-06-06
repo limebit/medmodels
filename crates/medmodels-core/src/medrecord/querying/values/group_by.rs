@@ -207,13 +207,13 @@ impl<'a, O: 'a + RootOperand> EvaluateBackward<'a>
                                 MultipleValuesOperationWithIndex::<O>::get_var(partition)?
                             }
                             SingleKindWithoutIndex::Count => {
-                                MultipleValuesOperationWithIndex::<O>::get_count(partition)
+                                Some(MultipleValuesOperationWithIndex::<O>::get_count(partition))
                             }
                             SingleKindWithoutIndex::Sum => {
                                 MultipleValuesOperationWithIndex::<O>::get_sum(partition)?
                             }
                             SingleKindWithoutIndex::Random => {
-                                MultipleValuesOperationWithoutIndex::<O>::get_random(partition)?
+                                MultipleValuesOperationWithoutIndex::<O>::get_random(partition)
                             }
                         };
 

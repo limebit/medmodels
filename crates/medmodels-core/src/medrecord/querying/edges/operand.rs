@@ -824,7 +824,7 @@ impl DeepClone for EdgeIndexOperand {
 }
 
 impl<'a> EvaluateForward<'a> for EdgeIndexOperand {
-    type InputValue = EdgeIndex;
+    type InputValue = Option<EdgeIndex>;
     type ReturnValue = Option<EdgeIndex>;
 
     fn evaluate_forward(
@@ -834,12 +834,8 @@ impl<'a> EvaluateForward<'a> for EdgeIndexOperand {
     ) -> MedRecordResult<Self::ReturnValue> {
         self.operations
             .iter()
-            .try_fold(Some(edge_index), |index, operation| {
-                if let Some(index) = index {
-                    operation.evaluate(medrecord, index)
-                } else {
-                    Ok(None)
-                }
+            .try_fold(edge_index, |edge_index, operation| {
+                operation.evaluate(medrecord, edge_index)
             })
     }
 }
@@ -850,13 +846,10 @@ impl<'a> EvaluateForwardGrouped<'a> for EdgeIndexOperand {
         medrecord: &'a MedRecord,
         edge_indices: GroupedIterator<'a, Self::InputValue>,
     ) -> MedRecordResult<GroupedIterator<'a, Self::ReturnValue>> {
-        let edge_indices = Box::new(edge_indices.map(|(key, edge_index)| (key, Some(edge_index))))
-            as GroupedIterator<'a, Self::ReturnValue>;
-
         self.operations
             .iter()
-            .try_fold(edge_indices, |indices, operation| {
-                operation.evaluate_grouped(medrecord, indices)
+            .try_fold(edge_indices, |edge_indices, operation| {
+                operation.evaluate_grouped(medrecord, edge_indices)
             })
     }
 }
@@ -882,11 +875,11 @@ impl<'a> ReduceInput<'a> for EdgeIndexOperand {
         edge_indices: <Self::Context as EvaluateBackward<'a>>::ReturnValue,
     ) -> MedRecordResult<<Self as EvaluateForward<'a>>::InputValue> {
         Ok(match self.kind {
-            SingleKind::Max => EdgeIndicesOperation::get_max(edge_indices)?,
-            SingleKind::Min => EdgeIndicesOperation::get_min(edge_indices)?,
-            SingleKind::Count => EdgeIndicesOperation::get_count(edge_indices),
-            SingleKind::Sum => EdgeIndicesOperation::get_sum(edge_indices),
-            SingleKind::Random => EdgeIndicesOperation::get_random(edge_indices)?,
+            SingleKind::Max => EdgeIndicesOperation::get_max(edge_indices),
+            SingleKind::Min => EdgeIndicesOperation::get_min(edge_indices),
+            SingleKind::Count => Some(EdgeIndicesOperation::get_count(edge_indices)),
+            SingleKind::Sum => Some(EdgeIndicesOperation::get_sum(edge_indices)),
+            SingleKind::Random => EdgeIndicesOperation::get_random(edge_indices),
         })
     }
 }

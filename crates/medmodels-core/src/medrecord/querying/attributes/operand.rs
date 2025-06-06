@@ -873,7 +873,7 @@ impl<O: RootOperand> DeepClone for SingleAttributeOperand<O> {
 }
 
 impl<'a, O: 'a + RootOperand> EvaluateForward<'a> for SingleAttributeOperand<O> {
-    type InputValue = OptionalIndexWrapper<&'a O::Index, MedRecordAttribute>;
+    type InputValue = Option<OptionalIndexWrapper<&'a O::Index, MedRecordAttribute>>;
     type ReturnValue = Option<OptionalIndexWrapper<&'a O::Index, MedRecordAttribute>>;
 
     fn evaluate_forward(
@@ -883,12 +883,8 @@ impl<'a, O: 'a + RootOperand> EvaluateForward<'a> for SingleAttributeOperand<O> 
     ) -> MedRecordResult<Self::ReturnValue> {
         self.operations
             .iter()
-            .try_fold(Some(attribute), |attribute, operation| {
-                if let Some(attribute) = attribute {
-                    operation.evaluate(medrecord, attribute)
-                } else {
-                    Ok(None)
-                }
+            .try_fold(attribute, |attribute, operation| {
+                operation.evaluate(medrecord, attribute)
             })
     }
 }
@@ -899,9 +895,6 @@ impl<'a, O: 'a + RootOperand> EvaluateForwardGrouped<'a> for SingleAttributeOper
         medrecord: &'a MedRecord,
         attributes: GroupedIterator<'a, Self::InputValue>,
     ) -> MedRecordResult<GroupedIterator<'a, Self::ReturnValue>> {
-        let attributes = Box::new(attributes.map(|attribute| (attribute.0, Some(attribute.1))))
-            as GroupedIterator<'a, Self::ReturnValue>;
-
         self.operations
             .iter()
             .try_fold(attributes, |attributes, operation| {
@@ -931,11 +924,17 @@ impl<'a, O: 'a + RootOperand> ReduceInput<'a> for SingleAttributeOperand<O> {
         attributes: <Self::Context as EvaluateBackward<'a>>::ReturnValue,
     ) -> MedRecordResult<<Self as EvaluateForward<'a>>::InputValue> {
         Ok(match self.kind {
-            SingleKind::Max => MultipleAttributesOperation::<O>::get_max(attributes)?.into(),
-            SingleKind::Min => MultipleAttributesOperation::<O>::get_min(attributes)?.into(),
-            SingleKind::Count => MultipleAttributesOperation::<O>::get_count(attributes).into(),
-            SingleKind::Sum => MultipleAttributesOperation::<O>::get_sum(attributes)?.into(),
-            SingleKind::Random => MultipleAttributesOperation::<O>::get_random(attributes)?.into(),
+            SingleKind::Max => MultipleAttributesOperation::<O>::get_max(attributes)?
+                .map(OptionalIndexWrapper::from),
+            SingleKind::Min => MultipleAttributesOperation::<O>::get_min(attributes)?
+                .map(OptionalIndexWrapper::from),
+            SingleKind::Count => {
+                Some(MultipleAttributesOperation::<O>::get_count(attributes).into())
+            }
+            SingleKind::Sum => MultipleAttributesOperation::<O>::get_sum(attributes)?
+                .map(OptionalIndexWrapper::from),
+            SingleKind::Random => MultipleAttributesOperation::<O>::get_random(attributes)
+                .map(OptionalIndexWrapper::from),
         })
     }
 }

@@ -170,15 +170,17 @@ mod tests {
 
         let result = medrecord
             .query_nodes(|nodes| {
-                let mut edges = nodes.edges(EdgeDirection::Incoming);
+                nodes.in_group(MedRecordAttribute::from("patient"));
 
-                edges.has_attribute(MedRecordAttribute::from("duration_days"));
+                let edges = nodes.edges(EdgeDirection::Outgoing);
 
-                let group_by = edges.group_by(EdgeOperandGroupDiscriminator::TargetNode);
+                edges
+                    .target_node()
+                    .in_group(MedRecordAttribute::from("admission"));
 
-                let test = group_by.attribute("duration_days").count();
+                let grouped_edges = edges.group_by(EdgeOperandGroupDiscriminator::SourceNode);
 
-                test.merge().max()
+                grouped_edges.index().count().merge().max()
             })
             .evaluate()
             .unwrap();

@@ -657,14 +657,22 @@ impl EdgeIndicesOperation {
             Self::IsMax => {
                 let (indices_1, indices_2) = Itertools::tee(indices);
 
-                let max_index = Self::get_max(indices_1)?;
+                let max_index = Self::get_max(indices_1);
+
+                let Some(max_index) = max_index else {
+                    return Ok(Box::new(std::iter::empty()));
+                };
 
                 Ok(Box::new(indices_2.filter(move |index| *index == max_index)))
             }
             Self::IsMin => {
                 let (indices_1, indices_2) = Itertools::tee(indices);
 
-                let min_index = Self::get_min(indices_1)?;
+                let min_index = Self::get_min(indices_1);
+
+                let Some(min_index) = min_index else {
+                    return Ok(Box::new(std::iter::empty()));
+                };
 
                 Ok(Box::new(indices_2.filter(move |index| *index == min_index)))
             }
@@ -676,17 +684,13 @@ impl EdgeIndicesOperation {
     }
 
     #[inline]
-    pub(crate) fn get_max(indices: impl Iterator<Item = EdgeIndex>) -> MedRecordResult<EdgeIndex> {
-        indices.max().ok_or(MedRecordError::QueryError(
-            "No indices to compare".to_string(),
-        ))
+    pub(crate) fn get_max(indices: impl Iterator<Item = EdgeIndex>) -> Option<EdgeIndex> {
+        indices.max()
     }
 
     #[inline]
-    pub(crate) fn get_min(indices: impl Iterator<Item = EdgeIndex>) -> MedRecordResult<EdgeIndex> {
-        indices.min().ok_or(MedRecordError::QueryError(
-            "No indices to compare".to_string(),
-        ))
+    pub(crate) fn get_min(indices: impl Iterator<Item = EdgeIndex>) -> Option<EdgeIndex> {
+        indices.min()
     }
     #[inline]
     pub(crate) fn get_count(indices: impl Iterator<Item = EdgeIndex>) -> EdgeIndex {
@@ -699,12 +703,8 @@ impl EdgeIndicesOperation {
     }
 
     #[inline]
-    pub(crate) fn get_random(
-        indices: impl Iterator<Item = EdgeIndex>,
-    ) -> MedRecordResult<EdgeIndex> {
-        indices.choose(&mut rng()).ok_or(MedRecordError::QueryError(
-            "No indices to get the first".to_string(),
-        ))
+    pub(crate) fn get_random(indices: impl Iterator<Item = EdgeIndex>) -> Option<EdgeIndex> {
+        indices.choose(&mut rng())
     }
 
     #[inline]
@@ -718,11 +718,11 @@ impl EdgeIndicesOperation {
         let kind = &operand.0.read_or_panic().kind;
 
         let index = match kind {
-            SingleKind::Max => EdgeIndicesOperation::get_max(indices_1)?,
-            SingleKind::Min => EdgeIndicesOperation::get_min(indices_1)?,
-            SingleKind::Count => EdgeIndicesOperation::get_count(indices_1),
-            SingleKind::Sum => EdgeIndicesOperation::get_sum(indices_1),
-            SingleKind::Random => EdgeIndicesOperation::get_random(indices_1)?,
+            SingleKind::Max => EdgeIndicesOperation::get_max(indices_1),
+            SingleKind::Min => EdgeIndicesOperation::get_min(indices_1),
+            SingleKind::Count => Some(EdgeIndicesOperation::get_count(indices_1)),
+            SingleKind::Sum => Some(EdgeIndicesOperation::get_sum(indices_1)),
+            SingleKind::Random => EdgeIndicesOperation::get_random(indices_1),
         };
 
         Ok(match operand.evaluate_forward(medrecord, index)? {
@@ -935,11 +935,11 @@ impl EdgeIndicesOperation {
                 Ok((
                     key,
                     match kind {
-                        SingleKind::Max => EdgeIndicesOperation::get_max(edge_indices)?,
-                        SingleKind::Min => EdgeIndicesOperation::get_min(edge_indices)?,
-                        SingleKind::Count => EdgeIndicesOperation::get_count(edge_indices),
-                        SingleKind::Sum => EdgeIndicesOperation::get_sum(edge_indices),
-                        SingleKind::Random => EdgeIndicesOperation::get_random(edge_indices)?,
+                        SingleKind::Max => EdgeIndicesOperation::get_max(edge_indices),
+                        SingleKind::Min => EdgeIndicesOperation::get_min(edge_indices),
+                        SingleKind::Count => Some(EdgeIndicesOperation::get_count(edge_indices)),
+                        SingleKind::Sum => Some(EdgeIndicesOperation::get_sum(edge_indices)),
+                        SingleKind::Random => EdgeIndicesOperation::get_random(edge_indices),
                     },
                 ))
             })
@@ -1032,8 +1032,12 @@ impl EdgeIndexOperation {
     pub(crate) fn evaluate(
         &self,
         medrecord: &MedRecord,
-        index: EdgeIndex,
+        index: Option<EdgeIndex>,
     ) -> MedRecordResult<Option<EdgeIndex>> {
+        let Some(index) = index else {
+            return Ok(None);
+        };
+
         match self {
             Self::EdgeIndexComparisonOperation { operand, kind } => {
                 Self::evaluate_edge_index_comparison_operation(medrecord, index, operand, kind)
@@ -1046,7 +1050,7 @@ impl EdgeIndexOperation {
             }
             Self::EitherOr { either, or } => Self::evaluate_either_or(medrecord, index, either, or),
             Self::Exclude { operand } => {
-                let result = operand.evaluate_forward(medrecord, index)?.is_some();
+                let result = operand.evaluate_forward(medrecord, Some(index))?.is_some();
 
                 Ok(if result { None } else { Some(index) })
             }
@@ -1130,8 +1134,8 @@ impl EdgeIndexOperation {
         either: &Wrapper<EdgeIndexOperand>,
         or: &Wrapper<EdgeIndexOperand>,
     ) -> MedRecordResult<Option<EdgeIndex>> {
-        let either_result = either.evaluate_forward(medrecord, index)?;
-        let or_result = or.evaluate_forward(medrecord, index)?;
+        let either_result = either.evaluate_forward(medrecord, Some(index))?;
+        let or_result = or.evaluate_forward(medrecord, Some(index))?;
 
         match (either_result, or_result) {
             (Some(either_result), _) => Ok(Some(either_result)),

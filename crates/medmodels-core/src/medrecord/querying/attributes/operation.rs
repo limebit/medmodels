@@ -843,20 +843,28 @@ impl<O: RootOperand> MultipleAttributesOperation<O> {
             Self::IsMax => {
                 let (attributes_1, attributes_2) = Itertools::tee(attributes);
 
-                let max_attribute = Self::get_max(attributes_1)?.1;
+                let max_attribute = Self::get_max(attributes_1)?;
 
-                Ok(Box::new(
-                    attributes_2.filter(move |(_, attribute)| *attribute == max_attribute),
-                ))
+                let Some(max_attribute) = max_attribute else {
+                    return Ok(Box::new(std::iter::empty()));
+                };
+
+                Ok(Box::new(attributes_2.filter(move |(_, attribute)| {
+                    *attribute == max_attribute.1
+                })))
             }
             Self::IsMin => {
                 let (attributes_1, attributes_2) = Itertools::tee(attributes);
 
-                let min_attribute = Self::get_min(attributes_1)?.1;
+                let min_attribute = Self::get_min(attributes_1)?;
 
-                Ok(Box::new(
-                    attributes_2.filter(move |(_, attribute)| *attribute == min_attribute),
-                ))
+                let Some(min_attribute) = min_attribute else {
+                    return Ok(Box::new(std::iter::empty()));
+                };
+
+                Ok(Box::new(attributes_2.filter(move |(_, attribute)| {
+                    *attribute == min_attribute.1
+                })))
             }
             Self::EitherOr { either, or } => {
                 Self::evaluate_either_or(medrecord, attributes, either, or)
@@ -868,12 +876,14 @@ impl<O: RootOperand> MultipleAttributesOperation<O> {
     #[inline]
     pub(crate) fn get_max<'a>(
         mut attributes: impl Iterator<Item = (&'a O::Index, MedRecordAttribute)>,
-    ) -> MedRecordResult<(&'a O::Index, MedRecordAttribute)> {
-        let max_attribute = attributes.next().ok_or(MedRecordError::QueryError(
-            "No attributes to compare".to_string(),
-        ))?;
+    ) -> MedRecordResult<Option<(&'a O::Index, MedRecordAttribute)>> {
+        let max_attribute = attributes.next();
 
-        attributes.try_fold(max_attribute, |max_attribute, attribute| {
+        let Some(max_attribute) = max_attribute else {
+            return Ok(None);
+        };
+
+        let max_attribute = attributes.try_fold(max_attribute, |max_attribute, attribute| {
             match attribute.1.partial_cmp(&max_attribute.1) {
                 Some(Ordering::Greater) => Ok(attribute),
                 None => {
@@ -887,18 +897,22 @@ impl<O: RootOperand> MultipleAttributesOperation<O> {
                 }
                 _ => Ok(max_attribute),
             }
-        })
+        })?;
+
+        Ok(Some(max_attribute))
     }
 
     #[inline]
     pub(crate) fn get_min<'a>(
         mut attributes: impl Iterator<Item = (&'a O::Index, MedRecordAttribute)>,
-    ) -> MedRecordResult<(&'a O::Index, MedRecordAttribute)> {
-        let min_attribute = attributes.next().ok_or(MedRecordError::QueryError(
-            "No attributes to compare".to_string(),
-        ))?;
+    ) -> MedRecordResult<Option<(&'a O::Index, MedRecordAttribute)>> {
+        let min_attribute = attributes.next();
 
-        attributes.try_fold(min_attribute, |min_attribute, attribute| {
+        let Some(min_attribute) = min_attribute else {
+            return Ok(None);
+        };
+
+        let min_attribute = attributes.try_fold(min_attribute, |min_attribute, attribute| {
             match attribute.1.partial_cmp(&min_attribute.1) {
                 Some(Ordering::Less) => Ok(attribute),
                 None => {
@@ -912,7 +926,9 @@ impl<O: RootOperand> MultipleAttributesOperation<O> {
                 }
                 _ => Ok(min_attribute),
             }
-        })
+        })?;
+
+        Ok(Some(min_attribute))
     }
 
     #[inline]
@@ -929,15 +945,17 @@ impl<O: RootOperand> MultipleAttributesOperation<O> {
     // 🥊💥
     pub(crate) fn get_sum<'a>(
         mut attributes: impl Iterator<Item = (&'a O::Index, MedRecordAttribute)>,
-    ) -> MedRecordResult<MedRecordAttribute>
+    ) -> MedRecordResult<Option<MedRecordAttribute>>
     where
         O: 'a,
     {
-        let first_attribute = attributes.next().ok_or(MedRecordError::QueryError(
-            "No attributes to compare".to_string(),
-        ))?;
+        let first_attribute = attributes.next();
 
-        attributes.try_fold(first_attribute.1, |sum, (_, attribute)| {
+        let Some(first_attribute) = first_attribute else {
+            return Ok(None);
+        };
+
+        let sum = attributes.try_fold(first_attribute.1, |sum, (_, attribute)| {
             let first_dtype = DataType::from(&sum);
             let second_dtype = DataType::from(&attribute);
 
@@ -947,18 +965,16 @@ impl<O: RootOperand> MultipleAttributesOperation<O> {
                     first_dtype, second_dtype
                 ))
             })
-        })
+        })?;
+
+        Ok(Some(sum))
     }
 
     #[inline]
     pub(crate) fn get_random<'a>(
         attributes: impl Iterator<Item = (&'a O::Index, MedRecordAttribute)>,
-    ) -> MedRecordResult<(&'a O::Index, MedRecordAttribute)> {
-        attributes
-            .choose(&mut rng())
-            .ok_or(MedRecordError::QueryError(
-                "No attributes to get the first".to_string(),
-            ))
+    ) -> Option<(&'a O::Index, MedRecordAttribute)> {
+        attributes.choose(&mut rng())
     }
 
     #[inline]
@@ -974,14 +990,18 @@ impl<O: RootOperand> MultipleAttributesOperation<O> {
 
         let kind = &operand.0.read_or_panic().kind;
 
-        let attribute: OptionalIndexWrapper<_, _> = match kind {
-            SingleKind::Max => MultipleAttributesOperation::<O>::get_max(attributes_1)?.into(),
-            SingleKind::Min => MultipleAttributesOperation::<O>::get_min(attributes_1)?.into(),
-            SingleKind::Count => MultipleAttributesOperation::<O>::get_count(attributes_1).into(),
-            SingleKind::Sum => MultipleAttributesOperation::<O>::get_sum(attributes_1)?.into(),
-            SingleKind::Random => {
-                MultipleAttributesOperation::<O>::get_random(attributes_1)?.into()
+        let attribute: Option<OptionalIndexWrapper<_, _>> = match kind {
+            SingleKind::Max => MultipleAttributesOperation::<O>::get_max(attributes_1)?
+                .map(OptionalIndexWrapper::from),
+            SingleKind::Min => MultipleAttributesOperation::<O>::get_min(attributes_1)?
+                .map(OptionalIndexWrapper::from),
+            SingleKind::Count => {
+                Some(MultipleAttributesOperation::<O>::get_count(attributes_1).into())
             }
+            SingleKind::Sum => MultipleAttributesOperation::<O>::get_sum(attributes_1)?
+                .map(OptionalIndexWrapper::from),
+            SingleKind::Random => MultipleAttributesOperation::<O>::get_random(attributes_1)
+                .map(OptionalIndexWrapper::from),
         };
 
         Ok(match operand.evaluate_forward(medrecord, attribute)? {
@@ -1328,11 +1348,15 @@ impl<O: RootOperand> SingleAttributeOperation<O> {
     pub(crate) fn evaluate<'a>(
         &self,
         medrecord: &'a MedRecord,
-        attribute: OptionalIndexWrapper<&'a O::Index, MedRecordAttribute>,
+        attribute: Option<OptionalIndexWrapper<&'a O::Index, MedRecordAttribute>>,
     ) -> MedRecordResult<Option<OptionalIndexWrapper<&'a O::Index, MedRecordAttribute>>>
     where
         O: 'a,
     {
+        let Some(attribute) = attribute else {
+            return Ok(None);
+        };
+
         match self {
             Self::SingleAttributeComparisonOperation { operand, kind } => {
                 Self::evaluate_single_attribute_comparison_operation(
@@ -1370,7 +1394,7 @@ impl<O: RootOperand> SingleAttributeOperation<O> {
                 Self::evaluate_either_or(medrecord, attribute, either, or)
             }
             Self::Exclude { operand } => Ok(
-                match operand.evaluate_forward(medrecord, attribute.clone())? {
+                match operand.evaluate_forward(medrecord, Some(attribute.clone()))? {
                     Some(_) => None,
                     None => Some(attribute),
                 },
@@ -1485,8 +1509,8 @@ impl<O: RootOperand> SingleAttributeOperation<O> {
     where
         O: 'a,
     {
-        let either_result = either.evaluate_forward(medrecord, attribute.clone())?;
-        let or_result = or.evaluate_forward(medrecord, attribute)?;
+        let either_result = either.evaluate_forward(medrecord, Some(attribute.clone()))?;
+        let or_result = or.evaluate_forward(medrecord, Some(attribute))?;
 
         match (either_result, or_result) {
             (Some(either_result), _) => Ok(Some(either_result)),

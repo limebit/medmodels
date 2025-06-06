@@ -220,19 +220,27 @@ impl<O: RootOperand> MultipleValuesOperationWithIndex<O> {
             Self::IsMax => {
                 let (values_1, values_2) = Itertools::tee(values);
 
-                let max_value = Self::get_max(values_1)?.1;
+                let max_value = Self::get_max(values_1)?;
+
+                let Some(max_value) = max_value else {
+                    return Ok(Box::new(std::iter::empty()));
+                };
 
                 Ok(Box::new(
-                    values_2.filter(move |(_, value)| *value == max_value),
+                    values_2.filter(move |(_, value)| *value == max_value.1),
                 ))
             }
             Self::IsMin => {
                 let (values_1, values_2) = Itertools::tee(values);
 
-                let min_value = Self::get_min(values_1)?.1;
+                let min_value = Self::get_min(values_1)?;
+
+                let Some(min_value) = min_value else {
+                    return Ok(Box::new(std::iter::empty()));
+                };
 
                 Ok(Box::new(
-                    values_2.filter(move |(_, value)| *value == min_value),
+                    values_2.filter(move |(_, value)| *value == min_value.1),
                 ))
             }
             Self::EitherOr { either, or } => {
@@ -245,12 +253,14 @@ impl<O: RootOperand> MultipleValuesOperationWithIndex<O> {
     #[inline]
     pub(crate) fn get_max<'a>(
         mut values: impl Iterator<Item = (&'a O::Index, MedRecordValue)>,
-    ) -> MedRecordResult<(&'a O::Index, MedRecordValue)> {
-        let max_value = values.next().ok_or(MedRecordError::QueryError(
-            "No values to compare".to_string(),
-        ))?;
+    ) -> MedRecordResult<Option<(&'a O::Index, MedRecordValue)>> {
+        let max_value = values.next();
 
-        values.try_fold(max_value, |max_value, value| {
+        let Some(max_value) = max_value else {
+            return Ok(None);
+        };
+
+        let max_value = values.try_fold(max_value, |max_value, value| {
             match value.1.partial_cmp(&max_value.1) {
                 Some(Ordering::Greater) => Ok(value),
                 None => {
@@ -264,18 +274,22 @@ impl<O: RootOperand> MultipleValuesOperationWithIndex<O> {
                 }
                 _ => Ok(max_value),
             }
-        })
+        })?;
+
+        Ok(Some(max_value))
     }
 
     #[inline]
     pub(crate) fn get_min<'a>(
         mut values: impl Iterator<Item = (&'a O::Index, MedRecordValue)>,
-    ) -> MedRecordResult<(&'a O::Index, MedRecordValue)> {
-        let min_value = values.next().ok_or(MedRecordError::QueryError(
-            "No values to compare".to_string(),
-        ))?;
+    ) -> MedRecordResult<Option<(&'a O::Index, MedRecordValue)>> {
+        let min_value = values.next();
 
-        values.try_fold(min_value, |min_value, value| {
+        let Some(min_value) = min_value else {
+            return Ok(None);
+        };
+
+        let min_value = values.try_fold(min_value, |min_value, value| {
             match value.1.partial_cmp(&min_value.1) {
                 Some(Ordering::Less) => Ok(value),
                 None => {
@@ -289,19 +303,23 @@ impl<O: RootOperand> MultipleValuesOperationWithIndex<O> {
                 }
                 _ => Ok(min_value),
             }
-        })
+        })?;
+
+        Ok(Some(min_value))
     }
 
     #[inline]
     pub(crate) fn get_mean<'a>(
         mut values: impl Iterator<Item = MedRecordValue>,
-    ) -> MedRecordResult<MedRecordValue>
+    ) -> MedRecordResult<Option<MedRecordValue>>
     where
         O: 'a,
     {
-        let first_value = values.next().ok_or(MedRecordError::QueryError(
-            "No values to compare".to_string(),
-        ))?;
+        let first_value = values.next();
+
+        let Some(first_value) = first_value else {
+            return Ok(None);
+        };
 
         let (sum, count) = values.try_fold((first_value, 1), |(sum, count), value| {
             let first_dtype = DataType::from(&sum);
@@ -316,24 +334,26 @@ impl<O: RootOperand> MultipleValuesOperationWithIndex<O> {
             }
         })?;
 
-        sum.div(MedRecordValue::Int(count as i64))
+        Ok(Some(sum.div(MedRecordValue::Int(count as i64))?))
     }
 
     // TODO: This is a temporary solution. It should be optimized.
     #[inline]
     pub(crate) fn get_median<'a>(
         mut values: impl Iterator<Item = MedRecordValue>,
-    ) -> MedRecordResult<MedRecordValue>
+    ) -> MedRecordResult<Option<MedRecordValue>>
     where
         O: 'a,
     {
-        let first_value = values.next().ok_or(MedRecordError::QueryError(
-            "No values to compare".to_string(),
-        ))?;
+        let first_value = values.next();
+
+        let Some(first_value) = first_value else {
+            return Ok(None);
+        };
 
         let first_data_type = DataType::from(&first_value);
 
-        match first_value {
+        let median = match first_value {
             MedRecordValue::Int(value) => {
                 let mut values = values.map(|value| {
                     let data_type = DataType::from(&value);
@@ -408,25 +428,29 @@ impl<O: RootOperand> MultipleValuesOperationWithIndex<O> {
                 "Cannot calculate median of data type {}",
                 first_data_type
             )))?,
-        }
+        }?;
+
+        Ok(Some(median))
     }
 
     // TODO: This is a temporary solution. It should be optimized.
     #[inline]
     pub(crate) fn get_mode<'a>(
         values: impl Iterator<Item = MedRecordValue>,
-    ) -> MedRecordResult<MedRecordValue>
+    ) -> MedRecordResult<Option<MedRecordValue>>
     where
         O: 'a,
     {
         let values: Vec<_> = values.collect();
 
-        let most_common_value = values
-            .first()
-            .ok_or(MedRecordError::QueryError(
-                "No values to compare".to_string(),
-            ))?
-            .clone();
+        let most_common_value = values.first();
+
+        let Some(most_common_value) = most_common_value else {
+            return Ok(None);
+        };
+
+        let most_common_value = most_common_value.clone();
+
         let most_common_count = values
             .iter()
             .filter(|value| **value == most_common_value)
@@ -445,37 +469,45 @@ impl<O: RootOperand> MultipleValuesOperationWithIndex<O> {
             },
         );
 
-        Ok(most_common_value)
+        Ok(Some(most_common_value.clone()))
     }
 
     #[inline]
     // 👀
     pub(crate) fn get_std<'a>(
         values: impl Iterator<Item = MedRecordValue>,
-    ) -> MedRecordResult<MedRecordValue>
+    ) -> MedRecordResult<Option<MedRecordValue>>
     where
         O: 'a,
     {
         let variance = Self::get_var(values)?;
 
+        let Some(variance) = variance else {
+            return Ok(None);
+        };
+
         let MedRecordValue::Float(variance) = variance else {
             unreachable!()
         };
 
-        Ok(MedRecordValue::Float(variance.sqrt()))
+        Ok(Some(MedRecordValue::Float(variance.sqrt())))
     }
 
     // TODO: This is a temporary solution. It should be optimized.
     #[inline]
     pub(crate) fn get_var<'a>(
         values: impl Iterator<Item = MedRecordValue>,
-    ) -> MedRecordResult<MedRecordValue>
+    ) -> MedRecordResult<Option<MedRecordValue>>
     where
         O: 'a,
     {
         let (values_1, values_2) = Itertools::tee(values);
 
         let mean = Self::get_mean(values_1)?;
+
+        let Some(mean) = mean else {
+            return Ok(None);
+        };
 
         let MedRecordValue::Float(mean) = mean else {
             let data_type = DataType::from(mean);
@@ -507,7 +539,7 @@ impl<O: RootOperand> MultipleValuesOperationWithIndex<O> {
             .sum::<f64>()
             / values_length as f64;
 
-        Ok(MedRecordValue::Float(variance))
+        Ok(Some(MedRecordValue::Float(variance)))
     }
 
     #[inline]
@@ -522,15 +554,17 @@ impl<O: RootOperand> MultipleValuesOperationWithIndex<O> {
     // 🥊💥
     pub(crate) fn get_sum<'a>(
         mut values: impl Iterator<Item = MedRecordValue>,
-    ) -> MedRecordResult<MedRecordValue>
+    ) -> MedRecordResult<Option<MedRecordValue>>
     where
         O: 'a,
     {
-        let first_value = values.next().ok_or(MedRecordError::QueryError(
-            "No values to compare".to_string(),
-        ))?;
+        let first_value = values.next();
 
-        values.try_fold(first_value, |sum, value| {
+        let Some(first_value) = first_value else {
+            return Ok(None);
+        };
+
+        let sum = values.try_fold(first_value, |sum, value| {
             let first_dtype = DataType::from(&sum);
             let second_dtype = DataType::from(&value);
 
@@ -540,16 +574,16 @@ impl<O: RootOperand> MultipleValuesOperationWithIndex<O> {
                     first_dtype, second_dtype
                 ))
             })
-        })
+        })?;
+
+        Ok(Some(sum))
     }
 
     #[inline]
     pub(crate) fn get_random<'a>(
         values: impl Iterator<Item = (&'a O::Index, MedRecordValue)>,
-    ) -> MedRecordResult<(&'a O::Index, MedRecordValue)> {
-        values.choose(&mut rng()).ok_or(MedRecordError::QueryError(
-            "No values to compare".to_string(),
-        ))
+    ) -> Option<(&'a O::Index, MedRecordValue)> {
+        values.choose(&mut rng())
     }
 
     #[inline]
@@ -569,7 +603,7 @@ impl<O: RootOperand> MultipleValuesOperationWithIndex<O> {
             SingleKindWithIndex::Max => MultipleValuesOperationWithIndex::<O>::get_max(values_1)?,
             SingleKindWithIndex::Min => MultipleValuesOperationWithIndex::<O>::get_min(values_1)?,
             SingleKindWithIndex::Random => {
-                MultipleValuesOperationWithIndex::<O>::get_random(values_1)?
+                MultipleValuesOperationWithIndex::<O>::get_random(values_1)
             }
         };
 
@@ -612,7 +646,7 @@ impl<O: RootOperand> MultipleValuesOperationWithIndex<O> {
                 MultipleValuesOperationWithIndex::<O>::get_var(values_1)?
             }
             SingleKindWithoutIndex::Count => {
-                MultipleValuesOperationWithIndex::<O>::get_count(values_1)
+                Some(MultipleValuesOperationWithIndex::<O>::get_count(values_1))
             }
             SingleKindWithoutIndex::Sum => {
                 MultipleValuesOperationWithIndex::<O>::get_sum(values_1)?
@@ -956,7 +990,7 @@ impl<O: RootOperand> MultipleValuesOperationWithIndex<O> {
                         MultipleValuesOperationWithIndex::<O>::get_min(values)?
                     }
                     SingleKindWithIndex::Random => {
-                        MultipleValuesOperationWithIndex::<O>::get_random(values)?
+                        MultipleValuesOperationWithIndex::<O>::get_random(values)
                     }
                 };
 
@@ -1021,7 +1055,7 @@ impl<O: RootOperand> MultipleValuesOperationWithIndex<O> {
                         MultipleValuesOperationWithIndex::<O>::get_var(values)?
                     }
                     SingleKindWithoutIndex::Count => {
-                        MultipleValuesOperationWithIndex::<O>::get_count(values)
+                        Some(MultipleValuesOperationWithIndex::<O>::get_count(values))
                     }
                     SingleKindWithoutIndex::Sum => {
                         MultipleValuesOperationWithIndex::<O>::get_sum(values)?
@@ -1202,12 +1236,20 @@ impl<O: RootOperand> MultipleValuesOperationWithoutIndex<O> {
 
                 let max_value = Self::get_max(values_1)?;
 
+                let Some(max_value) = max_value else {
+                    return Ok(Box::new(std::iter::empty()));
+                };
+
                 Ok(Box::new(values_2.filter(move |value| *value == max_value)))
             }
             Self::IsMin => {
                 let (values_1, values_2) = Itertools::tee(values);
 
                 let min_value = Self::get_min(values_1)?;
+
+                let Some(min_value) = min_value else {
+                    return Ok(Box::new(std::iter::empty()));
+                };
 
                 Ok(Box::new(values_2.filter(move |value| *value == min_value)))
             }
@@ -1221,12 +1263,14 @@ impl<O: RootOperand> MultipleValuesOperationWithoutIndex<O> {
     #[inline]
     pub(crate) fn get_max(
         mut values: impl Iterator<Item = MedRecordValue>,
-    ) -> MedRecordResult<MedRecordValue> {
-        let max_value = values.next().ok_or(MedRecordError::QueryError(
-            "No values to compare".to_string(),
-        ))?;
+    ) -> MedRecordResult<Option<MedRecordValue>> {
+        let max_value = values.next();
 
-        values.try_fold(max_value, |max_value, value| {
+        let Some(max_value) = max_value else {
+            return Ok(None);
+        };
+
+        let max_value = values.try_fold(max_value, |max_value, value| {
             match value.partial_cmp(&max_value) {
                 Some(Ordering::Greater) => Ok(value),
                 None => {
@@ -1240,18 +1284,22 @@ impl<O: RootOperand> MultipleValuesOperationWithoutIndex<O> {
                 }
                 _ => Ok(max_value),
             }
-        })
+        })?;
+
+        Ok(Some(max_value))
     }
 
     #[inline]
     pub(crate) fn get_min(
         mut values: impl Iterator<Item = MedRecordValue>,
-    ) -> MedRecordResult<MedRecordValue> {
-        let min_value = values.next().ok_or(MedRecordError::QueryError(
-            "No values to compare".to_string(),
-        ))?;
+    ) -> MedRecordResult<Option<MedRecordValue>> {
+        let min_value = values.next();
 
-        values.try_fold(min_value, |min_value, value| {
+        let Some(min_value) = min_value else {
+            return Ok(None);
+        };
+
+        let min_value = values.try_fold(min_value, |min_value, value| {
             match value.partial_cmp(&min_value) {
                 Some(Ordering::Less) => Ok(value),
                 None => {
@@ -1265,16 +1313,16 @@ impl<O: RootOperand> MultipleValuesOperationWithoutIndex<O> {
                 }
                 _ => Ok(min_value),
             }
-        })
+        })?;
+
+        Ok(Some(min_value))
     }
 
     #[inline]
     pub(crate) fn get_random(
         values: impl Iterator<Item = MedRecordValue>,
-    ) -> MedRecordResult<MedRecordValue> {
-        values.choose(&mut rng()).ok_or(MedRecordError::QueryError(
-            "No values to compare".to_string(),
-        ))
+    ) -> Option<MedRecordValue> {
+        values.choose(&mut rng())
     }
 
     #[inline]
@@ -1309,7 +1357,7 @@ impl<O: RootOperand> MultipleValuesOperationWithoutIndex<O> {
                 MultipleValuesOperationWithIndex::<O>::get_var(values_1)?
             }
             SingleKindWithoutIndex::Count => {
-                MultipleValuesOperationWithIndex::<O>::get_count(values_1)
+                Some(MultipleValuesOperationWithIndex::<O>::get_count(values_1))
             }
             SingleKindWithoutIndex::Sum => {
                 MultipleValuesOperationWithIndex::<O>::get_sum(values_1)?
@@ -1637,7 +1685,7 @@ impl<O: RootOperand> MultipleValuesOperationWithoutIndex<O> {
                         MultipleValuesOperationWithIndex::<O>::get_var(values)?
                     }
                     SingleKindWithoutIndex::Count => {
-                        MultipleValuesOperationWithIndex::<O>::get_count(values)
+                        Some(MultipleValuesOperationWithIndex::<O>::get_count(values))
                     }
                     SingleKindWithoutIndex::Sum => {
                         MultipleValuesOperationWithIndex::<O>::get_sum(values)?
@@ -1758,11 +1806,15 @@ impl<O: RootOperand> SingleValueOperationWithIndex<O> {
     pub(crate) fn evaluate<'a>(
         &self,
         medrecord: &'a MedRecord,
-        value: (&'a O::Index, MedRecordValue),
+        value: Option<(&'a O::Index, MedRecordValue)>,
     ) -> MedRecordResult<Option<(&'a O::Index, MedRecordValue)>>
     where
         O: 'a,
     {
+        let Some(value) = value else {
+            return Ok(None);
+        };
+
         match self {
             Self::SingleValueComparisonOperation { operand, kind } => {
                 Self::evaluate_single_value_comparison_operation(medrecord, value, operand, kind)
@@ -1815,12 +1867,12 @@ impl<O: RootOperand> SingleValueOperationWithIndex<O> {
                 _ => None,
             }),
             Self::EitherOr { either, or } => Self::evaluate_either_or(medrecord, value, either, or),
-            Self::Exclude { operand } => {
-                Ok(match operand.evaluate_forward(medrecord, value.clone())? {
+            Self::Exclude { operand } => Ok(
+                match operand.evaluate_forward(medrecord, Some(value.clone()))? {
                     Some(_) => None,
                     None => Some(value),
-                })
-            }
+                },
+            ),
             Self::Merge { operand: _ } => {
                 unreachable!()
             }
@@ -1907,8 +1959,8 @@ impl<O: RootOperand> SingleValueOperationWithIndex<O> {
     where
         O: 'a,
     {
-        let either_result = either.evaluate_forward(medrecord, value.clone())?;
-        let or_result = or.evaluate_forward(medrecord, value)?;
+        let either_result = either.evaluate_forward(medrecord, Some(value.clone()))?;
+        let or_result = or.evaluate_forward(medrecord, Some(value))?;
 
         match (either_result, or_result) {
             (Some(either_result), _) => Ok(Some(either_result)),
@@ -2114,8 +2166,12 @@ impl<O: RootOperand> SingleValueOperationWithoutIndex<O> {
     pub(crate) fn evaluate(
         &self,
         medrecord: &MedRecord,
-        value: MedRecordValue,
+        value: Option<MedRecordValue>,
     ) -> MedRecordResult<Option<MedRecordValue>> {
+        let Some(value) = value else {
+            return Ok(None);
+        };
+
         match self {
             Self::SingleValueComparisonOperation { operand, kind } => {
                 Self::evaluate_single_value_comparison_operation(medrecord, value, operand, kind)
@@ -2168,12 +2224,12 @@ impl<O: RootOperand> SingleValueOperationWithoutIndex<O> {
                 _ => None,
             }),
             Self::EitherOr { either, or } => Self::evaluate_either_or(medrecord, value, either, or),
-            Self::Exclude { operand } => {
-                Ok(match operand.evaluate_forward(medrecord, value.clone())? {
+            Self::Exclude { operand } => Ok(
+                match operand.evaluate_forward(medrecord, Some(value.clone()))? {
                     Some(_) => None,
                     None => Some(value),
-                })
-            }
+                },
+            ),
             Self::Merge { operand: _ } => {
                 unreachable!()
             }
@@ -2257,8 +2313,8 @@ impl<O: RootOperand> SingleValueOperationWithoutIndex<O> {
         either: &Wrapper<SingleValueOperandWithoutIndex<O>>,
         or: &Wrapper<SingleValueOperandWithoutIndex<O>>,
     ) -> MedRecordResult<Option<MedRecordValue>> {
-        let either_result = either.evaluate_forward(medrecord, value.clone())?;
-        let or_result = or.evaluate_forward(medrecord, value)?;
+        let either_result = either.evaluate_forward(medrecord, Some(value.clone()))?;
+        let or_result = or.evaluate_forward(medrecord, Some(value))?;
 
         match (either_result, or_result) {
             (Some(either_result), _) => Ok(Some(either_result)),
