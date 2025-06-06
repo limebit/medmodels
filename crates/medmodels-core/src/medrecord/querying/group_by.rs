@@ -180,7 +180,9 @@ mod tests {
 
                 let grouped_edges = edges.group_by(EdgeOperandGroupDiscriminator::SourceNode);
 
-                (grouped_edges.index().count().merge().max(), nodes.index())
+                grouped_edges.index().count().merge().is_max();
+
+                (edges.index().count(), nodes.index())
             })
             .evaluate()
             .unwrap();

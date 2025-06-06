@@ -160,7 +160,7 @@ impl<O: RootOperand> AttributesTreeOperation<O> {
             Self::IsMax => {
                 let (attributes_1, attributes_2) = Itertools::tee(attributes);
 
-                let max_attributes = Self::get_max(attributes_1)?.collect::<MrHashMap<_, _>>();
+                let max_attributes: MrHashMap<_, _> = Self::get_max(attributes_1)?.collect();
 
                 Ok(Box::new(attributes_2.map(move |(index, attributes)| {
                     let max_attribute = max_attributes.get(&index).expect("Index must exist");
@@ -177,7 +177,7 @@ impl<O: RootOperand> AttributesTreeOperation<O> {
             Self::IsMin => {
                 let (attributes_1, attributes_2) = Itertools::tee(attributes);
 
-                let min_attributes = Self::get_min(attributes_1)?.collect::<MrHashMap<_, _>>();
+                let min_attributes: MrHashMap<_, _> = Self::get_min(attributes_1)?.collect();
 
                 Ok(Box::new(attributes_2.map(move |(index, attributes)| {
                     let min_attribute = min_attributes.get(&index).expect("Index must exist");

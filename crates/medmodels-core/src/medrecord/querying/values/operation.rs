@@ -355,7 +355,7 @@ impl<O: RootOperand> MultipleValuesOperationWithIndex<O> {
 
         let median = match first_value {
             MedRecordValue::Int(value) => {
-                let mut values = values.map(|value| {
+                let mut values: Vec<_> = values.map(|value| {
                     let data_type = DataType::from(&value);
 
                     match value {
@@ -366,14 +366,14 @@ impl<O: RootOperand> MultipleValuesOperationWithIndex<O> {
                             first_data_type, data_type
                         ))),
                     }
-                }).collect::<MedRecordResult<Vec<_>>>()?;
+                }).collect::<MedRecordResult<_>>()?;
                 values.push(value as f64);
                 values.sort_unstable_by(|a, b| a.partial_cmp(b).unwrap());
 
                 get_median!(values, Float)
             }
             MedRecordValue::Float(value) => {
-                let mut values = values.map(|value| {
+                let mut values: Vec<_> = values.map(|value| {
                     let data_type = DataType::from(&value);
 
                     match value {
@@ -384,14 +384,14 @@ impl<O: RootOperand> MultipleValuesOperationWithIndex<O> {
                             first_data_type, data_type
                         ))),
                     }
-                }).collect::<MedRecordResult<Vec<_>>>()?;
+                }).collect::<MedRecordResult<_>>()?;
                 values.push(value);
                 values.sort_unstable_by(|a, b| a.partial_cmp(b).unwrap());
 
                 get_median!(values, Float)
             }
             MedRecordValue::DateTime(value) => {
-                let mut values = values.map(|value| {
+                let mut values: Vec<_> = values.map(|value| {
                     let data_type = DataType::from(&value);
 
                     match value {
@@ -401,14 +401,14 @@ impl<O: RootOperand> MultipleValuesOperationWithIndex<O> {
                             first_data_type, data_type
                         ))),
                     }
-                }).collect::<MedRecordResult<Vec<_>>>()?;
+                }).collect::<MedRecordResult<_>>()?;
                 values.push(value);
                 values.sort();
 
                 get_median!(values, DateTime)
             }
             MedRecordValue::Duration(value) => {
-                let mut values = values.map(|value| {
+                let mut values: Vec<_> = values.map(|value| {
                     let data_type = DataType::from(&value);
 
                     match value {
@@ -418,7 +418,7 @@ impl<O: RootOperand> MultipleValuesOperationWithIndex<O> {
                             first_data_type, data_type
                         ))),
                     }
-                }).collect::<MedRecordResult<Vec<_>>>()?;
+                }).collect::<MedRecordResult<_>>()?;
                 values.push(value);
                 values.sort();
 
@@ -2054,23 +2054,12 @@ impl<O: RootOperand> SingleValueOperationWithIndex<O> {
 
                 let values_1 = operand
                     .evaluate_forward(medrecord, Box::new(values_1))?
-                    .map(|(index, _)| index)
                     .collect::<Vec<_>>();
 
                 Box::new(values_2.map(move |(key, value)| {
-                    (
-                        key,
-                        match value {
-                            Some(value) => {
-                                if values_1.contains(&value.0) {
-                                    Some(value)
-                                } else {
-                                    None
-                                }
-                            }
-                            None => None,
-                        },
-                    )
+                    let value = value.filter(|value| values_1.contains(value));
+
+                    (key, value)
                 }))
             }
         })

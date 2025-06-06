@@ -516,20 +516,42 @@ impl EdgeOperation {
 
     #[inline]
     fn evaluate_indices_grouped<'a>(
-        _medrecord: &MedRecord,
-        _edge_indices: GroupedIterator<'a, BoxedIterator<'a, &'a EdgeIndex>>,
-        _operand: Wrapper<EdgeIndicesOperand>,
+        medrecord: &'a MedRecord,
+        edge_indices: GroupedIterator<'a, BoxedIterator<'a, &'a EdgeIndex>>,
+        operand: Wrapper<EdgeIndicesOperand>,
     ) -> MedRecordResult<GroupedIterator<'a, BoxedIterator<'a, &'a EdgeIndex>>> {
-        // let (edge_indices_1, edge_indices_2) = Itertools::tee(edge_indices);
+        let (edge_indices_1, edge_indices_2) = tee_grouped_iterator(edge_indices);
 
-        // let result: HashSet<_> = operand
-        //     .evaluate_forward(medrecord, Box::new(edge_indices_1.cloned()))?
-        //     .collect();
+        let edge_indices_1 = edge_indices_1.map(|(key, edge_indices)| {
+            (
+                key,
+                Box::new(edge_indices.cloned()) as BoxedIterator<'a, EdgeIndex>,
+            )
+        });
 
-        // Ok(edge_indices_2
-        //     .into_iter()
-        //     .filter(move |index| result.contains(index)))
-        todo!()
+        let edge_indices_1 =
+            operand.evaluate_forward_grouped(medrecord, Box::new(edge_indices_1))?;
+
+        let edge_indices_1 = edge_indices_1
+            .map(|(key, edge_indices)| (key, edge_indices.collect::<HashSet<_>>()))
+            .collect::<Vec<_>>();
+
+        Ok(Box::new(edge_indices_2.map(move |(key, edge_indices)| {
+            let edge_indices_set = &edge_indices_1
+                .iter()
+                .find(|(k, _)| k == &key)
+                .expect("Key must exist")
+                .1;
+
+            let filtered_indices = edge_indices
+                .filter(|edge_index| edge_indices_set.contains(edge_index))
+                .collect::<Vec<_>>();
+
+            (
+                key,
+                Box::new(filtered_indices.into_iter()) as BoxedIterator<'a, &'a EdgeIndex>,
+            )
+        })))
     }
 
     #[inline]
@@ -926,7 +948,7 @@ impl EdgeIndicesOperation {
         operand: &Wrapper<EdgeIndexOperand>,
     ) -> MedRecordResult<GroupedIterator<'a, BoxedIterator<'a, EdgeIndex>>> {
         let (edge_indices_1, edge_indices_2) = tee_grouped_iterator(edge_indices);
-        let mut edge_indices_2 = edge_indices_2.collect::<Vec<_>>();
+        let mut edge_indices_2: Vec<_> = edge_indices_2.collect();
 
         let kind = &operand.0.read_or_panic().kind;
 
@@ -1148,9 +1170,39 @@ impl EdgeIndexOperation {
 impl EdgeIndexOperation {
     pub(crate) fn evaluate_grouped<'a>(
         &self,
-        _medrecord: &'a MedRecord,
-        _indices: GroupedIterator<'a, Option<EdgeIndex>>,
+        medrecord: &'a MedRecord,
+        edge_indices: GroupedIterator<'a, Option<EdgeIndex>>,
     ) -> MedRecordResult<GroupedIterator<'a, Option<EdgeIndex>>> {
-        todo!()
+        Ok(match self {
+            EdgeIndexOperation::EdgeIndexComparisonOperation {
+                operand: _,
+                kind: _,
+            } => todo!(),
+            EdgeIndexOperation::EdgeIndicesComparisonOperation {
+                operand: _,
+                kind: _,
+            } => todo!(),
+            EdgeIndexOperation::BinaryArithmeticOpration {
+                operand: _,
+                kind: _,
+            } => todo!(),
+            EdgeIndexOperation::EitherOr { either: _, or: _ } => todo!(),
+            EdgeIndexOperation::Exclude { operand: _ } => todo!(),
+            EdgeIndexOperation::Merge { operand } => {
+                let (edge_indices_1, edge_indices_2) = Itertools::tee(edge_indices);
+
+                let edge_indices_1 = edge_indices_1.filter_map(|(_, indices)| indices);
+
+                let edge_indices_1 = operand
+                    .evaluate_forward(medrecord, Box::new(edge_indices_1))?
+                    .collect::<HashSet<_>>();
+
+                Box::new(edge_indices_2.map(move |(key, edge_index)| {
+                    let edge_index = edge_index.filter(|index| edge_indices_1.contains(index));
+
+                    (key, edge_index)
+                }))
+            }
+        })
     }
 }
