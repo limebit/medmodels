@@ -14,7 +14,7 @@ use crate::{
             TrimEnd, TrimStart, Uppercase,
         },
         querying::{
-            values::MultipleValuesOperand, BoxedIterator, DeepClone, EvaluateForward,
+            values::MultipleValuesOperandWithIndex, BoxedIterator, DeepClone, EvaluateForward,
             GroupedIterator, OptionalIndexWrapper, ReadWriteOrPanic, RootOperand,
         },
         MedRecordAttribute, MedRecordValue, Wrapper,
@@ -733,7 +733,7 @@ pub enum MultipleAttributesOperation<O: RootOperand> {
     },
 
     ToValues {
-        operand: Wrapper<MultipleValuesOperand<O>>,
+        operand: Wrapper<MultipleValuesOperandWithIndex<O>>,
     },
 
     Slice(Range<usize>),
@@ -1166,7 +1166,7 @@ impl<O: RootOperand> MultipleAttributesOperation<O> {
     fn evaluate_to_values<'a>(
         medrecord: &'a MedRecord,
         attributes: impl Iterator<Item = (&'a O::Index, MedRecordAttribute)> + 'a,
-        operand: &Wrapper<MultipleValuesOperand<O>>,
+        operand: &Wrapper<MultipleValuesOperandWithIndex<O>>,
     ) -> MedRecordResult<impl Iterator<Item = (&'a O::Index, MedRecordAttribute)> + 'a>
     where
         O: 'a,

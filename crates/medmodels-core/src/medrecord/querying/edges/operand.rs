@@ -11,7 +11,7 @@ use crate::{
             group_by::{GroupKey, GroupOperand, PartitionGroups},
             nodes::{self, NodeOperand},
             operand_traits::Attribute,
-            values::{self, MultipleValuesOperand},
+            values::{self, MultipleValuesOperandWithIndex},
             wrapper::{CardinalityWrapper, Wrapper},
             BoxedIterator, DeepClone, EvaluateBackward, EvaluateForward, EvaluateForwardGrouped,
             GroupedIterator, ReadWriteOrPanic, ReduceInput, RootOperand,
@@ -249,13 +249,12 @@ impl RootOperand for EdgeOperand {
 }
 
 impl Attribute for EdgeOperand {
-    type ReturnOperand = MultipleValuesOperand<Self>;
+    type ReturnOperand = MultipleValuesOperandWithIndex<Self>;
 
     fn attribute(&mut self, attribute: MedRecordAttribute) -> Wrapper<Self::ReturnOperand> {
-        let operand = Wrapper::<MultipleValuesOperand<Self>>::new(values::Context::Operand((
-            self.deep_clone(),
-            attribute,
-        )));
+        let operand = Wrapper::<MultipleValuesOperandWithIndex<Self>>::new(
+            values::MultipleValuesWithIndexContext::Operand((self.deep_clone(), attribute)),
+        );
 
         self.operations.push(EdgeOperation::Values {
             operand: operand.clone(),

@@ -15,7 +15,7 @@ use crate::{
             group_by::{GroupOperand, PartitionGroups},
             nodes::NodeOperand,
             tee_grouped_iterator,
-            values::{Context, MultipleValuesOperand},
+            values::{MultipleValuesOperandWithIndex, MultipleValuesWithIndexContext},
             wrapper::{CardinalityWrapper, Wrapper},
             BoxedIterator, DeepClone, EvaluateForward, EvaluateForwardGrouped, GroupedIterator,
             ReadWriteOrPanic,
@@ -34,7 +34,7 @@ use std::{
 #[derive(Debug, Clone)]
 pub enum EdgeOperation {
     Values {
-        operand: Wrapper<MultipleValuesOperand<EdgeOperand>>,
+        operand: Wrapper<MultipleValuesOperandWithIndex<EdgeOperand>>,
     },
     Attributes {
         operand: Wrapper<AttributesTreeOperand<EdgeOperand>>,
@@ -203,9 +203,11 @@ impl EdgeOperation {
     fn evaluate_values<'a>(
         medrecord: &'a MedRecord,
         edge_indices: impl Iterator<Item = &'a EdgeIndex> + 'a,
-        operand: Wrapper<MultipleValuesOperand<EdgeOperand>>,
+        operand: Wrapper<MultipleValuesOperandWithIndex<EdgeOperand>>,
     ) -> MedRecordResult<impl Iterator<Item = &'a EdgeIndex>> {
-        let Context::Operand((_, ref attribute)) = operand.0.read_or_panic().context else {
+        let MultipleValuesWithIndexContext::Operand((_, ref attribute)) =
+            operand.0.read_or_panic().context
+        else {
             unreachable!()
         };
 
@@ -453,19 +455,25 @@ impl EdgeOperation {
     fn evaluate_values_grouped<'a>(
         medrecord: &'a MedRecord,
         edge_indices: GroupedIterator<'a, BoxedIterator<'a, &'a EdgeIndex>>,
-        operand: Wrapper<MultipleValuesOperand<EdgeOperand>>,
+        operand: Wrapper<MultipleValuesOperandWithIndex<EdgeOperand>>,
     ) -> MedRecordResult<GroupedIterator<'a, BoxedIterator<'a, &'a EdgeIndex>>> {
-        let Context::Operand((_, ref attribute)) = operand.0.read_or_panic().context else {
+        let MultipleValuesWithIndexContext::Operand((_, ref attribute)) =
+            operand.0.read_or_panic().context
+        else {
             unreachable!()
         };
 
-        let values: Vec<_> =
-            edge_indices
-                .map(|(key, edge_indices)| {
-                    (key, Box::new(Self::get_values(medrecord, edge_indices, attribute.clone()))
-                    as <MultipleValuesOperand<EdgeOperand> as EvaluateForward<'a>>::InputValue)
-                })
-                .collect();
+        let values: Vec<_> = edge_indices
+            .map(|(key, edge_indices)| {
+                (
+                        key,
+                        Box::new(Self::get_values(medrecord, edge_indices, attribute.clone()))
+                            as <MultipleValuesOperandWithIndex<EdgeOperand> as EvaluateForward<
+                                'a,
+                            >>::InputValue,
+                    )
+            })
+            .collect();
 
         Ok(Box::new(
             operand

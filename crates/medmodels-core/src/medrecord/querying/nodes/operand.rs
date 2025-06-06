@@ -10,7 +10,7 @@ use crate::{
             attributes::AttributesTreeOperand,
             edges::{self, EdgeOperand, EdgeOperandGroupDiscriminator},
             group_by::GroupOperand,
-            values::{self, MultipleValuesOperand},
+            values::{self, MultipleValuesOperandWithIndex},
             wrapper::{CardinalityWrapper, Wrapper},
             BoxedIterator, DeepClone, EvaluateBackward, EvaluateForward, EvaluateForwardGrouped,
             GroupedIterator, ReadWriteOrPanic, ReduceInput, RootOperand,
@@ -153,11 +153,10 @@ impl NodeOperand {
     pub fn attribute(
         &mut self,
         attribute: MedRecordAttribute,
-    ) -> Wrapper<MultipleValuesOperand<Self>> {
-        let operand = Wrapper::<MultipleValuesOperand<Self>>::new(values::Context::Operand((
-            self.deep_clone(),
-            attribute,
-        )));
+    ) -> Wrapper<MultipleValuesOperandWithIndex<Self>> {
+        let operand = Wrapper::<MultipleValuesOperandWithIndex<Self>>::new(
+            values::MultipleValuesWithIndexContext::Operand((self.deep_clone(), attribute)),
+        );
 
         self.operations.push(NodeOperation::Values {
             operand: operand.clone(),
@@ -266,7 +265,10 @@ impl Wrapper<NodeOperand> {
         NodeOperand::new(context).into()
     }
 
-    pub fn attribute<A>(&mut self, attribute: A) -> Wrapper<MultipleValuesOperand<NodeOperand>>
+    pub fn attribute<A>(
+        &mut self,
+        attribute: A,
+    ) -> Wrapper<MultipleValuesOperandWithIndex<NodeOperand>>
     where
         A: Into<MedRecordAttribute>,
     {

@@ -29,8 +29,9 @@ use std::{
     sync::{RwLock, RwLockReadGuard, RwLockWriteGuard},
 };
 use values::{
-    EdgeMultipleValuesOperand, EdgeSingleValueOperandWithIndex, GetValues,
-    NodeMultipleValuesOperand, NodeSingleValueOperandWithIndex,
+    EdgeMultipleValuesOperandWithIndex, EdgeMultipleValuesOperandWithoutIndex,
+    EdgeSingleValueOperandWithIndex, GetValues, NodeMultipleValuesOperandWithIndex,
+    NodeMultipleValuesOperandWithoutIndex, NodeSingleValueOperandWithIndex,
 };
 
 macro_rules! impl_return_operand_for_tuples {
@@ -459,8 +460,10 @@ impl_iterator_return_operand!(
     EdgeMultipleAttributesOperand => (&'a EdgeIndex, MedRecordAttribute),
     EdgeIndicesOperand            => EdgeIndex,
     NodeIndicesOperand            => NodeIndex,
-    NodeMultipleValuesOperand     => (&'a NodeIndex, MedRecordValue),
-    EdgeMultipleValuesOperand     => (&'a EdgeIndex, MedRecordValue),
+    NodeMultipleValuesOperandWithIndex     => (&'a NodeIndex, MedRecordValue),
+    NodeMultipleValuesOperandWithoutIndex  => MedRecordValue,
+    EdgeMultipleValuesOperandWithIndex     => (&'a EdgeIndex, MedRecordValue),
+    EdgeMultipleValuesOperandWithoutIndex  => MedRecordValue,
 );
 
 impl_direct_return_operand!(
@@ -469,9 +472,9 @@ impl_direct_return_operand!(
     EdgeIndexOperand           => Option<EdgeIndex>,
     NodeIndexOperand           => Option<NodeIndex>,
     NodeSingleValueOperandWithIndex     => Option<(&'a NodeIndex, MedRecordValue)>,
-    NodeSingleValueOperandWithoutIndex     => Option<MedRecordValue>,
+    NodeSingleValueOperandWithoutIndex  => Option<MedRecordValue>,
     EdgeSingleValueOperandWithIndex     => Option<(&'a EdgeIndex, MedRecordValue)>,
-    EdgeSingleValueOperandWithoutIndex     => Option<MedRecordValue>,
+    EdgeSingleValueOperandWithoutIndex  => Option<MedRecordValue>,
 );
 
 impl<'a, O: GroupedOperand> ReturnOperand<'a> for Wrapper<GroupOperand<O>>

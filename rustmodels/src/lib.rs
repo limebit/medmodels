@@ -16,8 +16,9 @@ use medrecord::{
         edges::{PyEdgeIndexOperand, PyEdgeIndicesOperand, PyEdgeOperand},
         nodes::{PyEdgeDirection, PyNodeIndexOperand, PyNodeIndicesOperand, PyNodeOperand},
         values::{
-            PyEdgeMultipleValuesOperand, PyEdgeSingleValueOperandWithIndex,
-            PyEdgeSingleValueOperandWithoutIndex, PyNodeMultipleValuesOperand,
+            PyEdgeMultipleValuesOperandWithIndex, PyEdgeMultipleValuesOperandWithoutIndex,
+            PyEdgeSingleValueOperandWithIndex, PyEdgeSingleValueOperandWithoutIndex,
+            PyNodeMultipleValuesOperandWithIndex, PyNodeMultipleValuesOperandWithoutIndex,
             PyNodeSingleValueOperandWithIndex, PyNodeSingleValueOperandWithoutIndex,
         },
     },
@@ -57,8 +58,10 @@ fn _medmodels(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyEdgeIndicesOperand>()?;
     m.add_class::<PyEdgeIndexOperand>()?;
 
-    m.add_class::<PyNodeMultipleValuesOperand>()?;
-    m.add_class::<PyEdgeMultipleValuesOperand>()?;
+    m.add_class::<PyNodeMultipleValuesOperandWithIndex>()?;
+    m.add_class::<PyNodeMultipleValuesOperandWithoutIndex>()?;
+    m.add_class::<PyEdgeMultipleValuesOperandWithIndex>()?;
+    m.add_class::<PyEdgeMultipleValuesOperandWithoutIndex>()?;
     m.add_class::<PyNodeSingleValueOperandWithIndex>()?;
     m.add_class::<PyNodeSingleValueOperandWithoutIndex>()?;
     m.add_class::<PyEdgeSingleValueOperandWithIndex>()?;

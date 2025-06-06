@@ -158,7 +158,9 @@ mod tests {
 
                 let group_by = edges.group_by(EdgeOperandGroupDiscriminator::Parallel);
 
-                group_by.attribute("duration_days").max().merge().is_max();
+                let test = group_by.attribute("duration_days").max();
+
+                test.merge().is_max();
 
                 edges.index()
             })

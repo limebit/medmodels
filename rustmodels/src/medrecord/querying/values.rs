@@ -6,9 +6,9 @@ use medmodels_core::{
             edges::EdgeOperand,
             nodes::NodeOperand,
             values::{
-                MultipleValuesComparisonOperand, MultipleValuesOperand,
-                SingleValueComparisonOperand, SingleValueOperandWithIndex,
-                SingleValueOperandWithoutIndex,
+                MultipleValuesComparisonOperand, MultipleValuesOperandWithIndex,
+                MultipleValuesOperandWithoutIndex, SingleValueComparisonOperand,
+                SingleValueOperandWithIndex, SingleValueOperandWithoutIndex,
             },
             wrapper::Wrapper,
             DeepClone,
@@ -44,7 +44,11 @@ impl FromPyObject<'_> for PySingleValueComparisonOperand {
             Ok(SingleValueComparisonOperand::Value(value.into()).into())
         } else if let Ok(operand) = ob.extract::<PyNodeSingleValueOperandWithIndex>() {
             Ok(PySingleValueComparisonOperand(operand.0.into()))
+        } else if let Ok(operand) = ob.extract::<PyNodeSingleValueOperandWithoutIndex>() {
+            Ok(PySingleValueComparisonOperand(operand.0.into()))
         } else if let Ok(operand) = ob.extract::<PyEdgeSingleValueOperandWithIndex>() {
+            Ok(PySingleValueComparisonOperand(operand.0.into()))
+        } else if let Ok(operand) = ob.extract::<PyEdgeSingleValueOperandWithoutIndex>() {
             Ok(PySingleValueComparisonOperand(operand.0.into()))
         } else {
             Err(
@@ -80,9 +84,13 @@ impl FromPyObject<'_> for PyMultipleValuesComparisonOperand {
                 values.into_iter().map(MedRecordValue::from).collect(),
             )
             .into())
-        } else if let Ok(operand) = ob.extract::<PyNodeMultipleValuesOperand>() {
+        } else if let Ok(operand) = ob.extract::<PyNodeMultipleValuesOperandWithIndex>() {
             Ok(PyMultipleValuesComparisonOperand(operand.0.into()))
-        } else if let Ok(operand) = ob.extract::<PyEdgeMultipleValuesOperand>() {
+        } else if let Ok(operand) = ob.extract::<PyNodeMultipleValuesOperandWithoutIndex>() {
+            Ok(PyMultipleValuesComparisonOperand(operand.0.into()))
+        } else if let Ok(operand) = ob.extract::<PyEdgeMultipleValuesOperandWithIndex>() {
+            Ok(PyMultipleValuesComparisonOperand(operand.0.into()))
+        } else if let Ok(operand) = ob.extract::<PyEdgeMultipleValuesOperandWithoutIndex>() {
             Ok(PyMultipleValuesComparisonOperand(operand.0.into()))
         } else {
             Err(
@@ -97,26 +105,26 @@ impl FromPyObject<'_> for PyMultipleValuesComparisonOperand {
 }
 
 macro_rules! implement_multiple_values_operand {
-    ($name:ident, $generic:ty, $py_single_value_operand_with_index:ty, $py_single_value_operand_without_index:ty) => {
+    ($name:ident, $kind:ident, $generic:ty, $py_single_value_operand_with_index:ty, $py_single_value_operand_without_index:ty) => {
         #[pyclass]
         #[repr(transparent)]
         #[derive(Clone)]
-        pub struct $name(Wrapper<MultipleValuesOperand<$generic>>);
+        pub struct $name(Wrapper<$kind<$generic>>);
 
-        impl From<Wrapper<MultipleValuesOperand<$generic>>> for $name {
-            fn from(operand: Wrapper<MultipleValuesOperand<$generic>>) -> Self {
+        impl From<Wrapper<$kind<$generic>>> for $name {
+            fn from(operand: Wrapper<$kind<$generic>>) -> Self {
                 Self(operand)
             }
         }
 
-        impl From<$name> for Wrapper<MultipleValuesOperand<$generic>> {
+        impl From<$name> for Wrapper<$kind<$generic>> {
             fn from(operand: $name) -> Self {
                 operand.0
             }
         }
 
         impl Deref for $name {
-            type Target = Wrapper<MultipleValuesOperand<$generic>>;
+            type Target = Wrapper<$kind<$generic>>;
 
             fn deref(&self) -> &Self::Target {
                 &self.0
@@ -347,15 +355,31 @@ macro_rules! implement_multiple_values_operand {
 }
 
 implement_multiple_values_operand!(
-    PyNodeMultipleValuesOperand,
+    PyNodeMultipleValuesOperandWithIndex,
+    MultipleValuesOperandWithIndex,
     NodeOperand,
     PyNodeSingleValueOperandWithIndex,
     PyNodeSingleValueOperandWithoutIndex
 );
 implement_multiple_values_operand!(
-    PyEdgeMultipleValuesOperand,
+    PyNodeMultipleValuesOperandWithoutIndex,
+    MultipleValuesOperandWithoutIndex,
+    NodeOperand,
+    PyNodeSingleValueOperandWithoutIndex,
+    PyNodeSingleValueOperandWithoutIndex
+);
+implement_multiple_values_operand!(
+    PyEdgeMultipleValuesOperandWithIndex,
+    MultipleValuesOperandWithIndex,
     EdgeOperand,
     PyEdgeSingleValueOperandWithIndex,
+    PyEdgeSingleValueOperandWithoutIndex
+);
+implement_multiple_values_operand!(
+    PyEdgeMultipleValuesOperandWithoutIndex,
+    MultipleValuesOperandWithoutIndex,
+    EdgeOperand,
+    PyEdgeSingleValueOperandWithoutIndex,
     PyEdgeSingleValueOperandWithoutIndex
 );
 

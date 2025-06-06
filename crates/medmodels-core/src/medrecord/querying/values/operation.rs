@@ -1,7 +1,7 @@
 use super::{
     operand::{
-        MultipleValuesComparisonOperand, MultipleValuesOperand, SingleValueComparisonOperand,
-        SingleValueOperandWithIndex,
+        MultipleValuesComparisonOperand, MultipleValuesOperandWithIndex,
+        SingleValueComparisonOperand, SingleValueOperandWithIndex,
     },
     BinaryArithmeticKind, MultipleComparisonKind, SingleComparisonKind, SingleKindWithIndex,
     UnaryArithmeticKind,
@@ -15,7 +15,10 @@ use crate::{
         },
         querying::{
             tee_grouped_iterator,
-            values::{operand::SingleValueOperandWithoutIndex, SingleKindWithoutIndex},
+            values::{
+                operand::{MultipleValuesOperandWithoutIndex, SingleValueOperandWithoutIndex},
+                SingleKindWithoutIndex,
+            },
             BoxedIterator, DeepClone, EvaluateForward, EvaluateForwardGrouped, GroupedIterator,
             ReadWriteOrPanic, RootOperand,
         },
@@ -54,7 +57,7 @@ macro_rules! get_median {
 }
 
 #[derive(Debug, Clone)]
-pub enum MultipleValuesOperation<O: RootOperand> {
+pub enum MultipleValuesOperationWithIndex<O: RootOperand> {
     ValueOperationWithIndex {
         operand: Wrapper<SingleValueOperandWithIndex<O>>,
     },
@@ -91,15 +94,15 @@ pub enum MultipleValuesOperation<O: RootOperand> {
     IsMin,
 
     EitherOr {
-        either: Wrapper<MultipleValuesOperand<O>>,
-        or: Wrapper<MultipleValuesOperand<O>>,
+        either: Wrapper<MultipleValuesOperandWithIndex<O>>,
+        or: Wrapper<MultipleValuesOperandWithIndex<O>>,
     },
     Exclude {
-        operand: Wrapper<MultipleValuesOperand<O>>,
+        operand: Wrapper<MultipleValuesOperandWithIndex<O>>,
     },
 }
 
-impl<O: RootOperand> DeepClone for MultipleValuesOperation<O> {
+impl<O: RootOperand> DeepClone for MultipleValuesOperationWithIndex<O> {
     fn deep_clone(&self) -> Self {
         match self {
             Self::ValueOperationWithIndex { operand } => Self::ValueOperationWithIndex {
@@ -148,7 +151,7 @@ impl<O: RootOperand> DeepClone for MultipleValuesOperation<O> {
     }
 }
 
-impl<O: RootOperand> MultipleValuesOperation<O> {
+impl<O: RootOperand> MultipleValuesOperationWithIndex<O> {
     pub(crate) fn evaluate<'a>(
         &self,
         medrecord: &'a MedRecord,
@@ -291,7 +294,7 @@ impl<O: RootOperand> MultipleValuesOperation<O> {
 
     #[inline]
     pub(crate) fn get_mean<'a>(
-        mut values: impl Iterator<Item = (&'a O::Index, MedRecordValue)>,
+        mut values: impl Iterator<Item = MedRecordValue>,
     ) -> MedRecordResult<MedRecordValue>
     where
         O: 'a,
@@ -300,7 +303,7 @@ impl<O: RootOperand> MultipleValuesOperation<O> {
             "No values to compare".to_string(),
         ))?;
 
-        let (sum, count) = values.try_fold((first_value.1, 1), |(sum, count), (_, value)| {
+        let (sum, count) = values.try_fold((first_value, 1), |(sum, count), value| {
             let first_dtype = DataType::from(&sum);
             let second_dtype = DataType::from(&value);
 
@@ -319,7 +322,7 @@ impl<O: RootOperand> MultipleValuesOperation<O> {
     // TODO: This is a temporary solution. It should be optimized.
     #[inline]
     pub(crate) fn get_median<'a>(
-        mut values: impl Iterator<Item = (&'a O::Index, MedRecordValue)>,
+        mut values: impl Iterator<Item = MedRecordValue>,
     ) -> MedRecordResult<MedRecordValue>
     where
         O: 'a,
@@ -328,11 +331,11 @@ impl<O: RootOperand> MultipleValuesOperation<O> {
             "No values to compare".to_string(),
         ))?;
 
-        let first_data_type = DataType::from(&first_value.1);
+        let first_data_type = DataType::from(&first_value);
 
-        match first_value.1 {
+        match first_value {
             MedRecordValue::Int(value) => {
-                let mut values = values.map(|(_, value)| {
+                let mut values = values.map(|value| {
                     let data_type = DataType::from(&value);
 
                     match value {
@@ -350,7 +353,7 @@ impl<O: RootOperand> MultipleValuesOperation<O> {
                 get_median!(values, Float)
             }
             MedRecordValue::Float(value) => {
-                let mut values = values.map(|(_, value)| {
+                let mut values = values.map(|value| {
                     let data_type = DataType::from(&value);
 
                     match value {
@@ -368,7 +371,7 @@ impl<O: RootOperand> MultipleValuesOperation<O> {
                 get_median!(values, Float)
             }
             MedRecordValue::DateTime(value) => {
-                let mut values = values.map(|(_, value)| {
+                let mut values = values.map(|value| {
                     let data_type = DataType::from(&value);
 
                     match value {
@@ -385,7 +388,7 @@ impl<O: RootOperand> MultipleValuesOperation<O> {
                 get_median!(values, DateTime)
             }
             MedRecordValue::Duration(value) => {
-                let mut values = values.map(|(_, value)| {
+                let mut values = values.map(|value| {
                     let data_type = DataType::from(&value);
 
                     match value {
@@ -411,12 +414,12 @@ impl<O: RootOperand> MultipleValuesOperation<O> {
     // TODO: This is a temporary solution. It should be optimized.
     #[inline]
     pub(crate) fn get_mode<'a>(
-        values: impl Iterator<Item = (&'a O::Index, MedRecordValue)>,
+        values: impl Iterator<Item = MedRecordValue>,
     ) -> MedRecordResult<MedRecordValue>
     where
         O: 'a,
     {
-        let values: Vec<_> = values.map(|(_, value)| value).collect();
+        let values: Vec<_> = values.collect();
 
         let most_common_value = values
             .first()
@@ -448,7 +451,7 @@ impl<O: RootOperand> MultipleValuesOperation<O> {
     #[inline]
     // 👀
     pub(crate) fn get_std<'a>(
-        values: impl Iterator<Item = (&'a O::Index, MedRecordValue)>,
+        values: impl Iterator<Item = MedRecordValue>,
     ) -> MedRecordResult<MedRecordValue>
     where
         O: 'a,
@@ -465,14 +468,14 @@ impl<O: RootOperand> MultipleValuesOperation<O> {
     // TODO: This is a temporary solution. It should be optimized.
     #[inline]
     pub(crate) fn get_var<'a>(
-        values: impl Iterator<Item = (&'a O::Index, MedRecordValue)>,
+        values: impl Iterator<Item = MedRecordValue>,
     ) -> MedRecordResult<MedRecordValue>
     where
         O: 'a,
     {
-        let values: Vec<_> = values.collect();
+        let (values_1, values_2) = Itertools::tee(values);
 
-        let mean = Self::get_mean(values.clone().into_iter())?;
+        let mean = Self::get_mean(values_1)?;
 
         let MedRecordValue::Float(mean) = mean else {
             let data_type = DataType::from(mean);
@@ -482,12 +485,12 @@ impl<O: RootOperand> MultipleValuesOperation<O> {
             ));
         };
 
-        let values = values
+        let values = values_2
             .into_iter()
             .map(|value| {
-                let data_type = DataType::from(&value.1);
+                let data_type = DataType::from(&value);
 
-                match value.1 {
+                match value {
                 MedRecordValue::Int(value) => Ok(value as f64),
                 MedRecordValue::Float(value) => Ok(value),
                 _ => Err(MedRecordError::QueryError(
@@ -508,9 +511,7 @@ impl<O: RootOperand> MultipleValuesOperation<O> {
     }
 
     #[inline]
-    pub(crate) fn get_count<'a>(
-        values: impl Iterator<Item = (&'a O::Index, MedRecordValue)>,
-    ) -> MedRecordValue
+    pub(crate) fn get_count<'a>(values: impl Iterator<Item = MedRecordValue>) -> MedRecordValue
     where
         O: 'a,
     {
@@ -520,7 +521,7 @@ impl<O: RootOperand> MultipleValuesOperation<O> {
     #[inline]
     // 🥊💥
     pub(crate) fn get_sum<'a>(
-        mut values: impl Iterator<Item = (&'a O::Index, MedRecordValue)>,
+        mut values: impl Iterator<Item = MedRecordValue>,
     ) -> MedRecordResult<MedRecordValue>
     where
         O: 'a,
@@ -529,7 +530,7 @@ impl<O: RootOperand> MultipleValuesOperation<O> {
             "No values to compare".to_string(),
         ))?;
 
-        values.try_fold(first_value.1, |sum, (_, value)| {
+        values.try_fold(first_value, |sum, value| {
             let first_dtype = DataType::from(&sum);
             let second_dtype = DataType::from(&value);
 
@@ -565,9 +566,11 @@ impl<O: RootOperand> MultipleValuesOperation<O> {
         let kind = &operand.0.read_or_panic().kind;
 
         let value = match kind {
-            SingleKindWithIndex::Max => MultipleValuesOperation::<O>::get_max(values_1)?,
-            SingleKindWithIndex::Min => MultipleValuesOperation::<O>::get_min(values_1)?,
-            SingleKindWithIndex::Random => MultipleValuesOperation::<O>::get_random(values_1)?,
+            SingleKindWithIndex::Max => MultipleValuesOperationWithIndex::<O>::get_max(values_1)?,
+            SingleKindWithIndex::Min => MultipleValuesOperationWithIndex::<O>::get_min(values_1)?,
+            SingleKindWithIndex::Random => {
+                MultipleValuesOperationWithIndex::<O>::get_random(values_1)?
+            }
         };
 
         Ok(match operand.evaluate_forward(medrecord, value)? {
@@ -586,17 +589,35 @@ impl<O: RootOperand> MultipleValuesOperation<O> {
         O: 'a,
     {
         let (values_1, values_2) = Itertools::tee(values);
+        let values_1 = values_1.map(|(_, value)| value);
 
         let kind = &operand.0.read_or_panic().kind;
 
         let value = match kind {
-            SingleKindWithoutIndex::Mean => MultipleValuesOperation::<O>::get_mean(values_1)?,
-            SingleKindWithoutIndex::Median => MultipleValuesOperation::<O>::get_median(values_1)?,
-            SingleKindWithoutIndex::Mode => MultipleValuesOperation::<O>::get_mode(values_1)?,
-            SingleKindWithoutIndex::Std => MultipleValuesOperation::<O>::get_std(values_1)?,
-            SingleKindWithoutIndex::Var => MultipleValuesOperation::<O>::get_var(values_1)?,
-            SingleKindWithoutIndex::Count => MultipleValuesOperation::<O>::get_count(values_1),
-            SingleKindWithoutIndex::Sum => MultipleValuesOperation::<O>::get_sum(values_1)?,
+            SingleKindWithoutIndex::Max => todo!(),
+            SingleKindWithoutIndex::Min => todo!(),
+            SingleKindWithoutIndex::Mean => {
+                MultipleValuesOperationWithIndex::<O>::get_mean(values_1)?
+            }
+            SingleKindWithoutIndex::Median => {
+                MultipleValuesOperationWithIndex::<O>::get_median(values_1)?
+            }
+            SingleKindWithoutIndex::Mode => {
+                MultipleValuesOperationWithIndex::<O>::get_mode(values_1)?
+            }
+            SingleKindWithoutIndex::Std => {
+                MultipleValuesOperationWithIndex::<O>::get_std(values_1)?
+            }
+            SingleKindWithoutIndex::Var => {
+                MultipleValuesOperationWithIndex::<O>::get_var(values_1)?
+            }
+            SingleKindWithoutIndex::Count => {
+                MultipleValuesOperationWithIndex::<O>::get_count(values_1)
+            }
+            SingleKindWithoutIndex::Sum => {
+                MultipleValuesOperationWithIndex::<O>::get_sum(values_1)?
+            }
+            SingleKindWithoutIndex::Random => todo!(),
         };
 
         Ok(match operand.evaluate_forward(medrecord, value)? {
@@ -765,8 +786,8 @@ impl<O: RootOperand> MultipleValuesOperation<O> {
     fn evaluate_either_or<'a>(
         medrecord: &'a MedRecord,
         values: impl Iterator<Item = (&'a O::Index, MedRecordValue)> + 'a,
-        either: &Wrapper<MultipleValuesOperand<O>>,
-        or: &Wrapper<MultipleValuesOperand<O>>,
+        either: &Wrapper<MultipleValuesOperandWithIndex<O>>,
+        or: &Wrapper<MultipleValuesOperandWithIndex<O>>,
     ) -> MedRecordResult<BoxedIterator<'a, (&'a O::Index, MedRecordValue)>>
     where
         O: 'a,
@@ -787,7 +808,7 @@ impl<O: RootOperand> MultipleValuesOperation<O> {
     fn evaluate_exclude<'a>(
         medrecord: &'a MedRecord,
         values: impl Iterator<Item = (&'a O::Index, MedRecordValue)> + 'a,
-        operand: &Wrapper<MultipleValuesOperand<O>>,
+        operand: &Wrapper<MultipleValuesOperandWithIndex<O>>,
     ) -> MedRecordResult<BoxedIterator<'a, (&'a O::Index, MedRecordValue)>>
     where
         O: 'a,
@@ -803,7 +824,7 @@ impl<O: RootOperand> MultipleValuesOperation<O> {
     }
 }
 
-impl<O: RootOperand> MultipleValuesOperation<O> {
+impl<O: RootOperand> MultipleValuesOperationWithIndex<O> {
     #[allow(clippy::type_complexity)]
     pub(crate) fn evaluate_grouped<'a>(
         &self,
@@ -814,33 +835,19 @@ impl<O: RootOperand> MultipleValuesOperation<O> {
         O: 'a,
     {
         Ok(match self {
-            MultipleValuesOperation::ValueOperationWithIndex { operand } => Box::new(
+            MultipleValuesOperationWithIndex::ValueOperationWithIndex { operand } => Box::new(
                 Self::evaluate_value_operation_with_index_grouped(medrecord, values, operand)?,
             ),
-            MultipleValuesOperation::ValueOperationWithoutIndex { operand } => Box::new(
+            MultipleValuesOperationWithIndex::ValueOperationWithoutIndex { operand } => Box::new(
                 Self::evaluate_value_operation_without_index_grouped(medrecord, values, operand)?,
             ),
-            MultipleValuesOperation::SingleValueComparisonOperation { operand, kind } => Box::new(
-                values
-                    .map(move |(key, values)| {
-                        Ok((
-                            key,
-                            Box::new(Self::evaluate_single_value_comparison_operation(
-                                medrecord, values, operand, kind,
-                            )?)
-                                as BoxedIterator<'a, (&'a O::Index, MedRecordValue)>,
-                        ))
-                    })
-                    .collect::<MedRecordResult<Vec<_>>>()?
-                    .into_iter(),
-            ),
-            MultipleValuesOperation::MultipleValuesComparisonOperation { operand, kind } => {
+            MultipleValuesOperationWithIndex::SingleValueComparisonOperation { operand, kind } => {
                 Box::new(
                     values
                         .map(move |(key, values)| {
                             Ok((
                                 key,
-                                Box::new(Self::evaluate_multiple_values_comparison_operation(
+                                Box::new(Self::evaluate_single_value_comparison_operation(
                                     medrecord, values, operand, kind,
                                 )?)
                                     as BoxedIterator<'a, (&'a O::Index, MedRecordValue)>,
@@ -850,12 +857,15 @@ impl<O: RootOperand> MultipleValuesOperation<O> {
                         .into_iter(),
                 )
             }
-            MultipleValuesOperation::BinaryArithmeticOpration { operand, kind } => Box::new(
+            MultipleValuesOperationWithIndex::MultipleValuesComparisonOperation {
+                operand,
+                kind,
+            } => Box::new(
                 values
                     .map(move |(key, values)| {
                         Ok((
                             key,
-                            Box::new(Self::evaluate_binary_arithmetic_operation(
+                            Box::new(Self::evaluate_multiple_values_comparison_operation(
                                 medrecord, values, operand, kind,
                             )?)
                                 as BoxedIterator<'a, (&'a O::Index, MedRecordValue)>,
@@ -864,7 +874,23 @@ impl<O: RootOperand> MultipleValuesOperation<O> {
                     .collect::<MedRecordResult<Vec<_>>>()?
                     .into_iter(),
             ),
-            MultipleValuesOperation::UnaryArithmeticOperation { kind } => Box::new(
+            MultipleValuesOperationWithIndex::BinaryArithmeticOpration { operand, kind } => {
+                Box::new(
+                    values
+                        .map(move |(key, values)| {
+                            Ok((
+                                key,
+                                Box::new(Self::evaluate_binary_arithmetic_operation(
+                                    medrecord, values, operand, kind,
+                                )?)
+                                    as BoxedIterator<'a, (&'a O::Index, MedRecordValue)>,
+                            ))
+                        })
+                        .collect::<MedRecordResult<Vec<_>>>()?
+                        .into_iter(),
+                )
+            }
+            MultipleValuesOperationWithIndex::UnaryArithmeticOperation { kind } => Box::new(
                 values
                     .map(move |(key, values)| {
                         Ok((
@@ -879,7 +905,7 @@ impl<O: RootOperand> MultipleValuesOperation<O> {
                     .collect::<MedRecordResult<Vec<_>>>()?
                     .into_iter(),
             ),
-            MultipleValuesOperation::Slice(range) => Box::new(
+            MultipleValuesOperationWithIndex::Slice(range) => Box::new(
                 values
                     .map(move |(key, values)| {
                         Ok((
@@ -891,17 +917,17 @@ impl<O: RootOperand> MultipleValuesOperation<O> {
                     .collect::<MedRecordResult<Vec<_>>>()?
                     .into_iter(),
             ),
-            MultipleValuesOperation::IsString => todo!(),
-            MultipleValuesOperation::IsInt => todo!(),
-            MultipleValuesOperation::IsFloat => todo!(),
-            MultipleValuesOperation::IsBool => todo!(),
-            MultipleValuesOperation::IsDateTime => todo!(),
-            MultipleValuesOperation::IsDuration => todo!(),
-            MultipleValuesOperation::IsNull => todo!(),
-            MultipleValuesOperation::IsMax => todo!(),
-            MultipleValuesOperation::IsMin => todo!(),
-            MultipleValuesOperation::EitherOr { either: _, or: _ } => todo!(),
-            MultipleValuesOperation::Exclude { operand: _ } => todo!(),
+            MultipleValuesOperationWithIndex::IsString => todo!(),
+            MultipleValuesOperationWithIndex::IsInt => todo!(),
+            MultipleValuesOperationWithIndex::IsFloat => todo!(),
+            MultipleValuesOperationWithIndex::IsBool => todo!(),
+            MultipleValuesOperationWithIndex::IsDateTime => todo!(),
+            MultipleValuesOperationWithIndex::IsDuration => todo!(),
+            MultipleValuesOperationWithIndex::IsNull => todo!(),
+            MultipleValuesOperationWithIndex::IsMax => todo!(),
+            MultipleValuesOperationWithIndex::IsMin => todo!(),
+            MultipleValuesOperationWithIndex::EitherOr { either: _, or: _ } => todo!(),
+            MultipleValuesOperationWithIndex::Exclude { operand: _ } => todo!(),
         })
     }
 
@@ -923,10 +949,14 @@ impl<O: RootOperand> MultipleValuesOperation<O> {
         let values_1: Vec<_> = values_1
             .map(|(key, values)| {
                 let value = match kind {
-                    SingleKindWithIndex::Max => MultipleValuesOperation::<O>::get_max(values)?,
-                    SingleKindWithIndex::Min => MultipleValuesOperation::<O>::get_min(values)?,
+                    SingleKindWithIndex::Max => {
+                        MultipleValuesOperationWithIndex::<O>::get_max(values)?
+                    }
+                    SingleKindWithIndex::Min => {
+                        MultipleValuesOperationWithIndex::<O>::get_min(values)?
+                    }
                     SingleKindWithIndex::Random => {
-                        MultipleValuesOperation::<O>::get_random(values)?
+                        MultipleValuesOperationWithIndex::<O>::get_random(values)?
                     }
                 };
 
@@ -970,18 +1000,33 @@ impl<O: RootOperand> MultipleValuesOperation<O> {
 
         let values_1: Vec<_> = values_1
             .map(|(key, values)| {
+                let values = values.map(|(_, value)| value);
+
                 let value = match kind {
-                    SingleKindWithoutIndex::Mean => MultipleValuesOperation::<O>::get_mean(values)?,
+                    SingleKindWithoutIndex::Max => todo!(),
+                    SingleKindWithoutIndex::Min => todo!(),
+                    SingleKindWithoutIndex::Mean => {
+                        MultipleValuesOperationWithIndex::<O>::get_mean(values)?
+                    }
                     SingleKindWithoutIndex::Median => {
-                        MultipleValuesOperation::<O>::get_median(values)?
+                        MultipleValuesOperationWithIndex::<O>::get_median(values)?
                     }
-                    SingleKindWithoutIndex::Mode => MultipleValuesOperation::<O>::get_mode(values)?,
-                    SingleKindWithoutIndex::Std => MultipleValuesOperation::<O>::get_std(values)?,
-                    SingleKindWithoutIndex::Var => MultipleValuesOperation::<O>::get_var(values)?,
+                    SingleKindWithoutIndex::Mode => {
+                        MultipleValuesOperationWithIndex::<O>::get_mode(values)?
+                    }
+                    SingleKindWithoutIndex::Std => {
+                        MultipleValuesOperationWithIndex::<O>::get_std(values)?
+                    }
+                    SingleKindWithoutIndex::Var => {
+                        MultipleValuesOperationWithIndex::<O>::get_var(values)?
+                    }
                     SingleKindWithoutIndex::Count => {
-                        MultipleValuesOperation::<O>::get_count(values)
+                        MultipleValuesOperationWithIndex::<O>::get_count(values)
                     }
-                    SingleKindWithoutIndex::Sum => MultipleValuesOperation::<O>::get_sum(values)?,
+                    SingleKindWithoutIndex::Sum => {
+                        MultipleValuesOperationWithIndex::<O>::get_sum(values)?
+                    }
+                    SingleKindWithoutIndex::Random => todo!(),
                 };
 
                 Ok((key, value))
@@ -1003,6 +1048,622 @@ impl<O: RootOperand> MultipleValuesOperation<O> {
             None => (
                 key,
                 Box::new(std::iter::empty()) as BoxedIterator<'a, (&'a O::Index, MedRecordValue)>,
+            ),
+        })))
+    }
+}
+
+#[derive(Debug, Clone)]
+pub enum MultipleValuesOperationWithoutIndex<O: RootOperand> {
+    ValueOperation {
+        operand: Wrapper<SingleValueOperandWithoutIndex<O>>,
+    },
+    SingleValueComparisonOperation {
+        operand: SingleValueComparisonOperand,
+        kind: SingleComparisonKind,
+    },
+    MultipleValuesComparisonOperation {
+        operand: MultipleValuesComparisonOperand,
+        kind: MultipleComparisonKind,
+    },
+    BinaryArithmeticOpration {
+        operand: SingleValueComparisonOperand,
+        kind: BinaryArithmeticKind,
+    },
+    UnaryArithmeticOperation {
+        kind: UnaryArithmeticKind,
+    },
+
+    Slice(Range<usize>),
+
+    IsString,
+    IsInt,
+    IsFloat,
+    IsBool,
+    IsDateTime,
+    IsDuration,
+    IsNull,
+
+    IsMax,
+    IsMin,
+
+    EitherOr {
+        either: Wrapper<MultipleValuesOperandWithoutIndex<O>>,
+        or: Wrapper<MultipleValuesOperandWithoutIndex<O>>,
+    },
+    Exclude {
+        operand: Wrapper<MultipleValuesOperandWithoutIndex<O>>,
+    },
+}
+
+impl<O: RootOperand> DeepClone for MultipleValuesOperationWithoutIndex<O> {
+    fn deep_clone(&self) -> Self {
+        match self {
+            Self::ValueOperation { operand } => Self::ValueOperation {
+                operand: operand.deep_clone(),
+            },
+            Self::SingleValueComparisonOperation { operand, kind } => {
+                Self::SingleValueComparisonOperation {
+                    operand: operand.deep_clone(),
+                    kind: kind.clone(),
+                }
+            }
+            Self::MultipleValuesComparisonOperation { operand, kind } => {
+                Self::MultipleValuesComparisonOperation {
+                    operand: operand.deep_clone(),
+                    kind: kind.clone(),
+                }
+            }
+            Self::BinaryArithmeticOpration { operand, kind } => Self::BinaryArithmeticOpration {
+                operand: operand.deep_clone(),
+                kind: kind.clone(),
+            },
+            Self::UnaryArithmeticOperation { kind } => {
+                Self::UnaryArithmeticOperation { kind: kind.clone() }
+            }
+            Self::Slice(range) => Self::Slice(range.clone()),
+            Self::IsString => Self::IsString,
+            Self::IsInt => Self::IsInt,
+            Self::IsFloat => Self::IsFloat,
+            Self::IsBool => Self::IsBool,
+            Self::IsDateTime => Self::IsDateTime,
+            Self::IsDuration => Self::IsDuration,
+            Self::IsNull => Self::IsNull,
+            Self::IsMax => Self::IsMax,
+            Self::IsMin => Self::IsMin,
+            Self::EitherOr { either, or } => Self::EitherOr {
+                either: either.deep_clone(),
+                or: or.deep_clone(),
+            },
+            Self::Exclude { operand } => Self::Exclude {
+                operand: operand.deep_clone(),
+            },
+        }
+    }
+}
+
+impl<O: RootOperand> MultipleValuesOperationWithoutIndex<O> {
+    pub(crate) fn evaluate<'a>(
+        &self,
+        medrecord: &'a MedRecord,
+        values: impl Iterator<Item = MedRecordValue> + 'a,
+    ) -> MedRecordResult<BoxedIterator<'a, MedRecordValue>>
+    where
+        O: 'a,
+    {
+        match self {
+            Self::ValueOperation { operand } => {
+                Self::evaluate_value_operation(medrecord, values, operand)
+            }
+            Self::SingleValueComparisonOperation { operand, kind } => {
+                Self::evaluate_single_value_comparison_operation(medrecord, values, operand, kind)
+            }
+            Self::MultipleValuesComparisonOperation { operand, kind } => {
+                Self::evaluate_multiple_values_comparison_operation(
+                    medrecord, values, operand, kind,
+                )
+            }
+            Self::BinaryArithmeticOpration { operand, kind } => Ok(Box::new(
+                Self::evaluate_binary_arithmetic_operation(medrecord, values, operand, kind)?,
+            )),
+            Self::UnaryArithmeticOperation { kind } => Ok(Box::new(
+                Self::evaluate_unary_arithmetic_operation(values, kind.clone()),
+            )),
+            Self::Slice(range) => Ok(Box::new(Self::evaluate_slice(values, range.clone()))),
+            Self::IsString => {
+                Ok(Box::new(values.filter(|value| {
+                    matches!(value, MedRecordValue::String(_))
+                })))
+            }
+            Self::IsInt => Ok(Box::new(
+                values.filter(|value| matches!(value, MedRecordValue::Int(_))),
+            )),
+            Self::IsFloat => Ok(Box::new(
+                values.filter(|value| matches!(value, MedRecordValue::Float(_))),
+            )),
+            Self::IsBool => Ok(Box::new(
+                values.filter(|value| matches!(value, MedRecordValue::Bool(_))),
+            )),
+            Self::IsDateTime => {
+                Ok(Box::new(values.filter(|value| {
+                    matches!(value, MedRecordValue::DateTime(_))
+                })))
+            }
+            Self::IsDuration => {
+                Ok(Box::new(values.filter(|value| {
+                    matches!(value, MedRecordValue::Duration(_))
+                })))
+            }
+            Self::IsNull => Ok(Box::new(
+                values.filter(|value| matches!(value, MedRecordValue::Null)),
+            )),
+            Self::IsMax => {
+                let (values_1, values_2) = Itertools::tee(values);
+
+                let max_value = Self::get_max(values_1)?;
+
+                Ok(Box::new(values_2.filter(move |value| *value == max_value)))
+            }
+            Self::IsMin => {
+                let (values_1, values_2) = Itertools::tee(values);
+
+                let min_value = Self::get_min(values_1)?;
+
+                Ok(Box::new(values_2.filter(move |value| *value == min_value)))
+            }
+            Self::EitherOr { either, or } => {
+                Self::evaluate_either_or(medrecord, values, either, or)
+            }
+            Self::Exclude { operand } => Self::evaluate_exclude(medrecord, values, operand),
+        }
+    }
+
+    #[inline]
+    pub(crate) fn get_max(
+        mut values: impl Iterator<Item = MedRecordValue>,
+    ) -> MedRecordResult<MedRecordValue> {
+        let max_value = values.next().ok_or(MedRecordError::QueryError(
+            "No values to compare".to_string(),
+        ))?;
+
+        values.try_fold(max_value, |max_value, value| {
+            match value.partial_cmp(&max_value) {
+                Some(Ordering::Greater) => Ok(value),
+                None => {
+                    let first_dtype = DataType::from(value);
+                    let second_dtype = DataType::from(max_value);
+
+                    Err(MedRecordError::QueryError(format!(
+                        "Cannot compare values of data types {} and {}. Consider narrowing down the values using .is_string(), .is_int(), .is_float(), .is_bool(), .is_datetime() or .is_duration()",
+                        first_dtype, second_dtype
+                    )))
+                }
+                _ => Ok(max_value),
+            }
+        })
+    }
+
+    #[inline]
+    pub(crate) fn get_min(
+        mut values: impl Iterator<Item = MedRecordValue>,
+    ) -> MedRecordResult<MedRecordValue> {
+        let min_value = values.next().ok_or(MedRecordError::QueryError(
+            "No values to compare".to_string(),
+        ))?;
+
+        values.try_fold(min_value, |min_value, value| {
+            match value.partial_cmp(&min_value) {
+                Some(Ordering::Less) => Ok(value),
+                None => {
+                    let first_dtype = DataType::from(value);
+                    let second_dtype = DataType::from(min_value);
+
+                    Err(MedRecordError::QueryError(format!(
+                        "Cannot compare values of data types {} and {}. Consider narrowing down the values using .is_string(), .is_int(), .is_float(), .is_bool(), .is_datetime() or .is_duration()",
+                        first_dtype, second_dtype
+                    )))
+                }
+                _ => Ok(min_value),
+            }
+        })
+    }
+
+    #[inline]
+    pub(crate) fn get_random(
+        values: impl Iterator<Item = MedRecordValue>,
+    ) -> MedRecordResult<MedRecordValue> {
+        values.choose(&mut rng()).ok_or(MedRecordError::QueryError(
+            "No values to compare".to_string(),
+        ))
+    }
+
+    #[inline]
+    fn evaluate_value_operation<'a>(
+        medrecord: &'a MedRecord,
+        values: impl Iterator<Item = MedRecordValue> + 'a,
+        operand: &Wrapper<SingleValueOperandWithoutIndex<O>>,
+    ) -> MedRecordResult<BoxedIterator<'a, MedRecordValue>>
+    where
+        O: 'a,
+    {
+        let (values_1, values_2) = Itertools::tee(values);
+
+        let kind = &operand.0.read_or_panic().kind;
+
+        let value = match kind {
+            SingleKindWithoutIndex::Max => todo!(),
+            SingleKindWithoutIndex::Min => todo!(),
+            SingleKindWithoutIndex::Mean => {
+                MultipleValuesOperationWithIndex::<O>::get_mean(values_1)?
+            }
+            SingleKindWithoutIndex::Median => {
+                MultipleValuesOperationWithIndex::<O>::get_median(values_1)?
+            }
+            SingleKindWithoutIndex::Mode => {
+                MultipleValuesOperationWithIndex::<O>::get_mode(values_1)?
+            }
+            SingleKindWithoutIndex::Std => {
+                MultipleValuesOperationWithIndex::<O>::get_std(values_1)?
+            }
+            SingleKindWithoutIndex::Var => {
+                MultipleValuesOperationWithIndex::<O>::get_var(values_1)?
+            }
+            SingleKindWithoutIndex::Count => {
+                MultipleValuesOperationWithIndex::<O>::get_count(values_1)
+            }
+            SingleKindWithoutIndex::Sum => {
+                MultipleValuesOperationWithIndex::<O>::get_sum(values_1)?
+            }
+            SingleKindWithoutIndex::Random => todo!(),
+        };
+
+        Ok(match operand.evaluate_forward(medrecord, value)? {
+            Some(_) => Box::new(values_2),
+            None => Box::new(std::iter::empty()),
+        })
+    }
+
+    #[inline]
+    fn evaluate_single_value_comparison_operation<'a>(
+        medrecord: &'a MedRecord,
+        values: impl Iterator<Item = MedRecordValue> + 'a,
+        comparison_operand: &SingleValueComparisonOperand,
+        kind: &SingleComparisonKind,
+    ) -> MedRecordResult<BoxedIterator<'a, MedRecordValue>> {
+        let comparison_value =
+            comparison_operand
+                .evaluate_backward(medrecord)?
+                .ok_or(MedRecordError::QueryError(
+                    "No value to compare".to_string(),
+                ))?;
+
+        match kind {
+            SingleComparisonKind::GreaterThan => Ok(Box::new(
+                values.filter(move |value| value > &comparison_value),
+            )),
+            SingleComparisonKind::GreaterThanOrEqualTo => Ok(Box::new(
+                values.filter(move |value| value >= &comparison_value),
+            )),
+            SingleComparisonKind::LessThan => Ok(Box::new(
+                values.filter(move |value| value < &comparison_value),
+            )),
+            SingleComparisonKind::LessThanOrEqualTo => Ok(Box::new(
+                values.filter(move |value| value <= &comparison_value),
+            )),
+            SingleComparisonKind::EqualTo => Ok(Box::new(
+                values.filter(move |value| value == &comparison_value),
+            )),
+            SingleComparisonKind::NotEqualTo => Ok(Box::new(
+                values.filter(move |value| value != &comparison_value),
+            )),
+            SingleComparisonKind::StartsWith => Ok(Box::new(
+                values.filter(move |value| value.starts_with(&comparison_value)),
+            )),
+            SingleComparisonKind::EndsWith => Ok(Box::new(
+                values.filter(move |value| value.ends_with(&comparison_value)),
+            )),
+            SingleComparisonKind::Contains => Ok(Box::new(
+                values.filter(move |value| value.contains(&comparison_value)),
+            )),
+        }
+    }
+
+    #[inline]
+    fn evaluate_multiple_values_comparison_operation<'a>(
+        medrecord: &'a MedRecord,
+        values: impl Iterator<Item = MedRecordValue> + 'a,
+        comparison_operand: &MultipleValuesComparisonOperand,
+        kind: &MultipleComparisonKind,
+    ) -> MedRecordResult<BoxedIterator<'a, MedRecordValue>> {
+        let comparison_values = comparison_operand.evaluate_backward(medrecord)?;
+
+        match kind {
+            MultipleComparisonKind::IsIn => Ok(Box::new(
+                values.filter(move |value| comparison_values.contains(value)),
+            )),
+            MultipleComparisonKind::IsNotIn => Ok(Box::new(
+                values.filter(move |value| !comparison_values.contains(value)),
+            )),
+        }
+    }
+
+    #[inline]
+    fn evaluate_binary_arithmetic_operation<'a>(
+        medrecord: &MedRecord,
+        values: impl Iterator<Item = MedRecordValue>,
+        operand: &SingleValueComparisonOperand,
+        kind: &BinaryArithmeticKind,
+    ) -> MedRecordResult<impl Iterator<Item = MedRecordValue>>
+    where
+        O: 'a,
+    {
+        let arithmetic_value =
+            operand
+                .evaluate_backward(medrecord)?
+                .ok_or(MedRecordError::QueryError(
+                    "No value to compare".to_string(),
+                ))?;
+
+        let values = values
+            .map(move |value| {
+                match kind {
+                    BinaryArithmeticKind::Add => value.add(arithmetic_value.clone()),
+                    BinaryArithmeticKind::Sub => value.sub(arithmetic_value.clone()),
+                    BinaryArithmeticKind::Mul => {
+                        value.clone().mul(arithmetic_value.clone())
+                    }
+                    BinaryArithmeticKind::Div => {
+                        value.clone().div(arithmetic_value.clone())
+                    }
+                    BinaryArithmeticKind::Pow => {
+                        value.clone().pow(arithmetic_value.clone())
+                    }
+                    BinaryArithmeticKind::Mod => {
+                        value.clone().r#mod(arithmetic_value.clone())
+                    }
+                }
+                .map_err(|_| {
+                    MedRecordError::QueryError(format!(
+                        "Failed arithmetic operation {}. Consider narrowing down the values using .is_int() or .is_float()",
+                        kind,
+                    ))
+                })
+            });
+
+        Ok(values.collect::<MedRecordResult<Vec<_>>>()?.into_iter())
+    }
+
+    #[inline]
+    fn evaluate_unary_arithmetic_operation<'a>(
+        values: impl Iterator<Item = MedRecordValue>,
+        kind: UnaryArithmeticKind,
+    ) -> impl Iterator<Item = MedRecordValue>
+    where
+        O: 'a,
+    {
+        values.map(move |value| match kind {
+            UnaryArithmeticKind::Round => value.round(),
+            UnaryArithmeticKind::Ceil => value.ceil(),
+            UnaryArithmeticKind::Floor => value.floor(),
+            UnaryArithmeticKind::Abs => value.abs(),
+            UnaryArithmeticKind::Sqrt => value.sqrt(),
+            UnaryArithmeticKind::Trim => value.trim(),
+            UnaryArithmeticKind::TrimStart => value.trim_start(),
+            UnaryArithmeticKind::TrimEnd => value.trim_end(),
+            UnaryArithmeticKind::Lowercase => value.lowercase(),
+            UnaryArithmeticKind::Uppercase => value.uppercase(),
+        })
+    }
+
+    #[inline]
+    fn evaluate_slice<'a>(
+        values: impl Iterator<Item = MedRecordValue>,
+        range: Range<usize>,
+    ) -> impl Iterator<Item = MedRecordValue>
+    where
+        O: 'a,
+    {
+        values.map(move |value| value.slice(range.clone()))
+    }
+
+    #[inline]
+    fn evaluate_either_or<'a>(
+        medrecord: &'a MedRecord,
+        values: impl Iterator<Item = MedRecordValue> + 'a,
+        either: &Wrapper<MultipleValuesOperandWithoutIndex<O>>,
+        or: &Wrapper<MultipleValuesOperandWithoutIndex<O>>,
+    ) -> MedRecordResult<BoxedIterator<'a, MedRecordValue>>
+    where
+        O: 'a,
+    {
+        let (values_1, values_2) = Itertools::tee(values);
+
+        let _either_values = either.evaluate_forward(medrecord, Box::new(values_1))?;
+        let _or_values = or.evaluate_forward(medrecord, Box::new(values_2))?;
+
+        todo!()
+    }
+
+    #[inline]
+    fn evaluate_exclude<'a>(
+        _medrecord: &'a MedRecord,
+        values: impl Iterator<Item = MedRecordValue> + 'a,
+        _operand: &Wrapper<MultipleValuesOperandWithoutIndex<O>>,
+    ) -> MedRecordResult<BoxedIterator<'a, MedRecordValue>>
+    where
+        O: 'a,
+    {
+        let (_values_1, _values_2) = Itertools::tee(values);
+
+        todo!()
+    }
+}
+
+impl<O: RootOperand> MultipleValuesOperationWithoutIndex<O> {
+    #[allow(clippy::type_complexity)]
+    pub(crate) fn evaluate_grouped<'a>(
+        &self,
+        medrecord: &'a MedRecord,
+        values: GroupedIterator<'a, BoxedIterator<'a, MedRecordValue>>,
+    ) -> MedRecordResult<GroupedIterator<'a, BoxedIterator<'a, MedRecordValue>>>
+    where
+        O: 'a,
+    {
+        Ok(match self {
+            MultipleValuesOperationWithoutIndex::ValueOperation { operand } => Box::new(
+                Self::evaluate_value_operation_grouped(medrecord, values, operand)?,
+            ),
+            MultipleValuesOperationWithoutIndex::SingleValueComparisonOperation {
+                operand,
+                kind,
+            } => Box::new(
+                values
+                    .map(move |(key, values)| {
+                        Ok((
+                            key,
+                            Box::new(Self::evaluate_single_value_comparison_operation(
+                                medrecord, values, operand, kind,
+                            )?) as BoxedIterator<'a, MedRecordValue>,
+                        ))
+                    })
+                    .collect::<MedRecordResult<Vec<_>>>()?
+                    .into_iter(),
+            ),
+            MultipleValuesOperationWithoutIndex::MultipleValuesComparisonOperation {
+                operand,
+                kind,
+            } => Box::new(
+                values
+                    .map(move |(key, values)| {
+                        Ok((
+                            key,
+                            Box::new(Self::evaluate_multiple_values_comparison_operation(
+                                medrecord, values, operand, kind,
+                            )?) as BoxedIterator<'a, MedRecordValue>,
+                        ))
+                    })
+                    .collect::<MedRecordResult<Vec<_>>>()?
+                    .into_iter(),
+            ),
+            MultipleValuesOperationWithoutIndex::BinaryArithmeticOpration { operand, kind } => {
+                Box::new(
+                    values
+                        .map(move |(key, values)| {
+                            Ok((
+                                key,
+                                Box::new(Self::evaluate_binary_arithmetic_operation(
+                                    medrecord, values, operand, kind,
+                                )?)
+                                    as BoxedIterator<'a, MedRecordValue>,
+                            ))
+                        })
+                        .collect::<MedRecordResult<Vec<_>>>()?
+                        .into_iter(),
+                )
+            }
+            MultipleValuesOperationWithoutIndex::UnaryArithmeticOperation { kind } => Box::new(
+                values
+                    .map(move |(key, values)| {
+                        Ok((
+                            key,
+                            Box::new(Self::evaluate_unary_arithmetic_operation(
+                                values,
+                                kind.clone(),
+                            )) as BoxedIterator<'a, MedRecordValue>,
+                        ))
+                    })
+                    .collect::<MedRecordResult<Vec<_>>>()?
+                    .into_iter(),
+            ),
+            MultipleValuesOperationWithoutIndex::Slice(range) => Box::new(
+                values
+                    .map(move |(key, values)| {
+                        Ok((
+                            key,
+                            Box::new(Self::evaluate_slice(values, range.clone()))
+                                as BoxedIterator<'a, MedRecordValue>,
+                        ))
+                    })
+                    .collect::<MedRecordResult<Vec<_>>>()?
+                    .into_iter(),
+            ),
+            MultipleValuesOperationWithoutIndex::IsString => todo!(),
+            MultipleValuesOperationWithoutIndex::IsInt => todo!(),
+            MultipleValuesOperationWithoutIndex::IsFloat => todo!(),
+            MultipleValuesOperationWithoutIndex::IsBool => todo!(),
+            MultipleValuesOperationWithoutIndex::IsDateTime => todo!(),
+            MultipleValuesOperationWithoutIndex::IsDuration => todo!(),
+            MultipleValuesOperationWithoutIndex::IsNull => todo!(),
+            MultipleValuesOperationWithoutIndex::IsMax => todo!(),
+            MultipleValuesOperationWithoutIndex::IsMin => todo!(),
+            MultipleValuesOperationWithoutIndex::EitherOr { either: _, or: _ } => todo!(),
+            MultipleValuesOperationWithoutIndex::Exclude { operand: _ } => todo!(),
+        })
+    }
+
+    #[allow(clippy::type_complexity)]
+    #[inline]
+    fn evaluate_value_operation_grouped<'a>(
+        medrecord: &'a MedRecord,
+        values: GroupedIterator<'a, BoxedIterator<'a, MedRecordValue>>,
+        operand: &Wrapper<SingleValueOperandWithoutIndex<O>>,
+    ) -> MedRecordResult<GroupedIterator<'a, BoxedIterator<'a, MedRecordValue>>>
+    where
+        O: 'a,
+    {
+        let (values_1, values_2) = tee_grouped_iterator(values);
+        let mut values_2 = values_2.collect::<Vec<_>>();
+
+        let kind = &operand.0.read_or_panic().kind;
+
+        let values_1: Vec<_> = values_1
+            .map(|(key, values)| {
+                let value = match kind {
+                    SingleKindWithoutIndex::Max => todo!(),
+                    SingleKindWithoutIndex::Min => todo!(),
+                    SingleKindWithoutIndex::Mean => {
+                        MultipleValuesOperationWithIndex::<O>::get_mean(values)?
+                    }
+                    SingleKindWithoutIndex::Median => {
+                        MultipleValuesOperationWithIndex::<O>::get_median(values)?
+                    }
+                    SingleKindWithoutIndex::Mode => {
+                        MultipleValuesOperationWithIndex::<O>::get_mode(values)?
+                    }
+                    SingleKindWithoutIndex::Std => {
+                        MultipleValuesOperationWithIndex::<O>::get_std(values)?
+                    }
+                    SingleKindWithoutIndex::Var => {
+                        MultipleValuesOperationWithIndex::<O>::get_var(values)?
+                    }
+                    SingleKindWithoutIndex::Count => {
+                        MultipleValuesOperationWithIndex::<O>::get_count(values)
+                    }
+                    SingleKindWithoutIndex::Sum => {
+                        MultipleValuesOperationWithIndex::<O>::get_sum(values)?
+                    }
+                    SingleKindWithoutIndex::Random => todo!(),
+                };
+
+                Ok((key, value))
+            })
+            .collect::<MedRecordResult<_>>()?;
+
+        let values_1 =
+            operand.evaluate_forward_grouped(medrecord, Box::new(values_1.into_iter()))?;
+
+        Ok(Box::new(values_1.map(move |(key, value)| match value {
+            Some(_) => {
+                let values_position = values_2
+                    .iter()
+                    .position(|(k, _)| k == &key)
+                    .expect("Entry must exist");
+
+                values_2.remove(values_position)
+            }
+            None => (
+                key,
+                Box::new(std::iter::empty()) as BoxedIterator<'a, MedRecordValue>,
             ),
         })))
     }
@@ -1045,7 +1706,7 @@ pub enum SingleValueOperationWithIndex<O: RootOperand> {
     },
 
     Merge {
-        operand: Wrapper<MultipleValuesOperand<O>>,
+        operand: Wrapper<MultipleValuesOperandWithIndex<O>>,
     },
 }
 
@@ -1401,7 +2062,7 @@ pub enum SingleValueOperationWithoutIndex<O: RootOperand> {
     },
 
     Merge {
-        operand: Wrapper<MultipleValuesOperand<O>>,
+        operand: Wrapper<MultipleValuesOperandWithoutIndex<O>>,
     },
 }
 

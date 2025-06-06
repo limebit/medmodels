@@ -1,9 +1,11 @@
 use super::{
-    attributes::PyEdgeAttributesTreeOperand, nodes::PyNodeOperand,
-    values::PyEdgeMultipleValuesOperand, PyGroupCardinalityWrapper,
+    attributes::PyEdgeAttributesTreeOperand, nodes::PyNodeOperand, PyGroupCardinalityWrapper,
     PyMedRecordAttributeCardinalityWrapper,
 };
-use crate::medrecord::{attribute::PyMedRecordAttribute, errors::PyMedRecordError};
+use crate::medrecord::{
+    attribute::PyMedRecordAttribute, errors::PyMedRecordError,
+    querying::values::PyEdgeMultipleValuesOperandWithIndex,
+};
 use medmodels_core::{
     errors::MedRecordError,
     medrecord::{
@@ -43,7 +45,10 @@ impl From<PyEdgeOperand> for Wrapper<EdgeOperand> {
 
 #[pymethods]
 impl PyEdgeOperand {
-    pub fn attribute(&mut self, attribute: PyMedRecordAttribute) -> PyEdgeMultipleValuesOperand {
+    pub fn attribute(
+        &mut self,
+        attribute: PyMedRecordAttribute,
+    ) -> PyEdgeMultipleValuesOperandWithIndex {
         self.0.attribute(attribute).into()
     }
 

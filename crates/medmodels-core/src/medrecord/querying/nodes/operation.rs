@@ -16,7 +16,7 @@ use crate::{
         querying::{
             attributes::AttributesTreeOperand,
             edges::EdgeOperand,
-            values::{Context, MultipleValuesOperand},
+            values::{MultipleValuesOperandWithIndex, MultipleValuesWithIndexContext},
             wrapper::{CardinalityWrapper, Wrapper},
             BoxedIterator, DeepClone, EvaluateForward, GroupedIterator, ReadWriteOrPanic,
         },
@@ -42,7 +42,7 @@ pub enum EdgeDirection {
 #[derive(Debug, Clone)]
 pub enum NodeOperation {
     Values {
-        operand: Wrapper<MultipleValuesOperand<NodeOperand>>,
+        operand: Wrapper<MultipleValuesOperandWithIndex<NodeOperand>>,
     },
     Attributes {
         operand: Wrapper<AttributesTreeOperand<NodeOperand>>,
@@ -213,9 +213,11 @@ impl NodeOperation {
     fn evaluate_values<'a>(
         medrecord: &'a MedRecord,
         node_indices: impl Iterator<Item = &'a NodeIndex> + 'a,
-        operand: Wrapper<MultipleValuesOperand<NodeOperand>>,
+        operand: Wrapper<MultipleValuesOperandWithIndex<NodeOperand>>,
     ) -> MedRecordResult<impl Iterator<Item = &'a NodeIndex>> {
-        let Context::Operand((_, ref attribute)) = operand.0.read_or_panic().context else {
+        let MultipleValuesWithIndexContext::Operand((_, ref attribute)) =
+            operand.0.read_or_panic().context
+        else {
             unreachable!()
         };
 

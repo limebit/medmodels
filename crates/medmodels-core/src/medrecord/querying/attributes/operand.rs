@@ -7,7 +7,7 @@ use crate::{
     errors::MedRecordResult,
     medrecord::{
         querying::{
-            values::{Context, MultipleValuesOperand},
+            values::{MultipleValuesOperandWithIndex, MultipleValuesWithIndexContext},
             BoxedIterator, DeepClone, EvaluateBackward, EvaluateForward, EvaluateForwardGrouped,
             GroupedIterator, OptionalIndexWrapper, ReadWriteOrPanic, ReduceInput, RootOperand,
         },
@@ -711,10 +711,10 @@ impl<O: RootOperand> MultipleAttributesOperand<O> {
     implement_unary_arithmetic_operation!(uppercase, MultipleAttributesOperation, Uppercase);
 
     #[allow(clippy::wrong_self_convention)]
-    pub fn to_values(&mut self) -> Wrapper<MultipleValuesOperand<O>> {
-        let operand = Wrapper::<MultipleValuesOperand<O>>::new(Context::MultipleAttributesOperand(
-            self.deep_clone(),
-        ));
+    pub fn to_values(&mut self) -> Wrapper<MultipleValuesOperandWithIndex<O>> {
+        let operand = Wrapper::<MultipleValuesOperandWithIndex<O>>::new(
+            MultipleValuesWithIndexContext::MultipleAttributesOperand(self.deep_clone()),
+        );
 
         self.operations.push(MultipleAttributesOperation::ToValues {
             operand: operand.clone(),
@@ -825,7 +825,7 @@ impl<O: RootOperand> Wrapper<MultipleAttributesOperand<O>> {
     implement_wrapper_operand!(lowercase);
     implement_wrapper_operand!(uppercase);
 
-    implement_wrapper_operand_with_return!(to_values, MultipleValuesOperand<O>);
+    implement_wrapper_operand_with_return!(to_values, MultipleValuesOperandWithIndex<O>);
 
     pub fn slice(&self, start: usize, end: usize) {
         self.0.write_or_panic().slice(start, end)
