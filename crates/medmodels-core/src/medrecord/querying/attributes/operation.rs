@@ -48,7 +48,7 @@ pub enum AttributesTreeOperation<O: RootOperand> {
         operand: MultipleAttributesComparisonOperand,
         kind: MultipleComparisonKind,
     },
-    BinaryArithmeticOpration {
+    BinaryArithmeticOperation {
         operand: SingleAttributeComparisonOperand,
         kind: BinaryArithmeticKind,
     },
@@ -91,7 +91,7 @@ impl<O: RootOperand> DeepClone for AttributesTreeOperation<O> {
                     kind: kind.clone(),
                 }
             }
-            Self::BinaryArithmeticOpration { operand, kind } => Self::BinaryArithmeticOpration {
+            Self::BinaryArithmeticOperation { operand, kind } => Self::BinaryArithmeticOperation {
                 operand: operand.deep_clone(),
                 kind: kind.clone(),
             },
@@ -137,7 +137,7 @@ impl<O: RootOperand> AttributesTreeOperation<O> {
                     medrecord, attributes, operand, kind,
                 )
             }
-            Self::BinaryArithmeticOpration { operand, kind } => {
+            Self::BinaryArithmeticOperation { operand, kind } => {
                 Self::evaluate_binary_arithmetic_operation(medrecord, attributes, operand, kind)
             }
             Self::UnaryArithmeticOperation { kind } => Ok(Box::new(
@@ -732,7 +732,7 @@ pub enum MultipleAttributesOperationWithIndex<O: RootOperand> {
         operand: MultipleAttributesComparisonOperand,
         kind: MultipleComparisonKind,
     },
-    BinaryArithmeticOpration {
+    BinaryArithmeticOperation {
         operand: SingleAttributeComparisonOperand,
         kind: BinaryArithmeticKind,
     },
@@ -784,7 +784,7 @@ impl<O: RootOperand> DeepClone for MultipleAttributesOperationWithIndex<O> {
                     kind: kind.clone(),
                 }
             }
-            Self::BinaryArithmeticOpration { operand, kind } => Self::BinaryArithmeticOpration {
+            Self::BinaryArithmeticOperation { operand, kind } => Self::BinaryArithmeticOperation {
                 operand: operand.deep_clone(),
                 kind: kind.clone(),
             },
@@ -836,7 +836,7 @@ impl<O: RootOperand> MultipleAttributesOperationWithIndex<O> {
                     medrecord, attributes, operand, kind,
                 )
             }
-            Self::BinaryArithmeticOpration { operand, kind } => Ok(Box::new(
+            Self::BinaryArithmeticOperation { operand, kind } => Ok(Box::new(
                 Self::evaluate_binary_arithmetic_operation(medrecord, attributes, operand, kind)?,
             )),
             Self::UnaryArithmeticOperation { kind } => Ok(Box::new(
@@ -1301,7 +1301,7 @@ pub enum MultipleAttributesOperationWithoutIndex<O: RootOperand> {
         operand: MultipleAttributesComparisonOperand,
         kind: MultipleComparisonKind,
     },
-    BinaryArithmeticOpration {
+    BinaryArithmeticOperation {
         operand: SingleAttributeComparisonOperand,
         kind: BinaryArithmeticKind,
     },
@@ -1344,7 +1344,7 @@ impl<O: RootOperand> DeepClone for MultipleAttributesOperationWithoutIndex<O> {
                     kind: kind.clone(),
                 }
             }
-            Self::BinaryArithmeticOpration { operand, kind } => Self::BinaryArithmeticOpration {
+            Self::BinaryArithmeticOperation { operand, kind } => Self::BinaryArithmeticOperation {
                 operand: operand.deep_clone(),
                 kind: kind.clone(),
             },
@@ -1390,7 +1390,7 @@ impl<O: RootOperand> MultipleAttributesOperationWithoutIndex<O> {
                     medrecord, attributes, operand, kind,
                 )
             }
-            Self::BinaryArithmeticOpration { operand, kind } => Ok(Box::new(
+            Self::BinaryArithmeticOperation { operand, kind } => Ok(Box::new(
                 Self::evaluate_binary_arithmetic_operation(medrecord, attributes, operand, kind)?,
             )),
             Self::UnaryArithmeticOperation { kind } => Ok(Box::new(
@@ -1780,7 +1780,7 @@ pub enum SingleAttributeOperationWithIndex<O: RootOperand> {
         operand: MultipleAttributesComparisonOperand,
         kind: MultipleComparisonKind,
     },
-    BinaryArithmeticOpration {
+    BinaryArithmeticOperation {
         operand: SingleAttributeComparisonOperand,
         kind: BinaryArithmeticKind,
     },
@@ -1817,7 +1817,7 @@ impl<O: RootOperand> DeepClone for SingleAttributeOperationWithIndex<O> {
                     kind: kind.clone(),
                 }
             }
-            Self::BinaryArithmeticOpration { operand, kind } => Self::BinaryArithmeticOpration {
+            Self::BinaryArithmeticOperation { operand, kind } => Self::BinaryArithmeticOperation {
                 operand: operand.deep_clone(),
                 kind: kind.clone(),
             },
@@ -1862,7 +1862,7 @@ impl<O: RootOperand> SingleAttributeOperationWithIndex<O> {
                     medrecord, attribute, operand, kind,
                 )
             }
-            Self::BinaryArithmeticOpration { operand, kind } => {
+            Self::BinaryArithmeticOperation { operand, kind } => {
                 Self::evaluate_binary_arithmetic_operation(medrecord, attribute, operand, kind)
             }
             Self::UnaryArithmeticOperation { kind } => Ok(Some(match kind {
@@ -2016,7 +2016,7 @@ pub enum SingleAttributeOperationWithoutIndex<O: RootOperand> {
         operand: MultipleAttributesComparisonOperand,
         kind: MultipleComparisonKind,
     },
-    BinaryArithmeticOpration {
+    BinaryArithmeticOperation {
         operand: SingleAttributeComparisonOperand,
         kind: BinaryArithmeticKind,
     },
@@ -2053,7 +2053,7 @@ impl<O: RootOperand> DeepClone for SingleAttributeOperationWithoutIndex<O> {
                     kind: kind.clone(),
                 }
             }
-            Self::BinaryArithmeticOpration { operand, kind } => Self::BinaryArithmeticOpration {
+            Self::BinaryArithmeticOperation { operand, kind } => Self::BinaryArithmeticOperation {
                 operand: operand.deep_clone(),
                 kind: kind.clone(),
             },
@@ -2098,7 +2098,7 @@ impl<O: RootOperand> SingleAttributeOperationWithoutIndex<O> {
                     medrecord, attribute, operand, kind,
                 )
             }
-            Self::BinaryArithmeticOpration { operand, kind } => {
+            Self::BinaryArithmeticOperation { operand, kind } => {
                 Self::evaluate_binary_arithmetic_operation(medrecord, attribute, operand, kind)
             }
             Self::UnaryArithmeticOperation { kind } => Ok(Some(match kind {

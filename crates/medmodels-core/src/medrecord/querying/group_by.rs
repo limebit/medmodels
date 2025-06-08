@@ -1,13 +1,6 @@
-use super::{
-    operand_traits::{Attribute, Max},
-    wrapper::Wrapper,
-    DeepClone, ReadWriteOrPanic,
-};
+use super::{wrapper::Wrapper, DeepClone, ReadWriteOrPanic};
 use crate::{
-    medrecord::querying::{
-        operand_traits::{Count, Index},
-        GroupedIterator,
-    },
+    medrecord::querying::GroupedIterator,
     prelude::{EdgeIndex, MedRecordAttribute, MedRecordValue, NodeIndex},
     MedRecord,
 };
@@ -79,66 +72,6 @@ impl<O: GroupedOperand + DeepClone> DeepClone for GroupOperand<O> {
             context: self.context.deep_clone(),
             operand: self.operand.deep_clone(),
         }
-    }
-}
-
-impl<O: GroupedOperand + Attribute> Attribute for GroupOperand<O>
-where
-    Self: DeepClone,
-    O::ReturnOperand: GroupedOperand,
-    <O::ReturnOperand as GroupedOperand>::Context: From<Self>,
-{
-    type ReturnOperand = GroupOperand<O::ReturnOperand>;
-
-    fn attribute(&mut self, attribute: MedRecordAttribute) -> Wrapper<Self::ReturnOperand> {
-        let operand = self.operand.attribute(attribute);
-
-        Wrapper::<GroupOperand<O::ReturnOperand>>::new(self.deep_clone().into(), operand)
-    }
-}
-
-impl<O: GroupedOperand + Max> Max for GroupOperand<O>
-where
-    Self: DeepClone,
-    O::ReturnOperand: GroupedOperand,
-    <O::ReturnOperand as GroupedOperand>::Context: From<Self>,
-{
-    type ReturnOperand = GroupOperand<O::ReturnOperand>;
-
-    fn max(&mut self) -> Wrapper<Self::ReturnOperand> {
-        let operand = self.operand.max();
-
-        Wrapper::<GroupOperand<O::ReturnOperand>>::new(self.deep_clone().into(), operand)
-    }
-}
-
-impl<O: GroupedOperand + Count> Count for GroupOperand<O>
-where
-    Self: DeepClone,
-    O::ReturnOperand: GroupedOperand,
-    <O::ReturnOperand as GroupedOperand>::Context: From<Self>,
-{
-    type ReturnOperand = GroupOperand<O::ReturnOperand>;
-
-    fn count(&mut self) -> Wrapper<Self::ReturnOperand> {
-        let operand = self.operand.count();
-
-        Wrapper::<GroupOperand<O::ReturnOperand>>::new(self.deep_clone().into(), operand)
-    }
-}
-
-impl<O: GroupedOperand + Index> Index for GroupOperand<O>
-where
-    Self: DeepClone,
-    O::ReturnOperand: GroupedOperand,
-    <O::ReturnOperand as GroupedOperand>::Context: From<Self>,
-{
-    type ReturnOperand = GroupOperand<O::ReturnOperand>;
-
-    fn index(&mut self) -> Wrapper<Self::ReturnOperand> {
-        let operand = self.operand.index();
-
-        Wrapper::<GroupOperand<O::ReturnOperand>>::new(self.deep_clone().into(), operand)
     }
 }
 

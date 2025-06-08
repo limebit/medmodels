@@ -1,10 +1,14 @@
-use crate::medrecord::querying::{
-    attributes::{
-        MultipleAttributesWithIndexOperand, SingleAttributeWithIndexOperand,
-        SingleAttributeWithoutIndexOperand,
+use crate::{
+    errors::MedRecordResult,
+    medrecord::querying::{
+        attributes::{
+            MultipleAttributesWithIndexOperand, SingleAttributeWithIndexOperand,
+            SingleAttributeWithoutIndexOperand,
+        },
+        group_by::{GroupOperand, GroupedOperand},
+        BoxedIterator, DeepClone, EvaluateBackward, RootOperand,
     },
-    group_by::{GroupOperand, GroupedOperand},
-    BoxedIterator, DeepClone, EvaluateBackward, RootOperand,
+    MedRecord,
 };
 
 #[derive(Debug, Clone)]
@@ -34,10 +38,7 @@ impl<'a, O: 'a + RootOperand> EvaluateBackward<'a>
         <MultipleAttributesWithIndexOperand<O> as EvaluateBackward<'a>>::ReturnValue,
     >;
 
-    fn evaluate_backward(
-        &self,
-        _medrecord: &'a crate::MedRecord,
-    ) -> crate::errors::MedRecordResult<Self::ReturnValue> {
+    fn evaluate_backward(&self, _medrecord: &'a MedRecord) -> MedRecordResult<Self::ReturnValue> {
         todo!()
     }
 }
@@ -78,10 +79,7 @@ impl<'a, O: 'a + RootOperand> EvaluateBackward<'a>
         <SingleAttributeWithIndexOperand<O> as EvaluateBackward<'a>>::ReturnValue,
     >;
 
-    fn evaluate_backward(
-        &self,
-        _medrecord: &'a crate::MedRecord,
-    ) -> crate::errors::MedRecordResult<Self::ReturnValue> {
+    fn evaluate_backward(&self, _medrecord: &'a MedRecord) -> MedRecordResult<Self::ReturnValue> {
         todo!()
     }
 }
@@ -115,10 +113,7 @@ impl<'a, O: 'a + RootOperand> EvaluateBackward<'a>
         <SingleAttributeWithoutIndexOperand<O> as EvaluateBackward<'a>>::ReturnValue,
     >;
 
-    fn evaluate_backward(
-        &self,
-        _medrecord: &'a crate::MedRecord,
-    ) -> crate::errors::MedRecordResult<Self::ReturnValue> {
+    fn evaluate_backward(&self, _medrecord: &'a MedRecord) -> MedRecordResult<Self::ReturnValue> {
         todo!()
     }
 }

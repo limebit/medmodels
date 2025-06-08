@@ -604,32 +604,27 @@ impl<O: RootOperand> MultipleValuesOperationWithIndex<O> {
         O: 'a,
     {
         Ok(match self {
-            MultipleValuesOperationWithIndex::ValueOperationWithIndex { operand } => Box::new(
+            Self::ValueOperationWithIndex { operand } => Box::new(
                 Self::evaluate_value_operation_with_index_grouped(medrecord, values, operand)?,
             ),
-            MultipleValuesOperationWithIndex::ValueOperationWithoutIndex { operand } => Box::new(
+            Self::ValueOperationWithoutIndex { operand } => Box::new(
                 Self::evaluate_value_operation_without_index_grouped(medrecord, values, operand)?,
             ),
-            MultipleValuesOperationWithIndex::SingleValueComparisonOperation { operand, kind } => {
-                Box::new(
-                    values
-                        .map(move |(key, values)| {
-                            Ok((
-                                key,
-                                Box::new(Self::evaluate_single_value_comparison_operation(
-                                    medrecord, values, operand, kind,
-                                )?)
-                                    as BoxedIterator<'a, (&'a O::Index, MedRecordValue)>,
-                            ))
-                        })
-                        .collect::<MedRecordResult<Vec<_>>>()?
-                        .into_iter(),
-                )
-            }
-            MultipleValuesOperationWithIndex::MultipleValuesComparisonOperation {
-                operand,
-                kind,
-            } => Box::new(
+            Self::SingleValueComparisonOperation { operand, kind } => Box::new(
+                values
+                    .map(move |(key, values)| {
+                        Ok((
+                            key,
+                            Box::new(Self::evaluate_single_value_comparison_operation(
+                                medrecord, values, operand, kind,
+                            )?)
+                                as BoxedIterator<'a, (&'a O::Index, MedRecordValue)>,
+                        ))
+                    })
+                    .collect::<MedRecordResult<Vec<_>>>()?
+                    .into_iter(),
+            ),
+            Self::MultipleValuesComparisonOperation { operand, kind } => Box::new(
                 values
                     .map(move |(key, values)| {
                         Ok((
@@ -643,23 +638,21 @@ impl<O: RootOperand> MultipleValuesOperationWithIndex<O> {
                     .collect::<MedRecordResult<Vec<_>>>()?
                     .into_iter(),
             ),
-            MultipleValuesOperationWithIndex::BinaryArithmeticOpration { operand, kind } => {
-                Box::new(
-                    values
-                        .map(move |(key, values)| {
-                            Ok((
-                                key,
-                                Box::new(Self::evaluate_binary_arithmetic_operation(
-                                    medrecord, values, operand, kind,
-                                )?)
-                                    as BoxedIterator<'a, (&'a O::Index, MedRecordValue)>,
-                            ))
-                        })
-                        .collect::<MedRecordResult<Vec<_>>>()?
-                        .into_iter(),
-                )
-            }
-            MultipleValuesOperationWithIndex::UnaryArithmeticOperation { kind } => Box::new(
+            Self::BinaryArithmeticOpration { operand, kind } => Box::new(
+                values
+                    .map(move |(key, values)| {
+                        Ok((
+                            key,
+                            Box::new(Self::evaluate_binary_arithmetic_operation(
+                                medrecord, values, operand, kind,
+                            )?)
+                                as BoxedIterator<'a, (&'a O::Index, MedRecordValue)>,
+                        ))
+                    })
+                    .collect::<MedRecordResult<Vec<_>>>()?
+                    .into_iter(),
+            ),
+            Self::UnaryArithmeticOperation { kind } => Box::new(
                 values
                     .map(move |(key, values)| {
                         Ok((
@@ -674,7 +667,7 @@ impl<O: RootOperand> MultipleValuesOperationWithIndex<O> {
                     .collect::<MedRecordResult<Vec<_>>>()?
                     .into_iter(),
             ),
-            MultipleValuesOperationWithIndex::Slice(range) => Box::new(
+            Self::Slice(range) => Box::new(
                 values
                     .map(move |(key, values)| {
                         Ok((
@@ -686,17 +679,17 @@ impl<O: RootOperand> MultipleValuesOperationWithIndex<O> {
                     .collect::<MedRecordResult<Vec<_>>>()?
                     .into_iter(),
             ),
-            MultipleValuesOperationWithIndex::IsString => todo!(),
-            MultipleValuesOperationWithIndex::IsInt => todo!(),
-            MultipleValuesOperationWithIndex::IsFloat => todo!(),
-            MultipleValuesOperationWithIndex::IsBool => todo!(),
-            MultipleValuesOperationWithIndex::IsDateTime => todo!(),
-            MultipleValuesOperationWithIndex::IsDuration => todo!(),
-            MultipleValuesOperationWithIndex::IsNull => todo!(),
-            MultipleValuesOperationWithIndex::IsMax => todo!(),
-            MultipleValuesOperationWithIndex::IsMin => todo!(),
-            MultipleValuesOperationWithIndex::EitherOr { either: _, or: _ } => todo!(),
-            MultipleValuesOperationWithIndex::Exclude { operand: _ } => todo!(),
+            Self::IsString => todo!(),
+            Self::IsInt => todo!(),
+            Self::IsFloat => todo!(),
+            Self::IsBool => todo!(),
+            Self::IsDateTime => todo!(),
+            Self::IsDuration => todo!(),
+            Self::IsNull => todo!(),
+            Self::IsMax => todo!(),
+            Self::IsMin => todo!(),
+            Self::EitherOr { either: _, or: _ } => todo!(),
+            Self::Exclude { operand: _ } => todo!(),
         })
     }
 
@@ -1548,13 +1541,10 @@ impl<O: RootOperand> MultipleValuesOperationWithoutIndex<O> {
         O: 'a,
     {
         Ok(match self {
-            MultipleValuesOperationWithoutIndex::ValueOperation { operand } => Box::new(
-                Self::evaluate_value_operation_grouped(medrecord, values, operand)?,
-            ),
-            MultipleValuesOperationWithoutIndex::SingleValueComparisonOperation {
-                operand,
-                kind,
-            } => Box::new(
+            Self::ValueOperation { operand } => Box::new(Self::evaluate_value_operation_grouped(
+                medrecord, values, operand,
+            )?),
+            Self::SingleValueComparisonOperation { operand, kind } => Box::new(
                 values
                     .map(move |(key, values)| {
                         Ok((
@@ -1567,10 +1557,7 @@ impl<O: RootOperand> MultipleValuesOperationWithoutIndex<O> {
                     .collect::<MedRecordResult<Vec<_>>>()?
                     .into_iter(),
             ),
-            MultipleValuesOperationWithoutIndex::MultipleValuesComparisonOperation {
-                operand,
-                kind,
-            } => Box::new(
+            Self::MultipleValuesComparisonOperation { operand, kind } => Box::new(
                 values
                     .map(move |(key, values)| {
                         Ok((
@@ -1583,23 +1570,20 @@ impl<O: RootOperand> MultipleValuesOperationWithoutIndex<O> {
                     .collect::<MedRecordResult<Vec<_>>>()?
                     .into_iter(),
             ),
-            MultipleValuesOperationWithoutIndex::BinaryArithmeticOpration { operand, kind } => {
-                Box::new(
-                    values
-                        .map(move |(key, values)| {
-                            Ok((
-                                key,
-                                Box::new(Self::evaluate_binary_arithmetic_operation(
-                                    medrecord, values, operand, kind,
-                                )?)
-                                    as BoxedIterator<'a, MedRecordValue>,
-                            ))
-                        })
-                        .collect::<MedRecordResult<Vec<_>>>()?
-                        .into_iter(),
-                )
-            }
-            MultipleValuesOperationWithoutIndex::UnaryArithmeticOperation { kind } => Box::new(
+            Self::BinaryArithmeticOpration { operand, kind } => Box::new(
+                values
+                    .map(move |(key, values)| {
+                        Ok((
+                            key,
+                            Box::new(Self::evaluate_binary_arithmetic_operation(
+                                medrecord, values, operand, kind,
+                            )?) as BoxedIterator<'a, MedRecordValue>,
+                        ))
+                    })
+                    .collect::<MedRecordResult<Vec<_>>>()?
+                    .into_iter(),
+            ),
+            Self::UnaryArithmeticOperation { kind } => Box::new(
                 values
                     .map(move |(key, values)| {
                         Ok((
@@ -1613,7 +1597,7 @@ impl<O: RootOperand> MultipleValuesOperationWithoutIndex<O> {
                     .collect::<MedRecordResult<Vec<_>>>()?
                     .into_iter(),
             ),
-            MultipleValuesOperationWithoutIndex::Slice(range) => Box::new(
+            Self::Slice(range) => Box::new(
                 values
                     .map(move |(key, values)| {
                         Ok((
@@ -1625,17 +1609,17 @@ impl<O: RootOperand> MultipleValuesOperationWithoutIndex<O> {
                     .collect::<MedRecordResult<Vec<_>>>()?
                     .into_iter(),
             ),
-            MultipleValuesOperationWithoutIndex::IsString => todo!(),
-            MultipleValuesOperationWithoutIndex::IsInt => todo!(),
-            MultipleValuesOperationWithoutIndex::IsFloat => todo!(),
-            MultipleValuesOperationWithoutIndex::IsBool => todo!(),
-            MultipleValuesOperationWithoutIndex::IsDateTime => todo!(),
-            MultipleValuesOperationWithoutIndex::IsDuration => todo!(),
-            MultipleValuesOperationWithoutIndex::IsNull => todo!(),
-            MultipleValuesOperationWithoutIndex::IsMax => todo!(),
-            MultipleValuesOperationWithoutIndex::IsMin => todo!(),
-            MultipleValuesOperationWithoutIndex::EitherOr { either: _, or: _ } => todo!(),
-            MultipleValuesOperationWithoutIndex::Exclude { operand: _ } => todo!(),
+            Self::IsString => todo!(),
+            Self::IsInt => todo!(),
+            Self::IsFloat => todo!(),
+            Self::IsBool => todo!(),
+            Self::IsDateTime => todo!(),
+            Self::IsDuration => todo!(),
+            Self::IsNull => todo!(),
+            Self::IsMax => todo!(),
+            Self::IsMin => todo!(),
+            Self::EitherOr { either: _, or: _ } => todo!(),
+            Self::Exclude { operand: _ } => todo!(),
         })
     }
 
@@ -1976,45 +1960,41 @@ impl<O: RootOperand> SingleValueOperationWithIndex<O> {
         O: 'a,
     {
         Ok(match self {
-            SingleValueOperationWithIndex::SingleValueComparisonOperation { operand, kind } => {
-                Box::new(
-                    values
-                        .map(move |(key, values)| {
-                            let Some(values) = values else {
-                                return Ok((key, None));
-                            };
+            Self::SingleValueComparisonOperation { operand, kind } => Box::new(
+                values
+                    .map(move |(key, values)| {
+                        let Some(values) = values else {
+                            return Ok((key, None));
+                        };
 
-                            Ok((
-                                key,
-                                Self::evaluate_single_value_comparison_operation(
-                                    medrecord, values, operand, kind,
-                                )?,
-                            ))
-                        })
-                        .collect::<MedRecordResult<Vec<_>>>()?
-                        .into_iter(),
-                )
-            }
-            SingleValueOperationWithIndex::MultipleValuesComparisonOperation { operand, kind } => {
-                Box::new(
-                    values
-                        .map(move |(key, values)| {
-                            let Some(values) = values else {
-                                return Ok((key, None));
-                            };
+                        Ok((
+                            key,
+                            Self::evaluate_single_value_comparison_operation(
+                                medrecord, values, operand, kind,
+                            )?,
+                        ))
+                    })
+                    .collect::<MedRecordResult<Vec<_>>>()?
+                    .into_iter(),
+            ),
+            Self::MultipleValuesComparisonOperation { operand, kind } => Box::new(
+                values
+                    .map(move |(key, values)| {
+                        let Some(values) = values else {
+                            return Ok((key, None));
+                        };
 
-                            Ok((
-                                key,
-                                Self::evaluate_multiple_values_comparison_operation(
-                                    medrecord, values, operand, kind,
-                                )?,
-                            ))
-                        })
-                        .collect::<MedRecordResult<Vec<_>>>()?
-                        .into_iter(),
-                )
-            }
-            SingleValueOperationWithIndex::BinaryArithmeticOpration { operand, kind } => Box::new(
+                        Ok((
+                            key,
+                            Self::evaluate_multiple_values_comparison_operation(
+                                medrecord, values, operand, kind,
+                            )?,
+                        ))
+                    })
+                    .collect::<MedRecordResult<Vec<_>>>()?
+                    .into_iter(),
+            ),
+            Self::BinaryArithmeticOpration { operand, kind } => Box::new(
                 values
                     .map(move |(key, values)| {
                         let Some(values) = values else {
@@ -2031,18 +2011,18 @@ impl<O: RootOperand> SingleValueOperationWithIndex<O> {
                     .collect::<MedRecordResult<Vec<_>>>()?
                     .into_iter(),
             ),
-            SingleValueOperationWithIndex::UnaryArithmeticOperation { kind: _ } => todo!(),
-            SingleValueOperationWithIndex::Slice(_range) => todo!(),
-            SingleValueOperationWithIndex::IsString => todo!(),
-            SingleValueOperationWithIndex::IsInt => todo!(),
-            SingleValueOperationWithIndex::IsFloat => todo!(),
-            SingleValueOperationWithIndex::IsBool => todo!(),
-            SingleValueOperationWithIndex::IsDateTime => todo!(),
-            SingleValueOperationWithIndex::IsDuration => todo!(),
-            SingleValueOperationWithIndex::IsNull => todo!(),
-            SingleValueOperationWithIndex::EitherOr { either: _, or: _ } => todo!(),
-            SingleValueOperationWithIndex::Exclude { operand: _ } => todo!(),
-            SingleValueOperationWithIndex::Merge { operand } => {
+            Self::UnaryArithmeticOperation { kind: _ } => todo!(),
+            Self::Slice(_range) => todo!(),
+            Self::IsString => todo!(),
+            Self::IsInt => todo!(),
+            Self::IsFloat => todo!(),
+            Self::IsBool => todo!(),
+            Self::IsDateTime => todo!(),
+            Self::IsDuration => todo!(),
+            Self::IsNull => todo!(),
+            Self::EitherOr { either: _, or: _ } => todo!(),
+            Self::Exclude { operand: _ } => todo!(),
+            Self::Merge { operand } => {
                 let (values_1, values_2) = Itertools::tee(values);
 
                 let values_1 = values_1.filter_map(|(_, value)| value);
@@ -2315,29 +2295,24 @@ impl<O: RootOperand> SingleValueOperationWithoutIndex<O> {
         values: GroupedIterator<'a, Option<MedRecordValue>>,
     ) -> MedRecordResult<GroupedIterator<'a, Option<MedRecordValue>>> {
         Ok(match self {
-            SingleValueOperationWithoutIndex::SingleValueComparisonOperation { operand, kind } => {
-                Box::new(
-                    values
-                        .map(move |(key, values)| {
-                            let Some(values) = values else {
-                                return Ok((key, None));
-                            };
+            Self::SingleValueComparisonOperation { operand, kind } => Box::new(
+                values
+                    .map(move |(key, values)| {
+                        let Some(values) = values else {
+                            return Ok((key, None));
+                        };
 
-                            Ok((
-                                key,
-                                Self::evaluate_single_value_comparison_operation(
-                                    medrecord, values, operand, kind,
-                                )?,
-                            ))
-                        })
-                        .collect::<MedRecordResult<Vec<_>>>()?
-                        .into_iter(),
-                )
-            }
-            SingleValueOperationWithoutIndex::MultipleValuesComparisonOperation {
-                operand,
-                kind,
-            } => Box::new(
+                        Ok((
+                            key,
+                            Self::evaluate_single_value_comparison_operation(
+                                medrecord, values, operand, kind,
+                            )?,
+                        ))
+                    })
+                    .collect::<MedRecordResult<Vec<_>>>()?
+                    .into_iter(),
+            ),
+            Self::MultipleValuesComparisonOperation { operand, kind } => Box::new(
                 values
                     .map(move |(key, values)| {
                         let Some(values) = values else {
@@ -2354,37 +2329,35 @@ impl<O: RootOperand> SingleValueOperationWithoutIndex<O> {
                     .collect::<MedRecordResult<Vec<_>>>()?
                     .into_iter(),
             ),
-            SingleValueOperationWithoutIndex::BinaryArithmeticOpration { operand, kind } => {
-                Box::new(
-                    values
-                        .map(move |(key, values)| {
-                            let Some(values) = values else {
-                                return Ok((key, None));
-                            };
+            Self::BinaryArithmeticOpration { operand, kind } => Box::new(
+                values
+                    .map(move |(key, values)| {
+                        let Some(values) = values else {
+                            return Ok((key, None));
+                        };
 
-                            Ok((
-                                key,
-                                Self::evaluate_binary_arithmetic_operation(
-                                    medrecord, values, operand, kind,
-                                )?,
-                            ))
-                        })
-                        .collect::<MedRecordResult<Vec<_>>>()?
-                        .into_iter(),
-                )
-            }
-            SingleValueOperationWithoutIndex::UnaryArithmeticOperation { kind: _ } => todo!(),
-            SingleValueOperationWithoutIndex::Slice(_range) => todo!(),
-            SingleValueOperationWithoutIndex::IsString => todo!(),
-            SingleValueOperationWithoutIndex::IsInt => todo!(),
-            SingleValueOperationWithoutIndex::IsFloat => todo!(),
-            SingleValueOperationWithoutIndex::IsBool => todo!(),
-            SingleValueOperationWithoutIndex::IsDateTime => todo!(),
-            SingleValueOperationWithoutIndex::IsDuration => todo!(),
-            SingleValueOperationWithoutIndex::IsNull => todo!(),
-            SingleValueOperationWithoutIndex::EitherOr { either: _, or: _ } => todo!(),
-            SingleValueOperationWithoutIndex::Exclude { operand: _ } => todo!(),
-            SingleValueOperationWithoutIndex::Merge { operand: _ } => {
+                        Ok((
+                            key,
+                            Self::evaluate_binary_arithmetic_operation(
+                                medrecord, values, operand, kind,
+                            )?,
+                        ))
+                    })
+                    .collect::<MedRecordResult<Vec<_>>>()?
+                    .into_iter(),
+            ),
+            Self::UnaryArithmeticOperation { kind: _ } => todo!(),
+            Self::Slice(_range) => todo!(),
+            Self::IsString => todo!(),
+            Self::IsInt => todo!(),
+            Self::IsFloat => todo!(),
+            Self::IsBool => todo!(),
+            Self::IsDateTime => todo!(),
+            Self::IsDuration => todo!(),
+            Self::IsNull => todo!(),
+            Self::EitherOr { either: _, or: _ } => todo!(),
+            Self::Exclude { operand: _ } => todo!(),
+            Self::Merge { operand: _ } => {
                 let (_values_1, _values_2) = Itertools::tee(values);
 
                 todo!()
