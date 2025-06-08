@@ -16,8 +16,11 @@ use super::{
     value::PyMedRecordValue, Lut, PyNodeIndex,
 };
 use attributes::{
-    PyEdgeAttributesTreeOperand, PyEdgeMultipleAttributesOperand, PyEdgeSingleAttributeOperand,
-    PyNodeAttributesTreeOperand, PyNodeMultipleAttributesOperand, PyNodeSingleAttributeOperand,
+    PyEdgeAttributesTreeOperand, PyEdgeMultipleAttributesOperandWithIndex,
+    PyEdgeMultipleAttributesOperandWithoutIndex, PyEdgeSingleAttributeOperandWithIndex,
+    PyEdgeSingleAttributeOperandWithoutIndex, PyNodeAttributesTreeOperand,
+    PyNodeMultipleAttributesOperandWithIndex, PyNodeMultipleAttributesOperandWithoutIndex,
+    PyNodeSingleAttributeOperandWithIndex, PyNodeSingleAttributeOperandWithoutIndex,
 };
 use edges::{PyEdgeIndexOperand, PyEdgeIndicesOperand};
 use medmodels_core::{
@@ -25,9 +28,11 @@ use medmodels_core::{
     medrecord::{
         querying::{
             attributes::{
-                EdgeAttributesTreeOperand, EdgeMultipleAttributesOperand,
-                EdgeSingleAttributeOperand, NodeAttributesTreeOperand,
-                NodeMultipleAttributesOperand, NodeSingleAttributeOperand,
+                EdgeAttributesTreeOperand, EdgeMultipleAttributesOperandWithIndex,
+                EdgeMultipleAttributesOperandWithoutIndex, EdgeSingleAttributeOperandWithIndex,
+                EdgeSingleAttributeOperandWithoutIndex, NodeAttributesTreeOperand,
+                NodeMultipleAttributesOperandWithIndex, NodeMultipleAttributesOperandWithoutIndex,
+                NodeSingleAttributeOperandWithIndex, NodeSingleAttributeOperandWithoutIndex,
             },
             edges::{EdgeIndexOperand, EdgeIndicesOperand},
             nodes::{NodeIndexOperand, NodeIndicesOperand},
@@ -38,7 +43,7 @@ use medmodels_core::{
                 NodeSingleValueOperandWithIndex, NodeSingleValueOperandWithoutIndex,
             },
             wrapper::{CardinalityWrapper, Wrapper},
-            OptionalIndexWrapper, ReturnOperand,
+            ReturnOperand,
         },
         MedRecordAttribute,
     },
@@ -46,7 +51,7 @@ use medmodels_core::{
 };
 use nodes::{PyNodeIndexOperand, PyNodeIndicesOperand};
 use pyo3::{
-    types::{PyAnyMethods, PyList, PyNone},
+    types::{PyAnyMethods, PyList},
     Bound, FromPyObject, IntoPyObject, IntoPyObjectExt, PyAny, PyErr, PyResult, Python,
 };
 use std::collections::HashMap;
@@ -58,10 +63,14 @@ use values::{
 pub enum PyReturnOperand {
     NodeAttributesTree(PyNodeAttributesTreeOperand),
     EdgeAttributesTree(PyEdgeAttributesTreeOperand),
-    NodeMultipleAttributes(PyNodeMultipleAttributesOperand),
-    EdgeMultipleAttributes(PyEdgeMultipleAttributesOperand),
-    NodeSingleAttribute(PyNodeSingleAttributeOperand),
-    EdgeSingleAttribute(PyEdgeSingleAttributeOperand),
+    NodeMultipleAttributesWithIndex(PyNodeMultipleAttributesOperandWithIndex),
+    NodeMultipleAttributesWithoutIndex(PyNodeMultipleAttributesOperandWithoutIndex),
+    EdgeMultipleAttributesWithIndex(PyEdgeMultipleAttributesOperandWithIndex),
+    EdgeMultipleAttributesWithoutIndex(PyEdgeMultipleAttributesOperandWithoutIndex),
+    NodeSingleAttributeWithIndex(PyNodeSingleAttributeOperandWithIndex),
+    NodeSingleAttributeWithoutIndex(PyNodeSingleAttributeOperandWithoutIndex),
+    EdgeSingleAttributeWithIndex(PyEdgeSingleAttributeOperandWithIndex),
+    EdgeSingleAttributeWithoutIndex(PyEdgeSingleAttributeOperandWithoutIndex),
     EdgeIndices(PyEdgeIndicesOperand),
     EdgeIndex(PyEdgeIndexOperand),
     NodeIndices(PyNodeIndicesOperand),
@@ -88,18 +97,30 @@ impl<'a> ReturnOperand<'a> for PyReturnOperand {
             PyReturnOperand::EdgeAttributesTree(operand) => operand
                 .evaluate(medrecord)
                 .map(PyReturnValue::EdgeAttributesTree),
-            PyReturnOperand::NodeMultipleAttributes(operand) => operand
+            PyReturnOperand::NodeMultipleAttributesWithIndex(operand) => operand
                 .evaluate(medrecord)
-                .map(PyReturnValue::NodeMultipleAttributes),
-            PyReturnOperand::EdgeMultipleAttributes(operand) => operand
+                .map(PyReturnValue::NodeMultipleAttributesWithIndex),
+            PyReturnOperand::NodeMultipleAttributesWithoutIndex(operand) => operand
                 .evaluate(medrecord)
-                .map(PyReturnValue::EdgeMultipleAttributes),
-            PyReturnOperand::NodeSingleAttribute(operand) => operand
+                .map(PyReturnValue::NodeMultipleAttributesWithoutIndex),
+            PyReturnOperand::EdgeMultipleAttributesWithIndex(operand) => operand
                 .evaluate(medrecord)
-                .map(PyReturnValue::NodeSingleAttribute),
-            PyReturnOperand::EdgeSingleAttribute(operand) => operand
+                .map(PyReturnValue::EdgeMultipleAttributesWithIndex),
+            PyReturnOperand::EdgeMultipleAttributesWithoutIndex(operand) => operand
                 .evaluate(medrecord)
-                .map(PyReturnValue::EdgeSingleAttribute),
+                .map(PyReturnValue::EdgeMultipleAttributesWithoutIndex),
+            PyReturnOperand::NodeSingleAttributeWithIndex(operand) => operand
+                .evaluate(medrecord)
+                .map(PyReturnValue::NodeSingleAttributeWithIndex),
+            PyReturnOperand::NodeSingleAttributeWithoutIndex(operand) => operand
+                .evaluate(medrecord)
+                .map(PyReturnValue::NodeSingleAttributeWithoutIndex),
+            PyReturnOperand::EdgeSingleAttributeWithIndex(operand) => operand
+                .evaluate(medrecord)
+                .map(PyReturnValue::EdgeSingleAttributeWithIndex),
+            PyReturnOperand::EdgeSingleAttributeWithoutIndex(operand) => operand
+                .evaluate(medrecord)
+                .map(PyReturnValue::EdgeSingleAttributeWithoutIndex),
             PyReturnOperand::EdgeIndices(operand) => {
                 operand.evaluate(medrecord).map(PyReturnValue::EdgeIndices)
             }
@@ -164,38 +185,73 @@ pub(crate) fn convert_pyobject_to_pyreturnoperand(
         ))
     }
 
-    fn convert_py_node_multiple_attributes_operand(
+    fn convert_py_node_multiple_attributes_operand_with_index(
         ob: &Bound<'_, PyAny>,
     ) -> PyResult<PyReturnOperand> {
-        Ok(PyReturnOperand::NodeMultipleAttributes(
-            ob.extract::<PyNodeMultipleAttributesOperand>()
+        Ok(PyReturnOperand::NodeMultipleAttributesWithIndex(
+            ob.extract::<PyNodeMultipleAttributesOperandWithIndex>()
+                .expect("Extraction must succeed"),
+        ))
+    }
+    fn convert_py_node_multiple_attributes_operand_without_index(
+        ob: &Bound<'_, PyAny>,
+    ) -> PyResult<PyReturnOperand> {
+        Ok(PyReturnOperand::NodeMultipleAttributesWithoutIndex(
+            ob.extract::<PyNodeMultipleAttributesOperandWithoutIndex>()
                 .expect("Extraction must succeed"),
         ))
     }
 
-    fn convert_py_edge_multiple_attributes_operand(
+    fn convert_py_edge_multiple_attributes_operand_with_index(
         ob: &Bound<'_, PyAny>,
     ) -> PyResult<PyReturnOperand> {
-        Ok(PyReturnOperand::EdgeMultipleAttributes(
-            ob.extract::<PyEdgeMultipleAttributesOperand>()
+        Ok(PyReturnOperand::EdgeMultipleAttributesWithIndex(
+            ob.extract::<PyEdgeMultipleAttributesOperandWithIndex>()
                 .expect("Extraction must succeed"),
         ))
     }
 
-    fn convert_py_node_single_attribute_operand(
+    fn convert_py_edge_multiple_attributes_operand_without_index(
         ob: &Bound<'_, PyAny>,
     ) -> PyResult<PyReturnOperand> {
-        Ok(PyReturnOperand::NodeSingleAttribute(
-            ob.extract::<PyNodeSingleAttributeOperand>()
+        Ok(PyReturnOperand::EdgeMultipleAttributesWithoutIndex(
+            ob.extract::<PyEdgeMultipleAttributesOperandWithoutIndex>()
                 .expect("Extraction must succeed"),
         ))
     }
 
-    fn convert_py_edge_single_attribute_operand(
+    fn convert_py_node_single_attribute_operand_with_index(
         ob: &Bound<'_, PyAny>,
     ) -> PyResult<PyReturnOperand> {
-        Ok(PyReturnOperand::EdgeSingleAttribute(
-            ob.extract::<PyEdgeSingleAttributeOperand>()
+        Ok(PyReturnOperand::NodeSingleAttributeWithIndex(
+            ob.extract::<PyNodeSingleAttributeOperandWithIndex>()
+                .expect("Extraction must succeed"),
+        ))
+    }
+
+    fn convert_py_node_single_attribute_operand_without_index(
+        ob: &Bound<'_, PyAny>,
+    ) -> PyResult<PyReturnOperand> {
+        Ok(PyReturnOperand::NodeSingleAttributeWithoutIndex(
+            ob.extract::<PyNodeSingleAttributeOperandWithoutIndex>()
+                .expect("Extraction must succeed"),
+        ))
+    }
+
+    fn convert_py_edge_single_attribute_operand_with_index(
+        ob: &Bound<'_, PyAny>,
+    ) -> PyResult<PyReturnOperand> {
+        Ok(PyReturnOperand::EdgeSingleAttributeWithIndex(
+            ob.extract::<PyEdgeSingleAttributeOperandWithIndex>()
+                .expect("Extraction must succeed"),
+        ))
+    }
+
+    fn convert_py_edge_single_attribute_operand_without_index(
+        ob: &Bound<'_, PyAny>,
+    ) -> PyResult<PyReturnOperand> {
+        Ok(PyReturnOperand::EdgeSingleAttributeWithoutIndex(
+            ob.extract::<PyEdgeSingleAttributeOperandWithoutIndex>()
                 .expect("Extraction must succeed"),
         ))
     }
@@ -324,14 +380,22 @@ pub(crate) fn convert_pyobject_to_pyreturnoperand(
                     convert_py_node_attributes_tree_operand
                 } else if ob.is_instance_of::<PyEdgeAttributesTreeOperand>() {
                     convert_py_edge_attributes_tree_operand
-                } else if ob.is_instance_of::<PyNodeMultipleAttributesOperand>() {
-                    convert_py_node_multiple_attributes_operand
-                } else if ob.is_instance_of::<PyEdgeMultipleAttributesOperand>() {
-                    convert_py_edge_multiple_attributes_operand
-                } else if ob.is_instance_of::<PyNodeSingleAttributeOperand>() {
-                    convert_py_node_single_attribute_operand
-                } else if ob.is_instance_of::<PyEdgeSingleAttributeOperand>() {
-                    convert_py_edge_single_attribute_operand
+                } else if ob.is_instance_of::<PyNodeMultipleAttributesOperandWithIndex>() {
+                    convert_py_node_multiple_attributes_operand_with_index
+                } else if ob.is_instance_of::<PyNodeMultipleAttributesOperandWithoutIndex>() {
+                    convert_py_node_multiple_attributes_operand_without_index
+                } else if ob.is_instance_of::<PyEdgeMultipleAttributesOperandWithIndex>() {
+                    convert_py_edge_multiple_attributes_operand_with_index
+                } else if ob.is_instance_of::<PyEdgeMultipleAttributesOperandWithoutIndex>() {
+                    convert_py_edge_multiple_attributes_operand_without_index
+                } else if ob.is_instance_of::<PyNodeSingleAttributeOperandWithIndex>() {
+                    convert_py_node_single_attribute_operand_with_index
+                } else if ob.is_instance_of::<PyNodeSingleAttributeOperandWithoutIndex>() {
+                    convert_py_node_single_attribute_operand_without_index
+                } else if ob.is_instance_of::<PyEdgeSingleAttributeOperandWithIndex>() {
+                    convert_py_edge_single_attribute_operand_with_index
+                } else if ob.is_instance_of::<PyEdgeSingleAttributeOperandWithoutIndex>() {
+                    convert_py_edge_single_attribute_operand_without_index
                 } else if ob.is_instance_of::<PyEdgeIndicesOperand>() {
                     convert_py_edge_indices_operand
                 } else if ob.is_instance_of::<PyEdgeIndexOperand>() {
@@ -377,14 +441,30 @@ impl FromPyObject<'_> for PyReturnOperand {
 pub enum PyReturnValue<'a> {
     NodeAttributesTree(<Wrapper<NodeAttributesTreeOperand> as ReturnOperand<'a>>::ReturnValue),
     EdgeAttributesTree(<Wrapper<EdgeAttributesTreeOperand> as ReturnOperand<'a>>::ReturnValue),
-    NodeMultipleAttributes(
-        <Wrapper<NodeMultipleAttributesOperand> as ReturnOperand<'a>>::ReturnValue,
+    NodeMultipleAttributesWithIndex(
+        <Wrapper<NodeMultipleAttributesOperandWithIndex> as ReturnOperand<'a>>::ReturnValue,
     ),
-    EdgeMultipleAttributes(
-        <Wrapper<EdgeMultipleAttributesOperand> as ReturnOperand<'a>>::ReturnValue,
+    NodeMultipleAttributesWithoutIndex(
+        <Wrapper<NodeMultipleAttributesOperandWithoutIndex> as ReturnOperand<'a>>::ReturnValue,
     ),
-    NodeSingleAttribute(<Wrapper<NodeSingleAttributeOperand> as ReturnOperand<'a>>::ReturnValue),
-    EdgeSingleAttribute(<Wrapper<EdgeSingleAttributeOperand> as ReturnOperand<'a>>::ReturnValue),
+    EdgeMultipleAttributesWithIndex(
+        <Wrapper<EdgeMultipleAttributesOperandWithIndex> as ReturnOperand<'a>>::ReturnValue,
+    ),
+    EdgeMultipleAttributesWithoutIndex(
+        <Wrapper<EdgeMultipleAttributesOperandWithoutIndex> as ReturnOperand<'a>>::ReturnValue,
+    ),
+    NodeSingleAttributeWithIndex(
+        <Wrapper<NodeSingleAttributeOperandWithIndex> as ReturnOperand<'a>>::ReturnValue,
+    ),
+    NodeSingleAttributeWithoutIndex(
+        <Wrapper<NodeSingleAttributeOperandWithoutIndex> as ReturnOperand<'a>>::ReturnValue,
+    ),
+    EdgeSingleAttributeWithIndex(
+        <Wrapper<EdgeSingleAttributeOperandWithIndex> as ReturnOperand<'a>>::ReturnValue,
+    ),
+    EdgeSingleAttributeWithoutIndex(
+        <Wrapper<EdgeSingleAttributeOperandWithoutIndex> as ReturnOperand<'a>>::ReturnValue,
+    ),
     EdgeIndices(<Wrapper<EdgeIndicesOperand> as ReturnOperand<'a>>::ReturnValue),
     EdgeIndex(<Wrapper<EdgeIndexOperand> as ReturnOperand<'a>>::ReturnValue),
     NodeIndices(<Wrapper<NodeIndicesOperand> as ReturnOperand<'a>>::ReturnValue),
@@ -436,7 +516,7 @@ impl<'py> IntoPyObject<'py> for PyReturnValue<'_> {
                 .map(|item| (item.0, Vec::<PyMedRecordAttribute>::deep_from(item.1)))
                 .collect::<HashMap<_, _>>()
                 .into_bound_py_any(py),
-            PyReturnValue::NodeMultipleAttributes(iterator) => iterator
+            PyReturnValue::NodeMultipleAttributesWithIndex(iterator) => iterator
                 .map(|item| {
                     (
                         PyNodeIndex::from(item.0.clone()),
@@ -445,34 +525,35 @@ impl<'py> IntoPyObject<'py> for PyReturnValue<'_> {
                 })
                 .collect::<HashMap<_, _>>()
                 .into_bound_py_any(py),
-            PyReturnValue::EdgeMultipleAttributes(iterator) => iterator
+            PyReturnValue::NodeMultipleAttributesWithoutIndex(iterator) => iterator
+                .map(PyMedRecordAttribute::from)
+                .collect::<Vec<_>>()
+                .into_bound_py_any(py),
+            PyReturnValue::EdgeMultipleAttributesWithIndex(iterator) => iterator
                 .map(|item| (item.0, PyMedRecordAttribute::from(item.1)))
                 .collect::<HashMap<_, _>>()
                 .into_bound_py_any(py),
-            PyReturnValue::NodeSingleAttribute(attribute) => match attribute {
-                Some(attribute) => match attribute {
-                    OptionalIndexWrapper::WithIndex((index, attribute)) => (
-                        PyNodeIndex::from(index.clone()),
+            PyReturnValue::EdgeMultipleAttributesWithoutIndex(iterator) => iterator
+                .map(PyMedRecordAttribute::from)
+                .collect::<Vec<_>>()
+                .into_bound_py_any(py),
+            PyReturnValue::NodeSingleAttributeWithIndex(attribute) => attribute
+                .map(|(index, attribute)| {
+                    (
+                        PyMedRecordAttribute::from(index.clone()),
                         PyMedRecordAttribute::from(attribute),
                     )
-                        .into_bound_py_any(py),
-                    OptionalIndexWrapper::WithoutIndex(attribute) => {
-                        PyMedRecordAttribute::from(attribute).into_bound_py_any(py)
-                    }
-                },
-                None => PyNone::get(py).into_bound_py_any(py),
-            },
-            PyReturnValue::EdgeSingleAttribute(attribute) => match attribute {
-                Some(attribute) => match attribute {
-                    OptionalIndexWrapper::WithIndex((index, attribute)) => {
-                        (index, PyMedRecordAttribute::from(attribute)).into_bound_py_any(py)
-                    }
-                    OptionalIndexWrapper::WithoutIndex(attribute) => {
-                        PyMedRecordAttribute::from(attribute).into_bound_py_any(py)
-                    }
-                },
-                None => PyNone::get(py).into_bound_py_any(py),
-            },
+                })
+                .into_bound_py_any(py),
+            PyReturnValue::NodeSingleAttributeWithoutIndex(attribute) => attribute
+                .map(PyMedRecordAttribute::from)
+                .into_bound_py_any(py),
+            PyReturnValue::EdgeSingleAttributeWithIndex(attribute) => attribute
+                .map(|(index, attribute)| (index, PyMedRecordAttribute::from(attribute)))
+                .into_bound_py_any(py),
+            PyReturnValue::EdgeSingleAttributeWithoutIndex(attribute) => attribute
+                .map(PyMedRecordAttribute::from)
+                .into_bound_py_any(py),
             PyReturnValue::EdgeIndices(iterator) => {
                 iterator.collect::<Vec<_>>().into_bound_py_any(py)
             }

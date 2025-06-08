@@ -10,14 +10,19 @@ use super::{EdgeIndex, MedRecord, MedRecordAttribute, MedRecordValue, NodeIndex,
 use crate::{
     errors::MedRecordResult,
     medrecord::querying::{
+        attributes::{
+            EdgeMultipleAttributesOperandWithoutIndex, EdgeSingleAttributeOperandWithoutIndex,
+            NodeMultipleAttributesOperandWithoutIndex, NodeSingleAttributeOperandWithoutIndex,
+        },
         group_by::{GroupBy, GroupKey, PartitionGroups},
         values::{EdgeSingleValueOperandWithoutIndex, NodeSingleValueOperandWithoutIndex},
     },
 };
 use attributes::{
-    EdgeAttributesTreeOperand, EdgeMultipleAttributesOperand, EdgeSingleAttributeOperand,
-    GetAllAttributes, GetAttributes, NodeAttributesTreeOperand, NodeMultipleAttributesOperand,
-    NodeSingleAttributeOperand,
+    EdgeAttributesTreeOperand, EdgeMultipleAttributesOperandWithIndex,
+    EdgeSingleAttributeOperandWithIndex, GetAllAttributes, GetAttributes,
+    NodeAttributesTreeOperand, NodeMultipleAttributesOperandWithIndex,
+    NodeSingleAttributeOperandWithIndex,
 };
 use edges::{EdgeIndexOperand, EdgeIndicesOperand, EdgeOperand};
 use group_by::{GroupOperand, GroupedOperand};
@@ -357,61 +362,6 @@ impl<T> ReadWriteOrPanic<T> for RwLock<T> {
 pub(crate) type BoxedIterator<'a, T> = Box<dyn Iterator<Item = T> + 'a>;
 
 #[derive(Debug, Clone)]
-pub enum OptionalIndexWrapper<I: Index, T> {
-    WithIndex((I, T)),
-    WithoutIndex(T),
-}
-
-impl<I: Index, T> OptionalIndexWrapper<I, T> {
-    pub fn get_value(&self) -> &T {
-        match self {
-            OptionalIndexWrapper::WithIndex((_, value)) => value,
-            OptionalIndexWrapper::WithoutIndex(value) => value,
-        }
-    }
-
-    pub fn get_index(&self) -> Option<&I> {
-        match self {
-            OptionalIndexWrapper::WithIndex((index, _)) => Some(index),
-            OptionalIndexWrapper::WithoutIndex(_) => None,
-        }
-    }
-
-    pub fn unpack(self) -> (Option<I>, T) {
-        match self {
-            OptionalIndexWrapper::WithIndex((index, value)) => (Some(index), value),
-            OptionalIndexWrapper::WithoutIndex(value) => (None, value),
-        }
-    }
-
-    pub fn map<U, F>(self, f: F) -> OptionalIndexWrapper<I, U>
-    where
-        F: FnOnce(T) -> U,
-    {
-        match self {
-            OptionalIndexWrapper::WithIndex((index, value)) => {
-                OptionalIndexWrapper::WithIndex((index, f(value)))
-            }
-            OptionalIndexWrapper::WithoutIndex(value) => {
-                OptionalIndexWrapper::WithoutIndex(f(value))
-            }
-        }
-    }
-}
-
-impl<I: Index, T> From<T> for OptionalIndexWrapper<I, T> {
-    fn from(value: T) -> Self {
-        OptionalIndexWrapper::WithoutIndex(value)
-    }
-}
-
-impl<I: Index, T> From<(I, T)> for OptionalIndexWrapper<I, T> {
-    fn from(value: (I, T)) -> Self {
-        OptionalIndexWrapper::WithIndex(value)
-    }
-}
-
-#[derive(Debug, Clone)]
 pub struct Selection<'a, R: ReturnOperand<'a>> {
     medrecord: &'a MedRecord,
     return_operand: R,
@@ -454,27 +404,31 @@ pub trait ReturnOperand<'a> {
 }
 
 impl_iterator_return_operand!(
-    NodeAttributesTreeOperand     => (&'a NodeIndex, Vec<MedRecordAttribute>),
-    EdgeAttributesTreeOperand     => (&'a EdgeIndex, Vec<MedRecordAttribute>),
-    NodeMultipleAttributesOperand => (&'a NodeIndex, MedRecordAttribute),
-    EdgeMultipleAttributesOperand => (&'a EdgeIndex, MedRecordAttribute),
-    EdgeIndicesOperand            => EdgeIndex,
-    NodeIndicesOperand            => NodeIndex,
-    NodeMultipleValuesOperandWithIndex     => (&'a NodeIndex, MedRecordValue),
-    NodeMultipleValuesOperandWithoutIndex  => MedRecordValue,
-    EdgeMultipleValuesOperandWithIndex     => (&'a EdgeIndex, MedRecordValue),
-    EdgeMultipleValuesOperandWithoutIndex  => MedRecordValue,
+    NodeAttributesTreeOperand                 => (&'a NodeIndex, Vec<MedRecordAttribute>),
+    EdgeAttributesTreeOperand                 => (&'a EdgeIndex, Vec<MedRecordAttribute>),
+    NodeMultipleAttributesOperandWithIndex    => (&'a NodeIndex, MedRecordAttribute),
+    NodeMultipleAttributesOperandWithoutIndex => MedRecordAttribute,
+    EdgeMultipleAttributesOperandWithIndex    => (&'a EdgeIndex, MedRecordAttribute),
+    EdgeMultipleAttributesOperandWithoutIndex => MedRecordAttribute,
+    EdgeIndicesOperand                        => EdgeIndex,
+    NodeIndicesOperand                        => NodeIndex,
+    NodeMultipleValuesOperandWithIndex        => (&'a NodeIndex, MedRecordValue),
+    NodeMultipleValuesOperandWithoutIndex     => MedRecordValue,
+    EdgeMultipleValuesOperandWithIndex        => (&'a EdgeIndex, MedRecordValue),
+    EdgeMultipleValuesOperandWithoutIndex     => MedRecordValue,
 );
 
 impl_direct_return_operand!(
-    NodeSingleAttributeOperand => Option<OptionalIndexWrapper<&'a NodeIndex, MedRecordAttribute>>,
-    EdgeSingleAttributeOperand => Option<OptionalIndexWrapper<&'a EdgeIndex, MedRecordAttribute>>,
-    EdgeIndexOperand           => Option<EdgeIndex>,
-    NodeIndexOperand           => Option<NodeIndex>,
-    NodeSingleValueOperandWithIndex     => Option<(&'a NodeIndex, MedRecordValue)>,
-    NodeSingleValueOperandWithoutIndex  => Option<MedRecordValue>,
-    EdgeSingleValueOperandWithIndex     => Option<(&'a EdgeIndex, MedRecordValue)>,
-    EdgeSingleValueOperandWithoutIndex  => Option<MedRecordValue>,
+    NodeSingleAttributeOperandWithIndex    => Option<(&'a NodeIndex, MedRecordAttribute)>,
+    NodeSingleAttributeOperandWithoutIndex => Option<MedRecordAttribute>,
+    EdgeSingleAttributeOperandWithIndex    => Option<(&'a EdgeIndex, MedRecordAttribute)>,
+    EdgeSingleAttributeOperandWithoutIndex => Option<MedRecordAttribute>,
+    EdgeIndexOperand                       => Option<EdgeIndex>,
+    NodeIndexOperand                       => Option<NodeIndex>,
+    NodeSingleValueOperandWithIndex        => Option<(&'a NodeIndex, MedRecordValue)>,
+    NodeSingleValueOperandWithoutIndex     => Option<MedRecordValue>,
+    EdgeSingleValueOperandWithIndex        => Option<(&'a EdgeIndex, MedRecordValue)>,
+    EdgeSingleValueOperandWithoutIndex     => Option<MedRecordValue>,
 );
 
 impl<'a, O: GroupedOperand> ReturnOperand<'a> for Wrapper<GroupOperand<O>>

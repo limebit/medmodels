@@ -309,277 +309,6 @@ impl<O: RootOperand> MultipleValuesOperationWithIndex<O> {
     }
 
     #[inline]
-    pub(crate) fn get_mean<'a>(
-        mut values: impl Iterator<Item = MedRecordValue>,
-    ) -> MedRecordResult<Option<MedRecordValue>>
-    where
-        O: 'a,
-    {
-        let first_value = values.next();
-
-        let Some(first_value) = first_value else {
-            return Ok(None);
-        };
-
-        let (sum, count) = values.try_fold((first_value, 1), |(sum, count), value| {
-            let first_dtype = DataType::from(&sum);
-            let second_dtype = DataType::from(&value);
-
-            match sum.add(value) {
-                Ok(sum) => Ok((sum, count + 1)),
-                Err(_) => Err(MedRecordError::QueryError(format!(
-                    "Cannot add values of data types {} and {}. Consider narrowing down the values using .is_int(), .is_float(), .is_datetime() or .is_duration()",
-                    first_dtype, second_dtype
-                ))),
-            }
-        })?;
-
-        Ok(Some(sum.div(MedRecordValue::Int(count as i64))?))
-    }
-
-    // TODO: This is a temporary solution. It should be optimized.
-    #[inline]
-    pub(crate) fn get_median<'a>(
-        mut values: impl Iterator<Item = MedRecordValue>,
-    ) -> MedRecordResult<Option<MedRecordValue>>
-    where
-        O: 'a,
-    {
-        let first_value = values.next();
-
-        let Some(first_value) = first_value else {
-            return Ok(None);
-        };
-
-        let first_data_type = DataType::from(&first_value);
-
-        let median = match first_value {
-            MedRecordValue::Int(value) => {
-                let mut values: Vec<_> = values.map(|value| {
-                    let data_type = DataType::from(&value);
-
-                    match value {
-                        MedRecordValue::Int(value) => Ok(value as f64),
-                        MedRecordValue::Float(value) => Ok(value),
-                        _ => Err(MedRecordError::QueryError(format!(
-                            "Cannot calculate median of mixed data types {} and {}. Consider narrowing down the values using .is_int(), .is_float() , .is_datetime() or .is_duration()",
-                            first_data_type, data_type
-                        ))),
-                    }
-                }).collect::<MedRecordResult<_>>()?;
-                values.push(value as f64);
-                values.sort_unstable_by(|a, b| a.partial_cmp(b).unwrap());
-
-                get_median!(values, Float)
-            }
-            MedRecordValue::Float(value) => {
-                let mut values: Vec<_> = values.map(|value| {
-                    let data_type = DataType::from(&value);
-
-                    match value {
-                        MedRecordValue::Int(value) => Ok(value as f64),
-                        MedRecordValue::Float(value) => Ok(value),
-                        _ => Err(MedRecordError::QueryError(format!(
-                            "Cannot calculate median of mixed data types {} and {}. Consider narrowing down the values using .is_int(), .is_float(), .is_datetime() or .is_duration()",
-                            first_data_type, data_type
-                        ))),
-                    }
-                }).collect::<MedRecordResult<_>>()?;
-                values.push(value);
-                values.sort_unstable_by(|a, b| a.partial_cmp(b).unwrap());
-
-                get_median!(values, Float)
-            }
-            MedRecordValue::DateTime(value) => {
-                let mut values: Vec<_> = values.map(|value| {
-                    let data_type = DataType::from(&value);
-
-                    match value {
-                        MedRecordValue::DateTime(naive_date_time) => Ok(naive_date_time),
-                        _ => Err(MedRecordError::QueryError(format!(
-                            "Cannot calculate median of mixed data types {} and {}. Consider narrowing down the values using .is_int(), .is_float(), .is_datetime() or .is_duration()",
-                            first_data_type, data_type
-                        ))),
-                    }
-                }).collect::<MedRecordResult<_>>()?;
-                values.push(value);
-                values.sort();
-
-                get_median!(values, DateTime)
-            }
-            MedRecordValue::Duration(value) => {
-                let mut values: Vec<_> = values.map(|value| {
-                    let data_type = DataType::from(&value);
-
-                    match value {
-                        MedRecordValue::Duration(naive_date_time) => Ok(naive_date_time),
-                        _ => Err(MedRecordError::QueryError(format!(
-                            "Cannot calculate median of mixed data types {} and {}. Consider narrowing down the values using .is_int(), .is_float(), .is_datetime() or .is_duration()",
-                            first_data_type, data_type
-                        ))),
-                    }
-                }).collect::<MedRecordResult<_>>()?;
-                values.push(value);
-                values.sort();
-
-                get_median!(values, Duration)
-            }
-            _ => Err(MedRecordError::QueryError(format!(
-                "Cannot calculate median of data type {}",
-                first_data_type
-            )))?,
-        }?;
-
-        Ok(Some(median))
-    }
-
-    // TODO: This is a temporary solution. It should be optimized.
-    #[inline]
-    pub(crate) fn get_mode<'a>(
-        values: impl Iterator<Item = MedRecordValue>,
-    ) -> MedRecordResult<Option<MedRecordValue>>
-    where
-        O: 'a,
-    {
-        let values: Vec<_> = values.collect();
-
-        let most_common_value = values.first();
-
-        let Some(most_common_value) = most_common_value else {
-            return Ok(None);
-        };
-
-        let most_common_value = most_common_value.clone();
-
-        let most_common_count = values
-            .iter()
-            .filter(|value| **value == most_common_value)
-            .count();
-
-        let (_, most_common_value) = values.clone().into_iter().fold(
-            (most_common_count, most_common_value),
-            |acc, value| {
-                let count = values.iter().filter(|v| **v == value).count();
-
-                if count > acc.0 {
-                    (count, value)
-                } else {
-                    acc
-                }
-            },
-        );
-
-        Ok(Some(most_common_value.clone()))
-    }
-
-    #[inline]
-    // 👀
-    pub(crate) fn get_std<'a>(
-        values: impl Iterator<Item = MedRecordValue>,
-    ) -> MedRecordResult<Option<MedRecordValue>>
-    where
-        O: 'a,
-    {
-        let variance = Self::get_var(values)?;
-
-        let Some(variance) = variance else {
-            return Ok(None);
-        };
-
-        let MedRecordValue::Float(variance) = variance else {
-            unreachable!()
-        };
-
-        Ok(Some(MedRecordValue::Float(variance.sqrt())))
-    }
-
-    // TODO: This is a temporary solution. It should be optimized.
-    #[inline]
-    pub(crate) fn get_var<'a>(
-        values: impl Iterator<Item = MedRecordValue>,
-    ) -> MedRecordResult<Option<MedRecordValue>>
-    where
-        O: 'a,
-    {
-        let (values_1, values_2) = Itertools::tee(values);
-
-        let mean = Self::get_mean(values_1)?;
-
-        let Some(mean) = mean else {
-            return Ok(None);
-        };
-
-        let MedRecordValue::Float(mean) = mean else {
-            let data_type = DataType::from(mean);
-
-            return Err(MedRecordError::QueryError(
-                format!("Cannot calculate variance of data type {}. Consider narrowing down the values using .is_int() or .is_float()", data_type),
-            ));
-        };
-
-        let values = values_2
-            .into_iter()
-            .map(|value| {
-                let data_type = DataType::from(&value);
-
-                match value {
-                MedRecordValue::Int(value) => Ok(value as f64),
-                MedRecordValue::Float(value) => Ok(value),
-                _ => Err(MedRecordError::QueryError(
-                    format!("Cannot calculate variance of data type {}. Consider narrowing down the values using .is_int() or .is_float()", data_type),
-                )),
-            }})
-            .collect::<MedRecordResult<Vec<_>>>()?;
-
-        let values_length = values.len();
-
-        let variance = values
-            .into_iter()
-            .map(|value| (value - mean).powi(2))
-            .sum::<f64>()
-            / values_length as f64;
-
-        Ok(Some(MedRecordValue::Float(variance)))
-    }
-
-    #[inline]
-    pub(crate) fn get_count<'a>(values: impl Iterator<Item = MedRecordValue>) -> MedRecordValue
-    where
-        O: 'a,
-    {
-        MedRecordValue::Int(values.count() as i64)
-    }
-
-    #[inline]
-    // 🥊💥
-    pub(crate) fn get_sum<'a>(
-        mut values: impl Iterator<Item = MedRecordValue>,
-    ) -> MedRecordResult<Option<MedRecordValue>>
-    where
-        O: 'a,
-    {
-        let first_value = values.next();
-
-        let Some(first_value) = first_value else {
-            return Ok(None);
-        };
-
-        let sum = values.try_fold(first_value, |sum, value| {
-            let first_dtype = DataType::from(&sum);
-            let second_dtype = DataType::from(&value);
-
-            sum.add(value).map_err(|_| {
-                MedRecordError::QueryError(format!(
-                    "Cannot add values of data types {} and {}. Consider narrowing down the values using .is_string(), .is_int(), .is_float(), .is_bool(), .is_datetime() or .is_duration()",
-                    first_dtype, second_dtype
-                ))
-            })
-        })?;
-
-        Ok(Some(sum))
-    }
-
-    #[inline]
     pub(crate) fn get_random<'a>(
         values: impl Iterator<Item = (&'a O::Index, MedRecordValue)>,
     ) -> Option<(&'a O::Index, MedRecordValue)> {
@@ -628,28 +357,30 @@ impl<O: RootOperand> MultipleValuesOperationWithIndex<O> {
         let kind = &operand.0.read_or_panic().kind;
 
         let value = match kind {
-            SingleKindWithoutIndex::Max => todo!(),
+            SingleKindWithoutIndex::Max => {
+                MultipleValuesOperationWithoutIndex::<O>::get_max(values_1)?
+            }
             SingleKindWithoutIndex::Min => todo!(),
             SingleKindWithoutIndex::Mean => {
-                MultipleValuesOperationWithIndex::<O>::get_mean(values_1)?
+                MultipleValuesOperationWithoutIndex::<O>::get_mean(values_1)?
             }
             SingleKindWithoutIndex::Median => {
-                MultipleValuesOperationWithIndex::<O>::get_median(values_1)?
+                MultipleValuesOperationWithoutIndex::<O>::get_median(values_1)?
             }
             SingleKindWithoutIndex::Mode => {
-                MultipleValuesOperationWithIndex::<O>::get_mode(values_1)?
+                MultipleValuesOperationWithoutIndex::<O>::get_mode(values_1)?
             }
             SingleKindWithoutIndex::Std => {
-                MultipleValuesOperationWithIndex::<O>::get_std(values_1)?
+                MultipleValuesOperationWithoutIndex::<O>::get_std(values_1)?
             }
             SingleKindWithoutIndex::Var => {
-                MultipleValuesOperationWithIndex::<O>::get_var(values_1)?
+                MultipleValuesOperationWithoutIndex::<O>::get_var(values_1)?
             }
-            SingleKindWithoutIndex::Count => {
-                Some(MultipleValuesOperationWithIndex::<O>::get_count(values_1))
-            }
+            SingleKindWithoutIndex::Count => Some(
+                MultipleValuesOperationWithoutIndex::<O>::get_count(values_1),
+            ),
             SingleKindWithoutIndex::Sum => {
-                MultipleValuesOperationWithIndex::<O>::get_sum(values_1)?
+                MultipleValuesOperationWithoutIndex::<O>::get_sum(values_1)?
             }
             SingleKindWithoutIndex::Random => todo!(),
         };
@@ -1037,30 +768,36 @@ impl<O: RootOperand> MultipleValuesOperationWithIndex<O> {
                 let values = values.map(|(_, value)| value);
 
                 let value = match kind {
-                    SingleKindWithoutIndex::Max => todo!(),
-                    SingleKindWithoutIndex::Min => todo!(),
+                    SingleKindWithoutIndex::Max => {
+                        MultipleValuesOperationWithoutIndex::<O>::get_max(values)?
+                    }
+                    SingleKindWithoutIndex::Min => {
+                        MultipleValuesOperationWithoutIndex::<O>::get_min(values)?
+                    }
                     SingleKindWithoutIndex::Mean => {
-                        MultipleValuesOperationWithIndex::<O>::get_mean(values)?
+                        MultipleValuesOperationWithoutIndex::<O>::get_mean(values)?
                     }
                     SingleKindWithoutIndex::Median => {
-                        MultipleValuesOperationWithIndex::<O>::get_median(values)?
+                        MultipleValuesOperationWithoutIndex::<O>::get_median(values)?
                     }
                     SingleKindWithoutIndex::Mode => {
-                        MultipleValuesOperationWithIndex::<O>::get_mode(values)?
+                        MultipleValuesOperationWithoutIndex::<O>::get_mode(values)?
                     }
                     SingleKindWithoutIndex::Std => {
-                        MultipleValuesOperationWithIndex::<O>::get_std(values)?
+                        MultipleValuesOperationWithoutIndex::<O>::get_std(values)?
                     }
                     SingleKindWithoutIndex::Var => {
-                        MultipleValuesOperationWithIndex::<O>::get_var(values)?
+                        MultipleValuesOperationWithoutIndex::<O>::get_var(values)?
                     }
                     SingleKindWithoutIndex::Count => {
-                        Some(MultipleValuesOperationWithIndex::<O>::get_count(values))
+                        Some(MultipleValuesOperationWithoutIndex::<O>::get_count(values))
                     }
                     SingleKindWithoutIndex::Sum => {
-                        MultipleValuesOperationWithIndex::<O>::get_sum(values)?
+                        MultipleValuesOperationWithoutIndex::<O>::get_sum(values)?
                     }
-                    SingleKindWithoutIndex::Random => todo!(),
+                    SingleKindWithoutIndex::Random => {
+                        MultipleValuesOperationWithoutIndex::<O>::get_random(values)
+                    }
                 };
 
                 Ok((key, value))
@@ -1319,6 +1056,256 @@ impl<O: RootOperand> MultipleValuesOperationWithoutIndex<O> {
     }
 
     #[inline]
+    pub(crate) fn get_mean(
+        mut values: impl Iterator<Item = MedRecordValue>,
+    ) -> MedRecordResult<Option<MedRecordValue>> {
+        let first_value = values.next();
+
+        let Some(first_value) = first_value else {
+            return Ok(None);
+        };
+
+        let (sum, count) = values.try_fold((first_value, 1), |(sum, count), value| {
+            let first_dtype = DataType::from(&sum);
+            let second_dtype = DataType::from(&value);
+
+            match sum.add(value) {
+                Ok(sum) => Ok((sum, count + 1)),
+                Err(_) => Err(MedRecordError::QueryError(format!(
+                    "Cannot add values of data types {} and {}. Consider narrowing down the values using .is_int(), .is_float(), .is_datetime() or .is_duration()",
+                    first_dtype, second_dtype
+                ))),
+            }
+        })?;
+
+        Ok(Some(sum.div(MedRecordValue::Int(count as i64))?))
+    }
+
+    // TODO: This is a temporary solution. It should be optimized.
+    #[inline]
+    pub(crate) fn get_median(
+        mut values: impl Iterator<Item = MedRecordValue>,
+    ) -> MedRecordResult<Option<MedRecordValue>> {
+        let first_value = values.next();
+
+        let Some(first_value) = first_value else {
+            return Ok(None);
+        };
+
+        let first_data_type = DataType::from(&first_value);
+
+        let median = match first_value {
+            MedRecordValue::Int(value) => {
+                let mut values: Vec<_> = values.map(|value| {
+                    let data_type = DataType::from(&value);
+
+                    match value {
+                        MedRecordValue::Int(value) => Ok(value as f64),
+                        MedRecordValue::Float(value) => Ok(value),
+                        _ => Err(MedRecordError::QueryError(format!(
+                            "Cannot calculate median of mixed data types {} and {}. Consider narrowing down the values using .is_int(), .is_float() , .is_datetime() or .is_duration()",
+                            first_data_type, data_type
+                        ))),
+                    }
+                }).collect::<MedRecordResult<_>>()?;
+                values.push(value as f64);
+                values.sort_unstable_by(|a, b| a.partial_cmp(b).unwrap());
+
+                get_median!(values, Float)
+            }
+            MedRecordValue::Float(value) => {
+                let mut values: Vec<_> = values.map(|value| {
+                    let data_type = DataType::from(&value);
+
+                    match value {
+                        MedRecordValue::Int(value) => Ok(value as f64),
+                        MedRecordValue::Float(value) => Ok(value),
+                        _ => Err(MedRecordError::QueryError(format!(
+                            "Cannot calculate median of mixed data types {} and {}. Consider narrowing down the values using .is_int(), .is_float(), .is_datetime() or .is_duration()",
+                            first_data_type, data_type
+                        ))),
+                    }
+                }).collect::<MedRecordResult<_>>()?;
+                values.push(value);
+                values.sort_unstable_by(|a, b| a.partial_cmp(b).unwrap());
+
+                get_median!(values, Float)
+            }
+            MedRecordValue::DateTime(value) => {
+                let mut values: Vec<_> = values.map(|value| {
+                    let data_type = DataType::from(&value);
+
+                    match value {
+                        MedRecordValue::DateTime(naive_date_time) => Ok(naive_date_time),
+                        _ => Err(MedRecordError::QueryError(format!(
+                            "Cannot calculate median of mixed data types {} and {}. Consider narrowing down the values using .is_int(), .is_float(), .is_datetime() or .is_duration()",
+                            first_data_type, data_type
+                        ))),
+                    }
+                }).collect::<MedRecordResult<_>>()?;
+                values.push(value);
+                values.sort();
+
+                get_median!(values, DateTime)
+            }
+            MedRecordValue::Duration(value) => {
+                let mut values: Vec<_> = values.map(|value| {
+                    let data_type = DataType::from(&value);
+
+                    match value {
+                        MedRecordValue::Duration(naive_date_time) => Ok(naive_date_time),
+                        _ => Err(MedRecordError::QueryError(format!(
+                            "Cannot calculate median of mixed data types {} and {}. Consider narrowing down the values using .is_int(), .is_float(), .is_datetime() or .is_duration()",
+                            first_data_type, data_type
+                        ))),
+                    }
+                }).collect::<MedRecordResult<_>>()?;
+                values.push(value);
+                values.sort();
+
+                get_median!(values, Duration)
+            }
+            _ => Err(MedRecordError::QueryError(format!(
+                "Cannot calculate median of data type {}",
+                first_data_type
+            )))?,
+        }?;
+
+        Ok(Some(median))
+    }
+
+    // TODO: This is a temporary solution. It should be optimized.
+    #[inline]
+    pub(crate) fn get_mode(
+        values: impl Iterator<Item = MedRecordValue>,
+    ) -> MedRecordResult<Option<MedRecordValue>> {
+        let values: Vec<_> = values.collect();
+
+        let most_common_value = values.first();
+
+        let Some(most_common_value) = most_common_value else {
+            return Ok(None);
+        };
+
+        let most_common_value = most_common_value.clone();
+
+        let most_common_count = values
+            .iter()
+            .filter(|value| **value == most_common_value)
+            .count();
+
+        let (_, most_common_value) = values.clone().into_iter().fold(
+            (most_common_count, most_common_value),
+            |acc, value| {
+                let count = values.iter().filter(|v| **v == value).count();
+
+                if count > acc.0 {
+                    (count, value)
+                } else {
+                    acc
+                }
+            },
+        );
+
+        Ok(Some(most_common_value.clone()))
+    }
+
+    #[inline]
+    // 👀
+    pub(crate) fn get_std(
+        values: impl Iterator<Item = MedRecordValue>,
+    ) -> MedRecordResult<Option<MedRecordValue>> {
+        let variance = Self::get_var(values)?;
+
+        let Some(variance) = variance else {
+            return Ok(None);
+        };
+
+        let MedRecordValue::Float(variance) = variance else {
+            unreachable!()
+        };
+
+        Ok(Some(MedRecordValue::Float(variance.sqrt())))
+    }
+
+    // TODO: This is a temporary solution. It should be optimized.
+    #[inline]
+    pub(crate) fn get_var(
+        values: impl Iterator<Item = MedRecordValue>,
+    ) -> MedRecordResult<Option<MedRecordValue>> {
+        let (values_1, values_2) = Itertools::tee(values);
+
+        let mean = Self::get_mean(values_1)?;
+
+        let Some(mean) = mean else {
+            return Ok(None);
+        };
+
+        let MedRecordValue::Float(mean) = mean else {
+            let data_type = DataType::from(mean);
+
+            return Err(MedRecordError::QueryError(
+                format!("Cannot calculate variance of data type {}. Consider narrowing down the values using .is_int() or .is_float()", data_type),
+            ));
+        };
+
+        let values = values_2
+            .into_iter()
+            .map(|value| {
+                let data_type = DataType::from(&value);
+
+                match value {
+                MedRecordValue::Int(value) => Ok(value as f64),
+                MedRecordValue::Float(value) => Ok(value),
+                _ => Err(MedRecordError::QueryError(
+                    format!("Cannot calculate variance of data type {}. Consider narrowing down the values using .is_int() or .is_float()", data_type),
+                )),
+            }})
+            .collect::<MedRecordResult<Vec<_>>>()?;
+
+        let values_length = values.len();
+
+        let variance = values
+            .into_iter()
+            .map(|value| (value - mean).powi(2))
+            .sum::<f64>()
+            / values_length as f64;
+
+        Ok(Some(MedRecordValue::Float(variance)))
+    }
+
+    #[inline]
+    pub(crate) fn get_count(values: impl Iterator<Item = MedRecordValue>) -> MedRecordValue {
+        MedRecordValue::Int(values.count() as i64)
+    }
+
+    #[inline]
+    // 🥊💥
+    pub(crate) fn get_sum(
+        mut values: impl Iterator<Item = MedRecordValue>,
+    ) -> MedRecordResult<Option<MedRecordValue>> {
+        let first_value = values.next();
+
+        let Some(first_value) = first_value else {
+            return Ok(None);
+        };
+
+        let sum = values.try_fold(first_value, |sum, value| {
+            let first_dtype = DataType::from(&sum);
+            let second_dtype = DataType::from(&value);
+
+            sum.add(value).map_err(|_| {
+                MedRecordError::QueryError(format!(
+                    "Cannot add values of data types {} and {}. Consider narrowing down the values using .is_string(), .is_int(), .is_float(), .is_bool(), .is_datetime() or .is_duration()",
+                    first_dtype, second_dtype
+                ))
+            })
+        })?;
+
+        Ok(Some(sum))
+    }
+
+    #[inline]
     pub(crate) fn get_random(
         values: impl Iterator<Item = MedRecordValue>,
     ) -> Option<MedRecordValue> {
@@ -1330,39 +1317,42 @@ impl<O: RootOperand> MultipleValuesOperationWithoutIndex<O> {
         medrecord: &'a MedRecord,
         values: impl Iterator<Item = MedRecordValue> + 'a,
         operand: &Wrapper<SingleValueOperandWithoutIndex<O>>,
-    ) -> MedRecordResult<BoxedIterator<'a, MedRecordValue>>
-    where
-        O: 'a,
-    {
+    ) -> MedRecordResult<BoxedIterator<'a, MedRecordValue>> {
         let (values_1, values_2) = Itertools::tee(values);
 
         let kind = &operand.0.read_or_panic().kind;
 
         let value = match kind {
-            SingleKindWithoutIndex::Max => todo!(),
-            SingleKindWithoutIndex::Min => todo!(),
+            SingleKindWithoutIndex::Max => {
+                MultipleValuesOperationWithoutIndex::<O>::get_max(values_1)?
+            }
+            SingleKindWithoutIndex::Min => {
+                MultipleValuesOperationWithoutIndex::<O>::get_min(values_1)?
+            }
             SingleKindWithoutIndex::Mean => {
-                MultipleValuesOperationWithIndex::<O>::get_mean(values_1)?
+                MultipleValuesOperationWithoutIndex::<O>::get_mean(values_1)?
             }
             SingleKindWithoutIndex::Median => {
-                MultipleValuesOperationWithIndex::<O>::get_median(values_1)?
+                MultipleValuesOperationWithoutIndex::<O>::get_median(values_1)?
             }
             SingleKindWithoutIndex::Mode => {
-                MultipleValuesOperationWithIndex::<O>::get_mode(values_1)?
+                MultipleValuesOperationWithoutIndex::<O>::get_mode(values_1)?
             }
             SingleKindWithoutIndex::Std => {
-                MultipleValuesOperationWithIndex::<O>::get_std(values_1)?
+                MultipleValuesOperationWithoutIndex::<O>::get_std(values_1)?
             }
             SingleKindWithoutIndex::Var => {
-                MultipleValuesOperationWithIndex::<O>::get_var(values_1)?
+                MultipleValuesOperationWithoutIndex::<O>::get_var(values_1)?
             }
-            SingleKindWithoutIndex::Count => {
-                Some(MultipleValuesOperationWithIndex::<O>::get_count(values_1))
-            }
+            SingleKindWithoutIndex::Count => Some(
+                MultipleValuesOperationWithoutIndex::<O>::get_count(values_1),
+            ),
             SingleKindWithoutIndex::Sum => {
-                MultipleValuesOperationWithIndex::<O>::get_sum(values_1)?
+                MultipleValuesOperationWithoutIndex::<O>::get_sum(values_1)?
             }
-            SingleKindWithoutIndex::Random => todo!(),
+            SingleKindWithoutIndex::Random => {
+                MultipleValuesOperationWithoutIndex::<O>::get_random(values_1)
+            }
         };
 
         Ok(match operand.evaluate_forward(medrecord, value)? {
@@ -1436,15 +1426,12 @@ impl<O: RootOperand> MultipleValuesOperationWithoutIndex<O> {
     }
 
     #[inline]
-    fn evaluate_binary_arithmetic_operation<'a>(
+    fn evaluate_binary_arithmetic_operation(
         medrecord: &MedRecord,
         values: impl Iterator<Item = MedRecordValue>,
         operand: &SingleValueComparisonOperand,
         kind: &BinaryArithmeticKind,
-    ) -> MedRecordResult<impl Iterator<Item = MedRecordValue>>
-    where
-        O: 'a,
-    {
+    ) -> MedRecordResult<impl Iterator<Item = MedRecordValue>> {
         let arithmetic_value =
             operand
                 .evaluate_backward(medrecord)?
@@ -1667,30 +1654,36 @@ impl<O: RootOperand> MultipleValuesOperationWithoutIndex<O> {
         let values_1: Vec<_> = values_1
             .map(|(key, values)| {
                 let value = match kind {
-                    SingleKindWithoutIndex::Max => todo!(),
-                    SingleKindWithoutIndex::Min => todo!(),
+                    SingleKindWithoutIndex::Max => {
+                        MultipleValuesOperationWithoutIndex::<O>::get_max(values)?
+                    }
+                    SingleKindWithoutIndex::Min => {
+                        MultipleValuesOperationWithoutIndex::<O>::get_min(values)?
+                    }
                     SingleKindWithoutIndex::Mean => {
-                        MultipleValuesOperationWithIndex::<O>::get_mean(values)?
+                        MultipleValuesOperationWithoutIndex::<O>::get_mean(values)?
                     }
                     SingleKindWithoutIndex::Median => {
-                        MultipleValuesOperationWithIndex::<O>::get_median(values)?
+                        MultipleValuesOperationWithoutIndex::<O>::get_median(values)?
                     }
                     SingleKindWithoutIndex::Mode => {
-                        MultipleValuesOperationWithIndex::<O>::get_mode(values)?
+                        MultipleValuesOperationWithoutIndex::<O>::get_mode(values)?
                     }
                     SingleKindWithoutIndex::Std => {
-                        MultipleValuesOperationWithIndex::<O>::get_std(values)?
+                        MultipleValuesOperationWithoutIndex::<O>::get_std(values)?
                     }
                     SingleKindWithoutIndex::Var => {
-                        MultipleValuesOperationWithIndex::<O>::get_var(values)?
+                        MultipleValuesOperationWithoutIndex::<O>::get_var(values)?
                     }
                     SingleKindWithoutIndex::Count => {
-                        Some(MultipleValuesOperationWithIndex::<O>::get_count(values))
+                        Some(MultipleValuesOperationWithoutIndex::<O>::get_count(values))
                     }
                     SingleKindWithoutIndex::Sum => {
-                        MultipleValuesOperationWithIndex::<O>::get_sum(values)?
+                        MultipleValuesOperationWithoutIndex::<O>::get_sum(values)?
                     }
-                    SingleKindWithoutIndex::Random => todo!(),
+                    SingleKindWithoutIndex::Random => {
+                        MultipleValuesOperationWithoutIndex::<O>::get_random(values)
+                    }
                 };
 
                 Ok((key, value))
@@ -2319,10 +2312,7 @@ impl<O: RootOperand> SingleValueOperationWithoutIndex<O> {
         &self,
         medrecord: &'a MedRecord,
         values: GroupedIterator<'a, Option<MedRecordValue>>,
-    ) -> MedRecordResult<GroupedIterator<'a, Option<MedRecordValue>>>
-    where
-        O: 'a,
-    {
+    ) -> MedRecordResult<GroupedIterator<'a, Option<MedRecordValue>>> {
         Ok(match self {
             SingleValueOperationWithoutIndex::SingleValueComparisonOperation { operand, kind } => {
                 Box::new(

@@ -3,7 +3,7 @@ mod operand;
 mod operation;
 
 use super::{
-    attributes::{MultipleAttributesOperand, MultipleAttributesOperation},
+    attributes::{MultipleAttributesOperandWithIndex, MultipleAttributesOperationWithIndex},
     edges::EdgeOperand,
     group_by::GroupOperand,
     nodes::NodeOperand,
@@ -200,7 +200,7 @@ impl GetValues<EdgeIndex> for EdgeOperand {
 #[derive(Debug, Clone)]
 pub enum MultipleValuesWithIndexContext<O: RootOperand> {
     Operand((O, MedRecordAttribute)),
-    MultipleAttributesOperand(MultipleAttributesOperand<O>),
+    MultipleAttributesOperand(MultipleAttributesOperandWithIndex<O>),
     GroupByOperand(GroupOperand<SingleValueOperandWithIndex<O>>),
 }
 
@@ -219,7 +219,7 @@ impl<O: RootOperand> MultipleValuesWithIndexContext<O> {
             Self::MultipleAttributesOperand(operand) => {
                 let attributes = operand.evaluate_backward(medrecord)?;
 
-                Box::new(MultipleAttributesOperation::<O>::get_values(
+                Box::new(MultipleAttributesOperationWithIndex::<O>::get_values(
                     medrecord, attributes,
                 )?)
             }

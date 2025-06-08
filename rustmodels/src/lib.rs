@@ -9,9 +9,11 @@ use medrecord::{
     },
     querying::{
         attributes::{
-            PyEdgeAttributesTreeOperand, PyEdgeMultipleAttributesOperand,
-            PyEdgeSingleAttributeOperand, PyNodeAttributesTreeOperand,
-            PyNodeMultipleAttributesOperand, PyNodeSingleAttributeOperand,
+            PyEdgeAttributesTreeOperand, PyEdgeMultipleAttributesOperandWithIndex,
+            PyEdgeMultipleAttributesOperandWithoutIndex, PyEdgeSingleAttributeOperandWithIndex,
+            PyEdgeSingleAttributeOperandWithoutIndex, PyNodeAttributesTreeOperand,
+            PyNodeMultipleAttributesOperandWithIndex, PyNodeMultipleAttributesOperandWithoutIndex,
+            PyNodeSingleAttributeOperandWithIndex, PyNodeSingleAttributeOperandWithoutIndex,
         },
         edges::{PyEdgeIndexOperand, PyEdgeIndicesOperand, PyEdgeOperand},
         nodes::{PyEdgeDirection, PyNodeIndexOperand, PyNodeIndicesOperand, PyNodeOperand},
@@ -69,10 +71,14 @@ fn _medmodels(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
 
     m.add_class::<PyNodeAttributesTreeOperand>()?;
     m.add_class::<PyEdgeAttributesTreeOperand>()?;
-    m.add_class::<PyNodeMultipleAttributesOperand>()?;
-    m.add_class::<PyEdgeMultipleAttributesOperand>()?;
-    m.add_class::<PyNodeSingleAttributeOperand>()?;
-    m.add_class::<PyEdgeSingleAttributeOperand>()?;
+    m.add_class::<PyNodeMultipleAttributesOperandWithIndex>()?;
+    m.add_class::<PyNodeMultipleAttributesOperandWithoutIndex>()?;
+    m.add_class::<PyEdgeMultipleAttributesOperandWithIndex>()?;
+    m.add_class::<PyEdgeMultipleAttributesOperandWithoutIndex>()?;
+    m.add_class::<PyNodeSingleAttributeOperandWithIndex>()?;
+    m.add_class::<PyNodeSingleAttributeOperandWithoutIndex>()?;
+    m.add_class::<PyEdgeSingleAttributeOperandWithIndex>()?;
+    m.add_class::<PyEdgeSingleAttributeOperandWithoutIndex>()?;
 
     Ok(())
 }

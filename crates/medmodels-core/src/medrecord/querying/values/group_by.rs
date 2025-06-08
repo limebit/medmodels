@@ -6,9 +6,9 @@ use crate::{
         group_by::{GroupOperand, GroupedOperand, Merge},
         values::{
             operand::MultipleValuesOperandWithoutIndex,
-            operation::{MultipleValuesOperationWithIndex, MultipleValuesOperationWithoutIndex},
-            MultipleValuesWithIndexContext, MultipleValuesWithoutIndexContext,
-            SingleKindWithoutIndex, SingleValueOperandWithoutIndex,
+            operation::MultipleValuesOperationWithoutIndex, MultipleValuesWithIndexContext,
+            MultipleValuesWithoutIndexContext, SingleKindWithoutIndex,
+            SingleValueOperandWithoutIndex,
         },
         wrapper::Wrapper,
         BoxedIterator, DeepClone, EvaluateBackward, EvaluateForward, ReadWriteOrPanic, RootOperand,
@@ -192,25 +192,25 @@ impl<'a, O: 'a + RootOperand> EvaluateBackward<'a>
                                 MultipleValuesOperationWithoutIndex::<O>::get_min(partition)?
                             }
                             SingleKindWithoutIndex::Mean => {
-                                MultipleValuesOperationWithIndex::<O>::get_mean(partition)?
+                                MultipleValuesOperationWithoutIndex::<O>::get_mean(partition)?
                             }
                             SingleKindWithoutIndex::Median => {
-                                MultipleValuesOperationWithIndex::<O>::get_median(partition)?
+                                MultipleValuesOperationWithoutIndex::<O>::get_median(partition)?
                             }
                             SingleKindWithoutIndex::Mode => {
-                                MultipleValuesOperationWithIndex::<O>::get_mode(partition)?
+                                MultipleValuesOperationWithoutIndex::<O>::get_mode(partition)?
                             }
                             SingleKindWithoutIndex::Std => {
-                                MultipleValuesOperationWithIndex::<O>::get_std(partition)?
+                                MultipleValuesOperationWithoutIndex::<O>::get_std(partition)?
                             }
                             SingleKindWithoutIndex::Var => {
-                                MultipleValuesOperationWithIndex::<O>::get_var(partition)?
+                                MultipleValuesOperationWithoutIndex::<O>::get_var(partition)?
                             }
-                            SingleKindWithoutIndex::Count => {
-                                Some(MultipleValuesOperationWithIndex::<O>::get_count(partition))
-                            }
+                            SingleKindWithoutIndex::Count => Some(
+                                MultipleValuesOperationWithoutIndex::<O>::get_count(partition),
+                            ),
                             SingleKindWithoutIndex::Sum => {
-                                MultipleValuesOperationWithIndex::<O>::get_sum(partition)?
+                                MultipleValuesOperationWithoutIndex::<O>::get_sum(partition)?
                             }
                             SingleKindWithoutIndex::Random => {
                                 MultipleValuesOperationWithoutIndex::<O>::get_random(partition)

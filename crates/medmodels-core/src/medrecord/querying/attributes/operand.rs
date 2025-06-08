@@ -1,15 +1,25 @@
 use super::{
-    operation::{AttributesTreeOperation, MultipleAttributesOperation, SingleAttributeOperation},
-    BinaryArithmeticKind, MultipleComparisonKind, MultipleKind, SingleComparisonKind, SingleKind,
-    UnaryArithmeticKind,
+    operation::{
+        AttributesTreeOperation, MultipleAttributesOperationWithIndex,
+        SingleAttributeOperationWithIndex,
+    },
+    BinaryArithmeticKind, MultipleComparisonKind, MultipleKind, SingleComparisonKind,
+    SingleKindWithIndex, UnaryArithmeticKind,
 };
 use crate::{
     errors::MedRecordResult,
     medrecord::{
         querying::{
+            attributes::{
+                operation::{
+                    MultipleAttributesOperationWithoutIndex, SingleAttributeOperationWithoutIndex,
+                },
+                MultipleAttributesWithIndexContext, MultipleAttributesWithoutIndexContext,
+                SingleAttributeWithoutIndexContext, SingleKindWithoutIndex,
+            },
             values::{MultipleValuesOperandWithIndex, MultipleValuesWithIndexContext},
             BoxedIterator, DeepClone, EvaluateBackward, EvaluateForward, EvaluateForwardGrouped,
-            GroupedIterator, OptionalIndexWrapper, ReadWriteOrPanic, ReduceInput, RootOperand,
+            GroupedIterator, ReadWriteOrPanic, ReduceInput, RootOperand,
         },
         EdgeOperand, MedRecordAttribute, NodeOperand, Wrapper,
     },
@@ -20,9 +30,9 @@ use std::collections::HashSet;
 
 macro_rules! implement_attributes_operation {
     ($name:ident, $variant:ident) => {
-        pub fn $name(&mut self) -> Wrapper<MultipleAttributesOperand<O>> {
-            let operand = Wrapper::<MultipleAttributesOperand<O>>::new(
-                self.deep_clone(),
+        pub fn $name(&mut self) -> Wrapper<MultipleAttributesOperandWithIndex<O>> {
+            let operand = Wrapper::<MultipleAttributesOperandWithIndex<O>>::new(
+                MultipleAttributesWithIndexContext::AttributesTree(self.deep_clone()),
                 MultipleKind::$variant,
             );
 
@@ -36,16 +46,57 @@ macro_rules! implement_attributes_operation {
     };
 }
 
-macro_rules! implement_attribute_operation {
+macro_rules! implement_attribute_operation_with_index {
     ($name:ident, $variant:ident) => {
-        pub fn $name(&mut self) -> Wrapper<SingleAttributeOperand<O>> {
-            let operand =
-                Wrapper::<SingleAttributeOperand<O>>::new(self.deep_clone(), SingleKind::$variant);
+        pub fn $name(&mut self) -> Wrapper<SingleAttributeOperandWithIndex<O>> {
+            let operand = Wrapper::<SingleAttributeOperandWithIndex<O>>::new(
+                self.deep_clone(),
+                SingleKindWithIndex::$variant,
+            );
 
             self.operations
-                .push(MultipleAttributesOperation::AttributeOperation {
+                .push(MultipleAttributesOperationWithIndex::AttributeOperation {
                     operand: operand.clone(),
                 });
+
+            operand
+        }
+    };
+}
+
+macro_rules! implement_attribute_operation_without_index {
+    ($name:ident, $variant:ident, WithIndex) => {
+        pub fn $name(&mut self) -> Wrapper<SingleAttributeOperandWithoutIndex<O>> {
+            let operand = Wrapper::<SingleAttributeOperandWithoutIndex<O>>::new(
+                SingleAttributeWithoutIndexContext::MultipleAttributesOperandWithIndex(
+                    self.deep_clone(),
+                ),
+                SingleKindWithoutIndex::$variant,
+            );
+
+            self.operations.push(
+                MultipleAttributesOperationWithIndex::AttributeOperationWithoutIndex {
+                    operand: operand.clone(),
+                },
+            );
+
+            operand
+        }
+    };
+    ($name:ident, $variant:ident, WithoutIndex) => {
+        pub fn $name(&mut self) -> Wrapper<SingleAttributeOperandWithoutIndex<O>> {
+            let operand = Wrapper::<SingleAttributeOperandWithoutIndex<O>>::new(
+                SingleAttributeWithoutIndexContext::MultipleAttributesOperandWithoutIndex(
+                    self.deep_clone(),
+                ),
+                SingleKindWithoutIndex::$variant,
+            );
+
+            self.operations.push(
+                MultipleAttributesOperationWithoutIndex::AttributeOperation {
+                    operand: operand.clone(),
+                },
+            );
 
             operand
         }
@@ -119,46 +170,78 @@ macro_rules! implement_wrapper_operand_with_argument {
 
 #[derive(Debug, Clone)]
 pub enum SingleAttributeComparisonOperand {
-    NodeSingleAttributeOperand(NodeSingleAttributeOperand),
-    EdgeSingleAttributeOperand(EdgeSingleAttributeOperand),
+    NodeSingleAttributeOperandWithIndex(NodeSingleAttributeOperandWithIndex),
+    NodeSingleAttributeOperandWithoutIndex(NodeSingleAttributeOperandWithoutIndex),
+    EdgeSingleAttributeOperandWithIndex(EdgeSingleAttributeOperandWithIndex),
+    EdgeSingleAttributeOperandWithoutIndex(EdgeSingleAttributeOperandWithoutIndex),
     Attribute(MedRecordAttribute),
 }
 
 impl DeepClone for SingleAttributeComparisonOperand {
     fn deep_clone(&self) -> Self {
         match self {
-            Self::NodeSingleAttributeOperand(operand) => {
-                Self::NodeSingleAttributeOperand(operand.deep_clone())
+            Self::NodeSingleAttributeOperandWithIndex(operand) => {
+                Self::NodeSingleAttributeOperandWithIndex(operand.deep_clone())
             }
-            Self::EdgeSingleAttributeOperand(operand) => {
-                Self::EdgeSingleAttributeOperand(operand.deep_clone())
+            Self::NodeSingleAttributeOperandWithoutIndex(operand) => {
+                Self::NodeSingleAttributeOperandWithoutIndex(operand.deep_clone())
+            }
+            Self::EdgeSingleAttributeOperandWithIndex(operand) => {
+                Self::EdgeSingleAttributeOperandWithIndex(operand.deep_clone())
+            }
+            Self::EdgeSingleAttributeOperandWithoutIndex(operand) => {
+                Self::EdgeSingleAttributeOperandWithoutIndex(operand.deep_clone())
             }
             Self::Attribute(attribute) => Self::Attribute(attribute.clone()),
         }
     }
 }
 
-impl From<Wrapper<NodeSingleAttributeOperand>> for SingleAttributeComparisonOperand {
-    fn from(value: Wrapper<NodeSingleAttributeOperand>) -> Self {
-        Self::NodeSingleAttributeOperand(value.0.read_or_panic().deep_clone())
+impl From<Wrapper<NodeSingleAttributeOperandWithIndex>> for SingleAttributeComparisonOperand {
+    fn from(value: Wrapper<NodeSingleAttributeOperandWithIndex>) -> Self {
+        Self::NodeSingleAttributeOperandWithIndex(value.0.read_or_panic().deep_clone())
     }
 }
 
-impl From<&Wrapper<NodeSingleAttributeOperand>> for SingleAttributeComparisonOperand {
-    fn from(value: &Wrapper<NodeSingleAttributeOperand>) -> Self {
-        Self::NodeSingleAttributeOperand(value.0.read_or_panic().deep_clone())
+impl From<&Wrapper<NodeSingleAttributeOperandWithIndex>> for SingleAttributeComparisonOperand {
+    fn from(value: &Wrapper<NodeSingleAttributeOperandWithIndex>) -> Self {
+        Self::NodeSingleAttributeOperandWithIndex(value.0.read_or_panic().deep_clone())
     }
 }
 
-impl From<Wrapper<EdgeSingleAttributeOperand>> for SingleAttributeComparisonOperand {
-    fn from(value: Wrapper<EdgeSingleAttributeOperand>) -> Self {
-        Self::EdgeSingleAttributeOperand(value.0.read_or_panic().deep_clone())
+impl From<Wrapper<NodeSingleAttributeOperandWithoutIndex>> for SingleAttributeComparisonOperand {
+    fn from(value: Wrapper<NodeSingleAttributeOperandWithoutIndex>) -> Self {
+        Self::NodeSingleAttributeOperandWithoutIndex(value.0.read_or_panic().deep_clone())
     }
 }
 
-impl From<&Wrapper<EdgeSingleAttributeOperand>> for SingleAttributeComparisonOperand {
-    fn from(value: &Wrapper<EdgeSingleAttributeOperand>) -> Self {
-        Self::EdgeSingleAttributeOperand(value.0.read_or_panic().deep_clone())
+impl From<&Wrapper<NodeSingleAttributeOperandWithoutIndex>> for SingleAttributeComparisonOperand {
+    fn from(value: &Wrapper<NodeSingleAttributeOperandWithoutIndex>) -> Self {
+        Self::NodeSingleAttributeOperandWithoutIndex(value.0.read_or_panic().deep_clone())
+    }
+}
+
+impl From<Wrapper<EdgeSingleAttributeOperandWithIndex>> for SingleAttributeComparisonOperand {
+    fn from(value: Wrapper<EdgeSingleAttributeOperandWithIndex>) -> Self {
+        Self::EdgeSingleAttributeOperandWithIndex(value.0.read_or_panic().deep_clone())
+    }
+}
+
+impl From<&Wrapper<EdgeSingleAttributeOperandWithIndex>> for SingleAttributeComparisonOperand {
+    fn from(value: &Wrapper<EdgeSingleAttributeOperandWithIndex>) -> Self {
+        Self::EdgeSingleAttributeOperandWithIndex(value.0.read_or_panic().deep_clone())
+    }
+}
+
+impl From<Wrapper<EdgeSingleAttributeOperandWithoutIndex>> for SingleAttributeComparisonOperand {
+    fn from(value: Wrapper<EdgeSingleAttributeOperandWithoutIndex>) -> Self {
+        Self::EdgeSingleAttributeOperandWithoutIndex(value.0.read_or_panic().deep_clone())
+    }
+}
+
+impl From<&Wrapper<EdgeSingleAttributeOperandWithoutIndex>> for SingleAttributeComparisonOperand {
+    fn from(value: &Wrapper<EdgeSingleAttributeOperandWithoutIndex>) -> Self {
+        Self::EdgeSingleAttributeOperandWithoutIndex(value.0.read_or_panic().deep_clone())
     }
 }
 
@@ -174,12 +257,18 @@ impl SingleAttributeComparisonOperand {
         medrecord: &MedRecord,
     ) -> MedRecordResult<Option<MedRecordAttribute>> {
         Ok(match self {
-            Self::NodeSingleAttributeOperand(operand) => operand
+            Self::NodeSingleAttributeOperandWithIndex(operand) => operand
                 .evaluate_backward(medrecord)?
-                .map(|attribute| attribute.unpack().1),
-            Self::EdgeSingleAttributeOperand(operand) => operand
+                .map(|attribute| attribute.1),
+            Self::NodeSingleAttributeOperandWithoutIndex(operand) => {
+                operand.evaluate_backward(medrecord)?
+            }
+            Self::EdgeSingleAttributeOperandWithIndex(operand) => operand
                 .evaluate_backward(medrecord)?
-                .map(|attribute| attribute.unpack().1),
+                .map(|attribute| attribute.1),
+            Self::EdgeSingleAttributeOperandWithoutIndex(operand) => {
+                operand.evaluate_backward(medrecord)?
+            }
             Self::Attribute(attribute) => Some(attribute.clone()),
         })
     }
@@ -187,46 +276,89 @@ impl SingleAttributeComparisonOperand {
 
 #[derive(Debug, Clone)]
 pub enum MultipleAttributesComparisonOperand {
-    NodeMultipleAttributesOperand(NodeMultipleAttributesOperand),
-    EdgeMultipleAttributesOperand(EdgeMultipleAttributesOperand),
+    NodeMultipleAttributesOperandWithIndex(NodeMultipleAttributesOperandWithIndex),
+    NodeMultipleAttributesOperandWithoutIndex(NodeMultipleAttributesOperandWithoutIndex),
+    EdgeMultipleAttributesOperandWithIndex(EdgeMultipleAttributesOperandWithIndex),
+    EdgeMultipleAttributesOperandWithoutIndex(EdgeMultipleAttributesOperandWithoutIndex),
     Attributes(MrHashSet<MedRecordAttribute>),
 }
 
 impl DeepClone for MultipleAttributesComparisonOperand {
     fn deep_clone(&self) -> Self {
         match self {
-            Self::NodeMultipleAttributesOperand(operand) => {
-                Self::NodeMultipleAttributesOperand(operand.deep_clone())
+            Self::NodeMultipleAttributesOperandWithIndex(operand) => {
+                Self::NodeMultipleAttributesOperandWithIndex(operand.deep_clone())
             }
-            Self::EdgeMultipleAttributesOperand(operand) => {
-                Self::EdgeMultipleAttributesOperand(operand.deep_clone())
+            Self::NodeMultipleAttributesOperandWithoutIndex(operand) => {
+                Self::NodeMultipleAttributesOperandWithoutIndex(operand.deep_clone())
+            }
+            Self::EdgeMultipleAttributesOperandWithIndex(operand) => {
+                Self::EdgeMultipleAttributesOperandWithIndex(operand.deep_clone())
+            }
+            Self::EdgeMultipleAttributesOperandWithoutIndex(operand) => {
+                Self::EdgeMultipleAttributesOperandWithoutIndex(operand.deep_clone())
             }
             Self::Attributes(attribute) => Self::Attributes(attribute.clone()),
         }
     }
 }
 
-impl From<Wrapper<NodeMultipleAttributesOperand>> for MultipleAttributesComparisonOperand {
-    fn from(value: Wrapper<NodeMultipleAttributesOperand>) -> Self {
-        Self::NodeMultipleAttributesOperand(value.0.read_or_panic().deep_clone())
+impl From<Wrapper<NodeMultipleAttributesOperandWithIndex>> for MultipleAttributesComparisonOperand {
+    fn from(value: Wrapper<NodeMultipleAttributesOperandWithIndex>) -> Self {
+        Self::NodeMultipleAttributesOperandWithIndex(value.0.read_or_panic().deep_clone())
     }
 }
 
-impl From<&Wrapper<NodeMultipleAttributesOperand>> for MultipleAttributesComparisonOperand {
-    fn from(value: &Wrapper<NodeMultipleAttributesOperand>) -> Self {
-        Self::NodeMultipleAttributesOperand(value.0.read_or_panic().deep_clone())
+impl From<&Wrapper<NodeMultipleAttributesOperandWithIndex>>
+    for MultipleAttributesComparisonOperand
+{
+    fn from(value: &Wrapper<NodeMultipleAttributesOperandWithIndex>) -> Self {
+        Self::NodeMultipleAttributesOperandWithIndex(value.0.read_or_panic().deep_clone())
+    }
+}
+impl From<Wrapper<NodeMultipleAttributesOperandWithoutIndex>>
+    for MultipleAttributesComparisonOperand
+{
+    fn from(value: Wrapper<NodeMultipleAttributesOperandWithoutIndex>) -> Self {
+        Self::NodeMultipleAttributesOperandWithoutIndex(value.0.read_or_panic().deep_clone())
     }
 }
 
-impl From<Wrapper<EdgeMultipleAttributesOperand>> for MultipleAttributesComparisonOperand {
-    fn from(value: Wrapper<EdgeMultipleAttributesOperand>) -> Self {
-        Self::EdgeMultipleAttributesOperand(value.0.read_or_panic().deep_clone())
+impl From<&Wrapper<NodeMultipleAttributesOperandWithoutIndex>>
+    for MultipleAttributesComparisonOperand
+{
+    fn from(value: &Wrapper<NodeMultipleAttributesOperandWithoutIndex>) -> Self {
+        Self::NodeMultipleAttributesOperandWithoutIndex(value.0.read_or_panic().deep_clone())
     }
 }
 
-impl From<&Wrapper<EdgeMultipleAttributesOperand>> for MultipleAttributesComparisonOperand {
-    fn from(value: &Wrapper<EdgeMultipleAttributesOperand>) -> Self {
-        Self::EdgeMultipleAttributesOperand(value.0.read_or_panic().deep_clone())
+impl From<Wrapper<EdgeMultipleAttributesOperandWithIndex>> for MultipleAttributesComparisonOperand {
+    fn from(value: Wrapper<EdgeMultipleAttributesOperandWithIndex>) -> Self {
+        Self::EdgeMultipleAttributesOperandWithIndex(value.0.read_or_panic().deep_clone())
+    }
+}
+
+impl From<&Wrapper<EdgeMultipleAttributesOperandWithIndex>>
+    for MultipleAttributesComparisonOperand
+{
+    fn from(value: &Wrapper<EdgeMultipleAttributesOperandWithIndex>) -> Self {
+        Self::EdgeMultipleAttributesOperandWithIndex(value.0.read_or_panic().deep_clone())
+    }
+}
+
+impl From<Wrapper<EdgeMultipleAttributesOperandWithoutIndex>>
+    for MultipleAttributesComparisonOperand
+{
+    fn from(value: Wrapper<EdgeMultipleAttributesOperandWithoutIndex>) -> Self {
+        Self::EdgeMultipleAttributesOperandWithoutIndex(value.0.read_or_panic().deep_clone())
+    }
+}
+
+impl From<&Wrapper<EdgeMultipleAttributesOperandWithoutIndex>>
+    for MultipleAttributesComparisonOperand
+{
+    fn from(value: &Wrapper<EdgeMultipleAttributesOperandWithoutIndex>) -> Self {
+        Self::EdgeMultipleAttributesOperandWithoutIndex(value.0.read_or_panic().deep_clone())
     }
 }
 
@@ -262,14 +394,20 @@ impl MultipleAttributesComparisonOperand {
         medrecord: &MedRecord,
     ) -> MedRecordResult<MrHashSet<MedRecordAttribute>> {
         Ok(match self {
-            Self::NodeMultipleAttributesOperand(operand) => operand
+            Self::NodeMultipleAttributesOperandWithIndex(operand) => operand
                 .evaluate_backward(medrecord)?
                 .map(|(_, attribute)| attribute)
                 .collect(),
-            Self::EdgeMultipleAttributesOperand(operand) => operand
+            Self::NodeMultipleAttributesOperandWithoutIndex(operand) => {
+                operand.evaluate_backward(medrecord)?.collect()
+            }
+            Self::EdgeMultipleAttributesOperandWithIndex(operand) => operand
                 .evaluate_backward(medrecord)?
                 .map(|(_, attribute)| attribute)
                 .collect(),
+            Self::EdgeMultipleAttributesOperandWithoutIndex(operand) => {
+                operand.evaluate_backward(medrecord)?.collect()
+            }
             Self::Attributes(attributes) => attributes.clone(),
         })
     }
@@ -456,11 +594,11 @@ impl<O: RootOperand> Wrapper<AttributesTreeOperand<O>> {
         AttributesTreeOperand::new(context).into()
     }
 
-    implement_wrapper_operand_with_return!(max, MultipleAttributesOperand<O>);
-    implement_wrapper_operand_with_return!(min, MultipleAttributesOperand<O>);
-    implement_wrapper_operand_with_return!(count, MultipleAttributesOperand<O>);
-    implement_wrapper_operand_with_return!(sum, MultipleAttributesOperand<O>);
-    implement_wrapper_operand_with_return!(random, MultipleAttributesOperand<O>);
+    implement_wrapper_operand_with_return!(max, MultipleAttributesOperandWithIndex<O>);
+    implement_wrapper_operand_with_return!(min, MultipleAttributesOperandWithIndex<O>);
+    implement_wrapper_operand_with_return!(count, MultipleAttributesOperandWithIndex<O>);
+    implement_wrapper_operand_with_return!(sum, MultipleAttributesOperandWithIndex<O>);
+    implement_wrapper_operand_with_return!(random, MultipleAttributesOperandWithIndex<O>);
 
     implement_wrapper_operand_with_argument!(
         greater_than,
@@ -535,17 +673,17 @@ impl<O: RootOperand> Wrapper<AttributesTreeOperand<O>> {
     }
 }
 
-pub type NodeMultipleAttributesOperand = MultipleAttributesOperand<NodeOperand>;
-pub type EdgeMultipleAttributesOperand = MultipleAttributesOperand<EdgeOperand>;
+pub type NodeMultipleAttributesOperandWithIndex = MultipleAttributesOperandWithIndex<NodeOperand>;
+pub type EdgeMultipleAttributesOperandWithIndex = MultipleAttributesOperandWithIndex<EdgeOperand>;
 
 #[derive(Debug, Clone)]
-pub struct MultipleAttributesOperand<O: RootOperand> {
-    context: AttributesTreeOperand<O>,
+pub struct MultipleAttributesOperandWithIndex<O: RootOperand> {
+    context: MultipleAttributesWithIndexContext<O>,
     pub(crate) kind: MultipleKind,
-    operations: Vec<MultipleAttributesOperation<O>>,
+    operations: Vec<MultipleAttributesOperationWithIndex<O>>,
 }
 
-impl<O: RootOperand> DeepClone for MultipleAttributesOperand<O> {
+impl<O: RootOperand> DeepClone for MultipleAttributesOperandWithIndex<O> {
     fn deep_clone(&self) -> Self {
         Self {
             context: self.context.clone(),
@@ -555,7 +693,7 @@ impl<O: RootOperand> DeepClone for MultipleAttributesOperand<O> {
     }
 }
 
-impl<'a, O: 'a + RootOperand> EvaluateForward<'a> for MultipleAttributesOperand<O> {
+impl<'a, O: 'a + RootOperand> EvaluateForward<'a> for MultipleAttributesOperandWithIndex<O> {
     type InputValue = BoxedIterator<'a, (&'a O::Index, MedRecordAttribute)>;
     type ReturnValue = BoxedIterator<'a, (&'a O::Index, MedRecordAttribute)>;
 
@@ -574,7 +712,7 @@ impl<'a, O: 'a + RootOperand> EvaluateForward<'a> for MultipleAttributesOperand<
     }
 }
 
-impl<'a, O: 'a + RootOperand> EvaluateForwardGrouped<'a> for MultipleAttributesOperand<O> {
+impl<'a, O: 'a + RootOperand> EvaluateForwardGrouped<'a> for MultipleAttributesOperandWithIndex<O> {
     fn evaluate_forward_grouped(
         &self,
         medrecord: &'a MedRecord,
@@ -588,19 +726,17 @@ impl<'a, O: 'a + RootOperand> EvaluateForwardGrouped<'a> for MultipleAttributesO
     }
 }
 
-impl<'a, O: 'a + RootOperand> EvaluateBackward<'a> for MultipleAttributesOperand<O> {
+impl<'a, O: 'a + RootOperand> EvaluateBackward<'a> for MultipleAttributesOperandWithIndex<O> {
     type ReturnValue = BoxedIterator<'a, (&'a O::Index, MedRecordAttribute)>;
 
     fn evaluate_backward(&self, medrecord: &'a MedRecord) -> MedRecordResult<Self::ReturnValue> {
-        let attributes = self.context.evaluate_backward(medrecord)?;
-
-        let attributes = self.reduce_input(attributes)?;
+        let attributes = self.context.get_attributes(medrecord, &self.kind)?;
 
         self.evaluate_forward(medrecord, attributes)
     }
 }
 
-impl<'a, O: 'a + RootOperand> ReduceInput<'a> for MultipleAttributesOperand<O> {
+impl<'a, O: 'a + RootOperand> ReduceInput<'a> for MultipleAttributesOperandWithIndex<O> {
     type Context = AttributesTreeOperand<O>;
 
     #[inline]
@@ -618,8 +754,8 @@ impl<'a, O: 'a + RootOperand> ReduceInput<'a> for MultipleAttributesOperand<O> {
     }
 }
 
-impl<O: RootOperand> MultipleAttributesOperand<O> {
-    pub(crate) fn new(context: AttributesTreeOperand<O>, kind: MultipleKind) -> Self {
+impl<O: RootOperand> MultipleAttributesOperandWithIndex<O> {
+    pub(crate) fn new(context: MultipleAttributesWithIndexContext<O>, kind: MultipleKind) -> Self {
         Self {
             context,
             kind,
@@ -627,61 +763,61 @@ impl<O: RootOperand> MultipleAttributesOperand<O> {
         }
     }
 
-    implement_attribute_operation!(max, Max);
-    implement_attribute_operation!(min, Min);
-    implement_attribute_operation!(count, Count);
-    implement_attribute_operation!(sum, Sum);
-    implement_attribute_operation!(random, Random);
+    implement_attribute_operation_with_index!(max, Max);
+    implement_attribute_operation_with_index!(min, Min);
+    implement_attribute_operation_without_index!(count, Count, WithIndex);
+    implement_attribute_operation_without_index!(sum, Sum, WithIndex);
+    implement_attribute_operation_with_index!(random, Random);
 
     implement_single_attribute_comparison_operation!(
         greater_than,
-        MultipleAttributesOperation,
+        MultipleAttributesOperationWithIndex,
         GreaterThan
     );
     implement_single_attribute_comparison_operation!(
         greater_than_or_equal_to,
-        MultipleAttributesOperation,
+        MultipleAttributesOperationWithIndex,
         GreaterThanOrEqualTo
     );
     implement_single_attribute_comparison_operation!(
         less_than,
-        MultipleAttributesOperation,
+        MultipleAttributesOperationWithIndex,
         LessThan
     );
     implement_single_attribute_comparison_operation!(
         less_than_or_equal_to,
-        MultipleAttributesOperation,
+        MultipleAttributesOperationWithIndex,
         LessThanOrEqualTo
     );
     implement_single_attribute_comparison_operation!(
         equal_to,
-        MultipleAttributesOperation,
+        MultipleAttributesOperationWithIndex,
         EqualTo
     );
     implement_single_attribute_comparison_operation!(
         not_equal_to,
-        MultipleAttributesOperation,
+        MultipleAttributesOperationWithIndex,
         NotEqualTo
     );
     implement_single_attribute_comparison_operation!(
         starts_with,
-        MultipleAttributesOperation,
+        MultipleAttributesOperationWithIndex,
         StartsWith
     );
     implement_single_attribute_comparison_operation!(
         ends_with,
-        MultipleAttributesOperation,
+        MultipleAttributesOperationWithIndex,
         EndsWith
     );
     implement_single_attribute_comparison_operation!(
         contains,
-        MultipleAttributesOperation,
+        MultipleAttributesOperationWithIndex,
         Contains
     );
 
     pub fn is_in<V: Into<MultipleAttributesComparisonOperand>>(&mut self, attributes: V) {
         self.operations.push(
-            MultipleAttributesOperation::MultipleAttributesComparisonOperation {
+            MultipleAttributesOperationWithIndex::MultipleAttributesComparisonOperation {
                 operand: attributes.into(),
                 kind: MultipleComparisonKind::IsIn,
             },
@@ -690,25 +826,37 @@ impl<O: RootOperand> MultipleAttributesOperand<O> {
 
     pub fn is_not_in<V: Into<MultipleAttributesComparisonOperand>>(&mut self, attributes: V) {
         self.operations.push(
-            MultipleAttributesOperation::MultipleAttributesComparisonOperation {
+            MultipleAttributesOperationWithIndex::MultipleAttributesComparisonOperation {
                 operand: attributes.into(),
                 kind: MultipleComparisonKind::IsNotIn,
             },
         );
     }
 
-    implement_binary_arithmetic_operation!(add, MultipleAttributesOperation, Add);
-    implement_binary_arithmetic_operation!(sub, MultipleAttributesOperation, Sub);
-    implement_binary_arithmetic_operation!(mul, MultipleAttributesOperation, Mul);
-    implement_binary_arithmetic_operation!(pow, MultipleAttributesOperation, Pow);
-    implement_binary_arithmetic_operation!(r#mod, MultipleAttributesOperation, Mod);
+    implement_binary_arithmetic_operation!(add, MultipleAttributesOperationWithIndex, Add);
+    implement_binary_arithmetic_operation!(sub, MultipleAttributesOperationWithIndex, Sub);
+    implement_binary_arithmetic_operation!(mul, MultipleAttributesOperationWithIndex, Mul);
+    implement_binary_arithmetic_operation!(pow, MultipleAttributesOperationWithIndex, Pow);
+    implement_binary_arithmetic_operation!(r#mod, MultipleAttributesOperationWithIndex, Mod);
 
-    implement_unary_arithmetic_operation!(abs, MultipleAttributesOperation, Abs);
-    implement_unary_arithmetic_operation!(trim, MultipleAttributesOperation, Trim);
-    implement_unary_arithmetic_operation!(trim_start, MultipleAttributesOperation, TrimStart);
-    implement_unary_arithmetic_operation!(trim_end, MultipleAttributesOperation, TrimEnd);
-    implement_unary_arithmetic_operation!(lowercase, MultipleAttributesOperation, Lowercase);
-    implement_unary_arithmetic_operation!(uppercase, MultipleAttributesOperation, Uppercase);
+    implement_unary_arithmetic_operation!(abs, MultipleAttributesOperationWithIndex, Abs);
+    implement_unary_arithmetic_operation!(trim, MultipleAttributesOperationWithIndex, Trim);
+    implement_unary_arithmetic_operation!(
+        trim_start,
+        MultipleAttributesOperationWithIndex,
+        TrimStart
+    );
+    implement_unary_arithmetic_operation!(trim_end, MultipleAttributesOperationWithIndex, TrimEnd);
+    implement_unary_arithmetic_operation!(
+        lowercase,
+        MultipleAttributesOperationWithIndex,
+        Lowercase
+    );
+    implement_unary_arithmetic_operation!(
+        uppercase,
+        MultipleAttributesOperationWithIndex,
+        Uppercase
+    );
 
     #[allow(clippy::wrong_self_convention)]
     pub fn to_values(&mut self) -> Wrapper<MultipleValuesOperandWithIndex<O>> {
@@ -716,66 +864,74 @@ impl<O: RootOperand> MultipleAttributesOperand<O> {
             MultipleValuesWithIndexContext::MultipleAttributesOperand(self.deep_clone()),
         );
 
-        self.operations.push(MultipleAttributesOperation::ToValues {
-            operand: operand.clone(),
-        });
+        self.operations
+            .push(MultipleAttributesOperationWithIndex::ToValues {
+                operand: operand.clone(),
+            });
 
         operand
     }
 
     pub fn slice(&mut self, start: usize, end: usize) {
         self.operations
-            .push(MultipleAttributesOperation::Slice(start..end));
+            .push(MultipleAttributesOperationWithIndex::Slice(start..end));
     }
 
-    implement_assertion_operation!(is_string, MultipleAttributesOperation::IsString);
-    implement_assertion_operation!(is_int, MultipleAttributesOperation::IsInt);
-    implement_assertion_operation!(is_max, MultipleAttributesOperation::IsMax);
-    implement_assertion_operation!(is_min, MultipleAttributesOperation::IsMin);
+    implement_assertion_operation!(is_string, MultipleAttributesOperationWithIndex::IsString);
+    implement_assertion_operation!(is_int, MultipleAttributesOperationWithIndex::IsInt);
+    implement_assertion_operation!(is_max, MultipleAttributesOperationWithIndex::IsMax);
+    implement_assertion_operation!(is_min, MultipleAttributesOperationWithIndex::IsMin);
 
     pub fn either_or<EQ, OQ>(&mut self, either_query: EQ, or_query: OQ)
     where
-        EQ: FnOnce(&mut Wrapper<MultipleAttributesOperand<O>>),
-        OQ: FnOnce(&mut Wrapper<MultipleAttributesOperand<O>>),
+        EQ: FnOnce(&mut Wrapper<MultipleAttributesOperandWithIndex<O>>),
+        OQ: FnOnce(&mut Wrapper<MultipleAttributesOperandWithIndex<O>>),
     {
-        let mut either_operand =
-            Wrapper::<MultipleAttributesOperand<O>>::new(self.context.clone(), self.kind.clone());
-        let mut or_operand =
-            Wrapper::<MultipleAttributesOperand<O>>::new(self.context.clone(), self.kind.clone());
+        let mut either_operand = Wrapper::<MultipleAttributesOperandWithIndex<O>>::new(
+            self.context.clone(),
+            self.kind.clone(),
+        );
+        let mut or_operand = Wrapper::<MultipleAttributesOperandWithIndex<O>>::new(
+            self.context.clone(),
+            self.kind.clone(),
+        );
 
         either_query(&mut either_operand);
         or_query(&mut or_operand);
 
-        self.operations.push(MultipleAttributesOperation::EitherOr {
-            either: either_operand,
-            or: or_operand,
-        });
+        self.operations
+            .push(MultipleAttributesOperationWithIndex::EitherOr {
+                either: either_operand,
+                or: or_operand,
+            });
     }
 
     pub fn exclude<Q>(&mut self, query: Q)
     where
-        Q: FnOnce(&mut Wrapper<MultipleAttributesOperand<O>>),
+        Q: FnOnce(&mut Wrapper<MultipleAttributesOperandWithIndex<O>>),
     {
-        let mut operand =
-            Wrapper::<MultipleAttributesOperand<O>>::new(self.context.clone(), self.kind.clone());
+        let mut operand = Wrapper::<MultipleAttributesOperandWithIndex<O>>::new(
+            self.context.clone(),
+            self.kind.clone(),
+        );
 
         query(&mut operand);
 
         self.operations
-            .push(MultipleAttributesOperation::Exclude { operand });
+            .push(MultipleAttributesOperationWithIndex::Exclude { operand });
     }
 }
 
-impl<O: RootOperand> Wrapper<MultipleAttributesOperand<O>> {
-    pub(crate) fn new(context: AttributesTreeOperand<O>, kind: MultipleKind) -> Self {
-        MultipleAttributesOperand::new(context, kind).into()
+impl<O: RootOperand> Wrapper<MultipleAttributesOperandWithIndex<O>> {
+    pub(crate) fn new(context: MultipleAttributesWithIndexContext<O>, kind: MultipleKind) -> Self {
+        MultipleAttributesOperandWithIndex::new(context, kind).into()
     }
 
-    implement_wrapper_operand_with_return!(max, SingleAttributeOperand<O>);
-    implement_wrapper_operand_with_return!(min, SingleAttributeOperand<O>);
-    implement_wrapper_operand_with_return!(count, SingleAttributeOperand<O>);
-    implement_wrapper_operand_with_return!(sum, SingleAttributeOperand<O>);
-    implement_wrapper_operand_with_return!(random, SingleAttributeOperand<O>);
+    implement_wrapper_operand_with_return!(max, SingleAttributeOperandWithIndex<O>);
+    implement_wrapper_operand_with_return!(min, SingleAttributeOperandWithIndex<O>);
+    implement_wrapper_operand_with_return!(count, SingleAttributeOperandWithoutIndex<O>);
+    implement_wrapper_operand_with_return!(sum, SingleAttributeOperandWithoutIndex<O>);
+    implement_wrapper_operand_with_return!(random, SingleAttributeOperandWithIndex<O>);
 
     implement_wrapper_operand_with_argument!(
         greater_than,
@@ -838,31 +994,33 @@ impl<O: RootOperand> Wrapper<MultipleAttributesOperand<O>> {
 
     pub fn either_or<EQ, OQ>(&self, either_query: EQ, or_query: OQ)
     where
-        EQ: FnOnce(&mut Wrapper<MultipleAttributesOperand<O>>),
-        OQ: FnOnce(&mut Wrapper<MultipleAttributesOperand<O>>),
+        EQ: FnOnce(&mut Wrapper<MultipleAttributesOperandWithIndex<O>>),
+        OQ: FnOnce(&mut Wrapper<MultipleAttributesOperandWithIndex<O>>),
     {
         self.0.write_or_panic().either_or(either_query, or_query);
     }
 
     pub fn exclude<Q>(&self, query: Q)
     where
-        Q: FnOnce(&mut Wrapper<MultipleAttributesOperand<O>>),
+        Q: FnOnce(&mut Wrapper<MultipleAttributesOperandWithIndex<O>>),
     {
         self.0.write_or_panic().exclude(query)
     }
 }
 
-pub type NodeSingleAttributeOperand = SingleAttributeOperand<NodeOperand>;
-pub type EdgeSingleAttributeOperand = SingleAttributeOperand<EdgeOperand>;
+pub type NodeMultipleAttributesOperandWithoutIndex =
+    MultipleAttributesOperandWithoutIndex<NodeOperand>;
+pub type EdgeMultipleAttributesOperandWithoutIndex =
+    MultipleAttributesOperandWithoutIndex<EdgeOperand>;
 
 #[derive(Debug, Clone)]
-pub struct SingleAttributeOperand<O: RootOperand> {
-    context: MultipleAttributesOperand<O>,
-    pub(crate) kind: SingleKind,
-    operations: Vec<SingleAttributeOperation<O>>,
+pub struct MultipleAttributesOperandWithoutIndex<O: RootOperand> {
+    context: MultipleAttributesWithoutIndexContext<O>,
+    pub(crate) kind: MultipleKind,
+    operations: Vec<MultipleAttributesOperationWithoutIndex<O>>,
 }
 
-impl<O: RootOperand> DeepClone for SingleAttributeOperand<O> {
+impl<O: RootOperand> DeepClone for MultipleAttributesOperandWithoutIndex<O> {
     fn deep_clone(&self) -> Self {
         Self {
             context: self.context.deep_clone(),
@@ -872,9 +1030,322 @@ impl<O: RootOperand> DeepClone for SingleAttributeOperand<O> {
     }
 }
 
-impl<'a, O: 'a + RootOperand> EvaluateForward<'a> for SingleAttributeOperand<O> {
-    type InputValue = Option<OptionalIndexWrapper<&'a O::Index, MedRecordAttribute>>;
-    type ReturnValue = Option<OptionalIndexWrapper<&'a O::Index, MedRecordAttribute>>;
+impl<'a, O: 'a + RootOperand> EvaluateForward<'a> for MultipleAttributesOperandWithoutIndex<O> {
+    type InputValue = BoxedIterator<'a, MedRecordAttribute>;
+    type ReturnValue = BoxedIterator<'a, MedRecordAttribute>;
+
+    fn evaluate_forward(
+        &self,
+        medrecord: &'a MedRecord,
+        attributes: Self::InputValue,
+    ) -> MedRecordResult<Self::ReturnValue> {
+        let attributes = Box::new(attributes) as BoxedIterator<_>;
+
+        self.operations
+            .iter()
+            .try_fold(attributes, |attribute_tuples, operation| {
+                operation.evaluate(medrecord, attribute_tuples)
+            })
+    }
+}
+
+impl<'a, O: 'a + RootOperand> EvaluateForwardGrouped<'a>
+    for MultipleAttributesOperandWithoutIndex<O>
+{
+    fn evaluate_forward_grouped(
+        &self,
+        medrecord: &'a MedRecord,
+        attributes: GroupedIterator<'a, Self::InputValue>,
+    ) -> MedRecordResult<GroupedIterator<'a, Self::ReturnValue>> {
+        self.operations
+            .iter()
+            .try_fold(attributes, |attribute_tuples, operation| {
+                operation.evaluate_grouped(medrecord, attribute_tuples)
+            })
+    }
+}
+
+impl<'a, O: 'a + RootOperand> EvaluateBackward<'a> for MultipleAttributesOperandWithoutIndex<O> {
+    type ReturnValue = BoxedIterator<'a, MedRecordAttribute>;
+
+    fn evaluate_backward(&self, medrecord: &'a MedRecord) -> MedRecordResult<Self::ReturnValue> {
+        let attributes = self.context.get_attributes(medrecord, &self.kind)?;
+
+        self.evaluate_forward(medrecord, attributes)
+    }
+}
+
+impl<O: RootOperand> MultipleAttributesOperandWithoutIndex<O> {
+    pub(crate) fn new(
+        context: MultipleAttributesWithoutIndexContext<O>,
+        kind: MultipleKind,
+    ) -> Self {
+        Self {
+            context,
+            kind,
+            operations: Vec::new(),
+        }
+    }
+
+    implement_attribute_operation_without_index!(max, Max, WithoutIndex);
+    implement_attribute_operation_without_index!(min, Min, WithoutIndex);
+    implement_attribute_operation_without_index!(count, Count, WithoutIndex);
+    implement_attribute_operation_without_index!(sum, Sum, WithoutIndex);
+    implement_attribute_operation_without_index!(random, Random, WithoutIndex);
+
+    implement_single_attribute_comparison_operation!(
+        greater_than,
+        MultipleAttributesOperationWithoutIndex,
+        GreaterThan
+    );
+    implement_single_attribute_comparison_operation!(
+        greater_than_or_equal_to,
+        MultipleAttributesOperationWithoutIndex,
+        GreaterThanOrEqualTo
+    );
+    implement_single_attribute_comparison_operation!(
+        less_than,
+        MultipleAttributesOperationWithoutIndex,
+        LessThan
+    );
+    implement_single_attribute_comparison_operation!(
+        less_than_or_equal_to,
+        MultipleAttributesOperationWithoutIndex,
+        LessThanOrEqualTo
+    );
+    implement_single_attribute_comparison_operation!(
+        equal_to,
+        MultipleAttributesOperationWithoutIndex,
+        EqualTo
+    );
+    implement_single_attribute_comparison_operation!(
+        not_equal_to,
+        MultipleAttributesOperationWithoutIndex,
+        NotEqualTo
+    );
+    implement_single_attribute_comparison_operation!(
+        starts_with,
+        MultipleAttributesOperationWithoutIndex,
+        StartsWith
+    );
+    implement_single_attribute_comparison_operation!(
+        ends_with,
+        MultipleAttributesOperationWithoutIndex,
+        EndsWith
+    );
+    implement_single_attribute_comparison_operation!(
+        contains,
+        MultipleAttributesOperationWithoutIndex,
+        Contains
+    );
+
+    pub fn is_in<V: Into<MultipleAttributesComparisonOperand>>(&mut self, attributes: V) {
+        self.operations.push(
+            MultipleAttributesOperationWithoutIndex::MultipleAttributesComparisonOperation {
+                operand: attributes.into(),
+                kind: MultipleComparisonKind::IsIn,
+            },
+        );
+    }
+
+    pub fn is_not_in<V: Into<MultipleAttributesComparisonOperand>>(&mut self, attributes: V) {
+        self.operations.push(
+            MultipleAttributesOperationWithoutIndex::MultipleAttributesComparisonOperation {
+                operand: attributes.into(),
+                kind: MultipleComparisonKind::IsNotIn,
+            },
+        );
+    }
+
+    implement_binary_arithmetic_operation!(add, MultipleAttributesOperationWithoutIndex, Add);
+    implement_binary_arithmetic_operation!(sub, MultipleAttributesOperationWithoutIndex, Sub);
+    implement_binary_arithmetic_operation!(mul, MultipleAttributesOperationWithoutIndex, Mul);
+    implement_binary_arithmetic_operation!(pow, MultipleAttributesOperationWithoutIndex, Pow);
+    implement_binary_arithmetic_operation!(r#mod, MultipleAttributesOperationWithoutIndex, Mod);
+
+    implement_unary_arithmetic_operation!(abs, MultipleAttributesOperationWithoutIndex, Abs);
+    implement_unary_arithmetic_operation!(trim, MultipleAttributesOperationWithoutIndex, Trim);
+    implement_unary_arithmetic_operation!(
+        trim_start,
+        MultipleAttributesOperationWithoutIndex,
+        TrimStart
+    );
+    implement_unary_arithmetic_operation!(
+        trim_end,
+        MultipleAttributesOperationWithoutIndex,
+        TrimEnd
+    );
+    implement_unary_arithmetic_operation!(
+        lowercase,
+        MultipleAttributesOperationWithoutIndex,
+        Lowercase
+    );
+    implement_unary_arithmetic_operation!(
+        uppercase,
+        MultipleAttributesOperationWithoutIndex,
+        Uppercase
+    );
+
+    pub fn slice(&mut self, start: usize, end: usize) {
+        self.operations
+            .push(MultipleAttributesOperationWithoutIndex::Slice(start..end));
+    }
+
+    implement_assertion_operation!(is_string, MultipleAttributesOperationWithoutIndex::IsString);
+    implement_assertion_operation!(is_int, MultipleAttributesOperationWithoutIndex::IsInt);
+    implement_assertion_operation!(is_max, MultipleAttributesOperationWithoutIndex::IsMax);
+    implement_assertion_operation!(is_min, MultipleAttributesOperationWithoutIndex::IsMin);
+
+    pub fn either_or<EQ, OQ>(&mut self, either_query: EQ, or_query: OQ)
+    where
+        EQ: FnOnce(&mut Wrapper<MultipleAttributesOperandWithoutIndex<O>>),
+        OQ: FnOnce(&mut Wrapper<MultipleAttributesOperandWithoutIndex<O>>),
+    {
+        let mut either_operand = Wrapper::<MultipleAttributesOperandWithoutIndex<O>>::new(
+            self.context.clone(),
+            self.kind.clone(),
+        );
+        let mut or_operand = Wrapper::<MultipleAttributesOperandWithoutIndex<O>>::new(
+            self.context.clone(),
+            self.kind.clone(),
+        );
+
+        either_query(&mut either_operand);
+        or_query(&mut or_operand);
+
+        self.operations
+            .push(MultipleAttributesOperationWithoutIndex::EitherOr {
+                either: either_operand,
+                or: or_operand,
+            });
+    }
+
+    pub fn exclude<Q>(&mut self, query: Q)
+    where
+        Q: FnOnce(&mut Wrapper<MultipleAttributesOperandWithoutIndex<O>>),
+    {
+        let mut operand = Wrapper::<MultipleAttributesOperandWithoutIndex<O>>::new(
+            self.context.clone(),
+            self.kind.clone(),
+        );
+
+        query(&mut operand);
+
+        self.operations
+            .push(MultipleAttributesOperationWithoutIndex::Exclude { operand });
+    }
+}
+
+impl<O: RootOperand> Wrapper<MultipleAttributesOperandWithoutIndex<O>> {
+    pub(crate) fn new(
+        context: MultipleAttributesWithoutIndexContext<O>,
+        kind: MultipleKind,
+    ) -> Self {
+        MultipleAttributesOperandWithoutIndex::new(context, kind).into()
+    }
+
+    implement_wrapper_operand_with_return!(max, SingleAttributeOperandWithoutIndex<O>);
+    implement_wrapper_operand_with_return!(min, SingleAttributeOperandWithoutIndex<O>);
+    implement_wrapper_operand_with_return!(count, SingleAttributeOperandWithoutIndex<O>);
+    implement_wrapper_operand_with_return!(sum, SingleAttributeOperandWithoutIndex<O>);
+    implement_wrapper_operand_with_return!(random, SingleAttributeOperandWithoutIndex<O>);
+
+    implement_wrapper_operand_with_argument!(
+        greater_than,
+        impl Into<SingleAttributeComparisonOperand>
+    );
+    implement_wrapper_operand_with_argument!(
+        greater_than_or_equal_to,
+        impl Into<SingleAttributeComparisonOperand>
+    );
+    implement_wrapper_operand_with_argument!(
+        less_than,
+        impl Into<SingleAttributeComparisonOperand>
+    );
+    implement_wrapper_operand_with_argument!(
+        less_than_or_equal_to,
+        impl Into<SingleAttributeComparisonOperand>
+    );
+    implement_wrapper_operand_with_argument!(equal_to, impl Into<SingleAttributeComparisonOperand>);
+    implement_wrapper_operand_with_argument!(
+        not_equal_to,
+        impl Into<SingleAttributeComparisonOperand>
+    );
+    implement_wrapper_operand_with_argument!(
+        starts_with,
+        impl Into<SingleAttributeComparisonOperand>
+    );
+    implement_wrapper_operand_with_argument!(
+        ends_with,
+        impl Into<SingleAttributeComparisonOperand>
+    );
+    implement_wrapper_operand_with_argument!(contains, impl Into<SingleAttributeComparisonOperand>);
+    implement_wrapper_operand_with_argument!(is_in, impl Into<MultipleAttributesComparisonOperand>);
+    implement_wrapper_operand_with_argument!(
+        is_not_in,
+        impl Into<MultipleAttributesComparisonOperand>
+    );
+    implement_wrapper_operand_with_argument!(add, impl Into<SingleAttributeComparisonOperand>);
+    implement_wrapper_operand_with_argument!(sub, impl Into<SingleAttributeComparisonOperand>);
+    implement_wrapper_operand_with_argument!(mul, impl Into<SingleAttributeComparisonOperand>);
+    implement_wrapper_operand_with_argument!(pow, impl Into<SingleAttributeComparisonOperand>);
+    implement_wrapper_operand_with_argument!(r#mod, impl Into<SingleAttributeComparisonOperand>);
+
+    implement_wrapper_operand!(abs);
+    implement_wrapper_operand!(trim);
+    implement_wrapper_operand!(trim_start);
+    implement_wrapper_operand!(trim_end);
+    implement_wrapper_operand!(lowercase);
+    implement_wrapper_operand!(uppercase);
+
+    pub fn slice(&self, start: usize, end: usize) {
+        self.0.write_or_panic().slice(start, end)
+    }
+
+    implement_wrapper_operand!(is_string);
+    implement_wrapper_operand!(is_int);
+    implement_wrapper_operand!(is_max);
+    implement_wrapper_operand!(is_min);
+
+    pub fn either_or<EQ, OQ>(&self, either_query: EQ, or_query: OQ)
+    where
+        EQ: FnOnce(&mut Wrapper<MultipleAttributesOperandWithoutIndex<O>>),
+        OQ: FnOnce(&mut Wrapper<MultipleAttributesOperandWithoutIndex<O>>),
+    {
+        self.0.write_or_panic().either_or(either_query, or_query);
+    }
+
+    pub fn exclude<Q>(&self, query: Q)
+    where
+        Q: FnOnce(&mut Wrapper<MultipleAttributesOperandWithoutIndex<O>>),
+    {
+        self.0.write_or_panic().exclude(query)
+    }
+}
+
+pub type NodeSingleAttributeOperandWithIndex = SingleAttributeOperandWithIndex<NodeOperand>;
+pub type EdgeSingleAttributeOperandWithIndex = SingleAttributeOperandWithIndex<EdgeOperand>;
+
+#[derive(Debug, Clone)]
+pub struct SingleAttributeOperandWithIndex<O: RootOperand> {
+    context: MultipleAttributesOperandWithIndex<O>,
+    pub(crate) kind: SingleKindWithIndex,
+    operations: Vec<SingleAttributeOperationWithIndex<O>>,
+}
+
+impl<O: RootOperand> DeepClone for SingleAttributeOperandWithIndex<O> {
+    fn deep_clone(&self) -> Self {
+        Self {
+            context: self.context.deep_clone(),
+            kind: self.kind.clone(),
+            operations: self.operations.iter().map(DeepClone::deep_clone).collect(),
+        }
+    }
+}
+
+impl<'a, O: 'a + RootOperand> EvaluateForward<'a> for SingleAttributeOperandWithIndex<O> {
+    type InputValue = Option<(&'a O::Index, MedRecordAttribute)>;
+    type ReturnValue = Option<(&'a O::Index, MedRecordAttribute)>;
 
     fn evaluate_forward(
         &self,
@@ -889,7 +1360,7 @@ impl<'a, O: 'a + RootOperand> EvaluateForward<'a> for SingleAttributeOperand<O> 
     }
 }
 
-impl<'a, O: 'a + RootOperand> EvaluateForwardGrouped<'a> for SingleAttributeOperand<O> {
+impl<'a, O: 'a + RootOperand> EvaluateForwardGrouped<'a> for SingleAttributeOperandWithIndex<O> {
     fn evaluate_forward_grouped(
         &self,
         medrecord: &'a MedRecord,
@@ -903,7 +1374,7 @@ impl<'a, O: 'a + RootOperand> EvaluateForwardGrouped<'a> for SingleAttributeOper
     }
 }
 
-impl<'a, O: 'a + RootOperand> EvaluateBackward<'a> for SingleAttributeOperand<O> {
+impl<'a, O: 'a + RootOperand> EvaluateBackward<'a> for SingleAttributeOperandWithIndex<O> {
     type ReturnValue = <Self as EvaluateForward<'a>>::ReturnValue;
 
     fn evaluate_backward(&self, medrecord: &'a MedRecord) -> MedRecordResult<Self::ReturnValue> {
@@ -915,8 +1386,8 @@ impl<'a, O: 'a + RootOperand> EvaluateBackward<'a> for SingleAttributeOperand<O>
     }
 }
 
-impl<'a, O: 'a + RootOperand> ReduceInput<'a> for SingleAttributeOperand<O> {
-    type Context = MultipleAttributesOperand<O>;
+impl<'a, O: 'a + RootOperand> ReduceInput<'a> for SingleAttributeOperandWithIndex<O> {
+    type Context = MultipleAttributesOperandWithIndex<O>;
 
     #[inline]
     fn reduce_input(
@@ -924,23 +1395,24 @@ impl<'a, O: 'a + RootOperand> ReduceInput<'a> for SingleAttributeOperand<O> {
         attributes: <Self::Context as EvaluateBackward<'a>>::ReturnValue,
     ) -> MedRecordResult<<Self as EvaluateForward<'a>>::InputValue> {
         Ok(match self.kind {
-            SingleKind::Max => MultipleAttributesOperation::<O>::get_max(attributes)?
-                .map(OptionalIndexWrapper::from),
-            SingleKind::Min => MultipleAttributesOperation::<O>::get_min(attributes)?
-                .map(OptionalIndexWrapper::from),
-            SingleKind::Count => {
-                Some(MultipleAttributesOperation::<O>::get_count(attributes).into())
+            SingleKindWithIndex::Max => {
+                MultipleAttributesOperationWithIndex::<O>::get_max(attributes)?
             }
-            SingleKind::Sum => MultipleAttributesOperation::<O>::get_sum(attributes)?
-                .map(OptionalIndexWrapper::from),
-            SingleKind::Random => MultipleAttributesOperation::<O>::get_random(attributes)
-                .map(OptionalIndexWrapper::from),
+            SingleKindWithIndex::Min => {
+                MultipleAttributesOperationWithIndex::<O>::get_min(attributes)?
+            }
+            SingleKindWithIndex::Random => {
+                MultipleAttributesOperationWithIndex::<O>::get_random(attributes)
+            }
         })
     }
 }
 
-impl<O: RootOperand> SingleAttributeOperand<O> {
-    pub(crate) fn new(context: MultipleAttributesOperand<O>, kind: SingleKind) -> Self {
+impl<O: RootOperand> SingleAttributeOperandWithIndex<O> {
+    pub(crate) fn new(
+        context: MultipleAttributesOperandWithIndex<O>,
+        kind: SingleKindWithIndex,
+    ) -> Self {
         Self {
             context,
             kind,
@@ -950,37 +1422,53 @@ impl<O: RootOperand> SingleAttributeOperand<O> {
 
     implement_single_attribute_comparison_operation!(
         greater_than,
-        SingleAttributeOperation,
+        SingleAttributeOperationWithIndex,
         GreaterThan
     );
     implement_single_attribute_comparison_operation!(
         greater_than_or_equal_to,
-        SingleAttributeOperation,
+        SingleAttributeOperationWithIndex,
         GreaterThanOrEqualTo
     );
-    implement_single_attribute_comparison_operation!(less_than, SingleAttributeOperation, LessThan);
+    implement_single_attribute_comparison_operation!(
+        less_than,
+        SingleAttributeOperationWithIndex,
+        LessThan
+    );
     implement_single_attribute_comparison_operation!(
         less_than_or_equal_to,
-        SingleAttributeOperation,
+        SingleAttributeOperationWithIndex,
         LessThanOrEqualTo
     );
-    implement_single_attribute_comparison_operation!(equal_to, SingleAttributeOperation, EqualTo);
+    implement_single_attribute_comparison_operation!(
+        equal_to,
+        SingleAttributeOperationWithIndex,
+        EqualTo
+    );
     implement_single_attribute_comparison_operation!(
         not_equal_to,
-        SingleAttributeOperation,
+        SingleAttributeOperationWithIndex,
         NotEqualTo
     );
     implement_single_attribute_comparison_operation!(
         starts_with,
-        SingleAttributeOperation,
+        SingleAttributeOperationWithIndex,
         StartsWith
     );
-    implement_single_attribute_comparison_operation!(ends_with, SingleAttributeOperation, EndsWith);
-    implement_single_attribute_comparison_operation!(contains, SingleAttributeOperation, Contains);
+    implement_single_attribute_comparison_operation!(
+        ends_with,
+        SingleAttributeOperationWithIndex,
+        EndsWith
+    );
+    implement_single_attribute_comparison_operation!(
+        contains,
+        SingleAttributeOperationWithIndex,
+        Contains
+    );
 
     pub fn is_in<V: Into<MultipleAttributesComparisonOperand>>(&mut self, attributes: V) {
         self.operations.push(
-            SingleAttributeOperation::MultipleAttributesComparisonOperation {
+            SingleAttributeOperationWithIndex::MultipleAttributesComparisonOperation {
                 operand: attributes.into(),
                 kind: MultipleComparisonKind::IsIn,
             },
@@ -989,70 +1477,80 @@ impl<O: RootOperand> SingleAttributeOperand<O> {
 
     pub fn is_not_in<V: Into<MultipleAttributesComparisonOperand>>(&mut self, attributes: V) {
         self.operations.push(
-            SingleAttributeOperation::MultipleAttributesComparisonOperation {
+            SingleAttributeOperationWithIndex::MultipleAttributesComparisonOperation {
                 operand: attributes.into(),
                 kind: MultipleComparisonKind::IsNotIn,
             },
         );
     }
 
-    implement_binary_arithmetic_operation!(add, SingleAttributeOperation, Add);
-    implement_binary_arithmetic_operation!(sub, SingleAttributeOperation, Sub);
-    implement_binary_arithmetic_operation!(mul, SingleAttributeOperation, Mul);
-    implement_binary_arithmetic_operation!(pow, SingleAttributeOperation, Pow);
-    implement_binary_arithmetic_operation!(r#mod, SingleAttributeOperation, Mod);
+    implement_binary_arithmetic_operation!(add, SingleAttributeOperationWithIndex, Add);
+    implement_binary_arithmetic_operation!(sub, SingleAttributeOperationWithIndex, Sub);
+    implement_binary_arithmetic_operation!(mul, SingleAttributeOperationWithIndex, Mul);
+    implement_binary_arithmetic_operation!(pow, SingleAttributeOperationWithIndex, Pow);
+    implement_binary_arithmetic_operation!(r#mod, SingleAttributeOperationWithIndex, Mod);
 
-    implement_unary_arithmetic_operation!(abs, SingleAttributeOperation, Abs);
-    implement_unary_arithmetic_operation!(trim, SingleAttributeOperation, Trim);
-    implement_unary_arithmetic_operation!(trim_start, SingleAttributeOperation, TrimStart);
-    implement_unary_arithmetic_operation!(trim_end, SingleAttributeOperation, TrimEnd);
-    implement_unary_arithmetic_operation!(lowercase, SingleAttributeOperation, Lowercase);
-    implement_unary_arithmetic_operation!(uppercase, SingleAttributeOperation, Uppercase);
+    implement_unary_arithmetic_operation!(abs, SingleAttributeOperationWithIndex, Abs);
+    implement_unary_arithmetic_operation!(trim, SingleAttributeOperationWithIndex, Trim);
+    implement_unary_arithmetic_operation!(trim_start, SingleAttributeOperationWithIndex, TrimStart);
+    implement_unary_arithmetic_operation!(trim_end, SingleAttributeOperationWithIndex, TrimEnd);
+    implement_unary_arithmetic_operation!(lowercase, SingleAttributeOperationWithIndex, Lowercase);
+    implement_unary_arithmetic_operation!(uppercase, SingleAttributeOperationWithIndex, Uppercase);
 
     pub fn slice(&mut self, start: usize, end: usize) {
         self.operations
-            .push(SingleAttributeOperation::Slice(start..end));
+            .push(SingleAttributeOperationWithIndex::Slice(start..end));
     }
 
-    implement_assertion_operation!(is_string, SingleAttributeOperation::IsString);
-    implement_assertion_operation!(is_int, SingleAttributeOperation::IsInt);
+    implement_assertion_operation!(is_string, SingleAttributeOperationWithIndex::IsString);
+    implement_assertion_operation!(is_int, SingleAttributeOperationWithIndex::IsInt);
 
     pub fn eiter_or<EQ, OQ>(&mut self, either_query: EQ, or_query: OQ)
     where
-        EQ: FnOnce(&mut Wrapper<SingleAttributeOperand<O>>),
-        OQ: FnOnce(&mut Wrapper<SingleAttributeOperand<O>>),
+        EQ: FnOnce(&mut Wrapper<SingleAttributeOperandWithIndex<O>>),
+        OQ: FnOnce(&mut Wrapper<SingleAttributeOperandWithIndex<O>>),
     {
-        let mut either_operand =
-            Wrapper::<SingleAttributeOperand<O>>::new(self.context.clone(), self.kind.clone());
-        let mut or_operand =
-            Wrapper::<SingleAttributeOperand<O>>::new(self.context.clone(), self.kind.clone());
+        let mut either_operand = Wrapper::<SingleAttributeOperandWithIndex<O>>::new(
+            self.context.clone(),
+            self.kind.clone(),
+        );
+        let mut or_operand = Wrapper::<SingleAttributeOperandWithIndex<O>>::new(
+            self.context.clone(),
+            self.kind.clone(),
+        );
 
         either_query(&mut either_operand);
         or_query(&mut or_operand);
 
-        self.operations.push(SingleAttributeOperation::EitherOr {
-            either: either_operand,
-            or: or_operand,
-        });
+        self.operations
+            .push(SingleAttributeOperationWithIndex::EitherOr {
+                either: either_operand,
+                or: or_operand,
+            });
     }
 
     pub fn exclude<Q>(&mut self, query: Q)
     where
-        Q: FnOnce(&mut Wrapper<SingleAttributeOperand<O>>),
+        Q: FnOnce(&mut Wrapper<SingleAttributeOperandWithIndex<O>>),
     {
-        let mut operand =
-            Wrapper::<SingleAttributeOperand<O>>::new(self.context.clone(), self.kind.clone());
+        let mut operand = Wrapper::<SingleAttributeOperandWithIndex<O>>::new(
+            self.context.clone(),
+            self.kind.clone(),
+        );
 
         query(&mut operand);
 
         self.operations
-            .push(SingleAttributeOperation::Exclude { operand });
+            .push(SingleAttributeOperationWithIndex::Exclude { operand });
     }
 }
 
-impl<O: RootOperand> Wrapper<SingleAttributeOperand<O>> {
-    pub(crate) fn new(context: MultipleAttributesOperand<O>, kind: SingleKind) -> Self {
-        SingleAttributeOperand::new(context, kind).into()
+impl<O: RootOperand> Wrapper<SingleAttributeOperandWithIndex<O>> {
+    pub(crate) fn new(
+        context: MultipleAttributesOperandWithIndex<O>,
+        kind: SingleKindWithIndex,
+    ) -> Self {
+        SingleAttributeOperandWithIndex::new(context, kind).into()
     }
 
     implement_wrapper_operand_with_argument!(
@@ -1112,15 +1610,322 @@ impl<O: RootOperand> Wrapper<SingleAttributeOperand<O>> {
 
     pub fn either_or<EQ, OQ>(&self, either_query: EQ, or_query: OQ)
     where
-        EQ: FnOnce(&mut Wrapper<SingleAttributeOperand<O>>),
-        OQ: FnOnce(&mut Wrapper<SingleAttributeOperand<O>>),
+        EQ: FnOnce(&mut Wrapper<SingleAttributeOperandWithIndex<O>>),
+        OQ: FnOnce(&mut Wrapper<SingleAttributeOperandWithIndex<O>>),
     {
         self.0.write_or_panic().eiter_or(either_query, or_query);
     }
 
     pub fn exclude<Q>(&self, query: Q)
     where
-        Q: FnOnce(&mut Wrapper<SingleAttributeOperand<O>>),
+        Q: FnOnce(&mut Wrapper<SingleAttributeOperandWithIndex<O>>),
+    {
+        self.0.write_or_panic().exclude(query);
+    }
+}
+
+pub type NodeSingleAttributeOperandWithoutIndex = SingleAttributeOperandWithoutIndex<NodeOperand>;
+pub type EdgeSingleAttributeOperandWithoutIndex = SingleAttributeOperandWithoutIndex<EdgeOperand>;
+
+#[derive(Debug, Clone)]
+pub struct SingleAttributeOperandWithoutIndex<O: RootOperand> {
+    context: SingleAttributeWithoutIndexContext<O>,
+    pub(crate) kind: SingleKindWithoutIndex,
+    operations: Vec<SingleAttributeOperationWithoutIndex<O>>,
+}
+
+impl<O: RootOperand> DeepClone for SingleAttributeOperandWithoutIndex<O> {
+    fn deep_clone(&self) -> Self {
+        Self {
+            context: self.context.deep_clone(),
+            kind: self.kind.clone(),
+            operations: self.operations.iter().map(DeepClone::deep_clone).collect(),
+        }
+    }
+}
+
+impl<'a, O: 'a + RootOperand> EvaluateForward<'a> for SingleAttributeOperandWithoutIndex<O> {
+    type InputValue = Option<MedRecordAttribute>;
+    type ReturnValue = Option<MedRecordAttribute>;
+
+    fn evaluate_forward(
+        &self,
+        medrecord: &'a MedRecord,
+        attribute: Self::InputValue,
+    ) -> MedRecordResult<Self::ReturnValue> {
+        self.operations
+            .iter()
+            .try_fold(attribute, |attribute, operation| {
+                operation.evaluate(medrecord, attribute)
+            })
+    }
+}
+
+impl<'a, O: 'a + RootOperand> EvaluateForwardGrouped<'a> for SingleAttributeOperandWithoutIndex<O> {
+    fn evaluate_forward_grouped(
+        &self,
+        medrecord: &'a MedRecord,
+        attributes: GroupedIterator<'a, Self::InputValue>,
+    ) -> MedRecordResult<GroupedIterator<'a, Self::ReturnValue>> {
+        self.operations
+            .iter()
+            .try_fold(attributes, |attributes, operation| {
+                operation.evaluate_grouped(medrecord, attributes)
+            })
+    }
+}
+
+impl<'a, O: 'a + RootOperand> EvaluateBackward<'a> for SingleAttributeOperandWithoutIndex<O> {
+    type ReturnValue = <Self as EvaluateForward<'a>>::ReturnValue;
+
+    fn evaluate_backward(&self, medrecord: &'a MedRecord) -> MedRecordResult<Self::ReturnValue> {
+        let attributes = self.context.get_attributes(medrecord)?;
+
+        let attribute = match self.kind {
+            SingleKindWithoutIndex::Max => {
+                MultipleAttributesOperationWithoutIndex::<O>::get_max(attributes)?
+            }
+            SingleKindWithoutIndex::Min => {
+                MultipleAttributesOperationWithoutIndex::<O>::get_min(attributes)?
+            }
+            SingleKindWithoutIndex::Count => Some(
+                MultipleAttributesOperationWithoutIndex::<O>::get_count(attributes),
+            ),
+            SingleKindWithoutIndex::Sum => {
+                MultipleAttributesOperationWithoutIndex::<O>::get_sum(attributes)?
+            }
+            SingleKindWithoutIndex::Random => {
+                MultipleAttributesOperationWithoutIndex::<O>::get_random(attributes)
+            }
+        };
+
+        self.evaluate_forward(medrecord, attribute)
+    }
+}
+
+impl<O: RootOperand> SingleAttributeOperandWithoutIndex<O> {
+    pub(crate) fn new(
+        context: SingleAttributeWithoutIndexContext<O>,
+        kind: SingleKindWithoutIndex,
+    ) -> Self {
+        Self {
+            context,
+            kind,
+            operations: Vec::new(),
+        }
+    }
+
+    implement_single_attribute_comparison_operation!(
+        greater_than,
+        SingleAttributeOperationWithoutIndex,
+        GreaterThan
+    );
+    implement_single_attribute_comparison_operation!(
+        greater_than_or_equal_to,
+        SingleAttributeOperationWithoutIndex,
+        GreaterThanOrEqualTo
+    );
+    implement_single_attribute_comparison_operation!(
+        less_than,
+        SingleAttributeOperationWithoutIndex,
+        LessThan
+    );
+    implement_single_attribute_comparison_operation!(
+        less_than_or_equal_to,
+        SingleAttributeOperationWithoutIndex,
+        LessThanOrEqualTo
+    );
+    implement_single_attribute_comparison_operation!(
+        equal_to,
+        SingleAttributeOperationWithoutIndex,
+        EqualTo
+    );
+    implement_single_attribute_comparison_operation!(
+        not_equal_to,
+        SingleAttributeOperationWithoutIndex,
+        NotEqualTo
+    );
+    implement_single_attribute_comparison_operation!(
+        starts_with,
+        SingleAttributeOperationWithoutIndex,
+        StartsWith
+    );
+    implement_single_attribute_comparison_operation!(
+        ends_with,
+        SingleAttributeOperationWithoutIndex,
+        EndsWith
+    );
+    implement_single_attribute_comparison_operation!(
+        contains,
+        SingleAttributeOperationWithoutIndex,
+        Contains
+    );
+
+    pub fn is_in<V: Into<MultipleAttributesComparisonOperand>>(&mut self, attributes: V) {
+        self.operations.push(
+            SingleAttributeOperationWithoutIndex::MultipleAttributesComparisonOperation {
+                operand: attributes.into(),
+                kind: MultipleComparisonKind::IsIn,
+            },
+        );
+    }
+
+    pub fn is_not_in<V: Into<MultipleAttributesComparisonOperand>>(&mut self, attributes: V) {
+        self.operations.push(
+            SingleAttributeOperationWithoutIndex::MultipleAttributesComparisonOperation {
+                operand: attributes.into(),
+                kind: MultipleComparisonKind::IsNotIn,
+            },
+        );
+    }
+
+    implement_binary_arithmetic_operation!(add, SingleAttributeOperationWithoutIndex, Add);
+    implement_binary_arithmetic_operation!(sub, SingleAttributeOperationWithoutIndex, Sub);
+    implement_binary_arithmetic_operation!(mul, SingleAttributeOperationWithoutIndex, Mul);
+    implement_binary_arithmetic_operation!(pow, SingleAttributeOperationWithoutIndex, Pow);
+    implement_binary_arithmetic_operation!(r#mod, SingleAttributeOperationWithoutIndex, Mod);
+
+    implement_unary_arithmetic_operation!(abs, SingleAttributeOperationWithoutIndex, Abs);
+    implement_unary_arithmetic_operation!(trim, SingleAttributeOperationWithoutIndex, Trim);
+    implement_unary_arithmetic_operation!(
+        trim_start,
+        SingleAttributeOperationWithoutIndex,
+        TrimStart
+    );
+    implement_unary_arithmetic_operation!(trim_end, SingleAttributeOperationWithoutIndex, TrimEnd);
+    implement_unary_arithmetic_operation!(
+        lowercase,
+        SingleAttributeOperationWithoutIndex,
+        Lowercase
+    );
+    implement_unary_arithmetic_operation!(
+        uppercase,
+        SingleAttributeOperationWithoutIndex,
+        Uppercase
+    );
+
+    pub fn slice(&mut self, start: usize, end: usize) {
+        self.operations
+            .push(SingleAttributeOperationWithoutIndex::Slice(start..end));
+    }
+
+    implement_assertion_operation!(is_string, SingleAttributeOperationWithoutIndex::IsString);
+    implement_assertion_operation!(is_int, SingleAttributeOperationWithoutIndex::IsInt);
+
+    pub fn eiter_or<EQ, OQ>(&mut self, either_query: EQ, or_query: OQ)
+    where
+        EQ: FnOnce(&mut Wrapper<SingleAttributeOperandWithoutIndex<O>>),
+        OQ: FnOnce(&mut Wrapper<SingleAttributeOperandWithoutIndex<O>>),
+    {
+        let mut either_operand = Wrapper::<SingleAttributeOperandWithoutIndex<O>>::new(
+            self.context.clone(),
+            self.kind.clone(),
+        );
+        let mut or_operand = Wrapper::<SingleAttributeOperandWithoutIndex<O>>::new(
+            self.context.clone(),
+            self.kind.clone(),
+        );
+
+        either_query(&mut either_operand);
+        or_query(&mut or_operand);
+
+        self.operations
+            .push(SingleAttributeOperationWithoutIndex::EitherOr {
+                either: either_operand,
+                or: or_operand,
+            });
+    }
+
+    pub fn exclude<Q>(&mut self, query: Q)
+    where
+        Q: FnOnce(&mut Wrapper<SingleAttributeOperandWithoutIndex<O>>),
+    {
+        let mut operand = Wrapper::<SingleAttributeOperandWithoutIndex<O>>::new(
+            self.context.clone(),
+            self.kind.clone(),
+        );
+
+        query(&mut operand);
+
+        self.operations
+            .push(SingleAttributeOperationWithoutIndex::Exclude { operand });
+    }
+}
+
+impl<O: RootOperand> Wrapper<SingleAttributeOperandWithoutIndex<O>> {
+    pub(crate) fn new(
+        context: SingleAttributeWithoutIndexContext<O>,
+        kind: SingleKindWithoutIndex,
+    ) -> Self {
+        SingleAttributeOperandWithoutIndex::new(context, kind).into()
+    }
+
+    implement_wrapper_operand_with_argument!(
+        greater_than,
+        impl Into<SingleAttributeComparisonOperand>
+    );
+    implement_wrapper_operand_with_argument!(
+        greater_than_or_equal_to,
+        impl Into<SingleAttributeComparisonOperand>
+    );
+    implement_wrapper_operand_with_argument!(
+        less_than,
+        impl Into<SingleAttributeComparisonOperand>
+    );
+    implement_wrapper_operand_with_argument!(
+        less_than_or_equal_to,
+        impl Into<SingleAttributeComparisonOperand>
+    );
+    implement_wrapper_operand_with_argument!(equal_to, impl Into<SingleAttributeComparisonOperand>);
+    implement_wrapper_operand_with_argument!(
+        not_equal_to,
+        impl Into<SingleAttributeComparisonOperand>
+    );
+    implement_wrapper_operand_with_argument!(
+        starts_with,
+        impl Into<SingleAttributeComparisonOperand>
+    );
+    implement_wrapper_operand_with_argument!(
+        ends_with,
+        impl Into<SingleAttributeComparisonOperand>
+    );
+    implement_wrapper_operand_with_argument!(contains, impl Into<SingleAttributeComparisonOperand>);
+    implement_wrapper_operand_with_argument!(is_in, impl Into<MultipleAttributesComparisonOperand>);
+    implement_wrapper_operand_with_argument!(
+        is_not_in,
+        impl Into<MultipleAttributesComparisonOperand>
+    );
+    implement_wrapper_operand_with_argument!(add, impl Into<SingleAttributeComparisonOperand>);
+    implement_wrapper_operand_with_argument!(sub, impl Into<SingleAttributeComparisonOperand>);
+    implement_wrapper_operand_with_argument!(mul, impl Into<SingleAttributeComparisonOperand>);
+    implement_wrapper_operand_with_argument!(pow, impl Into<SingleAttributeComparisonOperand>);
+    implement_wrapper_operand_with_argument!(r#mod, impl Into<SingleAttributeComparisonOperand>);
+
+    implement_wrapper_operand!(abs);
+    implement_wrapper_operand!(trim);
+    implement_wrapper_operand!(trim_start);
+    implement_wrapper_operand!(trim_end);
+    implement_wrapper_operand!(lowercase);
+    implement_wrapper_operand!(uppercase);
+
+    pub fn slice(&self, start: usize, end: usize) {
+        self.0.write_or_panic().slice(start, end)
+    }
+
+    implement_wrapper_operand!(is_string);
+    implement_wrapper_operand!(is_int);
+
+    pub fn either_or<EQ, OQ>(&self, either_query: EQ, or_query: OQ)
+    where
+        EQ: FnOnce(&mut Wrapper<SingleAttributeOperandWithoutIndex<O>>),
+        OQ: FnOnce(&mut Wrapper<SingleAttributeOperandWithoutIndex<O>>),
+    {
+        self.0.write_or_panic().eiter_or(either_query, or_query);
+    }
+
+    pub fn exclude<Q>(&self, query: Q)
+    where
+        Q: FnOnce(&mut Wrapper<SingleAttributeOperandWithoutIndex<O>>),
     {
         self.0.write_or_panic().exclude(query);
     }

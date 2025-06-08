@@ -1,3 +1,4 @@
+mod group_by;
 mod operand;
 mod operation;
 
@@ -8,20 +9,39 @@ use super::{
 };
 use crate::{
     errors::MedRecordResult,
-    medrecord::{Attributes, EdgeIndex, MedRecordAttribute, NodeIndex},
+    medrecord::{
+        querying::{
+            attributes::operation::AttributesTreeOperation, group_by::GroupOperand, BoxedIterator,
+            DeepClone, RootOperand,
+        },
+        Attributes, EdgeIndex, MedRecordAttribute, NodeIndex,
+    },
     MedRecord,
 };
 pub use operand::{
-    AttributesTreeOperand, EdgeAttributesTreeOperand, EdgeMultipleAttributesOperand,
-    EdgeSingleAttributeOperand, MultipleAttributesComparisonOperand, MultipleAttributesOperand,
-    NodeAttributesTreeOperand, NodeMultipleAttributesOperand, NodeSingleAttributeOperand,
-    SingleAttributeComparisonOperand, SingleAttributeOperand,
+    AttributesTreeOperand, EdgeAttributesTreeOperand, EdgeMultipleAttributesOperandWithIndex,
+    EdgeMultipleAttributesOperandWithoutIndex, EdgeSingleAttributeOperandWithIndex,
+    EdgeSingleAttributeOperandWithoutIndex, MultipleAttributesComparisonOperand,
+    MultipleAttributesOperandWithIndex, MultipleAttributesOperandWithoutIndex,
+    NodeAttributesTreeOperand, NodeMultipleAttributesOperandWithIndex,
+    NodeMultipleAttributesOperandWithoutIndex, NodeSingleAttributeOperandWithIndex,
+    NodeSingleAttributeOperandWithoutIndex, SingleAttributeComparisonOperand,
+    SingleAttributeOperandWithIndex, SingleAttributeOperandWithoutIndex,
 };
-pub use operation::MultipleAttributesOperation;
+pub use operation::{
+    MultipleAttributesOperationWithIndex, MultipleAttributesOperationWithoutIndex,
+};
 use std::fmt::Display;
 
 #[derive(Debug, Clone)]
-pub enum SingleKind {
+pub enum SingleKindWithIndex {
+    Max,
+    Min,
+    Random,
+}
+
+#[derive(Debug, Clone)]
+pub enum SingleKindWithoutIndex {
     Max,
     Min,
     Count,
@@ -146,5 +166,124 @@ impl GetAllAttributes<EdgeIndex> for EdgeOperand {
             medrecord,
             self.evaluate_backward(medrecord)?,
         ))
+    }
+}
+
+#[derive(Debug, Clone)]
+pub enum MultipleAttributesWithIndexContext<O: RootOperand> {
+    AttributesTree(AttributesTreeOperand<O>),
+    GroupByOperand(GroupOperand<SingleAttributeOperandWithIndex<O>>),
+}
+
+impl<O: RootOperand> MultipleAttributesWithIndexContext<O> {
+    pub(crate) fn get_attributes<'a>(
+        &self,
+        medrecord: &'a MedRecord,
+        kind: &MultipleKind,
+    ) -> MedRecordResult<BoxedIterator<'a, (&'a O::Index, MedRecordAttribute)>>
+    where
+        O: 'a,
+    {
+        let values: BoxedIterator<(&'a O::Index, MedRecordAttribute)> = match self {
+            Self::AttributesTree(operand) => {
+                let attributes = operand.evaluate_backward(medrecord)?;
+
+                match kind {
+                    MultipleKind::Max => {
+                        Box::new(AttributesTreeOperation::<O>::get_max(attributes)?)
+                    }
+                    MultipleKind::Min => {
+                        Box::new(AttributesTreeOperation::<O>::get_min(attributes)?)
+                    }
+                    MultipleKind::Count => {
+                        Box::new(AttributesTreeOperation::<O>::get_count(attributes)?)
+                    }
+                    MultipleKind::Sum => {
+                        Box::new(AttributesTreeOperation::<O>::get_sum(attributes)?)
+                    }
+                    MultipleKind::Random => {
+                        Box::new(AttributesTreeOperation::<O>::get_random(attributes)?)
+                    }
+                }
+            }
+            Self::GroupByOperand(operand) => {
+                Box::new(operand.evaluate_backward(medrecord)?.flatten())
+            }
+        };
+
+        Ok(values)
+    }
+}
+
+#[derive(Debug, Clone)]
+pub enum MultipleAttributesWithoutIndexContext<O: RootOperand> {
+    GroupByOperand(GroupOperand<SingleAttributeOperandWithoutIndex<O>>),
+}
+
+impl<O: RootOperand> DeepClone for MultipleAttributesWithoutIndexContext<O> {
+    fn deep_clone(&self) -> Self {
+        match self {
+            Self::GroupByOperand(operand) => Self::GroupByOperand(operand.deep_clone()),
+        }
+    }
+}
+
+impl<O: RootOperand> MultipleAttributesWithoutIndexContext<O> {
+    pub(crate) fn get_attributes<'a>(
+        &self,
+        _medrecord: &'a MedRecord,
+        _kind: &MultipleKind,
+    ) -> MedRecordResult<BoxedIterator<'a, MedRecordAttribute>>
+    where
+        O: 'a,
+    {
+        // let values: BoxedIterator<MedRecordAttribute> = match self {
+        //     Self::GroupByOperand(operand) => {
+        //         Box::new(operand.evaluate_backward(medrecord)?.flatten())
+        //     }
+        // };
+
+        // Ok(values)
+        todo!()
+    }
+}
+
+#[derive(Debug, Clone)]
+pub enum SingleAttributeWithoutIndexContext<O: RootOperand> {
+    MultipleAttributesOperandWithIndex(MultipleAttributesOperandWithIndex<O>),
+    MultipleAttributesOperandWithoutIndex(MultipleAttributesOperandWithoutIndex<O>),
+}
+
+impl<O: RootOperand> DeepClone for SingleAttributeWithoutIndexContext<O> {
+    fn deep_clone(&self) -> Self {
+        match self {
+            Self::MultipleAttributesOperandWithIndex(operand) => {
+                Self::MultipleAttributesOperandWithIndex(operand.deep_clone())
+            }
+            Self::MultipleAttributesOperandWithoutIndex(operand) => {
+                Self::MultipleAttributesOperandWithoutIndex(operand.deep_clone())
+            }
+        }
+    }
+}
+
+impl<O: RootOperand> SingleAttributeWithoutIndexContext<O> {
+    pub(crate) fn get_attributes<'a>(
+        &self,
+        medrecord: &'a MedRecord,
+    ) -> MedRecordResult<BoxedIterator<'a, MedRecordAttribute>>
+    where
+        O: 'a,
+    {
+        Ok(match self {
+            Self::MultipleAttributesOperandWithIndex(operand) => Box::new(
+                operand
+                    .evaluate_backward(medrecord)?
+                    .map(|(_, value)| value),
+            ),
+            Self::MultipleAttributesOperandWithoutIndex(operand) => {
+                Box::new(operand.evaluate_backward(medrecord)?)
+            }
+        })
     }
 }

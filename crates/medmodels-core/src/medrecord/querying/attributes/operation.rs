@@ -1,10 +1,10 @@
 use super::{
     operand::{
-        MultipleAttributesComparisonOperand, MultipleAttributesOperand,
-        SingleAttributeComparisonOperand, SingleAttributeOperand,
+        MultipleAttributesComparisonOperand, MultipleAttributesOperandWithIndex,
+        SingleAttributeComparisonOperand, SingleAttributeOperandWithIndex,
     },
     AttributesTreeOperand, BinaryArithmeticKind, GetAttributes, MultipleComparisonKind,
-    MultipleKind, SingleComparisonKind, SingleKind, UnaryArithmeticKind,
+    MultipleKind, SingleComparisonKind, SingleKindWithIndex, UnaryArithmeticKind,
 };
 use crate::{
     errors::{MedRecordError, MedRecordResult},
@@ -14,8 +14,13 @@ use crate::{
             TrimEnd, TrimStart, Uppercase,
         },
         querying::{
-            values::MultipleValuesOperandWithIndex, BoxedIterator, DeepClone, EvaluateForward,
-            GroupedIterator, OptionalIndexWrapper, ReadWriteOrPanic, RootOperand,
+            attributes::{
+                operand::SingleAttributeOperandWithoutIndex, MultipleAttributesOperandWithoutIndex,
+                SingleKindWithoutIndex,
+            },
+            values::MultipleValuesOperandWithIndex,
+            BoxedIterator, DeepClone, EvaluateForward, GroupedIterator, ReadWriteOrPanic,
+            RootOperand,
         },
         MedRecordAttribute, MedRecordValue, Wrapper,
     },
@@ -33,7 +38,7 @@ use std::{
 #[derive(Debug, Clone)]
 pub enum AttributesTreeOperation<O: RootOperand> {
     AttributesOperation {
-        operand: Wrapper<MultipleAttributesOperand<O>>,
+        operand: Wrapper<MultipleAttributesOperandWithIndex<O>>,
     },
     SingleAttributeComparisonOperation {
         operand: SingleAttributeComparisonOperand,
@@ -334,7 +339,7 @@ impl<O: RootOperand> AttributesTreeOperation<O> {
     fn evaluate_attributes_operation<'a>(
         medrecord: &'a MedRecord,
         attributes: impl Iterator<Item = (&'a O::Index, Vec<MedRecordAttribute>)> + 'a,
-        operand: &Wrapper<MultipleAttributesOperand<O>>,
+        operand: &Wrapper<MultipleAttributesOperandWithIndex<O>>,
     ) -> MedRecordResult<impl Iterator<Item = (&'a O::Index, Vec<MedRecordAttribute>)> + 'a>
     where
         O: 'a,
@@ -712,9 +717,12 @@ impl<O: RootOperand> AttributesTreeOperation<O> {
 }
 
 #[derive(Debug, Clone)]
-pub enum MultipleAttributesOperation<O: RootOperand> {
+pub enum MultipleAttributesOperationWithIndex<O: RootOperand> {
     AttributeOperation {
-        operand: Wrapper<SingleAttributeOperand<O>>,
+        operand: Wrapper<SingleAttributeOperandWithIndex<O>>,
+    },
+    AttributeOperationWithoutIndex {
+        operand: Wrapper<SingleAttributeOperandWithoutIndex<O>>,
     },
     SingleAttributeComparisonOperation {
         operand: SingleAttributeComparisonOperand,
@@ -745,20 +753,25 @@ pub enum MultipleAttributesOperation<O: RootOperand> {
     IsMin,
 
     EitherOr {
-        either: Wrapper<MultipleAttributesOperand<O>>,
-        or: Wrapper<MultipleAttributesOperand<O>>,
+        either: Wrapper<MultipleAttributesOperandWithIndex<O>>,
+        or: Wrapper<MultipleAttributesOperandWithIndex<O>>,
     },
     Exclude {
-        operand: Wrapper<MultipleAttributesOperand<O>>,
+        operand: Wrapper<MultipleAttributesOperandWithIndex<O>>,
     },
 }
 
-impl<O: RootOperand> DeepClone for MultipleAttributesOperation<O> {
+impl<O: RootOperand> DeepClone for MultipleAttributesOperationWithIndex<O> {
     fn deep_clone(&self) -> Self {
         match self {
             Self::AttributeOperation { operand } => Self::AttributeOperation {
                 operand: operand.deep_clone(),
             },
+            Self::AttributeOperationWithoutIndex { operand } => {
+                Self::AttributeOperationWithoutIndex {
+                    operand: operand.deep_clone(),
+                }
+            }
             Self::SingleAttributeComparisonOperation { operand, kind } => {
                 Self::SingleAttributeComparisonOperation {
                     operand: operand.deep_clone(),
@@ -797,7 +810,7 @@ impl<O: RootOperand> DeepClone for MultipleAttributesOperation<O> {
     }
 }
 
-impl<O: RootOperand> MultipleAttributesOperation<O> {
+impl<O: RootOperand> MultipleAttributesOperationWithIndex<O> {
     pub(crate) fn evaluate<'a>(
         &self,
         medrecord: &'a MedRecord,
@@ -809,6 +822,9 @@ impl<O: RootOperand> MultipleAttributesOperation<O> {
         match self {
             Self::AttributeOperation { operand } => {
                 Self::evaluate_attribute_operation(medrecord, attributes, operand)
+            }
+            Self::AttributeOperationWithoutIndex { operand } => {
+                Self::evaluate_attribute_operation_without_index(medrecord, attributes, operand)
             }
             Self::SingleAttributeComparisonOperation { operand, kind } => {
                 Self::evaluate_single_attribute_comparison_operation(
@@ -932,45 +948,6 @@ impl<O: RootOperand> MultipleAttributesOperation<O> {
     }
 
     #[inline]
-    pub(crate) fn get_count<'a>(
-        attributes: impl Iterator<Item = (&'a O::Index, MedRecordAttribute)>,
-    ) -> MedRecordAttribute
-    where
-        O: 'a,
-    {
-        MedRecordAttribute::Int(attributes.count() as i64)
-    }
-
-    #[inline]
-    // 🥊💥
-    pub(crate) fn get_sum<'a>(
-        mut attributes: impl Iterator<Item = (&'a O::Index, MedRecordAttribute)>,
-    ) -> MedRecordResult<Option<MedRecordAttribute>>
-    where
-        O: 'a,
-    {
-        let first_attribute = attributes.next();
-
-        let Some(first_attribute) = first_attribute else {
-            return Ok(None);
-        };
-
-        let sum = attributes.try_fold(first_attribute.1, |sum, (_, attribute)| {
-            let first_dtype = DataType::from(&sum);
-            let second_dtype = DataType::from(&attribute);
-
-            sum.add(attribute).map_err(|_| {
-                MedRecordError::QueryError(format!(
-                    "Cannot add attributes of data types {} and {}. Consider narrowing down the attributes using .is_string() or .is_int()",
-                    first_dtype, second_dtype
-                ))
-            })
-        })?;
-
-        Ok(Some(sum))
-    }
-
-    #[inline]
     pub(crate) fn get_random<'a>(
         attributes: impl Iterator<Item = (&'a O::Index, MedRecordAttribute)>,
     ) -> Option<(&'a O::Index, MedRecordAttribute)> {
@@ -981,7 +958,7 @@ impl<O: RootOperand> MultipleAttributesOperation<O> {
     fn evaluate_attribute_operation<'a>(
         medrecord: &'a MedRecord,
         attributes: impl Iterator<Item = (&'a O::Index, MedRecordAttribute)> + 'a,
-        operand: &Wrapper<SingleAttributeOperand<O>>,
+        operand: &Wrapper<SingleAttributeOperandWithIndex<O>>,
     ) -> MedRecordResult<BoxedIterator<'a, (&'a O::Index, MedRecordAttribute)>>
     where
         O: 'a,
@@ -990,18 +967,54 @@ impl<O: RootOperand> MultipleAttributesOperation<O> {
 
         let kind = &operand.0.read_or_panic().kind;
 
-        let attribute: Option<OptionalIndexWrapper<_, _>> = match kind {
-            SingleKind::Max => MultipleAttributesOperation::<O>::get_max(attributes_1)?
-                .map(OptionalIndexWrapper::from),
-            SingleKind::Min => MultipleAttributesOperation::<O>::get_min(attributes_1)?
-                .map(OptionalIndexWrapper::from),
-            SingleKind::Count => {
-                Some(MultipleAttributesOperation::<O>::get_count(attributes_1).into())
+        let attribute = match kind {
+            SingleKindWithIndex::Max => {
+                MultipleAttributesOperationWithIndex::<O>::get_max(attributes_1)?
             }
-            SingleKind::Sum => MultipleAttributesOperation::<O>::get_sum(attributes_1)?
-                .map(OptionalIndexWrapper::from),
-            SingleKind::Random => MultipleAttributesOperation::<O>::get_random(attributes_1)
-                .map(OptionalIndexWrapper::from),
+            SingleKindWithIndex::Min => {
+                MultipleAttributesOperationWithIndex::<O>::get_min(attributes_1)?
+            }
+            SingleKindWithIndex::Random => {
+                MultipleAttributesOperationWithIndex::<O>::get_random(attributes_1)
+            }
+        };
+
+        Ok(match operand.evaluate_forward(medrecord, attribute)? {
+            Some(_) => Box::new(attributes_2),
+            None => Box::new(std::iter::empty()),
+        })
+    }
+
+    #[inline]
+    fn evaluate_attribute_operation_without_index<'a>(
+        medrecord: &'a MedRecord,
+        attributes: impl Iterator<Item = (&'a O::Index, MedRecordAttribute)> + 'a,
+        operand: &Wrapper<SingleAttributeOperandWithoutIndex<O>>,
+    ) -> MedRecordResult<BoxedIterator<'a, (&'a O::Index, MedRecordAttribute)>>
+    where
+        O: 'a,
+    {
+        let (attributes_1, attributes_2) = Itertools::tee(attributes);
+        let attributes_1 = attributes_1.map(|(_, attribute)| attribute);
+
+        let kind = &operand.0.read_or_panic().kind;
+
+        let attribute = match kind {
+            SingleKindWithoutIndex::Max => {
+                MultipleAttributesOperationWithoutIndex::<O>::get_max(attributes_1)?
+            }
+            SingleKindWithoutIndex::Min => {
+                MultipleAttributesOperationWithoutIndex::<O>::get_min(attributes_1)?
+            }
+            SingleKindWithoutIndex::Count => Some(
+                MultipleAttributesOperationWithoutIndex::<O>::get_count(attributes_1),
+            ),
+            SingleKindWithoutIndex::Sum => {
+                MultipleAttributesOperationWithoutIndex::<O>::get_sum(attributes_1)?
+            }
+            SingleKindWithoutIndex::Random => {
+                MultipleAttributesOperationWithoutIndex::<O>::get_random(attributes_1)
+            }
         };
 
         Ok(match operand.evaluate_forward(medrecord, attribute)? {
@@ -1222,8 +1235,8 @@ impl<O: RootOperand> MultipleAttributesOperation<O> {
     fn evaluate_either_or<'a>(
         medrecord: &'a MedRecord,
         attributes: impl Iterator<Item = (&'a O::Index, MedRecordAttribute)> + 'a,
-        either: &Wrapper<MultipleAttributesOperand<O>>,
-        or: &Wrapper<MultipleAttributesOperand<O>>,
+        either: &Wrapper<MultipleAttributesOperandWithIndex<O>>,
+        or: &Wrapper<MultipleAttributesOperandWithIndex<O>>,
     ) -> MedRecordResult<BoxedIterator<'a, (&'a O::Index, MedRecordAttribute)>>
     where
         O: 'a,
@@ -1244,7 +1257,7 @@ impl<O: RootOperand> MultipleAttributesOperation<O> {
     fn evaluate_exclude<'a>(
         medrecord: &'a MedRecord,
         attributes: impl Iterator<Item = (&'a O::Index, MedRecordAttribute)> + 'a,
-        operand: &Wrapper<MultipleAttributesOperand<O>>,
+        operand: &Wrapper<MultipleAttributesOperandWithIndex<O>>,
     ) -> MedRecordResult<BoxedIterator<'a, (&'a O::Index, MedRecordAttribute)>>
     where
         O: 'a,
@@ -1262,7 +1275,7 @@ impl<O: RootOperand> MultipleAttributesOperation<O> {
     }
 }
 
-impl<O: RootOperand> MultipleAttributesOperation<O> {
+impl<O: RootOperand> MultipleAttributesOperationWithIndex<O> {
     #[allow(clippy::type_complexity)]
     pub(crate) fn evaluate_grouped<'a>(
         &self,
@@ -1275,9 +1288,491 @@ impl<O: RootOperand> MultipleAttributesOperation<O> {
         todo!()
     }
 }
+#[derive(Debug, Clone)]
+pub enum MultipleAttributesOperationWithoutIndex<O: RootOperand> {
+    AttributeOperation {
+        operand: Wrapper<SingleAttributeOperandWithoutIndex<O>>,
+    },
+    SingleAttributeComparisonOperation {
+        operand: SingleAttributeComparisonOperand,
+        kind: SingleComparisonKind,
+    },
+    MultipleAttributesComparisonOperation {
+        operand: MultipleAttributesComparisonOperand,
+        kind: MultipleComparisonKind,
+    },
+    BinaryArithmeticOpration {
+        operand: SingleAttributeComparisonOperand,
+        kind: BinaryArithmeticKind,
+    },
+    UnaryArithmeticOperation {
+        kind: UnaryArithmeticKind,
+    },
+
+    Slice(Range<usize>),
+
+    IsString,
+    IsInt,
+
+    IsMax,
+    IsMin,
+
+    EitherOr {
+        either: Wrapper<MultipleAttributesOperandWithoutIndex<O>>,
+        or: Wrapper<MultipleAttributesOperandWithoutIndex<O>>,
+    },
+    Exclude {
+        operand: Wrapper<MultipleAttributesOperandWithoutIndex<O>>,
+    },
+}
+
+impl<O: RootOperand> DeepClone for MultipleAttributesOperationWithoutIndex<O> {
+    fn deep_clone(&self) -> Self {
+        match self {
+            Self::AttributeOperation { operand } => Self::AttributeOperation {
+                operand: operand.deep_clone(),
+            },
+            Self::SingleAttributeComparisonOperation { operand, kind } => {
+                Self::SingleAttributeComparisonOperation {
+                    operand: operand.deep_clone(),
+                    kind: kind.clone(),
+                }
+            }
+            Self::MultipleAttributesComparisonOperation { operand, kind } => {
+                Self::MultipleAttributesComparisonOperation {
+                    operand: operand.deep_clone(),
+                    kind: kind.clone(),
+                }
+            }
+            Self::BinaryArithmeticOpration { operand, kind } => Self::BinaryArithmeticOpration {
+                operand: operand.deep_clone(),
+                kind: kind.clone(),
+            },
+            Self::UnaryArithmeticOperation { kind } => {
+                Self::UnaryArithmeticOperation { kind: kind.clone() }
+            }
+            Self::Slice(range) => Self::Slice(range.clone()),
+            Self::IsString => Self::IsString,
+            Self::IsInt => Self::IsInt,
+            Self::IsMax => Self::IsMax,
+            Self::IsMin => Self::IsMin,
+            Self::EitherOr { either, or } => Self::EitherOr {
+                either: either.deep_clone(),
+                or: or.deep_clone(),
+            },
+            Self::Exclude { operand } => Self::Exclude {
+                operand: operand.deep_clone(),
+            },
+        }
+    }
+}
+
+impl<O: RootOperand> MultipleAttributesOperationWithoutIndex<O> {
+    pub(crate) fn evaluate<'a>(
+        &self,
+        medrecord: &'a MedRecord,
+        attributes: impl Iterator<Item = MedRecordAttribute> + 'a,
+    ) -> MedRecordResult<BoxedIterator<'a, MedRecordAttribute>>
+    where
+        O: 'a,
+    {
+        match self {
+            Self::AttributeOperation { operand } => {
+                Self::evaluate_attribute_operation(medrecord, attributes, operand)
+            }
+            Self::SingleAttributeComparisonOperation { operand, kind } => {
+                Self::evaluate_single_attribute_comparison_operation(
+                    medrecord, attributes, operand, kind,
+                )
+            }
+            Self::MultipleAttributesComparisonOperation { operand, kind } => {
+                Self::evaluate_multiple_attributes_comparison_operation(
+                    medrecord, attributes, operand, kind,
+                )
+            }
+            Self::BinaryArithmeticOpration { operand, kind } => Ok(Box::new(
+                Self::evaluate_binary_arithmetic_operation(medrecord, attributes, operand, kind)?,
+            )),
+            Self::UnaryArithmeticOperation { kind } => Ok(Box::new(
+                Self::evaluate_unary_arithmetic_operation(attributes, kind.clone()),
+            )),
+            Self::Slice(range) => Ok(Box::new(Self::evaluate_slice(attributes, range.clone()))),
+            Self::IsString => {
+                Ok(Box::new(attributes.filter(|attribute| {
+                    matches!(attribute, MedRecordAttribute::String(_))
+                })))
+            }
+            Self::IsInt => {
+                Ok(Box::new(attributes.filter(|attribute| {
+                    matches!(attribute, MedRecordAttribute::Int(_))
+                })))
+            }
+            Self::IsMax => {
+                let (attributes_1, attributes_2) = Itertools::tee(attributes);
+
+                let max_attribute = Self::get_max(attributes_1)?;
+
+                let Some(max_attribute) = max_attribute else {
+                    return Ok(Box::new(std::iter::empty()));
+                };
+
+                Ok(Box::new(
+                    attributes_2.filter(move |attribute| *attribute == max_attribute),
+                ))
+            }
+            Self::IsMin => {
+                let (attributes_1, attributes_2) = Itertools::tee(attributes);
+
+                let min_attribute = Self::get_min(attributes_1)?;
+
+                let Some(min_attribute) = min_attribute else {
+                    return Ok(Box::new(std::iter::empty()));
+                };
+
+                Ok(Box::new(
+                    attributes_2.filter(move |attribute| *attribute == min_attribute),
+                ))
+            }
+            Self::EitherOr { either, or } => {
+                Self::evaluate_either_or(medrecord, attributes, either, or)
+            }
+            Self::Exclude { operand } => Self::evaluate_exclude(medrecord, attributes, operand),
+        }
+    }
+
+    #[inline]
+    pub(crate) fn get_max(
+        mut attributes: impl Iterator<Item = MedRecordAttribute>,
+    ) -> MedRecordResult<Option<MedRecordAttribute>> {
+        let max_attribute = attributes.next();
+
+        let Some(max_attribute) = max_attribute else {
+            return Ok(None);
+        };
+
+        let max_attribute = attributes.try_fold(max_attribute, |max_attribute, attribute| {
+            match attribute.partial_cmp(&max_attribute) {
+                Some(Ordering::Greater) => Ok(attribute),
+                None => {
+                    let first_dtype = DataType::from(attribute);
+                    let second_dtype = DataType::from(max_attribute);
+
+                    Err(MedRecordError::QueryError(format!(
+                        "Cannot compare attributes of data types {} and {}. Consider narrowing down the attributes using .is_string() or .is_int()",
+                        first_dtype, second_dtype
+                    )))
+                }
+                _ => Ok(max_attribute),
+            }
+        })?;
+
+        Ok(Some(max_attribute))
+    }
+
+    #[inline]
+    pub(crate) fn get_min(
+        mut attributes: impl Iterator<Item = MedRecordAttribute>,
+    ) -> MedRecordResult<Option<MedRecordAttribute>> {
+        let min_attribute = attributes.next();
+
+        let Some(min_attribute) = min_attribute else {
+            return Ok(None);
+        };
+
+        let min_attribute = attributes.try_fold(min_attribute, |min_attribute, attribute| {
+            match attribute.partial_cmp(&min_attribute) {
+                Some(Ordering::Less) => Ok(attribute),
+                None => {
+                    let first_dtype = DataType::from(attribute);
+                    let second_dtype = DataType::from(min_attribute);
+
+                    Err(MedRecordError::QueryError(format!(
+                        "Cannot compare attributes of data types {} and {}. Consider narrowing down the attributes using .is_string() or .is_int()",
+                        first_dtype, second_dtype
+                    )))
+                }
+                _ => Ok(min_attribute),
+            }
+        })?;
+
+        Ok(Some(min_attribute))
+    }
+
+    #[inline]
+    pub(crate) fn get_count(
+        attributes: impl Iterator<Item = MedRecordAttribute>,
+    ) -> MedRecordAttribute {
+        MedRecordAttribute::Int(attributes.count() as i64)
+    }
+
+    #[inline]
+    // 🥊💥
+    pub(crate) fn get_sum(
+        mut attributes: impl Iterator<Item = MedRecordAttribute>,
+    ) -> MedRecordResult<Option<MedRecordAttribute>> {
+        let first_attribute = attributes.next();
+
+        let Some(first_attribute) = first_attribute else {
+            return Ok(None);
+        };
+
+        let sum = attributes.try_fold(first_attribute, |sum, attribute| {
+            let first_dtype = DataType::from(&sum);
+            let second_dtype = DataType::from(&attribute);
+
+            sum.add(attribute).map_err(|_| {
+                MedRecordError::QueryError(format!(
+                    "Cannot add attributes of data types {} and {}. Consider narrowing down the attributes using .is_string() or .is_int()",
+                    first_dtype, second_dtype
+                ))
+            })
+        })?;
+
+        Ok(Some(sum))
+    }
+
+    #[inline]
+    pub(crate) fn get_random(
+        attributes: impl Iterator<Item = MedRecordAttribute>,
+    ) -> Option<MedRecordAttribute> {
+        attributes.choose(&mut rng())
+    }
+
+    #[inline]
+    fn evaluate_attribute_operation<'a>(
+        medrecord: &'a MedRecord,
+        attributes: impl Iterator<Item = MedRecordAttribute> + 'a,
+        operand: &Wrapper<SingleAttributeOperandWithoutIndex<O>>,
+    ) -> MedRecordResult<BoxedIterator<'a, MedRecordAttribute>> {
+        let (attributes_1, attributes_2) = Itertools::tee(attributes);
+
+        let kind = &operand.0.read_or_panic().kind;
+
+        let attribute = match kind {
+            SingleKindWithoutIndex::Max => Self::get_max(attributes_1)?,
+            SingleKindWithoutIndex::Min => Self::get_min(attributes_1)?,
+            SingleKindWithoutIndex::Count => Some(Self::get_count(attributes_1)),
+            SingleKindWithoutIndex::Sum => Self::get_sum(attributes_1)?,
+            SingleKindWithoutIndex::Random => Self::get_random(attributes_1),
+        };
+
+        Ok(match operand.evaluate_forward(medrecord, attribute)? {
+            Some(_) => Box::new(attributes_2),
+            None => Box::new(std::iter::empty()),
+        })
+    }
+
+    #[inline]
+    fn evaluate_single_attribute_comparison_operation<'a>(
+        medrecord: &'a MedRecord,
+        attributes: impl Iterator<Item = MedRecordAttribute> + 'a,
+        comparison_operand: &SingleAttributeComparisonOperand,
+        kind: &SingleComparisonKind,
+    ) -> MedRecordResult<BoxedIterator<'a, MedRecordAttribute>> {
+        let comparison_attribute =
+            comparison_operand
+                .evaluate_backward(medrecord)?
+                .ok_or(MedRecordError::QueryError(
+                    "No attribute to compare".to_string(),
+                ))?;
+
+        match kind {
+            SingleComparisonKind::GreaterThan => {
+                Ok(Box::new(attributes.filter(move |attribute| {
+                    attribute > &comparison_attribute
+                })))
+            }
+            SingleComparisonKind::GreaterThanOrEqualTo => {
+                Ok(Box::new(attributes.filter(move |attribute| {
+                    attribute >= &comparison_attribute
+                })))
+            }
+            SingleComparisonKind::LessThan => {
+                Ok(Box::new(attributes.filter(move |attribute| {
+                    attribute < &comparison_attribute
+                })))
+            }
+            SingleComparisonKind::LessThanOrEqualTo => {
+                Ok(Box::new(attributes.filter(move |attribute| {
+                    attribute <= &comparison_attribute
+                })))
+            }
+            SingleComparisonKind::EqualTo => {
+                Ok(Box::new(attributes.filter(move |attribute| {
+                    attribute == &comparison_attribute
+                })))
+            }
+            SingleComparisonKind::NotEqualTo => {
+                Ok(Box::new(attributes.filter(move |attribute| {
+                    attribute != &comparison_attribute
+                })))
+            }
+            SingleComparisonKind::StartsWith => {
+                Ok(Box::new(attributes.filter(move |attribute| {
+                    attribute.starts_with(&comparison_attribute)
+                })))
+            }
+            SingleComparisonKind::EndsWith => {
+                Ok(Box::new(attributes.filter(move |attribute| {
+                    attribute.ends_with(&comparison_attribute)
+                })))
+            }
+            SingleComparisonKind::Contains => {
+                Ok(Box::new(attributes.filter(move |attribute| {
+                    attribute.contains(&comparison_attribute)
+                })))
+            }
+        }
+    }
+
+    #[inline]
+    fn evaluate_multiple_attributes_comparison_operation<'a>(
+        medrecord: &'a MedRecord,
+        attributes: impl Iterator<Item = MedRecordAttribute> + 'a,
+        comparison_operand: &MultipleAttributesComparisonOperand,
+        kind: &MultipleComparisonKind,
+    ) -> MedRecordResult<BoxedIterator<'a, MedRecordAttribute>> {
+        let comparison_attributes = comparison_operand.evaluate_backward(medrecord)?;
+
+        match kind {
+            MultipleComparisonKind::IsIn => {
+                Ok(Box::new(attributes.filter(move |attribute| {
+                    comparison_attributes.contains(attribute)
+                })))
+            }
+            MultipleComparisonKind::IsNotIn => {
+                Ok(Box::new(attributes.filter(move |attribute| {
+                    !comparison_attributes.contains(attribute)
+                })))
+            }
+        }
+    }
+
+    #[inline]
+    fn evaluate_binary_arithmetic_operation<'a>(
+        medrecord: &MedRecord,
+        attributes: impl Iterator<Item = MedRecordAttribute>,
+        operand: &SingleAttributeComparisonOperand,
+        kind: &BinaryArithmeticKind,
+    ) -> MedRecordResult<impl Iterator<Item = MedRecordAttribute>>
+    where
+        O: 'a,
+    {
+        let arithmetic_attribute =
+            operand
+                .evaluate_backward(medrecord)?
+                .ok_or(MedRecordError::QueryError(
+                    "No attribute to compare".to_string(),
+                ))?;
+
+        let attributes = attributes
+            .map(move |attribute| {
+                match kind {
+                    BinaryArithmeticKind::Add => attribute.add(arithmetic_attribute.clone()),
+                    BinaryArithmeticKind::Sub => attribute.sub(arithmetic_attribute.clone()),
+                    BinaryArithmeticKind::Mul => {
+                        attribute.clone().mul(arithmetic_attribute.clone())
+                    }
+                    BinaryArithmeticKind::Pow => {
+                        attribute.clone().pow(arithmetic_attribute.clone())
+                    }
+                    BinaryArithmeticKind::Mod => {
+                        attribute.clone().r#mod(arithmetic_attribute.clone())
+                    }
+                }
+                .map_err(|_| {
+                    MedRecordError::QueryError(format!(
+                        "Failed arithmetic operation {}. Consider narrowing down the attributes using .is_int() or .is_float()",
+                        kind,
+                    ))
+                })
+            });
+
+        Ok(attributes.collect::<MedRecordResult<Vec<_>>>()?.into_iter())
+    }
+
+    #[inline]
+    fn evaluate_unary_arithmetic_operation<'a>(
+        attributes: impl Iterator<Item = MedRecordAttribute>,
+        kind: UnaryArithmeticKind,
+    ) -> impl Iterator<Item = MedRecordAttribute>
+    where
+        O: 'a,
+    {
+        attributes.map(move |attribute| match kind {
+            UnaryArithmeticKind::Abs => attribute.abs(),
+            UnaryArithmeticKind::Trim => attribute.trim(),
+            UnaryArithmeticKind::TrimStart => attribute.trim_start(),
+            UnaryArithmeticKind::TrimEnd => attribute.trim_end(),
+            UnaryArithmeticKind::Lowercase => attribute.lowercase(),
+            UnaryArithmeticKind::Uppercase => attribute.uppercase(),
+        })
+    }
+
+    #[inline]
+    fn evaluate_slice(
+        attributes: impl Iterator<Item = MedRecordAttribute>,
+        range: Range<usize>,
+    ) -> impl Iterator<Item = MedRecordAttribute> {
+        attributes.map(move |attribute| attribute.slice(range.clone()))
+    }
+
+    #[inline]
+    fn evaluate_either_or<'a>(
+        medrecord: &'a MedRecord,
+        attributes: impl Iterator<Item = MedRecordAttribute> + 'a,
+        either: &Wrapper<MultipleAttributesOperandWithoutIndex<O>>,
+        or: &Wrapper<MultipleAttributesOperandWithoutIndex<O>>,
+    ) -> MedRecordResult<BoxedIterator<'a, MedRecordAttribute>>
+    where
+        O: 'a,
+    {
+        let (attributes_1, attributes_2) = Itertools::tee(attributes);
+
+        let either_attributes = either.evaluate_forward(medrecord, Box::new(attributes_1))?;
+        let or_attributes = or.evaluate_forward(medrecord, Box::new(attributes_2))?;
+
+        Ok(Box::new(
+            either_attributes
+                .chain(or_attributes)
+                .unique_by(|attribute| attribute.clone()),
+        ))
+    }
+
+    #[inline]
+    fn evaluate_exclude<'a>(
+        medrecord: &'a MedRecord,
+        attributes: impl Iterator<Item = MedRecordAttribute> + 'a,
+        operand: &Wrapper<MultipleAttributesOperandWithoutIndex<O>>,
+    ) -> MedRecordResult<BoxedIterator<'a, MedRecordAttribute>> {
+        let (attributes_1, attributes_2) = Itertools::tee(attributes);
+
+        let result: MrHashSet<_> = operand
+            .evaluate_forward(medrecord, Box::new(attributes_1))?
+            .collect();
+
+        Ok(Box::new(
+            attributes_2.filter(move |index| !result.contains(index)),
+        ))
+    }
+}
+
+impl<O: RootOperand> MultipleAttributesOperationWithoutIndex<O> {
+    #[allow(clippy::type_complexity)]
+    pub(crate) fn evaluate_grouped<'a>(
+        &self,
+        _medrecord: &'a MedRecord,
+        _attributes: GroupedIterator<'a, BoxedIterator<'a, MedRecordAttribute>>,
+    ) -> MedRecordResult<GroupedIterator<'a, BoxedIterator<'a, MedRecordAttribute>>>
+    where
+        O: 'a,
+    {
+        todo!()
+    }
+}
 
 #[derive(Debug, Clone)]
-pub enum SingleAttributeOperation<O: RootOperand> {
+pub enum SingleAttributeOperationWithIndex<O: RootOperand> {
     SingleAttributeComparisonOperation {
         operand: SingleAttributeComparisonOperand,
         kind: SingleComparisonKind,
@@ -1300,15 +1795,15 @@ pub enum SingleAttributeOperation<O: RootOperand> {
     IsInt,
 
     EitherOr {
-        either: Wrapper<SingleAttributeOperand<O>>,
-        or: Wrapper<SingleAttributeOperand<O>>,
+        either: Wrapper<SingleAttributeOperandWithIndex<O>>,
+        or: Wrapper<SingleAttributeOperandWithIndex<O>>,
     },
     Exclude {
-        operand: Wrapper<SingleAttributeOperand<O>>,
+        operand: Wrapper<SingleAttributeOperandWithIndex<O>>,
     },
 }
 
-impl<O: RootOperand> DeepClone for SingleAttributeOperation<O> {
+impl<O: RootOperand> DeepClone for SingleAttributeOperationWithIndex<O> {
     fn deep_clone(&self) -> Self {
         match self {
             Self::SingleAttributeComparisonOperation { operand, kind } => {
@@ -1344,12 +1839,12 @@ impl<O: RootOperand> DeepClone for SingleAttributeOperation<O> {
     }
 }
 
-impl<O: RootOperand> SingleAttributeOperation<O> {
+impl<O: RootOperand> SingleAttributeOperationWithIndex<O> {
     pub(crate) fn evaluate<'a>(
         &self,
         medrecord: &'a MedRecord,
-        attribute: Option<OptionalIndexWrapper<&'a O::Index, MedRecordAttribute>>,
-    ) -> MedRecordResult<Option<OptionalIndexWrapper<&'a O::Index, MedRecordAttribute>>>
+        attribute: Option<(&'a O::Index, MedRecordAttribute)>,
+    ) -> MedRecordResult<Option<(&'a O::Index, MedRecordAttribute)>>
     where
         O: 'a,
     {
@@ -1372,21 +1867,19 @@ impl<O: RootOperand> SingleAttributeOperation<O> {
                 Self::evaluate_binary_arithmetic_operation(medrecord, attribute, operand, kind)
             }
             Self::UnaryArithmeticOperation { kind } => Ok(Some(match kind {
-                UnaryArithmeticKind::Abs => attribute.map(|attribute| attribute.abs()),
-                UnaryArithmeticKind::Trim => attribute.map(|attribute| attribute.trim()),
-                UnaryArithmeticKind::TrimStart => attribute.map(|attribute| attribute.trim_start()),
-                UnaryArithmeticKind::TrimEnd => attribute.map(|attribute| attribute.trim_end()),
-                UnaryArithmeticKind::Lowercase => attribute.map(|attribute| attribute.lowercase()),
-                UnaryArithmeticKind::Uppercase => attribute.map(|attribute| attribute.uppercase()),
+                UnaryArithmeticKind::Abs => (attribute.0, attribute.1.abs()),
+                UnaryArithmeticKind::Trim => (attribute.0, attribute.1.trim()),
+                UnaryArithmeticKind::TrimStart => (attribute.0, attribute.1.trim_start()),
+                UnaryArithmeticKind::TrimEnd => (attribute.0, attribute.1.trim_end()),
+                UnaryArithmeticKind::Lowercase => (attribute.0, attribute.1.lowercase()),
+                UnaryArithmeticKind::Uppercase => (attribute.0, attribute.1.uppercase()),
             })),
-            Self::Slice(range) => Ok(Some(
-                attribute.map(|attribute| attribute.slice(range.clone())),
-            )),
-            Self::IsString => Ok(match attribute.get_value() {
+            Self::Slice(range) => Ok(Some((attribute.0, attribute.1.slice(range.clone())))),
+            Self::IsString => Ok(match attribute.1 {
                 MedRecordAttribute::String(_) => Some(attribute),
                 _ => None,
             }),
-            Self::IsInt => Ok(match attribute.get_value() {
+            Self::IsInt => Ok(match attribute.1 {
                 MedRecordAttribute::Int(_) => Some(attribute),
                 _ => None,
             }),
@@ -1405,10 +1898,10 @@ impl<O: RootOperand> SingleAttributeOperation<O> {
     #[inline]
     fn evaluate_single_attribute_comparison_operation<'a>(
         medrecord: &MedRecord,
-        attribute: OptionalIndexWrapper<&'a O::Index, MedRecordAttribute>,
+        attribute: (&'a O::Index, MedRecordAttribute),
         comparison_operand: &SingleAttributeComparisonOperand,
         kind: &SingleComparisonKind,
-    ) -> MedRecordResult<Option<OptionalIndexWrapper<&'a O::Index, MedRecordAttribute>>> {
+    ) -> MedRecordResult<Option<(&'a O::Index, MedRecordAttribute)>> {
         let comparison_attribute =
             comparison_operand
                 .evaluate_backward(medrecord)?
@@ -1417,23 +1910,15 @@ impl<O: RootOperand> SingleAttributeOperation<O> {
                 ))?;
 
         let comparison_result = match kind {
-            SingleComparisonKind::GreaterThan => *attribute.get_value() > comparison_attribute,
-            SingleComparisonKind::GreaterThanOrEqualTo => {
-                *attribute.get_value() >= comparison_attribute
-            }
-            SingleComparisonKind::LessThan => *attribute.get_value() < comparison_attribute,
-            SingleComparisonKind::LessThanOrEqualTo => {
-                *attribute.get_value() <= comparison_attribute
-            }
-            SingleComparisonKind::EqualTo => *attribute.get_value() == comparison_attribute,
-            SingleComparisonKind::NotEqualTo => *attribute.get_value() != comparison_attribute,
-            SingleComparisonKind::StartsWith => {
-                attribute.get_value().starts_with(&comparison_attribute)
-            }
-            SingleComparisonKind::EndsWith => {
-                attribute.get_value().ends_with(&comparison_attribute)
-            }
-            SingleComparisonKind::Contains => attribute.get_value().contains(&comparison_attribute),
+            SingleComparisonKind::GreaterThan => attribute.1 > comparison_attribute,
+            SingleComparisonKind::GreaterThanOrEqualTo => attribute.1 >= comparison_attribute,
+            SingleComparisonKind::LessThan => attribute.1 < comparison_attribute,
+            SingleComparisonKind::LessThanOrEqualTo => attribute.1 <= comparison_attribute,
+            SingleComparisonKind::EqualTo => attribute.1 == comparison_attribute,
+            SingleComparisonKind::NotEqualTo => attribute.1 != comparison_attribute,
+            SingleComparisonKind::StartsWith => attribute.1.starts_with(&comparison_attribute),
+            SingleComparisonKind::EndsWith => attribute.1.ends_with(&comparison_attribute),
+            SingleComparisonKind::Contains => attribute.1.contains(&comparison_attribute),
         };
 
         Ok(if comparison_result {
@@ -1446,17 +1931,15 @@ impl<O: RootOperand> SingleAttributeOperation<O> {
     #[inline]
     fn evaluate_multiple_attribute_comparison_operation<'a>(
         medrecord: &MedRecord,
-        attribute: OptionalIndexWrapper<&'a O::Index, MedRecordAttribute>,
+        attribute: (&'a O::Index, MedRecordAttribute),
         comparison_operand: &MultipleAttributesComparisonOperand,
         kind: &MultipleComparisonKind,
-    ) -> MedRecordResult<Option<OptionalIndexWrapper<&'a O::Index, MedRecordAttribute>>> {
+    ) -> MedRecordResult<Option<(&'a O::Index, MedRecordAttribute)>> {
         let comparison_attributes = comparison_operand.evaluate_backward(medrecord)?;
 
         let comparison_result = match kind {
-            MultipleComparisonKind::IsIn => comparison_attributes.contains(attribute.get_value()),
-            MultipleComparisonKind::IsNotIn => {
-                !comparison_attributes.contains(attribute.get_value())
-            }
+            MultipleComparisonKind::IsIn => comparison_attributes.contains(&attribute.1),
+            MultipleComparisonKind::IsNotIn => !comparison_attributes.contains(&attribute.1),
         };
 
         Ok(if comparison_result {
@@ -1469,10 +1952,10 @@ impl<O: RootOperand> SingleAttributeOperation<O> {
     #[inline]
     fn evaluate_binary_arithmetic_operation<'a>(
         medrecord: &MedRecord,
-        attribute: OptionalIndexWrapper<&'a O::Index, MedRecordAttribute>,
+        attribute: (&'a O::Index, MedRecordAttribute),
         operand: &SingleAttributeComparisonOperand,
         kind: &BinaryArithmeticKind,
-    ) -> MedRecordResult<Option<OptionalIndexWrapper<&'a O::Index, MedRecordAttribute>>> {
+    ) -> MedRecordResult<Option<(&'a O::Index, MedRecordAttribute)>> {
         let arithmetic_attribute =
             operand
                 .evaluate_backward(medrecord)?
@@ -1480,32 +1963,22 @@ impl<O: RootOperand> SingleAttributeOperation<O> {
                     "No attribute to compare".to_string(),
                 ))?;
 
-        // Refactor once Try trait is stabilized
-        Ok(Some(match attribute {
-            OptionalIndexWrapper::WithIndex((index, attribute)) => match kind {
-                BinaryArithmeticKind::Add => (index, attribute.add(arithmetic_attribute)?).into(),
-                BinaryArithmeticKind::Sub => (index, attribute.sub(arithmetic_attribute)?).into(),
-                BinaryArithmeticKind::Mul => (index, attribute.mul(arithmetic_attribute)?).into(),
-                BinaryArithmeticKind::Pow => (index, attribute.pow(arithmetic_attribute)?).into(),
-                BinaryArithmeticKind::Mod => (index, attribute.r#mod(arithmetic_attribute)?).into(),
-            },
-            OptionalIndexWrapper::WithoutIndex(attribute) => match kind {
-                BinaryArithmeticKind::Add => attribute.add(arithmetic_attribute)?.into(),
-                BinaryArithmeticKind::Sub => attribute.sub(arithmetic_attribute)?.into(),
-                BinaryArithmeticKind::Mul => attribute.mul(arithmetic_attribute)?.into(),
-                BinaryArithmeticKind::Pow => attribute.pow(arithmetic_attribute)?.into(),
-                BinaryArithmeticKind::Mod => attribute.r#mod(arithmetic_attribute)?.into(),
-            },
+        Ok(Some(match kind {
+            BinaryArithmeticKind::Add => (attribute.0, attribute.1.add(arithmetic_attribute)?),
+            BinaryArithmeticKind::Sub => (attribute.0, attribute.1.sub(arithmetic_attribute)?),
+            BinaryArithmeticKind::Mul => (attribute.0, attribute.1.mul(arithmetic_attribute)?),
+            BinaryArithmeticKind::Pow => (attribute.0, attribute.1.pow(arithmetic_attribute)?),
+            BinaryArithmeticKind::Mod => (attribute.0, attribute.1.r#mod(arithmetic_attribute)?),
         }))
     }
 
     #[inline]
     fn evaluate_either_or<'a>(
         medrecord: &'a MedRecord,
-        attribute: OptionalIndexWrapper<&'a O::Index, MedRecordAttribute>,
-        either: &Wrapper<SingleAttributeOperand<O>>,
-        or: &Wrapper<SingleAttributeOperand<O>>,
-    ) -> MedRecordResult<Option<OptionalIndexWrapper<&'a O::Index, MedRecordAttribute>>>
+        attribute: (&'a O::Index, MedRecordAttribute),
+        either: &Wrapper<SingleAttributeOperandWithIndex<O>>,
+        or: &Wrapper<SingleAttributeOperandWithIndex<O>>,
+    ) -> MedRecordResult<Option<(&'a O::Index, MedRecordAttribute)>>
     where
         O: 'a,
     {
@@ -1520,18 +1993,249 @@ impl<O: RootOperand> SingleAttributeOperation<O> {
     }
 }
 
-impl<O: RootOperand> SingleAttributeOperation<O> {
+impl<O: RootOperand> SingleAttributeOperationWithIndex<O> {
     #[allow(clippy::type_complexity)]
     pub(crate) fn evaluate_grouped<'a>(
         &self,
         _medrecord: &'a MedRecord,
-        _attributes: GroupedIterator<
-            'a,
-            Option<OptionalIndexWrapper<&'a O::Index, MedRecordAttribute>>,
-        >,
-    ) -> MedRecordResult<
-        GroupedIterator<'a, Option<OptionalIndexWrapper<&'a O::Index, MedRecordAttribute>>>,
-    >
+        _attributes: GroupedIterator<'a, Option<(&'a O::Index, MedRecordAttribute)>>,
+    ) -> MedRecordResult<GroupedIterator<'a, Option<(&'a O::Index, MedRecordAttribute)>>>
+    where
+        O: 'a,
+    {
+        todo!()
+    }
+}
+
+#[derive(Debug, Clone)]
+pub enum SingleAttributeOperationWithoutIndex<O: RootOperand> {
+    SingleAttributeComparisonOperation {
+        operand: SingleAttributeComparisonOperand,
+        kind: SingleComparisonKind,
+    },
+    MultipleAttributesComparisonOperation {
+        operand: MultipleAttributesComparisonOperand,
+        kind: MultipleComparisonKind,
+    },
+    BinaryArithmeticOpration {
+        operand: SingleAttributeComparisonOperand,
+        kind: BinaryArithmeticKind,
+    },
+    UnaryArithmeticOperation {
+        kind: UnaryArithmeticKind,
+    },
+
+    Slice(Range<usize>),
+
+    IsString,
+    IsInt,
+
+    EitherOr {
+        either: Wrapper<SingleAttributeOperandWithoutIndex<O>>,
+        or: Wrapper<SingleAttributeOperandWithoutIndex<O>>,
+    },
+    Exclude {
+        operand: Wrapper<SingleAttributeOperandWithoutIndex<O>>,
+    },
+}
+
+impl<O: RootOperand> DeepClone for SingleAttributeOperationWithoutIndex<O> {
+    fn deep_clone(&self) -> Self {
+        match self {
+            Self::SingleAttributeComparisonOperation { operand, kind } => {
+                Self::SingleAttributeComparisonOperation {
+                    operand: operand.deep_clone(),
+                    kind: kind.clone(),
+                }
+            }
+            Self::MultipleAttributesComparisonOperation { operand, kind } => {
+                Self::MultipleAttributesComparisonOperation {
+                    operand: operand.deep_clone(),
+                    kind: kind.clone(),
+                }
+            }
+            Self::BinaryArithmeticOpration { operand, kind } => Self::BinaryArithmeticOpration {
+                operand: operand.deep_clone(),
+                kind: kind.clone(),
+            },
+            Self::UnaryArithmeticOperation { kind } => {
+                Self::UnaryArithmeticOperation { kind: kind.clone() }
+            }
+            Self::Slice(range) => Self::Slice(range.clone()),
+            Self::IsString => Self::IsString,
+            Self::IsInt => Self::IsInt,
+            Self::EitherOr { either, or } => Self::EitherOr {
+                either: either.deep_clone(),
+                or: or.deep_clone(),
+            },
+            Self::Exclude { operand } => Self::Exclude {
+                operand: operand.deep_clone(),
+            },
+        }
+    }
+}
+
+impl<O: RootOperand> SingleAttributeOperationWithoutIndex<O> {
+    pub(crate) fn evaluate<'a>(
+        &self,
+        medrecord: &'a MedRecord,
+        attribute: Option<MedRecordAttribute>,
+    ) -> MedRecordResult<Option<MedRecordAttribute>>
+    where
+        O: 'a,
+    {
+        let Some(attribute) = attribute else {
+            return Ok(None);
+        };
+
+        match self {
+            Self::SingleAttributeComparisonOperation { operand, kind } => {
+                Self::evaluate_single_attribute_comparison_operation(
+                    medrecord, attribute, operand, kind,
+                )
+            }
+            Self::MultipleAttributesComparisonOperation { operand, kind } => {
+                Self::evaluate_multiple_attribute_comparison_operation(
+                    medrecord, attribute, operand, kind,
+                )
+            }
+            Self::BinaryArithmeticOpration { operand, kind } => {
+                Self::evaluate_binary_arithmetic_operation(medrecord, attribute, operand, kind)
+            }
+            Self::UnaryArithmeticOperation { kind } => Ok(Some(match kind {
+                UnaryArithmeticKind::Abs => attribute.abs(),
+                UnaryArithmeticKind::Trim => attribute.trim(),
+                UnaryArithmeticKind::TrimStart => attribute.trim_start(),
+                UnaryArithmeticKind::TrimEnd => attribute.trim_end(),
+                UnaryArithmeticKind::Lowercase => attribute.lowercase(),
+                UnaryArithmeticKind::Uppercase => attribute.uppercase(),
+            })),
+            Self::Slice(range) => Ok(Some(attribute.slice(range.clone()))),
+            Self::IsString => Ok(match attribute {
+                MedRecordAttribute::String(_) => Some(attribute),
+                _ => None,
+            }),
+            Self::IsInt => Ok(match attribute {
+                MedRecordAttribute::Int(_) => Some(attribute),
+                _ => None,
+            }),
+            Self::EitherOr { either, or } => {
+                Self::evaluate_either_or(medrecord, attribute, either, or)
+            }
+            Self::Exclude { operand } => Ok(
+                match operand.evaluate_forward(medrecord, Some(attribute.clone()))? {
+                    Some(_) => None,
+                    None => Some(attribute),
+                },
+            ),
+        }
+    }
+
+    #[inline]
+    fn evaluate_single_attribute_comparison_operation(
+        medrecord: &MedRecord,
+        attribute: MedRecordAttribute,
+        comparison_operand: &SingleAttributeComparisonOperand,
+        kind: &SingleComparisonKind,
+    ) -> MedRecordResult<Option<MedRecordAttribute>> {
+        let comparison_attribute =
+            comparison_operand
+                .evaluate_backward(medrecord)?
+                .ok_or(MedRecordError::QueryError(
+                    "No attribute to compare".to_string(),
+                ))?;
+
+        let comparison_result = match kind {
+            SingleComparisonKind::GreaterThan => attribute > comparison_attribute,
+            SingleComparisonKind::GreaterThanOrEqualTo => attribute >= comparison_attribute,
+            SingleComparisonKind::LessThan => attribute < comparison_attribute,
+            SingleComparisonKind::LessThanOrEqualTo => attribute <= comparison_attribute,
+            SingleComparisonKind::EqualTo => attribute == comparison_attribute,
+            SingleComparisonKind::NotEqualTo => attribute != comparison_attribute,
+            SingleComparisonKind::StartsWith => attribute.starts_with(&comparison_attribute),
+            SingleComparisonKind::EndsWith => attribute.ends_with(&comparison_attribute),
+            SingleComparisonKind::Contains => attribute.contains(&comparison_attribute),
+        };
+
+        Ok(if comparison_result {
+            Some(attribute)
+        } else {
+            None
+        })
+    }
+
+    #[inline]
+    fn evaluate_multiple_attribute_comparison_operation(
+        medrecord: &MedRecord,
+        attribute: MedRecordAttribute,
+        comparison_operand: &MultipleAttributesComparisonOperand,
+        kind: &MultipleComparisonKind,
+    ) -> MedRecordResult<Option<MedRecordAttribute>> {
+        let comparison_attributes = comparison_operand.evaluate_backward(medrecord)?;
+
+        let comparison_result = match kind {
+            MultipleComparisonKind::IsIn => comparison_attributes.contains(&attribute),
+            MultipleComparisonKind::IsNotIn => !comparison_attributes.contains(&attribute),
+        };
+
+        Ok(if comparison_result {
+            Some(attribute)
+        } else {
+            None
+        })
+    }
+
+    #[inline]
+    fn evaluate_binary_arithmetic_operation(
+        medrecord: &MedRecord,
+        attribute: MedRecordAttribute,
+        operand: &SingleAttributeComparisonOperand,
+        kind: &BinaryArithmeticKind,
+    ) -> MedRecordResult<Option<MedRecordAttribute>> {
+        let arithmetic_attribute =
+            operand
+                .evaluate_backward(medrecord)?
+                .ok_or(MedRecordError::QueryError(
+                    "No attribute to compare".to_string(),
+                ))?;
+
+        Ok(Some(match kind {
+            BinaryArithmeticKind::Add => attribute.add(arithmetic_attribute)?,
+            BinaryArithmeticKind::Sub => attribute.sub(arithmetic_attribute)?,
+            BinaryArithmeticKind::Mul => attribute.mul(arithmetic_attribute)?,
+            BinaryArithmeticKind::Pow => attribute.pow(arithmetic_attribute)?,
+            BinaryArithmeticKind::Mod => attribute.r#mod(arithmetic_attribute)?,
+        }))
+    }
+
+    #[inline]
+    fn evaluate_either_or<'a>(
+        medrecord: &'a MedRecord,
+        attribute: MedRecordAttribute,
+        either: &Wrapper<SingleAttributeOperandWithoutIndex<O>>,
+        or: &Wrapper<SingleAttributeOperandWithoutIndex<O>>,
+    ) -> MedRecordResult<Option<MedRecordAttribute>>
+    where
+        O: 'a,
+    {
+        let either_result = either.evaluate_forward(medrecord, Some(attribute.clone()))?;
+        let or_result = or.evaluate_forward(medrecord, Some(attribute))?;
+
+        match (either_result, or_result) {
+            (Some(either_result), _) => Ok(Some(either_result)),
+            (None, Some(or_result)) => Ok(Some(or_result)),
+            _ => Ok(None),
+        }
+    }
+}
+
+impl<O: RootOperand> SingleAttributeOperationWithoutIndex<O> {
+    #[allow(clippy::type_complexity)]
+    pub(crate) fn evaluate_grouped<'a>(
+        &self,
+        _medrecord: &'a MedRecord,
+        _attributes: GroupedIterator<'a, Option<MedRecordAttribute>>,
+    ) -> MedRecordResult<GroupedIterator<'a, Option<MedRecordAttribute>>>
     where
         O: 'a,
     {

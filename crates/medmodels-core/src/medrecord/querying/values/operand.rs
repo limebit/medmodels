@@ -1384,20 +1384,26 @@ impl<'a, O: 'a + RootOperand> EvaluateBackward<'a> for SingleValueOperandWithout
                 MultipleValuesOperationWithoutIndex::<O>::get_min(values)?
             }
             SingleKindWithoutIndex::Mean => {
-                MultipleValuesOperationWithIndex::<O>::get_mean(values)?
+                MultipleValuesOperationWithoutIndex::<O>::get_mean(values)?
             }
             SingleKindWithoutIndex::Median => {
-                MultipleValuesOperationWithIndex::<O>::get_median(values)?
+                MultipleValuesOperationWithoutIndex::<O>::get_median(values)?
             }
             SingleKindWithoutIndex::Mode => {
-                MultipleValuesOperationWithIndex::<O>::get_mode(values)?
+                MultipleValuesOperationWithoutIndex::<O>::get_mode(values)?
             }
-            SingleKindWithoutIndex::Std => MultipleValuesOperationWithIndex::<O>::get_std(values)?,
-            SingleKindWithoutIndex::Var => MultipleValuesOperationWithIndex::<O>::get_var(values)?,
+            SingleKindWithoutIndex::Std => {
+                MultipleValuesOperationWithoutIndex::<O>::get_std(values)?
+            }
+            SingleKindWithoutIndex::Var => {
+                MultipleValuesOperationWithoutIndex::<O>::get_var(values)?
+            }
             SingleKindWithoutIndex::Count => {
-                Some(MultipleValuesOperationWithIndex::<O>::get_count(values))
+                Some(MultipleValuesOperationWithoutIndex::<O>::get_count(values))
             }
-            SingleKindWithoutIndex::Sum => MultipleValuesOperationWithIndex::<O>::get_sum(values)?,
+            SingleKindWithoutIndex::Sum => {
+                MultipleValuesOperationWithoutIndex::<O>::get_sum(values)?
+            }
             SingleKindWithoutIndex::Random => {
                 MultipleValuesOperationWithoutIndex::<O>::get_random(values)
             }
