@@ -1,14 +1,14 @@
-use super::{MultipleValuesOperandWithIndex, SingleValueOperandWithIndex};
+use super::{MultipleValuesWithIndexOperand, SingleValueWithIndexOperand};
 use crate::{
     errors::MedRecordResult,
     medrecord::querying::{
         edges::EdgeOperand,
         group_by::{GroupOperand, GroupedOperand, Merge},
         values::{
-            operand::MultipleValuesOperandWithoutIndex,
+            operand::MultipleValuesWithoutIndexOperand,
             operation::MultipleValuesOperationWithoutIndex, MultipleValuesWithIndexContext,
             MultipleValuesWithoutIndexContext, SingleKindWithoutIndex,
-            SingleValueOperandWithoutIndex,
+            SingleValueWithoutIndexOperand,
         },
         wrapper::Wrapper,
         BoxedIterator, DeepClone, EvaluateBackward, EvaluateForward, ReadWriteOrPanic, RootOperand,
@@ -18,40 +18,40 @@ use crate::{
 use std::fmt::Debug;
 
 #[derive(Debug, Clone)]
-pub enum MultipleValuesOperandWithIndexContext<O: RootOperand> {
+pub enum MultipleValuesWithIndexOperandContext<O: RootOperand> {
     RootOperand(GroupOperand<O>),
 }
 
-impl<O: RootOperand> DeepClone for MultipleValuesOperandWithIndexContext<O> {
+impl<O: RootOperand> DeepClone for MultipleValuesWithIndexOperandContext<O> {
     fn deep_clone(&self) -> Self {
         match self {
-            MultipleValuesOperandWithIndexContext::RootOperand(operand) => {
-                MultipleValuesOperandWithIndexContext::RootOperand(operand.deep_clone())
+            MultipleValuesWithIndexOperandContext::RootOperand(operand) => {
+                MultipleValuesWithIndexOperandContext::RootOperand(operand.deep_clone())
             }
         }
     }
 }
 
-impl From<GroupOperand<EdgeOperand>> for MultipleValuesOperandWithIndexContext<EdgeOperand> {
+impl From<GroupOperand<EdgeOperand>> for MultipleValuesWithIndexOperandContext<EdgeOperand> {
     fn from(operand: GroupOperand<EdgeOperand>) -> Self {
-        MultipleValuesOperandWithIndexContext::RootOperand(operand)
+        MultipleValuesWithIndexOperandContext::RootOperand(operand)
     }
 }
 
-impl<O: RootOperand> GroupedOperand for MultipleValuesOperandWithIndex<O> {
-    type Context = MultipleValuesOperandWithIndexContext<O>;
+impl<O: RootOperand> GroupedOperand for MultipleValuesWithIndexOperand<O> {
+    type Context = MultipleValuesWithIndexOperandContext<O>;
 }
 
-impl<'a, O: RootOperand> EvaluateBackward<'a> for GroupOperand<MultipleValuesOperandWithIndex<O>>
+impl<'a, O: RootOperand> EvaluateBackward<'a> for GroupOperand<MultipleValuesWithIndexOperand<O>>
 where
     O: 'a,
 {
     type ReturnValue =
-        BoxedIterator<'a, <MultipleValuesOperandWithIndex<O> as EvaluateBackward<'a>>::ReturnValue>;
+        BoxedIterator<'a, <MultipleValuesWithIndexOperand<O> as EvaluateBackward<'a>>::ReturnValue>;
 
     fn evaluate_backward(&self, medrecord: &'a MedRecord) -> MedRecordResult<Self::ReturnValue> {
         match &self.context {
-            MultipleValuesOperandWithIndexContext::RootOperand(context) => {
+            MultipleValuesWithIndexOperandContext::RootOperand(context) => {
                 let partitions = context.evaluate_backward(medrecord)?;
 
                 let values: Vec<_> = partitions
@@ -77,41 +77,41 @@ where
 }
 
 #[derive(Debug, Clone)]
-pub enum SingleValueOperandWithIndexContext<O: RootOperand> {
-    MultipleValuesOperand(GroupOperand<MultipleValuesOperandWithIndex<O>>),
+pub enum SingleValueWithIndexOperandContext<O: RootOperand> {
+    MultipleValuesOperand(GroupOperand<MultipleValuesWithIndexOperand<O>>),
 }
 
-impl<O: RootOperand> DeepClone for SingleValueOperandWithIndexContext<O> {
+impl<O: RootOperand> DeepClone for SingleValueWithIndexOperandContext<O> {
     fn deep_clone(&self) -> Self {
         match self {
-            SingleValueOperandWithIndexContext::MultipleValuesOperand(operand) => {
-                SingleValueOperandWithIndexContext::MultipleValuesOperand(operand.deep_clone())
+            SingleValueWithIndexOperandContext::MultipleValuesOperand(operand) => {
+                SingleValueWithIndexOperandContext::MultipleValuesOperand(operand.deep_clone())
             }
         }
     }
 }
 
-impl<O: RootOperand> From<GroupOperand<MultipleValuesOperandWithIndex<O>>>
-    for SingleValueOperandWithIndexContext<O>
+impl<O: RootOperand> From<GroupOperand<MultipleValuesWithIndexOperand<O>>>
+    for SingleValueWithIndexOperandContext<O>
 {
-    fn from(operand: GroupOperand<MultipleValuesOperandWithIndex<O>>) -> Self {
-        SingleValueOperandWithIndexContext::MultipleValuesOperand(operand)
+    fn from(operand: GroupOperand<MultipleValuesWithIndexOperand<O>>) -> Self {
+        SingleValueWithIndexOperandContext::MultipleValuesOperand(operand)
     }
 }
 
-impl<O: RootOperand> GroupedOperand for SingleValueOperandWithIndex<O> {
-    type Context = SingleValueOperandWithIndexContext<O>;
+impl<O: RootOperand> GroupedOperand for SingleValueWithIndexOperand<O> {
+    type Context = SingleValueWithIndexOperandContext<O>;
 }
 
 impl<'a, O: 'a + RootOperand> EvaluateBackward<'a>
-    for GroupOperand<SingleValueOperandWithIndex<O>>
+    for GroupOperand<SingleValueWithIndexOperand<O>>
 {
     type ReturnValue =
-        BoxedIterator<'a, <SingleValueOperandWithIndex<O> as EvaluateBackward<'a>>::ReturnValue>;
+        BoxedIterator<'a, <SingleValueWithIndexOperand<O> as EvaluateBackward<'a>>::ReturnValue>;
 
     fn evaluate_backward(&self, medrecord: &'a MedRecord) -> MedRecordResult<Self::ReturnValue> {
         match &self.context {
-            SingleValueOperandWithIndexContext::MultipleValuesOperand(context) => {
+            SingleValueWithIndexOperandContext::MultipleValuesOperand(context) => {
                 let partitions = context.evaluate_backward(medrecord)?;
 
                 let values: Vec<_> = partitions
@@ -128,8 +128,8 @@ impl<'a, O: 'a + RootOperand> EvaluateBackward<'a>
     }
 }
 
-impl<O: RootOperand> Merge for GroupOperand<SingleValueOperandWithIndex<O>> {
-    type OutputOperand = MultipleValuesOperandWithIndex<O>;
+impl<O: RootOperand> Merge for GroupOperand<SingleValueWithIndexOperand<O>> {
+    type OutputOperand = MultipleValuesWithIndexOperand<O>;
 
     fn merge(&self) -> Wrapper<Self::OutputOperand> {
         let operand = Wrapper::<Self::OutputOperand>::new(
@@ -143,11 +143,11 @@ impl<O: RootOperand> Merge for GroupOperand<SingleValueOperandWithIndex<O>> {
 }
 
 #[derive(Debug, Clone)]
-pub enum SingleValueOperandWithoutIndexContext<O: RootOperand> {
-    MultipleValuesOperand(GroupOperand<MultipleValuesOperandWithIndex<O>>),
+pub enum SingleValueWithoutIndexOperandContext<O: RootOperand> {
+    MultipleValuesOperand(GroupOperand<MultipleValuesWithIndexOperand<O>>),
 }
 
-impl<O: RootOperand> DeepClone for SingleValueOperandWithoutIndexContext<O> {
+impl<O: RootOperand> DeepClone for SingleValueWithoutIndexOperandContext<O> {
     fn deep_clone(&self) -> Self {
         match self {
             Self::MultipleValuesOperand(operand) => {
@@ -157,27 +157,27 @@ impl<O: RootOperand> DeepClone for SingleValueOperandWithoutIndexContext<O> {
     }
 }
 
-impl<O: RootOperand> From<GroupOperand<MultipleValuesOperandWithIndex<O>>>
-    for SingleValueOperandWithoutIndexContext<O>
+impl<O: RootOperand> From<GroupOperand<MultipleValuesWithIndexOperand<O>>>
+    for SingleValueWithoutIndexOperandContext<O>
 {
-    fn from(operand: GroupOperand<MultipleValuesOperandWithIndex<O>>) -> Self {
+    fn from(operand: GroupOperand<MultipleValuesWithIndexOperand<O>>) -> Self {
         Self::MultipleValuesOperand(operand)
     }
 }
 
-impl<O: RootOperand> GroupedOperand for SingleValueOperandWithoutIndex<O> {
-    type Context = SingleValueOperandWithoutIndexContext<O>;
+impl<O: RootOperand> GroupedOperand for SingleValueWithoutIndexOperand<O> {
+    type Context = SingleValueWithoutIndexOperandContext<O>;
 }
 
 impl<'a, O: 'a + RootOperand> EvaluateBackward<'a>
-    for GroupOperand<SingleValueOperandWithoutIndex<O>>
+    for GroupOperand<SingleValueWithoutIndexOperand<O>>
 {
     type ReturnValue =
-        BoxedIterator<'a, <SingleValueOperandWithoutIndex<O> as EvaluateBackward<'a>>::ReturnValue>;
+        BoxedIterator<'a, <SingleValueWithoutIndexOperand<O> as EvaluateBackward<'a>>::ReturnValue>;
 
     fn evaluate_backward(&self, medrecord: &'a MedRecord) -> MedRecordResult<Self::ReturnValue> {
         match &self.context {
-            SingleValueOperandWithoutIndexContext::MultipleValuesOperand(context) => {
+            SingleValueWithoutIndexOperandContext::MultipleValuesOperand(context) => {
                 let partitions = context.evaluate_backward(medrecord)?;
 
                 let values: Vec<_> = partitions
@@ -227,8 +227,8 @@ impl<'a, O: 'a + RootOperand> EvaluateBackward<'a>
     }
 }
 
-impl<O: RootOperand> Merge for GroupOperand<SingleValueOperandWithoutIndex<O>> {
-    type OutputOperand = MultipleValuesOperandWithoutIndex<O>;
+impl<O: RootOperand> Merge for GroupOperand<SingleValueWithoutIndexOperand<O>> {
+    type OutputOperand = MultipleValuesWithoutIndexOperand<O>;
 
     fn merge(&self) -> Wrapper<Self::OutputOperand> {
         let operand = Wrapper::<Self::OutputOperand>::new(

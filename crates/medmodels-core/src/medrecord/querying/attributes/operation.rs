@@ -1,7 +1,7 @@
 use super::{
     operand::{
-        MultipleAttributesComparisonOperand, MultipleAttributesOperandWithIndex,
-        SingleAttributeComparisonOperand, SingleAttributeOperandWithIndex,
+        MultipleAttributesComparisonOperand, MultipleAttributesWithIndexOperand,
+        SingleAttributeComparisonOperand, SingleAttributeWithIndexOperand,
     },
     AttributesTreeOperand, BinaryArithmeticKind, GetAttributes, MultipleComparisonKind,
     MultipleKind, SingleComparisonKind, SingleKindWithIndex, UnaryArithmeticKind,
@@ -15,10 +15,10 @@ use crate::{
         },
         querying::{
             attributes::{
-                operand::SingleAttributeOperandWithoutIndex, MultipleAttributesOperandWithoutIndex,
+                operand::SingleAttributeWithoutIndexOperand, MultipleAttributesWithoutIndexOperand,
                 SingleKindWithoutIndex,
             },
-            values::MultipleValuesOperandWithIndex,
+            values::MultipleValuesWithIndexOperand,
             BoxedIterator, DeepClone, EvaluateForward, GroupedIterator, ReadWriteOrPanic,
             RootOperand,
         },
@@ -38,7 +38,7 @@ use std::{
 #[derive(Debug, Clone)]
 pub enum AttributesTreeOperation<O: RootOperand> {
     AttributesOperation {
-        operand: Wrapper<MultipleAttributesOperandWithIndex<O>>,
+        operand: Wrapper<MultipleAttributesWithIndexOperand<O>>,
     },
     SingleAttributeComparisonOperation {
         operand: SingleAttributeComparisonOperand,
@@ -339,7 +339,7 @@ impl<O: RootOperand> AttributesTreeOperation<O> {
     fn evaluate_attributes_operation<'a>(
         medrecord: &'a MedRecord,
         attributes: impl Iterator<Item = (&'a O::Index, Vec<MedRecordAttribute>)> + 'a,
-        operand: &Wrapper<MultipleAttributesOperandWithIndex<O>>,
+        operand: &Wrapper<MultipleAttributesWithIndexOperand<O>>,
     ) -> MedRecordResult<impl Iterator<Item = (&'a O::Index, Vec<MedRecordAttribute>)> + 'a>
     where
         O: 'a,
@@ -719,10 +719,10 @@ impl<O: RootOperand> AttributesTreeOperation<O> {
 #[derive(Debug, Clone)]
 pub enum MultipleAttributesOperationWithIndex<O: RootOperand> {
     AttributeOperation {
-        operand: Wrapper<SingleAttributeOperandWithIndex<O>>,
+        operand: Wrapper<SingleAttributeWithIndexOperand<O>>,
     },
     AttributeOperationWithoutIndex {
-        operand: Wrapper<SingleAttributeOperandWithoutIndex<O>>,
+        operand: Wrapper<SingleAttributeWithoutIndexOperand<O>>,
     },
     SingleAttributeComparisonOperation {
         operand: SingleAttributeComparisonOperand,
@@ -741,7 +741,7 @@ pub enum MultipleAttributesOperationWithIndex<O: RootOperand> {
     },
 
     ToValues {
-        operand: Wrapper<MultipleValuesOperandWithIndex<O>>,
+        operand: Wrapper<MultipleValuesWithIndexOperand<O>>,
     },
 
     Slice(Range<usize>),
@@ -753,11 +753,11 @@ pub enum MultipleAttributesOperationWithIndex<O: RootOperand> {
     IsMin,
 
     EitherOr {
-        either: Wrapper<MultipleAttributesOperandWithIndex<O>>,
-        or: Wrapper<MultipleAttributesOperandWithIndex<O>>,
+        either: Wrapper<MultipleAttributesWithIndexOperand<O>>,
+        or: Wrapper<MultipleAttributesWithIndexOperand<O>>,
     },
     Exclude {
-        operand: Wrapper<MultipleAttributesOperandWithIndex<O>>,
+        operand: Wrapper<MultipleAttributesWithIndexOperand<O>>,
     },
 }
 
@@ -958,7 +958,7 @@ impl<O: RootOperand> MultipleAttributesOperationWithIndex<O> {
     fn evaluate_attribute_operation<'a>(
         medrecord: &'a MedRecord,
         attributes: impl Iterator<Item = (&'a O::Index, MedRecordAttribute)> + 'a,
-        operand: &Wrapper<SingleAttributeOperandWithIndex<O>>,
+        operand: &Wrapper<SingleAttributeWithIndexOperand<O>>,
     ) -> MedRecordResult<BoxedIterator<'a, (&'a O::Index, MedRecordAttribute)>>
     where
         O: 'a,
@@ -989,7 +989,7 @@ impl<O: RootOperand> MultipleAttributesOperationWithIndex<O> {
     fn evaluate_attribute_operation_without_index<'a>(
         medrecord: &'a MedRecord,
         attributes: impl Iterator<Item = (&'a O::Index, MedRecordAttribute)> + 'a,
-        operand: &Wrapper<SingleAttributeOperandWithoutIndex<O>>,
+        operand: &Wrapper<SingleAttributeWithoutIndexOperand<O>>,
     ) -> MedRecordResult<BoxedIterator<'a, (&'a O::Index, MedRecordAttribute)>>
     where
         O: 'a,
@@ -1199,7 +1199,7 @@ impl<O: RootOperand> MultipleAttributesOperationWithIndex<O> {
     fn evaluate_to_values<'a>(
         medrecord: &'a MedRecord,
         attributes: impl Iterator<Item = (&'a O::Index, MedRecordAttribute)> + 'a,
-        operand: &Wrapper<MultipleValuesOperandWithIndex<O>>,
+        operand: &Wrapper<MultipleValuesWithIndexOperand<O>>,
     ) -> MedRecordResult<impl Iterator<Item = (&'a O::Index, MedRecordAttribute)> + 'a>
     where
         O: 'a,
@@ -1235,8 +1235,8 @@ impl<O: RootOperand> MultipleAttributesOperationWithIndex<O> {
     fn evaluate_either_or<'a>(
         medrecord: &'a MedRecord,
         attributes: impl Iterator<Item = (&'a O::Index, MedRecordAttribute)> + 'a,
-        either: &Wrapper<MultipleAttributesOperandWithIndex<O>>,
-        or: &Wrapper<MultipleAttributesOperandWithIndex<O>>,
+        either: &Wrapper<MultipleAttributesWithIndexOperand<O>>,
+        or: &Wrapper<MultipleAttributesWithIndexOperand<O>>,
     ) -> MedRecordResult<BoxedIterator<'a, (&'a O::Index, MedRecordAttribute)>>
     where
         O: 'a,
@@ -1257,7 +1257,7 @@ impl<O: RootOperand> MultipleAttributesOperationWithIndex<O> {
     fn evaluate_exclude<'a>(
         medrecord: &'a MedRecord,
         attributes: impl Iterator<Item = (&'a O::Index, MedRecordAttribute)> + 'a,
-        operand: &Wrapper<MultipleAttributesOperandWithIndex<O>>,
+        operand: &Wrapper<MultipleAttributesWithIndexOperand<O>>,
     ) -> MedRecordResult<BoxedIterator<'a, (&'a O::Index, MedRecordAttribute)>>
     where
         O: 'a,
@@ -1291,7 +1291,7 @@ impl<O: RootOperand> MultipleAttributesOperationWithIndex<O> {
 #[derive(Debug, Clone)]
 pub enum MultipleAttributesOperationWithoutIndex<O: RootOperand> {
     AttributeOperation {
-        operand: Wrapper<SingleAttributeOperandWithoutIndex<O>>,
+        operand: Wrapper<SingleAttributeWithoutIndexOperand<O>>,
     },
     SingleAttributeComparisonOperation {
         operand: SingleAttributeComparisonOperand,
@@ -1318,11 +1318,11 @@ pub enum MultipleAttributesOperationWithoutIndex<O: RootOperand> {
     IsMin,
 
     EitherOr {
-        either: Wrapper<MultipleAttributesOperandWithoutIndex<O>>,
-        or: Wrapper<MultipleAttributesOperandWithoutIndex<O>>,
+        either: Wrapper<MultipleAttributesWithoutIndexOperand<O>>,
+        or: Wrapper<MultipleAttributesWithoutIndexOperand<O>>,
     },
     Exclude {
-        operand: Wrapper<MultipleAttributesOperandWithoutIndex<O>>,
+        operand: Wrapper<MultipleAttributesWithoutIndexOperand<O>>,
     },
 }
 
@@ -1542,7 +1542,7 @@ impl<O: RootOperand> MultipleAttributesOperationWithoutIndex<O> {
     fn evaluate_attribute_operation<'a>(
         medrecord: &'a MedRecord,
         attributes: impl Iterator<Item = MedRecordAttribute> + 'a,
-        operand: &Wrapper<SingleAttributeOperandWithoutIndex<O>>,
+        operand: &Wrapper<SingleAttributeWithoutIndexOperand<O>>,
     ) -> MedRecordResult<BoxedIterator<'a, MedRecordAttribute>> {
         let (attributes_1, attributes_2) = Itertools::tee(attributes);
 
@@ -1721,8 +1721,8 @@ impl<O: RootOperand> MultipleAttributesOperationWithoutIndex<O> {
     fn evaluate_either_or<'a>(
         medrecord: &'a MedRecord,
         attributes: impl Iterator<Item = MedRecordAttribute> + 'a,
-        either: &Wrapper<MultipleAttributesOperandWithoutIndex<O>>,
-        or: &Wrapper<MultipleAttributesOperandWithoutIndex<O>>,
+        either: &Wrapper<MultipleAttributesWithoutIndexOperand<O>>,
+        or: &Wrapper<MultipleAttributesWithoutIndexOperand<O>>,
     ) -> MedRecordResult<BoxedIterator<'a, MedRecordAttribute>>
     where
         O: 'a,
@@ -1743,7 +1743,7 @@ impl<O: RootOperand> MultipleAttributesOperationWithoutIndex<O> {
     fn evaluate_exclude<'a>(
         medrecord: &'a MedRecord,
         attributes: impl Iterator<Item = MedRecordAttribute> + 'a,
-        operand: &Wrapper<MultipleAttributesOperandWithoutIndex<O>>,
+        operand: &Wrapper<MultipleAttributesWithoutIndexOperand<O>>,
     ) -> MedRecordResult<BoxedIterator<'a, MedRecordAttribute>> {
         let (attributes_1, attributes_2) = Itertools::tee(attributes);
 
@@ -1795,11 +1795,11 @@ pub enum SingleAttributeOperationWithIndex<O: RootOperand> {
     IsInt,
 
     EitherOr {
-        either: Wrapper<SingleAttributeOperandWithIndex<O>>,
-        or: Wrapper<SingleAttributeOperandWithIndex<O>>,
+        either: Wrapper<SingleAttributeWithIndexOperand<O>>,
+        or: Wrapper<SingleAttributeWithIndexOperand<O>>,
     },
     Exclude {
-        operand: Wrapper<SingleAttributeOperandWithIndex<O>>,
+        operand: Wrapper<SingleAttributeWithIndexOperand<O>>,
     },
 }
 
@@ -1976,8 +1976,8 @@ impl<O: RootOperand> SingleAttributeOperationWithIndex<O> {
     fn evaluate_either_or<'a>(
         medrecord: &'a MedRecord,
         attribute: (&'a O::Index, MedRecordAttribute),
-        either: &Wrapper<SingleAttributeOperandWithIndex<O>>,
-        or: &Wrapper<SingleAttributeOperandWithIndex<O>>,
+        either: &Wrapper<SingleAttributeWithIndexOperand<O>>,
+        or: &Wrapper<SingleAttributeWithIndexOperand<O>>,
     ) -> MedRecordResult<Option<(&'a O::Index, MedRecordAttribute)>>
     where
         O: 'a,
@@ -2031,11 +2031,11 @@ pub enum SingleAttributeOperationWithoutIndex<O: RootOperand> {
     IsInt,
 
     EitherOr {
-        either: Wrapper<SingleAttributeOperandWithoutIndex<O>>,
-        or: Wrapper<SingleAttributeOperandWithoutIndex<O>>,
+        either: Wrapper<SingleAttributeWithoutIndexOperand<O>>,
+        or: Wrapper<SingleAttributeWithoutIndexOperand<O>>,
     },
     Exclude {
-        operand: Wrapper<SingleAttributeOperandWithoutIndex<O>>,
+        operand: Wrapper<SingleAttributeWithoutIndexOperand<O>>,
     },
 }
 
@@ -2212,8 +2212,8 @@ impl<O: RootOperand> SingleAttributeOperationWithoutIndex<O> {
     fn evaluate_either_or<'a>(
         medrecord: &'a MedRecord,
         attribute: MedRecordAttribute,
-        either: &Wrapper<SingleAttributeOperandWithoutIndex<O>>,
-        or: &Wrapper<SingleAttributeOperandWithoutIndex<O>>,
+        either: &Wrapper<SingleAttributeWithoutIndexOperand<O>>,
+        or: &Wrapper<SingleAttributeWithoutIndexOperand<O>>,
     ) -> MedRecordResult<Option<MedRecordAttribute>>
     where
         O: 'a,

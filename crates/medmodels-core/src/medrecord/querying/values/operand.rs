@@ -25,8 +25,8 @@ use crate::{
 
 macro_rules! implement_value_operation_with_index {
     ($name:ident, $variant:ident) => {
-        pub fn $name(&mut self) -> Wrapper<SingleValueOperandWithIndex<O>> {
-            let operand = Wrapper::<SingleValueOperandWithIndex<O>>::new(
+        pub fn $name(&mut self) -> Wrapper<SingleValueWithIndexOperand<O>> {
+            let operand = Wrapper::<SingleValueWithIndexOperand<O>>::new(
                 self.deep_clone(),
                 SingleKindWithIndex::$variant,
             );
@@ -43,9 +43,9 @@ macro_rules! implement_value_operation_with_index {
 
 macro_rules! implement_value_operation_without_index {
     ($name:ident, $variant:ident, WithIndex) => {
-        pub fn $name(&mut self) -> Wrapper<SingleValueOperandWithoutIndex<O>> {
-            let operand = Wrapper::<SingleValueOperandWithoutIndex<O>>::new(
-                SingleValueWithoutIndexContext::MultipleValuesOperandWithIndex(self.deep_clone()),
+        pub fn $name(&mut self) -> Wrapper<SingleValueWithoutIndexOperand<O>> {
+            let operand = Wrapper::<SingleValueWithoutIndexOperand<O>>::new(
+                SingleValueWithoutIndexContext::MultipleValuesWithIndexOperand(self.deep_clone()),
                 SingleKindWithoutIndex::$variant,
             );
 
@@ -59,9 +59,9 @@ macro_rules! implement_value_operation_without_index {
         }
     };
     ($name:ident, $variant:ident, WithoutIndex) => {
-        pub fn $name(&mut self) -> Wrapper<SingleValueOperandWithoutIndex<O>> {
-            let operand = Wrapper::<SingleValueOperandWithoutIndex<O>>::new(
-                SingleValueWithoutIndexContext::MultipleValuesOperandWithoutIndex(
+        pub fn $name(&mut self) -> Wrapper<SingleValueWithoutIndexOperand<O>> {
+            let operand = Wrapper::<SingleValueWithoutIndexOperand<O>>::new(
+                SingleValueWithoutIndexContext::MultipleValuesWithoutIndexOperand(
                     self.deep_clone(),
                 ),
                 SingleKindWithoutIndex::$variant,
@@ -144,78 +144,78 @@ macro_rules! implement_wrapper_operand_with_argument {
 
 #[derive(Debug, Clone)]
 pub enum SingleValueComparisonOperand {
-    NodeSingleValueOperandWithIndex(NodeSingleValueOperandWithIndex),
-    NodeSingleValueOperandWithoutIndex(NodeSingleValueOperandWithoutIndex),
-    EdgeSingleValueOperandWithIndex(EdgeSingleValueOperandWithIndex),
-    EdgeSingleValueOperandWithoutIndex(EdgeSingleValueOperandWithoutIndex),
+    NodeSingleValueWithIndexOperand(NodeSingleValueWithIndexOperand),
+    NodeSingleValueWithoutIndexOperand(NodeSingleValueWithoutIndexOperand),
+    EdgeSingleValueWithIndexOperand(EdgeSingleValueWithIndexOperand),
+    EdgeSingleValueWithoutIndexOperand(EdgeSingleValueWithoutIndexOperand),
     Value(MedRecordValue),
 }
 
 impl DeepClone for SingleValueComparisonOperand {
     fn deep_clone(&self) -> Self {
         match self {
-            Self::NodeSingleValueOperandWithIndex(operand) => {
-                Self::NodeSingleValueOperandWithIndex(operand.deep_clone())
+            Self::NodeSingleValueWithIndexOperand(operand) => {
+                Self::NodeSingleValueWithIndexOperand(operand.deep_clone())
             }
-            Self::NodeSingleValueOperandWithoutIndex(operand) => {
-                Self::NodeSingleValueOperandWithoutIndex(operand.deep_clone())
+            Self::NodeSingleValueWithoutIndexOperand(operand) => {
+                Self::NodeSingleValueWithoutIndexOperand(operand.deep_clone())
             }
-            Self::EdgeSingleValueOperandWithIndex(operand) => {
-                Self::EdgeSingleValueOperandWithIndex(operand.deep_clone())
+            Self::EdgeSingleValueWithIndexOperand(operand) => {
+                Self::EdgeSingleValueWithIndexOperand(operand.deep_clone())
             }
-            Self::EdgeSingleValueOperandWithoutIndex(operand) => {
-                Self::EdgeSingleValueOperandWithoutIndex(operand.deep_clone())
+            Self::EdgeSingleValueWithoutIndexOperand(operand) => {
+                Self::EdgeSingleValueWithoutIndexOperand(operand.deep_clone())
             }
             Self::Value(value) => Self::Value(value.clone()),
         }
     }
 }
 
-impl From<Wrapper<NodeSingleValueOperandWithIndex>> for SingleValueComparisonOperand {
-    fn from(value: Wrapper<NodeSingleValueOperandWithIndex>) -> Self {
-        Self::NodeSingleValueOperandWithIndex(value.0.read_or_panic().deep_clone())
+impl From<Wrapper<NodeSingleValueWithIndexOperand>> for SingleValueComparisonOperand {
+    fn from(value: Wrapper<NodeSingleValueWithIndexOperand>) -> Self {
+        Self::NodeSingleValueWithIndexOperand(value.0.read_or_panic().deep_clone())
     }
 }
 
-impl From<&Wrapper<NodeSingleValueOperandWithIndex>> for SingleValueComparisonOperand {
-    fn from(value: &Wrapper<NodeSingleValueOperandWithIndex>) -> Self {
-        Self::NodeSingleValueOperandWithIndex(value.0.read_or_panic().deep_clone())
+impl From<&Wrapper<NodeSingleValueWithIndexOperand>> for SingleValueComparisonOperand {
+    fn from(value: &Wrapper<NodeSingleValueWithIndexOperand>) -> Self {
+        Self::NodeSingleValueWithIndexOperand(value.0.read_or_panic().deep_clone())
     }
 }
 
-impl From<Wrapper<NodeSingleValueOperandWithoutIndex>> for SingleValueComparisonOperand {
-    fn from(value: Wrapper<NodeSingleValueOperandWithoutIndex>) -> Self {
-        Self::NodeSingleValueOperandWithoutIndex(value.0.read_or_panic().deep_clone())
+impl From<Wrapper<NodeSingleValueWithoutIndexOperand>> for SingleValueComparisonOperand {
+    fn from(value: Wrapper<NodeSingleValueWithoutIndexOperand>) -> Self {
+        Self::NodeSingleValueWithoutIndexOperand(value.0.read_or_panic().deep_clone())
     }
 }
 
-impl From<&Wrapper<NodeSingleValueOperandWithoutIndex>> for SingleValueComparisonOperand {
-    fn from(value: &Wrapper<NodeSingleValueOperandWithoutIndex>) -> Self {
-        Self::NodeSingleValueOperandWithoutIndex(value.0.read_or_panic().deep_clone())
+impl From<&Wrapper<NodeSingleValueWithoutIndexOperand>> for SingleValueComparisonOperand {
+    fn from(value: &Wrapper<NodeSingleValueWithoutIndexOperand>) -> Self {
+        Self::NodeSingleValueWithoutIndexOperand(value.0.read_or_panic().deep_clone())
     }
 }
 
-impl From<Wrapper<EdgeSingleValueOperandWithIndex>> for SingleValueComparisonOperand {
-    fn from(value: Wrapper<EdgeSingleValueOperandWithIndex>) -> Self {
-        Self::EdgeSingleValueOperandWithIndex(value.0.read_or_panic().deep_clone())
+impl From<Wrapper<EdgeSingleValueWithIndexOperand>> for SingleValueComparisonOperand {
+    fn from(value: Wrapper<EdgeSingleValueWithIndexOperand>) -> Self {
+        Self::EdgeSingleValueWithIndexOperand(value.0.read_or_panic().deep_clone())
     }
 }
 
-impl From<&Wrapper<EdgeSingleValueOperandWithIndex>> for SingleValueComparisonOperand {
-    fn from(value: &Wrapper<EdgeSingleValueOperandWithIndex>) -> Self {
-        Self::EdgeSingleValueOperandWithIndex(value.0.read_or_panic().deep_clone())
+impl From<&Wrapper<EdgeSingleValueWithIndexOperand>> for SingleValueComparisonOperand {
+    fn from(value: &Wrapper<EdgeSingleValueWithIndexOperand>) -> Self {
+        Self::EdgeSingleValueWithIndexOperand(value.0.read_or_panic().deep_clone())
     }
 }
 
-impl From<Wrapper<EdgeSingleValueOperandWithoutIndex>> for SingleValueComparisonOperand {
-    fn from(value: Wrapper<EdgeSingleValueOperandWithoutIndex>) -> Self {
-        Self::EdgeSingleValueOperandWithoutIndex(value.0.read_or_panic().deep_clone())
+impl From<Wrapper<EdgeSingleValueWithoutIndexOperand>> for SingleValueComparisonOperand {
+    fn from(value: Wrapper<EdgeSingleValueWithoutIndexOperand>) -> Self {
+        Self::EdgeSingleValueWithoutIndexOperand(value.0.read_or_panic().deep_clone())
     }
 }
 
-impl From<&Wrapper<EdgeSingleValueOperandWithoutIndex>> for SingleValueComparisonOperand {
-    fn from(value: &Wrapper<EdgeSingleValueOperandWithoutIndex>) -> Self {
-        Self::EdgeSingleValueOperandWithoutIndex(value.0.read_or_panic().deep_clone())
+impl From<&Wrapper<EdgeSingleValueWithoutIndexOperand>> for SingleValueComparisonOperand {
+    fn from(value: &Wrapper<EdgeSingleValueWithoutIndexOperand>) -> Self {
+        Self::EdgeSingleValueWithoutIndexOperand(value.0.read_or_panic().deep_clone())
     }
 }
 
@@ -231,16 +231,16 @@ impl SingleValueComparisonOperand {
         medrecord: &MedRecord,
     ) -> MedRecordResult<Option<MedRecordValue>> {
         Ok(match self {
-            Self::NodeSingleValueOperandWithIndex(operand) => operand
+            Self::NodeSingleValueWithIndexOperand(operand) => operand
                 .evaluate_backward(medrecord)?
                 .map(|attribute| attribute.1),
-            Self::NodeSingleValueOperandWithoutIndex(operand) => {
+            Self::NodeSingleValueWithoutIndexOperand(operand) => {
                 operand.evaluate_backward(medrecord)?
             }
-            Self::EdgeSingleValueOperandWithIndex(operand) => operand
+            Self::EdgeSingleValueWithIndexOperand(operand) => operand
                 .evaluate_backward(medrecord)?
                 .map(|attribute| attribute.1),
-            Self::EdgeSingleValueOperandWithoutIndex(operand) => {
+            Self::EdgeSingleValueWithoutIndexOperand(operand) => {
                 operand.evaluate_backward(medrecord)?
             }
             Self::Value(value) => Some(value.clone()),
@@ -250,78 +250,78 @@ impl SingleValueComparisonOperand {
 
 #[derive(Debug, Clone)]
 pub enum MultipleValuesComparisonOperand {
-    NodeMultipleValuesOperandWithIndex(NodeMultipleValuesOperandWithIndex),
-    NodeMultipleValuesOperandWithoutIndex(NodeMultipleValuesOperandWithoutIndex),
-    EdgeMultipleValuesOperandWithIndex(EdgeMultipleValuesOperandWithIndex),
-    EdgeMultipleValuesOperandWithoutIndex(EdgeMultipleValuesOperandWithoutIndex),
+    NodeMultipleValuesWithIndexOperand(NodeMultipleValuesWithIndexOperand),
+    NodeMultipleValuesWithoutIndexOperand(NodeMultipleValuesWithoutIndexOperand),
+    EdgeMultipleValuesWithIndexOperand(EdgeMultipleValuesWithIndexOperand),
+    EdgeMultipleValuesWithoutIndexOperand(EdgeMultipleValuesWithoutIndexOperand),
     Values(Vec<MedRecordValue>),
 }
 
 impl DeepClone for MultipleValuesComparisonOperand {
     fn deep_clone(&self) -> Self {
         match self {
-            Self::NodeMultipleValuesOperandWithIndex(operand) => {
-                Self::NodeMultipleValuesOperandWithIndex(operand.deep_clone())
+            Self::NodeMultipleValuesWithIndexOperand(operand) => {
+                Self::NodeMultipleValuesWithIndexOperand(operand.deep_clone())
             }
-            Self::NodeMultipleValuesOperandWithoutIndex(operand) => {
-                Self::NodeMultipleValuesOperandWithoutIndex(operand.deep_clone())
+            Self::NodeMultipleValuesWithoutIndexOperand(operand) => {
+                Self::NodeMultipleValuesWithoutIndexOperand(operand.deep_clone())
             }
-            Self::EdgeMultipleValuesOperandWithIndex(operand) => {
-                Self::EdgeMultipleValuesOperandWithIndex(operand.deep_clone())
+            Self::EdgeMultipleValuesWithIndexOperand(operand) => {
+                Self::EdgeMultipleValuesWithIndexOperand(operand.deep_clone())
             }
-            Self::EdgeMultipleValuesOperandWithoutIndex(operand) => {
-                Self::EdgeMultipleValuesOperandWithoutIndex(operand.deep_clone())
+            Self::EdgeMultipleValuesWithoutIndexOperand(operand) => {
+                Self::EdgeMultipleValuesWithoutIndexOperand(operand.deep_clone())
             }
             Self::Values(value) => Self::Values(value.clone()),
         }
     }
 }
 
-impl From<Wrapper<NodeMultipleValuesOperandWithIndex>> for MultipleValuesComparisonOperand {
-    fn from(value: Wrapper<NodeMultipleValuesOperandWithIndex>) -> Self {
-        Self::NodeMultipleValuesOperandWithIndex(value.0.read_or_panic().deep_clone())
+impl From<Wrapper<NodeMultipleValuesWithIndexOperand>> for MultipleValuesComparisonOperand {
+    fn from(value: Wrapper<NodeMultipleValuesWithIndexOperand>) -> Self {
+        Self::NodeMultipleValuesWithIndexOperand(value.0.read_or_panic().deep_clone())
     }
 }
 
-impl From<&Wrapper<NodeMultipleValuesOperandWithIndex>> for MultipleValuesComparisonOperand {
-    fn from(value: &Wrapper<NodeMultipleValuesOperandWithIndex>) -> Self {
-        Self::NodeMultipleValuesOperandWithIndex(value.0.read_or_panic().deep_clone())
+impl From<&Wrapper<NodeMultipleValuesWithIndexOperand>> for MultipleValuesComparisonOperand {
+    fn from(value: &Wrapper<NodeMultipleValuesWithIndexOperand>) -> Self {
+        Self::NodeMultipleValuesWithIndexOperand(value.0.read_or_panic().deep_clone())
     }
 }
 
-impl From<Wrapper<NodeMultipleValuesOperandWithoutIndex>> for MultipleValuesComparisonOperand {
-    fn from(value: Wrapper<NodeMultipleValuesOperandWithoutIndex>) -> Self {
-        Self::NodeMultipleValuesOperandWithoutIndex(value.0.read_or_panic().deep_clone())
+impl From<Wrapper<NodeMultipleValuesWithoutIndexOperand>> for MultipleValuesComparisonOperand {
+    fn from(value: Wrapper<NodeMultipleValuesWithoutIndexOperand>) -> Self {
+        Self::NodeMultipleValuesWithoutIndexOperand(value.0.read_or_panic().deep_clone())
     }
 }
 
-impl From<&Wrapper<NodeMultipleValuesOperandWithoutIndex>> for MultipleValuesComparisonOperand {
-    fn from(value: &Wrapper<NodeMultipleValuesOperandWithoutIndex>) -> Self {
-        Self::NodeMultipleValuesOperandWithoutIndex(value.0.read_or_panic().deep_clone())
+impl From<&Wrapper<NodeMultipleValuesWithoutIndexOperand>> for MultipleValuesComparisonOperand {
+    fn from(value: &Wrapper<NodeMultipleValuesWithoutIndexOperand>) -> Self {
+        Self::NodeMultipleValuesWithoutIndexOperand(value.0.read_or_panic().deep_clone())
     }
 }
 
-impl From<Wrapper<EdgeMultipleValuesOperandWithIndex>> for MultipleValuesComparisonOperand {
-    fn from(value: Wrapper<EdgeMultipleValuesOperandWithIndex>) -> Self {
-        Self::EdgeMultipleValuesOperandWithIndex(value.0.read_or_panic().deep_clone())
+impl From<Wrapper<EdgeMultipleValuesWithIndexOperand>> for MultipleValuesComparisonOperand {
+    fn from(value: Wrapper<EdgeMultipleValuesWithIndexOperand>) -> Self {
+        Self::EdgeMultipleValuesWithIndexOperand(value.0.read_or_panic().deep_clone())
     }
 }
 
-impl From<&Wrapper<EdgeMultipleValuesOperandWithIndex>> for MultipleValuesComparisonOperand {
-    fn from(value: &Wrapper<EdgeMultipleValuesOperandWithIndex>) -> Self {
-        Self::EdgeMultipleValuesOperandWithIndex(value.0.read_or_panic().deep_clone())
+impl From<&Wrapper<EdgeMultipleValuesWithIndexOperand>> for MultipleValuesComparisonOperand {
+    fn from(value: &Wrapper<EdgeMultipleValuesWithIndexOperand>) -> Self {
+        Self::EdgeMultipleValuesWithIndexOperand(value.0.read_or_panic().deep_clone())
     }
 }
 
-impl From<Wrapper<EdgeMultipleValuesOperandWithoutIndex>> for MultipleValuesComparisonOperand {
-    fn from(value: Wrapper<EdgeMultipleValuesOperandWithoutIndex>) -> Self {
-        Self::EdgeMultipleValuesOperandWithoutIndex(value.0.read_or_panic().deep_clone())
+impl From<Wrapper<EdgeMultipleValuesWithoutIndexOperand>> for MultipleValuesComparisonOperand {
+    fn from(value: Wrapper<EdgeMultipleValuesWithoutIndexOperand>) -> Self {
+        Self::EdgeMultipleValuesWithoutIndexOperand(value.0.read_or_panic().deep_clone())
     }
 }
 
-impl From<&Wrapper<EdgeMultipleValuesOperandWithoutIndex>> for MultipleValuesComparisonOperand {
-    fn from(value: &Wrapper<EdgeMultipleValuesOperandWithoutIndex>) -> Self {
-        Self::EdgeMultipleValuesOperandWithoutIndex(value.0.read_or_panic().deep_clone())
+impl From<&Wrapper<EdgeMultipleValuesWithoutIndexOperand>> for MultipleValuesComparisonOperand {
+    fn from(value: &Wrapper<EdgeMultipleValuesWithoutIndexOperand>) -> Self {
+        Self::EdgeMultipleValuesWithoutIndexOperand(value.0.read_or_panic().deep_clone())
     }
 }
 
@@ -345,18 +345,18 @@ impl MultipleValuesComparisonOperand {
         medrecord: &MedRecord,
     ) -> MedRecordResult<Vec<MedRecordValue>> {
         Ok(match self {
-            Self::NodeMultipleValuesOperandWithIndex(operand) => operand
+            Self::NodeMultipleValuesWithIndexOperand(operand) => operand
                 .evaluate_backward(medrecord)?
                 .map(|(_, value)| value)
                 .collect(),
-            Self::NodeMultipleValuesOperandWithoutIndex(operand) => {
+            Self::NodeMultipleValuesWithoutIndexOperand(operand) => {
                 operand.evaluate_backward(medrecord)?.collect()
             }
-            Self::EdgeMultipleValuesOperandWithIndex(operand) => operand
+            Self::EdgeMultipleValuesWithIndexOperand(operand) => operand
                 .evaluate_backward(medrecord)?
                 .map(|(_, value)| value)
                 .collect(),
-            Self::EdgeMultipleValuesOperandWithoutIndex(operand) => {
+            Self::EdgeMultipleValuesWithoutIndexOperand(operand) => {
                 operand.evaluate_backward(medrecord)?.collect()
             }
             Self::Values(values) => values.clone(),
@@ -364,16 +364,16 @@ impl MultipleValuesComparisonOperand {
     }
 }
 
-pub type NodeMultipleValuesOperandWithIndex = MultipleValuesOperandWithIndex<NodeOperand>;
-pub type EdgeMultipleValuesOperandWithIndex = MultipleValuesOperandWithIndex<EdgeOperand>;
+pub type NodeMultipleValuesWithIndexOperand = MultipleValuesWithIndexOperand<NodeOperand>;
+pub type EdgeMultipleValuesWithIndexOperand = MultipleValuesWithIndexOperand<EdgeOperand>;
 
 #[derive(Debug, Clone)]
-pub struct MultipleValuesOperandWithIndex<O: RootOperand> {
+pub struct MultipleValuesWithIndexOperand<O: RootOperand> {
     pub(crate) context: MultipleValuesWithIndexContext<O>,
     operations: Vec<MultipleValuesOperationWithIndex<O>>,
 }
 
-impl<O: RootOperand> DeepClone for MultipleValuesOperandWithIndex<O> {
+impl<O: RootOperand> DeepClone for MultipleValuesWithIndexOperand<O> {
     fn deep_clone(&self) -> Self {
         Self {
             context: self.context.clone(),
@@ -382,7 +382,7 @@ impl<O: RootOperand> DeepClone for MultipleValuesOperandWithIndex<O> {
     }
 }
 
-impl<'a, O: 'a + RootOperand> EvaluateForward<'a> for MultipleValuesOperandWithIndex<O> {
+impl<'a, O: 'a + RootOperand> EvaluateForward<'a> for MultipleValuesWithIndexOperand<O> {
     type InputValue = BoxedIterator<'a, (&'a O::Index, MedRecordValue)>;
     type ReturnValue = BoxedIterator<'a, (&'a O::Index, MedRecordValue)>;
 
@@ -401,7 +401,7 @@ impl<'a, O: 'a + RootOperand> EvaluateForward<'a> for MultipleValuesOperandWithI
     }
 }
 
-impl<'a, O: 'a + RootOperand> EvaluateForwardGrouped<'a> for MultipleValuesOperandWithIndex<O> {
+impl<'a, O: 'a + RootOperand> EvaluateForwardGrouped<'a> for MultipleValuesWithIndexOperand<O> {
     fn evaluate_forward_grouped(
         &self,
         medrecord: &'a MedRecord,
@@ -415,7 +415,7 @@ impl<'a, O: 'a + RootOperand> EvaluateForwardGrouped<'a> for MultipleValuesOpera
     }
 }
 
-impl<'a, O: 'a + RootOperand> EvaluateBackward<'a> for MultipleValuesOperandWithIndex<O> {
+impl<'a, O: 'a + RootOperand> EvaluateBackward<'a> for MultipleValuesWithIndexOperand<O> {
     type ReturnValue = BoxedIterator<'a, (&'a O::Index, MedRecordValue)>;
 
     fn evaluate_backward(&self, medrecord: &'a MedRecord) -> MedRecordResult<Self::ReturnValue> {
@@ -425,11 +425,11 @@ impl<'a, O: 'a + RootOperand> EvaluateBackward<'a> for MultipleValuesOperandWith
     }
 }
 
-impl<O: RootOperand> Max for MultipleValuesOperandWithIndex<O> {
-    type ReturnOperand = SingleValueOperandWithIndex<O>;
+impl<O: RootOperand> Max for MultipleValuesWithIndexOperand<O> {
+    type ReturnOperand = SingleValueWithIndexOperand<O>;
 
     fn max(&mut self) -> Wrapper<Self::ReturnOperand> {
-        let operand = Wrapper::<SingleValueOperandWithIndex<O>>::new(
+        let operand = Wrapper::<SingleValueWithIndexOperand<O>>::new(
             self.deep_clone(),
             SingleKindWithIndex::Max,
         );
@@ -443,12 +443,12 @@ impl<O: RootOperand> Max for MultipleValuesOperandWithIndex<O> {
     }
 }
 
-impl<O: RootOperand> Count for MultipleValuesOperandWithIndex<O> {
-    type ReturnOperand = SingleValueOperandWithoutIndex<O>;
+impl<O: RootOperand> Count for MultipleValuesWithIndexOperand<O> {
+    type ReturnOperand = SingleValueWithoutIndexOperand<O>;
 
     fn count(&mut self) -> Wrapper<Self::ReturnOperand> {
-        let operand = Wrapper::<SingleValueOperandWithoutIndex<O>>::new(
-            SingleValueWithoutIndexContext::MultipleValuesOperandWithIndex(self.deep_clone()),
+        let operand = Wrapper::<SingleValueWithoutIndexOperand<O>>::new(
+            SingleValueWithoutIndexContext::MultipleValuesWithIndexOperand(self.deep_clone()),
             SingleKindWithoutIndex::Count,
         );
 
@@ -462,7 +462,7 @@ impl<O: RootOperand> Count for MultipleValuesOperandWithIndex<O> {
     }
 }
 
-impl<O: RootOperand> MultipleValuesOperandWithIndex<O> {
+impl<O: RootOperand> MultipleValuesWithIndexOperand<O> {
     pub(crate) fn new(context: MultipleValuesWithIndexContext<O>) -> Self {
         Self {
             context,
@@ -579,13 +579,13 @@ impl<O: RootOperand> MultipleValuesOperandWithIndex<O> {
 
     pub fn either_or<EQ, OQ>(&mut self, either_query: EQ, or_query: OQ)
     where
-        EQ: FnOnce(&mut Wrapper<MultipleValuesOperandWithIndex<O>>),
-        OQ: FnOnce(&mut Wrapper<MultipleValuesOperandWithIndex<O>>),
+        EQ: FnOnce(&mut Wrapper<MultipleValuesWithIndexOperand<O>>),
+        OQ: FnOnce(&mut Wrapper<MultipleValuesWithIndexOperand<O>>),
     {
         let mut either_operand =
-            Wrapper::<MultipleValuesOperandWithIndex<O>>::new(self.context.clone());
+            Wrapper::<MultipleValuesWithIndexOperand<O>>::new(self.context.clone());
         let mut or_operand =
-            Wrapper::<MultipleValuesOperandWithIndex<O>>::new(self.context.clone());
+            Wrapper::<MultipleValuesWithIndexOperand<O>>::new(self.context.clone());
 
         either_query(&mut either_operand);
         or_query(&mut or_operand);
@@ -599,9 +599,9 @@ impl<O: RootOperand> MultipleValuesOperandWithIndex<O> {
 
     pub fn exclude<Q>(&mut self, query: Q)
     where
-        Q: FnOnce(&mut Wrapper<MultipleValuesOperandWithIndex<O>>),
+        Q: FnOnce(&mut Wrapper<MultipleValuesWithIndexOperand<O>>),
     {
-        let mut operand = Wrapper::<MultipleValuesOperandWithIndex<O>>::new(self.context.clone());
+        let mut operand = Wrapper::<MultipleValuesWithIndexOperand<O>>::new(self.context.clone());
 
         query(&mut operand);
 
@@ -610,19 +610,19 @@ impl<O: RootOperand> MultipleValuesOperandWithIndex<O> {
     }
 }
 
-impl<O: RootOperand> Wrapper<MultipleValuesOperandWithIndex<O>> {
+impl<O: RootOperand> Wrapper<MultipleValuesWithIndexOperand<O>> {
     pub(crate) fn new(context: MultipleValuesWithIndexContext<O>) -> Self {
-        MultipleValuesOperandWithIndex::new(context).into()
+        MultipleValuesWithIndexOperand::new(context).into()
     }
 
-    implement_wrapper_operand_with_return!(min, SingleValueOperandWithIndex<O>);
-    implement_wrapper_operand_with_return!(mean, SingleValueOperandWithoutIndex<O>);
-    implement_wrapper_operand_with_return!(median, SingleValueOperandWithoutIndex<O>);
-    implement_wrapper_operand_with_return!(mode, SingleValueOperandWithoutIndex<O>);
-    implement_wrapper_operand_with_return!(std, SingleValueOperandWithoutIndex<O>);
-    implement_wrapper_operand_with_return!(var, SingleValueOperandWithoutIndex<O>);
-    implement_wrapper_operand_with_return!(sum, SingleValueOperandWithoutIndex<O>);
-    implement_wrapper_operand_with_return!(random, SingleValueOperandWithIndex<O>);
+    implement_wrapper_operand_with_return!(min, SingleValueWithIndexOperand<O>);
+    implement_wrapper_operand_with_return!(mean, SingleValueWithoutIndexOperand<O>);
+    implement_wrapper_operand_with_return!(median, SingleValueWithoutIndexOperand<O>);
+    implement_wrapper_operand_with_return!(mode, SingleValueWithoutIndexOperand<O>);
+    implement_wrapper_operand_with_return!(std, SingleValueWithoutIndexOperand<O>);
+    implement_wrapper_operand_with_return!(var, SingleValueWithoutIndexOperand<O>);
+    implement_wrapper_operand_with_return!(sum, SingleValueWithoutIndexOperand<O>);
+    implement_wrapper_operand_with_return!(random, SingleValueWithIndexOperand<O>);
 
     implement_wrapper_operand_with_argument!(greater_than, impl Into<SingleValueComparisonOperand>);
     implement_wrapper_operand_with_argument!(
@@ -675,30 +675,30 @@ impl<O: RootOperand> Wrapper<MultipleValuesOperandWithIndex<O>> {
 
     pub fn either_or<EQ, OQ>(&self, either_query: EQ, or_query: OQ)
     where
-        EQ: FnOnce(&mut Wrapper<MultipleValuesOperandWithIndex<O>>),
-        OQ: FnOnce(&mut Wrapper<MultipleValuesOperandWithIndex<O>>),
+        EQ: FnOnce(&mut Wrapper<MultipleValuesWithIndexOperand<O>>),
+        OQ: FnOnce(&mut Wrapper<MultipleValuesWithIndexOperand<O>>),
     {
         self.0.write_or_panic().either_or(either_query, or_query);
     }
 
     pub fn exclude<Q>(&self, query: Q)
     where
-        Q: FnOnce(&mut Wrapper<MultipleValuesOperandWithIndex<O>>),
+        Q: FnOnce(&mut Wrapper<MultipleValuesWithIndexOperand<O>>),
     {
         self.0.write_or_panic().exclude(query);
     }
 }
 
-pub type NodeMultipleValuesOperandWithoutIndex = MultipleValuesOperandWithoutIndex<NodeOperand>;
-pub type EdgeMultipleValuesOperandWithoutIndex = MultipleValuesOperandWithoutIndex<EdgeOperand>;
+pub type NodeMultipleValuesWithoutIndexOperand = MultipleValuesWithoutIndexOperand<NodeOperand>;
+pub type EdgeMultipleValuesWithoutIndexOperand = MultipleValuesWithoutIndexOperand<EdgeOperand>;
 
 #[derive(Debug, Clone)]
-pub struct MultipleValuesOperandWithoutIndex<O: RootOperand> {
+pub struct MultipleValuesWithoutIndexOperand<O: RootOperand> {
     pub(crate) context: MultipleValuesWithoutIndexContext<O>,
     operations: Vec<MultipleValuesOperationWithoutIndex<O>>,
 }
 
-impl<O: RootOperand> DeepClone for MultipleValuesOperandWithoutIndex<O> {
+impl<O: RootOperand> DeepClone for MultipleValuesWithoutIndexOperand<O> {
     fn deep_clone(&self) -> Self {
         Self {
             context: self.context.clone(),
@@ -707,7 +707,7 @@ impl<O: RootOperand> DeepClone for MultipleValuesOperandWithoutIndex<O> {
     }
 }
 
-impl<'a, O: 'a + RootOperand> EvaluateForward<'a> for MultipleValuesOperandWithoutIndex<O> {
+impl<'a, O: 'a + RootOperand> EvaluateForward<'a> for MultipleValuesWithoutIndexOperand<O> {
     type InputValue = BoxedIterator<'a, MedRecordValue>;
     type ReturnValue = BoxedIterator<'a, MedRecordValue>;
 
@@ -726,7 +726,7 @@ impl<'a, O: 'a + RootOperand> EvaluateForward<'a> for MultipleValuesOperandWitho
     }
 }
 
-impl<'a, O: 'a + RootOperand> EvaluateForwardGrouped<'a> for MultipleValuesOperandWithoutIndex<O> {
+impl<'a, O: 'a + RootOperand> EvaluateForwardGrouped<'a> for MultipleValuesWithoutIndexOperand<O> {
     fn evaluate_forward_grouped(
         &self,
         medrecord: &'a MedRecord,
@@ -740,7 +740,7 @@ impl<'a, O: 'a + RootOperand> EvaluateForwardGrouped<'a> for MultipleValuesOpera
     }
 }
 
-impl<'a, O: 'a + RootOperand> EvaluateBackward<'a> for MultipleValuesOperandWithoutIndex<O> {
+impl<'a, O: 'a + RootOperand> EvaluateBackward<'a> for MultipleValuesWithoutIndexOperand<O> {
     type ReturnValue = BoxedIterator<'a, MedRecordValue>;
 
     fn evaluate_backward(&self, medrecord: &'a MedRecord) -> MedRecordResult<Self::ReturnValue> {
@@ -750,12 +750,12 @@ impl<'a, O: 'a + RootOperand> EvaluateBackward<'a> for MultipleValuesOperandWith
     }
 }
 
-impl<O: RootOperand> Max for MultipleValuesOperandWithoutIndex<O> {
-    type ReturnOperand = SingleValueOperandWithoutIndex<O>;
+impl<O: RootOperand> Max for MultipleValuesWithoutIndexOperand<O> {
+    type ReturnOperand = SingleValueWithoutIndexOperand<O>;
 
     fn max(&mut self) -> Wrapper<Self::ReturnOperand> {
-        let operand = Wrapper::<SingleValueOperandWithoutIndex<O>>::new(
-            SingleValueWithoutIndexContext::MultipleValuesOperandWithoutIndex(self.deep_clone()),
+        let operand = Wrapper::<SingleValueWithoutIndexOperand<O>>::new(
+            SingleValueWithoutIndexContext::MultipleValuesWithoutIndexOperand(self.deep_clone()),
             SingleKindWithoutIndex::Max,
         );
 
@@ -768,12 +768,12 @@ impl<O: RootOperand> Max for MultipleValuesOperandWithoutIndex<O> {
     }
 }
 
-impl<O: RootOperand> Count for MultipleValuesOperandWithoutIndex<O> {
-    type ReturnOperand = SingleValueOperandWithoutIndex<O>;
+impl<O: RootOperand> Count for MultipleValuesWithoutIndexOperand<O> {
+    type ReturnOperand = SingleValueWithoutIndexOperand<O>;
 
     fn count(&mut self) -> Wrapper<Self::ReturnOperand> {
-        let operand = Wrapper::<SingleValueOperandWithoutIndex<O>>::new(
-            SingleValueWithoutIndexContext::MultipleValuesOperandWithoutIndex(self.deep_clone()),
+        let operand = Wrapper::<SingleValueWithoutIndexOperand<O>>::new(
+            SingleValueWithoutIndexContext::MultipleValuesWithoutIndexOperand(self.deep_clone()),
             SingleKindWithoutIndex::Count,
         );
 
@@ -786,7 +786,7 @@ impl<O: RootOperand> Count for MultipleValuesOperandWithoutIndex<O> {
     }
 }
 
-impl<O: RootOperand> MultipleValuesOperandWithoutIndex<O> {
+impl<O: RootOperand> MultipleValuesWithoutIndexOperand<O> {
     pub(crate) fn new(context: MultipleValuesWithoutIndexContext<O>) -> Self {
         Self {
             context,
@@ -915,13 +915,13 @@ impl<O: RootOperand> MultipleValuesOperandWithoutIndex<O> {
 
     pub fn either_or<EQ, OQ>(&mut self, either_query: EQ, or_query: OQ)
     where
-        EQ: FnOnce(&mut Wrapper<MultipleValuesOperandWithoutIndex<O>>),
-        OQ: FnOnce(&mut Wrapper<MultipleValuesOperandWithoutIndex<O>>),
+        EQ: FnOnce(&mut Wrapper<MultipleValuesWithoutIndexOperand<O>>),
+        OQ: FnOnce(&mut Wrapper<MultipleValuesWithoutIndexOperand<O>>),
     {
         let mut either_operand =
-            Wrapper::<MultipleValuesOperandWithoutIndex<O>>::new(self.context.clone());
+            Wrapper::<MultipleValuesWithoutIndexOperand<O>>::new(self.context.clone());
         let mut or_operand =
-            Wrapper::<MultipleValuesOperandWithoutIndex<O>>::new(self.context.clone());
+            Wrapper::<MultipleValuesWithoutIndexOperand<O>>::new(self.context.clone());
 
         either_query(&mut either_operand);
         or_query(&mut or_operand);
@@ -935,10 +935,10 @@ impl<O: RootOperand> MultipleValuesOperandWithoutIndex<O> {
 
     pub fn exclude<Q>(&mut self, query: Q)
     where
-        Q: FnOnce(&mut Wrapper<MultipleValuesOperandWithoutIndex<O>>),
+        Q: FnOnce(&mut Wrapper<MultipleValuesWithoutIndexOperand<O>>),
     {
         let mut operand =
-            Wrapper::<MultipleValuesOperandWithoutIndex<O>>::new(self.context.clone());
+            Wrapper::<MultipleValuesWithoutIndexOperand<O>>::new(self.context.clone());
 
         query(&mut operand);
 
@@ -947,19 +947,19 @@ impl<O: RootOperand> MultipleValuesOperandWithoutIndex<O> {
     }
 }
 
-impl<O: RootOperand> Wrapper<MultipleValuesOperandWithoutIndex<O>> {
+impl<O: RootOperand> Wrapper<MultipleValuesWithoutIndexOperand<O>> {
     pub(crate) fn new(context: MultipleValuesWithoutIndexContext<O>) -> Self {
-        MultipleValuesOperandWithoutIndex::new(context).into()
+        MultipleValuesWithoutIndexOperand::new(context).into()
     }
 
-    implement_wrapper_operand_with_return!(min, SingleValueOperandWithoutIndex<O>);
-    implement_wrapper_operand_with_return!(mean, SingleValueOperandWithoutIndex<O>);
-    implement_wrapper_operand_with_return!(median, SingleValueOperandWithoutIndex<O>);
-    implement_wrapper_operand_with_return!(mode, SingleValueOperandWithoutIndex<O>);
-    implement_wrapper_operand_with_return!(std, SingleValueOperandWithoutIndex<O>);
-    implement_wrapper_operand_with_return!(var, SingleValueOperandWithoutIndex<O>);
-    implement_wrapper_operand_with_return!(sum, SingleValueOperandWithoutIndex<O>);
-    implement_wrapper_operand_with_return!(random, SingleValueOperandWithoutIndex<O>);
+    implement_wrapper_operand_with_return!(min, SingleValueWithoutIndexOperand<O>);
+    implement_wrapper_operand_with_return!(mean, SingleValueWithoutIndexOperand<O>);
+    implement_wrapper_operand_with_return!(median, SingleValueWithoutIndexOperand<O>);
+    implement_wrapper_operand_with_return!(mode, SingleValueWithoutIndexOperand<O>);
+    implement_wrapper_operand_with_return!(std, SingleValueWithoutIndexOperand<O>);
+    implement_wrapper_operand_with_return!(var, SingleValueWithoutIndexOperand<O>);
+    implement_wrapper_operand_with_return!(sum, SingleValueWithoutIndexOperand<O>);
+    implement_wrapper_operand_with_return!(random, SingleValueWithoutIndexOperand<O>);
 
     implement_wrapper_operand_with_argument!(greater_than, impl Into<SingleValueComparisonOperand>);
     implement_wrapper_operand_with_argument!(
@@ -1012,31 +1012,31 @@ impl<O: RootOperand> Wrapper<MultipleValuesOperandWithoutIndex<O>> {
 
     pub fn either_or<EQ, OQ>(&self, either_query: EQ, or_query: OQ)
     where
-        EQ: FnOnce(&mut Wrapper<MultipleValuesOperandWithoutIndex<O>>),
-        OQ: FnOnce(&mut Wrapper<MultipleValuesOperandWithoutIndex<O>>),
+        EQ: FnOnce(&mut Wrapper<MultipleValuesWithoutIndexOperand<O>>),
+        OQ: FnOnce(&mut Wrapper<MultipleValuesWithoutIndexOperand<O>>),
     {
         self.0.write_or_panic().either_or(either_query, or_query);
     }
 
     pub fn exclude<Q>(&self, query: Q)
     where
-        Q: FnOnce(&mut Wrapper<MultipleValuesOperandWithoutIndex<O>>),
+        Q: FnOnce(&mut Wrapper<MultipleValuesWithoutIndexOperand<O>>),
     {
         self.0.write_or_panic().exclude(query);
     }
 }
 
-pub type NodeSingleValueOperandWithIndex = SingleValueOperandWithIndex<NodeOperand>;
-pub type EdgeSingleValueOperandWithIndex = SingleValueOperandWithIndex<EdgeOperand>;
+pub type NodeSingleValueWithIndexOperand = SingleValueWithIndexOperand<NodeOperand>;
+pub type EdgeSingleValueWithIndexOperand = SingleValueWithIndexOperand<EdgeOperand>;
 
 #[derive(Debug, Clone)]
-pub struct SingleValueOperandWithIndex<O: RootOperand> {
-    context: MultipleValuesOperandWithIndex<O>,
+pub struct SingleValueWithIndexOperand<O: RootOperand> {
+    context: MultipleValuesWithIndexOperand<O>,
     pub(crate) kind: SingleKindWithIndex,
     operations: Vec<SingleValueOperationWithIndex<O>>,
 }
 
-impl<O: RootOperand> DeepClone for SingleValueOperandWithIndex<O> {
+impl<O: RootOperand> DeepClone for SingleValueWithIndexOperand<O> {
     fn deep_clone(&self) -> Self {
         Self {
             context: self.context.deep_clone(),
@@ -1046,7 +1046,7 @@ impl<O: RootOperand> DeepClone for SingleValueOperandWithIndex<O> {
     }
 }
 
-impl<'a, O: 'a + RootOperand> EvaluateForward<'a> for SingleValueOperandWithIndex<O> {
+impl<'a, O: 'a + RootOperand> EvaluateForward<'a> for SingleValueWithIndexOperand<O> {
     type InputValue = Option<(&'a O::Index, MedRecordValue)>;
     type ReturnValue = Option<(&'a O::Index, MedRecordValue)>;
 
@@ -1061,7 +1061,7 @@ impl<'a, O: 'a + RootOperand> EvaluateForward<'a> for SingleValueOperandWithInde
     }
 }
 
-impl<'a, O: 'a + RootOperand> EvaluateForwardGrouped<'a> for SingleValueOperandWithIndex<O> {
+impl<'a, O: 'a + RootOperand> EvaluateForwardGrouped<'a> for SingleValueWithIndexOperand<O> {
     fn evaluate_forward_grouped(
         &self,
         medrecord: &'a MedRecord,
@@ -1075,7 +1075,7 @@ impl<'a, O: 'a + RootOperand> EvaluateForwardGrouped<'a> for SingleValueOperandW
     }
 }
 
-impl<'a, O: 'a + RootOperand> EvaluateBackward<'a> for SingleValueOperandWithIndex<O> {
+impl<'a, O: 'a + RootOperand> EvaluateBackward<'a> for SingleValueWithIndexOperand<O> {
     type ReturnValue = Option<(&'a O::Index, MedRecordValue)>;
 
     fn evaluate_backward(&self, medrecord: &'a MedRecord) -> MedRecordResult<Self::ReturnValue> {
@@ -1087,8 +1087,8 @@ impl<'a, O: 'a + RootOperand> EvaluateBackward<'a> for SingleValueOperandWithInd
     }
 }
 
-impl<'a, O: 'a + RootOperand> ReduceInput<'a> for SingleValueOperandWithIndex<O> {
-    type Context = MultipleValuesOperandWithIndex<O>;
+impl<'a, O: 'a + RootOperand> ReduceInput<'a> for SingleValueWithIndexOperand<O> {
+    type Context = MultipleValuesWithIndexOperand<O>;
 
     #[inline]
     fn reduce_input(
@@ -1105,9 +1105,9 @@ impl<'a, O: 'a + RootOperand> ReduceInput<'a> for SingleValueOperandWithIndex<O>
     }
 }
 
-impl<O: RootOperand> SingleValueOperandWithIndex<O> {
+impl<O: RootOperand> SingleValueWithIndexOperand<O> {
     pub(crate) fn new(
-        context: MultipleValuesOperandWithIndex<O>,
+        context: MultipleValuesWithIndexOperand<O>,
         kind: SingleKindWithIndex,
     ) -> Self {
         Self {
@@ -1206,13 +1206,13 @@ impl<O: RootOperand> SingleValueOperandWithIndex<O> {
 
     pub fn eiter_or<EQ, OQ>(&mut self, either_query: EQ, or_query: OQ)
     where
-        EQ: FnOnce(&mut Wrapper<SingleValueOperandWithIndex<O>>),
-        OQ: FnOnce(&mut Wrapper<SingleValueOperandWithIndex<O>>),
+        EQ: FnOnce(&mut Wrapper<SingleValueWithIndexOperand<O>>),
+        OQ: FnOnce(&mut Wrapper<SingleValueWithIndexOperand<O>>),
     {
         let mut either_operand =
-            Wrapper::<SingleValueOperandWithIndex<O>>::new(self.context.clone(), self.kind.clone());
+            Wrapper::<SingleValueWithIndexOperand<O>>::new(self.context.clone(), self.kind.clone());
         let mut or_operand =
-            Wrapper::<SingleValueOperandWithIndex<O>>::new(self.context.clone(), self.kind.clone());
+            Wrapper::<SingleValueWithIndexOperand<O>>::new(self.context.clone(), self.kind.clone());
 
         either_query(&mut either_operand);
         or_query(&mut or_operand);
@@ -1226,10 +1226,10 @@ impl<O: RootOperand> SingleValueOperandWithIndex<O> {
 
     pub fn exclude<Q>(&mut self, query: Q)
     where
-        Q: FnOnce(&mut Wrapper<SingleValueOperandWithIndex<O>>),
+        Q: FnOnce(&mut Wrapper<SingleValueWithIndexOperand<O>>),
     {
         let mut operand =
-            Wrapper::<SingleValueOperandWithIndex<O>>::new(self.context.clone(), self.kind.clone());
+            Wrapper::<SingleValueWithIndexOperand<O>>::new(self.context.clone(), self.kind.clone());
 
         query(&mut operand);
 
@@ -1239,19 +1239,19 @@ impl<O: RootOperand> SingleValueOperandWithIndex<O> {
 
     pub(crate) fn push_merge_operation(
         &mut self,
-        operand: Wrapper<MultipleValuesOperandWithIndex<O>>,
+        operand: Wrapper<MultipleValuesWithIndexOperand<O>>,
     ) {
         self.operations
             .push(SingleValueOperationWithIndex::Merge { operand });
     }
 }
 
-impl<O: RootOperand> Wrapper<SingleValueOperandWithIndex<O>> {
+impl<O: RootOperand> Wrapper<SingleValueWithIndexOperand<O>> {
     pub(crate) fn new(
-        context: MultipleValuesOperandWithIndex<O>,
+        context: MultipleValuesWithIndexOperand<O>,
         kind: SingleKindWithIndex,
     ) -> Self {
-        SingleValueOperandWithIndex::new(context, kind).into()
+        SingleValueWithIndexOperand::new(context, kind).into()
     }
 
     implement_wrapper_operand_with_argument!(greater_than, impl Into<SingleValueComparisonOperand>);
@@ -1303,35 +1303,35 @@ impl<O: RootOperand> Wrapper<SingleValueOperandWithIndex<O>> {
 
     pub fn either_or<EQ, OQ>(&self, either_query: EQ, or_query: OQ)
     where
-        EQ: FnOnce(&mut Wrapper<SingleValueOperandWithIndex<O>>),
-        OQ: FnOnce(&mut Wrapper<SingleValueOperandWithIndex<O>>),
+        EQ: FnOnce(&mut Wrapper<SingleValueWithIndexOperand<O>>),
+        OQ: FnOnce(&mut Wrapper<SingleValueWithIndexOperand<O>>),
     {
         self.0.write_or_panic().eiter_or(either_query, or_query);
     }
 
     pub fn exclude<Q>(&self, query: Q)
     where
-        Q: FnOnce(&mut Wrapper<SingleValueOperandWithIndex<O>>),
+        Q: FnOnce(&mut Wrapper<SingleValueWithIndexOperand<O>>),
     {
         self.0.write_or_panic().exclude(query);
     }
 
-    pub(crate) fn push_merge_operation(&self, operand: Wrapper<MultipleValuesOperandWithIndex<O>>) {
+    pub(crate) fn push_merge_operation(&self, operand: Wrapper<MultipleValuesWithIndexOperand<O>>) {
         self.0.write_or_panic().push_merge_operation(operand);
     }
 }
 
-pub type NodeSingleValueOperandWithoutIndex = SingleValueOperandWithoutIndex<NodeOperand>;
-pub type EdgeSingleValueOperandWithoutIndex = SingleValueOperandWithoutIndex<EdgeOperand>;
+pub type NodeSingleValueWithoutIndexOperand = SingleValueWithoutIndexOperand<NodeOperand>;
+pub type EdgeSingleValueWithoutIndexOperand = SingleValueWithoutIndexOperand<EdgeOperand>;
 
 #[derive(Debug, Clone)]
-pub struct SingleValueOperandWithoutIndex<O: RootOperand> {
+pub struct SingleValueWithoutIndexOperand<O: RootOperand> {
     context: SingleValueWithoutIndexContext<O>,
     pub(crate) kind: SingleKindWithoutIndex,
     operations: Vec<SingleValueOperationWithoutIndex<O>>,
 }
 
-impl<O: RootOperand> DeepClone for SingleValueOperandWithoutIndex<O> {
+impl<O: RootOperand> DeepClone for SingleValueWithoutIndexOperand<O> {
     fn deep_clone(&self) -> Self {
         Self {
             context: self.context.deep_clone(),
@@ -1341,7 +1341,7 @@ impl<O: RootOperand> DeepClone for SingleValueOperandWithoutIndex<O> {
     }
 }
 
-impl<'a, O: 'a + RootOperand> EvaluateForward<'a> for SingleValueOperandWithoutIndex<O> {
+impl<'a, O: 'a + RootOperand> EvaluateForward<'a> for SingleValueWithoutIndexOperand<O> {
     type InputValue = Option<MedRecordValue>;
     type ReturnValue = Option<MedRecordValue>;
 
@@ -1356,7 +1356,7 @@ impl<'a, O: 'a + RootOperand> EvaluateForward<'a> for SingleValueOperandWithoutI
     }
 }
 
-impl<'a, O: 'a + RootOperand> EvaluateForwardGrouped<'a> for SingleValueOperandWithoutIndex<O> {
+impl<'a, O: 'a + RootOperand> EvaluateForwardGrouped<'a> for SingleValueWithoutIndexOperand<O> {
     fn evaluate_forward_grouped(
         &self,
         medrecord: &'a MedRecord,
@@ -1370,7 +1370,7 @@ impl<'a, O: 'a + RootOperand> EvaluateForwardGrouped<'a> for SingleValueOperandW
     }
 }
 
-impl<'a, O: 'a + RootOperand> EvaluateBackward<'a> for SingleValueOperandWithoutIndex<O> {
+impl<'a, O: 'a + RootOperand> EvaluateBackward<'a> for SingleValueWithoutIndexOperand<O> {
     type ReturnValue = Option<MedRecordValue>;
 
     fn evaluate_backward(&self, medrecord: &'a MedRecord) -> MedRecordResult<Self::ReturnValue> {
@@ -1413,7 +1413,7 @@ impl<'a, O: 'a + RootOperand> EvaluateBackward<'a> for SingleValueOperandWithout
     }
 }
 
-impl<O: RootOperand> SingleValueOperandWithoutIndex<O> {
+impl<O: RootOperand> SingleValueWithoutIndexOperand<O> {
     pub(crate) fn new(
         context: SingleValueWithoutIndexContext<O>,
         kind: SingleKindWithoutIndex,
@@ -1522,14 +1522,14 @@ impl<O: RootOperand> SingleValueOperandWithoutIndex<O> {
 
     pub fn eiter_or<EQ, OQ>(&mut self, either_query: EQ, or_query: OQ)
     where
-        EQ: FnOnce(&mut Wrapper<SingleValueOperandWithoutIndex<O>>),
-        OQ: FnOnce(&mut Wrapper<SingleValueOperandWithoutIndex<O>>),
+        EQ: FnOnce(&mut Wrapper<SingleValueWithoutIndexOperand<O>>),
+        OQ: FnOnce(&mut Wrapper<SingleValueWithoutIndexOperand<O>>),
     {
-        let mut either_operand = Wrapper::<SingleValueOperandWithoutIndex<O>>::new(
+        let mut either_operand = Wrapper::<SingleValueWithoutIndexOperand<O>>::new(
             self.context.clone(),
             self.kind.clone(),
         );
-        let mut or_operand = Wrapper::<SingleValueOperandWithoutIndex<O>>::new(
+        let mut or_operand = Wrapper::<SingleValueWithoutIndexOperand<O>>::new(
             self.context.clone(),
             self.kind.clone(),
         );
@@ -1546,9 +1546,9 @@ impl<O: RootOperand> SingleValueOperandWithoutIndex<O> {
 
     pub fn exclude<Q>(&mut self, query: Q)
     where
-        Q: FnOnce(&mut Wrapper<SingleValueOperandWithoutIndex<O>>),
+        Q: FnOnce(&mut Wrapper<SingleValueWithoutIndexOperand<O>>),
     {
-        let mut operand = Wrapper::<SingleValueOperandWithoutIndex<O>>::new(
+        let mut operand = Wrapper::<SingleValueWithoutIndexOperand<O>>::new(
             self.context.clone(),
             self.kind.clone(),
         );
@@ -1561,19 +1561,19 @@ impl<O: RootOperand> SingleValueOperandWithoutIndex<O> {
 
     pub(crate) fn push_merge_operation(
         &mut self,
-        operand: Wrapper<MultipleValuesOperandWithoutIndex<O>>,
+        operand: Wrapper<MultipleValuesWithoutIndexOperand<O>>,
     ) {
         self.operations
             .push(SingleValueOperationWithoutIndex::Merge { operand });
     }
 }
 
-impl<O: RootOperand> Wrapper<SingleValueOperandWithoutIndex<O>> {
+impl<O: RootOperand> Wrapper<SingleValueWithoutIndexOperand<O>> {
     pub(crate) fn new(
         context: SingleValueWithoutIndexContext<O>,
         kind: SingleKindWithoutIndex,
     ) -> Self {
-        SingleValueOperandWithoutIndex::new(context, kind).into()
+        SingleValueWithoutIndexOperand::new(context, kind).into()
     }
 
     implement_wrapper_operand_with_argument!(greater_than, impl Into<SingleValueComparisonOperand>);
@@ -1625,22 +1625,22 @@ impl<O: RootOperand> Wrapper<SingleValueOperandWithoutIndex<O>> {
 
     pub fn either_or<EQ, OQ>(&self, either_query: EQ, or_query: OQ)
     where
-        EQ: FnOnce(&mut Wrapper<SingleValueOperandWithoutIndex<O>>),
-        OQ: FnOnce(&mut Wrapper<SingleValueOperandWithoutIndex<O>>),
+        EQ: FnOnce(&mut Wrapper<SingleValueWithoutIndexOperand<O>>),
+        OQ: FnOnce(&mut Wrapper<SingleValueWithoutIndexOperand<O>>),
     {
         self.0.write_or_panic().eiter_or(either_query, or_query);
     }
 
     pub fn exclude<Q>(&self, query: Q)
     where
-        Q: FnOnce(&mut Wrapper<SingleValueOperandWithoutIndex<O>>),
+        Q: FnOnce(&mut Wrapper<SingleValueWithoutIndexOperand<O>>),
     {
         self.0.write_or_panic().exclude(query);
     }
 
     pub(crate) fn push_merge_operation(
         &self,
-        operand: Wrapper<MultipleValuesOperandWithoutIndex<O>>,
+        operand: Wrapper<MultipleValuesWithoutIndexOperand<O>>,
     ) {
         self.0.write_or_panic().push_merge_operation(operand);
     }

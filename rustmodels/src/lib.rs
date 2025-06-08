@@ -9,19 +9,19 @@ use medrecord::{
     },
     querying::{
         attributes::{
-            PyEdgeAttributesTreeOperand, PyEdgeMultipleAttributesOperandWithIndex,
-            PyEdgeMultipleAttributesOperandWithoutIndex, PyEdgeSingleAttributeOperandWithIndex,
-            PyEdgeSingleAttributeOperandWithoutIndex, PyNodeAttributesTreeOperand,
-            PyNodeMultipleAttributesOperandWithIndex, PyNodeMultipleAttributesOperandWithoutIndex,
-            PyNodeSingleAttributeOperandWithIndex, PyNodeSingleAttributeOperandWithoutIndex,
+            PyEdgeAttributesTreeOperand, PyEdgeMultipleAttributesWithIndexOperand,
+            PyEdgeMultipleAttributesWithoutIndexOperand, PyEdgeSingleAttributeWithIndexOperand,
+            PyEdgeSingleAttributeWithoutIndexOperand, PyNodeAttributesTreeOperand,
+            PyNodeMultipleAttributesWithIndexOperand, PyNodeMultipleAttributesWithoutIndexOperand,
+            PyNodeSingleAttributeWithIndexOperand, PyNodeSingleAttributeWithoutIndexOperand,
         },
         edges::{PyEdgeIndexOperand, PyEdgeIndicesOperand, PyEdgeOperand},
         nodes::{PyEdgeDirection, PyNodeIndexOperand, PyNodeIndicesOperand, PyNodeOperand},
         values::{
-            PyEdgeMultipleValuesOperandWithIndex, PyEdgeMultipleValuesOperandWithoutIndex,
-            PyEdgeSingleValueOperandWithIndex, PyEdgeSingleValueOperandWithoutIndex,
-            PyNodeMultipleValuesOperandWithIndex, PyNodeMultipleValuesOperandWithoutIndex,
-            PyNodeSingleValueOperandWithIndex, PyNodeSingleValueOperandWithoutIndex,
+            PyEdgeMultipleValuesWithIndexOperand, PyEdgeMultipleValuesWithoutIndexOperand,
+            PyEdgeSingleValueWithIndexOperand, PyEdgeSingleValueWithoutIndexOperand,
+            PyNodeMultipleValuesWithIndexOperand, PyNodeMultipleValuesWithoutIndexOperand,
+            PyNodeSingleValueWithIndexOperand, PyNodeSingleValueWithoutIndexOperand,
         },
     },
     schema::{PyAttributeDataType, PyAttributeType, PyGroupSchema, PySchema, PySchemaType},
@@ -60,25 +60,25 @@ fn _medmodels(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyEdgeIndicesOperand>()?;
     m.add_class::<PyEdgeIndexOperand>()?;
 
-    m.add_class::<PyNodeMultipleValuesOperandWithIndex>()?;
-    m.add_class::<PyNodeMultipleValuesOperandWithoutIndex>()?;
-    m.add_class::<PyEdgeMultipleValuesOperandWithIndex>()?;
-    m.add_class::<PyEdgeMultipleValuesOperandWithoutIndex>()?;
-    m.add_class::<PyNodeSingleValueOperandWithIndex>()?;
-    m.add_class::<PyNodeSingleValueOperandWithoutIndex>()?;
-    m.add_class::<PyEdgeSingleValueOperandWithIndex>()?;
-    m.add_class::<PyEdgeSingleValueOperandWithoutIndex>()?;
+    m.add_class::<PyNodeMultipleValuesWithIndexOperand>()?;
+    m.add_class::<PyNodeMultipleValuesWithoutIndexOperand>()?;
+    m.add_class::<PyEdgeMultipleValuesWithIndexOperand>()?;
+    m.add_class::<PyEdgeMultipleValuesWithoutIndexOperand>()?;
+    m.add_class::<PyNodeSingleValueWithIndexOperand>()?;
+    m.add_class::<PyNodeSingleValueWithoutIndexOperand>()?;
+    m.add_class::<PyEdgeSingleValueWithIndexOperand>()?;
+    m.add_class::<PyEdgeSingleValueWithoutIndexOperand>()?;
 
     m.add_class::<PyNodeAttributesTreeOperand>()?;
     m.add_class::<PyEdgeAttributesTreeOperand>()?;
-    m.add_class::<PyNodeMultipleAttributesOperandWithIndex>()?;
-    m.add_class::<PyNodeMultipleAttributesOperandWithoutIndex>()?;
-    m.add_class::<PyEdgeMultipleAttributesOperandWithIndex>()?;
-    m.add_class::<PyEdgeMultipleAttributesOperandWithoutIndex>()?;
-    m.add_class::<PyNodeSingleAttributeOperandWithIndex>()?;
-    m.add_class::<PyNodeSingleAttributeOperandWithoutIndex>()?;
-    m.add_class::<PyEdgeSingleAttributeOperandWithIndex>()?;
-    m.add_class::<PyEdgeSingleAttributeOperandWithoutIndex>()?;
+    m.add_class::<PyNodeMultipleAttributesWithIndexOperand>()?;
+    m.add_class::<PyNodeMultipleAttributesWithoutIndexOperand>()?;
+    m.add_class::<PyEdgeMultipleAttributesWithIndexOperand>()?;
+    m.add_class::<PyEdgeMultipleAttributesWithoutIndexOperand>()?;
+    m.add_class::<PyNodeSingleAttributeWithIndexOperand>()?;
+    m.add_class::<PyNodeSingleAttributeWithoutIndexOperand>()?;
+    m.add_class::<PyEdgeSingleAttributeWithIndexOperand>()?;
+    m.add_class::<PyEdgeSingleAttributeWithoutIndexOperand>()?;
 
     Ok(())
 }

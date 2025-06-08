@@ -3,7 +3,7 @@ mod operand;
 mod operation;
 
 use super::{
-    attributes::{MultipleAttributesOperandWithIndex, MultipleAttributesOperationWithIndex},
+    attributes::{MultipleAttributesOperationWithIndex, MultipleAttributesWithIndexOperand},
     edges::EdgeOperand,
     group_by::GroupOperand,
     nodes::NodeOperand,
@@ -15,13 +15,13 @@ use crate::{
     MedRecord,
 };
 pub use operand::{
-    EdgeMultipleValuesOperandWithIndex, EdgeMultipleValuesOperandWithoutIndex,
-    EdgeSingleValueOperandWithIndex, EdgeSingleValueOperandWithoutIndex,
-    MultipleValuesComparisonOperand, MultipleValuesOperandWithIndex,
-    MultipleValuesOperandWithoutIndex, NodeMultipleValuesOperandWithIndex,
-    NodeMultipleValuesOperandWithoutIndex, NodeSingleValueOperandWithIndex,
-    NodeSingleValueOperandWithoutIndex, SingleValueComparisonOperand, SingleValueOperandWithIndex,
-    SingleValueOperandWithoutIndex,
+    EdgeMultipleValuesWithIndexOperand, EdgeMultipleValuesWithoutIndexOperand,
+    EdgeSingleValueWithIndexOperand, EdgeSingleValueWithoutIndexOperand,
+    MultipleValuesComparisonOperand, MultipleValuesWithIndexOperand,
+    MultipleValuesWithoutIndexOperand, NodeMultipleValuesWithIndexOperand,
+    NodeMultipleValuesWithoutIndexOperand, NodeSingleValueWithIndexOperand,
+    NodeSingleValueWithoutIndexOperand, SingleValueComparisonOperand, SingleValueWithIndexOperand,
+    SingleValueWithoutIndexOperand,
 };
 use std::fmt::Display;
 
@@ -200,8 +200,8 @@ impl GetValues<EdgeIndex> for EdgeOperand {
 #[derive(Debug, Clone)]
 pub enum MultipleValuesWithIndexContext<O: RootOperand> {
     Operand((O, MedRecordAttribute)),
-    MultipleAttributesOperand(MultipleAttributesOperandWithIndex<O>),
-    GroupByOperand(GroupOperand<SingleValueOperandWithIndex<O>>),
+    MultipleAttributesOperand(MultipleAttributesWithIndexOperand<O>),
+    GroupByOperand(GroupOperand<SingleValueWithIndexOperand<O>>),
 }
 
 impl<O: RootOperand> MultipleValuesWithIndexContext<O> {
@@ -234,7 +234,7 @@ impl<O: RootOperand> MultipleValuesWithIndexContext<O> {
 
 #[derive(Debug, Clone)]
 pub enum MultipleValuesWithoutIndexContext<O: RootOperand> {
-    GroupByOperand(GroupOperand<SingleValueOperandWithoutIndex<O>>),
+    GroupByOperand(GroupOperand<SingleValueWithoutIndexOperand<O>>),
 }
 
 impl<O: RootOperand> MultipleValuesWithoutIndexContext<O> {
@@ -257,18 +257,18 @@ impl<O: RootOperand> MultipleValuesWithoutIndexContext<O> {
 
 #[derive(Debug, Clone)]
 pub enum SingleValueWithoutIndexContext<O: RootOperand> {
-    MultipleValuesOperandWithIndex(MultipleValuesOperandWithIndex<O>),
-    MultipleValuesOperandWithoutIndex(MultipleValuesOperandWithoutIndex<O>),
+    MultipleValuesWithIndexOperand(MultipleValuesWithIndexOperand<O>),
+    MultipleValuesWithoutIndexOperand(MultipleValuesWithoutIndexOperand<O>),
 }
 
 impl<O: RootOperand> DeepClone for SingleValueWithoutIndexContext<O> {
     fn deep_clone(&self) -> Self {
         match self {
-            Self::MultipleValuesOperandWithIndex(operand) => {
-                Self::MultipleValuesOperandWithIndex(operand.deep_clone())
+            Self::MultipleValuesWithIndexOperand(operand) => {
+                Self::MultipleValuesWithIndexOperand(operand.deep_clone())
             }
-            Self::MultipleValuesOperandWithoutIndex(operand) => {
-                Self::MultipleValuesOperandWithoutIndex(operand.deep_clone())
+            Self::MultipleValuesWithoutIndexOperand(operand) => {
+                Self::MultipleValuesWithoutIndexOperand(operand.deep_clone())
             }
         }
     }
@@ -283,12 +283,12 @@ impl<O: RootOperand> SingleValueWithoutIndexContext<O> {
         O: 'a,
     {
         Ok(match self {
-            Self::MultipleValuesOperandWithIndex(operand) => Box::new(
+            Self::MultipleValuesWithIndexOperand(operand) => Box::new(
                 operand
                     .evaluate_backward(medrecord)?
                     .map(|(_, value)| value),
             ),
-            Self::MultipleValuesOperandWithoutIndex(operand) => {
+            Self::MultipleValuesWithoutIndexOperand(operand) => {
                 Box::new(operand.evaluate_backward(medrecord)?)
             }
         })

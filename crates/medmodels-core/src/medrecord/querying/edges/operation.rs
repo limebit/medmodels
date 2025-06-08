@@ -15,7 +15,7 @@ use crate::{
             group_by::{GroupOperand, PartitionGroups},
             nodes::NodeOperand,
             tee_grouped_iterator,
-            values::{MultipleValuesOperandWithIndex, MultipleValuesWithIndexContext},
+            values::{MultipleValuesWithIndexContext, MultipleValuesWithIndexOperand},
             wrapper::{CardinalityWrapper, Wrapper},
             BoxedIterator, DeepClone, EvaluateForward, EvaluateForwardGrouped, GroupedIterator,
             ReadWriteOrPanic,
@@ -34,7 +34,7 @@ use std::{
 #[derive(Debug, Clone)]
 pub enum EdgeOperation {
     Values {
-        operand: Wrapper<MultipleValuesOperandWithIndex<EdgeOperand>>,
+        operand: Wrapper<MultipleValuesWithIndexOperand<EdgeOperand>>,
     },
     Attributes {
         operand: Wrapper<AttributesTreeOperand<EdgeOperand>>,
@@ -203,7 +203,7 @@ impl EdgeOperation {
     fn evaluate_values<'a>(
         medrecord: &'a MedRecord,
         edge_indices: impl Iterator<Item = &'a EdgeIndex> + 'a,
-        operand: Wrapper<MultipleValuesOperandWithIndex<EdgeOperand>>,
+        operand: Wrapper<MultipleValuesWithIndexOperand<EdgeOperand>>,
     ) -> MedRecordResult<impl Iterator<Item = &'a EdgeIndex>> {
         let MultipleValuesWithIndexContext::Operand((_, ref attribute)) =
             operand.0.read_or_panic().context
@@ -455,7 +455,7 @@ impl EdgeOperation {
     fn evaluate_values_grouped<'a>(
         medrecord: &'a MedRecord,
         edge_indices: GroupedIterator<'a, BoxedIterator<'a, &'a EdgeIndex>>,
-        operand: Wrapper<MultipleValuesOperandWithIndex<EdgeOperand>>,
+        operand: Wrapper<MultipleValuesWithIndexOperand<EdgeOperand>>,
     ) -> MedRecordResult<GroupedIterator<'a, BoxedIterator<'a, &'a EdgeIndex>>> {
         let MultipleValuesWithIndexContext::Operand((_, ref attribute)) =
             operand.0.read_or_panic().context
@@ -468,7 +468,7 @@ impl EdgeOperation {
                 (
                         key,
                         Box::new(Self::get_values(medrecord, edge_indices, attribute.clone()))
-                            as <MultipleValuesOperandWithIndex<EdgeOperand> as EvaluateForward<
+                            as <MultipleValuesWithIndexOperand<EdgeOperand> as EvaluateForward<
                                 'a,
                             >>::InputValue,
                     )

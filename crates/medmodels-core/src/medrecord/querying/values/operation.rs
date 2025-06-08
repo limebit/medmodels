@@ -1,7 +1,7 @@
 use super::{
     operand::{
-        MultipleValuesComparisonOperand, MultipleValuesOperandWithIndex,
-        SingleValueComparisonOperand, SingleValueOperandWithIndex,
+        MultipleValuesComparisonOperand, MultipleValuesWithIndexOperand,
+        SingleValueComparisonOperand, SingleValueWithIndexOperand,
     },
     BinaryArithmeticKind, MultipleComparisonKind, SingleComparisonKind, SingleKindWithIndex,
     UnaryArithmeticKind,
@@ -16,7 +16,7 @@ use crate::{
         querying::{
             tee_grouped_iterator,
             values::{
-                operand::{MultipleValuesOperandWithoutIndex, SingleValueOperandWithoutIndex},
+                operand::{MultipleValuesWithoutIndexOperand, SingleValueWithoutIndexOperand},
                 SingleKindWithoutIndex,
             },
             BoxedIterator, DeepClone, EvaluateForward, EvaluateForwardGrouped, GroupedIterator,
@@ -59,10 +59,10 @@ macro_rules! get_median {
 #[derive(Debug, Clone)]
 pub enum MultipleValuesOperationWithIndex<O: RootOperand> {
     ValueOperationWithIndex {
-        operand: Wrapper<SingleValueOperandWithIndex<O>>,
+        operand: Wrapper<SingleValueWithIndexOperand<O>>,
     },
     ValueOperationWithoutIndex {
-        operand: Wrapper<SingleValueOperandWithoutIndex<O>>,
+        operand: Wrapper<SingleValueWithoutIndexOperand<O>>,
     },
     SingleValueComparisonOperation {
         operand: SingleValueComparisonOperand,
@@ -94,11 +94,11 @@ pub enum MultipleValuesOperationWithIndex<O: RootOperand> {
     IsMin,
 
     EitherOr {
-        either: Wrapper<MultipleValuesOperandWithIndex<O>>,
-        or: Wrapper<MultipleValuesOperandWithIndex<O>>,
+        either: Wrapper<MultipleValuesWithIndexOperand<O>>,
+        or: Wrapper<MultipleValuesWithIndexOperand<O>>,
     },
     Exclude {
-        operand: Wrapper<MultipleValuesOperandWithIndex<O>>,
+        operand: Wrapper<MultipleValuesWithIndexOperand<O>>,
     },
 }
 
@@ -319,7 +319,7 @@ impl<O: RootOperand> MultipleValuesOperationWithIndex<O> {
     fn evaluate_value_operation_with_index<'a>(
         medrecord: &'a MedRecord,
         values: impl Iterator<Item = (&'a O::Index, MedRecordValue)> + 'a,
-        operand: &Wrapper<SingleValueOperandWithIndex<O>>,
+        operand: &Wrapper<SingleValueWithIndexOperand<O>>,
     ) -> MedRecordResult<BoxedIterator<'a, (&'a O::Index, MedRecordValue)>>
     where
         O: 'a,
@@ -346,7 +346,7 @@ impl<O: RootOperand> MultipleValuesOperationWithIndex<O> {
     fn evaluate_value_operation_without_index<'a>(
         medrecord: &'a MedRecord,
         values: impl Iterator<Item = (&'a O::Index, MedRecordValue)> + 'a,
-        operand: &Wrapper<SingleValueOperandWithoutIndex<O>>,
+        operand: &Wrapper<SingleValueWithoutIndexOperand<O>>,
     ) -> MedRecordResult<BoxedIterator<'a, (&'a O::Index, MedRecordValue)>>
     where
         O: 'a,
@@ -551,8 +551,8 @@ impl<O: RootOperand> MultipleValuesOperationWithIndex<O> {
     fn evaluate_either_or<'a>(
         medrecord: &'a MedRecord,
         values: impl Iterator<Item = (&'a O::Index, MedRecordValue)> + 'a,
-        either: &Wrapper<MultipleValuesOperandWithIndex<O>>,
-        or: &Wrapper<MultipleValuesOperandWithIndex<O>>,
+        either: &Wrapper<MultipleValuesWithIndexOperand<O>>,
+        or: &Wrapper<MultipleValuesWithIndexOperand<O>>,
     ) -> MedRecordResult<BoxedIterator<'a, (&'a O::Index, MedRecordValue)>>
     where
         O: 'a,
@@ -573,7 +573,7 @@ impl<O: RootOperand> MultipleValuesOperationWithIndex<O> {
     fn evaluate_exclude<'a>(
         medrecord: &'a MedRecord,
         values: impl Iterator<Item = (&'a O::Index, MedRecordValue)> + 'a,
-        operand: &Wrapper<MultipleValuesOperandWithIndex<O>>,
+        operand: &Wrapper<MultipleValuesWithIndexOperand<O>>,
     ) -> MedRecordResult<BoxedIterator<'a, (&'a O::Index, MedRecordValue)>>
     where
         O: 'a,
@@ -701,7 +701,7 @@ impl<O: RootOperand> MultipleValuesOperationWithIndex<O> {
     fn evaluate_value_operation_with_index_grouped<'a>(
         medrecord: &'a MedRecord,
         values: GroupedIterator<'a, BoxedIterator<'a, (&'a O::Index, MedRecordValue)>>,
-        operand: &Wrapper<SingleValueOperandWithIndex<O>>,
+        operand: &Wrapper<SingleValueWithIndexOperand<O>>,
     ) -> MedRecordResult<GroupedIterator<'a, BoxedIterator<'a, (&'a O::Index, MedRecordValue)>>>
     where
         O: 'a,
@@ -753,7 +753,7 @@ impl<O: RootOperand> MultipleValuesOperationWithIndex<O> {
     fn evaluate_value_operation_without_index_grouped<'a>(
         medrecord: &'a MedRecord,
         values: GroupedIterator<'a, BoxedIterator<'a, (&'a O::Index, MedRecordValue)>>,
-        operand: &Wrapper<SingleValueOperandWithoutIndex<O>>,
+        operand: &Wrapper<SingleValueWithoutIndexOperand<O>>,
     ) -> MedRecordResult<GroupedIterator<'a, BoxedIterator<'a, (&'a O::Index, MedRecordValue)>>>
     where
         O: 'a,
@@ -827,7 +827,7 @@ impl<O: RootOperand> MultipleValuesOperationWithIndex<O> {
 #[derive(Debug, Clone)]
 pub enum MultipleValuesOperationWithoutIndex<O: RootOperand> {
     ValueOperation {
-        operand: Wrapper<SingleValueOperandWithoutIndex<O>>,
+        operand: Wrapper<SingleValueWithoutIndexOperand<O>>,
     },
     SingleValueComparisonOperation {
         operand: SingleValueComparisonOperand,
@@ -859,11 +859,11 @@ pub enum MultipleValuesOperationWithoutIndex<O: RootOperand> {
     IsMin,
 
     EitherOr {
-        either: Wrapper<MultipleValuesOperandWithoutIndex<O>>,
-        or: Wrapper<MultipleValuesOperandWithoutIndex<O>>,
+        either: Wrapper<MultipleValuesWithoutIndexOperand<O>>,
+        or: Wrapper<MultipleValuesWithoutIndexOperand<O>>,
     },
     Exclude {
-        operand: Wrapper<MultipleValuesOperandWithoutIndex<O>>,
+        operand: Wrapper<MultipleValuesWithoutIndexOperand<O>>,
     },
 }
 
@@ -1316,7 +1316,7 @@ impl<O: RootOperand> MultipleValuesOperationWithoutIndex<O> {
     fn evaluate_value_operation<'a>(
         medrecord: &'a MedRecord,
         values: impl Iterator<Item = MedRecordValue> + 'a,
-        operand: &Wrapper<SingleValueOperandWithoutIndex<O>>,
+        operand: &Wrapper<SingleValueWithoutIndexOperand<O>>,
     ) -> MedRecordResult<BoxedIterator<'a, MedRecordValue>> {
         let (values_1, values_2) = Itertools::tee(values);
 
@@ -1505,8 +1505,8 @@ impl<O: RootOperand> MultipleValuesOperationWithoutIndex<O> {
     fn evaluate_either_or<'a>(
         medrecord: &'a MedRecord,
         values: impl Iterator<Item = MedRecordValue> + 'a,
-        either: &Wrapper<MultipleValuesOperandWithoutIndex<O>>,
-        or: &Wrapper<MultipleValuesOperandWithoutIndex<O>>,
+        either: &Wrapper<MultipleValuesWithoutIndexOperand<O>>,
+        or: &Wrapper<MultipleValuesWithoutIndexOperand<O>>,
     ) -> MedRecordResult<BoxedIterator<'a, MedRecordValue>>
     where
         O: 'a,
@@ -1523,7 +1523,7 @@ impl<O: RootOperand> MultipleValuesOperationWithoutIndex<O> {
     fn evaluate_exclude<'a>(
         _medrecord: &'a MedRecord,
         values: impl Iterator<Item = MedRecordValue> + 'a,
-        _operand: &Wrapper<MultipleValuesOperandWithoutIndex<O>>,
+        _operand: &Wrapper<MultipleValuesWithoutIndexOperand<O>>,
     ) -> MedRecordResult<BoxedIterator<'a, MedRecordValue>>
     where
         O: 'a,
@@ -1641,7 +1641,7 @@ impl<O: RootOperand> MultipleValuesOperationWithoutIndex<O> {
     fn evaluate_value_operation_grouped<'a>(
         medrecord: &'a MedRecord,
         values: GroupedIterator<'a, BoxedIterator<'a, MedRecordValue>>,
-        operand: &Wrapper<SingleValueOperandWithoutIndex<O>>,
+        operand: &Wrapper<SingleValueWithoutIndexOperand<O>>,
     ) -> MedRecordResult<GroupedIterator<'a, BoxedIterator<'a, MedRecordValue>>>
     where
         O: 'a,
@@ -1739,15 +1739,15 @@ pub enum SingleValueOperationWithIndex<O: RootOperand> {
     IsNull,
 
     EitherOr {
-        either: Wrapper<SingleValueOperandWithIndex<O>>,
-        or: Wrapper<SingleValueOperandWithIndex<O>>,
+        either: Wrapper<SingleValueWithIndexOperand<O>>,
+        or: Wrapper<SingleValueWithIndexOperand<O>>,
     },
     Exclude {
-        operand: Wrapper<SingleValueOperandWithIndex<O>>,
+        operand: Wrapper<SingleValueWithIndexOperand<O>>,
     },
 
     Merge {
-        operand: Wrapper<MultipleValuesOperandWithIndex<O>>,
+        operand: Wrapper<MultipleValuesWithIndexOperand<O>>,
     },
 }
 
@@ -1946,8 +1946,8 @@ impl<O: RootOperand> SingleValueOperationWithIndex<O> {
     fn evaluate_either_or<'a>(
         medrecord: &'a MedRecord,
         value: (&'a O::Index, MedRecordValue),
-        either: &Wrapper<SingleValueOperandWithIndex<O>>,
-        or: &Wrapper<SingleValueOperandWithIndex<O>>,
+        either: &Wrapper<SingleValueWithIndexOperand<O>>,
+        or: &Wrapper<SingleValueWithIndexOperand<O>>,
     ) -> MedRecordResult<Option<(&'a O::Index, MedRecordValue)>>
     where
         O: 'a,
@@ -2088,15 +2088,15 @@ pub enum SingleValueOperationWithoutIndex<O: RootOperand> {
     IsNull,
 
     EitherOr {
-        either: Wrapper<SingleValueOperandWithoutIndex<O>>,
-        or: Wrapper<SingleValueOperandWithoutIndex<O>>,
+        either: Wrapper<SingleValueWithoutIndexOperand<O>>,
+        or: Wrapper<SingleValueWithoutIndexOperand<O>>,
     },
     Exclude {
-        operand: Wrapper<SingleValueOperandWithoutIndex<O>>,
+        operand: Wrapper<SingleValueWithoutIndexOperand<O>>,
     },
 
     Merge {
-        operand: Wrapper<MultipleValuesOperandWithoutIndex<O>>,
+        operand: Wrapper<MultipleValuesWithoutIndexOperand<O>>,
     },
 }
 
@@ -2292,8 +2292,8 @@ impl<O: RootOperand> SingleValueOperationWithoutIndex<O> {
     fn evaluate_either_or(
         medrecord: &MedRecord,
         value: MedRecordValue,
-        either: &Wrapper<SingleValueOperandWithoutIndex<O>>,
-        or: &Wrapper<SingleValueOperandWithoutIndex<O>>,
+        either: &Wrapper<SingleValueWithoutIndexOperand<O>>,
+        or: &Wrapper<SingleValueWithoutIndexOperand<O>>,
     ) -> MedRecordResult<Option<MedRecordValue>> {
         let either_result = either.evaluate_forward(medrecord, Some(value.clone()))?;
         let or_result = or.evaluate_forward(medrecord, Some(value))?;

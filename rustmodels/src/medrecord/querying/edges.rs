@@ -4,7 +4,7 @@ use super::{
 };
 use crate::medrecord::{
     attribute::PyMedRecordAttribute, errors::PyMedRecordError,
-    querying::values::PyEdgeMultipleValuesOperandWithIndex,
+    querying::values::PyEdgeMultipleValuesWithIndexOperand,
 };
 use medmodels_core::{
     errors::MedRecordError,
@@ -48,7 +48,7 @@ impl PyEdgeOperand {
     pub fn attribute(
         &mut self,
         attribute: PyMedRecordAttribute,
-    ) -> PyEdgeMultipleValuesOperandWithIndex {
+    ) -> PyEdgeMultipleValuesWithIndexOperand {
         self.0.attribute(attribute).into()
     }
 

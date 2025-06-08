@@ -1,37 +1,37 @@
 use crate::medrecord::querying::{
     attributes::{
-        MultipleAttributesOperandWithIndex, SingleAttributeOperandWithIndex,
-        SingleAttributeOperandWithoutIndex,
+        MultipleAttributesWithIndexOperand, SingleAttributeWithIndexOperand,
+        SingleAttributeWithoutIndexOperand,
     },
     group_by::{GroupOperand, GroupedOperand},
     BoxedIterator, DeepClone, EvaluateBackward, RootOperand,
 };
 
 #[derive(Debug, Clone)]
-pub enum MultipleAttributesOperandWithIndexContext<O: RootOperand> {
+pub enum MultipleAttributesWithIndexOperandContext<O: RootOperand> {
     RootOperand(GroupOperand<O>),
 }
 
-impl<O: RootOperand> DeepClone for MultipleAttributesOperandWithIndexContext<O> {
+impl<O: RootOperand> DeepClone for MultipleAttributesWithIndexOperandContext<O> {
     fn deep_clone(&self) -> Self {
         match self {
-            MultipleAttributesOperandWithIndexContext::RootOperand(operand) => {
-                MultipleAttributesOperandWithIndexContext::RootOperand(operand.deep_clone())
+            MultipleAttributesWithIndexOperandContext::RootOperand(operand) => {
+                MultipleAttributesWithIndexOperandContext::RootOperand(operand.deep_clone())
             }
         }
     }
 }
 
-impl<O: RootOperand> GroupedOperand for MultipleAttributesOperandWithIndex<O> {
-    type Context = MultipleAttributesOperandWithIndexContext<O>;
+impl<O: RootOperand> GroupedOperand for MultipleAttributesWithIndexOperand<O> {
+    type Context = MultipleAttributesWithIndexOperandContext<O>;
 }
 
 impl<'a, O: 'a + RootOperand> EvaluateBackward<'a>
-    for GroupOperand<MultipleAttributesOperandWithIndex<O>>
+    for GroupOperand<MultipleAttributesWithIndexOperand<O>>
 {
     type ReturnValue = BoxedIterator<
         'a,
-        <MultipleAttributesOperandWithIndex<O> as EvaluateBackward<'a>>::ReturnValue,
+        <MultipleAttributesWithIndexOperand<O> as EvaluateBackward<'a>>::ReturnValue,
     >;
 
     fn evaluate_backward(
@@ -43,39 +43,39 @@ impl<'a, O: 'a + RootOperand> EvaluateBackward<'a>
 }
 
 // #[derive(Debug, Clone)]
-// pub enum MultipleAttributesOperandWithoutIndexContext {}
+// pub enum MultipleAttributesWithoutIndexOperandContext {}
 
-// impl DeepClone for MultipleAttributesOperandWithoutIndexContext {
+// impl DeepClone for MultipleAttributesWithoutIndexOperandContext {
 //     fn deep_clone(&self) -> Self {
 //         self.clone()
 //     }
 // }
 
-// impl<O: RootOperand> GroupedOperand for MultipleAttributesOperandWithoutIndex<O> {
-//     type Context = MultipleAttributesOperandWithoutIndexContext;
+// impl<O: RootOperand> GroupedOperand for MultipleAttributesWithoutIndexOperand<O> {
+//     type Context = MultipleAttributesWithoutIndexOperandContext;
 // }
 
 #[derive(Debug, Clone)]
-pub enum SingleAttributeOperandWithIndexContext<O: RootOperand> {
-    MultipleAttributesOperand(GroupOperand<MultipleAttributesOperandWithIndex<O>>),
+pub enum SingleAttributeWithIndexOperandContext<O: RootOperand> {
+    MultipleAttributesOperand(GroupOperand<MultipleAttributesWithIndexOperand<O>>),
 }
 
-impl<O: RootOperand> DeepClone for SingleAttributeOperandWithIndexContext<O> {
+impl<O: RootOperand> DeepClone for SingleAttributeWithIndexOperandContext<O> {
     fn deep_clone(&self) -> Self {
         self.clone()
     }
 }
 
-impl<O: RootOperand> GroupedOperand for SingleAttributeOperandWithIndex<O> {
-    type Context = SingleAttributeOperandWithIndexContext<O>;
+impl<O: RootOperand> GroupedOperand for SingleAttributeWithIndexOperand<O> {
+    type Context = SingleAttributeWithIndexOperandContext<O>;
 }
 
 impl<'a, O: 'a + RootOperand> EvaluateBackward<'a>
-    for GroupOperand<SingleAttributeOperandWithIndex<O>>
+    for GroupOperand<SingleAttributeWithIndexOperand<O>>
 {
     type ReturnValue = BoxedIterator<
         'a,
-        <SingleAttributeOperandWithIndex<O> as EvaluateBackward<'a>>::ReturnValue,
+        <SingleAttributeWithIndexOperand<O> as EvaluateBackward<'a>>::ReturnValue,
     >;
 
     fn evaluate_backward(
@@ -87,15 +87,15 @@ impl<'a, O: 'a + RootOperand> EvaluateBackward<'a>
 }
 
 #[derive(Debug, Clone)]
-pub enum SingleAttributeOperandWithoutIndexContext<O: RootOperand> {
-    MultipleAttributesOperand(GroupOperand<MultipleAttributesOperandWithIndex<O>>),
+pub enum SingleAttributeWithoutIndexOperandContext<O: RootOperand> {
+    MultipleAttributesOperand(GroupOperand<MultipleAttributesWithIndexOperand<O>>),
 }
 
-impl<O: RootOperand> DeepClone for SingleAttributeOperandWithoutIndexContext<O> {
+impl<O: RootOperand> DeepClone for SingleAttributeWithoutIndexOperandContext<O> {
     fn deep_clone(&self) -> Self {
         match self {
-            SingleAttributeOperandWithoutIndexContext::MultipleAttributesOperand(operand) => {
-                SingleAttributeOperandWithoutIndexContext::MultipleAttributesOperand(
+            SingleAttributeWithoutIndexOperandContext::MultipleAttributesOperand(operand) => {
+                SingleAttributeWithoutIndexOperandContext::MultipleAttributesOperand(
                     operand.deep_clone(),
                 )
             }
@@ -103,16 +103,16 @@ impl<O: RootOperand> DeepClone for SingleAttributeOperandWithoutIndexContext<O> 
     }
 }
 
-impl<O: RootOperand> GroupedOperand for SingleAttributeOperandWithoutIndex<O> {
-    type Context = SingleAttributeOperandWithoutIndexContext<O>;
+impl<O: RootOperand> GroupedOperand for SingleAttributeWithoutIndexOperand<O> {
+    type Context = SingleAttributeWithoutIndexOperandContext<O>;
 }
 
 impl<'a, O: 'a + RootOperand> EvaluateBackward<'a>
-    for GroupOperand<SingleAttributeOperandWithoutIndex<O>>
+    for GroupOperand<SingleAttributeWithoutIndexOperand<O>>
 {
     type ReturnValue = BoxedIterator<
         'a,
-        <SingleAttributeOperandWithoutIndex<O> as EvaluateBackward<'a>>::ReturnValue,
+        <SingleAttributeWithoutIndexOperand<O> as EvaluateBackward<'a>>::ReturnValue,
     >;
 
     fn evaluate_backward(

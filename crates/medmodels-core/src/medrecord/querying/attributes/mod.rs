@@ -19,14 +19,14 @@ use crate::{
     MedRecord,
 };
 pub use operand::{
-    AttributesTreeOperand, EdgeAttributesTreeOperand, EdgeMultipleAttributesOperandWithIndex,
-    EdgeMultipleAttributesOperandWithoutIndex, EdgeSingleAttributeOperandWithIndex,
-    EdgeSingleAttributeOperandWithoutIndex, MultipleAttributesComparisonOperand,
-    MultipleAttributesOperandWithIndex, MultipleAttributesOperandWithoutIndex,
-    NodeAttributesTreeOperand, NodeMultipleAttributesOperandWithIndex,
-    NodeMultipleAttributesOperandWithoutIndex, NodeSingleAttributeOperandWithIndex,
-    NodeSingleAttributeOperandWithoutIndex, SingleAttributeComparisonOperand,
-    SingleAttributeOperandWithIndex, SingleAttributeOperandWithoutIndex,
+    AttributesTreeOperand, EdgeAttributesTreeOperand, EdgeMultipleAttributesWithIndexOperand,
+    EdgeMultipleAttributesWithoutIndexOperand, EdgeSingleAttributeWithIndexOperand,
+    EdgeSingleAttributeWithoutIndexOperand, MultipleAttributesComparisonOperand,
+    MultipleAttributesWithIndexOperand, MultipleAttributesWithoutIndexOperand,
+    NodeAttributesTreeOperand, NodeMultipleAttributesWithIndexOperand,
+    NodeMultipleAttributesWithoutIndexOperand, NodeSingleAttributeWithIndexOperand,
+    NodeSingleAttributeWithoutIndexOperand, SingleAttributeComparisonOperand,
+    SingleAttributeWithIndexOperand, SingleAttributeWithoutIndexOperand,
 };
 pub use operation::{
     MultipleAttributesOperationWithIndex, MultipleAttributesOperationWithoutIndex,
@@ -172,7 +172,7 @@ impl GetAllAttributes<EdgeIndex> for EdgeOperand {
 #[derive(Debug, Clone)]
 pub enum MultipleAttributesWithIndexContext<O: RootOperand> {
     AttributesTree(AttributesTreeOperand<O>),
-    GroupByOperand(GroupOperand<SingleAttributeOperandWithIndex<O>>),
+    GroupByOperand(GroupOperand<SingleAttributeWithIndexOperand<O>>),
 }
 
 impl<O: RootOperand> MultipleAttributesWithIndexContext<O> {
@@ -217,7 +217,7 @@ impl<O: RootOperand> MultipleAttributesWithIndexContext<O> {
 
 #[derive(Debug, Clone)]
 pub enum MultipleAttributesWithoutIndexContext<O: RootOperand> {
-    GroupByOperand(GroupOperand<SingleAttributeOperandWithoutIndex<O>>),
+    GroupByOperand(GroupOperand<SingleAttributeWithoutIndexOperand<O>>),
 }
 
 impl<O: RootOperand> DeepClone for MultipleAttributesWithoutIndexContext<O> {
@@ -250,18 +250,18 @@ impl<O: RootOperand> MultipleAttributesWithoutIndexContext<O> {
 
 #[derive(Debug, Clone)]
 pub enum SingleAttributeWithoutIndexContext<O: RootOperand> {
-    MultipleAttributesOperandWithIndex(MultipleAttributesOperandWithIndex<O>),
-    MultipleAttributesOperandWithoutIndex(MultipleAttributesOperandWithoutIndex<O>),
+    MultipleAttributesWithIndexOperand(MultipleAttributesWithIndexOperand<O>),
+    MultipleAttributesWithoutIndexOperand(MultipleAttributesWithoutIndexOperand<O>),
 }
 
 impl<O: RootOperand> DeepClone for SingleAttributeWithoutIndexContext<O> {
     fn deep_clone(&self) -> Self {
         match self {
-            Self::MultipleAttributesOperandWithIndex(operand) => {
-                Self::MultipleAttributesOperandWithIndex(operand.deep_clone())
+            Self::MultipleAttributesWithIndexOperand(operand) => {
+                Self::MultipleAttributesWithIndexOperand(operand.deep_clone())
             }
-            Self::MultipleAttributesOperandWithoutIndex(operand) => {
-                Self::MultipleAttributesOperandWithoutIndex(operand.deep_clone())
+            Self::MultipleAttributesWithoutIndexOperand(operand) => {
+                Self::MultipleAttributesWithoutIndexOperand(operand.deep_clone())
             }
         }
     }
@@ -276,12 +276,12 @@ impl<O: RootOperand> SingleAttributeWithoutIndexContext<O> {
         O: 'a,
     {
         Ok(match self {
-            Self::MultipleAttributesOperandWithIndex(operand) => Box::new(
+            Self::MultipleAttributesWithIndexOperand(operand) => Box::new(
                 operand
                     .evaluate_backward(medrecord)?
                     .map(|(_, value)| value),
             ),
-            Self::MultipleAttributesOperandWithoutIndex(operand) => {
+            Self::MultipleAttributesWithoutIndexOperand(operand) => {
                 Box::new(operand.evaluate_backward(medrecord)?)
             }
         })

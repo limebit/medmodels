@@ -6,9 +6,9 @@ use medmodels_core::{
             edges::EdgeOperand,
             nodes::NodeOperand,
             values::{
-                MultipleValuesComparisonOperand, MultipleValuesOperandWithIndex,
-                MultipleValuesOperandWithoutIndex, SingleValueComparisonOperand,
-                SingleValueOperandWithIndex, SingleValueOperandWithoutIndex,
+                MultipleValuesComparisonOperand, MultipleValuesWithIndexOperand,
+                MultipleValuesWithoutIndexOperand, SingleValueComparisonOperand,
+                SingleValueWithIndexOperand, SingleValueWithoutIndexOperand,
             },
             wrapper::Wrapper,
             DeepClone,
@@ -42,13 +42,13 @@ impl FromPyObject<'_> for PySingleValueComparisonOperand {
     fn extract_bound(ob: &Bound<'_, PyAny>) -> PyResult<Self> {
         if let Ok(value) = ob.extract::<PyMedRecordValue>() {
             Ok(SingleValueComparisonOperand::Value(value.into()).into())
-        } else if let Ok(operand) = ob.extract::<PyNodeSingleValueOperandWithIndex>() {
+        } else if let Ok(operand) = ob.extract::<PyNodeSingleValueWithIndexOperand>() {
             Ok(PySingleValueComparisonOperand(operand.0.into()))
-        } else if let Ok(operand) = ob.extract::<PyNodeSingleValueOperandWithoutIndex>() {
+        } else if let Ok(operand) = ob.extract::<PyNodeSingleValueWithoutIndexOperand>() {
             Ok(PySingleValueComparisonOperand(operand.0.into()))
-        } else if let Ok(operand) = ob.extract::<PyEdgeSingleValueOperandWithIndex>() {
+        } else if let Ok(operand) = ob.extract::<PyEdgeSingleValueWithIndexOperand>() {
             Ok(PySingleValueComparisonOperand(operand.0.into()))
-        } else if let Ok(operand) = ob.extract::<PyEdgeSingleValueOperandWithoutIndex>() {
+        } else if let Ok(operand) = ob.extract::<PyEdgeSingleValueWithoutIndexOperand>() {
             Ok(PySingleValueComparisonOperand(operand.0.into()))
         } else {
             Err(
@@ -84,13 +84,13 @@ impl FromPyObject<'_> for PyMultipleValuesComparisonOperand {
                 values.into_iter().map(MedRecordValue::from).collect(),
             )
             .into())
-        } else if let Ok(operand) = ob.extract::<PyNodeMultipleValuesOperandWithIndex>() {
+        } else if let Ok(operand) = ob.extract::<PyNodeMultipleValuesWithIndexOperand>() {
             Ok(PyMultipleValuesComparisonOperand(operand.0.into()))
-        } else if let Ok(operand) = ob.extract::<PyNodeMultipleValuesOperandWithoutIndex>() {
+        } else if let Ok(operand) = ob.extract::<PyNodeMultipleValuesWithoutIndexOperand>() {
             Ok(PyMultipleValuesComparisonOperand(operand.0.into()))
-        } else if let Ok(operand) = ob.extract::<PyEdgeMultipleValuesOperandWithIndex>() {
+        } else if let Ok(operand) = ob.extract::<PyEdgeMultipleValuesWithIndexOperand>() {
             Ok(PyMultipleValuesComparisonOperand(operand.0.into()))
-        } else if let Ok(operand) = ob.extract::<PyEdgeMultipleValuesOperandWithoutIndex>() {
+        } else if let Ok(operand) = ob.extract::<PyEdgeMultipleValuesWithoutIndexOperand>() {
             Ok(PyMultipleValuesComparisonOperand(operand.0.into()))
         } else {
             Err(
@@ -355,32 +355,32 @@ macro_rules! implement_multiple_values_operand {
 }
 
 implement_multiple_values_operand!(
-    PyNodeMultipleValuesOperandWithIndex,
-    MultipleValuesOperandWithIndex,
+    PyNodeMultipleValuesWithIndexOperand,
+    MultipleValuesWithIndexOperand,
     NodeOperand,
-    PyNodeSingleValueOperandWithIndex,
-    PyNodeSingleValueOperandWithoutIndex
+    PyNodeSingleValueWithIndexOperand,
+    PyNodeSingleValueWithoutIndexOperand
 );
 implement_multiple_values_operand!(
-    PyNodeMultipleValuesOperandWithoutIndex,
-    MultipleValuesOperandWithoutIndex,
+    PyNodeMultipleValuesWithoutIndexOperand,
+    MultipleValuesWithoutIndexOperand,
     NodeOperand,
-    PyNodeSingleValueOperandWithoutIndex,
-    PyNodeSingleValueOperandWithoutIndex
+    PyNodeSingleValueWithoutIndexOperand,
+    PyNodeSingleValueWithoutIndexOperand
 );
 implement_multiple_values_operand!(
-    PyEdgeMultipleValuesOperandWithIndex,
-    MultipleValuesOperandWithIndex,
+    PyEdgeMultipleValuesWithIndexOperand,
+    MultipleValuesWithIndexOperand,
     EdgeOperand,
-    PyEdgeSingleValueOperandWithIndex,
-    PyEdgeSingleValueOperandWithoutIndex
+    PyEdgeSingleValueWithIndexOperand,
+    PyEdgeSingleValueWithoutIndexOperand
 );
 implement_multiple_values_operand!(
-    PyEdgeMultipleValuesOperandWithoutIndex,
-    MultipleValuesOperandWithoutIndex,
+    PyEdgeMultipleValuesWithoutIndexOperand,
+    MultipleValuesWithoutIndexOperand,
     EdgeOperand,
-    PyEdgeSingleValueOperandWithoutIndex,
-    PyEdgeSingleValueOperandWithoutIndex
+    PyEdgeSingleValueWithoutIndexOperand,
+    PyEdgeSingleValueWithoutIndexOperand
 );
 
 macro_rules! implement_single_value_operand {
@@ -586,22 +586,22 @@ macro_rules! implement_single_value_operand {
 }
 
 implement_single_value_operand!(
-    PyNodeSingleValueOperandWithIndex,
-    SingleValueOperandWithIndex,
+    PyNodeSingleValueWithIndexOperand,
+    SingleValueWithIndexOperand,
     NodeOperand
 );
 implement_single_value_operand!(
-    PyEdgeSingleValueOperandWithIndex,
-    SingleValueOperandWithIndex,
+    PyEdgeSingleValueWithIndexOperand,
+    SingleValueWithIndexOperand,
     EdgeOperand
 );
 implement_single_value_operand!(
-    PyNodeSingleValueOperandWithoutIndex,
-    SingleValueOperandWithoutIndex,
+    PyNodeSingleValueWithoutIndexOperand,
+    SingleValueWithoutIndexOperand,
     NodeOperand
 );
 implement_single_value_operand!(
-    PyEdgeSingleValueOperandWithoutIndex,
-    SingleValueOperandWithoutIndex,
+    PyEdgeSingleValueWithoutIndexOperand,
+    SingleValueWithoutIndexOperand,
     EdgeOperand
 );

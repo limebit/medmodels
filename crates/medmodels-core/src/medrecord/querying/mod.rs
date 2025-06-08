@@ -11,18 +11,18 @@ use crate::{
     errors::MedRecordResult,
     medrecord::querying::{
         attributes::{
-            EdgeMultipleAttributesOperandWithoutIndex, EdgeSingleAttributeOperandWithoutIndex,
-            NodeMultipleAttributesOperandWithoutIndex, NodeSingleAttributeOperandWithoutIndex,
+            EdgeMultipleAttributesWithoutIndexOperand, EdgeSingleAttributeWithoutIndexOperand,
+            NodeMultipleAttributesWithoutIndexOperand, NodeSingleAttributeWithoutIndexOperand,
         },
         group_by::{GroupBy, GroupKey, PartitionGroups},
-        values::{EdgeSingleValueOperandWithoutIndex, NodeSingleValueOperandWithoutIndex},
+        values::{EdgeSingleValueWithoutIndexOperand, NodeSingleValueWithoutIndexOperand},
     },
 };
 use attributes::{
-    EdgeAttributesTreeOperand, EdgeMultipleAttributesOperandWithIndex,
-    EdgeSingleAttributeOperandWithIndex, GetAllAttributes, GetAttributes,
-    NodeAttributesTreeOperand, NodeMultipleAttributesOperandWithIndex,
-    NodeSingleAttributeOperandWithIndex,
+    EdgeAttributesTreeOperand, EdgeMultipleAttributesWithIndexOperand,
+    EdgeSingleAttributeWithIndexOperand, GetAllAttributes, GetAttributes,
+    NodeAttributesTreeOperand, NodeMultipleAttributesWithIndexOperand,
+    NodeSingleAttributeWithIndexOperand,
 };
 use edges::{EdgeIndexOperand, EdgeIndicesOperand, EdgeOperand};
 use group_by::{GroupOperand, GroupedOperand};
@@ -34,9 +34,9 @@ use std::{
     sync::{RwLock, RwLockReadGuard, RwLockWriteGuard},
 };
 use values::{
-    EdgeMultipleValuesOperandWithIndex, EdgeMultipleValuesOperandWithoutIndex,
-    EdgeSingleValueOperandWithIndex, GetValues, NodeMultipleValuesOperandWithIndex,
-    NodeMultipleValuesOperandWithoutIndex, NodeSingleValueOperandWithIndex,
+    EdgeMultipleValuesWithIndexOperand, EdgeMultipleValuesWithoutIndexOperand,
+    EdgeSingleValueWithIndexOperand, GetValues, NodeMultipleValuesWithIndexOperand,
+    NodeMultipleValuesWithoutIndexOperand, NodeSingleValueWithIndexOperand,
 };
 
 macro_rules! impl_return_operand_for_tuples {
@@ -406,29 +406,29 @@ pub trait ReturnOperand<'a> {
 impl_iterator_return_operand!(
     NodeAttributesTreeOperand                 => (&'a NodeIndex, Vec<MedRecordAttribute>),
     EdgeAttributesTreeOperand                 => (&'a EdgeIndex, Vec<MedRecordAttribute>),
-    NodeMultipleAttributesOperandWithIndex    => (&'a NodeIndex, MedRecordAttribute),
-    NodeMultipleAttributesOperandWithoutIndex => MedRecordAttribute,
-    EdgeMultipleAttributesOperandWithIndex    => (&'a EdgeIndex, MedRecordAttribute),
-    EdgeMultipleAttributesOperandWithoutIndex => MedRecordAttribute,
+    NodeMultipleAttributesWithIndexOperand    => (&'a NodeIndex, MedRecordAttribute),
+    NodeMultipleAttributesWithoutIndexOperand => MedRecordAttribute,
+    EdgeMultipleAttributesWithIndexOperand    => (&'a EdgeIndex, MedRecordAttribute),
+    EdgeMultipleAttributesWithoutIndexOperand => MedRecordAttribute,
     EdgeIndicesOperand                        => EdgeIndex,
     NodeIndicesOperand                        => NodeIndex,
-    NodeMultipleValuesOperandWithIndex        => (&'a NodeIndex, MedRecordValue),
-    NodeMultipleValuesOperandWithoutIndex     => MedRecordValue,
-    EdgeMultipleValuesOperandWithIndex        => (&'a EdgeIndex, MedRecordValue),
-    EdgeMultipleValuesOperandWithoutIndex     => MedRecordValue,
+    NodeMultipleValuesWithIndexOperand        => (&'a NodeIndex, MedRecordValue),
+    NodeMultipleValuesWithoutIndexOperand     => MedRecordValue,
+    EdgeMultipleValuesWithIndexOperand        => (&'a EdgeIndex, MedRecordValue),
+    EdgeMultipleValuesWithoutIndexOperand     => MedRecordValue,
 );
 
 impl_direct_return_operand!(
-    NodeSingleAttributeOperandWithIndex    => Option<(&'a NodeIndex, MedRecordAttribute)>,
-    NodeSingleAttributeOperandWithoutIndex => Option<MedRecordAttribute>,
-    EdgeSingleAttributeOperandWithIndex    => Option<(&'a EdgeIndex, MedRecordAttribute)>,
-    EdgeSingleAttributeOperandWithoutIndex => Option<MedRecordAttribute>,
+    NodeSingleAttributeWithIndexOperand    => Option<(&'a NodeIndex, MedRecordAttribute)>,
+    NodeSingleAttributeWithoutIndexOperand => Option<MedRecordAttribute>,
+    EdgeSingleAttributeWithIndexOperand    => Option<(&'a EdgeIndex, MedRecordAttribute)>,
+    EdgeSingleAttributeWithoutIndexOperand => Option<MedRecordAttribute>,
     EdgeIndexOperand                       => Option<EdgeIndex>,
     NodeIndexOperand                       => Option<NodeIndex>,
-    NodeSingleValueOperandWithIndex        => Option<(&'a NodeIndex, MedRecordValue)>,
-    NodeSingleValueOperandWithoutIndex     => Option<MedRecordValue>,
-    EdgeSingleValueOperandWithIndex        => Option<(&'a EdgeIndex, MedRecordValue)>,
-    EdgeSingleValueOperandWithoutIndex     => Option<MedRecordValue>,
+    NodeSingleValueWithIndexOperand        => Option<(&'a NodeIndex, MedRecordValue)>,
+    NodeSingleValueWithoutIndexOperand     => Option<MedRecordValue>,
+    EdgeSingleValueWithIndexOperand        => Option<(&'a EdgeIndex, MedRecordValue)>,
+    EdgeSingleValueWithoutIndexOperand     => Option<MedRecordValue>,
 );
 
 impl<'a, O: GroupedOperand> ReturnOperand<'a> for Wrapper<GroupOperand<O>>

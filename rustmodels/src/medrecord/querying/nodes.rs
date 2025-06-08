@@ -4,7 +4,7 @@ use super::{
 };
 use crate::medrecord::{
     attribute::PyMedRecordAttribute, errors::PyMedRecordError,
-    querying::values::PyNodeMultipleValuesOperandWithIndex, PyNodeIndex,
+    querying::values::PyNodeMultipleValuesWithIndexOperand, PyNodeIndex,
 };
 use medmodels_core::{
     errors::MedRecordError,
@@ -76,7 +76,7 @@ impl PyNodeOperand {
     pub fn attribute(
         &mut self,
         attribute: PyMedRecordAttribute,
-    ) -> PyNodeMultipleValuesOperandWithIndex {
+    ) -> PyNodeMultipleValuesWithIndexOperand {
         self.0.attribute(attribute).into()
     }
 
