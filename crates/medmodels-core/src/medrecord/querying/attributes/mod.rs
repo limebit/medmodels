@@ -231,20 +231,16 @@ impl<O: RootOperand> DeepClone for MultipleAttributesWithoutIndexContext<O> {
 impl<O: RootOperand> MultipleAttributesWithoutIndexContext<O> {
     pub(crate) fn get_attributes<'a>(
         &self,
-        _medrecord: &'a MedRecord,
-        _kind: &MultipleKind,
+        medrecord: &'a MedRecord,
     ) -> MedRecordResult<BoxedIterator<'a, MedRecordAttribute>>
     where
         O: 'a,
     {
-        // let values: BoxedIterator<MedRecordAttribute> = match self {
-        //     Self::GroupByOperand(operand) => {
-        //         Box::new(operand.evaluate_backward(medrecord)?.flatten())
-        //     }
-        // };
-
-        // Ok(values)
-        todo!()
+        Ok(match self {
+            Self::GroupByOperand(operand) => {
+                Box::new(operand.evaluate_backward(medrecord)?.flatten())
+            }
+        })
     }
 }
 

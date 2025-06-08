@@ -1069,7 +1069,7 @@ impl<'a, O: 'a + RootOperand> EvaluateBackward<'a> for MultipleAttributesWithout
     type ReturnValue = BoxedIterator<'a, MedRecordAttribute>;
 
     fn evaluate_backward(&self, medrecord: &'a MedRecord) -> MedRecordResult<Self::ReturnValue> {
-        let attributes = self.context.get_attributes(medrecord, &self.kind)?;
+        let attributes = self.context.get_attributes(medrecord)?;
 
         self.evaluate_forward(medrecord, attributes)
     }

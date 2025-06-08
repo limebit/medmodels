@@ -1758,7 +1758,6 @@ impl<O: RootOperand> MultipleAttributesOperationWithoutIndex<O> {
 }
 
 impl<O: RootOperand> MultipleAttributesOperationWithoutIndex<O> {
-    #[allow(clippy::type_complexity)]
     pub(crate) fn evaluate_grouped<'a>(
         &self,
         _medrecord: &'a MedRecord,
@@ -2230,7 +2229,6 @@ impl<O: RootOperand> SingleAttributeOperationWithoutIndex<O> {
 }
 
 impl<O: RootOperand> SingleAttributeOperationWithoutIndex<O> {
-    #[allow(clippy::type_complexity)]
     pub(crate) fn evaluate_grouped<'a>(
         &self,
         _medrecord: &'a MedRecord,

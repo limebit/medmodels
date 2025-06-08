@@ -360,7 +360,9 @@ impl<O: RootOperand> MultipleValuesOperationWithIndex<O> {
             SingleKindWithoutIndex::Max => {
                 MultipleValuesOperationWithoutIndex::<O>::get_max(values_1)?
             }
-            SingleKindWithoutIndex::Min => todo!(),
+            SingleKindWithoutIndex::Min => {
+                MultipleValuesOperationWithoutIndex::<O>::get_min(values_1)?
+            }
             SingleKindWithoutIndex::Mean => {
                 MultipleValuesOperationWithoutIndex::<O>::get_mean(values_1)?
             }
@@ -382,7 +384,9 @@ impl<O: RootOperand> MultipleValuesOperationWithIndex<O> {
             SingleKindWithoutIndex::Sum => {
                 MultipleValuesOperationWithoutIndex::<O>::get_sum(values_1)?
             }
-            SingleKindWithoutIndex::Random => todo!(),
+            SingleKindWithoutIndex::Random => {
+                MultipleValuesOperationWithoutIndex::<O>::get_random(values_1)
+            }
         };
 
         Ok(match operand.evaluate_forward(medrecord, value)? {
@@ -1535,7 +1539,6 @@ impl<O: RootOperand> MultipleValuesOperationWithoutIndex<O> {
 }
 
 impl<O: RootOperand> MultipleValuesOperationWithoutIndex<O> {
-    #[allow(clippy::type_complexity)]
     pub(crate) fn evaluate_grouped<'a>(
         &self,
         medrecord: &'a MedRecord,
@@ -1636,7 +1639,6 @@ impl<O: RootOperand> MultipleValuesOperationWithoutIndex<O> {
         })
     }
 
-    #[allow(clippy::type_complexity)]
     #[inline]
     fn evaluate_value_operation_grouped<'a>(
         medrecord: &'a MedRecord,
@@ -2307,7 +2309,6 @@ impl<O: RootOperand> SingleValueOperationWithoutIndex<O> {
 }
 
 impl<O: RootOperand> SingleValueOperationWithoutIndex<O> {
-    #[allow(clippy::type_complexity)]
     pub(crate) fn evaluate_grouped<'a>(
         &self,
         medrecord: &'a MedRecord,
