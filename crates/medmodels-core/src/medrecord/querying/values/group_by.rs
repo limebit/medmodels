@@ -2,7 +2,7 @@ use super::{MultipleValuesWithIndexOperand, SingleValueWithIndexOperand};
 use crate::{
     errors::MedRecordResult,
     medrecord::querying::{
-        edges::EdgeOperand,
+        attributes::{MultipleAttributesOperationWithIndex, MultipleAttributesWithIndexOperand},
         group_by::{GroupOperand, GroupedOperand, Merge},
         values::{
             operand::MultipleValuesWithoutIndexOperand,
@@ -20,6 +20,7 @@ use std::fmt::Debug;
 #[derive(Debug, Clone)]
 pub enum MultipleValuesWithIndexOperandContext<O: RootOperand> {
     RootOperand(GroupOperand<O>),
+    MultipleAttributesOperand(GroupOperand<MultipleAttributesWithIndexOperand<O>>),
 }
 
 impl<O: RootOperand> DeepClone for MultipleValuesWithIndexOperandContext<O> {
@@ -28,13 +29,26 @@ impl<O: RootOperand> DeepClone for MultipleValuesWithIndexOperandContext<O> {
             MultipleValuesWithIndexOperandContext::RootOperand(operand) => {
                 MultipleValuesWithIndexOperandContext::RootOperand(operand.deep_clone())
             }
+            MultipleValuesWithIndexOperandContext::MultipleAttributesOperand(operand) => {
+                MultipleValuesWithIndexOperandContext::MultipleAttributesOperand(
+                    operand.deep_clone(),
+                )
+            }
         }
     }
 }
 
-impl From<GroupOperand<EdgeOperand>> for MultipleValuesWithIndexOperandContext<EdgeOperand> {
-    fn from(operand: GroupOperand<EdgeOperand>) -> Self {
-        MultipleValuesWithIndexOperandContext::RootOperand(operand)
+impl<O: RootOperand> From<GroupOperand<O>> for MultipleValuesWithIndexOperandContext<O> {
+    fn from(operand: GroupOperand<O>) -> Self {
+        Self::RootOperand(operand)
+    }
+}
+
+impl<O: RootOperand> From<GroupOperand<MultipleAttributesWithIndexOperand<O>>>
+    for MultipleValuesWithIndexOperandContext<O>
+{
+    fn from(operand: GroupOperand<MultipleAttributesWithIndexOperand<O>>) -> Self {
+        Self::MultipleAttributesOperand(operand)
     }
 }
 
@@ -64,6 +78,23 @@ where
 
                         let reduced_partition =
                             O::get_values_from_indices(medrecord, attribute.clone(), partition);
+
+                        self.operand
+                            .evaluate_forward(medrecord, Box::new(reduced_partition))
+                    })
+                    .collect::<MedRecordResult<_>>()?;
+
+                Ok(Box::new(values.into_iter()))
+            }
+            MultipleValuesWithIndexOperandContext::MultipleAttributesOperand(context) => {
+                let partitions = context.evaluate_backward(medrecord)?;
+
+                let values: Vec<_> = partitions
+                    .map(|partition| {
+                        let reduced_partition =
+                            MultipleAttributesOperationWithIndex::<O>::get_values(
+                                medrecord, partition,
+                            )?;
 
                         self.operand
                             .evaluate_forward(medrecord, Box::new(reduced_partition))
