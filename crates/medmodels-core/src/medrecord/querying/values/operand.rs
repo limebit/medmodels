@@ -1,5 +1,5 @@
 use super::{
-    operation::{MultipleValuesOperationWithIndex, SingleValueOperationWithIndex},
+    operation::{MultipleValuesWithIndexOperation, SingleValueWithIndexOperation},
     BinaryArithmeticKind, MultipleComparisonKind, MultipleValuesWithIndexContext,
     SingleComparisonKind, SingleKindWithIndex, UnaryArithmeticKind,
 };
@@ -16,7 +16,7 @@ use crate::{
             },
             values::{
                 operation::{
-                    MultipleValuesOperationWithoutIndex, SingleValueOperationWithoutIndex,
+                    MultipleValuesWithoutIndexOperation, SingleValueWithoutIndexOperation,
                 },
                 MultipleValuesWithoutIndexContext, SingleKindWithoutIndex,
                 SingleValueWithoutIndexContext,
@@ -257,7 +257,7 @@ pub type EdgeMultipleValuesWithIndexOperand = MultipleValuesWithIndexOperand<Edg
 #[derive(Debug, Clone)]
 pub struct MultipleValuesWithIndexOperand<O: RootOperand> {
     pub(crate) context: MultipleValuesWithIndexContext<O>,
-    operations: Vec<MultipleValuesOperationWithIndex<O>>,
+    operations: Vec<MultipleValuesWithIndexOperation<O>>,
 }
 
 impl<O: RootOperand> DeepClone for MultipleValuesWithIndexOperand<O> {
@@ -320,7 +320,7 @@ impl<O: RootOperand> Max for MultipleValuesWithIndexOperand<O> {
             Wrapper::<Self::ReturnOperand>::new(self.deep_clone(), SingleKindWithIndex::Max);
 
         self.operations
-            .push(MultipleValuesOperationWithIndex::ValueOperationWithIndex {
+            .push(MultipleValuesWithIndexOperation::ValueWithIndexOperation {
                 operand: operand.clone(),
             });
 
@@ -336,7 +336,7 @@ impl<O: RootOperand> Min for MultipleValuesWithIndexOperand<O> {
             Wrapper::<Self::ReturnOperand>::new(self.deep_clone(), SingleKindWithIndex::Min);
 
         self.operations
-            .push(MultipleValuesOperationWithIndex::ValueOperationWithIndex {
+            .push(MultipleValuesWithIndexOperation::ValueWithIndexOperation {
                 operand: operand.clone(),
             });
 
@@ -354,7 +354,7 @@ impl<O: RootOperand> Mean for MultipleValuesWithIndexOperand<O> {
         );
 
         self.operations.push(
-            MultipleValuesOperationWithIndex::ValueOperationWithoutIndex {
+            MultipleValuesWithIndexOperation::ValueWithoutIndexOperation {
                 operand: operand.clone(),
             },
         );
@@ -373,7 +373,7 @@ impl<O: RootOperand> Median for MultipleValuesWithIndexOperand<O> {
         );
 
         self.operations.push(
-            MultipleValuesOperationWithIndex::ValueOperationWithoutIndex {
+            MultipleValuesWithIndexOperation::ValueWithoutIndexOperation {
                 operand: operand.clone(),
             },
         );
@@ -392,7 +392,7 @@ impl<O: RootOperand> Mode for MultipleValuesWithIndexOperand<O> {
         );
 
         self.operations.push(
-            MultipleValuesOperationWithIndex::ValueOperationWithoutIndex {
+            MultipleValuesWithIndexOperation::ValueWithoutIndexOperation {
                 operand: operand.clone(),
             },
         );
@@ -411,7 +411,7 @@ impl<O: RootOperand> Std for MultipleValuesWithIndexOperand<O> {
         );
 
         self.operations.push(
-            MultipleValuesOperationWithIndex::ValueOperationWithoutIndex {
+            MultipleValuesWithIndexOperation::ValueWithoutIndexOperation {
                 operand: operand.clone(),
             },
         );
@@ -430,7 +430,7 @@ impl<O: RootOperand> Var for MultipleValuesWithIndexOperand<O> {
         );
 
         self.operations.push(
-            MultipleValuesOperationWithIndex::ValueOperationWithoutIndex {
+            MultipleValuesWithIndexOperation::ValueWithoutIndexOperation {
                 operand: operand.clone(),
             },
         );
@@ -449,7 +449,7 @@ impl<O: RootOperand> Count for MultipleValuesWithIndexOperand<O> {
         );
 
         self.operations.push(
-            MultipleValuesOperationWithIndex::ValueOperationWithoutIndex {
+            MultipleValuesWithIndexOperation::ValueWithoutIndexOperation {
                 operand: operand.clone(),
             },
         );
@@ -468,7 +468,7 @@ impl<O: RootOperand> Sum for MultipleValuesWithIndexOperand<O> {
         );
 
         self.operations.push(
-            MultipleValuesOperationWithIndex::ValueOperationWithoutIndex {
+            MultipleValuesWithIndexOperation::ValueWithoutIndexOperation {
                 operand: operand.clone(),
             },
         );
@@ -485,7 +485,7 @@ impl<O: RootOperand> Random for MultipleValuesWithIndexOperand<O> {
             Wrapper::<Self::ReturnOperand>::new(self.deep_clone(), SingleKindWithIndex::Random);
 
         self.operations
-            .push(MultipleValuesOperationWithIndex::ValueOperationWithIndex {
+            .push(MultipleValuesWithIndexOperation::ValueWithIndexOperation {
                 operand: operand.clone(),
             });
 
@@ -498,7 +498,7 @@ impl<O: RootOperand> GreaterThan for MultipleValuesWithIndexOperand<O> {
 
     fn greater_than<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
         self.operations.push(
-            MultipleValuesOperationWithIndex::SingleValueComparisonOperation {
+            MultipleValuesWithIndexOperation::SingleValueComparisonOperation {
                 operand: value.into(),
                 kind: SingleComparisonKind::GreaterThan,
             },
@@ -511,7 +511,7 @@ impl<O: RootOperand> GreaterThanOrEqualTo for MultipleValuesWithIndexOperand<O> 
 
     fn greater_than_or_equal_to<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
         self.operations.push(
-            MultipleValuesOperationWithIndex::SingleValueComparisonOperation {
+            MultipleValuesWithIndexOperation::SingleValueComparisonOperation {
                 operand: value.into(),
                 kind: SingleComparisonKind::GreaterThanOrEqualTo,
             },
@@ -524,7 +524,7 @@ impl<O: RootOperand> LessThan for MultipleValuesWithIndexOperand<O> {
 
     fn less_than<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
         self.operations.push(
-            MultipleValuesOperationWithIndex::SingleValueComparisonOperation {
+            MultipleValuesWithIndexOperation::SingleValueComparisonOperation {
                 operand: value.into(),
                 kind: SingleComparisonKind::LessThan,
             },
@@ -537,7 +537,7 @@ impl<O: RootOperand> LessThanOrEqualTo for MultipleValuesWithIndexOperand<O> {
 
     fn less_than_or_equal_to<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
         self.operations.push(
-            MultipleValuesOperationWithIndex::SingleValueComparisonOperation {
+            MultipleValuesWithIndexOperation::SingleValueComparisonOperation {
                 operand: value.into(),
                 kind: SingleComparisonKind::LessThanOrEqualTo,
             },
@@ -550,7 +550,7 @@ impl<O: RootOperand> EqualTo for MultipleValuesWithIndexOperand<O> {
 
     fn equal_to<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
         self.operations.push(
-            MultipleValuesOperationWithIndex::SingleValueComparisonOperation {
+            MultipleValuesWithIndexOperation::SingleValueComparisonOperation {
                 operand: value.into(),
                 kind: SingleComparisonKind::EqualTo,
             },
@@ -563,7 +563,7 @@ impl<O: RootOperand> NotEqualTo for MultipleValuesWithIndexOperand<O> {
 
     fn not_equal_to<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
         self.operations.push(
-            MultipleValuesOperationWithIndex::SingleValueComparisonOperation {
+            MultipleValuesWithIndexOperation::SingleValueComparisonOperation {
                 operand: value.into(),
                 kind: SingleComparisonKind::NotEqualTo,
             },
@@ -576,7 +576,7 @@ impl<O: RootOperand> StartsWith for MultipleValuesWithIndexOperand<O> {
 
     fn starts_with<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
         self.operations.push(
-            MultipleValuesOperationWithIndex::SingleValueComparisonOperation {
+            MultipleValuesWithIndexOperation::SingleValueComparisonOperation {
                 operand: value.into(),
                 kind: SingleComparisonKind::StartsWith,
             },
@@ -589,7 +589,7 @@ impl<O: RootOperand> EndsWith for MultipleValuesWithIndexOperand<O> {
 
     fn ends_with<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
         self.operations.push(
-            MultipleValuesOperationWithIndex::SingleValueComparisonOperation {
+            MultipleValuesWithIndexOperation::SingleValueComparisonOperation {
                 operand: value.into(),
                 kind: SingleComparisonKind::EndsWith,
             },
@@ -602,7 +602,7 @@ impl<O: RootOperand> Contains for MultipleValuesWithIndexOperand<O> {
 
     fn contains<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
         self.operations.push(
-            MultipleValuesOperationWithIndex::SingleValueComparisonOperation {
+            MultipleValuesWithIndexOperation::SingleValueComparisonOperation {
                 operand: value.into(),
                 kind: SingleComparisonKind::Contains,
             },
@@ -615,7 +615,7 @@ impl<O: RootOperand> IsIn for MultipleValuesWithIndexOperand<O> {
 
     fn is_in<V: Into<Self::ComparisonOperand>>(&mut self, values: V) {
         self.operations.push(
-            MultipleValuesOperationWithIndex::MultipleValuesComparisonOperation {
+            MultipleValuesWithIndexOperation::MultipleValuesComparisonOperation {
                 operand: values.into(),
                 kind: MultipleComparisonKind::IsIn,
             },
@@ -628,7 +628,7 @@ impl<O: RootOperand> IsNotIn for MultipleValuesWithIndexOperand<O> {
 
     fn is_not_in<V: Into<Self::ComparisonOperand>>(&mut self, values: V) {
         self.operations.push(
-            MultipleValuesOperationWithIndex::MultipleValuesComparisonOperation {
+            MultipleValuesWithIndexOperation::MultipleValuesComparisonOperation {
                 operand: values.into(),
                 kind: MultipleComparisonKind::IsNotIn,
             },
@@ -641,7 +641,7 @@ impl<O: RootOperand> Add for MultipleValuesWithIndexOperand<O> {
 
     fn add<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
         self.operations
-            .push(MultipleValuesOperationWithIndex::BinaryArithmeticOpration {
+            .push(MultipleValuesWithIndexOperation::BinaryArithmeticOpration {
                 operand: value.into(),
                 kind: BinaryArithmeticKind::Add,
             });
@@ -653,7 +653,7 @@ impl<O: RootOperand> Sub for MultipleValuesWithIndexOperand<O> {
 
     fn sub<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
         self.operations
-            .push(MultipleValuesOperationWithIndex::BinaryArithmeticOpration {
+            .push(MultipleValuesWithIndexOperation::BinaryArithmeticOpration {
                 operand: value.into(),
                 kind: BinaryArithmeticKind::Sub,
             });
@@ -665,7 +665,7 @@ impl<O: RootOperand> Mul for MultipleValuesWithIndexOperand<O> {
 
     fn mul<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
         self.operations
-            .push(MultipleValuesOperationWithIndex::BinaryArithmeticOpration {
+            .push(MultipleValuesWithIndexOperation::BinaryArithmeticOpration {
                 operand: value.into(),
                 kind: BinaryArithmeticKind::Mul,
             });
@@ -677,7 +677,7 @@ impl<O: RootOperand> Div for MultipleValuesWithIndexOperand<O> {
 
     fn div<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
         self.operations
-            .push(MultipleValuesOperationWithIndex::BinaryArithmeticOpration {
+            .push(MultipleValuesWithIndexOperation::BinaryArithmeticOpration {
                 operand: value.into(),
                 kind: BinaryArithmeticKind::Div,
             });
@@ -689,7 +689,7 @@ impl<O: RootOperand> Pow for MultipleValuesWithIndexOperand<O> {
 
     fn pow<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
         self.operations
-            .push(MultipleValuesOperationWithIndex::BinaryArithmeticOpration {
+            .push(MultipleValuesWithIndexOperation::BinaryArithmeticOpration {
                 operand: value.into(),
                 kind: BinaryArithmeticKind::Pow,
             });
@@ -701,7 +701,7 @@ impl<O: RootOperand> Mod for MultipleValuesWithIndexOperand<O> {
 
     fn r#mod<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
         self.operations
-            .push(MultipleValuesOperationWithIndex::BinaryArithmeticOpration {
+            .push(MultipleValuesWithIndexOperation::BinaryArithmeticOpration {
                 operand: value.into(),
                 kind: BinaryArithmeticKind::Mod,
             });
@@ -711,7 +711,7 @@ impl<O: RootOperand> Mod for MultipleValuesWithIndexOperand<O> {
 impl<O: RootOperand> Round for MultipleValuesWithIndexOperand<O> {
     fn round(&mut self) {
         self.operations
-            .push(MultipleValuesOperationWithIndex::UnaryArithmeticOperation {
+            .push(MultipleValuesWithIndexOperation::UnaryArithmeticOperation {
                 kind: UnaryArithmeticKind::Round,
             });
     }
@@ -720,7 +720,7 @@ impl<O: RootOperand> Round for MultipleValuesWithIndexOperand<O> {
 impl<O: RootOperand> Ceil for MultipleValuesWithIndexOperand<O> {
     fn ceil(&mut self) {
         self.operations
-            .push(MultipleValuesOperationWithIndex::UnaryArithmeticOperation {
+            .push(MultipleValuesWithIndexOperation::UnaryArithmeticOperation {
                 kind: UnaryArithmeticKind::Ceil,
             });
     }
@@ -729,7 +729,7 @@ impl<O: RootOperand> Ceil for MultipleValuesWithIndexOperand<O> {
 impl<O: RootOperand> Floor for MultipleValuesWithIndexOperand<O> {
     fn floor(&mut self) {
         self.operations
-            .push(MultipleValuesOperationWithIndex::UnaryArithmeticOperation {
+            .push(MultipleValuesWithIndexOperation::UnaryArithmeticOperation {
                 kind: UnaryArithmeticKind::Floor,
             });
     }
@@ -738,7 +738,7 @@ impl<O: RootOperand> Floor for MultipleValuesWithIndexOperand<O> {
 impl<O: RootOperand> Abs for MultipleValuesWithIndexOperand<O> {
     fn abs(&mut self) {
         self.operations
-            .push(MultipleValuesOperationWithIndex::UnaryArithmeticOperation {
+            .push(MultipleValuesWithIndexOperation::UnaryArithmeticOperation {
                 kind: UnaryArithmeticKind::Abs,
             });
     }
@@ -747,7 +747,7 @@ impl<O: RootOperand> Abs for MultipleValuesWithIndexOperand<O> {
 impl<O: RootOperand> Sqrt for MultipleValuesWithIndexOperand<O> {
     fn sqrt(&mut self) {
         self.operations
-            .push(MultipleValuesOperationWithIndex::UnaryArithmeticOperation {
+            .push(MultipleValuesWithIndexOperation::UnaryArithmeticOperation {
                 kind: UnaryArithmeticKind::Sqrt,
             });
     }
@@ -756,7 +756,7 @@ impl<O: RootOperand> Sqrt for MultipleValuesWithIndexOperand<O> {
 impl<O: RootOperand> Trim for MultipleValuesWithIndexOperand<O> {
     fn trim(&mut self) {
         self.operations
-            .push(MultipleValuesOperationWithIndex::UnaryArithmeticOperation {
+            .push(MultipleValuesWithIndexOperation::UnaryArithmeticOperation {
                 kind: UnaryArithmeticKind::Trim,
             });
     }
@@ -765,7 +765,7 @@ impl<O: RootOperand> Trim for MultipleValuesWithIndexOperand<O> {
 impl<O: RootOperand> TrimStart for MultipleValuesWithIndexOperand<O> {
     fn trim_start(&mut self) {
         self.operations
-            .push(MultipleValuesOperationWithIndex::UnaryArithmeticOperation {
+            .push(MultipleValuesWithIndexOperation::UnaryArithmeticOperation {
                 kind: UnaryArithmeticKind::TrimStart,
             });
     }
@@ -774,7 +774,7 @@ impl<O: RootOperand> TrimStart for MultipleValuesWithIndexOperand<O> {
 impl<O: RootOperand> TrimEnd for MultipleValuesWithIndexOperand<O> {
     fn trim_end(&mut self) {
         self.operations
-            .push(MultipleValuesOperationWithIndex::UnaryArithmeticOperation {
+            .push(MultipleValuesWithIndexOperation::UnaryArithmeticOperation {
                 kind: UnaryArithmeticKind::TrimEnd,
             });
     }
@@ -783,7 +783,7 @@ impl<O: RootOperand> TrimEnd for MultipleValuesWithIndexOperand<O> {
 impl<O: RootOperand> Lowercase for MultipleValuesWithIndexOperand<O> {
     fn lowercase(&mut self) {
         self.operations
-            .push(MultipleValuesOperationWithIndex::UnaryArithmeticOperation {
+            .push(MultipleValuesWithIndexOperation::UnaryArithmeticOperation {
                 kind: UnaryArithmeticKind::Lowercase,
             });
     }
@@ -792,7 +792,7 @@ impl<O: RootOperand> Lowercase for MultipleValuesWithIndexOperand<O> {
 impl<O: RootOperand> Uppercase for MultipleValuesWithIndexOperand<O> {
     fn uppercase(&mut self) {
         self.operations
-            .push(MultipleValuesOperationWithIndex::UnaryArithmeticOperation {
+            .push(MultipleValuesWithIndexOperation::UnaryArithmeticOperation {
                 kind: UnaryArithmeticKind::Uppercase,
             });
     }
@@ -801,70 +801,70 @@ impl<O: RootOperand> Uppercase for MultipleValuesWithIndexOperand<O> {
 impl<O: RootOperand> Slice for MultipleValuesWithIndexOperand<O> {
     fn slice(&mut self, start: usize, end: usize) {
         self.operations
-            .push(MultipleValuesOperationWithIndex::Slice(start..end));
+            .push(MultipleValuesWithIndexOperation::Slice(start..end));
     }
 }
 
 impl<O: RootOperand> IsString for MultipleValuesWithIndexOperand<O> {
     fn is_string(&mut self) {
         self.operations
-            .push(MultipleValuesOperationWithIndex::IsString);
+            .push(MultipleValuesWithIndexOperation::IsString);
     }
 }
 
 impl<O: RootOperand> IsInt for MultipleValuesWithIndexOperand<O> {
     fn is_int(&mut self) {
         self.operations
-            .push(MultipleValuesOperationWithIndex::IsInt);
+            .push(MultipleValuesWithIndexOperation::IsInt);
     }
 }
 
 impl<O: RootOperand> IsFloat for MultipleValuesWithIndexOperand<O> {
     fn is_float(&mut self) {
         self.operations
-            .push(MultipleValuesOperationWithIndex::IsFloat);
+            .push(MultipleValuesWithIndexOperation::IsFloat);
     }
 }
 
 impl<O: RootOperand> IsBool for MultipleValuesWithIndexOperand<O> {
     fn is_bool(&mut self) {
         self.operations
-            .push(MultipleValuesOperationWithIndex::IsBool);
+            .push(MultipleValuesWithIndexOperation::IsBool);
     }
 }
 
 impl<O: RootOperand> IsDateTime for MultipleValuesWithIndexOperand<O> {
     fn is_datetime(&mut self) {
         self.operations
-            .push(MultipleValuesOperationWithIndex::IsDateTime);
+            .push(MultipleValuesWithIndexOperation::IsDateTime);
     }
 }
 
 impl<O: RootOperand> IsDuration for MultipleValuesWithIndexOperand<O> {
     fn is_duration(&mut self) {
         self.operations
-            .push(MultipleValuesOperationWithIndex::IsDuration);
+            .push(MultipleValuesWithIndexOperation::IsDuration);
     }
 }
 
 impl<O: RootOperand> IsNull for MultipleValuesWithIndexOperand<O> {
     fn is_null(&mut self) {
         self.operations
-            .push(MultipleValuesOperationWithIndex::IsNull);
+            .push(MultipleValuesWithIndexOperation::IsNull);
     }
 }
 
 impl<O: RootOperand> IsMax for MultipleValuesWithIndexOperand<O> {
     fn is_max(&mut self) {
         self.operations
-            .push(MultipleValuesOperationWithIndex::IsMax);
+            .push(MultipleValuesWithIndexOperation::IsMax);
     }
 }
 
 impl<O: RootOperand> IsMin for MultipleValuesWithIndexOperand<O> {
     fn is_min(&mut self) {
         self.operations
-            .push(MultipleValuesOperationWithIndex::IsMin);
+            .push(MultipleValuesWithIndexOperation::IsMin);
     }
 }
 
@@ -883,7 +883,7 @@ impl<O: RootOperand> EitherOr for MultipleValuesWithIndexOperand<O> {
         or_query(&mut or_operand);
 
         self.operations
-            .push(MultipleValuesOperationWithIndex::EitherOr {
+            .push(MultipleValuesWithIndexOperation::EitherOr {
                 either: either_operand,
                 or: or_operand,
             });
@@ -902,7 +902,7 @@ impl<O: RootOperand> Exclude for MultipleValuesWithIndexOperand<O> {
         query(&mut operand);
 
         self.operations
-            .push(MultipleValuesOperationWithIndex::Exclude { operand });
+            .push(MultipleValuesWithIndexOperation::Exclude { operand });
     }
 }
 
@@ -927,7 +927,7 @@ pub type EdgeMultipleValuesWithoutIndexOperand = MultipleValuesWithoutIndexOpera
 #[derive(Debug, Clone)]
 pub struct MultipleValuesWithoutIndexOperand<O: RootOperand> {
     pub(crate) context: MultipleValuesWithoutIndexContext<O>,
-    operations: Vec<MultipleValuesOperationWithoutIndex<O>>,
+    operations: Vec<MultipleValuesWithoutIndexOperation<O>>,
 }
 
 impl<O: RootOperand> DeepClone for MultipleValuesWithoutIndexOperand<O> {
@@ -992,7 +992,7 @@ impl<O: RootOperand> Max for MultipleValuesWithoutIndexOperand<O> {
         );
 
         self.operations
-            .push(MultipleValuesOperationWithoutIndex::ValueOperation {
+            .push(MultipleValuesWithoutIndexOperation::ValueOperation {
                 operand: operand.clone(),
             });
 
@@ -1010,7 +1010,7 @@ impl<O: RootOperand> Min for MultipleValuesWithoutIndexOperand<O> {
         );
 
         self.operations
-            .push(MultipleValuesOperationWithoutIndex::ValueOperation {
+            .push(MultipleValuesWithoutIndexOperation::ValueOperation {
                 operand: operand.clone(),
             });
 
@@ -1028,7 +1028,7 @@ impl<O: RootOperand> Mean for MultipleValuesWithoutIndexOperand<O> {
         );
 
         self.operations
-            .push(MultipleValuesOperationWithoutIndex::ValueOperation {
+            .push(MultipleValuesWithoutIndexOperation::ValueOperation {
                 operand: operand.clone(),
             });
 
@@ -1046,7 +1046,7 @@ impl<O: RootOperand> Median for MultipleValuesWithoutIndexOperand<O> {
         );
 
         self.operations
-            .push(MultipleValuesOperationWithoutIndex::ValueOperation {
+            .push(MultipleValuesWithoutIndexOperation::ValueOperation {
                 operand: operand.clone(),
             });
 
@@ -1064,7 +1064,7 @@ impl<O: RootOperand> Mode for MultipleValuesWithoutIndexOperand<O> {
         );
 
         self.operations
-            .push(MultipleValuesOperationWithoutIndex::ValueOperation {
+            .push(MultipleValuesWithoutIndexOperation::ValueOperation {
                 operand: operand.clone(),
             });
 
@@ -1082,7 +1082,7 @@ impl<O: RootOperand> Std for MultipleValuesWithoutIndexOperand<O> {
         );
 
         self.operations
-            .push(MultipleValuesOperationWithoutIndex::ValueOperation {
+            .push(MultipleValuesWithoutIndexOperation::ValueOperation {
                 operand: operand.clone(),
             });
 
@@ -1100,7 +1100,7 @@ impl<O: RootOperand> Var for MultipleValuesWithoutIndexOperand<O> {
         );
 
         self.operations
-            .push(MultipleValuesOperationWithoutIndex::ValueOperation {
+            .push(MultipleValuesWithoutIndexOperation::ValueOperation {
                 operand: operand.clone(),
             });
 
@@ -1118,7 +1118,7 @@ impl<O: RootOperand> Count for MultipleValuesWithoutIndexOperand<O> {
         );
 
         self.operations
-            .push(MultipleValuesOperationWithoutIndex::ValueOperation {
+            .push(MultipleValuesWithoutIndexOperation::ValueOperation {
                 operand: operand.clone(),
             });
 
@@ -1136,7 +1136,7 @@ impl<O: RootOperand> Sum for MultipleValuesWithoutIndexOperand<O> {
         );
 
         self.operations
-            .push(MultipleValuesOperationWithoutIndex::ValueOperation {
+            .push(MultipleValuesWithoutIndexOperation::ValueOperation {
                 operand: operand.clone(),
             });
 
@@ -1154,7 +1154,7 @@ impl<O: RootOperand> Random for MultipleValuesWithoutIndexOperand<O> {
         );
 
         self.operations
-            .push(MultipleValuesOperationWithoutIndex::ValueOperation {
+            .push(MultipleValuesWithoutIndexOperation::ValueOperation {
                 operand: operand.clone(),
             });
 
@@ -1167,7 +1167,7 @@ impl<O: RootOperand> GreaterThan for MultipleValuesWithoutIndexOperand<O> {
 
     fn greater_than<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
         self.operations.push(
-            MultipleValuesOperationWithoutIndex::SingleValueComparisonOperation {
+            MultipleValuesWithoutIndexOperation::SingleValueComparisonOperation {
                 operand: value.into(),
                 kind: SingleComparisonKind::GreaterThan,
             },
@@ -1180,7 +1180,7 @@ impl<O: RootOperand> GreaterThanOrEqualTo for MultipleValuesWithoutIndexOperand<
 
     fn greater_than_or_equal_to<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
         self.operations.push(
-            MultipleValuesOperationWithoutIndex::SingleValueComparisonOperation {
+            MultipleValuesWithoutIndexOperation::SingleValueComparisonOperation {
                 operand: value.into(),
                 kind: SingleComparisonKind::GreaterThanOrEqualTo,
             },
@@ -1193,7 +1193,7 @@ impl<O: RootOperand> LessThan for MultipleValuesWithoutIndexOperand<O> {
 
     fn less_than<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
         self.operations.push(
-            MultipleValuesOperationWithoutIndex::SingleValueComparisonOperation {
+            MultipleValuesWithoutIndexOperation::SingleValueComparisonOperation {
                 operand: value.into(),
                 kind: SingleComparisonKind::LessThan,
             },
@@ -1206,7 +1206,7 @@ impl<O: RootOperand> LessThanOrEqualTo for MultipleValuesWithoutIndexOperand<O> 
 
     fn less_than_or_equal_to<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
         self.operations.push(
-            MultipleValuesOperationWithoutIndex::SingleValueComparisonOperation {
+            MultipleValuesWithoutIndexOperation::SingleValueComparisonOperation {
                 operand: value.into(),
                 kind: SingleComparisonKind::LessThanOrEqualTo,
             },
@@ -1219,7 +1219,7 @@ impl<O: RootOperand> EqualTo for MultipleValuesWithoutIndexOperand<O> {
 
     fn equal_to<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
         self.operations.push(
-            MultipleValuesOperationWithoutIndex::SingleValueComparisonOperation {
+            MultipleValuesWithoutIndexOperation::SingleValueComparisonOperation {
                 operand: value.into(),
                 kind: SingleComparisonKind::EqualTo,
             },
@@ -1232,7 +1232,7 @@ impl<O: RootOperand> NotEqualTo for MultipleValuesWithoutIndexOperand<O> {
 
     fn not_equal_to<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
         self.operations.push(
-            MultipleValuesOperationWithoutIndex::SingleValueComparisonOperation {
+            MultipleValuesWithoutIndexOperation::SingleValueComparisonOperation {
                 operand: value.into(),
                 kind: SingleComparisonKind::NotEqualTo,
             },
@@ -1245,7 +1245,7 @@ impl<O: RootOperand> StartsWith for MultipleValuesWithoutIndexOperand<O> {
 
     fn starts_with<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
         self.operations.push(
-            MultipleValuesOperationWithoutIndex::SingleValueComparisonOperation {
+            MultipleValuesWithoutIndexOperation::SingleValueComparisonOperation {
                 operand: value.into(),
                 kind: SingleComparisonKind::StartsWith,
             },
@@ -1258,7 +1258,7 @@ impl<O: RootOperand> EndsWith for MultipleValuesWithoutIndexOperand<O> {
 
     fn ends_with<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
         self.operations.push(
-            MultipleValuesOperationWithoutIndex::SingleValueComparisonOperation {
+            MultipleValuesWithoutIndexOperation::SingleValueComparisonOperation {
                 operand: value.into(),
                 kind: SingleComparisonKind::EndsWith,
             },
@@ -1271,7 +1271,7 @@ impl<O: RootOperand> Contains for MultipleValuesWithoutIndexOperand<O> {
 
     fn contains<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
         self.operations.push(
-            MultipleValuesOperationWithoutIndex::SingleValueComparisonOperation {
+            MultipleValuesWithoutIndexOperation::SingleValueComparisonOperation {
                 operand: value.into(),
                 kind: SingleComparisonKind::Contains,
             },
@@ -1284,7 +1284,7 @@ impl<O: RootOperand> IsIn for MultipleValuesWithoutIndexOperand<O> {
 
     fn is_in<V: Into<Self::ComparisonOperand>>(&mut self, values: V) {
         self.operations.push(
-            MultipleValuesOperationWithoutIndex::MultipleValuesComparisonOperation {
+            MultipleValuesWithoutIndexOperation::MultipleValuesComparisonOperation {
                 operand: values.into(),
                 kind: MultipleComparisonKind::IsIn,
             },
@@ -1297,7 +1297,7 @@ impl<O: RootOperand> IsNotIn for MultipleValuesWithoutIndexOperand<O> {
 
     fn is_not_in<V: Into<Self::ComparisonOperand>>(&mut self, values: V) {
         self.operations.push(
-            MultipleValuesOperationWithoutIndex::MultipleValuesComparisonOperation {
+            MultipleValuesWithoutIndexOperation::MultipleValuesComparisonOperation {
                 operand: values.into(),
                 kind: MultipleComparisonKind::IsNotIn,
             },
@@ -1310,7 +1310,7 @@ impl<O: RootOperand> Add for MultipleValuesWithoutIndexOperand<O> {
 
     fn add<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
         self.operations.push(
-            MultipleValuesOperationWithoutIndex::BinaryArithmeticOpration {
+            MultipleValuesWithoutIndexOperation::BinaryArithmeticOpration {
                 operand: value.into(),
                 kind: BinaryArithmeticKind::Add,
             },
@@ -1323,7 +1323,7 @@ impl<O: RootOperand> Sub for MultipleValuesWithoutIndexOperand<O> {
 
     fn sub<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
         self.operations.push(
-            MultipleValuesOperationWithoutIndex::BinaryArithmeticOpration {
+            MultipleValuesWithoutIndexOperation::BinaryArithmeticOpration {
                 operand: value.into(),
                 kind: BinaryArithmeticKind::Sub,
             },
@@ -1336,7 +1336,7 @@ impl<O: RootOperand> Mul for MultipleValuesWithoutIndexOperand<O> {
 
     fn mul<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
         self.operations.push(
-            MultipleValuesOperationWithoutIndex::BinaryArithmeticOpration {
+            MultipleValuesWithoutIndexOperation::BinaryArithmeticOpration {
                 operand: value.into(),
                 kind: BinaryArithmeticKind::Mul,
             },
@@ -1349,7 +1349,7 @@ impl<O: RootOperand> Div for MultipleValuesWithoutIndexOperand<O> {
 
     fn div<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
         self.operations.push(
-            MultipleValuesOperationWithoutIndex::BinaryArithmeticOpration {
+            MultipleValuesWithoutIndexOperation::BinaryArithmeticOpration {
                 operand: value.into(),
                 kind: BinaryArithmeticKind::Div,
             },
@@ -1362,7 +1362,7 @@ impl<O: RootOperand> Pow for MultipleValuesWithoutIndexOperand<O> {
 
     fn pow<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
         self.operations.push(
-            MultipleValuesOperationWithoutIndex::BinaryArithmeticOpration {
+            MultipleValuesWithoutIndexOperation::BinaryArithmeticOpration {
                 operand: value.into(),
                 kind: BinaryArithmeticKind::Pow,
             },
@@ -1375,7 +1375,7 @@ impl<O: RootOperand> Mod for MultipleValuesWithoutIndexOperand<O> {
 
     fn r#mod<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
         self.operations.push(
-            MultipleValuesOperationWithoutIndex::BinaryArithmeticOpration {
+            MultipleValuesWithoutIndexOperation::BinaryArithmeticOpration {
                 operand: value.into(),
                 kind: BinaryArithmeticKind::Mod,
             },
@@ -1386,7 +1386,7 @@ impl<O: RootOperand> Mod for MultipleValuesWithoutIndexOperand<O> {
 impl<O: RootOperand> Round for MultipleValuesWithoutIndexOperand<O> {
     fn round(&mut self) {
         self.operations.push(
-            MultipleValuesOperationWithoutIndex::UnaryArithmeticOperation {
+            MultipleValuesWithoutIndexOperation::UnaryArithmeticOperation {
                 kind: UnaryArithmeticKind::Round,
             },
         );
@@ -1396,7 +1396,7 @@ impl<O: RootOperand> Round for MultipleValuesWithoutIndexOperand<O> {
 impl<O: RootOperand> Ceil for MultipleValuesWithoutIndexOperand<O> {
     fn ceil(&mut self) {
         self.operations.push(
-            MultipleValuesOperationWithoutIndex::UnaryArithmeticOperation {
+            MultipleValuesWithoutIndexOperation::UnaryArithmeticOperation {
                 kind: UnaryArithmeticKind::Ceil,
             },
         );
@@ -1406,7 +1406,7 @@ impl<O: RootOperand> Ceil for MultipleValuesWithoutIndexOperand<O> {
 impl<O: RootOperand> Floor for MultipleValuesWithoutIndexOperand<O> {
     fn floor(&mut self) {
         self.operations.push(
-            MultipleValuesOperationWithoutIndex::UnaryArithmeticOperation {
+            MultipleValuesWithoutIndexOperation::UnaryArithmeticOperation {
                 kind: UnaryArithmeticKind::Floor,
             },
         );
@@ -1416,7 +1416,7 @@ impl<O: RootOperand> Floor for MultipleValuesWithoutIndexOperand<O> {
 impl<O: RootOperand> Abs for MultipleValuesWithoutIndexOperand<O> {
     fn abs(&mut self) {
         self.operations.push(
-            MultipleValuesOperationWithoutIndex::UnaryArithmeticOperation {
+            MultipleValuesWithoutIndexOperation::UnaryArithmeticOperation {
                 kind: UnaryArithmeticKind::Abs,
             },
         );
@@ -1426,7 +1426,7 @@ impl<O: RootOperand> Abs for MultipleValuesWithoutIndexOperand<O> {
 impl<O: RootOperand> Sqrt for MultipleValuesWithoutIndexOperand<O> {
     fn sqrt(&mut self) {
         self.operations.push(
-            MultipleValuesOperationWithoutIndex::UnaryArithmeticOperation {
+            MultipleValuesWithoutIndexOperation::UnaryArithmeticOperation {
                 kind: UnaryArithmeticKind::Sqrt,
             },
         );
@@ -1436,7 +1436,7 @@ impl<O: RootOperand> Sqrt for MultipleValuesWithoutIndexOperand<O> {
 impl<O: RootOperand> Trim for MultipleValuesWithoutIndexOperand<O> {
     fn trim(&mut self) {
         self.operations.push(
-            MultipleValuesOperationWithoutIndex::UnaryArithmeticOperation {
+            MultipleValuesWithoutIndexOperation::UnaryArithmeticOperation {
                 kind: UnaryArithmeticKind::Trim,
             },
         );
@@ -1446,7 +1446,7 @@ impl<O: RootOperand> Trim for MultipleValuesWithoutIndexOperand<O> {
 impl<O: RootOperand> TrimStart for MultipleValuesWithoutIndexOperand<O> {
     fn trim_start(&mut self) {
         self.operations.push(
-            MultipleValuesOperationWithoutIndex::UnaryArithmeticOperation {
+            MultipleValuesWithoutIndexOperation::UnaryArithmeticOperation {
                 kind: UnaryArithmeticKind::TrimStart,
             },
         );
@@ -1456,7 +1456,7 @@ impl<O: RootOperand> TrimStart for MultipleValuesWithoutIndexOperand<O> {
 impl<O: RootOperand> TrimEnd for MultipleValuesWithoutIndexOperand<O> {
     fn trim_end(&mut self) {
         self.operations.push(
-            MultipleValuesOperationWithoutIndex::UnaryArithmeticOperation {
+            MultipleValuesWithoutIndexOperation::UnaryArithmeticOperation {
                 kind: UnaryArithmeticKind::TrimEnd,
             },
         );
@@ -1466,7 +1466,7 @@ impl<O: RootOperand> TrimEnd for MultipleValuesWithoutIndexOperand<O> {
 impl<O: RootOperand> Lowercase for MultipleValuesWithoutIndexOperand<O> {
     fn lowercase(&mut self) {
         self.operations.push(
-            MultipleValuesOperationWithoutIndex::UnaryArithmeticOperation {
+            MultipleValuesWithoutIndexOperation::UnaryArithmeticOperation {
                 kind: UnaryArithmeticKind::Lowercase,
             },
         );
@@ -1476,7 +1476,7 @@ impl<O: RootOperand> Lowercase for MultipleValuesWithoutIndexOperand<O> {
 impl<O: RootOperand> Uppercase for MultipleValuesWithoutIndexOperand<O> {
     fn uppercase(&mut self) {
         self.operations.push(
-            MultipleValuesOperationWithoutIndex::UnaryArithmeticOperation {
+            MultipleValuesWithoutIndexOperation::UnaryArithmeticOperation {
                 kind: UnaryArithmeticKind::Uppercase,
             },
         );
@@ -1486,70 +1486,70 @@ impl<O: RootOperand> Uppercase for MultipleValuesWithoutIndexOperand<O> {
 impl<O: RootOperand> Slice for MultipleValuesWithoutIndexOperand<O> {
     fn slice(&mut self, start: usize, end: usize) {
         self.operations
-            .push(MultipleValuesOperationWithoutIndex::Slice(start..end));
+            .push(MultipleValuesWithoutIndexOperation::Slice(start..end));
     }
 }
 
 impl<O: RootOperand> IsString for MultipleValuesWithoutIndexOperand<O> {
     fn is_string(&mut self) {
         self.operations
-            .push(MultipleValuesOperationWithoutIndex::IsString);
+            .push(MultipleValuesWithoutIndexOperation::IsString);
     }
 }
 
 impl<O: RootOperand> IsInt for MultipleValuesWithoutIndexOperand<O> {
     fn is_int(&mut self) {
         self.operations
-            .push(MultipleValuesOperationWithoutIndex::IsInt);
+            .push(MultipleValuesWithoutIndexOperation::IsInt);
     }
 }
 
 impl<O: RootOperand> IsFloat for MultipleValuesWithoutIndexOperand<O> {
     fn is_float(&mut self) {
         self.operations
-            .push(MultipleValuesOperationWithoutIndex::IsFloat);
+            .push(MultipleValuesWithoutIndexOperation::IsFloat);
     }
 }
 
 impl<O: RootOperand> IsBool for MultipleValuesWithoutIndexOperand<O> {
     fn is_bool(&mut self) {
         self.operations
-            .push(MultipleValuesOperationWithoutIndex::IsBool);
+            .push(MultipleValuesWithoutIndexOperation::IsBool);
     }
 }
 
 impl<O: RootOperand> IsDateTime for MultipleValuesWithoutIndexOperand<O> {
     fn is_datetime(&mut self) {
         self.operations
-            .push(MultipleValuesOperationWithoutIndex::IsDateTime);
+            .push(MultipleValuesWithoutIndexOperation::IsDateTime);
     }
 }
 
 impl<O: RootOperand> IsDuration for MultipleValuesWithoutIndexOperand<O> {
     fn is_duration(&mut self) {
         self.operations
-            .push(MultipleValuesOperationWithoutIndex::IsDuration);
+            .push(MultipleValuesWithoutIndexOperation::IsDuration);
     }
 }
 
 impl<O: RootOperand> IsNull for MultipleValuesWithoutIndexOperand<O> {
     fn is_null(&mut self) {
         self.operations
-            .push(MultipleValuesOperationWithoutIndex::IsNull);
+            .push(MultipleValuesWithoutIndexOperation::IsNull);
     }
 }
 
 impl<O: RootOperand> IsMax for MultipleValuesWithoutIndexOperand<O> {
     fn is_max(&mut self) {
         self.operations
-            .push(MultipleValuesOperationWithoutIndex::IsMax);
+            .push(MultipleValuesWithoutIndexOperation::IsMax);
     }
 }
 
 impl<O: RootOperand> IsMin for MultipleValuesWithoutIndexOperand<O> {
     fn is_min(&mut self) {
         self.operations
-            .push(MultipleValuesOperationWithoutIndex::IsMin);
+            .push(MultipleValuesWithoutIndexOperation::IsMin);
     }
 }
 
@@ -1570,7 +1570,7 @@ impl<O: RootOperand> EitherOr for MultipleValuesWithoutIndexOperand<O> {
         or_query(&mut or_operand);
 
         self.operations
-            .push(MultipleValuesOperationWithoutIndex::EitherOr {
+            .push(MultipleValuesWithoutIndexOperation::EitherOr {
                 either: either_operand,
                 or: or_operand,
             });
@@ -1589,7 +1589,7 @@ impl<O: RootOperand> Exclude for MultipleValuesWithoutIndexOperand<O> {
         query(&mut operand);
 
         self.operations
-            .push(MultipleValuesOperationWithoutIndex::Exclude { operand });
+            .push(MultipleValuesWithoutIndexOperation::Exclude { operand });
     }
 }
 
@@ -1615,7 +1615,7 @@ pub type EdgeSingleValueWithIndexOperand = SingleValueWithIndexOperand<EdgeOpera
 pub struct SingleValueWithIndexOperand<O: RootOperand> {
     context: MultipleValuesWithIndexOperand<O>,
     pub(crate) kind: SingleKindWithIndex,
-    operations: Vec<SingleValueOperationWithIndex<O>>,
+    operations: Vec<SingleValueWithIndexOperation<O>>,
 }
 
 impl<O: RootOperand> DeepClone for SingleValueWithIndexOperand<O> {
@@ -1678,10 +1678,10 @@ impl<'a, O: 'a + RootOperand> ReduceInput<'a> for SingleValueWithIndexOperand<O>
         values: <Self::Context as EvaluateBackward<'a>>::ReturnValue,
     ) -> MedRecordResult<<Self as EvaluateForward<'a>>::InputValue> {
         Ok(match self.kind {
-            SingleKindWithIndex::Max => MultipleValuesOperationWithIndex::<O>::get_max(values)?,
-            SingleKindWithIndex::Min => MultipleValuesOperationWithIndex::<O>::get_min(values)?,
+            SingleKindWithIndex::Max => MultipleValuesWithIndexOperation::<O>::get_max(values)?,
+            SingleKindWithIndex::Min => MultipleValuesWithIndexOperation::<O>::get_min(values)?,
             SingleKindWithIndex::Random => {
-                MultipleValuesOperationWithIndex::<O>::get_random(values)
+                MultipleValuesWithIndexOperation::<O>::get_random(values)
             }
         })
     }
@@ -1692,7 +1692,7 @@ impl<O: RootOperand> GreaterThan for SingleValueWithIndexOperand<O> {
 
     fn greater_than<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
         self.operations.push(
-            SingleValueOperationWithIndex::SingleValueComparisonOperation {
+            SingleValueWithIndexOperation::SingleValueComparisonOperation {
                 operand: value.into(),
                 kind: SingleComparisonKind::GreaterThan,
             },
@@ -1705,7 +1705,7 @@ impl<O: RootOperand> GreaterThanOrEqualTo for SingleValueWithIndexOperand<O> {
 
     fn greater_than_or_equal_to<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
         self.operations.push(
-            SingleValueOperationWithIndex::SingleValueComparisonOperation {
+            SingleValueWithIndexOperation::SingleValueComparisonOperation {
                 operand: value.into(),
                 kind: SingleComparisonKind::GreaterThanOrEqualTo,
             },
@@ -1718,7 +1718,7 @@ impl<O: RootOperand> LessThan for SingleValueWithIndexOperand<O> {
 
     fn less_than<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
         self.operations.push(
-            SingleValueOperationWithIndex::SingleValueComparisonOperation {
+            SingleValueWithIndexOperation::SingleValueComparisonOperation {
                 operand: value.into(),
                 kind: SingleComparisonKind::LessThan,
             },
@@ -1731,7 +1731,7 @@ impl<O: RootOperand> LessThanOrEqualTo for SingleValueWithIndexOperand<O> {
 
     fn less_than_or_equal_to<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
         self.operations.push(
-            SingleValueOperationWithIndex::SingleValueComparisonOperation {
+            SingleValueWithIndexOperation::SingleValueComparisonOperation {
                 operand: value.into(),
                 kind: SingleComparisonKind::LessThanOrEqualTo,
             },
@@ -1744,7 +1744,7 @@ impl<O: RootOperand> EqualTo for SingleValueWithIndexOperand<O> {
 
     fn equal_to<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
         self.operations.push(
-            SingleValueOperationWithIndex::SingleValueComparisonOperation {
+            SingleValueWithIndexOperation::SingleValueComparisonOperation {
                 operand: value.into(),
                 kind: SingleComparisonKind::EqualTo,
             },
@@ -1757,7 +1757,7 @@ impl<O: RootOperand> NotEqualTo for SingleValueWithIndexOperand<O> {
 
     fn not_equal_to<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
         self.operations.push(
-            SingleValueOperationWithIndex::SingleValueComparisonOperation {
+            SingleValueWithIndexOperation::SingleValueComparisonOperation {
                 operand: value.into(),
                 kind: SingleComparisonKind::NotEqualTo,
             },
@@ -1770,7 +1770,7 @@ impl<O: RootOperand> StartsWith for SingleValueWithIndexOperand<O> {
 
     fn starts_with<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
         self.operations.push(
-            SingleValueOperationWithIndex::SingleValueComparisonOperation {
+            SingleValueWithIndexOperation::SingleValueComparisonOperation {
                 operand: value.into(),
                 kind: SingleComparisonKind::StartsWith,
             },
@@ -1783,7 +1783,7 @@ impl<O: RootOperand> EndsWith for SingleValueWithIndexOperand<O> {
 
     fn ends_with<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
         self.operations.push(
-            SingleValueOperationWithIndex::SingleValueComparisonOperation {
+            SingleValueWithIndexOperation::SingleValueComparisonOperation {
                 operand: value.into(),
                 kind: SingleComparisonKind::EndsWith,
             },
@@ -1796,7 +1796,7 @@ impl<O: RootOperand> Contains for SingleValueWithIndexOperand<O> {
 
     fn contains<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
         self.operations.push(
-            SingleValueOperationWithIndex::SingleValueComparisonOperation {
+            SingleValueWithIndexOperation::SingleValueComparisonOperation {
                 operand: value.into(),
                 kind: SingleComparisonKind::Contains,
             },
@@ -1809,7 +1809,7 @@ impl<O: RootOperand> IsIn for SingleValueWithIndexOperand<O> {
 
     fn is_in<V: Into<Self::ComparisonOperand>>(&mut self, values: V) {
         self.operations.push(
-            SingleValueOperationWithIndex::MultipleValuesComparisonOperation {
+            SingleValueWithIndexOperation::MultipleValuesComparisonOperation {
                 operand: values.into(),
                 kind: MultipleComparisonKind::IsIn,
             },
@@ -1822,7 +1822,7 @@ impl<O: RootOperand> IsNotIn for SingleValueWithIndexOperand<O> {
 
     fn is_not_in<V: Into<Self::ComparisonOperand>>(&mut self, values: V) {
         self.operations.push(
-            SingleValueOperationWithIndex::MultipleValuesComparisonOperation {
+            SingleValueWithIndexOperation::MultipleValuesComparisonOperation {
                 operand: values.into(),
                 kind: MultipleComparisonKind::IsNotIn,
             },
@@ -1835,7 +1835,7 @@ impl<O: RootOperand> Add for SingleValueWithIndexOperand<O> {
 
     fn add<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
         self.operations
-            .push(SingleValueOperationWithIndex::BinaryArithmeticOpration {
+            .push(SingleValueWithIndexOperation::BinaryArithmeticOpration {
                 operand: value.into(),
                 kind: BinaryArithmeticKind::Add,
             });
@@ -1847,7 +1847,7 @@ impl<O: RootOperand> Sub for SingleValueWithIndexOperand<O> {
 
     fn sub<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
         self.operations
-            .push(SingleValueOperationWithIndex::BinaryArithmeticOpration {
+            .push(SingleValueWithIndexOperation::BinaryArithmeticOpration {
                 operand: value.into(),
                 kind: BinaryArithmeticKind::Sub,
             });
@@ -1859,7 +1859,7 @@ impl<O: RootOperand> Mul for SingleValueWithIndexOperand<O> {
 
     fn mul<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
         self.operations
-            .push(SingleValueOperationWithIndex::BinaryArithmeticOpration {
+            .push(SingleValueWithIndexOperation::BinaryArithmeticOpration {
                 operand: value.into(),
                 kind: BinaryArithmeticKind::Mul,
             });
@@ -1871,7 +1871,7 @@ impl<O: RootOperand> Div for SingleValueWithIndexOperand<O> {
 
     fn div<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
         self.operations
-            .push(SingleValueOperationWithIndex::BinaryArithmeticOpration {
+            .push(SingleValueWithIndexOperation::BinaryArithmeticOpration {
                 operand: value.into(),
                 kind: BinaryArithmeticKind::Div,
             });
@@ -1883,7 +1883,7 @@ impl<O: RootOperand> Pow for SingleValueWithIndexOperand<O> {
 
     fn pow<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
         self.operations
-            .push(SingleValueOperationWithIndex::BinaryArithmeticOpration {
+            .push(SingleValueWithIndexOperation::BinaryArithmeticOpration {
                 operand: value.into(),
                 kind: BinaryArithmeticKind::Pow,
             });
@@ -1895,7 +1895,7 @@ impl<O: RootOperand> Mod for SingleValueWithIndexOperand<O> {
 
     fn r#mod<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
         self.operations
-            .push(SingleValueOperationWithIndex::BinaryArithmeticOpration {
+            .push(SingleValueWithIndexOperation::BinaryArithmeticOpration {
                 operand: value.into(),
                 kind: BinaryArithmeticKind::Mod,
             });
@@ -1905,7 +1905,7 @@ impl<O: RootOperand> Mod for SingleValueWithIndexOperand<O> {
 impl<O: RootOperand> Round for SingleValueWithIndexOperand<O> {
     fn round(&mut self) {
         self.operations
-            .push(SingleValueOperationWithIndex::UnaryArithmeticOperation {
+            .push(SingleValueWithIndexOperation::UnaryArithmeticOperation {
                 kind: UnaryArithmeticKind::Round,
             });
     }
@@ -1914,7 +1914,7 @@ impl<O: RootOperand> Round for SingleValueWithIndexOperand<O> {
 impl<O: RootOperand> Ceil for SingleValueWithIndexOperand<O> {
     fn ceil(&mut self) {
         self.operations
-            .push(SingleValueOperationWithIndex::UnaryArithmeticOperation {
+            .push(SingleValueWithIndexOperation::UnaryArithmeticOperation {
                 kind: UnaryArithmeticKind::Ceil,
             });
     }
@@ -1923,7 +1923,7 @@ impl<O: RootOperand> Ceil for SingleValueWithIndexOperand<O> {
 impl<O: RootOperand> Floor for SingleValueWithIndexOperand<O> {
     fn floor(&mut self) {
         self.operations
-            .push(SingleValueOperationWithIndex::UnaryArithmeticOperation {
+            .push(SingleValueWithIndexOperation::UnaryArithmeticOperation {
                 kind: UnaryArithmeticKind::Floor,
             });
     }
@@ -1932,7 +1932,7 @@ impl<O: RootOperand> Floor for SingleValueWithIndexOperand<O> {
 impl<O: RootOperand> Abs for SingleValueWithIndexOperand<O> {
     fn abs(&mut self) {
         self.operations
-            .push(SingleValueOperationWithIndex::UnaryArithmeticOperation {
+            .push(SingleValueWithIndexOperation::UnaryArithmeticOperation {
                 kind: UnaryArithmeticKind::Abs,
             });
     }
@@ -1941,7 +1941,7 @@ impl<O: RootOperand> Abs for SingleValueWithIndexOperand<O> {
 impl<O: RootOperand> Sqrt for SingleValueWithIndexOperand<O> {
     fn sqrt(&mut self) {
         self.operations
-            .push(SingleValueOperationWithIndex::UnaryArithmeticOperation {
+            .push(SingleValueWithIndexOperation::UnaryArithmeticOperation {
                 kind: UnaryArithmeticKind::Sqrt,
             });
     }
@@ -1950,7 +1950,7 @@ impl<O: RootOperand> Sqrt for SingleValueWithIndexOperand<O> {
 impl<O: RootOperand> Trim for SingleValueWithIndexOperand<O> {
     fn trim(&mut self) {
         self.operations
-            .push(SingleValueOperationWithIndex::UnaryArithmeticOperation {
+            .push(SingleValueWithIndexOperation::UnaryArithmeticOperation {
                 kind: UnaryArithmeticKind::Trim,
             });
     }
@@ -1959,7 +1959,7 @@ impl<O: RootOperand> Trim for SingleValueWithIndexOperand<O> {
 impl<O: RootOperand> TrimStart for SingleValueWithIndexOperand<O> {
     fn trim_start(&mut self) {
         self.operations
-            .push(SingleValueOperationWithIndex::UnaryArithmeticOperation {
+            .push(SingleValueWithIndexOperation::UnaryArithmeticOperation {
                 kind: UnaryArithmeticKind::TrimStart,
             });
     }
@@ -1968,7 +1968,7 @@ impl<O: RootOperand> TrimStart for SingleValueWithIndexOperand<O> {
 impl<O: RootOperand> TrimEnd for SingleValueWithIndexOperand<O> {
     fn trim_end(&mut self) {
         self.operations
-            .push(SingleValueOperationWithIndex::UnaryArithmeticOperation {
+            .push(SingleValueWithIndexOperation::UnaryArithmeticOperation {
                 kind: UnaryArithmeticKind::TrimEnd,
             });
     }
@@ -1977,7 +1977,7 @@ impl<O: RootOperand> TrimEnd for SingleValueWithIndexOperand<O> {
 impl<O: RootOperand> Lowercase for SingleValueWithIndexOperand<O> {
     fn lowercase(&mut self) {
         self.operations
-            .push(SingleValueOperationWithIndex::UnaryArithmeticOperation {
+            .push(SingleValueWithIndexOperation::UnaryArithmeticOperation {
                 kind: UnaryArithmeticKind::Lowercase,
             });
     }
@@ -1986,7 +1986,7 @@ impl<O: RootOperand> Lowercase for SingleValueWithIndexOperand<O> {
 impl<O: RootOperand> Uppercase for SingleValueWithIndexOperand<O> {
     fn uppercase(&mut self) {
         self.operations
-            .push(SingleValueOperationWithIndex::UnaryArithmeticOperation {
+            .push(SingleValueWithIndexOperation::UnaryArithmeticOperation {
                 kind: UnaryArithmeticKind::Uppercase,
             });
     }
@@ -1995,52 +1995,52 @@ impl<O: RootOperand> Uppercase for SingleValueWithIndexOperand<O> {
 impl<O: RootOperand> Slice for SingleValueWithIndexOperand<O> {
     fn slice(&mut self, start: usize, end: usize) {
         self.operations
-            .push(SingleValueOperationWithIndex::Slice(start..end));
+            .push(SingleValueWithIndexOperation::Slice(start..end));
     }
 }
 
 impl<O: RootOperand> IsString for SingleValueWithIndexOperand<O> {
     fn is_string(&mut self) {
         self.operations
-            .push(SingleValueOperationWithIndex::IsString);
+            .push(SingleValueWithIndexOperation::IsString);
     }
 }
 
 impl<O: RootOperand> IsInt for SingleValueWithIndexOperand<O> {
     fn is_int(&mut self) {
-        self.operations.push(SingleValueOperationWithIndex::IsInt);
+        self.operations.push(SingleValueWithIndexOperation::IsInt);
     }
 }
 
 impl<O: RootOperand> IsFloat for SingleValueWithIndexOperand<O> {
     fn is_float(&mut self) {
-        self.operations.push(SingleValueOperationWithIndex::IsFloat);
+        self.operations.push(SingleValueWithIndexOperation::IsFloat);
     }
 }
 
 impl<O: RootOperand> IsBool for SingleValueWithIndexOperand<O> {
     fn is_bool(&mut self) {
-        self.operations.push(SingleValueOperationWithIndex::IsBool);
+        self.operations.push(SingleValueWithIndexOperation::IsBool);
     }
 }
 
 impl<O: RootOperand> IsDateTime for SingleValueWithIndexOperand<O> {
     fn is_datetime(&mut self) {
         self.operations
-            .push(SingleValueOperationWithIndex::IsDateTime);
+            .push(SingleValueWithIndexOperation::IsDateTime);
     }
 }
 
 impl<O: RootOperand> IsDuration for SingleValueWithIndexOperand<O> {
     fn is_duration(&mut self) {
         self.operations
-            .push(SingleValueOperationWithIndex::IsDuration);
+            .push(SingleValueWithIndexOperation::IsDuration);
     }
 }
 
 impl<O: RootOperand> IsNull for SingleValueWithIndexOperand<O> {
     fn is_null(&mut self) {
-        self.operations.push(SingleValueOperationWithIndex::IsNull);
+        self.operations.push(SingleValueWithIndexOperation::IsNull);
     }
 }
 
@@ -2061,7 +2061,7 @@ impl<O: RootOperand> EitherOr for SingleValueWithIndexOperand<O> {
         or_query(&mut or_operand);
 
         self.operations
-            .push(SingleValueOperationWithIndex::EitherOr {
+            .push(SingleValueWithIndexOperation::EitherOr {
                 either: either_operand,
                 or: or_operand,
             });
@@ -2081,7 +2081,7 @@ impl<O: RootOperand> Exclude for SingleValueWithIndexOperand<O> {
         query(&mut operand);
 
         self.operations
-            .push(SingleValueOperationWithIndex::Exclude { operand });
+            .push(SingleValueWithIndexOperation::Exclude { operand });
     }
 }
 
@@ -2102,7 +2102,7 @@ impl<O: RootOperand> SingleValueWithIndexOperand<O> {
         operand: Wrapper<MultipleValuesWithIndexOperand<O>>,
     ) {
         self.operations
-            .push(SingleValueOperationWithIndex::Merge { operand });
+            .push(SingleValueWithIndexOperation::Merge { operand });
     }
 }
 
@@ -2126,7 +2126,7 @@ pub type EdgeSingleValueWithoutIndexOperand = SingleValueWithoutIndexOperand<Edg
 pub struct SingleValueWithoutIndexOperand<O: RootOperand> {
     context: SingleValueWithoutIndexContext<O>,
     pub(crate) kind: SingleKindWithoutIndex,
-    operations: Vec<SingleValueOperationWithoutIndex<O>>,
+    operations: Vec<SingleValueWithoutIndexOperation<O>>,
 }
 
 impl<O: RootOperand> DeepClone for SingleValueWithoutIndexOperand<O> {
@@ -2176,34 +2176,34 @@ impl<'a, O: 'a + RootOperand> EvaluateBackward<'a> for SingleValueWithoutIndexOp
 
         let value = match self.kind {
             SingleKindWithoutIndex::Max => {
-                MultipleValuesOperationWithoutIndex::<O>::get_max(values)?
+                MultipleValuesWithoutIndexOperation::<O>::get_max(values)?
             }
             SingleKindWithoutIndex::Min => {
-                MultipleValuesOperationWithoutIndex::<O>::get_min(values)?
+                MultipleValuesWithoutIndexOperation::<O>::get_min(values)?
             }
             SingleKindWithoutIndex::Mean => {
-                MultipleValuesOperationWithoutIndex::<O>::get_mean(values)?
+                MultipleValuesWithoutIndexOperation::<O>::get_mean(values)?
             }
             SingleKindWithoutIndex::Median => {
-                MultipleValuesOperationWithoutIndex::<O>::get_median(values)?
+                MultipleValuesWithoutIndexOperation::<O>::get_median(values)?
             }
             SingleKindWithoutIndex::Mode => {
-                MultipleValuesOperationWithoutIndex::<O>::get_mode(values)?
+                MultipleValuesWithoutIndexOperation::<O>::get_mode(values)?
             }
             SingleKindWithoutIndex::Std => {
-                MultipleValuesOperationWithoutIndex::<O>::get_std(values)?
+                MultipleValuesWithoutIndexOperation::<O>::get_std(values)?
             }
             SingleKindWithoutIndex::Var => {
-                MultipleValuesOperationWithoutIndex::<O>::get_var(values)?
+                MultipleValuesWithoutIndexOperation::<O>::get_var(values)?
             }
             SingleKindWithoutIndex::Count => {
-                Some(MultipleValuesOperationWithoutIndex::<O>::get_count(values))
+                Some(MultipleValuesWithoutIndexOperation::<O>::get_count(values))
             }
             SingleKindWithoutIndex::Sum => {
-                MultipleValuesOperationWithoutIndex::<O>::get_sum(values)?
+                MultipleValuesWithoutIndexOperation::<O>::get_sum(values)?
             }
             SingleKindWithoutIndex::Random => {
-                MultipleValuesOperationWithoutIndex::<O>::get_random(values)
+                MultipleValuesWithoutIndexOperation::<O>::get_random(values)
             }
         };
 
@@ -2216,7 +2216,7 @@ impl<O: RootOperand> GreaterThan for SingleValueWithoutIndexOperand<O> {
 
     fn greater_than<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
         self.operations.push(
-            SingleValueOperationWithoutIndex::SingleValueComparisonOperation {
+            SingleValueWithoutIndexOperation::SingleValueComparisonOperation {
                 operand: value.into(),
                 kind: SingleComparisonKind::GreaterThan,
             },
@@ -2229,7 +2229,7 @@ impl<O: RootOperand> GreaterThanOrEqualTo for SingleValueWithoutIndexOperand<O> 
 
     fn greater_than_or_equal_to<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
         self.operations.push(
-            SingleValueOperationWithoutIndex::SingleValueComparisonOperation {
+            SingleValueWithoutIndexOperation::SingleValueComparisonOperation {
                 operand: value.into(),
                 kind: SingleComparisonKind::GreaterThanOrEqualTo,
             },
@@ -2242,7 +2242,7 @@ impl<O: RootOperand> LessThan for SingleValueWithoutIndexOperand<O> {
 
     fn less_than<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
         self.operations.push(
-            SingleValueOperationWithoutIndex::SingleValueComparisonOperation {
+            SingleValueWithoutIndexOperation::SingleValueComparisonOperation {
                 operand: value.into(),
                 kind: SingleComparisonKind::LessThan,
             },
@@ -2255,7 +2255,7 @@ impl<O: RootOperand> LessThanOrEqualTo for SingleValueWithoutIndexOperand<O> {
 
     fn less_than_or_equal_to<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
         self.operations.push(
-            SingleValueOperationWithoutIndex::SingleValueComparisonOperation {
+            SingleValueWithoutIndexOperation::SingleValueComparisonOperation {
                 operand: value.into(),
                 kind: SingleComparisonKind::LessThanOrEqualTo,
             },
@@ -2268,7 +2268,7 @@ impl<O: RootOperand> EqualTo for SingleValueWithoutIndexOperand<O> {
 
     fn equal_to<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
         self.operations.push(
-            SingleValueOperationWithoutIndex::SingleValueComparisonOperation {
+            SingleValueWithoutIndexOperation::SingleValueComparisonOperation {
                 operand: value.into(),
                 kind: SingleComparisonKind::EqualTo,
             },
@@ -2281,7 +2281,7 @@ impl<O: RootOperand> NotEqualTo for SingleValueWithoutIndexOperand<O> {
 
     fn not_equal_to<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
         self.operations.push(
-            SingleValueOperationWithoutIndex::SingleValueComparisonOperation {
+            SingleValueWithoutIndexOperation::SingleValueComparisonOperation {
                 operand: value.into(),
                 kind: SingleComparisonKind::NotEqualTo,
             },
@@ -2294,7 +2294,7 @@ impl<O: RootOperand> StartsWith for SingleValueWithoutIndexOperand<O> {
 
     fn starts_with<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
         self.operations.push(
-            SingleValueOperationWithoutIndex::SingleValueComparisonOperation {
+            SingleValueWithoutIndexOperation::SingleValueComparisonOperation {
                 operand: value.into(),
                 kind: SingleComparisonKind::StartsWith,
             },
@@ -2307,7 +2307,7 @@ impl<O: RootOperand> EndsWith for SingleValueWithoutIndexOperand<O> {
 
     fn ends_with<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
         self.operations.push(
-            SingleValueOperationWithoutIndex::SingleValueComparisonOperation {
+            SingleValueWithoutIndexOperation::SingleValueComparisonOperation {
                 operand: value.into(),
                 kind: SingleComparisonKind::EndsWith,
             },
@@ -2320,7 +2320,7 @@ impl<O: RootOperand> Contains for SingleValueWithoutIndexOperand<O> {
 
     fn contains<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
         self.operations.push(
-            SingleValueOperationWithoutIndex::SingleValueComparisonOperation {
+            SingleValueWithoutIndexOperation::SingleValueComparisonOperation {
                 operand: value.into(),
                 kind: SingleComparisonKind::Contains,
             },
@@ -2333,7 +2333,7 @@ impl<O: RootOperand> IsIn for SingleValueWithoutIndexOperand<O> {
 
     fn is_in<V: Into<Self::ComparisonOperand>>(&mut self, values: V) {
         self.operations.push(
-            SingleValueOperationWithoutIndex::MultipleValuesComparisonOperation {
+            SingleValueWithoutIndexOperation::MultipleValuesComparisonOperation {
                 operand: values.into(),
                 kind: MultipleComparisonKind::IsIn,
             },
@@ -2346,7 +2346,7 @@ impl<O: RootOperand> IsNotIn for SingleValueWithoutIndexOperand<O> {
 
     fn is_not_in<V: Into<Self::ComparisonOperand>>(&mut self, values: V) {
         self.operations.push(
-            SingleValueOperationWithoutIndex::MultipleValuesComparisonOperation {
+            SingleValueWithoutIndexOperation::MultipleValuesComparisonOperation {
                 operand: values.into(),
                 kind: MultipleComparisonKind::IsNotIn,
             },
@@ -2359,7 +2359,7 @@ impl<O: RootOperand> Add for SingleValueWithoutIndexOperand<O> {
 
     fn add<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
         self.operations
-            .push(SingleValueOperationWithoutIndex::BinaryArithmeticOpration {
+            .push(SingleValueWithoutIndexOperation::BinaryArithmeticOpration {
                 operand: value.into(),
                 kind: BinaryArithmeticKind::Add,
             });
@@ -2371,7 +2371,7 @@ impl<O: RootOperand> Sub for SingleValueWithoutIndexOperand<O> {
 
     fn sub<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
         self.operations
-            .push(SingleValueOperationWithoutIndex::BinaryArithmeticOpration {
+            .push(SingleValueWithoutIndexOperation::BinaryArithmeticOpration {
                 operand: value.into(),
                 kind: BinaryArithmeticKind::Sub,
             });
@@ -2383,7 +2383,7 @@ impl<O: RootOperand> Mul for SingleValueWithoutIndexOperand<O> {
 
     fn mul<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
         self.operations
-            .push(SingleValueOperationWithoutIndex::BinaryArithmeticOpration {
+            .push(SingleValueWithoutIndexOperation::BinaryArithmeticOpration {
                 operand: value.into(),
                 kind: BinaryArithmeticKind::Mul,
             });
@@ -2395,7 +2395,7 @@ impl<O: RootOperand> Div for SingleValueWithoutIndexOperand<O> {
 
     fn div<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
         self.operations
-            .push(SingleValueOperationWithoutIndex::BinaryArithmeticOpration {
+            .push(SingleValueWithoutIndexOperation::BinaryArithmeticOpration {
                 operand: value.into(),
                 kind: BinaryArithmeticKind::Div,
             });
@@ -2407,7 +2407,7 @@ impl<O: RootOperand> Pow for SingleValueWithoutIndexOperand<O> {
 
     fn pow<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
         self.operations
-            .push(SingleValueOperationWithoutIndex::BinaryArithmeticOpration {
+            .push(SingleValueWithoutIndexOperation::BinaryArithmeticOpration {
                 operand: value.into(),
                 kind: BinaryArithmeticKind::Pow,
             });
@@ -2419,7 +2419,7 @@ impl<O: RootOperand> Mod for SingleValueWithoutIndexOperand<O> {
 
     fn r#mod<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
         self.operations
-            .push(SingleValueOperationWithoutIndex::BinaryArithmeticOpration {
+            .push(SingleValueWithoutIndexOperation::BinaryArithmeticOpration {
                 operand: value.into(),
                 kind: BinaryArithmeticKind::Mod,
             });
@@ -2429,7 +2429,7 @@ impl<O: RootOperand> Mod for SingleValueWithoutIndexOperand<O> {
 impl<O: RootOperand> Round for SingleValueWithoutIndexOperand<O> {
     fn round(&mut self) {
         self.operations
-            .push(SingleValueOperationWithoutIndex::UnaryArithmeticOperation {
+            .push(SingleValueWithoutIndexOperation::UnaryArithmeticOperation {
                 kind: UnaryArithmeticKind::Round,
             });
     }
@@ -2438,7 +2438,7 @@ impl<O: RootOperand> Round for SingleValueWithoutIndexOperand<O> {
 impl<O: RootOperand> Ceil for SingleValueWithoutIndexOperand<O> {
     fn ceil(&mut self) {
         self.operations
-            .push(SingleValueOperationWithoutIndex::UnaryArithmeticOperation {
+            .push(SingleValueWithoutIndexOperation::UnaryArithmeticOperation {
                 kind: UnaryArithmeticKind::Ceil,
             });
     }
@@ -2447,7 +2447,7 @@ impl<O: RootOperand> Ceil for SingleValueWithoutIndexOperand<O> {
 impl<O: RootOperand> Floor for SingleValueWithoutIndexOperand<O> {
     fn floor(&mut self) {
         self.operations
-            .push(SingleValueOperationWithoutIndex::UnaryArithmeticOperation {
+            .push(SingleValueWithoutIndexOperation::UnaryArithmeticOperation {
                 kind: UnaryArithmeticKind::Floor,
             });
     }
@@ -2456,7 +2456,7 @@ impl<O: RootOperand> Floor for SingleValueWithoutIndexOperand<O> {
 impl<O: RootOperand> Abs for SingleValueWithoutIndexOperand<O> {
     fn abs(&mut self) {
         self.operations
-            .push(SingleValueOperationWithoutIndex::UnaryArithmeticOperation {
+            .push(SingleValueWithoutIndexOperation::UnaryArithmeticOperation {
                 kind: UnaryArithmeticKind::Abs,
             });
     }
@@ -2465,7 +2465,7 @@ impl<O: RootOperand> Abs for SingleValueWithoutIndexOperand<O> {
 impl<O: RootOperand> Sqrt for SingleValueWithoutIndexOperand<O> {
     fn sqrt(&mut self) {
         self.operations
-            .push(SingleValueOperationWithoutIndex::UnaryArithmeticOperation {
+            .push(SingleValueWithoutIndexOperation::UnaryArithmeticOperation {
                 kind: UnaryArithmeticKind::Sqrt,
             });
     }
@@ -2474,7 +2474,7 @@ impl<O: RootOperand> Sqrt for SingleValueWithoutIndexOperand<O> {
 impl<O: RootOperand> Trim for SingleValueWithoutIndexOperand<O> {
     fn trim(&mut self) {
         self.operations
-            .push(SingleValueOperationWithoutIndex::UnaryArithmeticOperation {
+            .push(SingleValueWithoutIndexOperation::UnaryArithmeticOperation {
                 kind: UnaryArithmeticKind::Trim,
             });
     }
@@ -2483,7 +2483,7 @@ impl<O: RootOperand> Trim for SingleValueWithoutIndexOperand<O> {
 impl<O: RootOperand> TrimStart for SingleValueWithoutIndexOperand<O> {
     fn trim_start(&mut self) {
         self.operations
-            .push(SingleValueOperationWithoutIndex::UnaryArithmeticOperation {
+            .push(SingleValueWithoutIndexOperation::UnaryArithmeticOperation {
                 kind: UnaryArithmeticKind::TrimStart,
             });
     }
@@ -2492,7 +2492,7 @@ impl<O: RootOperand> TrimStart for SingleValueWithoutIndexOperand<O> {
 impl<O: RootOperand> TrimEnd for SingleValueWithoutIndexOperand<O> {
     fn trim_end(&mut self) {
         self.operations
-            .push(SingleValueOperationWithoutIndex::UnaryArithmeticOperation {
+            .push(SingleValueWithoutIndexOperation::UnaryArithmeticOperation {
                 kind: UnaryArithmeticKind::TrimEnd,
             });
     }
@@ -2501,7 +2501,7 @@ impl<O: RootOperand> TrimEnd for SingleValueWithoutIndexOperand<O> {
 impl<O: RootOperand> Lowercase for SingleValueWithoutIndexOperand<O> {
     fn lowercase(&mut self) {
         self.operations
-            .push(SingleValueOperationWithoutIndex::UnaryArithmeticOperation {
+            .push(SingleValueWithoutIndexOperation::UnaryArithmeticOperation {
                 kind: UnaryArithmeticKind::Lowercase,
             });
     }
@@ -2510,7 +2510,7 @@ impl<O: RootOperand> Lowercase for SingleValueWithoutIndexOperand<O> {
 impl<O: RootOperand> Uppercase for SingleValueWithoutIndexOperand<O> {
     fn uppercase(&mut self) {
         self.operations
-            .push(SingleValueOperationWithoutIndex::UnaryArithmeticOperation {
+            .push(SingleValueWithoutIndexOperation::UnaryArithmeticOperation {
                 kind: UnaryArithmeticKind::Uppercase,
             });
     }
@@ -2519,56 +2519,56 @@ impl<O: RootOperand> Uppercase for SingleValueWithoutIndexOperand<O> {
 impl<O: RootOperand> Slice for SingleValueWithoutIndexOperand<O> {
     fn slice(&mut self, start: usize, end: usize) {
         self.operations
-            .push(SingleValueOperationWithoutIndex::Slice(start..end));
+            .push(SingleValueWithoutIndexOperation::Slice(start..end));
     }
 }
 
 impl<O: RootOperand> IsString for SingleValueWithoutIndexOperand<O> {
     fn is_string(&mut self) {
         self.operations
-            .push(SingleValueOperationWithoutIndex::IsString);
+            .push(SingleValueWithoutIndexOperation::IsString);
     }
 }
 
 impl<O: RootOperand> IsInt for SingleValueWithoutIndexOperand<O> {
     fn is_int(&mut self) {
         self.operations
-            .push(SingleValueOperationWithoutIndex::IsInt);
+            .push(SingleValueWithoutIndexOperation::IsInt);
     }
 }
 
 impl<O: RootOperand> IsFloat for SingleValueWithoutIndexOperand<O> {
     fn is_float(&mut self) {
         self.operations
-            .push(SingleValueOperationWithoutIndex::IsFloat);
+            .push(SingleValueWithoutIndexOperation::IsFloat);
     }
 }
 
 impl<O: RootOperand> IsBool for SingleValueWithoutIndexOperand<O> {
     fn is_bool(&mut self) {
         self.operations
-            .push(SingleValueOperationWithoutIndex::IsBool);
+            .push(SingleValueWithoutIndexOperation::IsBool);
     }
 }
 
 impl<O: RootOperand> IsDateTime for SingleValueWithoutIndexOperand<O> {
     fn is_datetime(&mut self) {
         self.operations
-            .push(SingleValueOperationWithoutIndex::IsDateTime);
+            .push(SingleValueWithoutIndexOperation::IsDateTime);
     }
 }
 
 impl<O: RootOperand> IsDuration for SingleValueWithoutIndexOperand<O> {
     fn is_duration(&mut self) {
         self.operations
-            .push(SingleValueOperationWithoutIndex::IsDuration);
+            .push(SingleValueWithoutIndexOperation::IsDuration);
     }
 }
 
 impl<O: RootOperand> IsNull for SingleValueWithoutIndexOperand<O> {
     fn is_null(&mut self) {
         self.operations
-            .push(SingleValueOperationWithoutIndex::IsNull);
+            .push(SingleValueWithoutIndexOperation::IsNull);
     }
 }
 
@@ -2593,7 +2593,7 @@ impl<O: RootOperand> EitherOr for SingleValueWithoutIndexOperand<O> {
         or_query(&mut or_operand);
 
         self.operations
-            .push(SingleValueOperationWithoutIndex::EitherOr {
+            .push(SingleValueWithoutIndexOperation::EitherOr {
                 either: either_operand,
                 or: or_operand,
             });
@@ -2615,7 +2615,7 @@ impl<O: RootOperand> Exclude for SingleValueWithoutIndexOperand<O> {
         query(&mut operand);
 
         self.operations
-            .push(SingleValueOperationWithoutIndex::Exclude { operand });
+            .push(SingleValueWithoutIndexOperation::Exclude { operand });
     }
 }
 
@@ -2636,7 +2636,7 @@ impl<O: RootOperand> SingleValueWithoutIndexOperand<O> {
         operand: Wrapper<MultipleValuesWithoutIndexOperand<O>>,
     ) {
         self.operations
-            .push(SingleValueOperationWithoutIndex::Merge { operand });
+            .push(SingleValueWithoutIndexOperation::Merge { operand });
     }
 }
 

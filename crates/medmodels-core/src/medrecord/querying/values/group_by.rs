@@ -2,11 +2,11 @@ use super::{MultipleValuesWithIndexOperand, SingleValueWithIndexOperand};
 use crate::{
     errors::MedRecordResult,
     medrecord::querying::{
-        attributes::{MultipleAttributesOperationWithIndex, MultipleAttributesWithIndexOperand},
+        attributes::{MultipleAttributesWithIndexOperand, MultipleAttributesWithIndexOperation},
         group_by::{GroupOperand, GroupedOperand, Merge},
         values::{
             operand::MultipleValuesWithoutIndexOperand,
-            operation::MultipleValuesOperationWithoutIndex, MultipleValuesWithIndexContext,
+            operation::MultipleValuesWithoutIndexOperation, MultipleValuesWithIndexContext,
             MultipleValuesWithoutIndexContext, SingleKindWithoutIndex,
             SingleValueWithoutIndexOperand,
         },
@@ -92,7 +92,7 @@ where
                 let values: Vec<_> = partitions
                     .map(|partition| {
                         let reduced_partition =
-                            MultipleAttributesOperationWithIndex::<O>::get_values(
+                            MultipleAttributesWithIndexOperation::<O>::get_values(
                                 medrecord, partition,
                             )?;
 
@@ -217,34 +217,34 @@ impl<'a, O: 'a + RootOperand> EvaluateBackward<'a>
 
                         let reduced_partition = match self.operand.0.read_or_panic().kind {
                             SingleKindWithoutIndex::Max => {
-                                MultipleValuesOperationWithoutIndex::<O>::get_max(partition)?
+                                MultipleValuesWithoutIndexOperation::<O>::get_max(partition)?
                             }
                             SingleKindWithoutIndex::Min => {
-                                MultipleValuesOperationWithoutIndex::<O>::get_min(partition)?
+                                MultipleValuesWithoutIndexOperation::<O>::get_min(partition)?
                             }
                             SingleKindWithoutIndex::Mean => {
-                                MultipleValuesOperationWithoutIndex::<O>::get_mean(partition)?
+                                MultipleValuesWithoutIndexOperation::<O>::get_mean(partition)?
                             }
                             SingleKindWithoutIndex::Median => {
-                                MultipleValuesOperationWithoutIndex::<O>::get_median(partition)?
+                                MultipleValuesWithoutIndexOperation::<O>::get_median(partition)?
                             }
                             SingleKindWithoutIndex::Mode => {
-                                MultipleValuesOperationWithoutIndex::<O>::get_mode(partition)?
+                                MultipleValuesWithoutIndexOperation::<O>::get_mode(partition)?
                             }
                             SingleKindWithoutIndex::Std => {
-                                MultipleValuesOperationWithoutIndex::<O>::get_std(partition)?
+                                MultipleValuesWithoutIndexOperation::<O>::get_std(partition)?
                             }
                             SingleKindWithoutIndex::Var => {
-                                MultipleValuesOperationWithoutIndex::<O>::get_var(partition)?
+                                MultipleValuesWithoutIndexOperation::<O>::get_var(partition)?
                             }
                             SingleKindWithoutIndex::Count => Some(
-                                MultipleValuesOperationWithoutIndex::<O>::get_count(partition),
+                                MultipleValuesWithoutIndexOperation::<O>::get_count(partition),
                             ),
                             SingleKindWithoutIndex::Sum => {
-                                MultipleValuesOperationWithoutIndex::<O>::get_sum(partition)?
+                                MultipleValuesWithoutIndexOperation::<O>::get_sum(partition)?
                             }
                             SingleKindWithoutIndex::Random => {
-                                MultipleValuesOperationWithoutIndex::<O>::get_random(partition)
+                                MultipleValuesWithoutIndexOperation::<O>::get_random(partition)
                             }
                         };
 

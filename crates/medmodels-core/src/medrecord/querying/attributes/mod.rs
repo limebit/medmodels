@@ -29,7 +29,7 @@ pub use operand::{
     SingleAttributeWithIndexOperand, SingleAttributeWithoutIndexOperand,
 };
 pub use operation::{
-    MultipleAttributesOperationWithIndex, MultipleAttributesOperationWithoutIndex,
+    MultipleAttributesWithIndexOperation, MultipleAttributesWithoutIndexOperation,
 };
 use std::fmt::Display;
 

@@ -57,11 +57,11 @@ macro_rules! get_median {
 }
 
 #[derive(Debug, Clone)]
-pub enum MultipleValuesOperationWithIndex<O: RootOperand> {
-    ValueOperationWithIndex {
+pub enum MultipleValuesWithIndexOperation<O: RootOperand> {
+    ValueWithIndexOperation {
         operand: Wrapper<SingleValueWithIndexOperand<O>>,
     },
-    ValueOperationWithoutIndex {
+    ValueWithoutIndexOperation {
         operand: Wrapper<SingleValueWithoutIndexOperand<O>>,
     },
     SingleValueComparisonOperation {
@@ -102,13 +102,13 @@ pub enum MultipleValuesOperationWithIndex<O: RootOperand> {
     },
 }
 
-impl<O: RootOperand> DeepClone for MultipleValuesOperationWithIndex<O> {
+impl<O: RootOperand> DeepClone for MultipleValuesWithIndexOperation<O> {
     fn deep_clone(&self) -> Self {
         match self {
-            Self::ValueOperationWithIndex { operand } => Self::ValueOperationWithIndex {
+            Self::ValueWithIndexOperation { operand } => Self::ValueWithIndexOperation {
                 operand: operand.deep_clone(),
             },
-            Self::ValueOperationWithoutIndex { operand } => Self::ValueOperationWithoutIndex {
+            Self::ValueWithoutIndexOperation { operand } => Self::ValueWithoutIndexOperation {
                 operand: operand.deep_clone(),
             },
             Self::SingleValueComparisonOperation { operand, kind } => {
@@ -151,7 +151,7 @@ impl<O: RootOperand> DeepClone for MultipleValuesOperationWithIndex<O> {
     }
 }
 
-impl<O: RootOperand> MultipleValuesOperationWithIndex<O> {
+impl<O: RootOperand> MultipleValuesWithIndexOperation<O> {
     pub(crate) fn evaluate<'a>(
         &self,
         medrecord: &'a MedRecord,
@@ -161,10 +161,10 @@ impl<O: RootOperand> MultipleValuesOperationWithIndex<O> {
         O: 'a,
     {
         match self {
-            Self::ValueOperationWithIndex { operand } => {
+            Self::ValueWithIndexOperation { operand } => {
                 Self::evaluate_value_operation_with_index(medrecord, values, operand)
             }
-            Self::ValueOperationWithoutIndex { operand } => {
+            Self::ValueWithoutIndexOperation { operand } => {
                 Self::evaluate_value_operation_without_index(medrecord, values, operand)
             }
             Self::SingleValueComparisonOperation { operand, kind } => {
@@ -329,10 +329,10 @@ impl<O: RootOperand> MultipleValuesOperationWithIndex<O> {
         let kind = &operand.0.read_or_panic().kind;
 
         let value = match kind {
-            SingleKindWithIndex::Max => MultipleValuesOperationWithIndex::<O>::get_max(values_1)?,
-            SingleKindWithIndex::Min => MultipleValuesOperationWithIndex::<O>::get_min(values_1)?,
+            SingleKindWithIndex::Max => MultipleValuesWithIndexOperation::<O>::get_max(values_1)?,
+            SingleKindWithIndex::Min => MultipleValuesWithIndexOperation::<O>::get_min(values_1)?,
             SingleKindWithIndex::Random => {
-                MultipleValuesOperationWithIndex::<O>::get_random(values_1)
+                MultipleValuesWithIndexOperation::<O>::get_random(values_1)
             }
         };
 
@@ -358,34 +358,34 @@ impl<O: RootOperand> MultipleValuesOperationWithIndex<O> {
 
         let value = match kind {
             SingleKindWithoutIndex::Max => {
-                MultipleValuesOperationWithoutIndex::<O>::get_max(values_1)?
+                MultipleValuesWithoutIndexOperation::<O>::get_max(values_1)?
             }
             SingleKindWithoutIndex::Min => {
-                MultipleValuesOperationWithoutIndex::<O>::get_min(values_1)?
+                MultipleValuesWithoutIndexOperation::<O>::get_min(values_1)?
             }
             SingleKindWithoutIndex::Mean => {
-                MultipleValuesOperationWithoutIndex::<O>::get_mean(values_1)?
+                MultipleValuesWithoutIndexOperation::<O>::get_mean(values_1)?
             }
             SingleKindWithoutIndex::Median => {
-                MultipleValuesOperationWithoutIndex::<O>::get_median(values_1)?
+                MultipleValuesWithoutIndexOperation::<O>::get_median(values_1)?
             }
             SingleKindWithoutIndex::Mode => {
-                MultipleValuesOperationWithoutIndex::<O>::get_mode(values_1)?
+                MultipleValuesWithoutIndexOperation::<O>::get_mode(values_1)?
             }
             SingleKindWithoutIndex::Std => {
-                MultipleValuesOperationWithoutIndex::<O>::get_std(values_1)?
+                MultipleValuesWithoutIndexOperation::<O>::get_std(values_1)?
             }
             SingleKindWithoutIndex::Var => {
-                MultipleValuesOperationWithoutIndex::<O>::get_var(values_1)?
+                MultipleValuesWithoutIndexOperation::<O>::get_var(values_1)?
             }
             SingleKindWithoutIndex::Count => Some(
-                MultipleValuesOperationWithoutIndex::<O>::get_count(values_1),
+                MultipleValuesWithoutIndexOperation::<O>::get_count(values_1),
             ),
             SingleKindWithoutIndex::Sum => {
-                MultipleValuesOperationWithoutIndex::<O>::get_sum(values_1)?
+                MultipleValuesWithoutIndexOperation::<O>::get_sum(values_1)?
             }
             SingleKindWithoutIndex::Random => {
-                MultipleValuesOperationWithoutIndex::<O>::get_random(values_1)
+                MultipleValuesWithoutIndexOperation::<O>::get_random(values_1)
             }
         };
 
@@ -593,7 +593,7 @@ impl<O: RootOperand> MultipleValuesOperationWithIndex<O> {
     }
 }
 
-impl<O: RootOperand> MultipleValuesOperationWithIndex<O> {
+impl<O: RootOperand> MultipleValuesWithIndexOperation<O> {
     #[allow(clippy::type_complexity)]
     pub(crate) fn evaluate_grouped<'a>(
         &self,
@@ -604,10 +604,10 @@ impl<O: RootOperand> MultipleValuesOperationWithIndex<O> {
         O: 'a,
     {
         Ok(match self {
-            Self::ValueOperationWithIndex { operand } => Box::new(
+            Self::ValueWithIndexOperation { operand } => Box::new(
                 Self::evaluate_value_operation_with_index_grouped(medrecord, values, operand)?,
             ),
-            Self::ValueOperationWithoutIndex { operand } => Box::new(
+            Self::ValueWithoutIndexOperation { operand } => Box::new(
                 Self::evaluate_value_operation_without_index_grouped(medrecord, values, operand)?,
             ),
             Self::SingleValueComparisonOperation { operand, kind } => Box::new(
@@ -712,13 +712,13 @@ impl<O: RootOperand> MultipleValuesOperationWithIndex<O> {
             .map(|(key, values)| {
                 let value = match kind {
                     SingleKindWithIndex::Max => {
-                        MultipleValuesOperationWithIndex::<O>::get_max(values)?
+                        MultipleValuesWithIndexOperation::<O>::get_max(values)?
                     }
                     SingleKindWithIndex::Min => {
-                        MultipleValuesOperationWithIndex::<O>::get_min(values)?
+                        MultipleValuesWithIndexOperation::<O>::get_min(values)?
                     }
                     SingleKindWithIndex::Random => {
-                        MultipleValuesOperationWithIndex::<O>::get_random(values)
+                        MultipleValuesWithIndexOperation::<O>::get_random(values)
                     }
                 };
 
@@ -766,34 +766,34 @@ impl<O: RootOperand> MultipleValuesOperationWithIndex<O> {
 
                 let value = match kind {
                     SingleKindWithoutIndex::Max => {
-                        MultipleValuesOperationWithoutIndex::<O>::get_max(values)?
+                        MultipleValuesWithoutIndexOperation::<O>::get_max(values)?
                     }
                     SingleKindWithoutIndex::Min => {
-                        MultipleValuesOperationWithoutIndex::<O>::get_min(values)?
+                        MultipleValuesWithoutIndexOperation::<O>::get_min(values)?
                     }
                     SingleKindWithoutIndex::Mean => {
-                        MultipleValuesOperationWithoutIndex::<O>::get_mean(values)?
+                        MultipleValuesWithoutIndexOperation::<O>::get_mean(values)?
                     }
                     SingleKindWithoutIndex::Median => {
-                        MultipleValuesOperationWithoutIndex::<O>::get_median(values)?
+                        MultipleValuesWithoutIndexOperation::<O>::get_median(values)?
                     }
                     SingleKindWithoutIndex::Mode => {
-                        MultipleValuesOperationWithoutIndex::<O>::get_mode(values)?
+                        MultipleValuesWithoutIndexOperation::<O>::get_mode(values)?
                     }
                     SingleKindWithoutIndex::Std => {
-                        MultipleValuesOperationWithoutIndex::<O>::get_std(values)?
+                        MultipleValuesWithoutIndexOperation::<O>::get_std(values)?
                     }
                     SingleKindWithoutIndex::Var => {
-                        MultipleValuesOperationWithoutIndex::<O>::get_var(values)?
+                        MultipleValuesWithoutIndexOperation::<O>::get_var(values)?
                     }
                     SingleKindWithoutIndex::Count => {
-                        Some(MultipleValuesOperationWithoutIndex::<O>::get_count(values))
+                        Some(MultipleValuesWithoutIndexOperation::<O>::get_count(values))
                     }
                     SingleKindWithoutIndex::Sum => {
-                        MultipleValuesOperationWithoutIndex::<O>::get_sum(values)?
+                        MultipleValuesWithoutIndexOperation::<O>::get_sum(values)?
                     }
                     SingleKindWithoutIndex::Random => {
-                        MultipleValuesOperationWithoutIndex::<O>::get_random(values)
+                        MultipleValuesWithoutIndexOperation::<O>::get_random(values)
                     }
                 };
 
@@ -822,7 +822,7 @@ impl<O: RootOperand> MultipleValuesOperationWithIndex<O> {
 }
 
 #[derive(Debug, Clone)]
-pub enum MultipleValuesOperationWithoutIndex<O: RootOperand> {
+pub enum MultipleValuesWithoutIndexOperation<O: RootOperand> {
     ValueOperation {
         operand: Wrapper<SingleValueWithoutIndexOperand<O>>,
     },
@@ -864,7 +864,7 @@ pub enum MultipleValuesOperationWithoutIndex<O: RootOperand> {
     },
 }
 
-impl<O: RootOperand> DeepClone for MultipleValuesOperationWithoutIndex<O> {
+impl<O: RootOperand> DeepClone for MultipleValuesWithoutIndexOperation<O> {
     fn deep_clone(&self) -> Self {
         match self {
             Self::ValueOperation { operand } => Self::ValueOperation {
@@ -910,7 +910,7 @@ impl<O: RootOperand> DeepClone for MultipleValuesOperationWithoutIndex<O> {
     }
 }
 
-impl<O: RootOperand> MultipleValuesOperationWithoutIndex<O> {
+impl<O: RootOperand> MultipleValuesWithoutIndexOperation<O> {
     pub(crate) fn evaluate<'a>(
         &self,
         medrecord: &'a MedRecord,
@@ -1321,34 +1321,34 @@ impl<O: RootOperand> MultipleValuesOperationWithoutIndex<O> {
 
         let value = match kind {
             SingleKindWithoutIndex::Max => {
-                MultipleValuesOperationWithoutIndex::<O>::get_max(values_1)?
+                MultipleValuesWithoutIndexOperation::<O>::get_max(values_1)?
             }
             SingleKindWithoutIndex::Min => {
-                MultipleValuesOperationWithoutIndex::<O>::get_min(values_1)?
+                MultipleValuesWithoutIndexOperation::<O>::get_min(values_1)?
             }
             SingleKindWithoutIndex::Mean => {
-                MultipleValuesOperationWithoutIndex::<O>::get_mean(values_1)?
+                MultipleValuesWithoutIndexOperation::<O>::get_mean(values_1)?
             }
             SingleKindWithoutIndex::Median => {
-                MultipleValuesOperationWithoutIndex::<O>::get_median(values_1)?
+                MultipleValuesWithoutIndexOperation::<O>::get_median(values_1)?
             }
             SingleKindWithoutIndex::Mode => {
-                MultipleValuesOperationWithoutIndex::<O>::get_mode(values_1)?
+                MultipleValuesWithoutIndexOperation::<O>::get_mode(values_1)?
             }
             SingleKindWithoutIndex::Std => {
-                MultipleValuesOperationWithoutIndex::<O>::get_std(values_1)?
+                MultipleValuesWithoutIndexOperation::<O>::get_std(values_1)?
             }
             SingleKindWithoutIndex::Var => {
-                MultipleValuesOperationWithoutIndex::<O>::get_var(values_1)?
+                MultipleValuesWithoutIndexOperation::<O>::get_var(values_1)?
             }
             SingleKindWithoutIndex::Count => Some(
-                MultipleValuesOperationWithoutIndex::<O>::get_count(values_1),
+                MultipleValuesWithoutIndexOperation::<O>::get_count(values_1),
             ),
             SingleKindWithoutIndex::Sum => {
-                MultipleValuesOperationWithoutIndex::<O>::get_sum(values_1)?
+                MultipleValuesWithoutIndexOperation::<O>::get_sum(values_1)?
             }
             SingleKindWithoutIndex::Random => {
-                MultipleValuesOperationWithoutIndex::<O>::get_random(values_1)
+                MultipleValuesWithoutIndexOperation::<O>::get_random(values_1)
             }
         };
 
@@ -1531,7 +1531,7 @@ impl<O: RootOperand> MultipleValuesOperationWithoutIndex<O> {
     }
 }
 
-impl<O: RootOperand> MultipleValuesOperationWithoutIndex<O> {
+impl<O: RootOperand> MultipleValuesWithoutIndexOperation<O> {
     pub(crate) fn evaluate_grouped<'a>(
         &self,
         medrecord: &'a MedRecord,
@@ -1641,34 +1641,34 @@ impl<O: RootOperand> MultipleValuesOperationWithoutIndex<O> {
             .map(|(key, values)| {
                 let value = match kind {
                     SingleKindWithoutIndex::Max => {
-                        MultipleValuesOperationWithoutIndex::<O>::get_max(values)?
+                        MultipleValuesWithoutIndexOperation::<O>::get_max(values)?
                     }
                     SingleKindWithoutIndex::Min => {
-                        MultipleValuesOperationWithoutIndex::<O>::get_min(values)?
+                        MultipleValuesWithoutIndexOperation::<O>::get_min(values)?
                     }
                     SingleKindWithoutIndex::Mean => {
-                        MultipleValuesOperationWithoutIndex::<O>::get_mean(values)?
+                        MultipleValuesWithoutIndexOperation::<O>::get_mean(values)?
                     }
                     SingleKindWithoutIndex::Median => {
-                        MultipleValuesOperationWithoutIndex::<O>::get_median(values)?
+                        MultipleValuesWithoutIndexOperation::<O>::get_median(values)?
                     }
                     SingleKindWithoutIndex::Mode => {
-                        MultipleValuesOperationWithoutIndex::<O>::get_mode(values)?
+                        MultipleValuesWithoutIndexOperation::<O>::get_mode(values)?
                     }
                     SingleKindWithoutIndex::Std => {
-                        MultipleValuesOperationWithoutIndex::<O>::get_std(values)?
+                        MultipleValuesWithoutIndexOperation::<O>::get_std(values)?
                     }
                     SingleKindWithoutIndex::Var => {
-                        MultipleValuesOperationWithoutIndex::<O>::get_var(values)?
+                        MultipleValuesWithoutIndexOperation::<O>::get_var(values)?
                     }
                     SingleKindWithoutIndex::Count => {
-                        Some(MultipleValuesOperationWithoutIndex::<O>::get_count(values))
+                        Some(MultipleValuesWithoutIndexOperation::<O>::get_count(values))
                     }
                     SingleKindWithoutIndex::Sum => {
-                        MultipleValuesOperationWithoutIndex::<O>::get_sum(values)?
+                        MultipleValuesWithoutIndexOperation::<O>::get_sum(values)?
                     }
                     SingleKindWithoutIndex::Random => {
-                        MultipleValuesOperationWithoutIndex::<O>::get_random(values)
+                        MultipleValuesWithoutIndexOperation::<O>::get_random(values)
                     }
                 };
 
@@ -1697,7 +1697,7 @@ impl<O: RootOperand> MultipleValuesOperationWithoutIndex<O> {
 }
 
 #[derive(Debug, Clone)]
-pub enum SingleValueOperationWithIndex<O: RootOperand> {
+pub enum SingleValueWithIndexOperation<O: RootOperand> {
     SingleValueComparisonOperation {
         operand: SingleValueComparisonOperand,
         kind: SingleComparisonKind,
@@ -1737,7 +1737,7 @@ pub enum SingleValueOperationWithIndex<O: RootOperand> {
     },
 }
 
-impl<O: RootOperand> DeepClone for SingleValueOperationWithIndex<O> {
+impl<O: RootOperand> DeepClone for SingleValueWithIndexOperation<O> {
     fn deep_clone(&self) -> Self {
         match self {
             Self::SingleValueComparisonOperation { operand, kind } => {
@@ -1781,7 +1781,7 @@ impl<O: RootOperand> DeepClone for SingleValueOperationWithIndex<O> {
     }
 }
 
-impl<O: RootOperand> SingleValueOperationWithIndex<O> {
+impl<O: RootOperand> SingleValueWithIndexOperation<O> {
     pub(crate) fn evaluate<'a>(
         &self,
         medrecord: &'a MedRecord,
@@ -1949,7 +1949,7 @@ impl<O: RootOperand> SingleValueOperationWithIndex<O> {
     }
 }
 
-impl<O: RootOperand> SingleValueOperationWithIndex<O> {
+impl<O: RootOperand> SingleValueWithIndexOperation<O> {
     #[allow(clippy::type_complexity)]
     pub(crate) fn evaluate_grouped<'a>(
         &self,
@@ -2042,7 +2042,7 @@ impl<O: RootOperand> SingleValueOperationWithIndex<O> {
 }
 
 #[derive(Debug, Clone)]
-pub enum SingleValueOperationWithoutIndex<O: RootOperand> {
+pub enum SingleValueWithoutIndexOperation<O: RootOperand> {
     SingleValueComparisonOperation {
         operand: SingleValueComparisonOperand,
         kind: SingleComparisonKind,
@@ -2082,7 +2082,7 @@ pub enum SingleValueOperationWithoutIndex<O: RootOperand> {
     },
 }
 
-impl<O: RootOperand> DeepClone for SingleValueOperationWithoutIndex<O> {
+impl<O: RootOperand> DeepClone for SingleValueWithoutIndexOperation<O> {
     fn deep_clone(&self) -> Self {
         match self {
             Self::SingleValueComparisonOperation { operand, kind } => {
@@ -2126,7 +2126,7 @@ impl<O: RootOperand> DeepClone for SingleValueOperationWithoutIndex<O> {
     }
 }
 
-impl<O: RootOperand> SingleValueOperationWithoutIndex<O> {
+impl<O: RootOperand> SingleValueWithoutIndexOperation<O> {
     pub(crate) fn evaluate(
         &self,
         medrecord: &MedRecord,
@@ -2288,7 +2288,7 @@ impl<O: RootOperand> SingleValueOperationWithoutIndex<O> {
     }
 }
 
-impl<O: RootOperand> SingleValueOperationWithoutIndex<O> {
+impl<O: RootOperand> SingleValueWithoutIndexOperation<O> {
     pub(crate) fn evaluate_grouped<'a>(
         &self,
         medrecord: &'a MedRecord,

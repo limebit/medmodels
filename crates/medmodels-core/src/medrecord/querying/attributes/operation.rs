@@ -717,11 +717,11 @@ impl<O: RootOperand> AttributesTreeOperation<O> {
 }
 
 #[derive(Debug, Clone)]
-pub enum MultipleAttributesOperationWithIndex<O: RootOperand> {
+pub enum MultipleAttributesWithIndexOperation<O: RootOperand> {
     AttributeOperation {
         operand: Wrapper<SingleAttributeWithIndexOperand<O>>,
     },
-    AttributeOperationWithoutIndex {
+    AttributeWithoutIndexOperation {
         operand: Wrapper<SingleAttributeWithoutIndexOperand<O>>,
     },
     SingleAttributeComparisonOperation {
@@ -761,14 +761,14 @@ pub enum MultipleAttributesOperationWithIndex<O: RootOperand> {
     },
 }
 
-impl<O: RootOperand> DeepClone for MultipleAttributesOperationWithIndex<O> {
+impl<O: RootOperand> DeepClone for MultipleAttributesWithIndexOperation<O> {
     fn deep_clone(&self) -> Self {
         match self {
             Self::AttributeOperation { operand } => Self::AttributeOperation {
                 operand: operand.deep_clone(),
             },
-            Self::AttributeOperationWithoutIndex { operand } => {
-                Self::AttributeOperationWithoutIndex {
+            Self::AttributeWithoutIndexOperation { operand } => {
+                Self::AttributeWithoutIndexOperation {
                     operand: operand.deep_clone(),
                 }
             }
@@ -810,7 +810,7 @@ impl<O: RootOperand> DeepClone for MultipleAttributesOperationWithIndex<O> {
     }
 }
 
-impl<O: RootOperand> MultipleAttributesOperationWithIndex<O> {
+impl<O: RootOperand> MultipleAttributesWithIndexOperation<O> {
     pub(crate) fn evaluate<'a>(
         &self,
         medrecord: &'a MedRecord,
@@ -823,7 +823,7 @@ impl<O: RootOperand> MultipleAttributesOperationWithIndex<O> {
             Self::AttributeOperation { operand } => {
                 Self::evaluate_attribute_operation(medrecord, attributes, operand)
             }
-            Self::AttributeOperationWithoutIndex { operand } => {
+            Self::AttributeWithoutIndexOperation { operand } => {
                 Self::evaluate_attribute_operation_without_index(medrecord, attributes, operand)
             }
             Self::SingleAttributeComparisonOperation { operand, kind } => {
@@ -969,13 +969,13 @@ impl<O: RootOperand> MultipleAttributesOperationWithIndex<O> {
 
         let attribute = match kind {
             SingleKindWithIndex::Max => {
-                MultipleAttributesOperationWithIndex::<O>::get_max(attributes_1)?
+                MultipleAttributesWithIndexOperation::<O>::get_max(attributes_1)?
             }
             SingleKindWithIndex::Min => {
-                MultipleAttributesOperationWithIndex::<O>::get_min(attributes_1)?
+                MultipleAttributesWithIndexOperation::<O>::get_min(attributes_1)?
             }
             SingleKindWithIndex::Random => {
-                MultipleAttributesOperationWithIndex::<O>::get_random(attributes_1)
+                MultipleAttributesWithIndexOperation::<O>::get_random(attributes_1)
             }
         };
 
@@ -1001,19 +1001,19 @@ impl<O: RootOperand> MultipleAttributesOperationWithIndex<O> {
 
         let attribute = match kind {
             SingleKindWithoutIndex::Max => {
-                MultipleAttributesOperationWithoutIndex::<O>::get_max(attributes_1)?
+                MultipleAttributesWithoutIndexOperation::<O>::get_max(attributes_1)?
             }
             SingleKindWithoutIndex::Min => {
-                MultipleAttributesOperationWithoutIndex::<O>::get_min(attributes_1)?
+                MultipleAttributesWithoutIndexOperation::<O>::get_min(attributes_1)?
             }
             SingleKindWithoutIndex::Count => Some(
-                MultipleAttributesOperationWithoutIndex::<O>::get_count(attributes_1),
+                MultipleAttributesWithoutIndexOperation::<O>::get_count(attributes_1),
             ),
             SingleKindWithoutIndex::Sum => {
-                MultipleAttributesOperationWithoutIndex::<O>::get_sum(attributes_1)?
+                MultipleAttributesWithoutIndexOperation::<O>::get_sum(attributes_1)?
             }
             SingleKindWithoutIndex::Random => {
-                MultipleAttributesOperationWithoutIndex::<O>::get_random(attributes_1)
+                MultipleAttributesWithoutIndexOperation::<O>::get_random(attributes_1)
             }
         };
 
@@ -1275,7 +1275,7 @@ impl<O: RootOperand> MultipleAttributesOperationWithIndex<O> {
     }
 }
 
-impl<O: RootOperand> MultipleAttributesOperationWithIndex<O> {
+impl<O: RootOperand> MultipleAttributesWithIndexOperation<O> {
     #[allow(clippy::type_complexity)]
     pub(crate) fn evaluate_grouped<'a>(
         &self,
@@ -1289,7 +1289,7 @@ impl<O: RootOperand> MultipleAttributesOperationWithIndex<O> {
     }
 }
 #[derive(Debug, Clone)]
-pub enum MultipleAttributesOperationWithoutIndex<O: RootOperand> {
+pub enum MultipleAttributesWithoutIndexOperation<O: RootOperand> {
     AttributeOperation {
         operand: Wrapper<SingleAttributeWithoutIndexOperand<O>>,
     },
@@ -1326,7 +1326,7 @@ pub enum MultipleAttributesOperationWithoutIndex<O: RootOperand> {
     },
 }
 
-impl<O: RootOperand> DeepClone for MultipleAttributesOperationWithoutIndex<O> {
+impl<O: RootOperand> DeepClone for MultipleAttributesWithoutIndexOperation<O> {
     fn deep_clone(&self) -> Self {
         match self {
             Self::AttributeOperation { operand } => Self::AttributeOperation {
@@ -1367,7 +1367,7 @@ impl<O: RootOperand> DeepClone for MultipleAttributesOperationWithoutIndex<O> {
     }
 }
 
-impl<O: RootOperand> MultipleAttributesOperationWithoutIndex<O> {
+impl<O: RootOperand> MultipleAttributesWithoutIndexOperation<O> {
     pub(crate) fn evaluate<'a>(
         &self,
         medrecord: &'a MedRecord,
@@ -1757,7 +1757,7 @@ impl<O: RootOperand> MultipleAttributesOperationWithoutIndex<O> {
     }
 }
 
-impl<O: RootOperand> MultipleAttributesOperationWithoutIndex<O> {
+impl<O: RootOperand> MultipleAttributesWithoutIndexOperation<O> {
     pub(crate) fn evaluate_grouped<'a>(
         &self,
         _medrecord: &'a MedRecord,
@@ -1771,7 +1771,7 @@ impl<O: RootOperand> MultipleAttributesOperationWithoutIndex<O> {
 }
 
 #[derive(Debug, Clone)]
-pub enum SingleAttributeOperationWithIndex<O: RootOperand> {
+pub enum SingleAttributeWithIndexOperation<O: RootOperand> {
     SingleAttributeComparisonOperation {
         operand: SingleAttributeComparisonOperand,
         kind: SingleComparisonKind,
@@ -1802,7 +1802,7 @@ pub enum SingleAttributeOperationWithIndex<O: RootOperand> {
     },
 }
 
-impl<O: RootOperand> DeepClone for SingleAttributeOperationWithIndex<O> {
+impl<O: RootOperand> DeepClone for SingleAttributeWithIndexOperation<O> {
     fn deep_clone(&self) -> Self {
         match self {
             Self::SingleAttributeComparisonOperation { operand, kind } => {
@@ -1838,7 +1838,7 @@ impl<O: RootOperand> DeepClone for SingleAttributeOperationWithIndex<O> {
     }
 }
 
-impl<O: RootOperand> SingleAttributeOperationWithIndex<O> {
+impl<O: RootOperand> SingleAttributeWithIndexOperation<O> {
     pub(crate) fn evaluate<'a>(
         &self,
         medrecord: &'a MedRecord,
@@ -1992,7 +1992,7 @@ impl<O: RootOperand> SingleAttributeOperationWithIndex<O> {
     }
 }
 
-impl<O: RootOperand> SingleAttributeOperationWithIndex<O> {
+impl<O: RootOperand> SingleAttributeWithIndexOperation<O> {
     #[allow(clippy::type_complexity)]
     pub(crate) fn evaluate_grouped<'a>(
         &self,
@@ -2007,7 +2007,7 @@ impl<O: RootOperand> SingleAttributeOperationWithIndex<O> {
 }
 
 #[derive(Debug, Clone)]
-pub enum SingleAttributeOperationWithoutIndex<O: RootOperand> {
+pub enum SingleAttributeWithoutIndexOperation<O: RootOperand> {
     SingleAttributeComparisonOperation {
         operand: SingleAttributeComparisonOperand,
         kind: SingleComparisonKind,
@@ -2038,7 +2038,7 @@ pub enum SingleAttributeOperationWithoutIndex<O: RootOperand> {
     },
 }
 
-impl<O: RootOperand> DeepClone for SingleAttributeOperationWithoutIndex<O> {
+impl<O: RootOperand> DeepClone for SingleAttributeWithoutIndexOperation<O> {
     fn deep_clone(&self) -> Self {
         match self {
             Self::SingleAttributeComparisonOperation { operand, kind } => {
@@ -2074,7 +2074,7 @@ impl<O: RootOperand> DeepClone for SingleAttributeOperationWithoutIndex<O> {
     }
 }
 
-impl<O: RootOperand> SingleAttributeOperationWithoutIndex<O> {
+impl<O: RootOperand> SingleAttributeWithoutIndexOperation<O> {
     pub(crate) fn evaluate<'a>(
         &self,
         medrecord: &'a MedRecord,
@@ -2228,7 +2228,7 @@ impl<O: RootOperand> SingleAttributeOperationWithoutIndex<O> {
     }
 }
 
-impl<O: RootOperand> SingleAttributeOperationWithoutIndex<O> {
+impl<O: RootOperand> SingleAttributeWithoutIndexOperation<O> {
     pub(crate) fn evaluate_grouped<'a>(
         &self,
         _medrecord: &'a MedRecord,

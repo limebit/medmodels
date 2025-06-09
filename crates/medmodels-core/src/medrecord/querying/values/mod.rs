@@ -3,7 +3,7 @@ mod operand;
 mod operation;
 
 use super::{
-    attributes::{MultipleAttributesOperationWithIndex, MultipleAttributesWithIndexOperand},
+    attributes::{MultipleAttributesWithIndexOperand, MultipleAttributesWithIndexOperation},
     edges::EdgeOperand,
     group_by::GroupOperand,
     nodes::NodeOperand,
@@ -219,7 +219,7 @@ impl<O: RootOperand> MultipleValuesWithIndexContext<O> {
             Self::MultipleAttributesOperand(operand) => {
                 let attributes = operand.evaluate_backward(medrecord)?;
 
-                Box::new(MultipleAttributesOperationWithIndex::<O>::get_values(
+                Box::new(MultipleAttributesWithIndexOperation::<O>::get_values(
                     medrecord, attributes,
                 )?)
             }
