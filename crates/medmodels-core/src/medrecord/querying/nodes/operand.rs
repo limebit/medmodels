@@ -1,15 +1,19 @@
 use super::{
     operation::{EdgeDirection, NodeIndexOperation, NodeIndicesOperation, NodeOperation},
-    BinaryArithmeticKind, Context, MultipleComparisonKind, SingleComparisonKind, SingleKind,
-    UnaryArithmeticKind,
+    BinaryArithmeticKind, MultipleComparisonKind, NodeOperandContext, SingleComparisonKind,
+    SingleKind, UnaryArithmeticKind,
 };
 use crate::{
     errors::MedRecordResult,
     medrecord::{
         querying::{
-            attributes::AttributesTreeOperand,
-            edges::{self, EdgeOperand, EdgeOperandGroupDiscriminator},
-            group_by::GroupOperand,
+            attributes::{AttributesTreeContext, AttributesTreeOperand},
+            edges::{self, EdgeOperand},
+            group_by::{GroupKey, GroupOperand, PartitionGroups},
+            nodes::{
+                group_by::{self, NodeOperandGroupDiscriminator},
+                NodeIndicesOperandContext,
+            },
             operand_traits::{
                 Abs, Add, Attribute, Attributes, Contains, Count, Edges, EitherOr, EndsWith,
                 EqualTo, Exclude, GreaterThan, GreaterThanOrEqualTo, HasAttribute, InGroup, Index,
@@ -24,13 +28,14 @@ use crate::{
         },
         Group, MedRecordAttribute, NodeIndex,
     },
+    prelude::MedRecordValue,
     MedRecord,
 };
 use std::{collections::HashSet, fmt::Debug};
 
 #[derive(Debug, Clone)]
 pub struct NodeOperand {
-    context: Option<Context>,
+    context: Option<NodeOperandContext>,
     operations: Vec<NodeOperation>,
 }
 
@@ -45,7 +50,7 @@ impl DeepClone for NodeOperand {
 
 impl RootOperand for NodeOperand {
     type Index = NodeIndex;
-    type Discriminator = EdgeOperandGroupDiscriminator;
+    type Discriminator = NodeOperandGroupDiscriminator;
 
     fn _evaluate_forward<'a>(
         &self,
@@ -75,8 +80,8 @@ impl RootOperand for NodeOperand {
         &self,
         medrecord: &'a MedRecord,
     ) -> MedRecordResult<BoxedIterator<'a, &'a Self::Index>> {
-        let node_indices: BoxedIterator<&NodeIndex> = match &self.context {
-            Some(Context::Neighbors { operand, direction }) => {
+        let node_indices: BoxedIterator<_> = match &self.context {
+            Some(NodeOperandContext::Neighbors { operand, direction }) => {
                 let node_indices = operand.evaluate_backward(medrecord)?;
 
                 match direction {
@@ -97,7 +102,7 @@ impl RootOperand for NodeOperand {
                     })),
                 }
             }
-            Some(Context::SourceNode { operand }) => {
+            Some(NodeOperandContext::SourceNode { operand }) => {
                 let edge_indices = operand.evaluate_backward(medrecord)?;
 
                 Box::new(edge_indices.map(move |edge_index| {
@@ -107,7 +112,7 @@ impl RootOperand for NodeOperand {
                         .0
                 }))
             }
-            Some(Context::TargetNode { operand }) => {
+            Some(NodeOperandContext::TargetNode { operand }) => {
                 let edge_indices = operand.evaluate_backward(medrecord)?;
 
                 Box::new(edge_indices.map(move |edge_index| {
@@ -117,6 +122,9 @@ impl RootOperand for NodeOperand {
                         .1
                 }))
             }
+            Some(NodeOperandContext::GroupBy { operand }) => {
+                operand.evaluate_backward(medrecord)?
+            }
             None => Box::new(medrecord.node_indices()),
         };
 
@@ -124,28 +132,161 @@ impl RootOperand for NodeOperand {
     }
 
     fn _evaluate_backward_grouped_operand<'a>(
-        _group_operand: &GroupOperand<Self>,
-        _medrecord: &'a MedRecord,
-    ) -> MedRecordResult<BoxedIterator<'a, BoxedIterator<'a, &'a Self::Index>>> {
-        todo!()
+        group_operand: &GroupOperand<Self>,
+        medrecord: &'a MedRecord,
+    ) -> MedRecordResult<GroupedIterator<'a, BoxedIterator<'a, &'a Self::Index>>> {
+        match &group_operand.context {
+            group_by::NodeOperandContext::Discriminator(discriminator) => {
+                let node_indices = group_operand.operand.evaluate_backward(medrecord)?;
+
+                Ok(Self::partition(medrecord, node_indices, discriminator))
+            }
+            group_by::NodeOperandContext::Nodes(operand) => {
+                let partitions = operand.evaluate_backward(medrecord)?;
+
+                let Some(NodeOperandContext::Neighbors {
+                    operand: _,
+                    direction,
+                }) = &group_operand.operand.0.read_or_panic().context
+                else {
+                    unreachable!();
+                };
+
+                let indices: Vec<_> = partitions
+                    .map(|(key, partition)| {
+                        let reducued_partition: BoxedIterator<_> = match direction {
+                            EdgeDirection::Incoming => {
+                                Box::new(partition.flat_map(move |node_index| {
+                                    medrecord
+                                        .neighbors_incoming(node_index)
+                                        .expect("Node must exist")
+                                }))
+                            }
+                            EdgeDirection::Outgoing => {
+                                Box::new(partition.flat_map(move |node_index| {
+                                    medrecord
+                                        .neighbors_outgoing(node_index)
+                                        .expect("Node must exist")
+                                }))
+                            }
+                            EdgeDirection::Both => {
+                                Box::new(partition.flat_map(move |node_index| {
+                                    medrecord
+                                        .neighbors_undirected(node_index)
+                                        .expect("Node must exist")
+                                }))
+                            }
+                        };
+
+                        let partition = group_operand
+                            .operand
+                            .evaluate_forward(medrecord, reducued_partition)?;
+
+                        Ok((key, partition))
+                    })
+                    .collect::<MedRecordResult<_>>()?;
+
+                Ok(Box::new(indices.into_iter()))
+            }
+            group_by::NodeOperandContext::Edges(operand) => {
+                let partitions = operand.evaluate_backward(medrecord)?;
+
+                match &group_operand.operand.0.read_or_panic().context {
+                    Some(NodeOperandContext::SourceNode { operand: _ }) => {
+                        let indices: Vec<_> = partitions
+                            .map(|(key, partition)| {
+                                let reduced_partition = partition.map(move |edge_index| {
+                                    medrecord
+                                        .edge_endpoints(edge_index)
+                                        .expect("Node must exist")
+                                        .0
+                                });
+
+                                let partition = group_operand
+                                    .operand
+                                    .evaluate_forward(medrecord, Box::new(reduced_partition))?;
+
+                                Ok((key, partition))
+                            })
+                            .collect::<MedRecordResult<_>>()?;
+
+                        Ok(Box::new(indices.into_iter()))
+                    }
+                    Some(NodeOperandContext::TargetNode { operand: _ }) => {
+                        let indices: Vec<_> = partitions
+                            .map(|(key, partition)| {
+                                let reduced_partition = partition.map(move |edge_index| {
+                                    medrecord
+                                        .edge_endpoints(edge_index)
+                                        .expect("Node must exist")
+                                        .1
+                                });
+
+                                let partition = group_operand
+                                    .operand
+                                    .evaluate_forward(medrecord, Box::new(reduced_partition))?;
+
+                                Ok((key, partition))
+                            })
+                            .collect::<MedRecordResult<_>>()?;
+
+                        Ok(Box::new(indices.into_iter()))
+                    }
+                    _ => unreachable!(),
+                }
+            }
+        }
     }
 
-    fn _group_by(&mut self, _discriminator: Self::Discriminator) -> Wrapper<GroupOperand<Self>> {
-        todo!()
+    fn _group_by(&mut self, discriminator: Self::Discriminator) -> Wrapper<GroupOperand<Self>> {
+        let node_operand = Wrapper::<Self>::new(Some(NodeOperandContext::GroupBy {
+            operand: Box::new(self.deep_clone()),
+        }));
+        let operand = Wrapper::<GroupOperand<Self>>::new(discriminator.into(), node_operand);
+
+        self.operations.push(NodeOperation::GroupBy {
+            operand: operand.clone(),
+        });
+
+        operand
     }
 
     fn _partition<'a>(
-        _medrecord: &'a MedRecord,
-        _node_indices: BoxedIterator<'a, &'a Self::Index>,
-        _discriminator: &Self::Discriminator,
+        medrecord: &'a MedRecord,
+        node_indices: BoxedIterator<'a, &'a Self::Index>,
+        discriminator: &Self::Discriminator,
     ) -> GroupedIterator<'a, BoxedIterator<'a, &'a Self::Index>> {
-        todo!()
+        match discriminator {
+            NodeOperandGroupDiscriminator::Attribute(attribute) => {
+                let mut buckets: Vec<(Option<&'a MedRecordValue>, Vec<&'a NodeIndex>)> = Vec::new();
+
+                for node_index in node_indices {
+                    let value = medrecord
+                        .node_attributes(node_index)
+                        .expect("Node must exist")
+                        .get(attribute);
+
+                    if let Some((_, bucket)) = buckets.iter_mut().find(|(k, _)| *k == value) {
+                        bucket.push(node_index);
+                    } else {
+                        buckets.push((value, vec![node_index]));
+                    }
+                }
+
+                Box::new(buckets.into_iter().map(|(key, group)| {
+                    (
+                        GroupKey::OptionalValue(key),
+                        Box::new(group.into_iter()) as BoxedIterator<_>,
+                    )
+                }))
+            }
+        }
     }
 
     fn _merge<'a>(
-        _node_indices: GroupedIterator<'a, BoxedIterator<'a, &'a Self::Index>>,
+        node_indices: GroupedIterator<'a, BoxedIterator<'a, &'a Self::Index>>,
     ) -> BoxedIterator<'a, &'a Self::Index> {
-        todo!()
+        Box::new(node_indices.flat_map(|(_, node_indices)| node_indices))
     }
 }
 
@@ -169,7 +310,8 @@ impl Attributes for NodeOperand {
     type ReturnOperand = AttributesTreeOperand<Self>;
 
     fn attributes(&mut self) -> Wrapper<Self::ReturnOperand> {
-        let operand = Wrapper::<Self::ReturnOperand>::new(self.deep_clone());
+        let operand =
+            Wrapper::<Self::ReturnOperand>::new(AttributesTreeContext::Operand(self.deep_clone()));
 
         self.operations.push(NodeOperation::Attributes {
             operand: operand.clone(),
@@ -183,7 +325,9 @@ impl Index for NodeOperand {
     type ReturnOperand = NodeIndicesOperand;
 
     fn index(&mut self) -> Wrapper<Self::ReturnOperand> {
-        let operand = Wrapper::<Self::ReturnOperand>::new(self.deep_clone());
+        let operand = Wrapper::<Self::ReturnOperand>::new(NodeIndicesOperandContext::NodeOperand(
+            self.deep_clone(),
+        ));
 
         self.operations.push(NodeOperation::Indices {
             operand: operand.clone(),
@@ -231,7 +375,7 @@ impl Neighbors for NodeOperand {
     type ReturnOperand = Self;
 
     fn neighbors(&mut self, edge_direction: EdgeDirection) -> Wrapper<Self::ReturnOperand> {
-        let operand = Wrapper::<Self::ReturnOperand>::new(Some(Context::Neighbors {
+        let operand = Wrapper::<Self::ReturnOperand>::new(Some(NodeOperandContext::Neighbors {
             operand: Box::new(self.deep_clone()),
             direction: edge_direction.clone(),
         }));
@@ -282,7 +426,7 @@ impl Exclude for NodeOperand {
 }
 
 impl NodeOperand {
-    pub(crate) fn new(context: Option<Context>) -> Self {
+    pub(crate) fn new(context: Option<NodeOperandContext>) -> Self {
         Self {
             context,
             operations: Vec::new(),
@@ -291,7 +435,7 @@ impl NodeOperand {
 }
 
 impl Wrapper<NodeOperand> {
-    pub(crate) fn new(context: Option<Context>) -> Self {
+    pub(crate) fn new(context: Option<NodeOperandContext>) -> Self {
         NodeOperand::new(context).into()
     }
 }
@@ -400,7 +544,7 @@ impl NodeIndicesComparisonOperand {
 
 #[derive(Debug, Clone)]
 pub struct NodeIndicesOperand {
-    context: NodeOperand,
+    context: NodeIndicesOperandContext,
     operations: Vec<NodeIndicesOperation>,
 }
 
@@ -422,7 +566,7 @@ impl<'a> EvaluateForward<'a> for NodeIndicesOperand {
         medrecord: &'a MedRecord,
         node_indices: Self::InputValue,
     ) -> MedRecordResult<Self::ReturnValue> {
-        let node_indices = Box::new(node_indices) as BoxedIterator<NodeIndex>;
+        let node_indices: BoxedIterator<_> = Box::new(node_indices);
 
         self.operations
             .iter()
@@ -451,8 +595,6 @@ impl<'a> EvaluateBackward<'a> for NodeIndicesOperand {
 
     fn evaluate_backward(&self, medrecord: &'a MedRecord) -> MedRecordResult<Self::ReturnValue> {
         let node_indices = self.context.evaluate_backward(medrecord)?;
-
-        let node_indices = self.reduce_input(node_indices)?;
 
         self.evaluate_forward(medrecord, Box::new(node_indices))
     }
@@ -860,17 +1002,26 @@ impl Exclude for NodeIndicesOperand {
 }
 
 impl NodeIndicesOperand {
-    pub(crate) fn new(context: NodeOperand) -> Self {
+    pub(crate) fn new(context: NodeIndicesOperandContext) -> Self {
         Self {
             context,
             operations: Vec::new(),
         }
     }
+
+    pub(crate) fn push_merge_operation(&mut self, operand: Wrapper<NodeIndicesOperand>) {
+        self.operations
+            .push(NodeIndicesOperation::Merge { operand });
+    }
 }
 
 impl Wrapper<NodeIndicesOperand> {
-    pub(crate) fn new(context: NodeOperand) -> Self {
+    pub(crate) fn new(context: NodeIndicesOperandContext) -> Self {
         NodeIndicesOperand::new(context).into()
+    }
+
+    pub(crate) fn push_merge_operation(&self, operand: Wrapper<NodeIndicesOperand>) {
+        self.0.write_or_panic().push_merge_operation(operand);
     }
 }
 
@@ -1264,10 +1415,18 @@ impl NodeIndexOperand {
             operations: Vec::new(),
         }
     }
+
+    pub(crate) fn push_merge_operation(&mut self, operand: Wrapper<NodeIndicesOperand>) {
+        self.operations.push(NodeIndexOperation::Merge { operand });
+    }
 }
 
 impl Wrapper<NodeIndexOperand> {
     pub(crate) fn new(context: NodeIndicesOperand, kind: SingleKind) -> Self {
         NodeIndexOperand::new(context, kind).into()
+    }
+
+    pub(crate) fn push_merge_operation(&self, operand: Wrapper<NodeIndicesOperand>) {
+        self.0.write_or_panic().push_merge_operation(operand);
     }
 }

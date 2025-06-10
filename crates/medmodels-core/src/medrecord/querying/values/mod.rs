@@ -26,6 +26,114 @@ pub use operand::{
 use std::fmt::Display;
 
 #[derive(Debug, Clone)]
+pub enum MultipleValuesWithIndexContext<O: RootOperand> {
+    Operand((O, MedRecordAttribute)),
+    MultipleAttributesOperand(MultipleAttributesWithIndexOperand<O>),
+    SingleValueWithIndexGroupByOperand(GroupOperand<SingleValueWithIndexOperand<O>>),
+    MultipleValuesWithIndexGroupByOperand(GroupOperand<MultipleValuesWithIndexOperand<O>>),
+}
+
+impl<O: RootOperand> MultipleValuesWithIndexContext<O> {
+    pub(crate) fn get_values<'a>(
+        &self,
+        medrecord: &'a MedRecord,
+    ) -> MedRecordResult<impl Iterator<Item = (&'a O::Index, MedRecordValue)> + 'a>
+    where
+        O: 'a,
+    {
+        let values: BoxedIterator<_> = match self {
+            Self::Operand((operand, attribute)) => {
+                Box::new(operand.get_values(medrecord, attribute.clone())?)
+            }
+            Self::MultipleAttributesOperand(operand) => {
+                let attributes = operand.evaluate_backward(medrecord)?;
+
+                Box::new(MultipleAttributesWithIndexOperation::<O>::get_values(
+                    medrecord, attributes,
+                )?)
+            }
+            Self::SingleValueWithIndexGroupByOperand(operand) => Box::new(
+                operand
+                    .evaluate_backward(medrecord)?
+                    .filter_map(|(_, attribute)| attribute),
+            ),
+            Self::MultipleValuesWithIndexGroupByOperand(operand) => Box::new(
+                operand
+                    .evaluate_backward(medrecord)?
+                    .flat_map(|(_, values)| values),
+            ),
+        };
+
+        Ok(values)
+    }
+}
+
+#[derive(Debug, Clone)]
+pub enum MultipleValuesWithoutIndexContext<O: RootOperand> {
+    GroupByOperand(GroupOperand<SingleValueWithoutIndexOperand<O>>),
+}
+
+impl<O: RootOperand> MultipleValuesWithoutIndexContext<O> {
+    pub(crate) fn get_values<'a>(
+        &self,
+        medrecord: &'a MedRecord,
+    ) -> MedRecordResult<impl Iterator<Item = MedRecordValue> + 'a>
+    where
+        O: 'a,
+    {
+        let values: BoxedIterator<_> = match self {
+            Self::GroupByOperand(operand) => Box::new(
+                operand
+                    .evaluate_backward(medrecord)?
+                    .filter_map(|(_, value)| value),
+            ),
+        };
+
+        Ok(values)
+    }
+}
+
+#[derive(Debug, Clone)]
+pub enum SingleValueWithoutIndexContext<O: RootOperand> {
+    MultipleValuesWithIndexOperand(MultipleValuesWithIndexOperand<O>),
+    MultipleValuesWithoutIndexOperand(MultipleValuesWithoutIndexOperand<O>),
+}
+
+impl<O: RootOperand> DeepClone for SingleValueWithoutIndexContext<O> {
+    fn deep_clone(&self) -> Self {
+        match self {
+            Self::MultipleValuesWithIndexOperand(operand) => {
+                Self::MultipleValuesWithIndexOperand(operand.deep_clone())
+            }
+            Self::MultipleValuesWithoutIndexOperand(operand) => {
+                Self::MultipleValuesWithoutIndexOperand(operand.deep_clone())
+            }
+        }
+    }
+}
+
+impl<O: RootOperand> SingleValueWithoutIndexContext<O> {
+    pub(crate) fn get_values<'a>(
+        &self,
+        medrecord: &'a MedRecord,
+    ) -> MedRecordResult<BoxedIterator<'a, MedRecordValue>>
+    where
+        O: 'a,
+    {
+        Ok(match self {
+            Self::MultipleValuesWithIndexOperand(operand) => Box::new(
+                operand
+                    .evaluate_backward(medrecord)?
+                    .map(|(_, value)| value),
+            ),
+            Self::MultipleValuesWithoutIndexOperand(operand) => {
+                Box::new(operand.evaluate_backward(medrecord)?)
+            }
+        })
+    }
+}
+
+#[derive(Debug, Clone)]
 pub enum SingleKindWithIndex {
     Max,
     Min,
@@ -193,104 +301,6 @@ impl GetValues<EdgeIndex> for EdgeOperand {
                     .get(&attribute)?
                     .clone(),
             ))
-        })
-    }
-}
-
-#[derive(Debug, Clone)]
-pub enum MultipleValuesWithIndexContext<O: RootOperand> {
-    Operand((O, MedRecordAttribute)),
-    MultipleAttributesOperand(MultipleAttributesWithIndexOperand<O>),
-    GroupByOperand(GroupOperand<SingleValueWithIndexOperand<O>>),
-}
-
-impl<O: RootOperand> MultipleValuesWithIndexContext<O> {
-    pub(crate) fn get_values<'a>(
-        &self,
-        medrecord: &'a MedRecord,
-    ) -> MedRecordResult<impl Iterator<Item = (&'a O::Index, MedRecordValue)> + 'a>
-    where
-        O: 'a,
-    {
-        let values: BoxedIterator<(&'a O::Index, MedRecordValue)> = match self {
-            Self::Operand((operand, attribute)) => {
-                Box::new(operand.get_values(medrecord, attribute.clone())?)
-            }
-            Self::MultipleAttributesOperand(operand) => {
-                let attributes = operand.evaluate_backward(medrecord)?;
-
-                Box::new(MultipleAttributesWithIndexOperation::<O>::get_values(
-                    medrecord, attributes,
-                )?)
-            }
-            Self::GroupByOperand(operand) => {
-                Box::new(operand.evaluate_backward(medrecord)?.flatten())
-            }
-        };
-
-        Ok(values)
-    }
-}
-
-#[derive(Debug, Clone)]
-pub enum MultipleValuesWithoutIndexContext<O: RootOperand> {
-    GroupByOperand(GroupOperand<SingleValueWithoutIndexOperand<O>>),
-}
-
-impl<O: RootOperand> MultipleValuesWithoutIndexContext<O> {
-    pub(crate) fn get_values<'a>(
-        &self,
-        medrecord: &'a MedRecord,
-    ) -> MedRecordResult<impl Iterator<Item = MedRecordValue> + 'a>
-    where
-        O: 'a,
-    {
-        let values: BoxedIterator<MedRecordValue> = match self {
-            Self::GroupByOperand(operand) => {
-                Box::new(operand.evaluate_backward(medrecord)?.flatten())
-            }
-        };
-
-        Ok(values)
-    }
-}
-
-#[derive(Debug, Clone)]
-pub enum SingleValueWithoutIndexContext<O: RootOperand> {
-    MultipleValuesWithIndexOperand(MultipleValuesWithIndexOperand<O>),
-    MultipleValuesWithoutIndexOperand(MultipleValuesWithoutIndexOperand<O>),
-}
-
-impl<O: RootOperand> DeepClone for SingleValueWithoutIndexContext<O> {
-    fn deep_clone(&self) -> Self {
-        match self {
-            Self::MultipleValuesWithIndexOperand(operand) => {
-                Self::MultipleValuesWithIndexOperand(operand.deep_clone())
-            }
-            Self::MultipleValuesWithoutIndexOperand(operand) => {
-                Self::MultipleValuesWithoutIndexOperand(operand.deep_clone())
-            }
-        }
-    }
-}
-
-impl<O: RootOperand> SingleValueWithoutIndexContext<O> {
-    pub(crate) fn get_values<'a>(
-        &self,
-        medrecord: &'a MedRecord,
-    ) -> MedRecordResult<BoxedIterator<'a, MedRecordValue>>
-    where
-        O: 'a,
-    {
-        Ok(match self {
-            Self::MultipleValuesWithIndexOperand(operand) => Box::new(
-                operand
-                    .evaluate_backward(medrecord)?
-                    .map(|(_, value)| value),
-            ),
-            Self::MultipleValuesWithoutIndexOperand(operand) => {
-                Box::new(operand.evaluate_backward(medrecord)?)
-            }
         })
     }
 }

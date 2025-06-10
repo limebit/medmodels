@@ -3,7 +3,7 @@ use crate::{
     errors::MedRecordResult,
     medrecord::querying::{
         attributes::{MultipleAttributesWithIndexOperand, MultipleAttributesWithIndexOperation},
-        group_by::{GroupOperand, GroupedOperand, Merge},
+        group_by::{GroupOperand, GroupedOperand, Ungroup},
         values::{
             operand::MultipleValuesWithoutIndexOperand,
             operation::MultipleValuesWithoutIndexOperation, MultipleValuesWithIndexContext,
@@ -11,7 +11,8 @@ use crate::{
             SingleValueWithoutIndexOperand,
         },
         wrapper::Wrapper,
-        BoxedIterator, DeepClone, EvaluateBackward, EvaluateForward, ReadWriteOrPanic, RootOperand,
+        DeepClone, EvaluateBackward, EvaluateForward, GroupedIterator, ReadWriteOrPanic,
+        RootOperand,
     },
     MedRecord,
 };
@@ -26,13 +27,9 @@ pub enum MultipleValuesWithIndexOperandContext<O: RootOperand> {
 impl<O: RootOperand> DeepClone for MultipleValuesWithIndexOperandContext<O> {
     fn deep_clone(&self) -> Self {
         match self {
-            MultipleValuesWithIndexOperandContext::RootOperand(operand) => {
-                MultipleValuesWithIndexOperandContext::RootOperand(operand.deep_clone())
-            }
-            MultipleValuesWithIndexOperandContext::MultipleAttributesOperand(operand) => {
-                MultipleValuesWithIndexOperandContext::MultipleAttributesOperand(
-                    operand.deep_clone(),
-                )
+            Self::RootOperand(operand) => Self::RootOperand(operand.deep_clone()),
+            Self::MultipleAttributesOperand(operand) => {
+                Self::MultipleAttributesOperand(operand.deep_clone())
             }
         }
     }
@@ -60,8 +57,10 @@ impl<'a, O: RootOperand> EvaluateBackward<'a> for GroupOperand<MultipleValuesWit
 where
     O: 'a,
 {
-    type ReturnValue =
-        BoxedIterator<'a, <MultipleValuesWithIndexOperand<O> as EvaluateBackward<'a>>::ReturnValue>;
+    type ReturnValue = GroupedIterator<
+        'a,
+        <MultipleValuesWithIndexOperand<O> as EvaluateBackward<'a>>::ReturnValue,
+    >;
 
     fn evaluate_backward(&self, medrecord: &'a MedRecord) -> MedRecordResult<Self::ReturnValue> {
         match &self.context {
@@ -69,7 +68,7 @@ where
                 let partitions = context.evaluate_backward(medrecord)?;
 
                 let values: Vec<_> = partitions
-                    .map(|partition| {
+                    .map(|(key, partition)| {
                         let MultipleValuesWithIndexContext::Operand((_, attribute)) =
                             &self.operand.0.read_or_panic().context
                         else {
@@ -79,8 +78,11 @@ where
                         let reduced_partition =
                             O::get_values_from_indices(medrecord, attribute.clone(), partition);
 
-                        self.operand
-                            .evaluate_forward(medrecord, Box::new(reduced_partition))
+                        Ok((
+                            key,
+                            self.operand
+                                .evaluate_forward(medrecord, Box::new(reduced_partition))?,
+                        ))
                     })
                     .collect::<MedRecordResult<_>>()?;
 
@@ -90,14 +92,17 @@ where
                 let partitions = context.evaluate_backward(medrecord)?;
 
                 let values: Vec<_> = partitions
-                    .map(|partition| {
+                    .map(|(key, partition)| {
                         let reduced_partition =
                             MultipleAttributesWithIndexOperation::<O>::get_values(
                                 medrecord, partition,
                             )?;
 
-                        self.operand
-                            .evaluate_forward(medrecord, Box::new(reduced_partition))
+                        let partition = self
+                            .operand
+                            .evaluate_forward(medrecord, Box::new(reduced_partition))?;
+
+                        Ok((key, partition))
                     })
                     .collect::<MedRecordResult<_>>()?;
 
@@ -107,64 +112,14 @@ where
     }
 }
 
-#[derive(Debug, Clone)]
-pub enum SingleValueWithIndexOperandContext<O: RootOperand> {
-    MultipleValuesOperand(GroupOperand<MultipleValuesWithIndexOperand<O>>),
-}
-
-impl<O: RootOperand> DeepClone for SingleValueWithIndexOperandContext<O> {
-    fn deep_clone(&self) -> Self {
-        match self {
-            SingleValueWithIndexOperandContext::MultipleValuesOperand(operand) => {
-                SingleValueWithIndexOperandContext::MultipleValuesOperand(operand.deep_clone())
-            }
-        }
-    }
-}
-
-impl<O: RootOperand> From<GroupOperand<MultipleValuesWithIndexOperand<O>>>
-    for SingleValueWithIndexOperandContext<O>
-{
-    fn from(operand: GroupOperand<MultipleValuesWithIndexOperand<O>>) -> Self {
-        SingleValueWithIndexOperandContext::MultipleValuesOperand(operand)
-    }
-}
-
-impl<O: RootOperand> GroupedOperand for SingleValueWithIndexOperand<O> {
-    type Context = SingleValueWithIndexOperandContext<O>;
-}
-
-impl<'a, O: 'a + RootOperand> EvaluateBackward<'a>
-    for GroupOperand<SingleValueWithIndexOperand<O>>
-{
-    type ReturnValue =
-        BoxedIterator<'a, <SingleValueWithIndexOperand<O> as EvaluateBackward<'a>>::ReturnValue>;
-
-    fn evaluate_backward(&self, medrecord: &'a MedRecord) -> MedRecordResult<Self::ReturnValue> {
-        match &self.context {
-            SingleValueWithIndexOperandContext::MultipleValuesOperand(context) => {
-                let partitions = context.evaluate_backward(medrecord)?;
-
-                let values: Vec<_> = partitions
-                    .map(|partition| {
-                        let reduced_partition = self.operand.reduce_input(partition)?;
-
-                        self.operand.evaluate_forward(medrecord, reduced_partition)
-                    })
-                    .collect::<MedRecordResult<_>>()?;
-
-                Ok(Box::new(values.into_iter()))
-            }
-        }
-    }
-}
-
-impl<O: RootOperand> Merge for GroupOperand<SingleValueWithIndexOperand<O>> {
+impl<O: RootOperand> Ungroup for GroupOperand<MultipleValuesWithIndexOperand<O>> {
     type OutputOperand = MultipleValuesWithIndexOperand<O>;
 
-    fn merge(&self) -> Wrapper<Self::OutputOperand> {
+    fn ungroup(&self) -> Wrapper<Self::OutputOperand> {
         let operand = Wrapper::<Self::OutputOperand>::new(
-            MultipleValuesWithIndexContext::GroupByOperand(self.deep_clone()),
+            MultipleValuesWithIndexContext::MultipleValuesWithIndexGroupByOperand(
+                self.deep_clone(),
+            ),
         );
 
         self.operand.push_merge_operation(operand.clone());
@@ -173,95 +128,115 @@ impl<O: RootOperand> Merge for GroupOperand<SingleValueWithIndexOperand<O>> {
     }
 }
 
-#[derive(Debug, Clone)]
-pub enum SingleValueWithoutIndexOperandContext<O: RootOperand> {
-    MultipleValuesOperand(GroupOperand<MultipleValuesWithIndexOperand<O>>),
+impl<O: RootOperand> GroupedOperand for SingleValueWithIndexOperand<O> {
+    type Context = GroupOperand<MultipleValuesWithIndexOperand<O>>;
 }
 
-impl<O: RootOperand> DeepClone for SingleValueWithoutIndexOperandContext<O> {
-    fn deep_clone(&self) -> Self {
-        match self {
-            Self::MultipleValuesOperand(operand) => {
-                Self::MultipleValuesOperand(operand.deep_clone())
-            }
-        }
+impl<'a, O: 'a + RootOperand> EvaluateBackward<'a>
+    for GroupOperand<SingleValueWithIndexOperand<O>>
+{
+    type ReturnValue =
+        GroupedIterator<'a, <SingleValueWithIndexOperand<O> as EvaluateBackward<'a>>::ReturnValue>;
+
+    fn evaluate_backward(&self, medrecord: &'a MedRecord) -> MedRecordResult<Self::ReturnValue> {
+        let partitions = self.context.evaluate_backward(medrecord)?;
+
+        let values: Vec<_> = partitions
+            .map(|(key, partition)| {
+                let reduced_partition = self.operand.reduce_input(partition)?;
+
+                let partition = self.operand.evaluate_forward(medrecord, reduced_partition);
+
+                partition.map(|value| (key, value))
+            })
+            .collect::<MedRecordResult<_>>()?;
+
+        Ok(Box::new(values.into_iter()))
     }
 }
 
-impl<O: RootOperand> From<GroupOperand<MultipleValuesWithIndexOperand<O>>>
-    for SingleValueWithoutIndexOperandContext<O>
-{
-    fn from(operand: GroupOperand<MultipleValuesWithIndexOperand<O>>) -> Self {
-        Self::MultipleValuesOperand(operand)
+impl<O: RootOperand> Ungroup for GroupOperand<SingleValueWithIndexOperand<O>> {
+    type OutputOperand = MultipleValuesWithIndexOperand<O>;
+
+    fn ungroup(&self) -> Wrapper<Self::OutputOperand> {
+        let operand = Wrapper::<Self::OutputOperand>::new(
+            MultipleValuesWithIndexContext::SingleValueWithIndexGroupByOperand(self.deep_clone()),
+        );
+
+        self.operand.push_merge_operation(operand.clone());
+
+        operand
     }
 }
 
 impl<O: RootOperand> GroupedOperand for SingleValueWithoutIndexOperand<O> {
-    type Context = SingleValueWithoutIndexOperandContext<O>;
+    type Context = GroupOperand<MultipleValuesWithIndexOperand<O>>;
 }
 
 impl<'a, O: 'a + RootOperand> EvaluateBackward<'a>
     for GroupOperand<SingleValueWithoutIndexOperand<O>>
 {
-    type ReturnValue =
-        BoxedIterator<'a, <SingleValueWithoutIndexOperand<O> as EvaluateBackward<'a>>::ReturnValue>;
+    type ReturnValue = GroupedIterator<
+        'a,
+        <SingleValueWithoutIndexOperand<O> as EvaluateBackward<'a>>::ReturnValue,
+    >;
 
     fn evaluate_backward(&self, medrecord: &'a MedRecord) -> MedRecordResult<Self::ReturnValue> {
-        match &self.context {
-            SingleValueWithoutIndexOperandContext::MultipleValuesOperand(context) => {
-                let partitions = context.evaluate_backward(medrecord)?;
+        let partitions = self.context.evaluate_backward(medrecord)?;
 
-                let values: Vec<_> = partitions
-                    .map(|partition| {
-                        let partition = partition.map(|(_, value)| value);
+        let values: Vec<_> = partitions
+            .map(|(key, partition)| {
+                let partition = partition.map(|(_, value)| value);
 
-                        let reduced_partition = match self.operand.0.read_or_panic().kind {
-                            SingleKindWithoutIndex::Max => {
-                                MultipleValuesWithoutIndexOperation::<O>::get_max(partition)?
-                            }
-                            SingleKindWithoutIndex::Min => {
-                                MultipleValuesWithoutIndexOperation::<O>::get_min(partition)?
-                            }
-                            SingleKindWithoutIndex::Mean => {
-                                MultipleValuesWithoutIndexOperation::<O>::get_mean(partition)?
-                            }
-                            SingleKindWithoutIndex::Median => {
-                                MultipleValuesWithoutIndexOperation::<O>::get_median(partition)?
-                            }
-                            SingleKindWithoutIndex::Mode => {
-                                MultipleValuesWithoutIndexOperation::<O>::get_mode(partition)?
-                            }
-                            SingleKindWithoutIndex::Std => {
-                                MultipleValuesWithoutIndexOperation::<O>::get_std(partition)?
-                            }
-                            SingleKindWithoutIndex::Var => {
-                                MultipleValuesWithoutIndexOperation::<O>::get_var(partition)?
-                            }
-                            SingleKindWithoutIndex::Count => Some(
-                                MultipleValuesWithoutIndexOperation::<O>::get_count(partition),
-                            ),
-                            SingleKindWithoutIndex::Sum => {
-                                MultipleValuesWithoutIndexOperation::<O>::get_sum(partition)?
-                            }
-                            SingleKindWithoutIndex::Random => {
-                                MultipleValuesWithoutIndexOperation::<O>::get_random(partition)
-                            }
-                        };
+                let reduced_partition = match self.operand.0.read_or_panic().kind {
+                    SingleKindWithoutIndex::Max => {
+                        MultipleValuesWithoutIndexOperation::<O>::get_max(partition)?
+                    }
+                    SingleKindWithoutIndex::Min => {
+                        MultipleValuesWithoutIndexOperation::<O>::get_min(partition)?
+                    }
+                    SingleKindWithoutIndex::Mean => {
+                        MultipleValuesWithoutIndexOperation::<O>::get_mean(partition)?
+                    }
+                    SingleKindWithoutIndex::Median => {
+                        MultipleValuesWithoutIndexOperation::<O>::get_median(partition)?
+                    }
+                    SingleKindWithoutIndex::Mode => {
+                        MultipleValuesWithoutIndexOperation::<O>::get_mode(partition)?
+                    }
+                    SingleKindWithoutIndex::Std => {
+                        MultipleValuesWithoutIndexOperation::<O>::get_std(partition)?
+                    }
+                    SingleKindWithoutIndex::Var => {
+                        MultipleValuesWithoutIndexOperation::<O>::get_var(partition)?
+                    }
+                    SingleKindWithoutIndex::Count => Some(
+                        MultipleValuesWithoutIndexOperation::<O>::get_count(partition),
+                    ),
+                    SingleKindWithoutIndex::Sum => {
+                        MultipleValuesWithoutIndexOperation::<O>::get_sum(partition)?
+                    }
+                    SingleKindWithoutIndex::Random => {
+                        MultipleValuesWithoutIndexOperation::<O>::get_random(partition)
+                    }
+                };
 
-                        self.operand.evaluate_forward(medrecord, reduced_partition)
-                    })
-                    .collect::<MedRecordResult<_>>()?;
+                let partition = self
+                    .operand
+                    .evaluate_forward(medrecord, reduced_partition)?;
 
-                Ok(Box::new(values.into_iter()))
-            }
-        }
+                Ok((key, partition))
+            })
+            .collect::<MedRecordResult<_>>()?;
+
+        Ok(Box::new(values.into_iter()))
     }
 }
 
-impl<O: RootOperand> Merge for GroupOperand<SingleValueWithoutIndexOperand<O>> {
+impl<O: RootOperand> Ungroup for GroupOperand<SingleValueWithoutIndexOperand<O>> {
     type OutputOperand = MultipleValuesWithoutIndexOperand<O>;
 
-    fn merge(&self) -> Wrapper<Self::OutputOperand> {
+    fn ungroup(&self) -> Wrapper<Self::OutputOperand> {
         let operand = Wrapper::<Self::OutputOperand>::new(
             MultipleValuesWithoutIndexContext::GroupByOperand(self.deep_clone()),
         );

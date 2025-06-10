@@ -4,7 +4,7 @@ use super::{
         SingleAttributeComparisonOperand, SingleAttributeWithIndexOperand,
     },
     AttributesTreeOperand, BinaryArithmeticKind, GetAttributes, MultipleComparisonKind,
-    MultipleKind, SingleComparisonKind, SingleKindWithIndex, UnaryArithmeticKind,
+    SingleComparisonKind, SingleKindWithIndex, UnaryArithmeticKind,
 };
 use crate::{
     errors::{MedRecordError, MedRecordResult},
@@ -15,12 +15,13 @@ use crate::{
         },
         querying::{
             attributes::{
-                operand::SingleAttributeWithoutIndexOperand, MultipleAttributesWithoutIndexOperand,
-                SingleKindWithoutIndex,
+                operand::SingleAttributeWithoutIndexOperand, MultipleAttributesWithIndexContext,
+                MultipleAttributesWithoutIndexOperand, MultipleKind, SingleKindWithoutIndex,
             },
+            tee_grouped_iterator,
             values::MultipleValuesWithIndexOperand,
-            BoxedIterator, DeepClone, EvaluateForward, GroupedIterator, ReadWriteOrPanic,
-            RootOperand,
+            BoxedIterator, DeepClone, EvaluateForward, EvaluateForwardGrouped, GroupedIterator,
+            ReadWriteOrPanic, RootOperand,
         },
         MedRecordAttribute, MedRecordValue, Wrapper,
     },
@@ -71,6 +72,10 @@ pub enum AttributesTreeOperation<O: RootOperand> {
     Exclude {
         operand: Wrapper<AttributesTreeOperand<O>>,
     },
+
+    Merge {
+        operand: Wrapper<AttributesTreeOperand<O>>,
+    },
 }
 
 impl<O: RootOperand> DeepClone for AttributesTreeOperation<O> {
@@ -110,6 +115,9 @@ impl<O: RootOperand> DeepClone for AttributesTreeOperation<O> {
             Self::Exclude { operand } => Self::Exclude {
                 operand: operand.deep_clone(),
             },
+            Self::Merge { operand } => Self::Merge {
+                operand: operand.deep_clone(),
+            },
         }
     }
 }
@@ -123,84 +131,37 @@ impl<O: RootOperand> AttributesTreeOperation<O> {
     where
         O: 'a,
     {
-        match self {
-            Self::AttributesOperation { operand } => Ok(Box::new(
-                Self::evaluate_attributes_operation(medrecord, attributes, operand)?,
-            )),
+        Ok(match self {
+            Self::AttributesOperation { operand } => Box::new(Self::evaluate_attributes_operation(
+                medrecord, attributes, operand,
+            )?),
             Self::SingleAttributeComparisonOperation { operand, kind } => {
                 Self::evaluate_single_attribute_comparison_operation(
                     medrecord, attributes, operand, kind,
-                )
+                )?
             }
             Self::MultipleAttributesComparisonOperation { operand, kind } => {
                 Self::evaluate_multiple_attributes_comparison_operation(
                     medrecord, attributes, operand, kind,
-                )
+                )?
             }
             Self::BinaryArithmeticOperation { operand, kind } => {
-                Self::evaluate_binary_arithmetic_operation(medrecord, attributes, operand, kind)
+                Self::evaluate_binary_arithmetic_operation(medrecord, attributes, operand, kind)?
             }
-            Self::UnaryArithmeticOperation { kind } => Ok(Box::new(
+            Self::UnaryArithmeticOperation { kind } => Box::new(
                 Self::evaluate_unary_arithmetic_operation(attributes, kind.clone()),
-            )),
-            Self::Slice(range) => Ok(Box::new(Self::evaluate_slice(attributes, range.clone()))),
-            Self::IsString => Ok(Box::new(attributes.map(|(index, attribute)| {
-                (
-                    index,
-                    attribute
-                        .into_iter()
-                        .filter(|attribute| matches!(attribute, MedRecordAttribute::String(_)))
-                        .collect(),
-                )
-            }))),
-            Self::IsInt => Ok(Box::new(attributes.map(|(index, attribute)| {
-                (
-                    index,
-                    attribute
-                        .into_iter()
-                        .filter(|attribute| matches!(attribute, MedRecordAttribute::Int(_)))
-                        .collect(),
-                )
-            }))),
-            Self::IsMax => {
-                let (attributes_1, attributes_2) = Itertools::tee(attributes);
-
-                let max_attributes: MrHashMap<_, _> = Self::get_max(attributes_1)?.collect();
-
-                Ok(Box::new(attributes_2.map(move |(index, attributes)| {
-                    let max_attribute = max_attributes.get(&index).expect("Index must exist");
-
-                    (
-                        index,
-                        attributes
-                            .into_iter()
-                            .filter(|attribute| attribute == max_attribute)
-                            .collect(),
-                    )
-                })))
-            }
-            Self::IsMin => {
-                let (attributes_1, attributes_2) = Itertools::tee(attributes);
-
-                let min_attributes: MrHashMap<_, _> = Self::get_min(attributes_1)?.collect();
-
-                Ok(Box::new(attributes_2.map(move |(index, attributes)| {
-                    let min_attribute = min_attributes.get(&index).expect("Index must exist");
-
-                    (
-                        index,
-                        attributes
-                            .into_iter()
-                            .filter(|attribute| attribute == min_attribute)
-                            .collect(),
-                    )
-                })))
-            }
+            ),
+            Self::Slice(range) => Box::new(Self::evaluate_slice(attributes, range.clone())),
+            Self::IsString => Box::new(Self::evaluate_is_string(attributes)),
+            Self::IsInt => Box::new(Self::evaluate_is_int(attributes)),
+            Self::IsMax => Box::new(Self::evaluate_is_max(attributes)?),
+            Self::IsMin => Box::new(Self::evaluate_is_min(attributes)?),
             Self::EitherOr { either, or } => {
-                Self::evaluate_either_or(medrecord, attributes, either, or)
+                Self::evaluate_either_or(medrecord, attributes, either, or)?
             }
-            Self::Exclude { operand } => Self::evaluate_exclude(medrecord, attributes, operand),
-        }
+            Self::Exclude { operand } => Self::evaluate_exclude(medrecord, attributes, operand)?,
+            Self::Merge { operand: _ } => unreachable!(),
+        })
     }
 
     #[inline]
@@ -346,7 +307,13 @@ impl<O: RootOperand> AttributesTreeOperation<O> {
     {
         let (attributes_1, attributes_2) = Itertools::tee(attributes);
 
-        let kind = &operand.0.read_or_panic().kind;
+        let MultipleAttributesWithIndexContext::AttributesTree {
+            operand: _,
+            ref kind,
+        } = operand.0.read_or_panic().context
+        else {
+            unreachable!()
+        };
 
         let multiple_operand_attributes: BoxedIterator<_> = match kind {
             MultipleKind::Max => Box::new(AttributesTreeOperation::<O>::get_max(attributes_1)?),
@@ -642,6 +609,90 @@ impl<O: RootOperand> AttributesTreeOperation<O> {
     }
 
     #[inline]
+    fn evaluate_is_string<'a>(
+        attributes: impl Iterator<Item = (&'a O::Index, Vec<MedRecordAttribute>)>,
+    ) -> impl Iterator<Item = (&'a O::Index, Vec<MedRecordAttribute>)>
+    where
+        O: 'a,
+    {
+        attributes.map(|(index, attribute)| {
+            (
+                index,
+                attribute
+                    .into_iter()
+                    .filter(|attribute| matches!(attribute, MedRecordAttribute::String(_)))
+                    .collect(),
+            )
+        })
+    }
+
+    #[inline]
+    fn evaluate_is_int<'a>(
+        attributes: impl Iterator<Item = (&'a O::Index, Vec<MedRecordAttribute>)>,
+    ) -> impl Iterator<Item = (&'a O::Index, Vec<MedRecordAttribute>)>
+    where
+        O: 'a,
+    {
+        attributes.map(|(index, attribute)| {
+            (
+                index,
+                attribute
+                    .into_iter()
+                    .filter(|attribute| matches!(attribute, MedRecordAttribute::Int(_)))
+                    .collect(),
+            )
+        })
+    }
+
+    #[inline]
+    fn evaluate_is_max<'a>(
+        attributes: impl Iterator<Item = (&'a O::Index, Vec<MedRecordAttribute>)>,
+    ) -> MedRecordResult<impl Iterator<Item = (&'a O::Index, Vec<MedRecordAttribute>)>>
+    where
+        O: 'a,
+    {
+        let (attributes_1, attributes_2) = Itertools::tee(attributes);
+
+        let max_attributes: MrHashMap<_, _> = Self::get_max(attributes_1)?.collect();
+
+        Ok(Box::new(attributes_2.map(move |(index, attributes)| {
+            let max_attribute = max_attributes.get(&index).expect("Index must exist");
+
+            (
+                index,
+                attributes
+                    .into_iter()
+                    .filter(|attribute| attribute == max_attribute)
+                    .collect(),
+            )
+        })))
+    }
+
+    #[inline]
+    fn evaluate_is_min<'a>(
+        attributes: impl Iterator<Item = (&'a O::Index, Vec<MedRecordAttribute>)>,
+    ) -> MedRecordResult<impl Iterator<Item = (&'a O::Index, Vec<MedRecordAttribute>)>>
+    where
+        O: 'a,
+    {
+        let (attributes_1, attributes_2) = Itertools::tee(attributes);
+
+        let min_attributes: MrHashMap<_, _> = Self::get_min(attributes_1)?.collect();
+
+        Ok(Box::new(attributes_2.map(move |(index, attributes)| {
+            let min_attribute = min_attributes.get(&index).expect("Index must exist");
+
+            (
+                index,
+                attributes
+                    .into_iter()
+                    .filter(|attribute| attribute == min_attribute)
+                    .collect(),
+            )
+        })))
+    }
+
+    #[inline]
     fn evaluate_either_or<'a>(
         medrecord: &'a MedRecord,
         attributes: impl Iterator<Item = (&'a O::Index, Vec<MedRecordAttribute>)> + 'a,
@@ -701,24 +752,297 @@ impl<O: RootOperand> AttributesTreeOperation<O> {
     #[allow(clippy::type_complexity)]
     pub(crate) fn evaluate_grouped<'a>(
         &self,
-        _medrecord: &'a MedRecord,
-        _attributes: GroupedIterator<
-            'a,
-            BoxedIterator<'a, (&'a O::Index, Vec<MedRecordAttribute>)>,
-        >,
+        medrecord: &'a MedRecord,
+        attributes: GroupedIterator<'a, BoxedIterator<'a, (&'a O::Index, Vec<MedRecordAttribute>)>>,
     ) -> MedRecordResult<
         GroupedIterator<'a, BoxedIterator<'a, (&'a O::Index, Vec<MedRecordAttribute>)>>,
     >
     where
         O: 'a,
     {
-        todo!()
+        Ok(match self {
+            Self::AttributesOperation { operand } => {
+                Self::evaluate_attributes_operation_grouped(self, medrecord, attributes, operand)?
+            }
+            Self::SingleAttributeComparisonOperation { operand, kind } => Box::new(
+                attributes
+                    .map(move |(key, attributes)| {
+                        Ok((
+                            key,
+                            Box::new(Self::evaluate_single_attribute_comparison_operation(
+                                medrecord, attributes, operand, kind,
+                            )?) as BoxedIterator<_>,
+                        ))
+                    })
+                    .collect::<MedRecordResult<Vec<_>>>()?
+                    .into_iter(),
+            ),
+            Self::MultipleAttributesComparisonOperation { operand, kind } => Box::new(
+                attributes
+                    .map(move |(key, attributes)| {
+                        Ok((
+                            key,
+                            Box::new(Self::evaluate_multiple_attributes_comparison_operation(
+                                medrecord, attributes, operand, kind,
+                            )?) as BoxedIterator<_>,
+                        ))
+                    })
+                    .collect::<MedRecordResult<Vec<_>>>()?
+                    .into_iter(),
+            ),
+            Self::BinaryArithmeticOperation { operand, kind } => Box::new(
+                attributes
+                    .map(move |(key, attributes)| {
+                        Ok((
+                            key,
+                            Box::new(Self::evaluate_binary_arithmetic_operation(
+                                medrecord, attributes, operand, kind,
+                            )?) as BoxedIterator<_>,
+                        ))
+                    })
+                    .collect::<MedRecordResult<Vec<_>>>()?
+                    .into_iter(),
+            ),
+            Self::UnaryArithmeticOperation { kind } => {
+                let kind = kind.clone();
+
+                Box::new(attributes.map(move |(key, attributes)| {
+                    (
+                        key,
+                        Box::new(Self::evaluate_unary_arithmetic_operation(
+                            attributes,
+                            kind.clone(),
+                        )) as BoxedIterator<_>,
+                    )
+                }))
+            }
+            Self::Slice(range) => {
+                let range = range.clone();
+
+                Box::new(attributes.map(move |(key, attributes)| {
+                    (
+                        key,
+                        Box::new(Self::evaluate_slice(attributes, range.clone()))
+                            as BoxedIterator<_>,
+                    )
+                }))
+            }
+            Self::IsString => Box::new(attributes.map(move |(key, attributes)| {
+                (
+                    key,
+                    Box::new(Self::evaluate_is_string(attributes)) as BoxedIterator<_>,
+                )
+            })),
+            Self::IsInt => Box::new(attributes.map(move |(key, attributes)| {
+                (
+                    key,
+                    Box::new(Self::evaluate_is_int(attributes)) as BoxedIterator<_>,
+                )
+            })),
+            Self::IsMax => Box::new(
+                attributes
+                    .map(move |(key, attributes)| {
+                        Ok((
+                            key,
+                            Box::new(Self::evaluate_is_max(attributes)?) as BoxedIterator<_>,
+                        ))
+                    })
+                    .collect::<MedRecordResult<Vec<_>>>()?
+                    .into_iter(),
+            ),
+            Self::IsMin => Box::new(
+                attributes
+                    .map(move |(key, attributes)| {
+                        Ok((
+                            key,
+                            Box::new(Self::evaluate_is_min(attributes)?) as BoxedIterator<_>,
+                        ))
+                    })
+                    .collect::<MedRecordResult<Vec<_>>>()?
+                    .into_iter(),
+            ),
+            Self::EitherOr { either, or } => {
+                Self::evaluate_either_or_grouped(medrecord, attributes, either, or)?
+            }
+            Self::Exclude { operand } => {
+                Self::evaluate_exclude_grouped(medrecord, attributes, operand)?
+            }
+            Self::Merge { operand } => {
+                let (attributes_1, attributes_2) = tee_grouped_iterator(attributes);
+
+                let attributes_1 = attributes_1.flat_map(|(_, attribute)| attribute);
+
+                let attributes_1 = operand
+                    .evaluate_forward(medrecord, Box::new(attributes_1))?
+                    .collect::<Vec<_>>();
+
+                Box::new(attributes_2.map(move |(key, attributes)| {
+                    let attributes = attributes
+                        .filter(|attributes| attributes_1.contains(attributes))
+                        .collect::<Vec<_>>();
+
+                    let attributes: BoxedIterator<_> = Box::new(attributes.into_iter());
+
+                    (key, attributes)
+                }))
+            }
+        })
+    }
+
+    #[allow(clippy::type_complexity)]
+    pub(crate) fn evaluate_attributes_operation_grouped<'a>(
+        &self,
+        medrecord: &'a MedRecord,
+        attributes: GroupedIterator<'a, BoxedIterator<'a, (&'a O::Index, Vec<MedRecordAttribute>)>>,
+        operand: &Wrapper<MultipleAttributesWithIndexOperand<O>>,
+    ) -> MedRecordResult<
+        GroupedIterator<'a, BoxedIterator<'a, (&'a O::Index, Vec<MedRecordAttribute>)>>,
+    >
+    where
+        O: 'a,
+    {
+        let (attributes_1, attributes_2) = tee_grouped_iterator(attributes);
+        let mut attributes_2: Vec<_> = attributes_2.collect();
+
+        let MultipleAttributesWithIndexContext::AttributesTree {
+            operand: _,
+            ref kind,
+        } = operand.0.read_or_panic().context
+        else {
+            unreachable!()
+        };
+
+        let attributes_1: Vec<_> = attributes_1
+            .map(|(key, attributes)| {
+                let attributes: BoxedIterator<_> = match kind {
+                    MultipleKind::Max => {
+                        Box::new(AttributesTreeOperation::<O>::get_max(attributes)?)
+                    }
+                    MultipleKind::Min => {
+                        Box::new(AttributesTreeOperation::<O>::get_min(attributes)?)
+                    }
+                    MultipleKind::Count => {
+                        Box::new(AttributesTreeOperation::<O>::get_count(attributes)?)
+                    }
+                    MultipleKind::Sum => {
+                        Box::new(AttributesTreeOperation::<O>::get_sum(attributes)?)
+                    }
+                    MultipleKind::Random => {
+                        Box::new(AttributesTreeOperation::<O>::get_random(attributes)?)
+                    }
+                };
+
+                Ok((key, attributes))
+            })
+            .collect::<MedRecordResult<_>>()?;
+
+        let attibutes_1 =
+            operand.evaluate_forward_grouped(medrecord, Box::new(attributes_1.into_iter()))?;
+
+        let attributes = attibutes_1.map(move |(key, attributes_1)| {
+            let attributes_position = attributes_2
+                .iter()
+                .position(|(k, _)| k == &key)
+                .expect("Entry must exist");
+
+            let mut attributes_2 = attributes_2
+                .remove(attributes_position)
+                .1
+                .collect::<HashMap<_, _>>();
+
+            let attributes: BoxedIterator<_> = Box::new(attributes_1.map(move |(index, _)| {
+                (
+                    index,
+                    attributes_2.remove(&index).expect("Attribute must exist"),
+                )
+            }));
+
+            (key, attributes)
+        });
+
+        Ok(Box::new(attributes))
+    }
+
+    #[allow(clippy::type_complexity)]
+    #[inline]
+    fn evaluate_either_or_grouped<'a>(
+        medrecord: &'a MedRecord,
+        attributes: GroupedIterator<'a, BoxedIterator<'a, (&'a O::Index, Vec<MedRecordAttribute>)>>,
+        either: &Wrapper<AttributesTreeOperand<O>>,
+        or: &Wrapper<AttributesTreeOperand<O>>,
+    ) -> MedRecordResult<
+        GroupedIterator<'a, BoxedIterator<'a, (&'a O::Index, Vec<MedRecordAttribute>)>>,
+    >
+    where
+        O: 'a,
+    {
+        let (attributes_1, attributes_2) = tee_grouped_iterator(attributes);
+
+        let either_attributes = either.evaluate_forward_grouped(medrecord, attributes_1)?;
+        let mut or_attributes: Vec<_> = or
+            .evaluate_forward_grouped(medrecord, attributes_2)?
+            .collect();
+
+        let attributes = either_attributes.map(move |(key, either_attributes)| {
+            let attributes_position = or_attributes
+                .iter()
+                .position(|(k, _)| k == &key)
+                .expect("Entry must exist");
+
+            let or_attributes = or_attributes.remove(attributes_position).1;
+
+            let attributes: BoxedIterator<_> = Box::new(
+                either_attributes
+                    .chain(or_attributes)
+                    .unique_by(|attributes| attributes.0.clone()),
+            );
+
+            (key, attributes)
+        });
+
+        Ok(Box::new(attributes))
+    }
+
+    #[allow(clippy::type_complexity)]
+    #[inline]
+    fn evaluate_exclude_grouped<'a>(
+        medrecord: &'a MedRecord,
+        attributes: GroupedIterator<'a, BoxedIterator<'a, (&'a O::Index, Vec<MedRecordAttribute>)>>,
+        operand: &Wrapper<AttributesTreeOperand<O>>,
+    ) -> MedRecordResult<
+        GroupedIterator<'a, BoxedIterator<'a, (&'a O::Index, Vec<MedRecordAttribute>)>>,
+    >
+    where
+        O: 'a,
+    {
+        let (attributes_1, attributes_2) = tee_grouped_iterator(attributes);
+
+        let mut result: Vec<_> = operand
+            .evaluate_forward_grouped(medrecord, attributes_1)?
+            .collect();
+
+        let attributes = attributes_2.map(move |(key, attributes)| {
+            let attributes_position = result
+                .iter()
+                .position(|(k, _)| k == &key)
+                .expect("Entry must exist");
+
+            let mut excluded_attributes = result.remove(attributes_position).1;
+
+            let attributes: BoxedIterator<_> = Box::new(
+                attributes.filter(move |attributes| !excluded_attributes.contains(attributes)),
+            );
+
+            (key, attributes)
+        });
+
+        Ok(Box::new(attributes))
     }
 }
 
 #[derive(Debug, Clone)]
 pub enum MultipleAttributesWithIndexOperation<O: RootOperand> {
-    AttributeOperation {
+    AttributeWithIndexOperation {
         operand: Wrapper<SingleAttributeWithIndexOperand<O>>,
     },
     AttributeWithoutIndexOperation {
@@ -759,12 +1083,16 @@ pub enum MultipleAttributesWithIndexOperation<O: RootOperand> {
     Exclude {
         operand: Wrapper<MultipleAttributesWithIndexOperand<O>>,
     },
+
+    Merge {
+        operand: Wrapper<MultipleAttributesWithIndexOperand<O>>,
+    },
 }
 
 impl<O: RootOperand> DeepClone for MultipleAttributesWithIndexOperation<O> {
     fn deep_clone(&self) -> Self {
         match self {
-            Self::AttributeOperation { operand } => Self::AttributeOperation {
+            Self::AttributeWithIndexOperation { operand } => Self::AttributeWithIndexOperation {
                 operand: operand.deep_clone(),
             },
             Self::AttributeWithoutIndexOperation { operand } => {
@@ -806,6 +1134,9 @@ impl<O: RootOperand> DeepClone for MultipleAttributesWithIndexOperation<O> {
             Self::Exclude { operand } => Self::Exclude {
                 operand: operand.deep_clone(),
             },
+            Self::Merge { operand } => Self::Merge {
+                operand: operand.deep_clone(),
+            },
         }
     }
 }
@@ -819,74 +1150,43 @@ impl<O: RootOperand> MultipleAttributesWithIndexOperation<O> {
     where
         O: 'a,
     {
-        match self {
-            Self::AttributeOperation { operand } => {
-                Self::evaluate_attribute_operation(medrecord, attributes, operand)
+        Ok(match self {
+            Self::AttributeWithIndexOperation { operand } => {
+                Self::evaluate_attribute_with_index_operation(medrecord, attributes, operand)?
             }
             Self::AttributeWithoutIndexOperation { operand } => {
-                Self::evaluate_attribute_operation_without_index(medrecord, attributes, operand)
+                Self::evaluate_attribute_without_index_operation(medrecord, attributes, operand)?
             }
             Self::SingleAttributeComparisonOperation { operand, kind } => {
                 Self::evaluate_single_attribute_comparison_operation(
                     medrecord, attributes, operand, kind,
-                )
+                )?
             }
             Self::MultipleAttributesComparisonOperation { operand, kind } => {
                 Self::evaluate_multiple_attributes_comparison_operation(
                     medrecord, attributes, operand, kind,
-                )
+                )?
             }
-            Self::BinaryArithmeticOperation { operand, kind } => Ok(Box::new(
+            Self::BinaryArithmeticOperation { operand, kind } => Box::new(
                 Self::evaluate_binary_arithmetic_operation(medrecord, attributes, operand, kind)?,
-            )),
-            Self::UnaryArithmeticOperation { kind } => Ok(Box::new(
+            ),
+            Self::UnaryArithmeticOperation { kind } => Box::new(
                 Self::evaluate_unary_arithmetic_operation(attributes, kind.clone()),
-            )),
-            Self::ToValues { operand } => Ok(Box::new(Self::evaluate_to_values(
-                medrecord, attributes, operand,
-            )?)),
-            Self::Slice(range) => Ok(Box::new(Self::evaluate_slice(attributes, range.clone()))),
-            Self::IsString => {
-                Ok(Box::new(attributes.filter(|(_, attribute)| {
-                    matches!(attribute, MedRecordAttribute::String(_))
-                })))
+            ),
+            Self::ToValues { operand } => {
+                Box::new(Self::evaluate_to_values(medrecord, attributes, operand)?)
             }
-            Self::IsInt => {
-                Ok(Box::new(attributes.filter(|(_, attribute)| {
-                    matches!(attribute, MedRecordAttribute::Int(_))
-                })))
-            }
-            Self::IsMax => {
-                let (attributes_1, attributes_2) = Itertools::tee(attributes);
-
-                let max_attribute = Self::get_max(attributes_1)?;
-
-                let Some(max_attribute) = max_attribute else {
-                    return Ok(Box::new(std::iter::empty()));
-                };
-
-                Ok(Box::new(attributes_2.filter(move |(_, attribute)| {
-                    *attribute == max_attribute.1
-                })))
-            }
-            Self::IsMin => {
-                let (attributes_1, attributes_2) = Itertools::tee(attributes);
-
-                let min_attribute = Self::get_min(attributes_1)?;
-
-                let Some(min_attribute) = min_attribute else {
-                    return Ok(Box::new(std::iter::empty()));
-                };
-
-                Ok(Box::new(attributes_2.filter(move |(_, attribute)| {
-                    *attribute == min_attribute.1
-                })))
-            }
+            Self::Slice(range) => Box::new(Self::evaluate_slice(attributes, range.clone())),
+            Self::IsString => Box::new(Self::evaluate_is_string(attributes)),
+            Self::IsInt => Box::new(Self::evaluate_is_int(attributes)),
+            Self::IsMax => Box::new(Self::evaluate_is_max(attributes)?),
+            Self::IsMin => Box::new(Self::evaluate_is_min(attributes)?),
             Self::EitherOr { either, or } => {
-                Self::evaluate_either_or(medrecord, attributes, either, or)
+                Self::evaluate_either_or(medrecord, attributes, either, or)?
             }
-            Self::Exclude { operand } => Self::evaluate_exclude(medrecord, attributes, operand),
-        }
+            Self::Exclude { operand } => Self::evaluate_exclude(medrecord, attributes, operand)?,
+            Self::Merge { operand: _ } => unreachable!(),
+        })
     }
 
     #[inline]
@@ -955,7 +1255,7 @@ impl<O: RootOperand> MultipleAttributesWithIndexOperation<O> {
     }
 
     #[inline]
-    fn evaluate_attribute_operation<'a>(
+    fn evaluate_attribute_with_index_operation<'a>(
         medrecord: &'a MedRecord,
         attributes: impl Iterator<Item = (&'a O::Index, MedRecordAttribute)> + 'a,
         operand: &Wrapper<SingleAttributeWithIndexOperand<O>>,
@@ -986,7 +1286,7 @@ impl<O: RootOperand> MultipleAttributesWithIndexOperation<O> {
     }
 
     #[inline]
-    fn evaluate_attribute_operation_without_index<'a>(
+    fn evaluate_attribute_without_index_operation<'a>(
         medrecord: &'a MedRecord,
         attributes: impl Iterator<Item = (&'a O::Index, MedRecordAttribute)> + 'a,
         operand: &Wrapper<SingleAttributeWithoutIndexOperand<O>>,
@@ -1204,11 +1504,11 @@ impl<O: RootOperand> MultipleAttributesWithIndexOperation<O> {
     where
         O: 'a,
     {
-        let attributes: Vec<_> = attributes.collect();
+        let (attributes_1, attributes_2) = Itertools::tee(attributes);
 
-        let values = Self::get_values(medrecord, attributes.clone().into_iter())?;
+        let values = Self::get_values(medrecord, attributes_1)?;
 
-        let mut attributes: HashMap<_, _> = attributes.into_iter().collect();
+        let mut attributes: HashMap<_, _> = attributes_2.collect();
 
         let values = operand.evaluate_forward(medrecord, Box::new(values.into_iter()))?;
 
@@ -1229,6 +1529,66 @@ impl<O: RootOperand> MultipleAttributesWithIndexOperation<O> {
         O: 'a,
     {
         attributes.map(move |(t, attribute)| (t, attribute.slice(range.clone())))
+    }
+
+    #[inline]
+    fn evaluate_is_string<'a>(
+        attributes: impl Iterator<Item = (&'a O::Index, MedRecordAttribute)>,
+    ) -> impl Iterator<Item = (&'a O::Index, MedRecordAttribute)>
+    where
+        O: 'a,
+    {
+        attributes.filter(|(_, attribute)| matches!(attribute, MedRecordAttribute::String(_)))
+    }
+
+    #[inline]
+    fn evaluate_is_int<'a>(
+        attributes: impl Iterator<Item = (&'a O::Index, MedRecordAttribute)>,
+    ) -> impl Iterator<Item = (&'a O::Index, MedRecordAttribute)>
+    where
+        O: 'a,
+    {
+        attributes.filter(|(_, attribute)| matches!(attribute, MedRecordAttribute::Int(_)))
+    }
+
+    #[inline]
+    fn evaluate_is_max<'a>(
+        attributes: impl Iterator<Item = (&'a O::Index, MedRecordAttribute)> + 'a,
+    ) -> MedRecordResult<BoxedIterator<'a, (&'a O::Index, MedRecordAttribute)>>
+    where
+        O: 'a,
+    {
+        let (attributes_1, attributes_2) = Itertools::tee(attributes);
+
+        let max_attribute = Self::get_max(attributes_1)?;
+
+        let Some(max_attribute) = max_attribute else {
+            return Ok(Box::new(std::iter::empty()));
+        };
+
+        Ok(Box::new(attributes_2.filter(move |(_, attribute)| {
+            *attribute == max_attribute.1
+        })))
+    }
+
+    #[inline]
+    fn evaluate_is_min<'a>(
+        attributes: impl Iterator<Item = (&'a O::Index, MedRecordAttribute)> + 'a,
+    ) -> MedRecordResult<BoxedIterator<'a, (&'a O::Index, MedRecordAttribute)>>
+    where
+        O: 'a,
+    {
+        let (attributes_1, attributes_2) = Itertools::tee(attributes);
+
+        let min_attribute = Self::get_min(attributes_1)?;
+
+        let Some(min_attribute) = min_attribute else {
+            return Ok(Box::new(std::iter::empty()));
+        };
+
+        Ok(Box::new(attributes_2.filter(move |(_, attribute)| {
+            *attribute == min_attribute.1
+        })))
     }
 
     #[inline]
@@ -1279,13 +1639,378 @@ impl<O: RootOperand> MultipleAttributesWithIndexOperation<O> {
     #[allow(clippy::type_complexity)]
     pub(crate) fn evaluate_grouped<'a>(
         &self,
-        _medrecord: &'a MedRecord,
-        _attributes: GroupedIterator<'a, BoxedIterator<'a, (&'a O::Index, MedRecordAttribute)>>,
+        medrecord: &'a MedRecord,
+        attributes: GroupedIterator<'a, BoxedIterator<'a, (&'a O::Index, MedRecordAttribute)>>,
     ) -> MedRecordResult<GroupedIterator<'a, BoxedIterator<'a, (&'a O::Index, MedRecordAttribute)>>>
     where
         O: 'a,
     {
-        todo!()
+        Ok(match self {
+            Self::AttributeWithIndexOperation { operand } => {
+                Self::evaluate_attribute_with_index_operation_grouped(
+                    medrecord, attributes, operand,
+                )?
+            }
+            Self::AttributeWithoutIndexOperation { operand } => {
+                Self::evaluate_attribute_without_index_operation_grouped(
+                    medrecord, attributes, operand,
+                )?
+            }
+            Self::SingleAttributeComparisonOperation { operand, kind } => Box::new(
+                attributes
+                    .map(move |(key, attributes)| {
+                        Ok((
+                            key,
+                            Box::new(Self::evaluate_single_attribute_comparison_operation(
+                                medrecord, attributes, operand, kind,
+                            )?) as BoxedIterator<_>,
+                        ))
+                    })
+                    .collect::<MedRecordResult<Vec<_>>>()?
+                    .into_iter(),
+            ),
+            Self::MultipleAttributesComparisonOperation { operand, kind } => Box::new(
+                attributes
+                    .map(move |(key, attributes)| {
+                        Ok((
+                            key,
+                            Box::new(Self::evaluate_multiple_attributes_comparison_operation(
+                                medrecord, attributes, operand, kind,
+                            )?) as BoxedIterator<_>,
+                        ))
+                    })
+                    .collect::<MedRecordResult<Vec<_>>>()?
+                    .into_iter(),
+            ),
+            Self::BinaryArithmeticOperation { operand, kind } => Box::new(
+                attributes
+                    .map(move |(key, attributes)| {
+                        Ok((
+                            key,
+                            Box::new(Self::evaluate_binary_arithmetic_operation(
+                                medrecord, attributes, operand, kind,
+                            )?) as BoxedIterator<_>,
+                        ))
+                    })
+                    .collect::<MedRecordResult<Vec<_>>>()?
+                    .into_iter(),
+            ),
+            Self::UnaryArithmeticOperation { kind } => {
+                let kind = kind.clone();
+
+                Box::new(attributes.map(move |(key, attributes)| {
+                    (
+                        key,
+                        Box::new(Self::evaluate_unary_arithmetic_operation(
+                            attributes,
+                            kind.clone(),
+                        )) as BoxedIterator<_>,
+                    )
+                }))
+            }
+            Self::ToValues { operand } => Box::new(Self::evaluate_to_values_grouped(
+                medrecord, attributes, operand,
+            )?),
+            Self::Slice(range) => {
+                let range = range.clone();
+
+                Box::new(attributes.map(move |(key, attributes)| {
+                    (
+                        key,
+                        Box::new(Self::evaluate_slice(attributes, range.clone()))
+                            as BoxedIterator<_>,
+                    )
+                }))
+            }
+            Self::IsString => Box::new(attributes.map(move |(key, attributes)| {
+                (
+                    key,
+                    Box::new(Self::evaluate_is_string(attributes)) as BoxedIterator<_>,
+                )
+            })),
+            Self::IsInt => Box::new(attributes.map(move |(key, attributes)| {
+                (
+                    key,
+                    Box::new(Self::evaluate_is_int(attributes)) as BoxedIterator<_>,
+                )
+            })),
+            Self::IsMax => Box::new(
+                attributes
+                    .map(move |(key, attributes)| {
+                        Ok((
+                            key,
+                            Box::new(Self::evaluate_is_max(attributes)?) as BoxedIterator<_>,
+                        ))
+                    })
+                    .collect::<MedRecordResult<Vec<_>>>()?
+                    .into_iter(),
+            ),
+            Self::IsMin => Box::new(
+                attributes
+                    .map(move |(key, attributes)| {
+                        Ok((
+                            key,
+                            Box::new(Self::evaluate_is_min(attributes)?) as BoxedIterator<_>,
+                        ))
+                    })
+                    .collect::<MedRecordResult<Vec<_>>>()?
+                    .into_iter(),
+            ),
+            Self::EitherOr { either, or } => {
+                Self::evaluate_either_or_grouped(medrecord, attributes, either, or)?
+            }
+            Self::Exclude { operand } => {
+                Self::evaluate_exclude_grouped(medrecord, attributes, operand)?
+            }
+            Self::Merge { operand } => {
+                let (attributes_1, attributes_2) = tee_grouped_iterator(attributes);
+
+                let attributes_1 = attributes_1.flat_map(|(_, attribute)| attribute);
+
+                let attributes_1 = operand
+                    .evaluate_forward(medrecord, Box::new(attributes_1))?
+                    .collect::<Vec<_>>();
+
+                Box::new(attributes_2.map(move |(key, attributes)| {
+                    let attributes = attributes
+                        .filter(|attribute| attributes_1.contains(attribute))
+                        .collect::<Vec<_>>();
+
+                    let attributes: BoxedIterator<_> = Box::new(attributes.into_iter());
+
+                    (key, attributes)
+                }))
+            }
+        })
+    }
+
+    #[allow(clippy::type_complexity)]
+    #[inline]
+    fn evaluate_attribute_with_index_operation_grouped<'a>(
+        medrecord: &'a MedRecord,
+        attributes: GroupedIterator<'a, BoxedIterator<'a, (&'a O::Index, MedRecordAttribute)>>,
+        operand: &Wrapper<SingleAttributeWithIndexOperand<O>>,
+    ) -> MedRecordResult<GroupedIterator<'a, BoxedIterator<'a, (&'a O::Index, MedRecordAttribute)>>>
+    where
+        O: 'a,
+    {
+        let (attributes_1, attributes_2) = tee_grouped_iterator(attributes);
+        let mut attributes_2 = attributes_2.collect::<Vec<_>>();
+
+        let kind = &operand.0.read_or_panic().kind;
+
+        let attributes_1: Vec<_> = attributes_1
+            .map(|(key, attributes)| {
+                let attribute = match kind {
+                    SingleKindWithIndex::Max => {
+                        MultipleAttributesWithIndexOperation::<O>::get_max(attributes)?
+                    }
+                    SingleKindWithIndex::Min => {
+                        MultipleAttributesWithIndexOperation::<O>::get_min(attributes)?
+                    }
+                    SingleKindWithIndex::Random => {
+                        MultipleAttributesWithIndexOperation::<O>::get_random(attributes)
+                    }
+                };
+
+                Ok((key, attribute))
+            })
+            .collect::<MedRecordResult<_>>()?;
+
+        let attributes_1 =
+            operand.evaluate_forward_grouped(medrecord, Box::new(attributes_1.into_iter()))?;
+
+        Ok(Box::new(attributes_1.map(
+            move |(key, attribute)| match attribute {
+                Some(_) => {
+                    let attributes_position = attributes_2
+                        .iter()
+                        .position(|(k, _)| k == &key)
+                        .expect("Entry must exist");
+
+                    attributes_2.remove(attributes_position)
+                }
+                None => (key, Box::new(std::iter::empty()) as BoxedIterator<_>),
+            },
+        )))
+    }
+
+    #[allow(clippy::type_complexity)]
+    #[inline]
+    fn evaluate_attribute_without_index_operation_grouped<'a>(
+        medrecord: &'a MedRecord,
+        attributes: GroupedIterator<'a, BoxedIterator<'a, (&'a O::Index, MedRecordAttribute)>>,
+        operand: &Wrapper<SingleAttributeWithoutIndexOperand<O>>,
+    ) -> MedRecordResult<GroupedIterator<'a, BoxedIterator<'a, (&'a O::Index, MedRecordAttribute)>>>
+    where
+        O: 'a,
+    {
+        let (attributes_1, attributes_2) = tee_grouped_iterator(attributes);
+        let mut attributes_2: Vec<_> = attributes_2.collect();
+
+        let kind = &operand.0.read_or_panic().kind;
+
+        let attributes_1: Vec<_> = attributes_1
+            .map(|(key, attributes)| {
+                let attributes = attributes.map(|(_, attribute)| attribute);
+
+                let attribute = match kind {
+                    SingleKindWithoutIndex::Max => {
+                        MultipleAttributesWithoutIndexOperation::<O>::get_max(attributes)?
+                    }
+                    SingleKindWithoutIndex::Min => {
+                        MultipleAttributesWithoutIndexOperation::<O>::get_min(attributes)?
+                    }
+                    SingleKindWithoutIndex::Count => Some(
+                        MultipleAttributesWithoutIndexOperation::<O>::get_count(attributes),
+                    ),
+                    SingleKindWithoutIndex::Sum => {
+                        MultipleAttributesWithoutIndexOperation::<O>::get_sum(attributes)?
+                    }
+                    SingleKindWithoutIndex::Random => {
+                        MultipleAttributesWithoutIndexOperation::<O>::get_random(attributes)
+                    }
+                };
+
+                Ok((key, attribute))
+            })
+            .collect::<MedRecordResult<_>>()?;
+
+        let attributes_1 =
+            operand.evaluate_forward_grouped(medrecord, Box::new(attributes_1.into_iter()))?;
+
+        Ok(Box::new(attributes_1.map(
+            move |(key, attribute)| match attribute {
+                Some(_) => {
+                    let attributes_position = attributes_2
+                        .iter()
+                        .position(|(k, _)| k == &key)
+                        .expect("Entry must exist");
+
+                    attributes_2.remove(attributes_position)
+                }
+                None => (key, Box::new(std::iter::empty()) as BoxedIterator<_>),
+            },
+        )))
+    }
+
+    #[allow(clippy::type_complexity)]
+    #[inline]
+    fn evaluate_to_values_grouped<'a>(
+        medrecord: &'a MedRecord,
+        attributes: GroupedIterator<'a, BoxedIterator<'a, (&'a O::Index, MedRecordAttribute)>>,
+        operand: &Wrapper<MultipleValuesWithIndexOperand<O>>,
+    ) -> MedRecordResult<GroupedIterator<'a, BoxedIterator<'a, (&'a O::Index, MedRecordAttribute)>>>
+    where
+        O: 'a,
+    {
+        let (attributes_1, attributes_2) = tee_grouped_iterator(attributes);
+        let mut attributes_2: Vec<_> = attributes_2.collect();
+
+        let values: Vec<_> = attributes_1
+            .map(|(key, attributes)| {
+                let values: BoxedIterator<_> = Box::new(Self::get_values(medrecord, attributes)?);
+
+                Ok((key, values))
+            })
+            .collect::<MedRecordResult<_>>()?;
+
+        let values = operand.evaluate_forward_grouped(medrecord, Box::new(values.into_iter()))?;
+
+        let attributes = values.map(move |(key, values)| {
+            let attributes_position = attributes_2
+                .iter()
+                .position(|(k, _)| k == &key)
+                .expect("Entry must exist");
+
+            let mut attributes = attributes_2
+                .remove(attributes_position)
+                .1
+                .collect::<HashMap<_, _>>();
+
+            let attributes: BoxedIterator<_> = Box::new(values.map(move |(index, _)| {
+                (
+                    index,
+                    attributes.remove(&index).expect("Attribute must exist"),
+                )
+            }));
+
+            (key, attributes)
+        });
+
+        Ok(Box::new(attributes))
+    }
+
+    #[allow(clippy::type_complexity)]
+    #[inline]
+    fn evaluate_either_or_grouped<'a>(
+        medrecord: &'a MedRecord,
+        attributes: GroupedIterator<'a, BoxedIterator<'a, (&'a O::Index, MedRecordAttribute)>>,
+        either: &Wrapper<MultipleAttributesWithIndexOperand<O>>,
+        or: &Wrapper<MultipleAttributesWithIndexOperand<O>>,
+    ) -> MedRecordResult<GroupedIterator<'a, BoxedIterator<'a, (&'a O::Index, MedRecordAttribute)>>>
+    where
+        O: 'a,
+    {
+        let (attributes_1, attributes_2) = tee_grouped_iterator(attributes);
+
+        let either_attributes = either.evaluate_forward_grouped(medrecord, attributes_1)?;
+        let mut or_attributes: Vec<_> = or
+            .evaluate_forward_grouped(medrecord, attributes_2)?
+            .collect();
+
+        let attributes = either_attributes.map(move |(key, either_attributes)| {
+            let attributes_position = or_attributes
+                .iter()
+                .position(|(k, _)| k == &key)
+                .expect("Entry must exist");
+
+            let or_attributes = or_attributes.remove(attributes_position).1;
+
+            let attributes: BoxedIterator<_> = Box::new(
+                either_attributes
+                    .chain(or_attributes)
+                    .unique_by(|attributes| attributes.0.clone()),
+            );
+
+            (key, attributes)
+        });
+
+        Ok(Box::new(attributes))
+    }
+
+    #[allow(clippy::type_complexity)]
+    #[inline]
+    fn evaluate_exclude_grouped<'a>(
+        medrecord: &'a MedRecord,
+        attributes: GroupedIterator<'a, BoxedIterator<'a, (&'a O::Index, MedRecordAttribute)>>,
+        operand: &Wrapper<MultipleAttributesWithIndexOperand<O>>,
+    ) -> MedRecordResult<GroupedIterator<'a, BoxedIterator<'a, (&'a O::Index, MedRecordAttribute)>>>
+    where
+        O: 'a,
+    {
+        let (attributes_1, attributes_2) = tee_grouped_iterator(attributes);
+
+        let mut result: Vec<_> = operand
+            .evaluate_forward_grouped(medrecord, attributes_1)?
+            .collect();
+
+        let attributes = attributes_2.map(move |(key, attributes)| {
+            let attributes_position = result
+                .iter()
+                .position(|(k, _)| k == &key)
+                .expect("Entry must exist");
+
+            let mut excluded_attributes = result.remove(attributes_position).1;
+
+            let attributes: BoxedIterator<_> = Box::new(
+                attributes.filter(move |attributes| !excluded_attributes.contains(attributes)),
+            );
+
+            (key, attributes)
+        });
+
+        Ok(Box::new(attributes))
     }
 }
 #[derive(Debug, Clone)]
@@ -1376,37 +2101,33 @@ impl<O: RootOperand> MultipleAttributesWithoutIndexOperation<O> {
     where
         O: 'a,
     {
-        match self {
+        Ok(match self {
             Self::AttributeOperation { operand } => {
-                Self::evaluate_attribute_operation(medrecord, attributes, operand)
+                Self::evaluate_attribute_operation(medrecord, attributes, operand)?
             }
             Self::SingleAttributeComparisonOperation { operand, kind } => {
                 Self::evaluate_single_attribute_comparison_operation(
                     medrecord, attributes, operand, kind,
-                )
+                )?
             }
             Self::MultipleAttributesComparisonOperation { operand, kind } => {
                 Self::evaluate_multiple_attributes_comparison_operation(
                     medrecord, attributes, operand, kind,
-                )
+                )?
             }
-            Self::BinaryArithmeticOperation { operand, kind } => Ok(Box::new(
+            Self::BinaryArithmeticOperation { operand, kind } => Box::new(
                 Self::evaluate_binary_arithmetic_operation(medrecord, attributes, operand, kind)?,
-            )),
-            Self::UnaryArithmeticOperation { kind } => Ok(Box::new(
+            ),
+            Self::UnaryArithmeticOperation { kind } => Box::new(
                 Self::evaluate_unary_arithmetic_operation(attributes, kind.clone()),
-            )),
-            Self::Slice(range) => Ok(Box::new(Self::evaluate_slice(attributes, range.clone()))),
-            Self::IsString => {
-                Ok(Box::new(attributes.filter(|attribute| {
-                    matches!(attribute, MedRecordAttribute::String(_))
-                })))
-            }
-            Self::IsInt => {
-                Ok(Box::new(attributes.filter(|attribute| {
-                    matches!(attribute, MedRecordAttribute::Int(_))
-                })))
-            }
+            ),
+            Self::Slice(range) => Box::new(Self::evaluate_slice(attributes, range.clone())),
+            Self::IsString => Box::new(
+                attributes.filter(|attribute| matches!(attribute, MedRecordAttribute::String(_))),
+            ),
+            Self::IsInt => Box::new(
+                attributes.filter(|attribute| matches!(attribute, MedRecordAttribute::Int(_))),
+            ),
             Self::IsMax => {
                 let (attributes_1, attributes_2) = Itertools::tee(attributes);
 
@@ -1416,9 +2137,7 @@ impl<O: RootOperand> MultipleAttributesWithoutIndexOperation<O> {
                     return Ok(Box::new(std::iter::empty()));
                 };
 
-                Ok(Box::new(
-                    attributes_2.filter(move |attribute| *attribute == max_attribute),
-                ))
+                Box::new(attributes_2.filter(move |attribute| *attribute == max_attribute))
             }
             Self::IsMin => {
                 let (attributes_1, attributes_2) = Itertools::tee(attributes);
@@ -1429,15 +2148,13 @@ impl<O: RootOperand> MultipleAttributesWithoutIndexOperation<O> {
                     return Ok(Box::new(std::iter::empty()));
                 };
 
-                Ok(Box::new(
-                    attributes_2.filter(move |attribute| *attribute == min_attribute),
-                ))
+                Box::new(attributes_2.filter(move |attribute| *attribute == min_attribute))
             }
             Self::EitherOr { either, or } => {
-                Self::evaluate_either_or(medrecord, attributes, either, or)
+                Self::evaluate_either_or(medrecord, attributes, either, or)?
             }
-            Self::Exclude { operand } => Self::evaluate_exclude(medrecord, attributes, operand),
-        }
+            Self::Exclude { operand } => Self::evaluate_exclude(medrecord, attributes, operand)?,
+        })
     }
 
     #[inline]
@@ -1757,19 +2474,6 @@ impl<O: RootOperand> MultipleAttributesWithoutIndexOperation<O> {
     }
 }
 
-impl<O: RootOperand> MultipleAttributesWithoutIndexOperation<O> {
-    pub(crate) fn evaluate_grouped<'a>(
-        &self,
-        _medrecord: &'a MedRecord,
-        _attributes: GroupedIterator<'a, BoxedIterator<'a, MedRecordAttribute>>,
-    ) -> MedRecordResult<GroupedIterator<'a, BoxedIterator<'a, MedRecordAttribute>>>
-    where
-        O: 'a,
-    {
-        todo!()
-    }
-}
-
 #[derive(Debug, Clone)]
 pub enum SingleAttributeWithIndexOperation<O: RootOperand> {
     SingleAttributeComparisonOperation {
@@ -1799,6 +2503,10 @@ pub enum SingleAttributeWithIndexOperation<O: RootOperand> {
     },
     Exclude {
         operand: Wrapper<SingleAttributeWithIndexOperand<O>>,
+    },
+
+    Merge {
+        operand: Wrapper<MultipleAttributesWithIndexOperand<O>>,
     },
 }
 
@@ -1834,6 +2542,9 @@ impl<O: RootOperand> DeepClone for SingleAttributeWithIndexOperation<O> {
             Self::Exclude { operand } => Self::Exclude {
                 operand: operand.deep_clone(),
             },
+            Self::Merge { operand } => Self::Merge {
+                operand: operand.deep_clone(),
+            },
         }
     }
 }
@@ -1851,47 +2562,37 @@ impl<O: RootOperand> SingleAttributeWithIndexOperation<O> {
             return Ok(None);
         };
 
-        match self {
+        Ok(match self {
             Self::SingleAttributeComparisonOperation { operand, kind } => {
                 Self::evaluate_single_attribute_comparison_operation(
                     medrecord, attribute, operand, kind,
-                )
+                )?
             }
             Self::MultipleAttributesComparisonOperation { operand, kind } => {
-                Self::evaluate_multiple_attribute_comparison_operation(
+                Self::evaluate_multiple_attributes_comparison_operation(
                     medrecord, attribute, operand, kind,
-                )
+                )?
             }
             Self::BinaryArithmeticOperation { operand, kind } => {
-                Self::evaluate_binary_arithmetic_operation(medrecord, attribute, operand, kind)
+                Self::evaluate_binary_arithmetic_operation(medrecord, attribute, operand, kind)?
             }
-            Self::UnaryArithmeticOperation { kind } => Ok(Some(match kind {
-                UnaryArithmeticKind::Abs => (attribute.0, attribute.1.abs()),
-                UnaryArithmeticKind::Trim => (attribute.0, attribute.1.trim()),
-                UnaryArithmeticKind::TrimStart => (attribute.0, attribute.1.trim_start()),
-                UnaryArithmeticKind::TrimEnd => (attribute.0, attribute.1.trim_end()),
-                UnaryArithmeticKind::Lowercase => (attribute.0, attribute.1.lowercase()),
-                UnaryArithmeticKind::Uppercase => (attribute.0, attribute.1.uppercase()),
-            })),
-            Self::Slice(range) => Ok(Some((attribute.0, attribute.1.slice(range.clone())))),
-            Self::IsString => Ok(match attribute.1 {
-                MedRecordAttribute::String(_) => Some(attribute),
-                _ => None,
-            }),
-            Self::IsInt => Ok(match attribute.1 {
-                MedRecordAttribute::Int(_) => Some(attribute),
-                _ => None,
-            }),
+            Self::UnaryArithmeticOperation { kind } => {
+                Some(Self::evaluate_unary_arithmetic_operation(attribute, kind))
+            }
+            Self::Slice(range) => Some(Self::evaluate_slice(attribute, range)),
+            Self::IsString => Self::evaluate_is_string(attribute),
+            Self::IsInt => Self::evaluate_is_int(attribute),
             Self::EitherOr { either, or } => {
-                Self::evaluate_either_or(medrecord, attribute, either, or)
+                Self::evaluate_either_or(medrecord, attribute, either, or)?
             }
-            Self::Exclude { operand } => Ok(
+            Self::Exclude { operand } => {
                 match operand.evaluate_forward(medrecord, Some(attribute.clone()))? {
                     Some(_) => None,
                     None => Some(attribute),
-                },
-            ),
-        }
+                }
+            }
+            Self::Merge { operand: _ } => unreachable!(),
+        })
     }
 
     #[inline]
@@ -1928,7 +2629,7 @@ impl<O: RootOperand> SingleAttributeWithIndexOperation<O> {
     }
 
     #[inline]
-    fn evaluate_multiple_attribute_comparison_operation<'a>(
+    fn evaluate_multiple_attributes_comparison_operation<'a>(
         medrecord: &MedRecord,
         attribute: (&'a O::Index, MedRecordAttribute),
         comparison_operand: &MultipleAttributesComparisonOperand,
@@ -1972,6 +2673,49 @@ impl<O: RootOperand> SingleAttributeWithIndexOperation<O> {
     }
 
     #[inline]
+    fn evaluate_unary_arithmetic_operation<'a>(
+        attribute: (&'a O::Index, MedRecordAttribute),
+        kind: &UnaryArithmeticKind,
+    ) -> (&'a O::Index, MedRecordAttribute) {
+        match kind {
+            UnaryArithmeticKind::Abs => (attribute.0, attribute.1.abs()),
+            UnaryArithmeticKind::Trim => (attribute.0, attribute.1.trim()),
+            UnaryArithmeticKind::TrimStart => (attribute.0, attribute.1.trim_start()),
+            UnaryArithmeticKind::TrimEnd => (attribute.0, attribute.1.trim_end()),
+            UnaryArithmeticKind::Lowercase => (attribute.0, attribute.1.lowercase()),
+            UnaryArithmeticKind::Uppercase => (attribute.0, attribute.1.uppercase()),
+        }
+    }
+
+    #[inline]
+    fn evaluate_slice<'a>(
+        attribute: (&'a O::Index, MedRecordAttribute),
+        range: &Range<usize>,
+    ) -> (&'a O::Index, MedRecordAttribute) {
+        (attribute.0, attribute.1.slice(range.clone()))
+    }
+
+    #[inline]
+    fn evaluate_is_string(
+        attribute: (&O::Index, MedRecordAttribute),
+    ) -> Option<(&O::Index, MedRecordAttribute)> {
+        match attribute.1 {
+            MedRecordAttribute::String(_) => Some(attribute),
+            _ => None,
+        }
+    }
+
+    #[inline]
+    fn evaluate_is_int(
+        attribute: (&O::Index, MedRecordAttribute),
+    ) -> Option<(&O::Index, MedRecordAttribute)> {
+        match attribute.1 {
+            MedRecordAttribute::Int(_) => Some(attribute),
+            _ => None,
+        }
+    }
+
+    #[inline]
     fn evaluate_either_or<'a>(
         medrecord: &'a MedRecord,
         attribute: (&'a O::Index, MedRecordAttribute),
@@ -1996,13 +2740,199 @@ impl<O: RootOperand> SingleAttributeWithIndexOperation<O> {
     #[allow(clippy::type_complexity)]
     pub(crate) fn evaluate_grouped<'a>(
         &self,
-        _medrecord: &'a MedRecord,
-        _attributes: GroupedIterator<'a, Option<(&'a O::Index, MedRecordAttribute)>>,
+        medrecord: &'a MedRecord,
+        attributes: GroupedIterator<'a, Option<(&'a O::Index, MedRecordAttribute)>>,
     ) -> MedRecordResult<GroupedIterator<'a, Option<(&'a O::Index, MedRecordAttribute)>>>
     where
         O: 'a,
     {
-        todo!()
+        Ok(match self {
+            Self::SingleAttributeComparisonOperation { operand, kind } => Box::new(
+                attributes
+                    .map(move |(key, attribute)| {
+                        let Some(attribute) = attribute else {
+                            return Ok((key, None));
+                        };
+
+                        Ok((
+                            key,
+                            Self::evaluate_single_attribute_comparison_operation(
+                                medrecord, attribute, operand, kind,
+                            )?,
+                        ))
+                    })
+                    .collect::<MedRecordResult<Vec<_>>>()?
+                    .into_iter(),
+            ),
+            Self::MultipleAttributesComparisonOperation { operand, kind } => Box::new(
+                attributes
+                    .map(move |(key, attribute)| {
+                        let Some(attribute) = attribute else {
+                            return Ok((key, None));
+                        };
+
+                        Ok((
+                            key,
+                            Self::evaluate_multiple_attributes_comparison_operation(
+                                medrecord, attribute, operand, kind,
+                            )?,
+                        ))
+                    })
+                    .collect::<MedRecordResult<Vec<_>>>()?
+                    .into_iter(),
+            ),
+            Self::BinaryArithmeticOperation { operand, kind } => Box::new(
+                attributes
+                    .map(move |(key, attribute)| {
+                        let Some(attribute) = attribute else {
+                            return Ok((key, None));
+                        };
+
+                        Ok((
+                            key,
+                            Self::evaluate_binary_arithmetic_operation(
+                                medrecord, attribute, operand, kind,
+                            )?,
+                        ))
+                    })
+                    .collect::<MedRecordResult<Vec<_>>>()?
+                    .into_iter(),
+            ),
+            Self::UnaryArithmeticOperation { kind } => {
+                let kind = kind.clone();
+
+                Box::new(attributes.map(move |(key, attribute)| {
+                    let Some(attribute) = attribute else {
+                        return (key, None);
+                    };
+
+                    (
+                        key,
+                        Some(Self::evaluate_unary_arithmetic_operation(attribute, &kind)),
+                    )
+                }))
+            }
+            Self::Slice(range) => {
+                let range = range.clone();
+
+                Box::new(attributes.map(move |(key, attribute)| {
+                    let Some(attribute) = attribute else {
+                        return (key, None);
+                    };
+
+                    (key, Some(Self::evaluate_slice(attribute, &range)))
+                }))
+            }
+            Self::IsString => Box::new(attributes.map(move |(key, attribute)| {
+                let Some(attribute) = attribute else {
+                    return (key, None);
+                };
+
+                (key, Self::evaluate_is_string(attribute))
+            })),
+            Self::IsInt => Box::new(attributes.map(move |(key, attribute)| {
+                let Some(attribute) = attribute else {
+                    return (key, None);
+                };
+
+                (key, Self::evaluate_is_int(attribute))
+            })),
+            Self::EitherOr { either, or } => {
+                Self::evaluate_either_or_grouped(medrecord, attributes, either, or)?
+            }
+            Self::Exclude { operand } => {
+                Self::evaluate_exclude_grouped(medrecord, attributes, operand)?
+            }
+            Self::Merge { operand } => {
+                let (attributes_1, attributes_2) = Itertools::tee(attributes);
+
+                let attributes_1 = attributes_1.filter_map(|(_, value)| value);
+
+                let attributes_1 = operand
+                    .evaluate_forward(medrecord, Box::new(attributes_1))?
+                    .collect::<Vec<_>>();
+
+                Box::new(attributes_2.map(move |(key, attribute)| {
+                    let attribute = attribute.filter(|value| attributes_1.contains(value));
+
+                    (key, attribute)
+                }))
+            }
+        })
+    }
+
+    #[allow(clippy::type_complexity)]
+    #[inline]
+    fn evaluate_either_or_grouped<'a>(
+        medrecord: &'a MedRecord,
+        attributes: GroupedIterator<'a, Option<(&'a O::Index, MedRecordAttribute)>>,
+        either: &Wrapper<SingleAttributeWithIndexOperand<O>>,
+        or: &Wrapper<SingleAttributeWithIndexOperand<O>>,
+    ) -> MedRecordResult<GroupedIterator<'a, Option<(&'a O::Index, MedRecordAttribute)>>>
+    where
+        O: 'a,
+    {
+        let (attributes_1, attributes_2) = Itertools::tee(attributes);
+
+        let either_attributes =
+            either.evaluate_forward_grouped(medrecord, Box::new(attributes_1))?;
+        let mut or_attributes: Vec<_> = or
+            .evaluate_forward_grouped(medrecord, Box::new(attributes_2))?
+            .collect();
+
+        let attributes = either_attributes.map(move |(key, either_attribute)| {
+            let attribute_position = or_attributes
+                .iter()
+                .position(|(k, _)| k == &key)
+                .expect("Entry must exist");
+
+            let or_attribute = or_attributes.remove(attribute_position).1;
+
+            let attribute = match (either_attribute, or_attribute) {
+                (Some(either_result), _) => Some(either_result),
+                (None, Some(or_result)) => Some(or_result),
+                _ => None,
+            };
+
+            (key, attribute)
+        });
+
+        Ok(Box::new(attributes))
+    }
+
+    #[allow(clippy::type_complexity)]
+    #[inline]
+    fn evaluate_exclude_grouped<'a>(
+        medrecord: &'a MedRecord,
+        values: GroupedIterator<'a, Option<(&'a O::Index, MedRecordAttribute)>>,
+        operand: &Wrapper<SingleAttributeWithIndexOperand<O>>,
+    ) -> MedRecordResult<GroupedIterator<'a, Option<(&'a O::Index, MedRecordAttribute)>>>
+    where
+        O: 'a,
+    {
+        let (attributes_1, attributes_2) = Itertools::tee(values);
+
+        let mut result: Vec<_> = operand
+            .evaluate_forward_grouped(medrecord, Box::new(attributes_1))?
+            .collect();
+
+        let attributes = attributes_2.map(move |(key, attribute)| {
+            let attribute_position = result
+                .iter()
+                .position(|(k, _)| k == &key)
+                .expect("Entry must exist");
+
+            let excluded_attribute = result.remove(attribute_position).1;
+
+            let attribute = match excluded_attribute {
+                Some(_) => None,
+                None => attribute,
+            };
+
+            (key, attribute)
+        });
+
+        Ok(Box::new(attributes))
     }
 }
 
@@ -2035,6 +2965,10 @@ pub enum SingleAttributeWithoutIndexOperation<O: RootOperand> {
     },
     Exclude {
         operand: Wrapper<SingleAttributeWithoutIndexOperand<O>>,
+    },
+
+    Merge {
+        operand: Wrapper<MultipleAttributesWithoutIndexOperand<O>>,
     },
 }
 
@@ -2070,6 +3004,9 @@ impl<O: RootOperand> DeepClone for SingleAttributeWithoutIndexOperation<O> {
             Self::Exclude { operand } => Self::Exclude {
                 operand: operand.deep_clone(),
             },
+            Self::Merge { operand } => Self::Merge {
+                operand: operand.deep_clone(),
+            },
         }
     }
 }
@@ -2087,47 +3024,37 @@ impl<O: RootOperand> SingleAttributeWithoutIndexOperation<O> {
             return Ok(None);
         };
 
-        match self {
+        Ok(match self {
             Self::SingleAttributeComparisonOperation { operand, kind } => {
                 Self::evaluate_single_attribute_comparison_operation(
                     medrecord, attribute, operand, kind,
-                )
+                )?
             }
             Self::MultipleAttributesComparisonOperation { operand, kind } => {
-                Self::evaluate_multiple_attribute_comparison_operation(
+                Self::evaluate_multiple_attributes_comparison_operation(
                     medrecord, attribute, operand, kind,
-                )
+                )?
             }
             Self::BinaryArithmeticOperation { operand, kind } => {
-                Self::evaluate_binary_arithmetic_operation(medrecord, attribute, operand, kind)
+                Self::evaluate_binary_arithmetic_operation(medrecord, attribute, operand, kind)?
             }
-            Self::UnaryArithmeticOperation { kind } => Ok(Some(match kind {
-                UnaryArithmeticKind::Abs => attribute.abs(),
-                UnaryArithmeticKind::Trim => attribute.trim(),
-                UnaryArithmeticKind::TrimStart => attribute.trim_start(),
-                UnaryArithmeticKind::TrimEnd => attribute.trim_end(),
-                UnaryArithmeticKind::Lowercase => attribute.lowercase(),
-                UnaryArithmeticKind::Uppercase => attribute.uppercase(),
-            })),
-            Self::Slice(range) => Ok(Some(attribute.slice(range.clone()))),
-            Self::IsString => Ok(match attribute {
-                MedRecordAttribute::String(_) => Some(attribute),
-                _ => None,
-            }),
-            Self::IsInt => Ok(match attribute {
-                MedRecordAttribute::Int(_) => Some(attribute),
-                _ => None,
-            }),
+            Self::UnaryArithmeticOperation { kind } => {
+                Some(Self::evaluate_unary_arithmetic_operation(attribute, kind))
+            }
+            Self::Slice(range) => Some(Self::evaluate_slice(attribute, range)),
+            Self::IsString => Self::evaluate_is_string(attribute),
+            Self::IsInt => Self::evaluate_is_int(attribute),
             Self::EitherOr { either, or } => {
-                Self::evaluate_either_or(medrecord, attribute, either, or)
+                Self::evaluate_either_or(medrecord, attribute, either, or)?
             }
-            Self::Exclude { operand } => Ok(
+            Self::Exclude { operand } => {
                 match operand.evaluate_forward(medrecord, Some(attribute.clone()))? {
                     Some(_) => None,
                     None => Some(attribute),
-                },
-            ),
-        }
+                }
+            }
+            Self::Merge { operand: _ } => unreachable!(),
+        })
     }
 
     #[inline]
@@ -2164,7 +3091,7 @@ impl<O: RootOperand> SingleAttributeWithoutIndexOperation<O> {
     }
 
     #[inline]
-    fn evaluate_multiple_attribute_comparison_operation(
+    fn evaluate_multiple_attributes_comparison_operation(
         medrecord: &MedRecord,
         attribute: MedRecordAttribute,
         comparison_operand: &MultipleAttributesComparisonOperand,
@@ -2208,6 +3135,42 @@ impl<O: RootOperand> SingleAttributeWithoutIndexOperation<O> {
     }
 
     #[inline]
+    fn evaluate_unary_arithmetic_operation(
+        attribute: MedRecordAttribute,
+        kind: &UnaryArithmeticKind,
+    ) -> MedRecordAttribute {
+        match kind {
+            UnaryArithmeticKind::Abs => attribute.abs(),
+            UnaryArithmeticKind::Trim => attribute.trim(),
+            UnaryArithmeticKind::TrimStart => attribute.trim_start(),
+            UnaryArithmeticKind::TrimEnd => attribute.trim_end(),
+            UnaryArithmeticKind::Lowercase => attribute.lowercase(),
+            UnaryArithmeticKind::Uppercase => attribute.uppercase(),
+        }
+    }
+
+    #[inline]
+    fn evaluate_slice(attribute: MedRecordAttribute, range: &Range<usize>) -> MedRecordAttribute {
+        attribute.slice(range.clone())
+    }
+
+    #[inline]
+    fn evaluate_is_string(attribute: MedRecordAttribute) -> Option<MedRecordAttribute> {
+        match attribute {
+            MedRecordAttribute::String(_) => Some(attribute),
+            _ => None,
+        }
+    }
+
+    #[inline]
+    fn evaluate_is_int(attribute: MedRecordAttribute) -> Option<MedRecordAttribute> {
+        match attribute {
+            MedRecordAttribute::Int(_) => Some(attribute),
+            _ => None,
+        }
+    }
+
+    #[inline]
     fn evaluate_either_or<'a>(
         medrecord: &'a MedRecord,
         attribute: MedRecordAttribute,
@@ -2229,14 +3192,201 @@ impl<O: RootOperand> SingleAttributeWithoutIndexOperation<O> {
 }
 
 impl<O: RootOperand> SingleAttributeWithoutIndexOperation<O> {
+    #[allow(clippy::type_complexity)]
     pub(crate) fn evaluate_grouped<'a>(
         &self,
-        _medrecord: &'a MedRecord,
-        _attributes: GroupedIterator<'a, Option<MedRecordAttribute>>,
+        medrecord: &'a MedRecord,
+        attributes: GroupedIterator<'a, Option<MedRecordAttribute>>,
     ) -> MedRecordResult<GroupedIterator<'a, Option<MedRecordAttribute>>>
     where
         O: 'a,
     {
-        todo!()
+        Ok(match self {
+            Self::SingleAttributeComparisonOperation { operand, kind } => Box::new(
+                attributes
+                    .map(move |(key, attribute)| {
+                        let Some(attribute) = attribute else {
+                            return Ok((key, None));
+                        };
+
+                        Ok((
+                            key,
+                            Self::evaluate_single_attribute_comparison_operation(
+                                medrecord, attribute, operand, kind,
+                            )?,
+                        ))
+                    })
+                    .collect::<MedRecordResult<Vec<_>>>()?
+                    .into_iter(),
+            ),
+            Self::MultipleAttributesComparisonOperation { operand, kind } => Box::new(
+                attributes
+                    .map(move |(key, attribute)| {
+                        let Some(attribute) = attribute else {
+                            return Ok((key, None));
+                        };
+
+                        Ok((
+                            key,
+                            Self::evaluate_multiple_attributes_comparison_operation(
+                                medrecord, attribute, operand, kind,
+                            )?,
+                        ))
+                    })
+                    .collect::<MedRecordResult<Vec<_>>>()?
+                    .into_iter(),
+            ),
+            Self::BinaryArithmeticOperation { operand, kind } => Box::new(
+                attributes
+                    .map(move |(key, attribute)| {
+                        let Some(attribute) = attribute else {
+                            return Ok((key, None));
+                        };
+
+                        Ok((
+                            key,
+                            Self::evaluate_binary_arithmetic_operation(
+                                medrecord, attribute, operand, kind,
+                            )?,
+                        ))
+                    })
+                    .collect::<MedRecordResult<Vec<_>>>()?
+                    .into_iter(),
+            ),
+            Self::UnaryArithmeticOperation { kind } => {
+                let kind = kind.clone();
+
+                Box::new(attributes.map(move |(key, attribute)| {
+                    let Some(attribute) = attribute else {
+                        return (key, None);
+                    };
+
+                    (
+                        key,
+                        Some(Self::evaluate_unary_arithmetic_operation(attribute, &kind)),
+                    )
+                }))
+            }
+            Self::Slice(range) => {
+                let range = range.clone();
+
+                Box::new(attributes.map(move |(key, attribute)| {
+                    let Some(attribute) = attribute else {
+                        return (key, None);
+                    };
+
+                    (key, Some(Self::evaluate_slice(attribute, &range)))
+                }))
+            }
+            Self::IsString => Box::new(attributes.map(move |(key, attribute)| {
+                let Some(attribute) = attribute else {
+                    return (key, None);
+                };
+
+                (key, Self::evaluate_is_string(attribute))
+            })),
+            Self::IsInt => Box::new(attributes.map(move |(key, attribute)| {
+                let Some(attribute) = attribute else {
+                    return (key, None);
+                };
+
+                (key, Self::evaluate_is_int(attribute))
+            })),
+            Self::EitherOr { either, or } => {
+                Self::evaluate_either_or_grouped(medrecord, attributes, either, or)?
+            }
+            Self::Exclude { operand } => {
+                Self::evaluate_exclude_grouped(medrecord, attributes, operand)?
+            }
+            Self::Merge { operand } => {
+                let (attributes_1, attributes_2) = Itertools::tee(attributes);
+
+                let attributes_1 = attributes_1.filter_map(|(_, attribute)| attribute);
+
+                let attributes_1 = operand
+                    .evaluate_forward(medrecord, Box::new(attributes_1))?
+                    .collect::<Vec<_>>();
+
+                Box::new(attributes_2.map(move |(key, attribute)| {
+                    let attribute = attribute.filter(|attribute| attributes_1.contains(attribute));
+
+                    (key, attribute)
+                }))
+            }
+        })
+    }
+
+    #[allow(clippy::type_complexity)]
+    #[inline]
+    fn evaluate_either_or_grouped<'a>(
+        medrecord: &'a MedRecord,
+        attributes: GroupedIterator<'a, Option<MedRecordAttribute>>,
+        either: &Wrapper<SingleAttributeWithoutIndexOperand<O>>,
+        or: &Wrapper<SingleAttributeWithoutIndexOperand<O>>,
+    ) -> MedRecordResult<GroupedIterator<'a, Option<MedRecordAttribute>>>
+    where
+        O: 'a,
+    {
+        let (attributes_1, attributes_2) = Itertools::tee(attributes);
+
+        let either_attributes =
+            either.evaluate_forward_grouped(medrecord, Box::new(attributes_1))?;
+        let mut or_attributes: Vec<_> = or
+            .evaluate_forward_grouped(medrecord, Box::new(attributes_2))?
+            .collect();
+
+        let attributes = either_attributes.map(move |(key, either_attribute)| {
+            let attribute_position = or_attributes
+                .iter()
+                .position(|(k, _)| k == &key)
+                .expect("Entry must exist");
+
+            let or_attribute = or_attributes.remove(attribute_position).1;
+
+            let attribute = match (either_attribute, or_attribute) {
+                (Some(either_result), _) => Some(either_result),
+                (None, Some(or_result)) => Some(or_result),
+                _ => None,
+            };
+
+            (key, attribute)
+        });
+
+        Ok(Box::new(attributes))
+    }
+
+    #[allow(clippy::type_complexity)]
+    #[inline]
+    fn evaluate_exclude_grouped<'a>(
+        medrecord: &'a MedRecord,
+        values: GroupedIterator<'a, Option<MedRecordAttribute>>,
+        operand: &Wrapper<SingleAttributeWithoutIndexOperand<O>>,
+    ) -> MedRecordResult<GroupedIterator<'a, Option<MedRecordAttribute>>>
+    where
+        O: 'a,
+    {
+        let (attributes_1, attributes_2) = Itertools::tee(values);
+
+        let mut result: Vec<_> = operand
+            .evaluate_forward_grouped(medrecord, Box::new(attributes_1))?
+            .collect();
+
+        let attributes = attributes_2.map(move |(key, attribute)| {
+            let attribute_position = result
+                .iter()
+                .position(|(k, _)| k == &key)
+                .expect("Entry must exist");
+
+            let excluded_attribute = result.remove(attribute_position).1;
+
+            let attribute = match excluded_attribute {
+                Some(_) => None,
+                None => attribute,
+            };
+
+            (key, attribute)
+        });
+
+        Ok(Box::new(attributes))
     }
 }

@@ -1,7 +1,7 @@
 use super::{wrapper::Wrapper, DeepClone, ReadWriteOrPanic};
 use crate::{
     medrecord::querying::GroupedIterator,
-    prelude::{EdgeIndex, MedRecordAttribute, MedRecordValue, NodeIndex},
+    prelude::{MedRecordValue, NodeIndex},
     MedRecord,
 };
 use std::fmt::Debug;
@@ -27,8 +27,6 @@ impl<O: GroupBy> Wrapper<O> {
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 pub enum GroupKey<'a> {
     NodeIndex(&'a NodeIndex),
-    EdgeIndex(&'a EdgeIndex),
-    Attribute(&'a MedRecordAttribute),
     Value(&'a MedRecordValue),
     OptionalValue(Option<&'a MedRecordValue>),
     TupleKey((Box<GroupKey<'a>>, Box<GroupKey<'a>>)),
@@ -46,17 +44,15 @@ pub trait PartitionGroups<'a>: GroupBy {
     fn merge(values: GroupedIterator<'a, Self::Values>) -> Self::Values;
 }
 
-pub trait Merge {
+pub trait Ungroup {
     type OutputOperand;
 
-    fn merge(&self) -> Wrapper<Self::OutputOperand>;
+    fn ungroup(&self) -> Wrapper<Self::OutputOperand>;
 }
 
-impl<O: Merge> Merge for Wrapper<O> {
-    type OutputOperand = O::OutputOperand;
-
-    fn merge(&self) -> Wrapper<Self::OutputOperand> {
-        self.0.read_or_panic().merge()
+impl<O: Ungroup> Wrapper<O> {
+    pub fn ungroup(&self) -> Wrapper<O::OutputOperand> {
+        self.0.read_or_panic().ungroup()
     }
 }
 
@@ -90,9 +86,7 @@ impl<O: GroupedOperand> Wrapper<GroupOperand<O>> {
 #[cfg(test)]
 mod tests {
     use crate::{
-        medrecord::querying::{
-            edges::EdgeOperandGroupDiscriminator, group_by::Merge, nodes::EdgeDirection,
-        },
+        medrecord::querying::{edges::EdgeOperandGroupDiscriminator, nodes::EdgeDirection},
         prelude::MedRecordAttribute,
         MedRecord,
     };
@@ -113,15 +107,13 @@ mod tests {
 
                 let grouped_edges = edges.group_by(EdgeOperandGroupDiscriminator::SourceNode);
 
-                grouped_edges.index().count().merge().is_max();
+                grouped_edges.index().count().ungroup().is_max();
 
-                (edges.index().count(), nodes.index())
+                (edges.index().count(), nodes.index().random())
             })
             .evaluate()
             .unwrap();
 
-        let result = (result.0, result.1.collect::<Vec<_>>());
-
-        println!("{:?} {:?}", result.0, result.1);
+        println!("{:?}", result);
     }
 }

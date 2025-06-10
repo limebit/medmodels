@@ -35,11 +35,11 @@ pub enum EdgeOperandContext {
 impl DeepClone for EdgeOperandContext {
     fn deep_clone(&self) -> Self {
         match self {
-            EdgeOperandContext::Edges { operand, kind } => EdgeOperandContext::Edges {
+            Self::Edges { operand, kind } => Self::Edges {
                 operand: operand.deep_clone(),
                 kind: kind.clone(),
             },
-            EdgeOperandContext::GroupBy { operand } => EdgeOperandContext::GroupBy {
+            Self::GroupBy { operand } => Self::GroupBy {
                 operand: operand.deep_clone(),
             },
         }
@@ -49,17 +49,19 @@ impl DeepClone for EdgeOperandContext {
 #[derive(Debug, Clone)]
 pub enum EdgeIndicesOperandContext {
     EdgeOperand(EdgeOperand),
-    GroupBy(GroupOperand<EdgeIndexOperand>),
+    EdgeIndexGroupByOperand(GroupOperand<EdgeIndexOperand>),
+    EdgeIndicesGroupByOperand(GroupOperand<EdgeIndicesOperand>),
 }
 
 impl DeepClone for EdgeIndicesOperandContext {
     fn deep_clone(&self) -> Self {
         match self {
-            EdgeIndicesOperandContext::EdgeOperand(operand) => {
-                EdgeIndicesOperandContext::EdgeOperand(operand.deep_clone())
+            Self::EdgeOperand(operand) => Self::EdgeOperand(operand.deep_clone()),
+            Self::EdgeIndexGroupByOperand(operand) => {
+                Self::EdgeIndexGroupByOperand(operand.deep_clone())
             }
-            EdgeIndicesOperandContext::GroupBy(group_by) => {
-                EdgeIndicesOperandContext::GroupBy(group_by.deep_clone())
+            Self::EdgeIndicesGroupByOperand(operand) => {
+                Self::EdgeIndicesGroupByOperand(operand.deep_clone())
             }
         }
     }
@@ -70,12 +72,17 @@ impl<'a> EvaluateBackward<'a> for EdgeIndicesOperandContext {
 
     fn evaluate_backward(&self, medrecord: &'a MedRecord) -> MedRecordResult<Self::ReturnValue> {
         Ok(match self {
-            EdgeIndicesOperandContext::EdgeOperand(operand) => {
-                Box::new(operand.evaluate_backward(medrecord)?.cloned())
-            }
-            EdgeIndicesOperandContext::GroupBy(operand) => {
-                Box::new(operand.evaluate_backward(medrecord)?.flatten())
-            }
+            Self::EdgeOperand(operand) => Box::new(operand.evaluate_backward(medrecord)?.cloned()),
+            Self::EdgeIndexGroupByOperand(operand) => Box::new(
+                operand
+                    .evaluate_backward(medrecord)?
+                    .filter_map(|(_, index)| index),
+            ),
+            Self::EdgeIndicesGroupByOperand(operand) => Box::new(
+                operand
+                    .evaluate_backward(medrecord)?
+                    .flat_map(|(_, index)| index),
+            ),
         })
     }
 }

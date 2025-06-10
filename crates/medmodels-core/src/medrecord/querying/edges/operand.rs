@@ -7,7 +7,7 @@ use crate::{
     errors::MedRecordResult,
     medrecord::{
         querying::{
-            attributes::AttributesTreeOperand,
+            attributes::{AttributesTreeContext, AttributesTreeOperand},
             edges::{group_by, EdgeIndicesOperandContext, EdgeOperandGroupDiscriminator},
             group_by::{GroupKey, GroupOperand, PartitionGroups},
             nodes::{self, NodeOperand},
@@ -84,7 +84,7 @@ impl RootOperand for EdgeOperand {
         &self,
         medrecord: &'a MedRecord,
     ) -> MedRecordResult<BoxedIterator<'a, &'a Self::Index>> {
-        let edge_indices: BoxedIterator<&EdgeIndex> = match &self.context {
+        let edge_indices: BoxedIterator<_> = match &self.context {
             Some(EdgeOperandContext::Edges { operand, kind }) => {
                 let node_indices = operand.evaluate_backward(medrecord)?;
 
@@ -127,15 +127,64 @@ impl RootOperand for EdgeOperand {
     fn _evaluate_backward_grouped_operand<'a>(
         group_operand: &GroupOperand<Self>,
         medrecord: &'a MedRecord,
-    ) -> MedRecordResult<BoxedIterator<'a, BoxedIterator<'a, &'a Self::Index>>> {
+    ) -> MedRecordResult<GroupedIterator<'a, BoxedIterator<'a, &'a Self::Index>>> {
         match &group_operand.context {
             group_by::EdgeOperandContext::Discriminator(discriminator) => {
-                let values = group_operand.operand.evaluate_backward(medrecord)?;
+                let edge_indices = group_operand.operand.evaluate_backward(medrecord)?;
 
-                Ok(Box::new(
-                    EdgeOperand::partition(medrecord, values, discriminator)
-                        .map(|(_, partition)| partition),
-                ))
+                Ok(Self::partition(medrecord, edge_indices, discriminator))
+            }
+            group_by::EdgeOperandContext::Edges(operand) => {
+                let partitions = operand.evaluate_backward(medrecord)?;
+
+                let Some(EdgeOperandContext::Edges {
+                    operand: _,
+                    ref kind,
+                }) = group_operand.operand.0.read_or_panic().context
+                else {
+                    unreachable!()
+                };
+
+                let indices: Vec<_> = partitions
+                    .map(|(key, partition)| {
+                        let reduced_partition: BoxedIterator<_> = match kind {
+                            nodes::EdgeDirection::Incoming => {
+                                Box::new(partition.flat_map(|node_index| {
+                                    medrecord
+                                        .incoming_edges(node_index)
+                                        .expect("Node must exist.")
+                                }))
+                            }
+                            nodes::EdgeDirection::Outgoing => {
+                                Box::new(partition.flat_map(|node_index| {
+                                    medrecord
+                                        .outgoing_edges(node_index)
+                                        .expect("Node must exist.")
+                                }))
+                            }
+                            nodes::EdgeDirection::Both => {
+                                Box::new(partition.flat_map(|node_index| {
+                                    medrecord
+                                        .incoming_edges(node_index)
+                                        .expect("Node must exist")
+                                        .chain(
+                                            medrecord
+                                                .outgoing_edges(node_index)
+                                                .expect("Node must exist"),
+                                        )
+                                }))
+                            }
+                        };
+
+                        let partition = group_operand
+                            .operand
+                            .evaluate_forward(medrecord, reduced_partition)?;
+
+                        Ok((key, partition))
+                    })
+                    .collect::<MedRecordResult<_>>()?;
+
+                Ok(Box::new(indices.into_iter()))
             }
         }
     }
@@ -175,7 +224,7 @@ impl RootOperand for EdgeOperand {
                 Box::new(buckets.into_iter().map(|(key, group)| {
                     (
                         GroupKey::NodeIndex(key),
-                        Box::new(group.into_iter()) as BoxedIterator<'a, &'a Self::Index>,
+                        Box::new(group.into_iter()) as BoxedIterator<_>,
                     )
                 }))
             }
@@ -195,7 +244,7 @@ impl RootOperand for EdgeOperand {
                 Box::new(buckets.into_iter().map(|(key, group)| {
                     (
                         GroupKey::NodeIndex(key),
-                        Box::new(group.into_iter()) as BoxedIterator<'a, &'a Self::Index>,
+                        Box::new(group.into_iter()) as BoxedIterator<_>,
                     )
                 }))
             }
@@ -222,18 +271,18 @@ impl RootOperand for EdgeOperand {
                             Box::new(GroupKey::NodeIndex(key.0)),
                             Box::new(GroupKey::NodeIndex(key.1)),
                         )),
-                        Box::new(group.into_iter()) as BoxedIterator<'a, &'a Self::Index>,
+                        Box::new(group.into_iter()) as BoxedIterator<_>,
                     )
                 }))
             }
-            EdgeOperandGroupDiscriminator::Attribute(attr) => {
+            EdgeOperandGroupDiscriminator::Attribute(attribute) => {
                 let mut buckets: Vec<(Option<&'a MedRecordValue>, Vec<&'a EdgeIndex>)> = Vec::new();
 
                 for edge_index in edge_indices {
                     let value = medrecord
                         .edge_attributes(edge_index)
                         .expect("Edge must exist")
-                        .get(attr);
+                        .get(attribute);
 
                     if let Some((_, bucket)) = buckets.iter_mut().find(|(k, _)| *k == value) {
                         bucket.push(edge_index);
@@ -245,7 +294,7 @@ impl RootOperand for EdgeOperand {
                 Box::new(buckets.into_iter().map(|(key, group)| {
                     (
                         GroupKey::OptionalValue(key),
-                        Box::new(group.into_iter()) as BoxedIterator<'a, &'a Self::Index>,
+                        Box::new(group.into_iter()) as BoxedIterator<_>,
                     )
                 }))
             }
@@ -263,7 +312,7 @@ impl Attribute for EdgeOperand {
     type ReturnOperand = MultipleValuesWithIndexOperand<Self>;
 
     fn attribute(&mut self, attribute: MedRecordAttribute) -> Wrapper<Self::ReturnOperand> {
-        let operand = Wrapper::<MultipleValuesWithIndexOperand<Self>>::new(
+        let operand = Wrapper::<Self::ReturnOperand>::new(
             values::MultipleValuesWithIndexContext::Operand((self.deep_clone(), attribute)),
         );
 
@@ -279,7 +328,8 @@ impl Attributes for EdgeOperand {
     type ReturnOperand = AttributesTreeOperand<Self>;
 
     fn attributes(&mut self) -> Wrapper<Self::ReturnOperand> {
-        let operand = Wrapper::<AttributesTreeOperand<Self>>::new(self.deep_clone());
+        let operand =
+            Wrapper::<Self::ReturnOperand>::new(AttributesTreeContext::Operand(self.deep_clone()));
 
         self.operations.push(EdgeOperation::Attributes {
             operand: operand.clone(),
@@ -293,7 +343,7 @@ impl Index for EdgeOperand {
     type ReturnOperand = EdgeIndicesOperand;
 
     fn index(&mut self) -> Wrapper<Self::ReturnOperand> {
-        let operand = Wrapper::<EdgeIndicesOperand>::new(EdgeIndicesOperandContext::EdgeOperand(
+        let operand = Wrapper::<Self::ReturnOperand>::new(EdgeIndicesOperandContext::EdgeOperand(
             self.deep_clone(),
         ));
 
@@ -325,9 +375,10 @@ impl SourceNode for EdgeOperand {
     type ReturnOperand = NodeOperand;
 
     fn source_node(&mut self) -> Wrapper<Self::ReturnOperand> {
-        let operand = Wrapper::<Self::ReturnOperand>::new(Some(nodes::Context::SourceNode {
-            operand: self.deep_clone(),
-        }));
+        let operand =
+            Wrapper::<Self::ReturnOperand>::new(Some(nodes::NodeOperandContext::SourceNode {
+                operand: self.deep_clone(),
+            }));
 
         self.operations.push(EdgeOperation::SourceNode {
             operand: operand.clone(),
@@ -341,9 +392,10 @@ impl TargetNode for EdgeOperand {
     type ReturnOperand = NodeOperand;
 
     fn target_node(&mut self) -> Wrapper<Self::ReturnOperand> {
-        let operand = Wrapper::<Self::ReturnOperand>::new(Some(nodes::Context::TargetNode {
-            operand: self.deep_clone(),
-        }));
+        let operand =
+            Wrapper::<Self::ReturnOperand>::new(Some(nodes::NodeOperandContext::TargetNode {
+                operand: self.deep_clone(),
+            }));
 
         self.operations.push(EdgeOperation::TargetNode {
             operand: operand.clone(),
@@ -536,7 +588,7 @@ impl<'a> EvaluateForward<'a> for EdgeIndicesOperand {
         medrecord: &'a MedRecord,
         edge_indices: Self::InputValue,
     ) -> MedRecordResult<Self::ReturnValue> {
-        let edge_indices = Box::new(edge_indices) as BoxedIterator<EdgeIndex>;
+        let edge_indices: BoxedIterator<_> = Box::new(edge_indices);
 
         self.operations
             .iter()
@@ -893,11 +945,21 @@ impl EdgeIndicesOperand {
             operations: Vec::new(),
         }
     }
+
+    pub(crate) fn push_merge_operation(&mut self, operand: Wrapper<EdgeIndicesOperand>) {
+        self.operations.push(EdgeIndicesOperation::Merge {
+            operand: operand.clone(),
+        });
+    }
 }
 
 impl Wrapper<EdgeIndicesOperand> {
     pub(crate) fn new(context: EdgeIndicesOperandContext) -> Self {
         EdgeIndicesOperand::new(context).into()
+    }
+
+    pub(crate) fn push_merge_operation(&self, operand: Wrapper<EdgeIndicesOperand>) {
+        self.0.write_or_panic().push_merge_operation(operand);
     }
 }
 

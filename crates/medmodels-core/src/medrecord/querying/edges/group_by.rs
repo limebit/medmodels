@@ -3,10 +3,10 @@ use crate::{
     errors::MedRecordResult,
     medrecord::querying::{
         edges::{EdgeIndexOperand, EdgeIndicesOperand, EdgeIndicesOperandContext},
-        group_by::{GroupBy, GroupOperand, GroupedOperand, Merge, PartitionGroups},
+        group_by::{GroupBy, GroupOperand, GroupedOperand, PartitionGroups, Ungroup},
+        nodes::NodeOperand,
         wrapper::Wrapper,
-        BoxedIterator, DeepClone, EvaluateBackward, EvaluateForward, EvaluateForwardGrouped,
-        GroupedIterator,
+        DeepClone, EvaluateBackward, EvaluateForward, EvaluateForwardGrouped, GroupedIterator,
     },
     prelude::MedRecordAttribute,
     MedRecord,
@@ -15,21 +15,27 @@ use crate::{
 #[derive(Debug, Clone)]
 pub enum EdgeOperandContext {
     Discriminator(<EdgeOperand as GroupBy>::Discriminator),
+    Edges(GroupOperand<NodeOperand>),
 }
 
 impl DeepClone for EdgeOperandContext {
     fn deep_clone(&self) -> Self {
         match self {
-            EdgeOperandContext::Discriminator(discriminator) => {
-                EdgeOperandContext::Discriminator(discriminator.clone())
-            }
+            Self::Discriminator(discriminator) => Self::Discriminator(discriminator.clone()),
+            Self::Edges(operand) => Self::Edges(operand.deep_clone()),
         }
     }
 }
 
 impl From<<EdgeOperand as GroupBy>::Discriminator> for EdgeOperandContext {
     fn from(discriminator: <EdgeOperand as GroupBy>::Discriminator) -> Self {
-        EdgeOperandContext::Discriminator(discriminator)
+        Self::Discriminator(discriminator)
+    }
+}
+
+impl From<GroupOperand<NodeOperand>> for EdgeOperandContext {
+    fn from(operand: GroupOperand<NodeOperand>) -> Self {
+        Self::Edges(operand)
     }
 }
 
@@ -48,12 +54,10 @@ pub enum EdgeOperandGroupDiscriminator {
 impl DeepClone for EdgeOperandGroupDiscriminator {
     fn deep_clone(&self) -> Self {
         match self {
-            EdgeOperandGroupDiscriminator::SourceNode => EdgeOperandGroupDiscriminator::SourceNode,
-            EdgeOperandGroupDiscriminator::TargetNode => EdgeOperandGroupDiscriminator::TargetNode,
-            EdgeOperandGroupDiscriminator::Parallel => EdgeOperandGroupDiscriminator::Parallel,
-            EdgeOperandGroupDiscriminator::Attribute(attr) => {
-                EdgeOperandGroupDiscriminator::Attribute(attr.clone())
-            }
+            Self::SourceNode => Self::SourceNode,
+            Self::TargetNode => Self::TargetNode,
+            Self::Parallel => Self::Parallel,
+            Self::Attribute(attr) => Self::Attribute(attr.clone()),
         }
     }
 }
@@ -67,12 +71,15 @@ impl<'a> EvaluateForward<'a> for GroupOperand<EdgeOperand> {
         medrecord: &'a MedRecord,
         indices: Self::InputValue,
     ) -> MedRecordResult<Self::ReturnValue> {
-        let EdgeOperandContext::Discriminator(discriminator) = &self.context;
+        match &self.context {
+            EdgeOperandContext::Discriminator(discriminator) => {
+                let partitions = EdgeOperand::partition(medrecord, indices, discriminator);
 
-        let partitions = EdgeOperand::partition(medrecord, indices, discriminator);
-
-        self.operand
-            .evaluate_forward_grouped(medrecord, Box::new(partitions))
+                self.operand
+                    .evaluate_forward_grouped(medrecord, Box::new(partitions))
+            }
+            EdgeOperandContext::Edges(_) => unreachable!(),
+        }
     }
 }
 
@@ -81,19 +88,37 @@ impl GroupedOperand for EdgeIndicesOperand {
 }
 
 impl<'a> EvaluateBackward<'a> for GroupOperand<EdgeIndicesOperand> {
-    type ReturnValue = BoxedIterator<'a, <EdgeIndicesOperand as EvaluateBackward<'a>>::ReturnValue>;
+    type ReturnValue =
+        GroupedIterator<'a, <EdgeIndicesOperand as EvaluateBackward<'a>>::ReturnValue>;
 
     fn evaluate_backward(&self, medrecord: &'a MedRecord) -> MedRecordResult<Self::ReturnValue> {
         let partitions = self.context.evaluate_backward(medrecord)?;
 
         let indices: Vec<_> = partitions
-            .map(|partition| {
-                self.operand
-                    .evaluate_forward(medrecord, Box::new(partition.cloned()))
+            .map(|(key, partition)| {
+                let partition = self
+                    .operand
+                    .evaluate_forward(medrecord, Box::new(partition.cloned()))?;
+
+                Ok((key, partition))
             })
             .collect::<MedRecordResult<_>>()?;
 
         Ok(Box::new(indices.into_iter()))
+    }
+}
+
+impl Ungroup for GroupOperand<EdgeIndicesOperand> {
+    type OutputOperand = EdgeIndicesOperand;
+
+    fn ungroup(&self) -> Wrapper<Self::OutputOperand> {
+        let operand = Wrapper::<Self::OutputOperand>::new(
+            EdgeIndicesOperandContext::EdgeIndicesGroupByOperand(self.deep_clone()),
+        );
+
+        self.operand.push_merge_operation(operand.clone());
+
+        operand
     }
 }
 
@@ -102,16 +127,20 @@ impl GroupedOperand for EdgeIndexOperand {
 }
 
 impl<'a> EvaluateBackward<'a> for GroupOperand<EdgeIndexOperand> {
-    type ReturnValue = BoxedIterator<'a, <EdgeIndexOperand as EvaluateBackward<'a>>::ReturnValue>;
+    type ReturnValue = GroupedIterator<'a, <EdgeIndexOperand as EvaluateBackward<'a>>::ReturnValue>;
 
     fn evaluate_backward(&self, medrecord: &'a MedRecord) -> MedRecordResult<Self::ReturnValue> {
         let partitions = self.context.evaluate_backward(medrecord)?;
 
         let indices: Vec<_> = partitions
-            .map(|partition| {
+            .map(|(key, partition)| {
                 let reduced_partition = self.operand.reduce_input(partition)?;
 
-                self.operand.evaluate_forward(medrecord, reduced_partition)
+                let partition = self
+                    .operand
+                    .evaluate_forward(medrecord, reduced_partition)?;
+
+                Ok((key, partition))
             })
             .collect::<MedRecordResult<_>>()?;
 
@@ -119,13 +148,13 @@ impl<'a> EvaluateBackward<'a> for GroupOperand<EdgeIndexOperand> {
     }
 }
 
-impl Merge for GroupOperand<EdgeIndexOperand> {
+impl Ungroup for GroupOperand<EdgeIndexOperand> {
     type OutputOperand = EdgeIndicesOperand;
 
-    fn merge(&self) -> Wrapper<Self::OutputOperand> {
-        let operand = Wrapper::<Self::OutputOperand>::new(EdgeIndicesOperandContext::GroupBy(
-            self.deep_clone(),
-        ));
+    fn ungroup(&self) -> Wrapper<Self::OutputOperand> {
+        let operand = Wrapper::<Self::OutputOperand>::new(
+            EdgeIndicesOperandContext::EdgeIndexGroupByOperand(self.deep_clone()),
+        );
 
         self.operand.push_merge_operation(operand.clone());
 

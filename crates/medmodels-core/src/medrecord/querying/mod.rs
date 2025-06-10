@@ -118,7 +118,7 @@ pub trait RootOperand:
     fn _evaluate_backward_grouped_operand<'a>(
         group_operand: &GroupOperand<Self>,
         medrecord: &'a MedRecord,
-    ) -> MedRecordResult<BoxedIterator<'a, BoxedIterator<'a, &'a Self::Index>>>;
+    ) -> MedRecordResult<GroupedIterator<'a, BoxedIterator<'a, &'a Self::Index>>>;
 
     fn _group_by(&mut self, discriminator: Self::Discriminator) -> Wrapper<GroupOperand<Self>>;
 
@@ -162,13 +162,12 @@ pub(crate) fn tee_grouped_iterator<'a, O: 'a + Clone>(
     iterator.for_each(|(key, inner_iterator)| {
         let (inner_iterator_1, inner_iterator_2) = Itertools::tee(inner_iterator);
 
-        iterators.0.push((
-            key.clone(),
-            Box::new(inner_iterator_1) as BoxedIterator<'a, O>,
-        ));
+        iterators
+            .0
+            .push((key.clone(), Box::new(inner_iterator_1) as BoxedIterator<_>));
         iterators
             .1
-            .push((key, Box::new(inner_iterator_2) as BoxedIterator<'a, O>));
+            .push((key, Box::new(inner_iterator_2) as BoxedIterator<_>));
     });
 
     (
@@ -205,7 +204,7 @@ impl<'a, O: RootOperand> EvaluateBackward<'a> for GroupOperand<O>
 where
     O: 'a,
 {
-    type ReturnValue = BoxedIterator<'a, BoxedIterator<'a, &'a O::Index>>;
+    type ReturnValue = GroupedIterator<'a, BoxedIterator<'a, &'a O::Index>>;
 
     fn evaluate_backward(&self, medrecord: &'a MedRecord) -> MedRecordResult<Self::ReturnValue> {
         O::_evaluate_backward_grouped_operand(self, medrecord)

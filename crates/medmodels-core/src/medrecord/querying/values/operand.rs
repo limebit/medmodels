@@ -278,7 +278,7 @@ impl<'a, O: 'a + RootOperand> EvaluateForward<'a> for MultipleValuesWithIndexOpe
         medrecord: &'a MedRecord,
         values: Self::InputValue,
     ) -> MedRecordResult<Self::ReturnValue> {
-        let values = Box::new(values) as BoxedIterator<_>;
+        let values: BoxedIterator<_> = Box::new(values);
 
         self.operations
             .iter()
@@ -913,11 +913,20 @@ impl<O: RootOperand> MultipleValuesWithIndexOperand<O> {
             operations: Vec::new(),
         }
     }
+
+    pub(crate) fn push_merge_operation(&mut self, operand: Wrapper<Self>) {
+        self.operations
+            .push(MultipleValuesWithIndexOperation::Merge { operand });
+    }
 }
 
 impl<O: RootOperand> Wrapper<MultipleValuesWithIndexOperand<O>> {
     pub(crate) fn new(context: MultipleValuesWithIndexContext<O>) -> Self {
         MultipleValuesWithIndexOperand::new(context).into()
+    }
+
+    pub(crate) fn push_merge_operation(&self, operand: Wrapper<MultipleValuesWithIndexOperand<O>>) {
+        self.0.write_or_panic().push_merge_operation(operand);
     }
 }
 
@@ -948,26 +957,12 @@ impl<'a, O: 'a + RootOperand> EvaluateForward<'a> for MultipleValuesWithoutIndex
         medrecord: &'a MedRecord,
         values: Self::InputValue,
     ) -> MedRecordResult<Self::ReturnValue> {
-        let values = Box::new(values) as BoxedIterator<_>;
+        let values: BoxedIterator<_> = Box::new(values);
 
         self.operations
             .iter()
             .try_fold(values, |value_tuples, operation| {
                 operation.evaluate(medrecord, value_tuples)
-            })
-    }
-}
-
-impl<'a, O: 'a + RootOperand> EvaluateForwardGrouped<'a> for MultipleValuesWithoutIndexOperand<O> {
-    fn evaluate_forward_grouped(
-        &self,
-        medrecord: &'a MedRecord,
-        values: GroupedIterator<'a, Self::InputValue>,
-    ) -> MedRecordResult<GroupedIterator<'a, Self::ReturnValue>> {
-        self.operations
-            .iter()
-            .try_fold(values, |value_tuples, operation| {
-                operation.evaluate_grouped(medrecord, value_tuples)
             })
     }
 }
