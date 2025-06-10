@@ -223,7 +223,7 @@ class TestTreatmentEffectBuilder:
         builder.with_treatment(treatment).with_outcome(outcome)
 
         # Set optional fields
-        patients_group = "patients"
+        patients_group = "patient"
         time_attribute = "time"
         washout_days = {"treatment": 10}
         washout_ref = "first"
