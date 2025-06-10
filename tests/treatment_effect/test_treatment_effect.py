@@ -125,7 +125,7 @@ class TestTreatmentEffect:
             TreatmentEffect.builder()
             .with_treatment("Rivaroxaban")
             .with_outcome("Stroke")
-            .with_patients_group("patients")
+            .with_patients_group("patient")
             .with_washout_period(reference="first")
             .with_grace_period(days=0, reference="last")
             .with_follow_up_period(365000, reference="last")
@@ -220,7 +220,7 @@ class TestTreatmentEffect:
         assert treated_set == set({"P2", "P3", "P6"})
 
         # no treatment_group
-        patients = set(medrecord.nodes_in_group("patients"))
+        patients = set(medrecord.nodes_in_group("patient"))
         medrecord2 = create_medrecord(list(patients - treated_set))
 
         with pytest.raises(
@@ -526,7 +526,7 @@ class TestTreatmentEffect:
             .build()
         )
 
-        patients = set(medrecord.nodes_in_group("patients"))
+        patients = set(medrecord.nodes_in_group("patient"))
         treated_set = {"P2", "P3", "P6"}
 
         control_outcome_true, control_outcome_false = tee._find_controls(

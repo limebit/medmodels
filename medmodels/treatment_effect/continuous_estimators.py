@@ -135,7 +135,7 @@ def average_treatment_effect(
         msg = "Outcome variable must be numeric"
         raise ValueError(msg)
 
-    return treated_outcomes.mean() - control_outcomes.mean()
+    return float(treated_outcomes.mean() - control_outcomes.mean())
 
 
 def cohens_d(
@@ -258,8 +258,11 @@ def cohens_d(
             "Small sample size detected. Consider using Hedges' g for an unbiased effect size estimate."
         )
 
-    return (treated_outcomes.mean() - control_outcomes.mean()) / sqrt(
-        (treated_outcomes.std(ddof=1) ** 2 + control_outcomes.std(ddof=1) ** 2) / 2
+    return float(
+        (treated_outcomes.mean() - control_outcomes.mean())
+        / sqrt(
+            (treated_outcomes.std(ddof=1) ** 2 + control_outcomes.std(ddof=1) ** 2) / 2
+        )
     )
 
 
@@ -372,7 +375,7 @@ def hedges_g(
     # Correction factor J
     correction_factor_j = 1 - (3 / (4 * degrees_of_freedom - 1))
 
-    return correction_factor_j * cohen_d
+    return float(correction_factor_j * cohen_d)
 
 
 CONTINUOUS_ESTIMATOR = {
