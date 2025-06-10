@@ -87,6 +87,7 @@ from medmodels.medrecord.querying import (
     NodeSingleValueQueryResult,
     PyQueryReturnOperand,
     QueryResult,
+    QueryReturnOperand,
 )
 from medmodels.medrecord.schema import AttributesSchema, AttributeType, Schema
 from medmodels.medrecord.types import (
@@ -156,6 +157,36 @@ def process_edges_dataframe(
     """
     edges_polars = pl.from_pandas(edges[0])
     return edges_polars, edges[1], edges[2]
+
+
+def _convert_queryreturnoperand_to_pyqueryreturnoperand(
+    operand: QueryReturnOperand,
+) -> PyQueryReturnOperand:
+    if isinstance(operand, (NodeAttributesTreeOperand, EdgeAttributesTreeOperand)):
+        return operand._attributes_tree_operand
+    if isinstance(
+        operand, (NodeMultipleAttributesOperand, EdgeMultipleAttributesOperand)
+    ):
+        return operand._multiple_attributes_operand
+    if isinstance(operand, (NodeSingleAttributeOperand, EdgeSingleAttributeOperand)):
+        return operand._single_attribute_operand
+    if isinstance(operand, EdgeIndicesOperand):
+        return operand._edge_indices_operand
+    if isinstance(operand, EdgeIndexOperand):
+        return operand._edge_index_operand
+    if isinstance(operand, NodeIndicesOperand):
+        return operand._node_indices_operand
+    if isinstance(operand, NodeIndexOperand):
+        return operand._node_index_operand
+    if isinstance(operand, (NodeMultipleValuesOperand, EdgeMultipleValuesOperand)):
+        return operand._multiple_values_operand
+    if isinstance(operand, Sequence):
+        return [
+            _convert_queryreturnoperand_to_pyqueryreturnoperand(operand)
+            for operand in operand
+        ]
+
+    return operand._single_value_operand
 
 
 class OverviewTable:
@@ -1065,7 +1096,7 @@ class MedRecord:
             Union[EdgeIndex, EdgeIndexInputList, EdgeIndexQuery, EdgeIndicesQuery]
         ] = None,
     ) -> None:
-        """Adds a group to the MedRecord instance with an optional list of node indices.
+        """Adds a group to the MedRecord, optionally with node and edge indices.
 
         If node indices are specified, they are added to the group. If no nodes are
         specified, the group is created without any nodes.
@@ -1564,46 +1595,28 @@ class MedRecord:
     def query_nodes(
         self, query: Callable[[NodeOperand], EdgeSingleValueOperand]
     ) -> EdgeSingleValueQueryResult: ...
+    @overload
+    def query_nodes(
+        self, query: Callable[[NodeOperand], Sequence[QueryReturnOperand]]
+    ) -> List[QueryResult]: ...
 
     def query_nodes(self, query: NodeQuery) -> QueryResult:
-        """Selects nodes from the MedRecord based on the provided query.
+        """Retrieves information on the nodes from the MedRecord given the query.
 
         Args:
-            query (NodeQuery): A query to filter nodes.
+            query (NodeQuery): A query to define the information to be retrieved.
+                The query should be a callable that takes a NodeOperand and returns
+                a QueryReturnOperand.
 
         Returns:
-            List[NodeIndex]: A list of node indices that satisfy the query.
+            QueryResult: The result of the query, which can be a list of node indices
+                or a dictionary of node attributes, among others.
         """
 
         def _query(node: PyNodeOperand) -> PyQueryReturnOperand:
             result = query(NodeOperand._from_py_node_operand(node))
 
-            if isinstance(
-                result, (NodeAttributesTreeOperand, EdgeAttributesTreeOperand)
-            ):
-                return result._attributes_tree_operand
-            if isinstance(
-                result, (NodeMultipleAttributesOperand, EdgeMultipleAttributesOperand)
-            ):
-                return result._multiple_attributes_operand
-            if isinstance(
-                result, (NodeSingleAttributeOperand, EdgeSingleAttributeOperand)
-            ):
-                return result._single_attribute_operand
-            if isinstance(result, EdgeIndicesOperand):
-                return result._edge_indices_operand
-            if isinstance(result, EdgeIndexOperand):
-                return result._edge_index_operand
-            if isinstance(result, NodeIndicesOperand):
-                return result._node_indices_operand
-            if isinstance(result, NodeIndexOperand):
-                return result._node_index_operand
-            if isinstance(
-                result, (NodeMultipleValuesOperand, EdgeMultipleValuesOperand)
-            ):
-                return result._multiple_values_operand
-
-            return result._single_value_operand
+            return _convert_queryreturnoperand_to_pyqueryreturnoperand(result)
 
         return self._medrecord.query_nodes(_query)
 
@@ -1663,46 +1676,28 @@ class MedRecord:
     def query_edges(
         self, query: Callable[[EdgeOperand], EdgeSingleValueOperand]
     ) -> EdgeSingleValueQueryResult: ...
+    @overload
+    def query_edges(
+        self, query: Callable[[EdgeOperand], Sequence[QueryReturnOperand]]
+    ) -> List[QueryResult]: ...
 
     def query_edges(self, query: EdgeQuery) -> QueryResult:
-        """Selects edges from the MedRecord based on the provided query.
+        """Retrieves information on the edges from the MedRecord given the query.
 
         Args:
-            query (EdgeQuery): A query to filter edges.
+            query (EdgeQuery): A query to define the information to be retrieved.
+                The query should be a callable that takes an EdgeOperand and returns
+                a QueryReturnOperand.
 
         Returns:
-            List[EdgeIndex]: A list of edge indices that satisfy the query.
+            QueryResult: The result of the query, which can be a list of edge indices or
+                a dictionary of edge attributes, among others.
         """
 
         def _query(edge: PyEdgeOperand) -> PyQueryReturnOperand:
             result = query(EdgeOperand._from_py_edge_operand(edge))
 
-            if isinstance(
-                result, (NodeAttributesTreeOperand, EdgeAttributesTreeOperand)
-            ):
-                return result._attributes_tree_operand
-            if isinstance(
-                result, (NodeMultipleAttributesOperand, EdgeMultipleAttributesOperand)
-            ):
-                return result._multiple_attributes_operand
-            if isinstance(
-                result, (NodeSingleAttributeOperand, EdgeSingleAttributeOperand)
-            ):
-                return result._single_attribute_operand
-            if isinstance(result, EdgeIndicesOperand):
-                return result._edge_indices_operand
-            if isinstance(result, EdgeIndexOperand):
-                return result._edge_index_operand
-            if isinstance(result, NodeIndicesOperand):
-                return result._node_indices_operand
-            if isinstance(result, NodeIndexOperand):
-                return result._node_index_operand
-            if isinstance(
-                result, (NodeMultipleValuesOperand, EdgeMultipleValuesOperand)
-            ):
-                return result._multiple_values_operand
-
-            return result._single_value_operand
+            return _convert_queryreturnoperand_to_pyqueryreturnoperand(result)
 
         return self._medrecord.query_edges(_query)
 

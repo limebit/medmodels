@@ -29,9 +29,15 @@ from medmodels.medrecord.querying import (
     NodeOperand,
     NodeSingleAttributeOperand,
     NodeSingleValueOperand,
+    QueryReturnOperand,
 )
 from medmodels.medrecord.schema import AttributeType, GroupSchema, Schema, SchemaType
-from medmodels.medrecord.types import AttributesInput, NodeIndex
+from medmodels.medrecord.types import (
+    AttributesInput,
+    NodeIndex,
+    is_edge_index_list,
+    is_node_index_list,
+)
 
 
 def strip_ansi(text: str) -> str:
@@ -2344,6 +2350,15 @@ class TestMedRecord(unittest.TestCase):
 
         assert sorted(medrecord.query_nodes(query9)) == [0, 1, 3]
 
+        def query10(node: NodeOperand) -> List[QueryReturnOperand]:
+            node.index().equal_to("0")
+            return [node.index(), node.edges().index()]
+
+        node_indices, edge_indices = medrecord.query_nodes(query10)
+        assert node_indices == ["0"]
+        assert is_edge_index_list(edge_indices)
+        assert sorted(edge_indices) == [0, 1, 3]
+
     def test_query_edges(self) -> None:
         medrecord = create_medrecord()
 
@@ -2402,6 +2417,15 @@ class TestMedRecord(unittest.TestCase):
             return edge.source_node().index()
 
         assert sorted(medrecord.query_edges(query9)) == ["0", "0", "1", "1"]
+
+        def query10(edge: EdgeOperand) -> List[QueryReturnOperand]:
+            edge.index().equal_to(0)
+            return [edge.index(), edge.source_node().index()]
+
+        edge_indices, node_indices = medrecord.query_edges(query10)
+        assert edge_indices == [0]
+        assert is_node_index_list(node_indices)
+        assert sorted(node_indices) == ["0"]
 
     def test_describe_group_nodes(self) -> None:
         medrecord = create_medrecord()

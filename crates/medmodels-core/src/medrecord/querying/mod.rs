@@ -23,6 +23,51 @@ use values::{
     NodeSingleValueOperand,
 };
 
+macro_rules! impl_return_operand_for_tuples {
+    ($($T:ident),+) => {
+        impl<'a, $($T: ReturnOperand<'a>),+> ReturnOperand<'a> for ($($T,)+) {
+            type ReturnValue = ($($T::ReturnValue,)+);
+
+            #[allow(non_snake_case)]
+            fn evaluate(self, medrecord: &'a MedRecord) -> MedRecordResult<Self::ReturnValue> {
+                let ($($T,)+) = self;
+
+                $(let $T = $T.evaluate(medrecord)?;)+
+
+                Ok(($($T,)+))
+            }
+        }
+    };
+}
+
+macro_rules! impl_iterator_return_operand {
+    ($( $Operand:ident => $Item:ty ),* $(,)?) => {
+        $(
+            impl<'a> ReturnOperand<'a> for Wrapper<$Operand> {
+                type ReturnValue = Box<dyn Iterator<Item = $Item> + 'a>;
+
+                fn evaluate(self, medrecord: &'a MedRecord) -> MedRecordResult<Self::ReturnValue> {
+                    Ok(Box::new(self.evaluate_backward(medrecord)?))
+                }
+            }
+        )*
+    };
+}
+
+macro_rules! impl_direct_return_operand {
+    ($( $Operand:ident => $ReturnValue:ty ),* $(,)?) => {
+        $(
+            impl<'a> ReturnOperand<'a> for Wrapper<$Operand> {
+                type ReturnValue = $ReturnValue;
+
+                fn evaluate(self, medrecord: &'a MedRecord) -> MedRecordResult<Self::ReturnValue> {
+                    self.evaluate_backward(medrecord)
+                }
+            }
+        )*
+    };
+}
+
 pub trait Index: Eq + Clone + Hash + Display + GetAttributes {}
 
 impl Index for NodeIndex {}
@@ -101,203 +146,78 @@ impl<I: Index, T> From<(I, T)> for OptionalIndexWrapper<I, T> {
 }
 
 #[derive(Debug, Clone)]
-pub struct Selection<'a> {
+pub struct Selection<'a, R: ReturnOperand<'a>> {
     medrecord: &'a MedRecord,
-    return_operand: ReturnOperand,
+    return_operand: R,
 }
 
-impl<'a> Selection<'a> {
-    pub fn new_node<Q, R>(medrecord: &'a MedRecord, query: Q) -> Self
+impl<'a, R: ReturnOperand<'a>> Selection<'a, R> {
+    pub fn new_node<Q>(medrecord: &'a MedRecord, query: Q) -> Self
     where
         Q: FnOnce(&mut Wrapper<NodeOperand>) -> R,
-        R: Into<ReturnOperand>,
     {
         let mut operand = Wrapper::<NodeOperand>::new(None);
 
         Self {
             medrecord,
-            return_operand: query(&mut operand).into(),
+            return_operand: query(&mut operand),
         }
     }
 
-    pub fn new_edge<Q, R>(medrecord: &'a MedRecord, query: Q) -> Self
+    pub fn new_edge<Q>(medrecord: &'a MedRecord, query: Q) -> Self
     where
         Q: FnOnce(&mut Wrapper<EdgeOperand>) -> R,
-        R: Into<ReturnOperand>,
     {
         let mut operand = Wrapper::<EdgeOperand>::new(None);
 
         Self {
             medrecord,
-            return_operand: query(&mut operand).into(),
+            return_operand: query(&mut operand),
         }
     }
 
-    pub fn evaluate(self) -> MedRecordResult<ReturnValue<'a>> {
-        let result = match self.return_operand {
-            ReturnOperand::NodeAttributesTree(operand) => ReturnValue::NodeAttributesTree(
-                Box::new(operand.evaluate_backward(self.medrecord)?),
-            ),
-            ReturnOperand::EdgeAttributesTree(operand) => ReturnValue::EdgeAttributesTree(
-                Box::new(operand.evaluate_backward(self.medrecord)?),
-            ),
-            ReturnOperand::NodeMultipleAttributes(operand) => ReturnValue::NodeMultipleAttributes(
-                Box::new(operand.evaluate_backward(self.medrecord)?),
-            ),
-            ReturnOperand::EdgeMultipleAttributes(operand) => ReturnValue::EdgeMultipleAttributes(
-                Box::new(operand.evaluate_backward(self.medrecord)?),
-            ),
-            ReturnOperand::NodeSingleAttribute(operand) => {
-                ReturnValue::NodeSingleAttribute(operand.evaluate_backward(self.medrecord)?)
-            }
-            ReturnOperand::EdgeSingleAttribute(operand) => {
-                ReturnValue::EdgeSingleAttribute(operand.evaluate_backward(self.medrecord)?)
-            }
-            ReturnOperand::EdgeIndices(operand) => {
-                ReturnValue::EdgeIndices(Box::new(operand.evaluate_backward(self.medrecord)?))
-            }
-            ReturnOperand::EdgeIndex(operand) => {
-                ReturnValue::EdgeIndex(operand.evaluate_backward(self.medrecord)?)
-            }
-            ReturnOperand::NodeIndices(operand) => {
-                ReturnValue::NodeIndices(Box::new(operand.evaluate_backward(self.medrecord)?))
-            }
-            ReturnOperand::NodeIndex(operand) => {
-                ReturnValue::NodeIndex(operand.evaluate_backward(self.medrecord)?)
-            }
-            ReturnOperand::NodeMultipleValues(operand) => ReturnValue::NodeMultipleValues(
-                Box::new(operand.evaluate_backward(self.medrecord)?),
-            ),
-            ReturnOperand::EdgeMultipleValues(operand) => ReturnValue::EdgeMultipleValues(
-                Box::new(operand.evaluate_backward(self.medrecord)?),
-            ),
-            ReturnOperand::NodeSingleValue(operand) => {
-                ReturnValue::NodeSingleValue(operand.evaluate_backward(self.medrecord)?)
-            }
-            ReturnOperand::EdgeSingleValue(operand) => {
-                ReturnValue::EdgeSingleValue(operand.evaluate_backward(self.medrecord)?)
-            }
-        };
-
-        Ok(result)
+    pub fn evaluate(self) -> MedRecordResult<R::ReturnValue> {
+        self.return_operand.evaluate(self.medrecord)
     }
 }
 
-#[derive(Debug, Clone)]
-pub enum ReturnOperand {
-    NodeAttributesTree(Wrapper<NodeAttributesTreeOperand>),
-    EdgeAttributesTree(Wrapper<EdgeAttributesTreeOperand>),
-    NodeMultipleAttributes(Wrapper<NodeMultipleAttributesOperand>),
-    EdgeMultipleAttributes(Wrapper<EdgeMultipleAttributesOperand>),
-    NodeSingleAttribute(Wrapper<NodeSingleAttributeOperand>),
-    EdgeSingleAttribute(Wrapper<EdgeSingleAttributeOperand>),
-    EdgeIndices(Wrapper<EdgeIndicesOperand>),
-    EdgeIndex(Wrapper<EdgeIndexOperand>),
-    NodeIndices(Wrapper<NodeIndicesOperand>),
-    NodeIndex(Wrapper<NodeIndexOperand>),
-    NodeMultipleValues(Wrapper<NodeMultipleValuesOperand>),
-    EdgeMultipleValues(Wrapper<EdgeMultipleValuesOperand>),
-    NodeSingleValue(Wrapper<NodeSingleValueOperand>),
-    EdgeSingleValue(Wrapper<EdgeSingleValueOperand>),
+pub trait ReturnOperand<'a> {
+    type ReturnValue;
+
+    fn evaluate(self, medrecord: &'a MedRecord) -> MedRecordResult<Self::ReturnValue>;
 }
 
-impl From<Wrapper<NodeAttributesTreeOperand>> for ReturnOperand {
-    fn from(operand: Wrapper<NodeAttributesTreeOperand>) -> Self {
-        Self::NodeAttributesTree(operand)
-    }
-}
+impl_iterator_return_operand!(
+    NodeAttributesTreeOperand     => (&'a NodeIndex, Vec<MedRecordAttribute>),
+    EdgeAttributesTreeOperand     => (&'a EdgeIndex, Vec<MedRecordAttribute>),
+    NodeMultipleAttributesOperand => (&'a NodeIndex, MedRecordAttribute),
+    EdgeMultipleAttributesOperand => (&'a EdgeIndex, MedRecordAttribute),
+    EdgeIndicesOperand            => EdgeIndex,
+    NodeIndicesOperand            => NodeIndex,
+    NodeMultipleValuesOperand     => (&'a NodeIndex, MedRecordValue),
+    EdgeMultipleValuesOperand     => (&'a EdgeIndex, MedRecordValue),
+);
 
-impl From<Wrapper<EdgeAttributesTreeOperand>> for ReturnOperand {
-    fn from(operand: Wrapper<EdgeAttributesTreeOperand>) -> Self {
-        Self::EdgeAttributesTree(operand)
-    }
-}
+impl_direct_return_operand!(
+    NodeSingleAttributeOperand => Option<OptionalIndexWrapper<&'a NodeIndex, MedRecordAttribute>>,
+    EdgeSingleAttributeOperand => Option<OptionalIndexWrapper<&'a EdgeIndex, MedRecordAttribute>>,
+    EdgeIndexOperand           => Option<EdgeIndex>,
+    NodeIndexOperand           => Option<NodeIndex>,
+    NodeSingleValueOperand     => Option<OptionalIndexWrapper<&'a NodeIndex, MedRecordValue>>,
+    EdgeSingleValueOperand     => Option<OptionalIndexWrapper<&'a EdgeIndex, MedRecordValue>>,
+);
 
-impl From<Wrapper<NodeMultipleAttributesOperand>> for ReturnOperand {
-    fn from(operand: Wrapper<NodeMultipleAttributesOperand>) -> Self {
-        Self::NodeMultipleAttributes(operand)
-    }
-}
-
-impl From<Wrapper<EdgeMultipleAttributesOperand>> for ReturnOperand {
-    fn from(operand: Wrapper<EdgeMultipleAttributesOperand>) -> Self {
-        Self::EdgeMultipleAttributes(operand)
-    }
-}
-
-impl From<Wrapper<NodeSingleAttributeOperand>> for ReturnOperand {
-    fn from(operand: Wrapper<NodeSingleAttributeOperand>) -> Self {
-        Self::NodeSingleAttribute(operand)
-    }
-}
-
-impl From<Wrapper<EdgeSingleAttributeOperand>> for ReturnOperand {
-    fn from(operand: Wrapper<EdgeSingleAttributeOperand>) -> Self {
-        Self::EdgeSingleAttribute(operand)
-    }
-}
-
-impl From<Wrapper<EdgeIndicesOperand>> for ReturnOperand {
-    fn from(operand: Wrapper<EdgeIndicesOperand>) -> Self {
-        Self::EdgeIndices(operand)
-    }
-}
-
-impl From<Wrapper<EdgeIndexOperand>> for ReturnOperand {
-    fn from(operand: Wrapper<EdgeIndexOperand>) -> Self {
-        Self::EdgeIndex(operand)
-    }
-}
-
-impl From<Wrapper<NodeIndicesOperand>> for ReturnOperand {
-    fn from(operand: Wrapper<NodeIndicesOperand>) -> Self {
-        Self::NodeIndices(operand)
-    }
-}
-
-impl From<Wrapper<NodeIndexOperand>> for ReturnOperand {
-    fn from(operand: Wrapper<NodeIndexOperand>) -> Self {
-        Self::NodeIndex(operand)
-    }
-}
-
-impl From<Wrapper<NodeMultipleValuesOperand>> for ReturnOperand {
-    fn from(operand: Wrapper<NodeMultipleValuesOperand>) -> Self {
-        Self::NodeMultipleValues(operand)
-    }
-}
-
-impl From<Wrapper<EdgeMultipleValuesOperand>> for ReturnOperand {
-    fn from(operand: Wrapper<EdgeMultipleValuesOperand>) -> Self {
-        Self::EdgeMultipleValues(operand)
-    }
-}
-
-impl From<Wrapper<NodeSingleValueOperand>> for ReturnOperand {
-    fn from(operand: Wrapper<NodeSingleValueOperand>) -> Self {
-        Self::NodeSingleValue(operand)
-    }
-}
-
-impl From<Wrapper<EdgeSingleValueOperand>> for ReturnOperand {
-    fn from(operand: Wrapper<EdgeSingleValueOperand>) -> Self {
-        Self::EdgeSingleValue(operand)
-    }
-}
-
-pub enum ReturnValue<'a> {
-    NodeAttributesTree(Box<dyn Iterator<Item = (&'a NodeIndex, Vec<MedRecordAttribute>)> + 'a>),
-    EdgeAttributesTree(Box<dyn Iterator<Item = (&'a EdgeIndex, Vec<MedRecordAttribute>)> + 'a>),
-    NodeMultipleAttributes(Box<dyn Iterator<Item = (&'a NodeIndex, MedRecordAttribute)> + 'a>),
-    EdgeMultipleAttributes(Box<dyn Iterator<Item = (&'a EdgeIndex, MedRecordAttribute)> + 'a>),
-    NodeSingleAttribute(Option<OptionalIndexWrapper<&'a NodeIndex, MedRecordAttribute>>),
-    EdgeSingleAttribute(Option<OptionalIndexWrapper<&'a EdgeIndex, MedRecordAttribute>>),
-    EdgeIndices(Box<dyn Iterator<Item = EdgeIndex> + 'a>),
-    EdgeIndex(Option<EdgeIndex>),
-    NodeIndices(Box<dyn Iterator<Item = NodeIndex> + 'a>),
-    NodeIndex(Option<NodeIndex>),
-    NodeMultipleValues(Box<dyn Iterator<Item = (&'a NodeIndex, MedRecordValue)> + 'a>),
-    EdgeMultipleValues(Box<dyn Iterator<Item = (&'a EdgeIndex, MedRecordValue)> + 'a>),
-    NodeSingleValue(Option<OptionalIndexWrapper<&'a NodeIndex, MedRecordValue>>),
-    EdgeSingleValue(Option<OptionalIndexWrapper<&'a EdgeIndex, MedRecordValue>>),
-}
+impl_return_operand_for_tuples!(R1, R2);
+impl_return_operand_for_tuples!(R1, R2, R3);
+impl_return_operand_for_tuples!(R1, R2, R3, R4);
+impl_return_operand_for_tuples!(R1, R2, R3, R4, R5);
+impl_return_operand_for_tuples!(R1, R2, R3, R4, R5, R6);
+impl_return_operand_for_tuples!(R1, R2, R3, R4, R5, R6, R7);
+impl_return_operand_for_tuples!(R1, R2, R3, R4, R5, R6, R7, R8);
+impl_return_operand_for_tuples!(R1, R2, R3, R4, R5, R6, R7, R8, R9);
+impl_return_operand_for_tuples!(R1, R2, R3, R4, R5, R6, R7, R8, R9, R10);
+impl_return_operand_for_tuples!(R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R11);
+impl_return_operand_for_tuples!(R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R11, R12);
+impl_return_operand_for_tuples!(R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R11, R12, R13);
+impl_return_operand_for_tuples!(R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R11, R12, R13, R14);
+impl_return_operand_for_tuples!(R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R11, R12, R13, R14, R15);

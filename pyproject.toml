@@ -1,6 +1,6 @@
 [project]
 name = "medmodels"
-version = "0.2.1"
+version = "0.3.1"
 description = "Limebit Medmodels Package"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -57,7 +57,6 @@ docs = [
     "sphinx-toolbox==3.6.0",
     "myst-parser==3.0.1",
     "livereload==2.7.0",
-    "sphinx-multiversion==0.2.4",
 ]
 dev = [
     { include-group = "docs" },
@@ -146,7 +145,7 @@ ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/*" = ["D", "DOC"]
+"tests/*" = ["D", "DOC", "C901"]
 "*/__init__.py" = ["D", "DOC"]
 
 [tool.ruff.lint.pydocstyle]

@@ -81,7 +81,9 @@ pub(crate) fn convert_pyobject_to_datatype(ob: &Bound<'_, pyo3::PyAny>) -> PyRes
     }
 
     fn convert_union(ob: &Bound<'_, pyo3::PyAny>) -> PyResult<DataType> {
-        let union = ob.extract::<PyRef<PyUnion>>()?;
+        let union = ob
+            .extract::<PyRef<PyUnion>>()
+            .expect("Extraction must succeed");
 
         let dtypes = union.0.clone();
 
@@ -92,7 +94,9 @@ pub(crate) fn convert_pyobject_to_datatype(ob: &Bound<'_, pyo3::PyAny>) -> PyRes
     }
 
     fn convert_option(ob: &Bound<'_, pyo3::PyAny>) -> PyResult<DataType> {
-        let option = ob.extract::<PyRef<PyOption>>()?;
+        let option = ob
+            .extract::<PyRef<PyOption>>()
+            .expect("Extraction must succeed");
 
         Ok(DataType::Option(Box::new(option.0.clone().into())))
     }

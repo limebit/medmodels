@@ -7,12 +7,14 @@ import polars as pl
 from medmodels.medrecord.types import (
     is_attributes,
     is_edge_index,
+    is_edge_index_list,
     is_edge_tuple,
     is_edge_tuple_list,
     is_group,
     is_medrecord_attribute,
     is_medrecord_value,
     is_node_index,
+    is_node_index_list,
     is_node_tuple,
     is_node_tuple_list,
     is_pandas_edge_dataframe_input,
@@ -48,10 +50,23 @@ class TestTypeAssertions(unittest.TestCase):
         assert is_node_index(123)
         assert not is_node_index(12.34)
 
+    def test_is_node_index_list(self) -> None:
+        assert is_node_index_list(["node1", "node2"])
+        assert is_node_index_list([123, 456])
+        assert is_node_index_list(["node1", 123])
+        assert not is_node_index_list("invalid")
+        assert not is_node_index_list([123, 12.34])
+
     def test_is_edge_index(self) -> None:
         assert is_edge_index(123)
         assert not is_edge_index("edge")
         assert not is_edge_index(12.34)
+
+    def test_is_edge_index_list(self) -> None:
+        assert is_edge_index_list([123, 456])
+        assert not is_edge_index_list("invalid")
+        assert not is_edge_index_list([123, "edge"])
+        assert not is_edge_index_list([123, 12.34])
 
     def test_is_group(self) -> None:
         assert is_group("group")
