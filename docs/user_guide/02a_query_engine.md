@@ -4,9 +4,11 @@
 
 The **MedRecord Query Engine** enables users to find node and edges' indices stored in the graph structure efficiently. Thanks to an intuitive interface, complex queries can be performed, allowing you to filter nodes and edges by their properties and relationships. This section introduces the basic concepts of querying MedRecords and explores advanced techniques for working with complex datasets.
 
-## Example dataset
+The example dataset used in the following section is explained in this dropdown:
 
-An example dataset for the following demonstrations was generated with the method [`from_simple_example_dataset`](medmodels.medrecord.medrecord.MedRecord.from_simple_example_dataset){target="_blank"} from the [`MedRecord`](medmodels.medrecord.medrecord.MedRecord){target="_blank"} class.
+:::{dropdown} Example Dataset
+
+An example dataset for the following demonstrations was generated with the method [`from_simple_example_dataset()`](medmodels.medrecord.medrecord.MedRecord.from_simple_example_dataset){target="_blank"} from the [`MedRecord`](medmodels.medrecord.medrecord.MedRecord){target="_blank"} class.
 
 ```{literalinclude} scripts/02a_show_dataset.py
 ---
@@ -40,6 +42,7 @@ setup-lines: 1-37
 lines: 41
 ---
 ```
+:::
 
 ## Node Queries
 
