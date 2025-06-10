@@ -433,6 +433,7 @@ class TestTreatmentEffect:
         )
 
         # case 3 no outcome
+        medrecord.unfreeze_schema()
         medrecord.add_group("no_outcome")
 
         tee3 = (
@@ -555,6 +556,7 @@ class TestTreatmentEffect:
             .build()
         )
 
+        medrecord.unfreeze_schema()
         medrecord.add_group("no_outcome")
 
         with pytest.raises(
