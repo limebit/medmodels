@@ -11,8 +11,8 @@ use crate::{
             SingleValueWithoutIndexOperand,
         },
         wrapper::Wrapper,
-        DeepClone, EvaluateBackward, EvaluateForward, GroupedIterator, ReadWriteOrPanic,
-        RootOperand,
+        BoxedIterator, DeepClone, EvaluateBackward, EvaluateForwardGrouped, GroupedIterator,
+        ReadWriteOrPanic, RootOperand,
     },
     MedRecord,
 };
@@ -75,38 +75,33 @@ where
                             unreachable!()
                         };
 
-                        let reduced_partition =
-                            O::get_values_from_indices(medrecord, attribute.clone(), partition);
+                        let reduced_partition: BoxedIterator<_> = Box::new(
+                            O::get_values_from_indices(medrecord, attribute.clone(), partition),
+                        );
 
-                        Ok((
-                            key,
-                            self.operand
-                                .evaluate_forward(medrecord, Box::new(reduced_partition))?,
-                        ))
+                        (key, reduced_partition)
                     })
-                    .collect::<MedRecordResult<_>>()?;
+                    .collect();
 
-                Ok(Box::new(values.into_iter()))
+                self.operand
+                    .evaluate_forward_grouped(medrecord, Box::new(values.into_iter()))
             }
             MultipleValuesWithIndexOperandContext::MultipleAttributesOperand(context) => {
                 let partitions = context.evaluate_backward(medrecord)?;
 
                 let values: Vec<_> = partitions
                     .map(|(key, partition)| {
-                        let reduced_partition =
-                            MultipleAttributesWithIndexOperation::<O>::get_values(
+                        let reduced_partition: BoxedIterator<_> =
+                            Box::new(MultipleAttributesWithIndexOperation::<O>::get_values(
                                 medrecord, partition,
-                            )?;
+                            )?);
 
-                        let partition = self
-                            .operand
-                            .evaluate_forward(medrecord, Box::new(reduced_partition))?;
-
-                        Ok((key, partition))
+                        Ok((key, reduced_partition))
                     })
                     .collect::<MedRecordResult<_>>()?;
 
-                Ok(Box::new(values.into_iter()))
+                self.operand
+                    .evaluate_forward_grouped(medrecord, Box::new(values.into_iter()))
             }
         }
     }
@@ -145,13 +140,12 @@ impl<'a, O: 'a + RootOperand> EvaluateBackward<'a>
             .map(|(key, partition)| {
                 let reduced_partition = self.operand.reduce_input(partition)?;
 
-                let partition = self.operand.evaluate_forward(medrecord, reduced_partition);
-
-                partition.map(|value| (key, value))
+                Ok((key, reduced_partition))
             })
             .collect::<MedRecordResult<_>>()?;
 
-        Ok(Box::new(values.into_iter()))
+        self.operand
+            .evaluate_forward_grouped(medrecord, Box::new(values.into_iter()))
     }
 }
 
@@ -221,15 +215,12 @@ impl<'a, O: 'a + RootOperand> EvaluateBackward<'a>
                     }
                 };
 
-                let partition = self
-                    .operand
-                    .evaluate_forward(medrecord, reduced_partition)?;
-
-                Ok((key, partition))
+                Ok((key, reduced_partition))
             })
             .collect::<MedRecordResult<_>>()?;
 
-        Ok(Box::new(values.into_iter()))
+        self.operand
+            .evaluate_forward_grouped(medrecord, Box::new(values.into_iter()))
     }
 }
 

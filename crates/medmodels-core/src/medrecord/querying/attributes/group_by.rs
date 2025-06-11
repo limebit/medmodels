@@ -11,7 +11,7 @@ use crate::{
         },
         group_by::{GroupOperand, GroupedOperand, Ungroup},
         wrapper::Wrapper,
-        BoxedIterator, DeepClone, EvaluateBackward, EvaluateForward, GroupedIterator,
+        BoxedIterator, DeepClone, EvaluateBackward, EvaluateForwardGrouped, GroupedIterator,
         ReadWriteOrPanic, RootOperand,
     },
     MedRecord,
@@ -30,17 +30,15 @@ impl<'a, O: 'a + RootOperand> EvaluateBackward<'a> for GroupOperand<AttributesTr
 
         let attributes: Vec<_> = partitions
             .map(|(key, partition)| {
-                let reduced_partition = O::get_attributes_from_indices(medrecord, partition);
+                let reduced_partition: BoxedIterator<_> =
+                    Box::new(O::get_attributes_from_indices(medrecord, partition));
 
-                let partition = self
-                    .operand
-                    .evaluate_forward(medrecord, Box::new(reduced_partition))?;
-
-                Ok((key, partition))
+                Ok((key, reduced_partition))
             })
             .collect::<MedRecordResult<_>>()?;
 
-        Ok(Box::new(attributes.into_iter()))
+        self.operand
+            .evaluate_forward_grouped(medrecord, Box::new(attributes.into_iter()))
     }
 }
 
@@ -101,15 +99,12 @@ impl<'a, O: 'a + RootOperand> EvaluateBackward<'a>
                     }
                 };
 
-                let partition = self
-                    .operand
-                    .evaluate_forward(medrecord, reduced_partition)?;
-
-                Ok((key, partition))
+                Ok((key, reduced_partition))
             })
             .collect::<MedRecordResult<_>>()?;
 
-        Ok(Box::new(attributes.into_iter()))
+        self.operand
+            .evaluate_forward_grouped(medrecord, Box::new(attributes.into_iter()))
     }
 }
 
@@ -158,15 +153,12 @@ impl<'a, O: 'a + RootOperand> EvaluateBackward<'a>
                     }
                 };
 
-                let partition = self
-                    .operand
-                    .evaluate_forward(medrecord, reduced_partition)?;
-
-                Ok((key, partition))
+                Ok((key, reduced_partition))
             })
             .collect::<MedRecordResult<_>>()?;
 
-        Ok(Box::new(attributes.into_iter()))
+        self.operand
+            .evaluate_forward_grouped(medrecord, Box::new(attributes.into_iter()))
     }
 }
 
@@ -223,15 +215,12 @@ impl<'a, O: 'a + RootOperand> EvaluateBackward<'a>
                     }
                 };
 
-                let partition = self
-                    .operand
-                    .evaluate_forward(medrecord, reduced_partition)?;
-
-                Ok((key, partition))
+                Ok((key, reduced_partition))
             })
             .collect::<MedRecordResult<_>>()?;
 
-        Ok(Box::new(attributes.into_iter()))
+        self.operand
+            .evaluate_forward_grouped(medrecord, Box::new(attributes.into_iter()))
     }
 }
 

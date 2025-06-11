@@ -97,17 +97,15 @@ impl<'a> EvaluateBackward<'a> for GroupOperand<NodeIndicesOperand> {
     fn evaluate_backward(&self, medrecord: &'a MedRecord) -> MedRecordResult<Self::ReturnValue> {
         let partitions = self.context.evaluate_backward(medrecord)?;
 
-        let indices: Vec<_> = partitions
-            .map(|(key, partition)| {
-                let partition = self
-                    .operand
-                    .evaluate_forward(medrecord, Box::new(partition.cloned()))?;
+        let indices = Box::new(partitions.map(|(key, partition)| {
+            let reduced_partition = self.operand.reduce_input(partition)?;
 
-                Ok((key, partition))
-            })
-            .collect::<MedRecordResult<_>>()?;
+            Ok((key, reduced_partition))
+        }))
+        .collect::<MedRecordResult<Vec<_>>>()?;
 
-        Ok(Box::new(indices.into_iter()))
+        self.operand
+            .evaluate_forward_grouped(medrecord, Box::new(indices.into_iter()))
     }
 }
 
@@ -139,15 +137,12 @@ impl<'a> EvaluateBackward<'a> for GroupOperand<NodeIndexOperand> {
             .map(|(key, partition)| {
                 let reduced_partition = self.operand.reduce_input(partition)?;
 
-                let partition = self
-                    .operand
-                    .evaluate_forward(medrecord, reduced_partition)?;
-
-                Ok((key, partition))
+                Ok((key, reduced_partition))
             })
             .collect::<MedRecordResult<_>>()?;
 
-        Ok(Box::new(indices.into_iter()))
+        self.operand
+            .evaluate_forward_grouped(medrecord, Box::new(indices.into_iter()))
     }
 }
 

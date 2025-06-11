@@ -207,13 +207,13 @@ EdgeIndicesQueryResult: TypeAlias = List[EdgeIndex]
 EdgeIndicesGroupQueryResult: TypeAlias = List[Tuple[GroupKey, EdgeIndicesQueryResult]]
 
 EdgeIndexQueryResult: TypeAlias = Optional[EdgeIndex]
-EdgeIndexGroupQueryResult: TypeAlias = Tuple[GroupKey, EdgeIndexQueryResult]
+EdgeIndexGroupQueryResult: TypeAlias = List[Tuple[GroupKey, EdgeIndexQueryResult]]
 
 NodeIndicesQueryResult: TypeAlias = List[NodeIndex]
 NodeIndicesGroupQueryResult: TypeAlias = List[Tuple[GroupKey, NodeIndicesQueryResult]]
 
 NodeIndexQueryResult: TypeAlias = Optional[NodeIndex]
-NodeIndexGroupQueryResult: TypeAlias = Tuple[GroupKey, NodeIndexQueryResult]
+NodeIndexGroupQueryResult: TypeAlias = List[Tuple[GroupKey, NodeIndexQueryResult]]
 
 NodeMultipleValuesWithIndexQueryResult: TypeAlias = Dict[NodeIndex, MedRecordValue]
 NodeMultipleValuesWithIndexGroupQueryResult: TypeAlias = List[

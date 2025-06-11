@@ -6,7 +6,8 @@ use crate::{
         group_by::{GroupBy, GroupOperand, GroupedOperand, PartitionGroups, Ungroup},
         nodes::NodeOperand,
         wrapper::Wrapper,
-        DeepClone, EvaluateBackward, EvaluateForward, EvaluateForwardGrouped, GroupedIterator,
+        BoxedIterator, DeepClone, EvaluateBackward, EvaluateForward, EvaluateForwardGrouped,
+        GroupedIterator,
     },
     prelude::MedRecordAttribute,
     MedRecord,
@@ -96,15 +97,14 @@ impl<'a> EvaluateBackward<'a> for GroupOperand<EdgeIndicesOperand> {
 
         let indices: Vec<_> = partitions
             .map(|(key, partition)| {
-                let partition = self
-                    .operand
-                    .evaluate_forward(medrecord, Box::new(partition.cloned()))?;
+                let reduced_partition: BoxedIterator<_> = Box::new(partition.cloned());
 
-                Ok((key, partition))
+                Ok((key, reduced_partition))
             })
             .collect::<MedRecordResult<_>>()?;
 
-        Ok(Box::new(indices.into_iter()))
+        self.operand
+            .evaluate_forward_grouped(medrecord, Box::new(indices.into_iter()))
     }
 }
 
@@ -136,15 +136,12 @@ impl<'a> EvaluateBackward<'a> for GroupOperand<EdgeIndexOperand> {
             .map(|(key, partition)| {
                 let reduced_partition = self.operand.reduce_input(partition)?;
 
-                let partition = self
-                    .operand
-                    .evaluate_forward(medrecord, reduced_partition)?;
-
-                Ok((key, partition))
+                Ok((key, reduced_partition))
             })
             .collect::<MedRecordResult<_>>()?;
 
-        Ok(Box::new(indices.into_iter()))
+        self.operand
+            .evaluate_forward_grouped(medrecord, Box::new(indices.into_iter()))
     }
 }
 
