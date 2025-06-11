@@ -16,7 +16,7 @@ use medmodels_core::{
     medrecord::{
         querying::{
             edges::{
-                EdgeIndexComparisonOperand, EdgeIndexOperand, EdgeIndicesComparisonOperand,
+                self, EdgeIndexComparisonOperand, EdgeIndexOperand, EdgeIndicesComparisonOperand,
                 EdgeIndicesOperand, EdgeOperand,
             },
             group_by::GroupOperand,
@@ -32,6 +32,28 @@ use pyo3::{
     Bound, FromPyObject, PyAny, PyResult,
 };
 use std::ops::Deref;
+
+#[pyclass]
+#[derive(Clone)]
+pub enum EdgeOperandGroupDiscriminator {
+    SourceNode(),
+    TargetNode(),
+    Parallel(),
+    Attribute(PyMedRecordAttribute),
+}
+
+impl From<EdgeOperandGroupDiscriminator> for edges::EdgeOperandGroupDiscriminator {
+    fn from(discriminator: EdgeOperandGroupDiscriminator) -> Self {
+        match discriminator {
+            EdgeOperandGroupDiscriminator::SourceNode() => Self::SourceNode,
+            EdgeOperandGroupDiscriminator::TargetNode() => Self::TargetNode,
+            EdgeOperandGroupDiscriminator::Parallel() => Self::Parallel,
+            EdgeOperandGroupDiscriminator::Attribute(attribute) => {
+                Self::Attribute(attribute.into())
+            }
+        }
+    }
+}
 
 #[pyclass]
 #[repr(transparent)]
@@ -102,6 +124,10 @@ impl PyEdgeOperand {
                 .call1((PyEdgeOperand::from(operand.clone()),))
                 .expect("Call must succeed");
         });
+    }
+
+    pub fn group_by(&mut self, discriminator: EdgeOperandGroupDiscriminator) -> PyEdgeGroupOperand {
+        self.0.group_by(discriminator.into()).into()
     }
 
     pub fn deep_clone(&self) -> PyEdgeOperand {
@@ -538,6 +564,10 @@ impl PyEdgeIndicesGroupOperand {
         });
     }
 
+    pub fn ungroup(&mut self) -> PyEdgeIndicesOperand {
+        self.0.ungroup().into()
+    }
+
     pub fn deep_clone(&self) -> Self {
         self.0.deep_clone().into()
     }
@@ -772,6 +802,10 @@ impl PyEdgeIndexGroupOperand {
                 .call1((PyEdgeIndexOperand::from(operand.clone()),))
                 .expect("Call must succeed");
         });
+    }
+
+    pub fn ungroup(&mut self) -> PyEdgeIndicesOperand {
+        self.0.ungroup().into()
     }
 
     pub fn deep_clone(&self) -> Self {

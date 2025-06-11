@@ -514,6 +514,10 @@ macro_rules! implement_attributes_tree_group_operand {
                 });
             }
 
+            pub fn ungroup(&mut self) -> $ungrouped_name {
+                self.0.ungroup().into()
+            }
+
             pub fn deep_clone(&self) -> $name {
                 self.0.deep_clone().into()
             }
@@ -1133,6 +1137,10 @@ macro_rules! implement_multiple_attributes_grouped_operand {
                 });
             }
 
+            pub fn ungroup(&mut self) -> $ungrouped_name {
+                self.0.ungroup().into()
+            }
+
             pub fn deep_clone(&self) -> $name {
                 self.0.deep_clone().into()
             }
@@ -1343,7 +1351,7 @@ implement_single_attribute_operand!(
 );
 
 macro_rules! implement_single_attribute_grouped_operand {
-    ($name:ident, $ungrouped_name:ident, $kind:ident, $generic:ty) => {
+    ($name:ident, $ungrouped_name:ident, $ungrouped_operand_name:ident, $kind:ident, $generic:ty) => {
         #[pyclass]
         #[repr(transparent)]
         #[derive(Clone)]
@@ -1497,6 +1505,10 @@ macro_rules! implement_single_attribute_grouped_operand {
                 });
             }
 
+            pub fn ungroup(&mut self) -> $ungrouped_operand_name {
+                self.0.ungroup().into()
+            }
+
             pub fn deep_clone(&self) -> $name {
                 self.0.deep_clone().into()
             }
@@ -1507,24 +1519,28 @@ macro_rules! implement_single_attribute_grouped_operand {
 implement_single_attribute_grouped_operand!(
     PyNodeSingleAttributeWithIndexGroupOperand,
     PyNodeSingleAttributeWithIndexOperand,
+    PyNodeMultipleAttributesWithIndexOperand,
     SingleAttributeWithIndexOperand,
     NodeOperand
 );
 implement_single_attribute_grouped_operand!(
     PyNodeSingleAttributeWithoutIndexGroupOperand,
     PyNodeSingleAttributeWithoutIndexOperand,
+    PyNodeMultipleAttributesWithoutIndexOperand,
     SingleAttributeWithoutIndexOperand,
     NodeOperand
 );
 implement_single_attribute_grouped_operand!(
     PyEdgeSingleAttributeWithIndexGroupOperand,
     PyEdgeSingleAttributeWithIndexOperand,
+    PyEdgeMultipleAttributesWithIndexOperand,
     SingleAttributeWithIndexOperand,
     EdgeOperand
 );
 implement_single_attribute_grouped_operand!(
     PyEdgeSingleAttributeWithoutIndexGroupOperand,
     PyEdgeSingleAttributeWithoutIndexOperand,
+    PyEdgeMultipleAttributesWithoutIndexOperand,
     SingleAttributeWithoutIndexOperand,
     EdgeOperand
 );

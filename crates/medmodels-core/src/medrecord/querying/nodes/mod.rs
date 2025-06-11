@@ -2,14 +2,14 @@ mod group_by;
 mod operand;
 mod operation;
 
+use super::edges::EdgeOperand;
 use crate::{
     errors::MedRecordResult,
     medrecord::querying::{group_by::GroupOperand, BoxedIterator, DeepClone, EvaluateBackward},
     prelude::NodeIndex,
     MedRecord,
 };
-
-use super::edges::EdgeOperand;
+pub use group_by::NodeOperandGroupDiscriminator;
 pub use operand::{
     NodeIndexComparisonOperand, NodeIndexOperand, NodeIndicesComparisonOperand, NodeIndicesOperand,
     NodeOperand,

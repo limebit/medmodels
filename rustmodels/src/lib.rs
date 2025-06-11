@@ -9,24 +9,35 @@ use medrecord::{
     },
     querying::{
         attributes::{
-            PyEdgeAttributesTreeOperand, PyEdgeMultipleAttributesWithIndexGroupOperand,
+            PyEdgeAttributesTreeGroupOperand, PyEdgeAttributesTreeOperand,
+            PyEdgeMultipleAttributesWithIndexGroupOperand,
             PyEdgeMultipleAttributesWithIndexOperand, PyEdgeMultipleAttributesWithoutIndexOperand,
             PyEdgeSingleAttributeWithIndexGroupOperand, PyEdgeSingleAttributeWithIndexOperand,
-            PyEdgeSingleAttributeWithoutIndexOperand, PyNodeAttributesTreeOperand,
-            PyNodeMultipleAttributesWithIndexGroupOperand,
+            PyEdgeSingleAttributeWithoutIndexGroupOperand,
+            PyEdgeSingleAttributeWithoutIndexOperand, PyNodeAttributesTreeGroupOperand,
+            PyNodeAttributesTreeOperand, PyNodeMultipleAttributesWithIndexGroupOperand,
             PyNodeMultipleAttributesWithIndexOperand, PyNodeMultipleAttributesWithoutIndexOperand,
             PyNodeSingleAttributeWithIndexGroupOperand, PyNodeSingleAttributeWithIndexOperand,
+            PyNodeSingleAttributeWithoutIndexGroupOperand,
             PyNodeSingleAttributeWithoutIndexOperand,
         },
-        edges::{PyEdgeIndexOperand, PyEdgeIndicesOperand, PyEdgeOperand},
-        nodes::{PyEdgeDirection, PyNodeIndexOperand, PyNodeIndicesOperand, PyNodeOperand},
+        edges::{
+            EdgeOperandGroupDiscriminator, PyEdgeGroupOperand, PyEdgeIndexGroupOperand,
+            PyEdgeIndexOperand, PyEdgeIndicesGroupOperand, PyEdgeIndicesOperand, PyEdgeOperand,
+        },
+        nodes::{
+            NodeOperandGroupDiscriminator, PyEdgeDirection, PyNodeGroupOperand,
+            PyNodeIndexGroupOperand, PyNodeIndexOperand, PyNodeIndicesGroupOperand,
+            PyNodeIndicesOperand, PyNodeOperand,
+        },
         values::{
             PyEdgeMultipleValuesWithIndexGroupOperand, PyEdgeMultipleValuesWithIndexOperand,
             PyEdgeMultipleValuesWithoutIndexOperand, PyEdgeSingleValueWithIndexGroupOperand,
-            PyEdgeSingleValueWithIndexOperand, PyEdgeSingleValueWithoutIndexOperand,
-            PyNodeMultipleValuesWithIndexGroupOperand, PyNodeMultipleValuesWithIndexOperand,
-            PyNodeMultipleValuesWithoutIndexOperand, PyNodeSingleValueWithIndexGroupOperand,
-            PyNodeSingleValueWithIndexOperand, PyNodeSingleValueWithoutIndexOperand,
+            PyEdgeSingleValueWithIndexOperand, PyEdgeSingleValueWithoutIndexGroupOperand,
+            PyEdgeSingleValueWithoutIndexOperand, PyNodeMultipleValuesWithIndexGroupOperand,
+            PyNodeMultipleValuesWithIndexOperand, PyNodeMultipleValuesWithoutIndexOperand,
+            PyNodeSingleValueWithIndexGroupOperand, PyNodeSingleValueWithIndexOperand,
+            PyNodeSingleValueWithoutIndexGroupOperand, PyNodeSingleValueWithoutIndexOperand,
         },
     },
     schema::{PyAttributeDataType, PyAttributeType, PyGroupSchema, PySchema, PySchemaType},
@@ -57,13 +68,21 @@ fn _medmodels(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
 
     m.add_class::<PyEdgeDirection>()?;
 
+    m.add_class::<NodeOperandGroupDiscriminator>()?;
     m.add_class::<PyNodeOperand>()?;
+    m.add_class::<PyNodeGroupOperand>()?;
     m.add_class::<PyNodeIndicesOperand>()?;
+    m.add_class::<PyNodeIndicesGroupOperand>()?;
     m.add_class::<PyNodeIndexOperand>()?;
+    m.add_class::<PyNodeIndexGroupOperand>()?;
 
+    m.add_class::<EdgeOperandGroupDiscriminator>()?;
     m.add_class::<PyEdgeOperand>()?;
+    m.add_class::<PyEdgeGroupOperand>()?;
     m.add_class::<PyEdgeIndicesOperand>()?;
+    m.add_class::<PyEdgeIndicesGroupOperand>()?;
     m.add_class::<PyEdgeIndexOperand>()?;
+    m.add_class::<PyEdgeIndexGroupOperand>()?;
 
     m.add_class::<PyNodeMultipleValuesWithIndexOperand>()?;
     m.add_class::<PyNodeMultipleValuesWithIndexGroupOperand>()?;
@@ -74,12 +93,16 @@ fn _medmodels(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyNodeSingleValueWithIndexOperand>()?;
     m.add_class::<PyNodeSingleValueWithIndexGroupOperand>()?;
     m.add_class::<PyNodeSingleValueWithoutIndexOperand>()?;
+    m.add_class::<PyNodeSingleValueWithoutIndexGroupOperand>()?;
     m.add_class::<PyEdgeSingleValueWithIndexOperand>()?;
     m.add_class::<PyEdgeSingleValueWithIndexGroupOperand>()?;
     m.add_class::<PyEdgeSingleValueWithoutIndexOperand>()?;
+    m.add_class::<PyEdgeSingleValueWithoutIndexGroupOperand>()?;
 
     m.add_class::<PyNodeAttributesTreeOperand>()?;
+    m.add_class::<PyNodeAttributesTreeGroupOperand>()?;
     m.add_class::<PyEdgeAttributesTreeOperand>()?;
+    m.add_class::<PyEdgeAttributesTreeGroupOperand>()?;
     m.add_class::<PyNodeMultipleAttributesWithIndexOperand>()?;
     m.add_class::<PyNodeMultipleAttributesWithIndexGroupOperand>()?;
     m.add_class::<PyNodeMultipleAttributesWithoutIndexOperand>()?;
@@ -89,9 +112,11 @@ fn _medmodels(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyNodeSingleAttributeWithIndexOperand>()?;
     m.add_class::<PyNodeSingleAttributeWithIndexGroupOperand>()?;
     m.add_class::<PyNodeSingleAttributeWithoutIndexOperand>()?;
+    m.add_class::<PyNodeSingleAttributeWithoutIndexGroupOperand>()?;
     m.add_class::<PyEdgeSingleAttributeWithIndexOperand>()?;
     m.add_class::<PyEdgeSingleAttributeWithIndexGroupOperand>()?;
     m.add_class::<PyEdgeSingleAttributeWithoutIndexOperand>()?;
+    m.add_class::<PyEdgeSingleAttributeWithoutIndexGroupOperand>()?;
 
     Ok(())
 }

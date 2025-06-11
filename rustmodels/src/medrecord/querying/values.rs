@@ -627,6 +627,10 @@ macro_rules! implement_multiple_values_grouped_operand {
                 });
             }
 
+            pub fn ungroup(&mut self) -> $ungrouped_name {
+                self.0.ungroup().into()
+            }
+
             pub fn deep_clone(&self) -> $name {
                 self.0.deep_clone().into()
             }
@@ -875,7 +879,7 @@ implement_single_value_operand!(
 );
 
 macro_rules! implement_single_value_group_operand {
-    ($name:ident, $ungrouped_name:ident, $kind:ident, $generic:ty) => {
+    ($name:ident, $ungrouped_name:ident, $ungrouped_operand_name:ident, $kind:ident, $generic:ty) => {
         #[pyclass]
         #[repr(transparent)]
         #[derive(Clone)]
@@ -1069,6 +1073,10 @@ macro_rules! implement_single_value_group_operand {
                 });
             }
 
+            pub fn ungroup(&mut self) -> $ungrouped_operand_name {
+                self.0.ungroup().into()
+            }
+
             pub fn deep_clone(&self) -> $name {
                 self.0.deep_clone().into()
             }
@@ -1079,24 +1087,28 @@ macro_rules! implement_single_value_group_operand {
 implement_single_value_group_operand!(
     PyNodeSingleValueWithIndexGroupOperand,
     PyNodeSingleValueWithIndexOperand,
+    PyNodeMultipleValuesWithIndexOperand,
     SingleValueWithIndexOperand,
     NodeOperand
 );
 implement_single_value_group_operand!(
     PyEdgeSingleValueWithIndexGroupOperand,
     PyEdgeSingleValueWithIndexOperand,
+    PyEdgeMultipleValuesWithIndexOperand,
     SingleValueWithIndexOperand,
     EdgeOperand
 );
 implement_single_value_group_operand!(
     PyNodeSingleValueWithoutIndexGroupOperand,
     PyNodeSingleValueWithoutIndexOperand,
+    PyNodeMultipleValuesWithoutIndexOperand,
     SingleValueWithoutIndexOperand,
     NodeOperand
 );
 implement_single_value_group_operand!(
     PyEdgeSingleValueWithoutIndexGroupOperand,
     PyEdgeSingleValueWithoutIndexOperand,
+    PyEdgeMultipleValuesWithoutIndexOperand,
     SingleValueWithoutIndexOperand,
     EdgeOperand
 );

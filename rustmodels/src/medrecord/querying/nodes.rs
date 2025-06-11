@@ -18,7 +18,7 @@ use medmodels_core::{
         querying::{
             group_by::GroupOperand,
             nodes::{
-                EdgeDirection, NodeIndexComparisonOperand, NodeIndexOperand,
+                self, EdgeDirection, NodeIndexComparisonOperand, NodeIndexOperand,
                 NodeIndicesComparisonOperand, NodeIndicesOperand, NodeOperand,
             },
             wrapper::Wrapper,
@@ -58,6 +58,22 @@ impl From<PyEdgeDirection> for EdgeDirection {
             PyEdgeDirection::Incoming => Self::Incoming,
             PyEdgeDirection::Outgoing => Self::Outgoing,
             PyEdgeDirection::Both => Self::Both,
+        }
+    }
+}
+
+#[pyclass]
+#[derive(Clone)]
+pub enum NodeOperandGroupDiscriminator {
+    Attribute(PyMedRecordAttribute),
+}
+
+impl From<NodeOperandGroupDiscriminator> for nodes::NodeOperandGroupDiscriminator {
+    fn from(value: NodeOperandGroupDiscriminator) -> Self {
+        match value {
+            NodeOperandGroupDiscriminator::Attribute(attribute) => {
+                Self::Attribute(attribute.into())
+            }
         }
     }
 }
@@ -131,6 +147,10 @@ impl PyNodeOperand {
                 .call1((PyNodeOperand::from(operand.clone()),))
                 .expect("Call must succeed");
         });
+    }
+
+    pub fn group_by(&mut self, discriminator: NodeOperandGroupDiscriminator) -> PyNodeGroupOperand {
+        self.0.group_by(discriminator.into()).into()
     }
 
     pub fn deep_clone(&self) -> Self {
@@ -642,6 +662,10 @@ impl PyNodeIndicesGroupOperand {
         });
     }
 
+    pub fn ungroup(&mut self) -> PyNodeIndicesOperand {
+        self.0.ungroup().into()
+    }
+
     pub fn deep_clone(&self) -> Self {
         self.0.deep_clone().into()
     }
@@ -948,6 +972,10 @@ impl PyNodeIndexGroupOperand {
                 .call1((PyNodeIndexOperand::from(operand.clone()),))
                 .expect("Call must succeed");
         });
+    }
+
+    pub fn ungroup(&mut self) -> PyNodeIndicesOperand {
+        self.0.ungroup().into()
     }
 
     pub fn deep_clone(&self) -> Self {
