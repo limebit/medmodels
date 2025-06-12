@@ -640,11 +640,12 @@ impl<O: RootOperand> Add for MultipleValuesWithIndexOperand<O> {
     type ComparisonOperand = SingleValueComparisonOperand;
 
     fn add<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
-        self.operations
-            .push(MultipleValuesWithIndexOperation::BinaryArithmeticOpration {
+        self.operations.push(
+            MultipleValuesWithIndexOperation::BinaryArithmeticOperation {
                 operand: value.into(),
                 kind: BinaryArithmeticKind::Add,
-            });
+            },
+        );
     }
 }
 
@@ -652,11 +653,12 @@ impl<O: RootOperand> Sub for MultipleValuesWithIndexOperand<O> {
     type ComparisonOperand = SingleValueComparisonOperand;
 
     fn sub<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
-        self.operations
-            .push(MultipleValuesWithIndexOperation::BinaryArithmeticOpration {
+        self.operations.push(
+            MultipleValuesWithIndexOperation::BinaryArithmeticOperation {
                 operand: value.into(),
                 kind: BinaryArithmeticKind::Sub,
-            });
+            },
+        );
     }
 }
 
@@ -664,11 +666,12 @@ impl<O: RootOperand> Mul for MultipleValuesWithIndexOperand<O> {
     type ComparisonOperand = SingleValueComparisonOperand;
 
     fn mul<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
-        self.operations
-            .push(MultipleValuesWithIndexOperation::BinaryArithmeticOpration {
+        self.operations.push(
+            MultipleValuesWithIndexOperation::BinaryArithmeticOperation {
                 operand: value.into(),
                 kind: BinaryArithmeticKind::Mul,
-            });
+            },
+        );
     }
 }
 
@@ -676,11 +679,12 @@ impl<O: RootOperand> Div for MultipleValuesWithIndexOperand<O> {
     type ComparisonOperand = SingleValueComparisonOperand;
 
     fn div<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
-        self.operations
-            .push(MultipleValuesWithIndexOperation::BinaryArithmeticOpration {
+        self.operations.push(
+            MultipleValuesWithIndexOperation::BinaryArithmeticOperation {
                 operand: value.into(),
                 kind: BinaryArithmeticKind::Div,
-            });
+            },
+        );
     }
 }
 
@@ -688,11 +692,12 @@ impl<O: RootOperand> Pow for MultipleValuesWithIndexOperand<O> {
     type ComparisonOperand = SingleValueComparisonOperand;
 
     fn pow<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
-        self.operations
-            .push(MultipleValuesWithIndexOperation::BinaryArithmeticOpration {
+        self.operations.push(
+            MultipleValuesWithIndexOperation::BinaryArithmeticOperation {
                 operand: value.into(),
                 kind: BinaryArithmeticKind::Pow,
-            });
+            },
+        );
     }
 }
 
@@ -700,11 +705,12 @@ impl<O: RootOperand> Mod for MultipleValuesWithIndexOperand<O> {
     type ComparisonOperand = SingleValueComparisonOperand;
 
     fn r#mod<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
-        self.operations
-            .push(MultipleValuesWithIndexOperation::BinaryArithmeticOpration {
+        self.operations.push(
+            MultipleValuesWithIndexOperation::BinaryArithmeticOperation {
                 operand: value.into(),
                 kind: BinaryArithmeticKind::Mod,
-            });
+            },
+        );
     }
 }
 
@@ -1305,7 +1311,7 @@ impl<O: RootOperand> Add for MultipleValuesWithoutIndexOperand<O> {
 
     fn add<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
         self.operations.push(
-            MultipleValuesWithoutIndexOperation::BinaryArithmeticOpration {
+            MultipleValuesWithoutIndexOperation::BinaryArithmeticOperation {
                 operand: value.into(),
                 kind: BinaryArithmeticKind::Add,
             },
@@ -1318,7 +1324,7 @@ impl<O: RootOperand> Sub for MultipleValuesWithoutIndexOperand<O> {
 
     fn sub<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
         self.operations.push(
-            MultipleValuesWithoutIndexOperation::BinaryArithmeticOpration {
+            MultipleValuesWithoutIndexOperation::BinaryArithmeticOperation {
                 operand: value.into(),
                 kind: BinaryArithmeticKind::Sub,
             },
@@ -1331,7 +1337,7 @@ impl<O: RootOperand> Mul for MultipleValuesWithoutIndexOperand<O> {
 
     fn mul<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
         self.operations.push(
-            MultipleValuesWithoutIndexOperation::BinaryArithmeticOpration {
+            MultipleValuesWithoutIndexOperation::BinaryArithmeticOperation {
                 operand: value.into(),
                 kind: BinaryArithmeticKind::Mul,
             },
@@ -1344,7 +1350,7 @@ impl<O: RootOperand> Div for MultipleValuesWithoutIndexOperand<O> {
 
     fn div<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
         self.operations.push(
-            MultipleValuesWithoutIndexOperation::BinaryArithmeticOpration {
+            MultipleValuesWithoutIndexOperation::BinaryArithmeticOperation {
                 operand: value.into(),
                 kind: BinaryArithmeticKind::Div,
             },
@@ -1357,7 +1363,7 @@ impl<O: RootOperand> Pow for MultipleValuesWithoutIndexOperand<O> {
 
     fn pow<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
         self.operations.push(
-            MultipleValuesWithoutIndexOperation::BinaryArithmeticOpration {
+            MultipleValuesWithoutIndexOperation::BinaryArithmeticOperation {
                 operand: value.into(),
                 kind: BinaryArithmeticKind::Pow,
             },
@@ -1370,7 +1376,7 @@ impl<O: RootOperand> Mod for MultipleValuesWithoutIndexOperand<O> {
 
     fn r#mod<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
         self.operations.push(
-            MultipleValuesWithoutIndexOperation::BinaryArithmeticOpration {
+            MultipleValuesWithoutIndexOperation::BinaryArithmeticOperation {
                 operand: value.into(),
                 kind: BinaryArithmeticKind::Mod,
             },
@@ -1830,7 +1836,7 @@ impl<O: RootOperand> Add for SingleValueWithIndexOperand<O> {
 
     fn add<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
         self.operations
-            .push(SingleValueWithIndexOperation::BinaryArithmeticOpration {
+            .push(SingleValueWithIndexOperation::BinaryArithmeticOperation {
                 operand: value.into(),
                 kind: BinaryArithmeticKind::Add,
             });
@@ -1842,7 +1848,7 @@ impl<O: RootOperand> Sub for SingleValueWithIndexOperand<O> {
 
     fn sub<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
         self.operations
-            .push(SingleValueWithIndexOperation::BinaryArithmeticOpration {
+            .push(SingleValueWithIndexOperation::BinaryArithmeticOperation {
                 operand: value.into(),
                 kind: BinaryArithmeticKind::Sub,
             });
@@ -1854,7 +1860,7 @@ impl<O: RootOperand> Mul for SingleValueWithIndexOperand<O> {
 
     fn mul<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
         self.operations
-            .push(SingleValueWithIndexOperation::BinaryArithmeticOpration {
+            .push(SingleValueWithIndexOperation::BinaryArithmeticOperation {
                 operand: value.into(),
                 kind: BinaryArithmeticKind::Mul,
             });
@@ -1866,7 +1872,7 @@ impl<O: RootOperand> Div for SingleValueWithIndexOperand<O> {
 
     fn div<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
         self.operations
-            .push(SingleValueWithIndexOperation::BinaryArithmeticOpration {
+            .push(SingleValueWithIndexOperation::BinaryArithmeticOperation {
                 operand: value.into(),
                 kind: BinaryArithmeticKind::Div,
             });
@@ -1878,7 +1884,7 @@ impl<O: RootOperand> Pow for SingleValueWithIndexOperand<O> {
 
     fn pow<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
         self.operations
-            .push(SingleValueWithIndexOperation::BinaryArithmeticOpration {
+            .push(SingleValueWithIndexOperation::BinaryArithmeticOperation {
                 operand: value.into(),
                 kind: BinaryArithmeticKind::Pow,
             });
@@ -1890,7 +1896,7 @@ impl<O: RootOperand> Mod for SingleValueWithIndexOperand<O> {
 
     fn r#mod<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
         self.operations
-            .push(SingleValueWithIndexOperation::BinaryArithmeticOpration {
+            .push(SingleValueWithIndexOperation::BinaryArithmeticOperation {
                 operand: value.into(),
                 kind: BinaryArithmeticKind::Mod,
             });
@@ -2353,11 +2359,12 @@ impl<O: RootOperand> Add for SingleValueWithoutIndexOperand<O> {
     type ComparisonOperand = SingleValueComparisonOperand;
 
     fn add<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
-        self.operations
-            .push(SingleValueWithoutIndexOperation::BinaryArithmeticOpration {
+        self.operations.push(
+            SingleValueWithoutIndexOperation::BinaryArithmeticOperation {
                 operand: value.into(),
                 kind: BinaryArithmeticKind::Add,
-            });
+            },
+        );
     }
 }
 
@@ -2365,11 +2372,12 @@ impl<O: RootOperand> Sub for SingleValueWithoutIndexOperand<O> {
     type ComparisonOperand = SingleValueComparisonOperand;
 
     fn sub<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
-        self.operations
-            .push(SingleValueWithoutIndexOperation::BinaryArithmeticOpration {
+        self.operations.push(
+            SingleValueWithoutIndexOperation::BinaryArithmeticOperation {
                 operand: value.into(),
                 kind: BinaryArithmeticKind::Sub,
-            });
+            },
+        );
     }
 }
 
@@ -2377,11 +2385,12 @@ impl<O: RootOperand> Mul for SingleValueWithoutIndexOperand<O> {
     type ComparisonOperand = SingleValueComparisonOperand;
 
     fn mul<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
-        self.operations
-            .push(SingleValueWithoutIndexOperation::BinaryArithmeticOpration {
+        self.operations.push(
+            SingleValueWithoutIndexOperation::BinaryArithmeticOperation {
                 operand: value.into(),
                 kind: BinaryArithmeticKind::Mul,
-            });
+            },
+        );
     }
 }
 
@@ -2389,11 +2398,12 @@ impl<O: RootOperand> Div for SingleValueWithoutIndexOperand<O> {
     type ComparisonOperand = SingleValueComparisonOperand;
 
     fn div<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
-        self.operations
-            .push(SingleValueWithoutIndexOperation::BinaryArithmeticOpration {
+        self.operations.push(
+            SingleValueWithoutIndexOperation::BinaryArithmeticOperation {
                 operand: value.into(),
                 kind: BinaryArithmeticKind::Div,
-            });
+            },
+        );
     }
 }
 
@@ -2401,11 +2411,12 @@ impl<O: RootOperand> Pow for SingleValueWithoutIndexOperand<O> {
     type ComparisonOperand = SingleValueComparisonOperand;
 
     fn pow<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
-        self.operations
-            .push(SingleValueWithoutIndexOperation::BinaryArithmeticOpration {
+        self.operations.push(
+            SingleValueWithoutIndexOperation::BinaryArithmeticOperation {
                 operand: value.into(),
                 kind: BinaryArithmeticKind::Pow,
-            });
+            },
+        );
     }
 }
 
@@ -2413,11 +2424,12 @@ impl<O: RootOperand> Mod for SingleValueWithoutIndexOperand<O> {
     type ComparisonOperand = SingleValueComparisonOperand;
 
     fn r#mod<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
-        self.operations
-            .push(SingleValueWithoutIndexOperation::BinaryArithmeticOpration {
+        self.operations.push(
+            SingleValueWithoutIndexOperation::BinaryArithmeticOperation {
                 operand: value.into(),
                 kind: BinaryArithmeticKind::Mod,
-            });
+            },
+        );
     }
 }
 

@@ -72,7 +72,7 @@ pub enum MultipleValuesWithIndexOperation<O: RootOperand> {
         operand: MultipleValuesComparisonOperand,
         kind: MultipleComparisonKind,
     },
-    BinaryArithmeticOpration {
+    BinaryArithmeticOperation {
         operand: SingleValueComparisonOperand,
         kind: BinaryArithmeticKind,
     },
@@ -127,7 +127,7 @@ impl<O: RootOperand> DeepClone for MultipleValuesWithIndexOperation<O> {
                     kind: kind.clone(),
                 }
             }
-            Self::BinaryArithmeticOpration { operand, kind } => Self::BinaryArithmeticOpration {
+            Self::BinaryArithmeticOperation { operand, kind } => Self::BinaryArithmeticOperation {
                 operand: operand.deep_clone(),
                 kind: kind.clone(),
             },
@@ -182,7 +182,7 @@ impl<O: RootOperand> MultipleValuesWithIndexOperation<O> {
                     medrecord, values, operand, kind,
                 )?
             }
-            Self::BinaryArithmeticOpration { operand, kind } => Box::new(
+            Self::BinaryArithmeticOperation { operand, kind } => Box::new(
                 Self::evaluate_binary_arithmetic_operation(medrecord, values, operand, kind)?,
             ),
             Self::UnaryArithmeticOperation { kind } => Box::new(
@@ -702,7 +702,7 @@ impl<O: RootOperand> MultipleValuesWithIndexOperation<O> {
                     .collect::<MedRecordResult<Vec<_>>>()?
                     .into_iter(),
             ),
-            Self::BinaryArithmeticOpration { operand, kind } => Box::new(
+            Self::BinaryArithmeticOperation { operand, kind } => Box::new(
                 values
                     .map(move |(key, values)| {
                         Ok((
@@ -1034,7 +1034,7 @@ pub enum MultipleValuesWithoutIndexOperation<O: RootOperand> {
         operand: MultipleValuesComparisonOperand,
         kind: MultipleComparisonKind,
     },
-    BinaryArithmeticOpration {
+    BinaryArithmeticOperation {
         operand: SingleValueComparisonOperand,
         kind: BinaryArithmeticKind,
     },
@@ -1082,7 +1082,7 @@ impl<O: RootOperand> DeepClone for MultipleValuesWithoutIndexOperation<O> {
                     kind: kind.clone(),
                 }
             }
-            Self::BinaryArithmeticOpration { operand, kind } => Self::BinaryArithmeticOpration {
+            Self::BinaryArithmeticOperation { operand, kind } => Self::BinaryArithmeticOperation {
                 operand: operand.deep_clone(),
                 kind: kind.clone(),
             },
@@ -1131,7 +1131,7 @@ impl<O: RootOperand> MultipleValuesWithoutIndexOperation<O> {
                     medrecord, values, operand, kind,
                 )?
             }
-            Self::BinaryArithmeticOpration { operand, kind } => Box::new(
+            Self::BinaryArithmeticOperation { operand, kind } => Box::new(
                 Self::evaluate_binary_arithmetic_operation(medrecord, values, operand, kind)?,
             ),
             Self::UnaryArithmeticOperation { kind } => Box::new(
@@ -1814,7 +1814,7 @@ pub enum SingleValueWithIndexOperation<O: RootOperand> {
         operand: MultipleValuesComparisonOperand,
         kind: MultipleComparisonKind,
     },
-    BinaryArithmeticOpration {
+    BinaryArithmeticOperation {
         operand: SingleValueComparisonOperand,
         kind: BinaryArithmeticKind,
     },
@@ -1860,7 +1860,7 @@ impl<O: RootOperand> DeepClone for SingleValueWithIndexOperation<O> {
                     kind: kind.clone(),
                 }
             }
-            Self::BinaryArithmeticOpration { operand, kind } => Self::BinaryArithmeticOpration {
+            Self::BinaryArithmeticOperation { operand, kind } => Self::BinaryArithmeticOperation {
                 operand: operand.deep_clone(),
                 kind: kind.clone(),
             },
@@ -1911,7 +1911,7 @@ impl<O: RootOperand> SingleValueWithIndexOperation<O> {
                     medrecord, value, operand, kind,
                 )?
             }
-            Self::BinaryArithmeticOpration { operand, kind } => {
+            Self::BinaryArithmeticOperation { operand, kind } => {
                 Self::evaluate_binary_arithmetic_operation(medrecord, value, operand, kind)?
             }
             Self::UnaryArithmeticOperation { kind } => {
@@ -2167,7 +2167,7 @@ impl<O: RootOperand> SingleValueWithIndexOperation<O> {
                     .collect::<MedRecordResult<Vec<_>>>()?
                     .into_iter(),
             ),
-            Self::BinaryArithmeticOpration { operand, kind } => Box::new(
+            Self::BinaryArithmeticOperation { operand, kind } => Box::new(
                 values
                     .map(move |(key, value)| {
                         let Some(value) = value else {
@@ -2366,7 +2366,7 @@ pub enum SingleValueWithoutIndexOperation<O: RootOperand> {
         operand: MultipleValuesComparisonOperand,
         kind: MultipleComparisonKind,
     },
-    BinaryArithmeticOpration {
+    BinaryArithmeticOperation {
         operand: SingleValueComparisonOperand,
         kind: BinaryArithmeticKind,
     },
@@ -2412,7 +2412,7 @@ impl<O: RootOperand> DeepClone for SingleValueWithoutIndexOperation<O> {
                     kind: kind.clone(),
                 }
             }
-            Self::BinaryArithmeticOpration { operand, kind } => Self::BinaryArithmeticOpration {
+            Self::BinaryArithmeticOperation { operand, kind } => Self::BinaryArithmeticOperation {
                 operand: operand.deep_clone(),
                 kind: kind.clone(),
             },
@@ -2458,7 +2458,7 @@ impl<O: RootOperand> SingleValueWithoutIndexOperation<O> {
             Self::MultipleValuesComparisonOperation { operand, kind } => {
                 Self::evaluate_multiple_values_comparison_operation(medrecord, value, operand, kind)
             }
-            Self::BinaryArithmeticOpration { operand, kind } => {
+            Self::BinaryArithmeticOperation { operand, kind } => {
                 Self::evaluate_binary_arithmetic_operation(medrecord, value, operand, kind)
             }
             Self::UnaryArithmeticOperation { kind } => {
@@ -2697,7 +2697,7 @@ impl<O: RootOperand> SingleValueWithoutIndexOperation<O> {
                     .collect::<MedRecordResult<Vec<_>>>()?
                     .into_iter(),
             ),
-            Self::BinaryArithmeticOpration { operand, kind } => Box::new(
+            Self::BinaryArithmeticOperation { operand, kind } => Box::new(
                 values
                     .map(move |(key, value)| {
                         let Some(value) = value else {

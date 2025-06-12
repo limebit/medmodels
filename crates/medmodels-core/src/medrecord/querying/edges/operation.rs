@@ -718,7 +718,7 @@ pub enum EdgeIndicesOperation {
         operand: EdgeIndicesComparisonOperand,
         kind: MultipleComparisonKind,
     },
-    BinaryArithmeticOpration {
+    BinaryArithmeticOperation {
         operand: EdgeIndexComparisonOperand,
         kind: BinaryArithmeticKind,
     },
@@ -757,7 +757,7 @@ impl DeepClone for EdgeIndicesOperation {
                     kind: kind.clone(),
                 }
             }
-            Self::BinaryArithmeticOpration { operand, kind } => Self::BinaryArithmeticOpration {
+            Self::BinaryArithmeticOperation { operand, kind } => Self::BinaryArithmeticOperation {
                 operand: operand.deep_clone(),
                 kind: kind.clone(),
             },
@@ -793,7 +793,7 @@ impl EdgeIndicesOperation {
             Self::EdgeIndicesComparisonOperation { operand, kind } => {
                 Self::evaluate_edge_indices_comparison_operation(medrecord, indices, operand, kind)?
             }
-            Self::BinaryArithmeticOpration { operand, kind } => Box::new(
+            Self::BinaryArithmeticOperation { operand, kind } => Box::new(
                 Self::evaluate_binary_arithmetic_operation(medrecord, indices, operand, kind)?,
             ),
             Self::IsMax => Self::evaluate_is_max(indices),
@@ -1049,7 +1049,7 @@ impl EdgeIndicesOperation {
                     .collect::<MedRecordResult<Vec<_>>>()?
                     .into_iter(),
             ),
-            EdgeIndicesOperation::BinaryArithmeticOpration { operand, kind } => Box::new(
+            EdgeIndicesOperation::BinaryArithmeticOperation { operand, kind } => Box::new(
                 edge_indices
                     .map(move |(key, edge_indices)| {
                         Ok((
@@ -1221,7 +1221,7 @@ pub enum EdgeIndexOperation {
         operand: EdgeIndicesComparisonOperand,
         kind: MultipleComparisonKind,
     },
-    BinaryArithmeticOpration {
+    BinaryArithmeticOperation {
         operand: EdgeIndexComparisonOperand,
         kind: BinaryArithmeticKind,
     },
@@ -1254,7 +1254,7 @@ impl DeepClone for EdgeIndexOperation {
                     kind: kind.clone(),
                 }
             }
-            Self::BinaryArithmeticOpration { operand, kind } => Self::BinaryArithmeticOpration {
+            Self::BinaryArithmeticOperation { operand, kind } => Self::BinaryArithmeticOperation {
                 operand: operand.deep_clone(),
                 kind: kind.clone(),
             },
@@ -1289,7 +1289,7 @@ impl EdgeIndexOperation {
             Self::EdgeIndicesComparisonOperation { operand, kind } => {
                 Self::evaluate_edge_indcies_comparison_operation(medrecord, index, operand, kind)
             }
-            Self::BinaryArithmeticOpration { operand, kind } => {
+            Self::BinaryArithmeticOperation { operand, kind } => {
                 Self::evaluate_binary_arithmetic_operation(medrecord, index, operand, kind)
             }
             Self::EitherOr { either, or } => Self::evaluate_either_or(medrecord, index, either, or),
@@ -1430,7 +1430,7 @@ impl EdgeIndexOperation {
                     .collect::<MedRecordResult<Vec<_>>>()?
                     .into_iter(),
             ),
-            EdgeIndexOperation::BinaryArithmeticOpration { operand, kind } => Box::new(
+            EdgeIndexOperation::BinaryArithmeticOperation { operand, kind } => Box::new(
                 edge_indices
                     .map(move |(key, edge_index)| {
                         let Some(edge_index) = edge_index else {

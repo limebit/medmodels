@@ -824,7 +824,7 @@ impl Add for NodeIndicesOperand {
 
     fn add<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
         self.operations
-            .push(NodeIndicesOperation::BinaryArithmeticOpration {
+            .push(NodeIndicesOperation::BinaryArithmeticOperation {
                 operand: value.into(),
                 kind: BinaryArithmeticKind::Add,
             });
@@ -836,7 +836,7 @@ impl Sub for NodeIndicesOperand {
 
     fn sub<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
         self.operations
-            .push(NodeIndicesOperation::BinaryArithmeticOpration {
+            .push(NodeIndicesOperation::BinaryArithmeticOperation {
                 operand: value.into(),
                 kind: BinaryArithmeticKind::Sub,
             });
@@ -848,7 +848,7 @@ impl Mul for NodeIndicesOperand {
 
     fn mul<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
         self.operations
-            .push(NodeIndicesOperation::BinaryArithmeticOpration {
+            .push(NodeIndicesOperation::BinaryArithmeticOperation {
                 operand: value.into(),
                 kind: BinaryArithmeticKind::Mul,
             });
@@ -860,7 +860,7 @@ impl Pow for NodeIndicesOperand {
 
     fn pow<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
         self.operations
-            .push(NodeIndicesOperation::BinaryArithmeticOpration {
+            .push(NodeIndicesOperation::BinaryArithmeticOperation {
                 operand: value.into(),
                 kind: BinaryArithmeticKind::Pow,
             });
@@ -872,7 +872,7 @@ impl Mod for NodeIndicesOperand {
 
     fn r#mod<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
         self.operations
-            .push(NodeIndicesOperation::BinaryArithmeticOpration {
+            .push(NodeIndicesOperation::BinaryArithmeticOperation {
                 operand: value.into(),
                 kind: BinaryArithmeticKind::Mod,
             });
@@ -1240,7 +1240,7 @@ impl Add for NodeIndexOperand {
 
     fn add<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
         self.operations
-            .push(NodeIndexOperation::BinaryArithmeticOpration {
+            .push(NodeIndexOperation::BinaryArithmeticOperation {
                 operand: value.into(),
                 kind: BinaryArithmeticKind::Add,
             });
@@ -1252,7 +1252,7 @@ impl Sub for NodeIndexOperand {
 
     fn sub<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
         self.operations
-            .push(NodeIndexOperation::BinaryArithmeticOpration {
+            .push(NodeIndexOperation::BinaryArithmeticOperation {
                 operand: value.into(),
                 kind: BinaryArithmeticKind::Sub,
             });
@@ -1264,7 +1264,7 @@ impl Mul for NodeIndexOperand {
 
     fn mul<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
         self.operations
-            .push(NodeIndexOperation::BinaryArithmeticOpration {
+            .push(NodeIndexOperation::BinaryArithmeticOperation {
                 operand: value.into(),
                 kind: BinaryArithmeticKind::Mul,
             });
@@ -1276,7 +1276,7 @@ impl Pow for NodeIndexOperand {
 
     fn pow<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
         self.operations
-            .push(NodeIndexOperation::BinaryArithmeticOpration {
+            .push(NodeIndexOperation::BinaryArithmeticOperation {
                 operand: value.into(),
                 kind: BinaryArithmeticKind::Pow,
             });
@@ -1288,7 +1288,7 @@ impl Mod for NodeIndexOperand {
 
     fn r#mod<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
         self.operations
-            .push(NodeIndexOperation::BinaryArithmeticOpration {
+            .push(NodeIndexOperation::BinaryArithmeticOperation {
                 operand: value.into(),
                 kind: BinaryArithmeticKind::Mod,
             });

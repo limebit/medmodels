@@ -851,7 +851,7 @@ pub enum NodeIndicesOperation {
         operand: NodeIndicesComparisonOperand,
         kind: MultipleComparisonKind,
     },
-    BinaryArithmeticOpration {
+    BinaryArithmeticOperation {
         operand: NodeIndexComparisonOperand,
         kind: BinaryArithmeticKind,
     },
@@ -898,7 +898,7 @@ impl DeepClone for NodeIndicesOperation {
                     kind: kind.clone(),
                 }
             }
-            Self::BinaryArithmeticOpration { operand, kind } => Self::BinaryArithmeticOpration {
+            Self::BinaryArithmeticOperation { operand, kind } => Self::BinaryArithmeticOperation {
                 operand: operand.deep_clone(),
                 kind: kind.clone(),
             },
@@ -940,7 +940,7 @@ impl NodeIndicesOperation {
             Self::NodeIndicesComparisonOperation { operand, kind } => {
                 Self::evaluate_node_indices_comparison_operation(medrecord, indices, operand, kind)?
             }
-            Self::BinaryArithmeticOpration { operand, kind } => Box::new(
+            Self::BinaryArithmeticOperation { operand, kind } => Box::new(
                 Self::evaluate_binary_arithmetic_operation(medrecord, indices, operand, kind)?,
             ),
             Self::UnaryArithmeticOperation { kind } => Box::new(
@@ -1325,7 +1325,7 @@ impl NodeIndicesOperation {
                     .collect::<MedRecordResult<Vec<_>>>()?
                     .into_iter(),
             ),
-            NodeIndicesOperation::BinaryArithmeticOpration { operand, kind } => Box::new(
+            NodeIndicesOperation::BinaryArithmeticOperation { operand, kind } => Box::new(
                 node_indices
                     .map(move |(key, node_indices)| {
                         Ok((
@@ -1545,7 +1545,7 @@ pub enum NodeIndexOperation {
         operand: NodeIndicesComparisonOperand,
         kind: MultipleComparisonKind,
     },
-    BinaryArithmeticOpration {
+    BinaryArithmeticOperation {
         operand: NodeIndexComparisonOperand,
         kind: BinaryArithmeticKind,
     },
@@ -1586,7 +1586,7 @@ impl DeepClone for NodeIndexOperation {
                     kind: kind.clone(),
                 }
             }
-            Self::BinaryArithmeticOpration { operand, kind } => Self::BinaryArithmeticOpration {
+            Self::BinaryArithmeticOperation { operand, kind } => Self::BinaryArithmeticOperation {
                 operand: operand.deep_clone(),
                 kind: kind.clone(),
             },
@@ -1631,7 +1631,7 @@ impl NodeIndexOperation {
                     medrecord, node_index, operand, kind,
                 )?
             }
-            Self::BinaryArithmeticOpration { operand, kind } => {
+            Self::BinaryArithmeticOperation { operand, kind } => {
                 Self::evaluate_binary_arithmetic_operation(medrecord, node_index, operand, kind)?
             }
             Self::UnaryArithmeticOperation { kind } => {
@@ -1822,7 +1822,7 @@ impl NodeIndexOperation {
                     .collect::<MedRecordResult<Vec<_>>>()?
                     .into_iter(),
             ),
-            NodeIndexOperation::BinaryArithmeticOpration { operand, kind } => Box::new(
+            NodeIndexOperation::BinaryArithmeticOperation { operand, kind } => Box::new(
                 node_indices
                     .map(move |(key, node_index)| {
                         let Some(node_index) = node_index else {

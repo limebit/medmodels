@@ -834,7 +834,7 @@ impl Add for EdgeIndicesOperand {
 
     fn add<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
         self.operations
-            .push(EdgeIndicesOperation::BinaryArithmeticOpration {
+            .push(EdgeIndicesOperation::BinaryArithmeticOperation {
                 operand: value.into(),
                 kind: BinaryArithmeticKind::Add,
             });
@@ -846,7 +846,7 @@ impl Sub for EdgeIndicesOperand {
 
     fn sub<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
         self.operations
-            .push(EdgeIndicesOperation::BinaryArithmeticOpration {
+            .push(EdgeIndicesOperation::BinaryArithmeticOperation {
                 operand: value.into(),
                 kind: BinaryArithmeticKind::Sub,
             });
@@ -858,7 +858,7 @@ impl Mul for EdgeIndicesOperand {
 
     fn mul<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
         self.operations
-            .push(EdgeIndicesOperation::BinaryArithmeticOpration {
+            .push(EdgeIndicesOperation::BinaryArithmeticOperation {
                 operand: value.into(),
                 kind: BinaryArithmeticKind::Mul,
             });
@@ -870,7 +870,7 @@ impl Pow for EdgeIndicesOperand {
 
     fn pow<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
         self.operations
-            .push(EdgeIndicesOperation::BinaryArithmeticOpration {
+            .push(EdgeIndicesOperation::BinaryArithmeticOperation {
                 operand: value.into(),
                 kind: BinaryArithmeticKind::Pow,
             });
@@ -882,7 +882,7 @@ impl Mod for EdgeIndicesOperand {
 
     fn r#mod<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
         self.operations
-            .push(EdgeIndicesOperation::BinaryArithmeticOpration {
+            .push(EdgeIndicesOperation::BinaryArithmeticOperation {
                 operand: value.into(),
                 kind: BinaryArithmeticKind::Mod,
             });
@@ -1178,7 +1178,7 @@ impl Add for EdgeIndexOperand {
 
     fn add<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
         self.operations
-            .push(EdgeIndexOperation::BinaryArithmeticOpration {
+            .push(EdgeIndexOperation::BinaryArithmeticOperation {
                 operand: value.into(),
                 kind: BinaryArithmeticKind::Add,
             });
@@ -1190,7 +1190,7 @@ impl Sub for EdgeIndexOperand {
 
     fn sub<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
         self.operations
-            .push(EdgeIndexOperation::BinaryArithmeticOpration {
+            .push(EdgeIndexOperation::BinaryArithmeticOperation {
                 operand: value.into(),
                 kind: BinaryArithmeticKind::Sub,
             });
@@ -1202,7 +1202,7 @@ impl Mul for EdgeIndexOperand {
 
     fn mul<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
         self.operations
-            .push(EdgeIndexOperation::BinaryArithmeticOpration {
+            .push(EdgeIndexOperation::BinaryArithmeticOperation {
                 operand: value.into(),
                 kind: BinaryArithmeticKind::Mul,
             });
@@ -1214,7 +1214,7 @@ impl Pow for EdgeIndexOperand {
 
     fn pow<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
         self.operations
-            .push(EdgeIndexOperation::BinaryArithmeticOpration {
+            .push(EdgeIndexOperation::BinaryArithmeticOperation {
                 operand: value.into(),
                 kind: BinaryArithmeticKind::Pow,
             });
@@ -1226,7 +1226,7 @@ impl Mod for EdgeIndexOperand {
 
     fn r#mod<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
         self.operations
-            .push(EdgeIndexOperation::BinaryArithmeticOpration {
+            .push(EdgeIndexOperation::BinaryArithmeticOperation {
                 operand: value.into(),
                 kind: BinaryArithmeticKind::Mod,
             });
