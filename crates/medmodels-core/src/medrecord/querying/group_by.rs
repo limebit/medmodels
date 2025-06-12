@@ -82,38 +82,3 @@ impl<O: GroupedOperand> Wrapper<GroupOperand<O>> {
         GroupOperand::new(context, operand).into()
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use crate::{
-        medrecord::querying::{edges::EdgeOperandGroupDiscriminator, nodes::EdgeDirection},
-        prelude::MedRecordAttribute,
-        MedRecord,
-    };
-
-    #[test]
-    fn test_group_by() {
-        let medrecord = MedRecord::from_admissions_example_dataset();
-
-        let result = medrecord
-            .query_nodes(|nodes| {
-                nodes.in_group(MedRecordAttribute::from("patient"));
-
-                let edges = nodes.edges(EdgeDirection::Outgoing);
-
-                edges
-                    .target_node()
-                    .in_group(MedRecordAttribute::from("admission"));
-
-                let grouped_edges = edges.group_by(EdgeOperandGroupDiscriminator::SourceNode);
-
-                grouped_edges.index().count().ungroup().is_max();
-
-                (edges.index().count(), nodes.index().random())
-            })
-            .evaluate()
-            .unwrap();
-
-        println!("{:?}", result);
-    }
-}
