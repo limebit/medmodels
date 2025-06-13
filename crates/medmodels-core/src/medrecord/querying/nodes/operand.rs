@@ -1,28 +1,41 @@
 use super::{
     operation::{EdgeDirection, NodeIndexOperation, NodeIndicesOperation, NodeOperation},
-    BinaryArithmeticKind, Context, MultipleComparisonKind, SingleComparisonKind, SingleKind,
-    UnaryArithmeticKind,
+    BinaryArithmeticKind, MultipleComparisonKind, NodeOperandContext, SingleComparisonKind,
+    SingleKind, UnaryArithmeticKind,
 };
 use crate::{
     errors::MedRecordResult,
     medrecord::{
         querying::{
-            attributes::AttributesTreeOperand,
+            attributes::{AttributesTreeContext, AttributesTreeOperand},
             edges::{self, EdgeOperand},
-            traits::{DeepClone, ReadWriteOrPanic},
-            values::{self, MultipleValuesOperand},
+            group_by::{GroupKey, GroupOperand, PartitionGroups},
+            nodes::{
+                group_by::{self, NodeOperandGroupDiscriminator},
+                NodeIndicesOperandContext,
+            },
+            operand_traits::{
+                Abs, Add, Attribute, Attributes, Contains, Count, Edges, EitherOr, EndsWith,
+                EqualTo, Exclude, GreaterThan, GreaterThanOrEqualTo, HasAttribute, InGroup, Index,
+                IsIn, IsInt, IsMax, IsMin, IsNotIn, IsString, LessThan, LessThanOrEqualTo,
+                Lowercase, Max, Min, Mod, Mul, Neighbors, NotEqualTo, Pow, Random, Slice,
+                StartsWith, Sub, Sum, Trim, TrimEnd, TrimStart, Uppercase,
+            },
+            values::{self, MultipleValuesWithIndexOperand},
             wrapper::{CardinalityWrapper, Wrapper},
-            BoxedIterator,
+            BoxedIterator, DeepClone, EvaluateBackward, EvaluateForward, EvaluateForwardGrouped,
+            GroupedIterator, ReadWriteOrPanic, ReduceInput, RootOperand,
         },
         Group, MedRecordAttribute, NodeIndex,
     },
+    prelude::MedRecordValue,
     MedRecord,
 };
 use std::{collections::HashSet, fmt::Debug};
 
 #[derive(Debug, Clone)]
 pub struct NodeOperand {
-    pub(crate) context: Option<Context>,
+    context: Option<NodeOperandContext>,
     operations: Vec<NodeOperation>,
 }
 
@@ -30,30 +43,20 @@ impl DeepClone for NodeOperand {
     fn deep_clone(&self) -> Self {
         Self {
             context: self.context.clone(),
-            operations: self
-                .operations
-                .iter()
-                .map(|operation| operation.deep_clone())
-                .collect(),
+            operations: self.operations.deep_clone(),
         }
     }
 }
 
-impl NodeOperand {
-    pub(crate) fn new(context: Option<Context>) -> Self {
-        Self {
-            context,
-            operations: Vec::new(),
-        }
-    }
+impl RootOperand for NodeOperand {
+    type Index = NodeIndex;
+    type Discriminator = NodeOperandGroupDiscriminator;
 
-    pub(crate) fn evaluate_forward<'a>(
+    fn _evaluate_forward<'a>(
         &self,
         medrecord: &'a MedRecord,
-        node_indices: impl Iterator<Item = &'a NodeIndex> + 'a,
-    ) -> MedRecordResult<BoxedIterator<'a, &'a NodeIndex>> {
-        let node_indices = Box::new(node_indices) as BoxedIterator<'a, &'a NodeIndex>;
-
+        node_indices: BoxedIterator<'a, &'a Self::Index>,
+    ) -> MedRecordResult<BoxedIterator<'a, &'a Self::Index>> {
         self.operations
             .iter()
             .try_fold(node_indices, |node_indices, operation| {
@@ -61,12 +64,24 @@ impl NodeOperand {
             })
     }
 
-    pub(crate) fn evaluate_backward<'a>(
+    fn _evaluate_forward_grouped<'a>(
         &self,
         medrecord: &'a MedRecord,
-    ) -> MedRecordResult<BoxedIterator<'a, &'a NodeIndex>> {
-        let node_indices: BoxedIterator<&NodeIndex> = match &self.context {
-            Some(Context::Neighbors { operand, direction }) => {
+        node_indices: GroupedIterator<'a, BoxedIterator<'a, &'a Self::Index>>,
+    ) -> MedRecordResult<GroupedIterator<'a, BoxedIterator<'a, &'a Self::Index>>> {
+        self.operations
+            .iter()
+            .try_fold(node_indices, |node_indices, operation| {
+                operation.evaluate_grouped(medrecord, node_indices)
+            })
+    }
+
+    fn _evaluate_backward<'a>(
+        &self,
+        medrecord: &'a MedRecord,
+    ) -> MedRecordResult<BoxedIterator<'a, &'a Self::Index>> {
+        let node_indices: BoxedIterator<_> = match &self.context {
+            Some(NodeOperandContext::Neighbors { operand, direction }) => {
                 let node_indices = operand.evaluate_backward(medrecord)?;
 
                 match direction {
@@ -87,7 +102,7 @@ impl NodeOperand {
                     })),
                 }
             }
-            Some(Context::SourceNode { operand }) => {
+            Some(NodeOperandContext::SourceNode { operand }) => {
                 let edge_indices = operand.evaluate_backward(medrecord)?;
 
                 Box::new(edge_indices.map(move |edge_index| {
@@ -97,7 +112,7 @@ impl NodeOperand {
                         .0
                 }))
             }
-            Some(Context::TargetNode { operand }) => {
+            Some(NodeOperandContext::TargetNode { operand }) => {
                 let edge_indices = operand.evaluate_backward(medrecord)?;
 
                 Box::new(edge_indices.map(move |edge_index| {
@@ -107,20 +122,181 @@ impl NodeOperand {
                         .1
                 }))
             }
+            Some(NodeOperandContext::GroupBy { operand }) => {
+                operand.evaluate_backward(medrecord)?
+            }
             None => Box::new(medrecord.node_indices()),
         };
 
         self.evaluate_forward(medrecord, node_indices)
     }
 
-    pub fn attribute(
-        &mut self,
-        attribute: MedRecordAttribute,
-    ) -> Wrapper<MultipleValuesOperand<Self>> {
-        let operand = Wrapper::<MultipleValuesOperand<Self>>::new(values::Context::Operand((
-            self.deep_clone(),
-            attribute,
-        )));
+    fn _evaluate_backward_grouped_operand<'a>(
+        group_operand: &GroupOperand<Self>,
+        medrecord: &'a MedRecord,
+    ) -> MedRecordResult<GroupedIterator<'a, BoxedIterator<'a, &'a Self::Index>>> {
+        match &group_operand.context {
+            group_by::NodeOperandContext::Discriminator(discriminator) => {
+                let node_indices = group_operand.operand.evaluate_backward(medrecord)?;
+
+                Ok(Self::partition(medrecord, node_indices, discriminator))
+            }
+            group_by::NodeOperandContext::Nodes(operand) => {
+                let partitions = operand.evaluate_backward(medrecord)?;
+
+                let Some(NodeOperandContext::Neighbors {
+                    operand: _,
+                    direction,
+                }) = &group_operand.operand.0.read_or_panic().context
+                else {
+                    unreachable!();
+                };
+
+                let indices: Vec<_> = partitions
+                    .map(|(key, partition)| {
+                        let reducued_partition: BoxedIterator<_> = match direction {
+                            EdgeDirection::Incoming => {
+                                Box::new(partition.flat_map(move |node_index| {
+                                    medrecord
+                                        .neighbors_incoming(node_index)
+                                        .expect("Node must exist")
+                                }))
+                            }
+                            EdgeDirection::Outgoing => {
+                                Box::new(partition.flat_map(move |node_index| {
+                                    medrecord
+                                        .neighbors_outgoing(node_index)
+                                        .expect("Node must exist")
+                                }))
+                            }
+                            EdgeDirection::Both => {
+                                Box::new(partition.flat_map(move |node_index| {
+                                    medrecord
+                                        .neighbors_undirected(node_index)
+                                        .expect("Node must exist")
+                                }))
+                            }
+                        };
+
+                        let partition = group_operand
+                            .operand
+                            .evaluate_forward(medrecord, reducued_partition)?;
+
+                        Ok((key, partition))
+                    })
+                    .collect::<MedRecordResult<_>>()?;
+
+                Ok(Box::new(indices.into_iter()))
+            }
+            group_by::NodeOperandContext::Edges(operand) => {
+                let partitions = operand.evaluate_backward(medrecord)?;
+
+                match &group_operand.operand.0.read_or_panic().context {
+                    Some(NodeOperandContext::SourceNode { operand: _ }) => {
+                        let indices: Vec<_> = partitions
+                            .map(|(key, partition)| {
+                                let reduced_partition = partition.map(move |edge_index| {
+                                    medrecord
+                                        .edge_endpoints(edge_index)
+                                        .expect("Node must exist")
+                                        .0
+                                });
+
+                                let partition = group_operand
+                                    .operand
+                                    .evaluate_forward(medrecord, Box::new(reduced_partition))?;
+
+                                Ok((key, partition))
+                            })
+                            .collect::<MedRecordResult<_>>()?;
+
+                        Ok(Box::new(indices.into_iter()))
+                    }
+                    Some(NodeOperandContext::TargetNode { operand: _ }) => {
+                        let indices: Vec<_> = partitions
+                            .map(|(key, partition)| {
+                                let reduced_partition = partition.map(move |edge_index| {
+                                    medrecord
+                                        .edge_endpoints(edge_index)
+                                        .expect("Node must exist")
+                                        .1
+                                });
+
+                                let partition = group_operand
+                                    .operand
+                                    .evaluate_forward(medrecord, Box::new(reduced_partition))?;
+
+                                Ok((key, partition))
+                            })
+                            .collect::<MedRecordResult<_>>()?;
+
+                        Ok(Box::new(indices.into_iter()))
+                    }
+                    _ => unreachable!(),
+                }
+            }
+        }
+    }
+
+    fn _group_by(&mut self, discriminator: Self::Discriminator) -> Wrapper<GroupOperand<Self>> {
+        let node_operand = Wrapper::<Self>::new(Some(NodeOperandContext::GroupBy {
+            operand: Box::new(self.deep_clone()),
+        }));
+        let operand = Wrapper::<GroupOperand<Self>>::new(discriminator.into(), node_operand);
+
+        self.operations.push(NodeOperation::GroupBy {
+            operand: operand.clone(),
+        });
+
+        operand
+    }
+
+    fn _partition<'a>(
+        medrecord: &'a MedRecord,
+        node_indices: BoxedIterator<'a, &'a Self::Index>,
+        discriminator: &Self::Discriminator,
+    ) -> GroupedIterator<'a, BoxedIterator<'a, &'a Self::Index>> {
+        match discriminator {
+            NodeOperandGroupDiscriminator::Attribute(attribute) => {
+                let mut buckets: Vec<(Option<&'a MedRecordValue>, Vec<&'a NodeIndex>)> = Vec::new();
+
+                for node_index in node_indices {
+                    let value = medrecord
+                        .node_attributes(node_index)
+                        .expect("Node must exist")
+                        .get(attribute);
+
+                    if let Some((_, bucket)) = buckets.iter_mut().find(|(k, _)| *k == value) {
+                        bucket.push(node_index);
+                    } else {
+                        buckets.push((value, vec![node_index]));
+                    }
+                }
+
+                Box::new(buckets.into_iter().map(|(key, group)| {
+                    (
+                        GroupKey::OptionalValue(key),
+                        Box::new(group.into_iter()) as BoxedIterator<_>,
+                    )
+                }))
+            }
+        }
+    }
+
+    fn _merge<'a>(
+        node_indices: GroupedIterator<'a, BoxedIterator<'a, &'a Self::Index>>,
+    ) -> BoxedIterator<'a, &'a Self::Index> {
+        Box::new(node_indices.flat_map(|(_, node_indices)| node_indices))
+    }
+}
+
+impl Attribute for NodeOperand {
+    type ReturnOperand = MultipleValuesWithIndexOperand<Self>;
+
+    fn attribute(&mut self, attribute: MedRecordAttribute) -> Wrapper<Self::ReturnOperand> {
+        let operand = Wrapper::<Self::ReturnOperand>::new(
+            values::MultipleValuesWithIndexContext::Operand((self.deep_clone(), attribute)),
+        );
 
         self.operations.push(NodeOperation::Values {
             operand: operand.clone(),
@@ -128,9 +304,14 @@ impl NodeOperand {
 
         operand
     }
+}
 
-    pub fn attributes(&mut self) -> Wrapper<AttributesTreeOperand<Self>> {
-        let operand = Wrapper::<AttributesTreeOperand<Self>>::new(self.deep_clone());
+impl Attributes for NodeOperand {
+    type ReturnOperand = AttributesTreeOperand<Self>;
+
+    fn attributes(&mut self) -> Wrapper<Self::ReturnOperand> {
+        let operand =
+            Wrapper::<Self::ReturnOperand>::new(AttributesTreeContext::Operand(self.deep_clone()));
 
         self.operations.push(NodeOperation::Attributes {
             operand: operand.clone(),
@@ -138,9 +319,15 @@ impl NodeOperand {
 
         operand
     }
+}
 
-    pub fn index(&mut self) -> Wrapper<NodeIndicesOperand> {
-        let operand = Wrapper::<NodeIndicesOperand>::new(self.deep_clone());
+impl Index for NodeOperand {
+    type ReturnOperand = NodeIndicesOperand;
+
+    fn index(&mut self) -> Wrapper<Self::ReturnOperand> {
+        let operand = Wrapper::<Self::ReturnOperand>::new(NodeIndicesOperandContext::NodeOperand(
+            self.deep_clone(),
+        ));
 
         self.operations.push(NodeOperation::Indices {
             operand: operand.clone(),
@@ -148,60 +335,70 @@ impl NodeOperand {
 
         operand
     }
+}
 
-    pub fn in_group<G>(&mut self, group: G)
-    where
-        G: Into<CardinalityWrapper<Group>>,
-    {
+impl InGroup for NodeOperand {
+    fn in_group<G: Into<CardinalityWrapper<Group>>>(&mut self, group: G) {
         self.operations.push(NodeOperation::InGroup {
             group: group.into(),
         });
     }
+}
 
-    pub fn has_attribute<A>(&mut self, attribute: A)
-    where
-        A: Into<CardinalityWrapper<MedRecordAttribute>>,
-    {
+impl HasAttribute for NodeOperand {
+    fn has_attribute<A: Into<CardinalityWrapper<MedRecordAttribute>>>(&mut self, attribute: A) {
         self.operations.push(NodeOperation::HasAttribute {
             attribute: attribute.into(),
         });
     }
+}
 
-    pub fn edges(&mut self, direction: EdgeDirection) -> Wrapper<EdgeOperand> {
-        let operand = Wrapper::<EdgeOperand>::new(Some(edges::Context::Edges {
-            operand: Box::new(self.clone()),
-            kind: direction.clone(),
+impl Edges for NodeOperand {
+    type ReturnOperand = EdgeOperand;
+
+    fn edges(&mut self, edge_direction: EdgeDirection) -> Wrapper<Self::ReturnOperand> {
+        let operand = Wrapper::<Self::ReturnOperand>::new(Some(edges::EdgeOperandContext::Edges {
+            operand: Box::new(self.deep_clone()),
+            kind: edge_direction.clone(),
         }));
 
         self.operations.push(NodeOperation::Edges {
             operand: operand.clone(),
-            direction,
+            direction: edge_direction,
         });
 
         operand
     }
+}
 
-    pub fn neighbors(&mut self, direction: EdgeDirection) -> Wrapper<NodeOperand> {
-        let operand = Wrapper::<NodeOperand>::new(Some(Context::Neighbors {
-            operand: Box::new(self.clone()),
-            direction: direction.clone(),
+impl Neighbors for NodeOperand {
+    type ReturnOperand = Self;
+
+    fn neighbors(&mut self, edge_direction: EdgeDirection) -> Wrapper<Self::ReturnOperand> {
+        let operand = Wrapper::<Self::ReturnOperand>::new(Some(NodeOperandContext::Neighbors {
+            operand: Box::new(self.deep_clone()),
+            direction: edge_direction.clone(),
         }));
 
         self.operations.push(NodeOperation::Neighbors {
             operand: operand.clone(),
-            direction,
+            direction: edge_direction,
         });
 
         operand
     }
+}
 
-    pub fn either_or<EQ, OQ>(&mut self, either_query: EQ, or_query: OQ)
+impl EitherOr for NodeOperand {
+    type QueryOperand = Self;
+
+    fn either_or<EQ, OQ>(&mut self, either_query: EQ, or_query: OQ)
     where
-        EQ: FnOnce(&mut Wrapper<NodeOperand>),
-        OQ: FnOnce(&mut Wrapper<NodeOperand>),
+        EQ: FnOnce(&mut Wrapper<Self::QueryOperand>),
+        OQ: FnOnce(&mut Wrapper<Self::QueryOperand>),
     {
-        let mut either_operand = Wrapper::<NodeOperand>::new(self.context.clone());
-        let mut or_operand = Wrapper::<NodeOperand>::new(self.context.clone());
+        let mut either_operand = Wrapper::<Self::QueryOperand>::new(self.context.clone());
+        let mut or_operand = Wrapper::<Self::QueryOperand>::new(self.context.clone());
 
         either_query(&mut either_operand);
         or_query(&mut or_operand);
@@ -211,12 +408,16 @@ impl NodeOperand {
             or: or_operand,
         });
     }
+}
 
-    pub fn exclude<Q>(&mut self, query: Q)
+impl Exclude for NodeOperand {
+    type QueryOperand = Self;
+
+    fn exclude<Q>(&mut self, query: Q)
     where
-        Q: FnOnce(&mut Wrapper<NodeOperand>),
+        Q: FnOnce(&mut Wrapper<Self::QueryOperand>),
     {
-        let mut operand = Wrapper::<NodeOperand>::new(self.context.clone());
+        let mut operand = Wrapper::<Self::QueryOperand>::new(self.context.clone());
 
         query(&mut operand);
 
@@ -224,152 +425,19 @@ impl NodeOperand {
     }
 }
 
+impl NodeOperand {
+    pub(crate) fn new(context: Option<NodeOperandContext>) -> Self {
+        Self {
+            context,
+            operations: Vec::new(),
+        }
+    }
+}
+
 impl Wrapper<NodeOperand> {
-    pub(crate) fn new(context: Option<Context>) -> Self {
+    pub(crate) fn new(context: Option<NodeOperandContext>) -> Self {
         NodeOperand::new(context).into()
     }
-
-    pub(crate) fn evaluate_forward<'a>(
-        &self,
-        medrecord: &'a MedRecord,
-        node_indices: impl Iterator<Item = &'a NodeIndex> + 'a,
-    ) -> MedRecordResult<BoxedIterator<'a, &'a NodeIndex>> {
-        self.0
-            .read_or_panic()
-            .evaluate_forward(medrecord, node_indices)
-    }
-
-    pub fn attribute<A>(&mut self, attribute: A) -> Wrapper<MultipleValuesOperand<NodeOperand>>
-    where
-        A: Into<MedRecordAttribute>,
-    {
-        self.0.write_or_panic().attribute(attribute.into())
-    }
-
-    pub fn attributes(&mut self) -> Wrapper<AttributesTreeOperand<NodeOperand>> {
-        self.0.write_or_panic().attributes()
-    }
-
-    pub fn index(&mut self) -> Wrapper<NodeIndicesOperand> {
-        self.0.write_or_panic().index()
-    }
-
-    pub fn in_group<G>(&mut self, group: G)
-    where
-        G: Into<CardinalityWrapper<Group>>,
-    {
-        self.0.write_or_panic().in_group(group);
-    }
-
-    pub fn has_attribute<A>(&mut self, attribute: A)
-    where
-        A: Into<CardinalityWrapper<MedRecordAttribute>>,
-    {
-        self.0.write_or_panic().has_attribute(attribute);
-    }
-
-    pub fn edges(&mut self, direction: EdgeDirection) -> Wrapper<EdgeOperand> {
-        self.0.write_or_panic().edges(direction)
-    }
-
-    pub fn neighbors(&mut self, direction: EdgeDirection) -> Wrapper<NodeOperand> {
-        self.0.write_or_panic().neighbors(direction)
-    }
-
-    pub fn either_or<EQ, OQ>(&mut self, either_query: EQ, or_query: OQ)
-    where
-        EQ: FnOnce(&mut Wrapper<NodeOperand>),
-        OQ: FnOnce(&mut Wrapper<NodeOperand>),
-    {
-        self.0.write_or_panic().either_or(either_query, or_query);
-    }
-
-    pub fn exclude<Q>(&mut self, query: Q)
-    where
-        Q: FnOnce(&mut Wrapper<NodeOperand>),
-    {
-        self.0.write_or_panic().exclude(query);
-    }
-}
-
-macro_rules! implement_index_operation {
-    ($name:ident, $variant:ident) => {
-        pub fn $name(&mut self) -> Wrapper<NodeIndexOperand> {
-            let operand = Wrapper::<NodeIndexOperand>::new(self.deep_clone(), SingleKind::$variant);
-
-            self.operations
-                .push(NodeIndicesOperation::NodeIndexOperation {
-                    operand: operand.clone(),
-                });
-
-            operand
-        }
-    };
-}
-
-macro_rules! implement_single_index_comparison_operation {
-    ($name:ident, $operation:ident, $kind:ident) => {
-        pub fn $name<V: Into<NodeIndexComparisonOperand>>(&mut self, index: V) {
-            self.operations
-                .push($operation::NodeIndexComparisonOperation {
-                    operand: index.into(),
-                    kind: SingleComparisonKind::$kind,
-                });
-        }
-    };
-}
-
-macro_rules! implement_binary_arithmetic_operation {
-    ($name:ident, $operation:ident, $kind:ident) => {
-        pub fn $name<V: Into<NodeIndexComparisonOperand>>(&mut self, index: V) {
-            self.operations.push($operation::BinaryArithmeticOpration {
-                operand: index.into(),
-                kind: BinaryArithmeticKind::$kind,
-            });
-        }
-    };
-}
-
-macro_rules! implement_unary_arithmetic_operation {
-    ($name:ident, $operation:ident, $kind:ident) => {
-        pub fn $name(&mut self) {
-            self.operations.push($operation::UnaryArithmeticOperation {
-                kind: UnaryArithmeticKind::$kind,
-            });
-        }
-    };
-}
-
-macro_rules! implement_assertion_operation {
-    ($name:ident, $operation:expr) => {
-        pub fn $name(&mut self) {
-            self.operations.push($operation);
-        }
-    };
-}
-
-macro_rules! implement_wrapper_operand {
-    ($name:ident) => {
-        pub fn $name(&self) {
-            self.0.write_or_panic().$name()
-        }
-    };
-}
-
-macro_rules! implement_wrapper_operand_with_return {
-    ($name:ident, $return_operand:ident) => {
-        pub fn $name(&self) -> Wrapper<$return_operand> {
-            self.0.write_or_panic().$name()
-        }
-    };
-}
-
-macro_rules! implement_wrapper_operand_with_argument {
-    ($name:ident, $index_type:ty) => {
-        pub fn $name(&self, index: $index_type) {
-            self.0.write_or_panic().$name(index)
-        }
-    };
 }
 
 #[derive(Debug, Clone)]
@@ -476,7 +544,7 @@ impl NodeIndicesComparisonOperand {
 
 #[derive(Debug, Clone)]
 pub struct NodeIndicesOperand {
-    pub(crate) context: NodeOperand,
+    context: NodeIndicesOperandContext,
     operations: Vec<NodeIndicesOperation>,
 }
 
@@ -489,107 +557,423 @@ impl DeepClone for NodeIndicesOperand {
     }
 }
 
-impl NodeIndicesOperand {
-    pub(crate) fn new(context: NodeOperand) -> Self {
-        Self {
-            context,
-            operations: Vec::new(),
-        }
-    }
+impl<'a> EvaluateForward<'a> for NodeIndicesOperand {
+    type InputValue = BoxedIterator<'a, NodeIndex>;
+    type ReturnValue = BoxedIterator<'a, NodeIndex>;
 
-    pub(crate) fn evaluate_forward<'a>(
+    fn evaluate_forward(
         &self,
         medrecord: &'a MedRecord,
-        indices: impl Iterator<Item = NodeIndex> + 'a,
-    ) -> MedRecordResult<impl Iterator<Item = NodeIndex> + 'a> {
-        let indices = Box::new(indices) as BoxedIterator<NodeIndex>;
+        node_indices: Self::InputValue,
+    ) -> MedRecordResult<Self::ReturnValue> {
+        let node_indices: BoxedIterator<_> = Box::new(node_indices);
 
         self.operations
             .iter()
-            .try_fold(indices, |index_tuples, operation| {
+            .try_fold(node_indices, |index_tuples, operation| {
                 operation.evaluate(medrecord, index_tuples)
             })
     }
+}
 
-    pub(crate) fn evaluate_backward<'a>(
+impl<'a> EvaluateForwardGrouped<'a> for NodeIndicesOperand {
+    fn evaluate_forward_grouped(
         &self,
         medrecord: &'a MedRecord,
-    ) -> MedRecordResult<impl Iterator<Item = NodeIndex> + 'a> {
-        let node_indices = self.context.evaluate_backward(medrecord)?.cloned();
-
-        self.evaluate_forward(medrecord, node_indices)
+        node_indices: GroupedIterator<'a, Self::InputValue>,
+    ) -> MedRecordResult<GroupedIterator<'a, Self::ReturnValue>> {
+        self.operations
+            .iter()
+            .try_fold(node_indices, |index_tuples, operation| {
+                operation.evaluate_grouped(medrecord, index_tuples)
+            })
     }
+}
 
-    implement_index_operation!(max, Max);
-    implement_index_operation!(min, Min);
-    implement_index_operation!(count, Count);
-    implement_index_operation!(sum, Sum);
-    implement_index_operation!(random, Random);
+impl<'a> EvaluateBackward<'a> for NodeIndicesOperand {
+    type ReturnValue = BoxedIterator<'a, NodeIndex>;
 
-    implement_single_index_comparison_operation!(greater_than, NodeIndicesOperation, GreaterThan);
-    implement_single_index_comparison_operation!(
-        greater_than_or_equal_to,
-        NodeIndicesOperation,
-        GreaterThanOrEqualTo
-    );
-    implement_single_index_comparison_operation!(less_than, NodeIndicesOperation, LessThan);
-    implement_single_index_comparison_operation!(
-        less_than_or_equal_to,
-        NodeIndicesOperation,
-        LessThanOrEqualTo
-    );
-    implement_single_index_comparison_operation!(equal_to, NodeIndicesOperation, EqualTo);
-    implement_single_index_comparison_operation!(not_equal_to, NodeIndicesOperation, NotEqualTo);
-    implement_single_index_comparison_operation!(starts_with, NodeIndicesOperation, StartsWith);
-    implement_single_index_comparison_operation!(ends_with, NodeIndicesOperation, EndsWith);
-    implement_single_index_comparison_operation!(contains, NodeIndicesOperation, Contains);
+    fn evaluate_backward(&self, medrecord: &'a MedRecord) -> MedRecordResult<Self::ReturnValue> {
+        let node_indices = self.context.evaluate_backward(medrecord)?;
 
-    pub fn is_in<V: Into<NodeIndicesComparisonOperand>>(&mut self, indices: V) {
+        self.evaluate_forward(medrecord, Box::new(node_indices))
+    }
+}
+
+impl<'a> ReduceInput<'a> for NodeIndicesOperand {
+    type Context = NodeOperand;
+
+    #[inline]
+    fn reduce_input(
+        &self,
+        node_indices: <Self::Context as EvaluateBackward<'a>>::ReturnValue,
+    ) -> MedRecordResult<<Self as EvaluateForward<'a>>::InputValue> {
+        Ok(Box::new(node_indices.cloned()))
+    }
+}
+
+impl Max for NodeIndicesOperand {
+    type ReturnOperand = NodeIndexOperand;
+
+    fn max(&mut self) -> Wrapper<Self::ReturnOperand> {
+        let operand = Wrapper::<Self::ReturnOperand>::new(self.deep_clone(), SingleKind::Max);
+
+        self.operations
+            .push(NodeIndicesOperation::NodeIndexOperation {
+                operand: operand.clone(),
+            });
+
+        operand
+    }
+}
+
+impl Min for NodeIndicesOperand {
+    type ReturnOperand = NodeIndexOperand;
+
+    fn min(&mut self) -> Wrapper<Self::ReturnOperand> {
+        let operand = Wrapper::<Self::ReturnOperand>::new(self.deep_clone(), SingleKind::Min);
+
+        self.operations
+            .push(NodeIndicesOperation::NodeIndexOperation {
+                operand: operand.clone(),
+            });
+
+        operand
+    }
+}
+
+impl Count for NodeIndicesOperand {
+    type ReturnOperand = NodeIndexOperand;
+
+    fn count(&mut self) -> Wrapper<Self::ReturnOperand> {
+        let operand = Wrapper::<Self::ReturnOperand>::new(self.deep_clone(), SingleKind::Count);
+
+        self.operations
+            .push(NodeIndicesOperation::NodeIndexOperation {
+                operand: operand.clone(),
+            });
+
+        operand
+    }
+}
+
+impl Sum for NodeIndicesOperand {
+    type ReturnOperand = NodeIndexOperand;
+
+    fn sum(&mut self) -> Wrapper<Self::ReturnOperand> {
+        let operand = Wrapper::<Self::ReturnOperand>::new(self.deep_clone(), SingleKind::Sum);
+
+        self.operations
+            .push(NodeIndicesOperation::NodeIndexOperation {
+                operand: operand.clone(),
+            });
+
+        operand
+    }
+}
+
+impl Random for NodeIndicesOperand {
+    type ReturnOperand = NodeIndexOperand;
+
+    fn random(&mut self) -> Wrapper<Self::ReturnOperand> {
+        let operand = Wrapper::<Self::ReturnOperand>::new(self.deep_clone(), SingleKind::Random);
+
+        self.operations
+            .push(NodeIndicesOperation::NodeIndexOperation {
+                operand: operand.clone(),
+            });
+
+        operand
+    }
+}
+
+impl GreaterThan for NodeIndicesOperand {
+    type ComparisonOperand = NodeIndexComparisonOperand;
+
+    fn greater_than<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
+        self.operations
+            .push(NodeIndicesOperation::NodeIndexComparisonOperation {
+                operand: value.into(),
+                kind: SingleComparisonKind::GreaterThan,
+            });
+    }
+}
+
+impl GreaterThanOrEqualTo for NodeIndicesOperand {
+    type ComparisonOperand = NodeIndexComparisonOperand;
+
+    fn greater_than_or_equal_to<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
+        self.operations
+            .push(NodeIndicesOperation::NodeIndexComparisonOperation {
+                operand: value.into(),
+                kind: SingleComparisonKind::GreaterThanOrEqualTo,
+            });
+    }
+}
+
+impl LessThan for NodeIndicesOperand {
+    type ComparisonOperand = NodeIndexComparisonOperand;
+
+    fn less_than<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
+        self.operations
+            .push(NodeIndicesOperation::NodeIndexComparisonOperation {
+                operand: value.into(),
+                kind: SingleComparisonKind::LessThan,
+            });
+    }
+}
+
+impl LessThanOrEqualTo for NodeIndicesOperand {
+    type ComparisonOperand = NodeIndexComparisonOperand;
+
+    fn less_than_or_equal_to<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
+        self.operations
+            .push(NodeIndicesOperation::NodeIndexComparisonOperation {
+                operand: value.into(),
+                kind: SingleComparisonKind::LessThanOrEqualTo,
+            });
+    }
+}
+
+impl EqualTo for NodeIndicesOperand {
+    type ComparisonOperand = NodeIndexComparisonOperand;
+
+    fn equal_to<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
+        self.operations
+            .push(NodeIndicesOperation::NodeIndexComparisonOperation {
+                operand: value.into(),
+                kind: SingleComparisonKind::EqualTo,
+            });
+    }
+}
+
+impl NotEqualTo for NodeIndicesOperand {
+    type ComparisonOperand = NodeIndexComparisonOperand;
+
+    fn not_equal_to<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
+        self.operations
+            .push(NodeIndicesOperation::NodeIndexComparisonOperation {
+                operand: value.into(),
+                kind: SingleComparisonKind::NotEqualTo,
+            });
+    }
+}
+
+impl StartsWith for NodeIndicesOperand {
+    type ComparisonOperand = NodeIndexComparisonOperand;
+
+    fn starts_with<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
+        self.operations
+            .push(NodeIndicesOperation::NodeIndexComparisonOperation {
+                operand: value.into(),
+                kind: SingleComparisonKind::StartsWith,
+            });
+    }
+}
+
+impl EndsWith for NodeIndicesOperand {
+    type ComparisonOperand = NodeIndexComparisonOperand;
+
+    fn ends_with<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
+        self.operations
+            .push(NodeIndicesOperation::NodeIndexComparisonOperation {
+                operand: value.into(),
+                kind: SingleComparisonKind::EndsWith,
+            });
+    }
+}
+
+impl Contains for NodeIndicesOperand {
+    type ComparisonOperand = NodeIndexComparisonOperand;
+
+    fn contains<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
+        self.operations
+            .push(NodeIndicesOperation::NodeIndexComparisonOperation {
+                operand: value.into(),
+                kind: SingleComparisonKind::Contains,
+            });
+    }
+}
+
+impl IsIn for NodeIndicesOperand {
+    type ComparisonOperand = NodeIndicesComparisonOperand;
+
+    fn is_in<V: Into<Self::ComparisonOperand>>(&mut self, indices: V) {
         self.operations
             .push(NodeIndicesOperation::NodeIndicesComparisonOperation {
                 operand: indices.into(),
                 kind: MultipleComparisonKind::IsIn,
             });
     }
+}
 
-    pub fn is_not_in<V: Into<NodeIndicesComparisonOperand>>(&mut self, indices: V) {
+impl IsNotIn for NodeIndicesOperand {
+    type ComparisonOperand = NodeIndicesComparisonOperand;
+
+    fn is_not_in<V: Into<Self::ComparisonOperand>>(&mut self, indices: V) {
         self.operations
             .push(NodeIndicesOperation::NodeIndicesComparisonOperation {
                 operand: indices.into(),
                 kind: MultipleComparisonKind::IsNotIn,
             });
     }
+}
 
-    implement_binary_arithmetic_operation!(add, NodeIndicesOperation, Add);
-    implement_binary_arithmetic_operation!(sub, NodeIndicesOperation, Sub);
-    implement_binary_arithmetic_operation!(mul, NodeIndicesOperation, Mul);
-    implement_binary_arithmetic_operation!(pow, NodeIndicesOperation, Pow);
-    implement_binary_arithmetic_operation!(r#mod, NodeIndicesOperation, Mod);
+impl Add for NodeIndicesOperand {
+    type ComparisonOperand = NodeIndexComparisonOperand;
 
-    implement_unary_arithmetic_operation!(abs, NodeIndicesOperation, Abs);
-    implement_unary_arithmetic_operation!(trim, NodeIndicesOperation, Trim);
-    implement_unary_arithmetic_operation!(trim_start, NodeIndicesOperation, TrimStart);
-    implement_unary_arithmetic_operation!(trim_end, NodeIndicesOperation, TrimEnd);
-    implement_unary_arithmetic_operation!(lowercase, NodeIndicesOperation, Lowercase);
-    implement_unary_arithmetic_operation!(uppercase, NodeIndicesOperation, Uppercase);
+    fn add<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
+        self.operations
+            .push(NodeIndicesOperation::BinaryArithmeticOperation {
+                operand: value.into(),
+                kind: BinaryArithmeticKind::Add,
+            });
+    }
+}
 
-    pub fn slice(&mut self, start: usize, end: usize) {
+impl Sub for NodeIndicesOperand {
+    type ComparisonOperand = NodeIndexComparisonOperand;
+
+    fn sub<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
+        self.operations
+            .push(NodeIndicesOperation::BinaryArithmeticOperation {
+                operand: value.into(),
+                kind: BinaryArithmeticKind::Sub,
+            });
+    }
+}
+
+impl Mul for NodeIndicesOperand {
+    type ComparisonOperand = NodeIndexComparisonOperand;
+
+    fn mul<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
+        self.operations
+            .push(NodeIndicesOperation::BinaryArithmeticOperation {
+                operand: value.into(),
+                kind: BinaryArithmeticKind::Mul,
+            });
+    }
+}
+
+impl Pow for NodeIndicesOperand {
+    type ComparisonOperand = NodeIndexComparisonOperand;
+
+    fn pow<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
+        self.operations
+            .push(NodeIndicesOperation::BinaryArithmeticOperation {
+                operand: value.into(),
+                kind: BinaryArithmeticKind::Pow,
+            });
+    }
+}
+
+impl Mod for NodeIndicesOperand {
+    type ComparisonOperand = NodeIndexComparisonOperand;
+
+    fn r#mod<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
+        self.operations
+            .push(NodeIndicesOperation::BinaryArithmeticOperation {
+                operand: value.into(),
+                kind: BinaryArithmeticKind::Mod,
+            });
+    }
+}
+
+impl Abs for NodeIndicesOperand {
+    fn abs(&mut self) {
+        self.operations
+            .push(NodeIndicesOperation::UnaryArithmeticOperation {
+                kind: UnaryArithmeticKind::Abs,
+            });
+    }
+}
+
+impl Trim for NodeIndicesOperand {
+    fn trim(&mut self) {
+        self.operations
+            .push(NodeIndicesOperation::UnaryArithmeticOperation {
+                kind: UnaryArithmeticKind::Trim,
+            });
+    }
+}
+
+impl TrimStart for NodeIndicesOperand {
+    fn trim_start(&mut self) {
+        self.operations
+            .push(NodeIndicesOperation::UnaryArithmeticOperation {
+                kind: UnaryArithmeticKind::TrimStart,
+            });
+    }
+}
+
+impl TrimEnd for NodeIndicesOperand {
+    fn trim_end(&mut self) {
+        self.operations
+            .push(NodeIndicesOperation::UnaryArithmeticOperation {
+                kind: UnaryArithmeticKind::TrimEnd,
+            });
+    }
+}
+
+impl Lowercase for NodeIndicesOperand {
+    fn lowercase(&mut self) {
+        self.operations
+            .push(NodeIndicesOperation::UnaryArithmeticOperation {
+                kind: UnaryArithmeticKind::Lowercase,
+            });
+    }
+}
+
+impl Uppercase for NodeIndicesOperand {
+    fn uppercase(&mut self) {
+        self.operations
+            .push(NodeIndicesOperation::UnaryArithmeticOperation {
+                kind: UnaryArithmeticKind::Uppercase,
+            });
+    }
+}
+
+impl Slice for NodeIndicesOperand {
+    fn slice(&mut self, start: usize, end: usize) {
         self.operations
             .push(NodeIndicesOperation::Slice(start..end));
     }
+}
 
-    implement_assertion_operation!(is_string, NodeIndicesOperation::IsString);
-    implement_assertion_operation!(is_int, NodeIndicesOperation::IsInt);
-    implement_assertion_operation!(is_max, NodeIndicesOperation::IsMax);
-    implement_assertion_operation!(is_min, NodeIndicesOperation::IsMin);
+impl IsString for NodeIndicesOperand {
+    fn is_string(&mut self) {
+        self.operations.push(NodeIndicesOperation::IsString);
+    }
+}
 
-    pub fn either_or<EQ, OQ>(&mut self, either_query: EQ, or_query: OQ)
+impl IsInt for NodeIndicesOperand {
+    fn is_int(&mut self) {
+        self.operations.push(NodeIndicesOperation::IsInt);
+    }
+}
+
+impl IsMax for NodeIndicesOperand {
+    fn is_max(&mut self) {
+        self.operations.push(NodeIndicesOperation::IsMax);
+    }
+}
+
+impl IsMin for NodeIndicesOperand {
+    fn is_min(&mut self) {
+        self.operations.push(NodeIndicesOperation::IsMin);
+    }
+}
+
+impl EitherOr for NodeIndicesOperand {
+    type QueryOperand = Self;
+
+    fn either_or<EQ, OQ>(&mut self, either_query: EQ, or_query: OQ)
     where
-        EQ: FnOnce(&mut Wrapper<NodeIndicesOperand>),
-        OQ: FnOnce(&mut Wrapper<NodeIndicesOperand>),
+        EQ: FnOnce(&mut Wrapper<Self::QueryOperand>),
+        OQ: FnOnce(&mut Wrapper<Self::QueryOperand>),
     {
-        let mut either_operand = Wrapper::<NodeIndicesOperand>::new(self.context.clone());
-        let mut or_operand = Wrapper::<NodeIndicesOperand>::new(self.context.clone());
+        let mut either_operand = Wrapper::<Self::QueryOperand>::new(self.context.clone());
+        let mut or_operand = Wrapper::<Self::QueryOperand>::new(self.context.clone());
 
         either_query(&mut either_operand);
         or_query(&mut or_operand);
@@ -599,12 +983,16 @@ impl NodeIndicesOperand {
             or: or_operand,
         });
     }
+}
 
-    pub fn exclude<Q>(&mut self, query: Q)
+impl Exclude for NodeIndicesOperand {
+    type QueryOperand = Self;
+
+    fn exclude<Q>(&mut self, query: Q)
     where
-        Q: FnOnce(&mut Wrapper<NodeIndicesOperand>),
+        Q: FnOnce(&mut Wrapper<Self::QueryOperand>),
     {
-        let mut operand = Wrapper::<NodeIndicesOperand>::new(self.context.clone());
+        let mut operand = Wrapper::<Self::QueryOperand>::new(self.context.clone());
 
         query(&mut operand);
 
@@ -613,90 +1001,33 @@ impl NodeIndicesOperand {
     }
 }
 
+impl NodeIndicesOperand {
+    pub(crate) fn new(context: NodeIndicesOperandContext) -> Self {
+        Self {
+            context,
+            operations: Vec::new(),
+        }
+    }
+
+    pub(crate) fn push_merge_operation(&mut self, operand: Wrapper<NodeIndicesOperand>) {
+        self.operations
+            .push(NodeIndicesOperation::Merge { operand });
+    }
+}
+
 impl Wrapper<NodeIndicesOperand> {
-    pub(crate) fn new(context: NodeOperand) -> Self {
+    pub(crate) fn new(context: NodeIndicesOperandContext) -> Self {
         NodeIndicesOperand::new(context).into()
     }
 
-    pub(crate) fn evaluate_forward<'a>(
-        &self,
-        medrecord: &'a MedRecord,
-        indices: impl Iterator<Item = NodeIndex> + 'a,
-    ) -> MedRecordResult<impl Iterator<Item = NodeIndex> + 'a> {
-        self.0.read_or_panic().evaluate_forward(medrecord, indices)
-    }
-
-    pub(crate) fn evaluate_backward<'a>(
-        &self,
-        medrecord: &'a MedRecord,
-    ) -> MedRecordResult<impl Iterator<Item = NodeIndex> + 'a> {
-        self.0.read_or_panic().evaluate_backward(medrecord)
-    }
-
-    implement_wrapper_operand_with_return!(max, NodeIndexOperand);
-    implement_wrapper_operand_with_return!(min, NodeIndexOperand);
-    implement_wrapper_operand_with_return!(count, NodeIndexOperand);
-    implement_wrapper_operand_with_return!(sum, NodeIndexOperand);
-    implement_wrapper_operand_with_return!(random, NodeIndexOperand);
-
-    implement_wrapper_operand_with_argument!(greater_than, impl Into<NodeIndexComparisonOperand>);
-    implement_wrapper_operand_with_argument!(
-        greater_than_or_equal_to,
-        impl Into<NodeIndexComparisonOperand>
-    );
-    implement_wrapper_operand_with_argument!(less_than, impl Into<NodeIndexComparisonOperand>);
-    implement_wrapper_operand_with_argument!(
-        less_than_or_equal_to,
-        impl Into<NodeIndexComparisonOperand>
-    );
-    implement_wrapper_operand_with_argument!(equal_to, impl Into<NodeIndexComparisonOperand>);
-    implement_wrapper_operand_with_argument!(not_equal_to, impl Into<NodeIndexComparisonOperand>);
-    implement_wrapper_operand_with_argument!(starts_with, impl Into<NodeIndexComparisonOperand>);
-    implement_wrapper_operand_with_argument!(ends_with, impl Into<NodeIndexComparisonOperand>);
-    implement_wrapper_operand_with_argument!(contains, impl Into<NodeIndexComparisonOperand>);
-    implement_wrapper_operand_with_argument!(is_in, impl Into<NodeIndicesComparisonOperand>);
-    implement_wrapper_operand_with_argument!(is_not_in, impl Into<NodeIndicesComparisonOperand>);
-    implement_wrapper_operand_with_argument!(add, impl Into<NodeIndexComparisonOperand>);
-    implement_wrapper_operand_with_argument!(sub, impl Into<NodeIndexComparisonOperand>);
-    implement_wrapper_operand_with_argument!(mul, impl Into<NodeIndexComparisonOperand>);
-    implement_wrapper_operand_with_argument!(pow, impl Into<NodeIndexComparisonOperand>);
-    implement_wrapper_operand_with_argument!(r#mod, impl Into<NodeIndexComparisonOperand>);
-
-    implement_wrapper_operand!(abs);
-    implement_wrapper_operand!(trim);
-    implement_wrapper_operand!(trim_start);
-    implement_wrapper_operand!(trim_end);
-    implement_wrapper_operand!(lowercase);
-    implement_wrapper_operand!(uppercase);
-
-    pub fn slice(&self, start: usize, end: usize) {
-        self.0.write_or_panic().slice(start, end)
-    }
-
-    implement_wrapper_operand!(is_string);
-    implement_wrapper_operand!(is_int);
-    implement_wrapper_operand!(is_max);
-    implement_wrapper_operand!(is_min);
-
-    pub fn either_or<EQ, OQ>(&self, either_query: EQ, or_query: OQ)
-    where
-        EQ: FnOnce(&mut Wrapper<NodeIndicesOperand>),
-        OQ: FnOnce(&mut Wrapper<NodeIndicesOperand>),
-    {
-        self.0.write_or_panic().either_or(either_query, or_query);
-    }
-
-    pub fn exclude<Q>(&self, query: Q)
-    where
-        Q: FnOnce(&mut Wrapper<NodeIndicesOperand>),
-    {
-        self.0.write_or_panic().exclude(query);
+    pub(crate) fn push_merge_operation(&self, operand: Wrapper<NodeIndicesOperand>) {
+        self.0.write_or_panic().push_merge_operation(operand);
     }
 }
 
 #[derive(Debug, Clone)]
 pub struct NodeIndexOperand {
-    pub(crate) context: NodeIndicesOperand,
+    context: NodeIndicesOperand,
     pub(crate) kind: SingleKind,
     operations: Vec<NodeIndexOperation>,
 }
@@ -711,110 +1042,343 @@ impl DeepClone for NodeIndexOperand {
     }
 }
 
-impl NodeIndexOperand {
-    pub(crate) fn new(context: NodeIndicesOperand, kind: SingleKind) -> Self {
-        Self {
-            context,
-            kind,
-            operations: Vec::new(),
-        }
-    }
+impl<'a> EvaluateForward<'a> for NodeIndexOperand {
+    type InputValue = Option<NodeIndex>;
+    type ReturnValue = Option<NodeIndex>;
 
-    pub(crate) fn evaluate_forward(
+    fn evaluate_forward(
         &self,
-        medrecord: &MedRecord,
-        index: NodeIndex,
-    ) -> MedRecordResult<Option<NodeIndex>> {
+        medrecord: &'a MedRecord,
+        node_index: Self::InputValue,
+    ) -> MedRecordResult<Self::ReturnValue> {
         self.operations
             .iter()
-            .try_fold(Some(index), |index, operation| {
-                if let Some(index) = index {
-                    operation.evaluate(medrecord, index)
-                } else {
-                    Ok(None)
-                }
+            .try_fold(node_index, |node_index, operation| {
+                operation.evaluate(medrecord, node_index)
             })
     }
+}
 
-    pub(crate) fn evaluate_backward(
+impl<'a> EvaluateForwardGrouped<'a> for NodeIndexOperand {
+    fn evaluate_forward_grouped(
         &self,
-        medrecord: &MedRecord,
-    ) -> MedRecordResult<Option<NodeIndex>> {
+        medrecord: &'a MedRecord,
+        node_indices: GroupedIterator<'a, Self::InputValue>,
+    ) -> MedRecordResult<GroupedIterator<'a, Self::ReturnValue>> {
+        self.operations
+            .iter()
+            .try_fold(node_indices, |node_indices, operation| {
+                operation.evaluate_grouped(medrecord, node_indices)
+            })
+    }
+}
+
+impl<'a> EvaluateBackward<'a> for NodeIndexOperand {
+    type ReturnValue = Option<NodeIndex>;
+
+    fn evaluate_backward(&self, medrecord: &'a MedRecord) -> MedRecordResult<Self::ReturnValue> {
         let node_indices = self.context.evaluate_backward(medrecord)?;
 
-        let node_index = match self.kind {
-            SingleKind::Max => NodeIndicesOperation::get_max(node_indices)?.clone(),
-            SingleKind::Min => NodeIndicesOperation::get_min(node_indices)?.clone(),
-            SingleKind::Count => NodeIndicesOperation::get_count(node_indices),
-            SingleKind::Sum => NodeIndicesOperation::get_sum(node_indices)?,
-            SingleKind::Random => NodeIndicesOperation::get_random(node_indices)?,
-        };
+        let node_index = self.reduce_input(node_indices)?;
 
         self.evaluate_forward(medrecord, node_index)
     }
+}
 
-    implement_single_index_comparison_operation!(greater_than, NodeIndexOperation, GreaterThan);
-    implement_single_index_comparison_operation!(
-        greater_than_or_equal_to,
-        NodeIndexOperation,
-        GreaterThanOrEqualTo
-    );
-    implement_single_index_comparison_operation!(less_than, NodeIndexOperation, LessThan);
-    implement_single_index_comparison_operation!(
-        less_than_or_equal_to,
-        NodeIndexOperation,
-        LessThanOrEqualTo
-    );
-    implement_single_index_comparison_operation!(equal_to, NodeIndexOperation, EqualTo);
-    implement_single_index_comparison_operation!(not_equal_to, NodeIndexOperation, NotEqualTo);
-    implement_single_index_comparison_operation!(starts_with, NodeIndexOperation, StartsWith);
-    implement_single_index_comparison_operation!(ends_with, NodeIndexOperation, EndsWith);
-    implement_single_index_comparison_operation!(contains, NodeIndexOperation, Contains);
+impl<'a> ReduceInput<'a> for NodeIndexOperand {
+    type Context = NodeIndicesOperand;
 
-    pub fn is_in<V: Into<NodeIndicesComparisonOperand>>(&mut self, indices: V) {
+    #[inline]
+    fn reduce_input(
+        &self,
+        node_indices: <Self::Context as EvaluateBackward<'a>>::ReturnValue,
+    ) -> MedRecordResult<<Self as EvaluateForward<'a>>::InputValue> {
+        Ok(match self.kind {
+            SingleKind::Max => NodeIndicesOperation::get_max(node_indices)?,
+            SingleKind::Min => NodeIndicesOperation::get_min(node_indices)?,
+            SingleKind::Count => Some(NodeIndicesOperation::get_count(node_indices)),
+            SingleKind::Sum => NodeIndicesOperation::get_sum(node_indices)?,
+            SingleKind::Random => NodeIndicesOperation::get_random(node_indices),
+        })
+    }
+}
+
+impl GreaterThan for NodeIndexOperand {
+    type ComparisonOperand = NodeIndexComparisonOperand;
+
+    fn greater_than<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
+        self.operations
+            .push(NodeIndexOperation::NodeIndexComparisonOperation {
+                operand: value.into(),
+                kind: SingleComparisonKind::GreaterThan,
+            });
+    }
+}
+
+impl GreaterThanOrEqualTo for NodeIndexOperand {
+    type ComparisonOperand = NodeIndexComparisonOperand;
+
+    fn greater_than_or_equal_to<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
+        self.operations
+            .push(NodeIndexOperation::NodeIndexComparisonOperation {
+                operand: value.into(),
+                kind: SingleComparisonKind::GreaterThanOrEqualTo,
+            });
+    }
+}
+
+impl LessThan for NodeIndexOperand {
+    type ComparisonOperand = NodeIndexComparisonOperand;
+
+    fn less_than<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
+        self.operations
+            .push(NodeIndexOperation::NodeIndexComparisonOperation {
+                operand: value.into(),
+                kind: SingleComparisonKind::LessThan,
+            });
+    }
+}
+
+impl LessThanOrEqualTo for NodeIndexOperand {
+    type ComparisonOperand = NodeIndexComparisonOperand;
+
+    fn less_than_or_equal_to<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
+        self.operations
+            .push(NodeIndexOperation::NodeIndexComparisonOperation {
+                operand: value.into(),
+                kind: SingleComparisonKind::LessThanOrEqualTo,
+            });
+    }
+}
+
+impl EqualTo for NodeIndexOperand {
+    type ComparisonOperand = NodeIndexComparisonOperand;
+
+    fn equal_to<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
+        self.operations
+            .push(NodeIndexOperation::NodeIndexComparisonOperation {
+                operand: value.into(),
+                kind: SingleComparisonKind::EqualTo,
+            });
+    }
+}
+
+impl NotEqualTo for NodeIndexOperand {
+    type ComparisonOperand = NodeIndexComparisonOperand;
+
+    fn not_equal_to<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
+        self.operations
+            .push(NodeIndexOperation::NodeIndexComparisonOperation {
+                operand: value.into(),
+                kind: SingleComparisonKind::NotEqualTo,
+            });
+    }
+}
+
+impl StartsWith for NodeIndexOperand {
+    type ComparisonOperand = NodeIndexComparisonOperand;
+
+    fn starts_with<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
+        self.operations
+            .push(NodeIndexOperation::NodeIndexComparisonOperation {
+                operand: value.into(),
+                kind: SingleComparisonKind::StartsWith,
+            });
+    }
+}
+
+impl EndsWith for NodeIndexOperand {
+    type ComparisonOperand = NodeIndexComparisonOperand;
+
+    fn ends_with<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
+        self.operations
+            .push(NodeIndexOperation::NodeIndexComparisonOperation {
+                operand: value.into(),
+                kind: SingleComparisonKind::EndsWith,
+            });
+    }
+}
+
+impl Contains for NodeIndexOperand {
+    type ComparisonOperand = NodeIndexComparisonOperand;
+
+    fn contains<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
+        self.operations
+            .push(NodeIndexOperation::NodeIndexComparisonOperation {
+                operand: value.into(),
+                kind: SingleComparisonKind::Contains,
+            });
+    }
+}
+
+impl IsIn for NodeIndexOperand {
+    type ComparisonOperand = NodeIndicesComparisonOperand;
+
+    fn is_in<V: Into<Self::ComparisonOperand>>(&mut self, indices: V) {
         self.operations
             .push(NodeIndexOperation::NodeIndicesComparisonOperation {
                 operand: indices.into(),
                 kind: MultipleComparisonKind::IsIn,
             });
     }
+}
 
-    pub fn is_not_in<V: Into<NodeIndicesComparisonOperand>>(&mut self, indices: V) {
+impl IsNotIn for NodeIndexOperand {
+    type ComparisonOperand = NodeIndicesComparisonOperand;
+
+    fn is_not_in<V: Into<Self::ComparisonOperand>>(&mut self, indices: V) {
         self.operations
             .push(NodeIndexOperation::NodeIndicesComparisonOperation {
                 operand: indices.into(),
                 kind: MultipleComparisonKind::IsNotIn,
             });
     }
+}
 
-    implement_binary_arithmetic_operation!(add, NodeIndexOperation, Add);
-    implement_binary_arithmetic_operation!(sub, NodeIndexOperation, Sub);
-    implement_binary_arithmetic_operation!(mul, NodeIndexOperation, Mul);
-    implement_binary_arithmetic_operation!(pow, NodeIndexOperation, Pow);
-    implement_binary_arithmetic_operation!(r#mod, NodeIndexOperation, Mod);
+impl Add for NodeIndexOperand {
+    type ComparisonOperand = NodeIndexComparisonOperand;
 
-    implement_unary_arithmetic_operation!(abs, NodeIndexOperation, Abs);
-    implement_unary_arithmetic_operation!(trim, NodeIndexOperation, Trim);
-    implement_unary_arithmetic_operation!(trim_start, NodeIndexOperation, TrimStart);
-    implement_unary_arithmetic_operation!(trim_end, NodeIndexOperation, TrimEnd);
-    implement_unary_arithmetic_operation!(lowercase, NodeIndexOperation, Lowercase);
-    implement_unary_arithmetic_operation!(uppercase, NodeIndexOperation, Uppercase);
+    fn add<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
+        self.operations
+            .push(NodeIndexOperation::BinaryArithmeticOperation {
+                operand: value.into(),
+                kind: BinaryArithmeticKind::Add,
+            });
+    }
+}
 
-    pub fn slice(&mut self, start: usize, end: usize) {
+impl Sub for NodeIndexOperand {
+    type ComparisonOperand = NodeIndexComparisonOperand;
+
+    fn sub<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
+        self.operations
+            .push(NodeIndexOperation::BinaryArithmeticOperation {
+                operand: value.into(),
+                kind: BinaryArithmeticKind::Sub,
+            });
+    }
+}
+
+impl Mul for NodeIndexOperand {
+    type ComparisonOperand = NodeIndexComparisonOperand;
+
+    fn mul<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
+        self.operations
+            .push(NodeIndexOperation::BinaryArithmeticOperation {
+                operand: value.into(),
+                kind: BinaryArithmeticKind::Mul,
+            });
+    }
+}
+
+impl Pow for NodeIndexOperand {
+    type ComparisonOperand = NodeIndexComparisonOperand;
+
+    fn pow<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
+        self.operations
+            .push(NodeIndexOperation::BinaryArithmeticOperation {
+                operand: value.into(),
+                kind: BinaryArithmeticKind::Pow,
+            });
+    }
+}
+
+impl Mod for NodeIndexOperand {
+    type ComparisonOperand = NodeIndexComparisonOperand;
+
+    fn r#mod<V: Into<Self::ComparisonOperand>>(&mut self, value: V) {
+        self.operations
+            .push(NodeIndexOperation::BinaryArithmeticOperation {
+                operand: value.into(),
+                kind: BinaryArithmeticKind::Mod,
+            });
+    }
+}
+
+impl Abs for NodeIndexOperand {
+    fn abs(&mut self) {
+        self.operations
+            .push(NodeIndexOperation::UnaryArithmeticOperation {
+                kind: UnaryArithmeticKind::Abs,
+            });
+    }
+}
+
+impl Trim for NodeIndexOperand {
+    fn trim(&mut self) {
+        self.operations
+            .push(NodeIndexOperation::UnaryArithmeticOperation {
+                kind: UnaryArithmeticKind::Trim,
+            });
+    }
+}
+
+impl TrimStart for NodeIndexOperand {
+    fn trim_start(&mut self) {
+        self.operations
+            .push(NodeIndexOperation::UnaryArithmeticOperation {
+                kind: UnaryArithmeticKind::TrimStart,
+            });
+    }
+}
+
+impl TrimEnd for NodeIndexOperand {
+    fn trim_end(&mut self) {
+        self.operations
+            .push(NodeIndexOperation::UnaryArithmeticOperation {
+                kind: UnaryArithmeticKind::TrimEnd,
+            });
+    }
+}
+
+impl Lowercase for NodeIndexOperand {
+    fn lowercase(&mut self) {
+        self.operations
+            .push(NodeIndexOperation::UnaryArithmeticOperation {
+                kind: UnaryArithmeticKind::Lowercase,
+            });
+    }
+}
+
+impl Uppercase for NodeIndexOperand {
+    fn uppercase(&mut self) {
+        self.operations
+            .push(NodeIndexOperation::UnaryArithmeticOperation {
+                kind: UnaryArithmeticKind::Uppercase,
+            });
+    }
+}
+
+impl Slice for NodeIndexOperand {
+    fn slice(&mut self, start: usize, end: usize) {
         self.operations.push(NodeIndexOperation::Slice(start..end));
     }
+}
 
-    implement_assertion_operation!(is_string, NodeIndexOperation::IsString);
-    implement_assertion_operation!(is_int, NodeIndexOperation::IsInt);
-    pub fn eiter_or<EQ, OQ>(&mut self, either_query: EQ, or_query: OQ)
+impl IsString for NodeIndexOperand {
+    fn is_string(&mut self) {
+        self.operations.push(NodeIndexOperation::IsString);
+    }
+}
+
+impl IsInt for NodeIndexOperand {
+    fn is_int(&mut self) {
+        self.operations.push(NodeIndexOperation::IsInt);
+    }
+}
+
+impl EitherOr for NodeIndexOperand {
+    type QueryOperand = Self;
+
+    fn either_or<EQ, OQ>(&mut self, either_query: EQ, or_query: OQ)
     where
-        EQ: FnOnce(&mut Wrapper<NodeIndexOperand>),
-        OQ: FnOnce(&mut Wrapper<NodeIndexOperand>),
+        EQ: FnOnce(&mut Wrapper<Self::QueryOperand>),
+        OQ: FnOnce(&mut Wrapper<Self::QueryOperand>),
     {
         let mut either_operand =
-            Wrapper::<NodeIndexOperand>::new(self.context.clone(), self.kind.clone());
+            Wrapper::<Self::QueryOperand>::new(self.context.clone(), self.kind.clone());
         let mut or_operand =
-            Wrapper::<NodeIndexOperand>::new(self.context.clone(), self.kind.clone());
+            Wrapper::<Self::QueryOperand>::new(self.context.clone(), self.kind.clone());
 
         either_query(&mut either_operand);
         or_query(&mut or_operand);
@@ -824,12 +1388,17 @@ impl NodeIndexOperand {
             or: or_operand,
         });
     }
+}
 
-    pub fn exclude<Q>(&mut self, query: Q)
+impl Exclude for NodeIndexOperand {
+    type QueryOperand = Self;
+
+    fn exclude<Q>(&mut self, query: Q)
     where
-        Q: FnOnce(&mut Wrapper<NodeIndexOperand>),
+        Q: FnOnce(&mut Wrapper<Self::QueryOperand>),
     {
-        let mut operand = Wrapper::<NodeIndexOperand>::new(self.context.clone(), self.kind.clone());
+        let mut operand =
+            Wrapper::<Self::QueryOperand>::new(self.context.clone(), self.kind.clone());
 
         query(&mut operand);
 
@@ -838,75 +1407,26 @@ impl NodeIndexOperand {
     }
 }
 
+impl NodeIndexOperand {
+    pub(crate) fn new(context: NodeIndicesOperand, kind: SingleKind) -> Self {
+        Self {
+            context,
+            kind,
+            operations: Vec::new(),
+        }
+    }
+
+    pub(crate) fn push_merge_operation(&mut self, operand: Wrapper<NodeIndicesOperand>) {
+        self.operations.push(NodeIndexOperation::Merge { operand });
+    }
+}
+
 impl Wrapper<NodeIndexOperand> {
     pub(crate) fn new(context: NodeIndicesOperand, kind: SingleKind) -> Self {
         NodeIndexOperand::new(context, kind).into()
     }
 
-    pub(crate) fn evaluate_forward(
-        &self,
-        medrecord: &MedRecord,
-        index: NodeIndex,
-    ) -> MedRecordResult<Option<NodeIndex>> {
-        self.0.read_or_panic().evaluate_forward(medrecord, index)
-    }
-
-    pub(crate) fn evaluate_backward(
-        &self,
-        medrecord: &MedRecord,
-    ) -> MedRecordResult<Option<NodeIndex>> {
-        self.0.read_or_panic().evaluate_backward(medrecord)
-    }
-
-    implement_wrapper_operand_with_argument!(greater_than, impl Into<NodeIndexComparisonOperand>);
-    implement_wrapper_operand_with_argument!(
-        greater_than_or_equal_to,
-        impl Into<NodeIndexComparisonOperand>
-    );
-    implement_wrapper_operand_with_argument!(less_than, impl Into<NodeIndexComparisonOperand>);
-    implement_wrapper_operand_with_argument!(
-        less_than_or_equal_to,
-        impl Into<NodeIndexComparisonOperand>
-    );
-    implement_wrapper_operand_with_argument!(equal_to, impl Into<NodeIndexComparisonOperand>);
-    implement_wrapper_operand_with_argument!(not_equal_to, impl Into<NodeIndexComparisonOperand>);
-    implement_wrapper_operand_with_argument!(starts_with, impl Into<NodeIndexComparisonOperand>);
-    implement_wrapper_operand_with_argument!(ends_with, impl Into<NodeIndexComparisonOperand>);
-    implement_wrapper_operand_with_argument!(contains, impl Into<NodeIndexComparisonOperand>);
-    implement_wrapper_operand_with_argument!(is_in, impl Into<NodeIndicesComparisonOperand>);
-    implement_wrapper_operand_with_argument!(is_not_in, impl Into<NodeIndicesComparisonOperand>);
-    implement_wrapper_operand_with_argument!(add, impl Into<NodeIndexComparisonOperand>);
-    implement_wrapper_operand_with_argument!(sub, impl Into<NodeIndexComparisonOperand>);
-    implement_wrapper_operand_with_argument!(mul, impl Into<NodeIndexComparisonOperand>);
-    implement_wrapper_operand_with_argument!(pow, impl Into<NodeIndexComparisonOperand>);
-    implement_wrapper_operand_with_argument!(r#mod, impl Into<NodeIndexComparisonOperand>);
-
-    implement_wrapper_operand!(abs);
-    implement_wrapper_operand!(trim);
-    implement_wrapper_operand!(trim_start);
-    implement_wrapper_operand!(trim_end);
-    implement_wrapper_operand!(lowercase);
-    implement_wrapper_operand!(uppercase);
-
-    pub fn slice(&self, start: usize, end: usize) {
-        self.0.write_or_panic().slice(start, end)
-    }
-
-    implement_wrapper_operand!(is_string);
-    implement_wrapper_operand!(is_int);
-
-    pub fn either_or<EQ, OQ>(&self, either_query: EQ, or_query: OQ)
-    where
-        EQ: FnOnce(&mut Wrapper<NodeIndexOperand>),
-        OQ: FnOnce(&mut Wrapper<NodeIndexOperand>),
-    {
-        self.0.write_or_panic().eiter_or(either_query, or_query);
-    }
-
-    pub fn exclude<Q>(&self, query: Q)
-    where
-        Q: FnOnce(&mut Wrapper<NodeIndexOperand>),
-    {
-        self.0.write_or_panic().exclude(query);
+    pub(crate) fn push_merge_operation(&self, operand: Wrapper<NodeIndicesOperand>) {
+        self.0.write_or_panic().push_merge_operation(operand);
     }
 }
