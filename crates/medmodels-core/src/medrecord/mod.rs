@@ -1,46 +1,25 @@
-mod datatypes;
+pub mod datatypes;
 mod example_dataset;
 mod graph;
 mod group_mapping;
 mod polars;
-mod querying;
-mod schema;
+pub mod querying;
+pub mod schema;
 
 pub use self::{
-    datatypes::{DataType, MedRecordAttribute, MedRecordValue},
+    datatypes::{MedRecordAttribute, MedRecordValue},
     graph::{Attributes, EdgeIndex, NodeIndex},
     group_mapping::Group,
-    querying::{
-        attributes::{
-            AttributesTreeOperand, EdgeAttributesTreeOperand, EdgeMultipleAttributesOperand,
-            EdgeSingleAttributeOperand, MultipleAttributesComparisonOperand,
-            MultipleAttributesOperand, NodeAttributesTreeOperand, NodeMultipleAttributesOperand,
-            NodeSingleAttributeOperand, SingleAttributeComparisonOperand, SingleAttributeOperand,
-        },
-        edges::{
-            EdgeIndexComparisonOperand, EdgeIndexOperand, EdgeIndicesComparisonOperand,
-            EdgeIndicesOperand, EdgeOperand,
-        },
-        nodes::{
-            EdgeDirection, NodeIndexComparisonOperand, NodeIndexOperand,
-            NodeIndicesComparisonOperand, NodeIndicesOperand, NodeOperand,
-        },
-        traits::DeepClone,
-        values::{
-            EdgeMultipleValuesOperand, EdgeSingleValueOperand, MultipleValuesComparisonOperand,
-            MultipleValuesOperand, NodeMultipleValuesOperand, NodeSingleValueOperand,
-            SingleValueComparisonOperand, SingleValueOperand,
-        },
-        wrapper::{CardinalityWrapper, Wrapper},
-        OptionalIndexWrapper, ReturnOperand, Selection,
-    },
-    schema::{AttributeDataType, AttributeSchema, AttributeType, GroupSchema, Schema, SchemaType},
 };
 use crate::errors::MedRecordError;
 use ::polars::frame::DataFrame;
 use graph::Graph;
 use group_mapping::GroupMapping;
 use polars::{dataframe_to_edges, dataframe_to_nodes};
+use querying::{
+    edges::EdgeOperand, nodes::NodeOperand, wrapper::Wrapper, ReturnOperand, Selection,
+};
+use schema::{GroupSchema, Schema, SchemaType};
 use serde::{Deserialize, Serialize};
 use std::{
     collections::{hash_map::Entry, HashMap},
@@ -933,10 +912,11 @@ impl Default for MedRecord {
 
 #[cfg(test)]
 mod test {
-    use super::{Attributes, DataType, MedRecord, MedRecordAttribute, NodeIndex};
+    use super::{Attributes, MedRecord, MedRecordAttribute, NodeIndex};
     use crate::{
         errors::MedRecordError,
         medrecord::{
+            datatypes::DataType,
             schema::{AttributeSchema, GroupSchema, Schema},
             SchemaType,
         },

@@ -23,42 +23,93 @@ from medmodels.medrecord._overview import extract_attribute_summary, prettify_ta
 from medmodels.medrecord.builder import MedRecordBuilder
 from medmodels.medrecord.indexers import EdgeIndexer, NodeIndexer
 from medmodels.medrecord.querying import (
+    EdgeAttributesTreeGroupOperand,
+    EdgeAttributesTreeGroupQueryResult,
     EdgeAttributesTreeOperand,
     EdgeAttributesTreeQueryResult,
+    EdgeIndexGroupOperand,
+    EdgeIndexGroupQueryResult,
     EdgeIndexOperand,
     EdgeIndexQuery,
     EdgeIndexQueryResult,
+    EdgeIndicesGroupOperand,
+    EdgeIndicesGroupQueryResult,
     EdgeIndicesOperand,
     EdgeIndicesQuery,
     EdgeIndicesQueryResult,
-    EdgeMultipleAttributesOperand,
-    EdgeMultipleAttributesQueryResult,
-    EdgeMultipleValuesOperand,
-    EdgeMultipleValuesQueryResult,
+    EdgeMultipleAttributesWithIndexGroupOperand,
+    EdgeMultipleAttributesWithIndexGroupQueryResult,
+    EdgeMultipleAttributesWithIndexOperand,
+    EdgeMultipleAttributesWithIndexQueryResult,
+    EdgeMultipleAttributesWithoutIndexOperand,
+    EdgeMultipleAttributesWithoutIndexQueryResult,
+    EdgeMultipleValuesWithIndexGroupOperand,
+    EdgeMultipleValuesWithIndexGroupQueryResult,
+    EdgeMultipleValuesWithIndexOperand,
+    EdgeMultipleValuesWithIndexQueryResult,
+    EdgeMultipleValuesWithoutIndexOperand,
+    EdgeMultipleValuesWithoutIndexQueryResult,
     EdgeOperand,
     EdgeQuery,
-    EdgeSingleAttributeOperand,
-    EdgeSingleAttributeQueryResult,
-    EdgeSingleValueOperand,
-    EdgeSingleValueQueryResult,
+    EdgeSingleAttributeWithIndexGroupOperand,
+    EdgeSingleAttributeWithIndexGroupQueryResult,
+    EdgeSingleAttributeWithIndexOperand,
+    EdgeSingleAttributeWithIndexQueryResult,
+    EdgeSingleAttributeWithoutIndexGroupOperand,
+    EdgeSingleAttributeWithoutIndexGroupQueryResult,
+    EdgeSingleAttributeWithoutIndexOperand,
+    EdgeSingleAttributeWithoutIndexQueryResult,
+    EdgeSingleValueWithIndexGroupOperand,
+    EdgeSingleValueWithIndexGroupQueryResult,
+    EdgeSingleValueWithIndexOperand,
+    EdgeSingleValueWithIndexQueryResult,
+    EdgeSingleValueWithoutIndexGroupOperand,
+    EdgeSingleValueWithoutIndexGroupQueryResult,
+    EdgeSingleValueWithoutIndexOperand,
+    EdgeSingleValueWithoutIndexQueryResult,
+    NodeAttributesTreeGroupOperand,
+    NodeAttributesTreeGroupQueryResult,
     NodeAttributesTreeOperand,
     NodeAttributesTreeQueryResult,
+    NodeIndexGroupOperand,
+    NodeIndexGroupQueryResult,
     NodeIndexOperand,
     NodeIndexQuery,
     NodeIndexQueryResult,
+    NodeIndicesGroupOperand,
+    NodeIndicesGroupQueryResult,
     NodeIndicesOperand,
     NodeIndicesQuery,
     NodeIndicesQueryResult,
-    NodeMultipleAttributesOperand,
-    NodeMultipleAttributesQueryResult,
-    NodeMultipleValuesOperand,
-    NodeMultipleValuesQueryResult,
+    NodeMultipleAttributesWithIndexGroupOperand,
+    NodeMultipleAttributesWithIndexGroupQueryResult,
+    NodeMultipleAttributesWithIndexOperand,
+    NodeMultipleAttributesWithIndexQueryResult,
+    NodeMultipleAttributesWithoutIndexOperand,
+    NodeMultipleAttributesWithoutIndexQueryResult,
+    NodeMultipleValuesWithIndexGroupOperand,
+    NodeMultipleValuesWithIndexGroupQueryResult,
+    NodeMultipleValuesWithIndexOperand,
+    NodeMultipleValuesWithIndexQueryResult,
+    NodeMultipleValuesWithoutIndexOperand,
+    NodeMultipleValuesWithoutIndexQueryResult,
     NodeOperand,
     NodeQuery,
-    NodeSingleAttributeOperand,
-    NodeSingleAttributeQueryResult,
-    NodeSingleValueOperand,
-    NodeSingleValueQueryResult,
+    NodeSingleAttributeWithIndexGroupOperand,
+    NodeSingleAttributeWithIndexGroupQueryResult,
+    NodeSingleAttributeWithIndexOperand,
+    NodeSingleAttributeWithIndexQueryResult,
+    NodeSingleAttributeWithoutIndexGroupOperand,
+    NodeSingleAttributeWithoutIndexGroupQueryResult,
+    NodeSingleAttributeWithoutIndexOperand,
+    NodeSingleAttributeWithoutIndexQueryResult,
+    NodeSingleValueWithIndexGroupOperand,
+    NodeSingleValueWithIndexGroupQueryResult,
+    NodeSingleValueWithIndexOperand,
+    NodeSingleValueWithIndexQueryResult,
+    NodeSingleValueWithoutIndexGroupOperand,
+    NodeSingleValueWithoutIndexOperand,
+    NodeSingleValueWithoutIndexQueryResult,
     PyQueryReturnOperand,
     QueryResult,
     QueryReturnOperand,
@@ -131,23 +182,61 @@ def process_edges_dataframe(
 def _convert_queryreturnoperand_to_pyqueryreturnoperand(
     operand: QueryReturnOperand,
 ) -> PyQueryReturnOperand:
-    if isinstance(operand, (NodeAttributesTreeOperand, EdgeAttributesTreeOperand)):
+    if isinstance(
+        operand,
+        (
+            NodeAttributesTreeOperand,
+            NodeAttributesTreeGroupOperand,
+            EdgeAttributesTreeOperand,
+            EdgeAttributesTreeGroupOperand,
+        ),
+    ):
         return operand._attributes_tree_operand
     if isinstance(
-        operand, (NodeMultipleAttributesOperand, EdgeMultipleAttributesOperand)
+        operand,
+        (
+            NodeMultipleAttributesWithIndexOperand,
+            NodeMultipleAttributesWithIndexGroupOperand,
+            NodeMultipleAttributesWithoutIndexOperand,
+            EdgeMultipleAttributesWithIndexOperand,
+            EdgeMultipleAttributesWithIndexGroupOperand,
+            EdgeMultipleAttributesWithoutIndexOperand,
+        ),
     ):
         return operand._multiple_attributes_operand
-    if isinstance(operand, (NodeSingleAttributeOperand, EdgeSingleAttributeOperand)):
+    if isinstance(
+        operand,
+        (
+            NodeSingleAttributeWithIndexOperand,
+            NodeSingleAttributeWithIndexGroupOperand,
+            NodeSingleAttributeWithoutIndexOperand,
+            NodeSingleAttributeWithoutIndexGroupOperand,
+            EdgeSingleAttributeWithIndexOperand,
+            EdgeSingleAttributeWithIndexGroupOperand,
+            EdgeSingleAttributeWithoutIndexOperand,
+            EdgeSingleAttributeWithoutIndexGroupOperand,
+        ),
+    ):
         return operand._single_attribute_operand
-    if isinstance(operand, EdgeIndicesOperand):
+    if isinstance(operand, (EdgeIndicesOperand, EdgeIndicesGroupOperand)):
         return operand._edge_indices_operand
-    if isinstance(operand, EdgeIndexOperand):
+    if isinstance(operand, (EdgeIndexOperand, EdgeIndexGroupOperand)):
         return operand._edge_index_operand
-    if isinstance(operand, NodeIndicesOperand):
+    if isinstance(operand, (NodeIndicesOperand, NodeIndicesGroupOperand)):
         return operand._node_indices_operand
-    if isinstance(operand, NodeIndexOperand):
+    if isinstance(operand, (NodeIndexOperand, NodeIndexGroupOperand)):
         return operand._node_index_operand
-    if isinstance(operand, (NodeMultipleValuesOperand, EdgeMultipleValuesOperand)):
+    if isinstance(
+        operand,
+        (
+            NodeMultipleValuesWithIndexOperand,
+            NodeMultipleValuesWithIndexGroupOperand,
+            NodeMultipleValuesWithoutIndexOperand,
+            EdgeMultipleValuesWithIndexOperand,
+            EdgeMultipleValuesWithIndexGroupOperand,
+            EdgeMultipleValuesWithoutIndexOperand,
+        ),
+    ):
         return operand._multiple_values_operand
     if isinstance(operand, Sequence):
         return [
@@ -1495,56 +1584,164 @@ class MedRecord:
     ) -> NodeAttributesTreeQueryResult: ...
     @overload
     def query_nodes(
+        self, query: Callable[[NodeOperand], NodeAttributesTreeGroupOperand]
+    ) -> NodeAttributesTreeGroupQueryResult: ...
+    @overload
+    def query_nodes(
         self, query: Callable[[NodeOperand], EdgeAttributesTreeOperand]
     ) -> EdgeAttributesTreeQueryResult: ...
     @overload
     def query_nodes(
-        self, query: Callable[[NodeOperand], NodeMultipleAttributesOperand]
-    ) -> NodeMultipleAttributesQueryResult: ...
+        self, query: Callable[[NodeOperand], EdgeAttributesTreeGroupOperand]
+    ) -> EdgeAttributesTreeGroupQueryResult: ...
     @overload
     def query_nodes(
-        self, query: Callable[[NodeOperand], EdgeMultipleAttributesOperand]
-    ) -> EdgeMultipleAttributesQueryResult: ...
+        self, query: Callable[[NodeOperand], NodeMultipleAttributesWithIndexOperand]
+    ) -> NodeMultipleAttributesWithIndexQueryResult: ...
     @overload
     def query_nodes(
-        self, query: Callable[[NodeOperand], NodeSingleAttributeOperand]
-    ) -> NodeSingleAttributeQueryResult: ...
+        self,
+        query: Callable[[NodeOperand], NodeMultipleAttributesWithIndexGroupOperand],
+    ) -> NodeMultipleAttributesWithIndexGroupQueryResult: ...
     @overload
     def query_nodes(
-        self, query: Callable[[NodeOperand], EdgeSingleAttributeOperand]
-    ) -> EdgeSingleAttributeQueryResult: ...
+        self, query: Callable[[NodeOperand], NodeMultipleAttributesWithoutIndexOperand]
+    ) -> NodeMultipleAttributesWithoutIndexQueryResult: ...
+    @overload
+    def query_nodes(
+        self, query: Callable[[NodeOperand], EdgeMultipleAttributesWithIndexOperand]
+    ) -> EdgeMultipleAttributesWithIndexQueryResult: ...
+    @overload
+    def query_nodes(
+        self,
+        query: Callable[[NodeOperand], EdgeMultipleAttributesWithIndexGroupOperand],
+    ) -> EdgeMultipleAttributesWithIndexGroupQueryResult: ...
+    @overload
+    def query_nodes(
+        self, query: Callable[[NodeOperand], EdgeMultipleAttributesWithoutIndexOperand]
+    ) -> EdgeMultipleAttributesWithoutIndexQueryResult: ...
+    @overload
+    def query_nodes(
+        self, query: Callable[[NodeOperand], NodeSingleAttributeWithIndexOperand]
+    ) -> NodeSingleAttributeWithIndexQueryResult: ...
+    @overload
+    def query_nodes(
+        self, query: Callable[[NodeOperand], NodeSingleAttributeWithIndexGroupOperand]
+    ) -> NodeSingleAttributeWithIndexGroupQueryResult: ...
+    @overload
+    def query_nodes(
+        self, query: Callable[[NodeOperand], NodeSingleAttributeWithoutIndexOperand]
+    ) -> NodeSingleAttributeWithoutIndexQueryResult: ...
+    @overload
+    def query_nodes(
+        self,
+        query: Callable[[NodeOperand], NodeSingleAttributeWithoutIndexGroupOperand],
+    ) -> NodeSingleAttributeWithoutIndexGroupQueryResult: ...
+    @overload
+    def query_nodes(
+        self, query: Callable[[NodeOperand], EdgeSingleAttributeWithIndexOperand]
+    ) -> EdgeSingleAttributeWithIndexQueryResult: ...
+    @overload
+    def query_nodes(
+        self, query: Callable[[NodeOperand], EdgeSingleAttributeWithIndexGroupOperand]
+    ) -> EdgeSingleAttributeWithIndexGroupQueryResult: ...
+    @overload
+    def query_nodes(
+        self, query: Callable[[NodeOperand], EdgeSingleAttributeWithoutIndexOperand]
+    ) -> EdgeSingleAttributeWithoutIndexQueryResult: ...
+    @overload
+    def query_nodes(
+        self,
+        query: Callable[[NodeOperand], EdgeSingleAttributeWithoutIndexGroupOperand],
+    ) -> EdgeSingleAttributeWithoutIndexGroupQueryResult: ...
     @overload
     def query_nodes(
         self, query: Callable[[NodeOperand], EdgeIndicesOperand]
     ) -> EdgeIndicesQueryResult: ...
     @overload
     def query_nodes(
+        self, query: Callable[[NodeOperand], EdgeIndicesGroupOperand]
+    ) -> EdgeIndicesGroupQueryResult: ...
+    @overload
+    def query_nodes(
         self, query: Callable[[NodeOperand], EdgeIndexOperand]
     ) -> EdgeIndexQueryResult: ...
+    @overload
+    def query_nodes(
+        self, query: Callable[[NodeOperand], EdgeIndexGroupOperand]
+    ) -> EdgeIndexGroupQueryResult: ...
     @overload
     def query_nodes(
         self, query: Callable[[NodeOperand], NodeIndicesOperand]
     ) -> NodeIndicesQueryResult: ...
     @overload
     def query_nodes(
+        self, query: Callable[[NodeOperand], NodeIndicesGroupOperand]
+    ) -> NodeIndicesGroupQueryResult: ...
+    @overload
+    def query_nodes(
         self, query: Callable[[NodeOperand], NodeIndexOperand]
     ) -> NodeIndexQueryResult: ...
     @overload
     def query_nodes(
-        self, query: Callable[[NodeOperand], NodeMultipleValuesOperand]
-    ) -> NodeMultipleValuesQueryResult: ...
+        self, query: Callable[[NodeOperand], NodeIndexGroupOperand]
+    ) -> NodeIndexGroupQueryResult: ...
     @overload
     def query_nodes(
-        self, query: Callable[[NodeOperand], EdgeMultipleValuesOperand]
-    ) -> EdgeMultipleValuesQueryResult: ...
+        self, query: Callable[[NodeOperand], NodeMultipleValuesWithIndexOperand]
+    ) -> NodeMultipleValuesWithIndexQueryResult: ...
     @overload
     def query_nodes(
-        self, query: Callable[[NodeOperand], NodeSingleValueOperand]
-    ) -> NodeSingleValueQueryResult: ...
+        self, query: Callable[[NodeOperand], NodeMultipleValuesWithIndexGroupOperand]
+    ) -> NodeMultipleValuesWithIndexGroupQueryResult: ...
     @overload
     def query_nodes(
-        self, query: Callable[[NodeOperand], EdgeSingleValueOperand]
-    ) -> EdgeSingleValueQueryResult: ...
+        self, query: Callable[[NodeOperand], NodeMultipleValuesWithoutIndexOperand]
+    ) -> NodeMultipleValuesWithoutIndexQueryResult: ...
+    @overload
+    def query_nodes(
+        self, query: Callable[[NodeOperand], EdgeMultipleValuesWithIndexOperand]
+    ) -> EdgeMultipleValuesWithIndexQueryResult: ...
+    @overload
+    def query_nodes(
+        self, query: Callable[[NodeOperand], EdgeMultipleValuesWithIndexGroupOperand]
+    ) -> EdgeMultipleValuesWithIndexGroupQueryResult: ...
+    @overload
+    def query_nodes(
+        self, query: Callable[[NodeOperand], EdgeMultipleValuesWithoutIndexOperand]
+    ) -> EdgeMultipleValuesWithoutIndexQueryResult: ...
+    @overload
+    def query_nodes(
+        self, query: Callable[[NodeOperand], NodeSingleValueWithIndexOperand]
+    ) -> NodeSingleValueWithIndexQueryResult: ...
+    @overload
+    def query_nodes(
+        self, query: Callable[[NodeOperand], NodeSingleValueWithIndexGroupOperand]
+    ) -> NodeSingleValueWithIndexGroupQueryResult: ...
+    @overload
+    def query_nodes(
+        self, query: Callable[[NodeOperand], NodeSingleValueWithoutIndexOperand]
+    ) -> NodeSingleValueWithoutIndexQueryResult: ...
+    @overload
+    def query_nodes(
+        self, query: Callable[[NodeOperand], NodeSingleValueWithoutIndexGroupOperand]
+    ) -> NodeSingleValueWithIndexGroupQueryResult: ...
+    @overload
+    def query_nodes(
+        self, query: Callable[[NodeOperand], EdgeSingleValueWithIndexOperand]
+    ) -> EdgeSingleValueWithIndexQueryResult: ...
+    @overload
+    def query_nodes(
+        self, query: Callable[[NodeOperand], EdgeSingleValueWithIndexGroupOperand]
+    ) -> EdgeSingleValueWithIndexGroupQueryResult: ...
+    @overload
+    def query_nodes(
+        self, query: Callable[[NodeOperand], EdgeSingleValueWithoutIndexOperand]
+    ) -> EdgeSingleValueWithoutIndexQueryResult: ...
+    @overload
+    def query_nodes(
+        self, query: Callable[[NodeOperand], EdgeSingleValueWithoutIndexGroupOperand]
+    ) -> EdgeSingleValueWithoutIndexGroupQueryResult: ...
     @overload
     def query_nodes(
         self, query: Callable[[NodeOperand], Sequence[QueryReturnOperand]]
@@ -1576,56 +1773,164 @@ class MedRecord:
     ) -> NodeAttributesTreeQueryResult: ...
     @overload
     def query_edges(
+        self, query: Callable[[EdgeOperand], NodeAttributesTreeGroupOperand]
+    ) -> NodeAttributesTreeGroupQueryResult: ...
+    @overload
+    def query_edges(
         self, query: Callable[[EdgeOperand], EdgeAttributesTreeOperand]
     ) -> EdgeAttributesTreeQueryResult: ...
     @overload
     def query_edges(
-        self, query: Callable[[EdgeOperand], NodeMultipleAttributesOperand]
-    ) -> NodeMultipleAttributesQueryResult: ...
+        self, query: Callable[[EdgeOperand], EdgeAttributesTreeGroupOperand]
+    ) -> EdgeAttributesTreeGroupQueryResult: ...
     @overload
     def query_edges(
-        self, query: Callable[[EdgeOperand], EdgeMultipleAttributesOperand]
-    ) -> EdgeMultipleAttributesQueryResult: ...
+        self, query: Callable[[EdgeOperand], NodeMultipleAttributesWithIndexOperand]
+    ) -> NodeMultipleAttributesWithIndexQueryResult: ...
     @overload
     def query_edges(
-        self, query: Callable[[EdgeOperand], NodeSingleAttributeOperand]
-    ) -> NodeSingleAttributeQueryResult: ...
+        self,
+        query: Callable[[EdgeOperand], NodeMultipleAttributesWithIndexGroupOperand],
+    ) -> NodeMultipleAttributesWithIndexGroupQueryResult: ...
     @overload
     def query_edges(
-        self, query: Callable[[EdgeOperand], EdgeSingleAttributeOperand]
-    ) -> EdgeSingleAttributeQueryResult: ...
+        self, query: Callable[[EdgeOperand], NodeMultipleAttributesWithoutIndexOperand]
+    ) -> NodeMultipleAttributesWithoutIndexQueryResult: ...
+    @overload
+    def query_edges(
+        self, query: Callable[[EdgeOperand], EdgeMultipleAttributesWithIndexOperand]
+    ) -> EdgeMultipleAttributesWithIndexQueryResult: ...
+    @overload
+    def query_edges(
+        self,
+        query: Callable[[EdgeOperand], EdgeMultipleAttributesWithIndexGroupOperand],
+    ) -> EdgeMultipleAttributesWithIndexGroupQueryResult: ...
+    @overload
+    def query_edges(
+        self, query: Callable[[EdgeOperand], EdgeMultipleAttributesWithoutIndexOperand]
+    ) -> EdgeMultipleAttributesWithoutIndexQueryResult: ...
+    @overload
+    def query_edges(
+        self, query: Callable[[EdgeOperand], NodeSingleAttributeWithIndexOperand]
+    ) -> NodeSingleAttributeWithIndexQueryResult: ...
+    @overload
+    def query_edges(
+        self, query: Callable[[EdgeOperand], NodeSingleAttributeWithIndexGroupOperand]
+    ) -> NodeSingleAttributeWithIndexGroupQueryResult: ...
+    @overload
+    def query_edges(
+        self, query: Callable[[EdgeOperand], NodeSingleAttributeWithoutIndexOperand]
+    ) -> NodeSingleAttributeWithoutIndexQueryResult: ...
+    @overload
+    def query_edges(
+        self,
+        query: Callable[[EdgeOperand], NodeSingleAttributeWithoutIndexGroupOperand],
+    ) -> NodeSingleAttributeWithoutIndexGroupQueryResult: ...
+    @overload
+    def query_edges(
+        self, query: Callable[[EdgeOperand], EdgeSingleAttributeWithIndexOperand]
+    ) -> EdgeSingleAttributeWithIndexQueryResult: ...
+    @overload
+    def query_edges(
+        self, query: Callable[[EdgeOperand], EdgeSingleAttributeWithIndexGroupOperand]
+    ) -> EdgeSingleAttributeWithIndexGroupQueryResult: ...
+    @overload
+    def query_edges(
+        self, query: Callable[[EdgeOperand], EdgeSingleAttributeWithoutIndexOperand]
+    ) -> EdgeSingleAttributeWithoutIndexQueryResult: ...
+    @overload
+    def query_edges(
+        self,
+        query: Callable[[EdgeOperand], EdgeSingleAttributeWithoutIndexGroupOperand],
+    ) -> EdgeSingleAttributeWithoutIndexGroupQueryResult: ...
     @overload
     def query_edges(
         self, query: Callable[[EdgeOperand], EdgeIndicesOperand]
     ) -> EdgeIndicesQueryResult: ...
     @overload
     def query_edges(
+        self, query: Callable[[EdgeOperand], EdgeIndicesGroupOperand]
+    ) -> EdgeIndicesGroupQueryResult: ...
+    @overload
+    def query_edges(
         self, query: Callable[[EdgeOperand], EdgeIndexOperand]
     ) -> EdgeIndexQueryResult: ...
+    @overload
+    def query_edges(
+        self, query: Callable[[EdgeOperand], EdgeIndexGroupOperand]
+    ) -> EdgeIndexGroupQueryResult: ...
     @overload
     def query_edges(
         self, query: Callable[[EdgeOperand], NodeIndicesOperand]
     ) -> NodeIndicesQueryResult: ...
     @overload
     def query_edges(
+        self, query: Callable[[EdgeOperand], NodeIndicesGroupOperand]
+    ) -> NodeIndicesGroupQueryResult: ...
+    @overload
+    def query_edges(
         self, query: Callable[[EdgeOperand], NodeIndexOperand]
     ) -> NodeIndexQueryResult: ...
     @overload
     def query_edges(
-        self, query: Callable[[EdgeOperand], NodeMultipleValuesOperand]
-    ) -> NodeMultipleValuesQueryResult: ...
+        self, query: Callable[[EdgeOperand], NodeIndexGroupOperand]
+    ) -> NodeIndexGroupQueryResult: ...
     @overload
     def query_edges(
-        self, query: Callable[[EdgeOperand], EdgeMultipleValuesOperand]
-    ) -> EdgeMultipleValuesQueryResult: ...
+        self, query: Callable[[EdgeOperand], NodeMultipleValuesWithIndexOperand]
+    ) -> NodeMultipleValuesWithIndexQueryResult: ...
     @overload
     def query_edges(
-        self, query: Callable[[EdgeOperand], NodeSingleValueOperand]
-    ) -> NodeSingleValueQueryResult: ...
+        self, query: Callable[[EdgeOperand], NodeMultipleValuesWithIndexGroupOperand]
+    ) -> NodeMultipleValuesWithIndexGroupQueryResult: ...
     @overload
     def query_edges(
-        self, query: Callable[[EdgeOperand], EdgeSingleValueOperand]
-    ) -> EdgeSingleValueQueryResult: ...
+        self, query: Callable[[EdgeOperand], NodeMultipleValuesWithoutIndexOperand]
+    ) -> NodeMultipleValuesWithoutIndexQueryResult: ...
+    @overload
+    def query_edges(
+        self, query: Callable[[EdgeOperand], EdgeMultipleValuesWithIndexOperand]
+    ) -> EdgeMultipleValuesWithIndexQueryResult: ...
+    @overload
+    def query_edges(
+        self, query: Callable[[EdgeOperand], EdgeMultipleValuesWithIndexGroupOperand]
+    ) -> EdgeMultipleValuesWithIndexGroupQueryResult: ...
+    @overload
+    def query_edges(
+        self, query: Callable[[EdgeOperand], EdgeMultipleValuesWithoutIndexOperand]
+    ) -> EdgeMultipleValuesWithoutIndexQueryResult: ...
+    @overload
+    def query_edges(
+        self, query: Callable[[EdgeOperand], NodeSingleValueWithIndexOperand]
+    ) -> NodeSingleValueWithIndexQueryResult: ...
+    @overload
+    def query_edges(
+        self, query: Callable[[EdgeOperand], NodeSingleValueWithIndexGroupOperand]
+    ) -> NodeSingleValueWithIndexGroupQueryResult: ...
+    @overload
+    def query_edges(
+        self, query: Callable[[EdgeOperand], NodeSingleValueWithoutIndexOperand]
+    ) -> NodeSingleValueWithoutIndexQueryResult: ...
+    @overload
+    def query_edges(
+        self, query: Callable[[EdgeOperand], NodeSingleValueWithoutIndexGroupOperand]
+    ) -> NodeSingleValueWithIndexGroupQueryResult: ...
+    @overload
+    def query_edges(
+        self, query: Callable[[EdgeOperand], EdgeSingleValueWithIndexOperand]
+    ) -> EdgeSingleValueWithIndexQueryResult: ...
+    @overload
+    def query_edges(
+        self, query: Callable[[EdgeOperand], EdgeSingleValueWithIndexGroupOperand]
+    ) -> EdgeSingleValueWithIndexGroupQueryResult: ...
+    @overload
+    def query_edges(
+        self, query: Callable[[EdgeOperand], EdgeSingleValueWithoutIndexOperand]
+    ) -> EdgeSingleValueWithoutIndexQueryResult: ...
+    @overload
+    def query_edges(
+        self, query: Callable[[EdgeOperand], EdgeSingleValueWithoutIndexGroupOperand]
+    ) -> EdgeSingleValueWithoutIndexGroupQueryResult: ...
     @overload
     def query_edges(
         self, query: Callable[[EdgeOperand], Sequence[QueryReturnOperand]]

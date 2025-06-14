@@ -769,8 +769,9 @@ mod test {
     use super::{AttributeDataType, GroupSchema};
     use crate::{
         medrecord::{
-            schema::{AttributeSchema, AttributeSchemaKind},
-            AttributeType, Attributes, DataType, Schema, SchemaType,
+            datatypes::DataType,
+            schema::{AttributeSchema, AttributeSchemaKind, AttributeType},
+            Attributes, Schema, SchemaType,
         },
         MedRecord,
     };
