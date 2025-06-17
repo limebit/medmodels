@@ -25,11 +25,9 @@ use crate::{
     MedRecord,
 };
 use itertools::Itertools;
+use medmodels_utils::aliases::MrHashSet;
 use rand::{rng, seq::IteratorRandom};
-use std::{
-    collections::HashSet,
-    ops::{Add, Mul, Sub},
-};
+use std::ops::{Add, Mul, Sub};
 
 #[derive(Debug, Clone)]
 pub enum EdgeOperation {
@@ -148,10 +146,10 @@ impl EdgeOperation {
                 let (edge_indices_1, rest) = edge_indices.tee();
                 let (edge_indices_2, edge_indices_3) = rest.tee();
 
-                let either_set: HashSet<_> = either
+                let either_set: MrHashSet<_> = either
                     .evaluate_forward(medrecord, Box::new(edge_indices_1))?
                     .collect();
-                let or_set: HashSet<_> = or
+                let or_set: MrHashSet<_> = or
                     .evaluate_forward(medrecord, Box::new(edge_indices_2))?
                     .collect();
 
@@ -163,7 +161,7 @@ impl EdgeOperation {
             Self::Exclude { operand } => {
                 let (edge_indices_1, edge_indices_2) = edge_indices.tee();
 
-                let result: HashSet<_> = operand
+                let result: MrHashSet<_> = operand
                     .evaluate_forward(medrecord, Box::new(edge_indices_1))?
                     .collect();
 
@@ -249,13 +247,13 @@ impl EdgeOperation {
     ) -> MedRecordResult<impl Iterator<Item = &'a EdgeIndex>> {
         let (edge_indices_1, edge_indices_2) = Itertools::tee(edge_indices);
 
-        let result: HashSet<_> = operand
+        let result: MrHashSet<_> = operand
             .evaluate_forward(medrecord, Box::new(edge_indices_1.cloned()))?
             .collect();
 
         Ok(edge_indices_2
             .into_iter()
-            .filter(move |index| result.contains(index)))
+            .filter(move |index| result.contains(*index)))
     }
 
     #[inline]
@@ -269,7 +267,7 @@ impl EdgeOperation {
                 .groups_of_edge(edge_index)
                 .expect("Node must exist");
 
-            let groups_of_edge: Vec<_> = groups_of_edge.collect();
+            let groups_of_edge: MrHashSet<_> = groups_of_edge.collect();
 
             match &group {
                 CardinalityWrapper::Single(group) => groups_of_edge.contains(&group),
@@ -292,7 +290,7 @@ impl EdgeOperation {
                 .expect("Node must exist")
                 .keys();
 
-            let attributes_of_edge: Vec<_> = attributes_of_edge.collect();
+            let attributes_of_edge: MrHashSet<_> = attributes_of_edge.collect();
 
             match &attribute {
                 CardinalityWrapper::Single(attribute) => attributes_of_edge.contains(&attribute),
@@ -319,7 +317,7 @@ impl EdgeOperation {
             edge_endpoints.0
         });
 
-        let node_indices: HashSet<_> = operand
+        let node_indices: MrHashSet<_> = operand
             .evaluate_forward(medrecord, Box::new(node_indices))?
             .collect();
 
@@ -348,7 +346,7 @@ impl EdgeOperation {
             edge_endpoints.1
         });
 
-        let node_indices: HashSet<_> = operand
+        let node_indices: MrHashSet<_> = operand
             .evaluate_forward(medrecord, Box::new(node_indices))?
             .collect();
 
@@ -530,10 +528,11 @@ impl EdgeOperation {
                 .position(|(k, _)| k == &key)
                 .expect("Entry must exist");
 
-            let mut edge_indices_1 = edge_indices_1.remove(*edge_indices_position).1;
+            let edge_indices_1: MrHashSet<_> =
+                edge_indices_1.remove(*edge_indices_position).1.collect();
 
             let filtered_indices: Vec<_> = edge_indices
-                .filter(|edge_index| edge_indices_1.contains(edge_index))
+                .filter(|edge_index| edge_indices_1.contains(*edge_index))
                 .collect();
 
             (
@@ -573,7 +572,8 @@ impl EdgeOperation {
                 .position(|(k, _)| k == &key)
                 .expect("Entry must exist");
 
-            let mut node_indices = node_indices.remove(*node_indices_position).1;
+            let node_indices: MrHashSet<_> =
+                node_indices.remove(*node_indices_position).1.collect();
 
             let filtered_indices: Vec<_> = edge_indices
                 .filter(|edge_index| {
@@ -622,7 +622,8 @@ impl EdgeOperation {
                 .position(|(k, _)| k == &key)
                 .expect("Entry must exist");
 
-            let mut node_indices = node_indices.remove(*node_indices_position).1;
+            let node_indices: MrHashSet<_> =
+                node_indices.remove(*node_indices_position).1.collect();
 
             let filtered_indices: Vec<_> = edge_indices
                 .filter(|edge_index| {
@@ -693,7 +694,7 @@ impl EdgeOperation {
                 .position(|(k, _)| k == &key)
                 .expect("Entry must exist");
 
-            let mut excluded_indices = result.remove(indices_position).1;
+            let excluded_indices: MrHashSet<_> = result.remove(indices_position).1.collect();
 
             let edge_indices: BoxedIterator<_> =
                 Box::new(values.filter(move |edge_index| !excluded_indices.contains(edge_index)));
@@ -997,7 +998,7 @@ impl EdgeIndicesOperation {
     ) -> MedRecordResult<BoxedIterator<'a, EdgeIndex>> {
         let (indices_1, indices_2) = Itertools::tee(indices);
 
-        let result: HashSet<_> = operand
+        let result: MrHashSet<_> = operand
             .evaluate_forward(medrecord, Box::new(indices_1))?
             .collect();
 
@@ -1086,14 +1087,14 @@ impl EdgeIndicesOperation {
 
                 let edge_indices_1 = edge_indices_1.flat_map(|(_, value)| value);
 
-                let edge_indinces_1 = operand
+                let edge_indinces_1: MrHashSet<_> = operand
                     .evaluate_forward(medrecord, Box::new(edge_indices_1))?
-                    .collect::<Vec<_>>();
+                    .collect();
 
                 Box::new(edge_indices_2.map(move |(key, edge_indices)| {
-                    let edge_indices = edge_indices
+                    let edge_indices: Vec<_> = edge_indices
                         .filter(|edge_index| edge_indinces_1.contains(edge_index))
-                        .collect::<Vec<_>>();
+                        .collect();
 
                     let edge_indices: BoxedIterator<_> = Box::new(edge_indices.into_iter());
 
@@ -1199,7 +1200,7 @@ impl EdgeIndicesOperation {
                 .position(|(k, _)| k == &key)
                 .expect("Entry must exist");
 
-            let mut excluded_indices = result.remove(indices_position).1;
+            let excluded_indices: MrHashSet<_> = result.remove(indices_position).1.collect();
 
             let edge_indices: BoxedIterator<_> =
                 Box::new(values.filter(move |edge_index| !excluded_indices.contains(edge_index)));
@@ -1458,7 +1459,7 @@ impl EdgeIndexOperation {
 
                 let edge_indices_1 = edge_indices_1.filter_map(|(_, indices)| indices);
 
-                let edge_indices_1: HashSet<_> = operand
+                let edge_indices_1: MrHashSet<_> = operand
                     .evaluate_forward(medrecord, Box::new(edge_indices_1))?
                     .collect();
 

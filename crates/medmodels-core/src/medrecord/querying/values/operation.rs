@@ -813,14 +813,12 @@ impl<O: RootOperand> MultipleValuesWithIndexOperation<O> {
 
                 let values_1 = values_1.flat_map(|(_, value)| value);
 
-                let values_1 = operand
+                let values_1: Vec<_> = operand
                     .evaluate_forward(medrecord, Box::new(values_1))?
-                    .collect::<Vec<_>>();
+                    .collect();
 
                 Box::new(values_2.map(move |(key, values)| {
-                    let values = values
-                        .filter(|value| values_1.contains(value))
-                        .collect::<Vec<_>>();
+                    let values: Vec<_> = values.filter(|value| values_1.contains(value)).collect();
 
                     let values: BoxedIterator<_> = Box::new(values.into_iter());
 
@@ -1009,7 +1007,7 @@ impl<O: RootOperand> MultipleValuesWithIndexOperation<O> {
                 .position(|(k, _)| k == &key)
                 .expect("Entry must exist");
 
-            let mut excluded_values = result.remove(values_position).1;
+            let excluded_values: Vec<_> = result.remove(values_position).1.collect();
 
             let values: BoxedIterator<_> =
                 Box::new(values.filter(move |value| !excluded_values.contains(value)));
@@ -2269,9 +2267,9 @@ impl<O: RootOperand> SingleValueWithIndexOperation<O> {
 
                 let values_1 = values_1.filter_map(|(_, value)| value);
 
-                let values_1 = operand
+                let values_1: Vec<_> = operand
                     .evaluate_forward(medrecord, Box::new(values_1))?
-                    .collect::<Vec<_>>();
+                    .collect();
 
                 Box::new(values_2.map(move |(key, value)| {
                     let value = value.filter(|value| values_1.contains(value));
@@ -2799,9 +2797,9 @@ impl<O: RootOperand> SingleValueWithoutIndexOperation<O> {
 
                 let values_1 = values_1.filter_map(|(_, value)| value);
 
-                let values_1 = operand
+                let values_1: Vec<_> = operand
                     .evaluate_forward(medrecord, Box::new(values_1))?
-                    .collect::<Vec<_>>();
+                    .collect();
 
                 Box::new(values_2.map(move |(key, value)| {
                     let value = value.filter(|value| values_1.contains(value));

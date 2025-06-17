@@ -27,6 +27,7 @@ use crate::{
     },
 };
 use itertools::Itertools;
+use medmodels_utils::aliases::MrHashSet;
 use rand::{rng, seq::IteratorRandom};
 use roaring::RoaringBitmap;
 use std::{
@@ -186,7 +187,7 @@ impl NodeOperation {
             Self::Exclude { operand } => {
                 let (node_indices_1, node_indices_2) = node_indices.tee();
 
-                let result: HashSet<_> = operand
+                let result: MrHashSet<_> = operand
                     .evaluate_forward(medrecord, Box::new(node_indices_1))?
                     .collect();
 
@@ -272,13 +273,13 @@ impl NodeOperation {
     ) -> MedRecordResult<impl Iterator<Item = &'a NodeIndex>> {
         let (node_indices_1, node_indices_2) = Itertools::tee(node_indices);
 
-        let result: HashSet<_> = operand
+        let result: MrHashSet<_> = operand
             .evaluate_forward(medrecord, Box::new(node_indices_1.cloned()))?
             .collect();
 
         Ok(node_indices_2
             .into_iter()
-            .filter(move |index| result.contains(index)))
+            .filter(move |index| result.contains(*index)))
     }
 
     #[inline]
@@ -292,7 +293,7 @@ impl NodeOperation {
                 .groups_of_node(node_index)
                 .expect("Node must exist");
 
-            let groups_of_node: Vec<_> = groups_of_node.collect();
+            let groups_of_node: MrHashSet<_> = groups_of_node.collect();
 
             match &group {
                 CardinalityWrapper::Single(group) => groups_of_node.contains(&group),
@@ -315,7 +316,7 @@ impl NodeOperation {
                 .expect("Node must exist")
                 .keys();
 
-            let attributes_of_node: Vec<_> = attributes_of_node.collect();
+            let attributes_of_node: MrHashSet<_> = attributes_of_node.collect();
 
             match &attribute {
                 CardinalityWrapper::Single(attribute) => attributes_of_node.contains(&attribute),
@@ -413,12 +414,12 @@ impl NodeOperation {
             })),
         };
 
-        let result: HashSet<_> = operand
+        let result: MrHashSet<_> = operand
             .evaluate_forward(medrecord, neighbor_indices)?
             .collect();
 
         Ok(node_indices_2.filter(move |node_index| {
-            let mut neighbors: Box<dyn Iterator<Item = &MedRecordAttribute>> = match direction {
+            let mut neighbors: BoxedIterator<_> = match direction {
                 EdgeDirection::Incoming => Box::new(
                     medrecord
                         .neighbors_incoming(node_index)
@@ -597,10 +598,11 @@ impl NodeOperation {
                 .position(|(k, _)| k == &key)
                 .expect("Entry must exist");
 
-            let mut node_indices_1 = node_indices_1.remove(*node_indices_position).1;
+            let node_indices_1: MrHashSet<_> =
+                node_indices_1.remove(*node_indices_position).1.collect();
 
             let filtered_indices: Vec<_> = node_indices
-                .filter(|node_index| node_indices_1.contains(node_index))
+                .filter(|node_index| node_indices_1.contains(*node_index))
                 .collect();
 
             (
@@ -737,7 +739,7 @@ impl NodeOperation {
                 .position(|(k, _)| k == &key)
                 .expect("Entry must exist");
 
-            let neighbor_indices: HashSet<_> = neighbor_indices
+            let neighbor_indices: MrHashSet<_> = neighbor_indices
                 .remove(*neighbor_indices_position)
                 .1
                 .collect();
@@ -826,7 +828,7 @@ impl NodeOperation {
                 .position(|(k, _)| k == &key)
                 .expect("Entry must exist");
 
-            let mut excluded_indices = result.remove(indices_position).1;
+            let excluded_indices: MrHashSet<_> = result.remove(indices_position).1.collect();
 
             let node_indices: BoxedIterator<_> =
                 Box::new(values.filter(move |node_index| !excluded_indices.contains(node_index)));
@@ -1271,7 +1273,7 @@ impl NodeIndicesOperation {
     ) -> MedRecordResult<BoxedIterator<'a, NodeIndex>> {
         let (indices_1, indices_2) = Itertools::tee(indices);
 
-        let result: HashSet<_> = operand
+        let result: MrHashSet<_> = operand
             .evaluate_forward(medrecord, Box::new(indices_1))?
             .collect();
 
@@ -1410,14 +1412,14 @@ impl NodeIndicesOperation {
 
                 let node_indices_1 = node_indices_1.flat_map(|(_, value)| value);
 
-                let node_indinces_1 = operand
+                let node_indinces_1: MrHashSet<_> = operand
                     .evaluate_forward(medrecord, Box::new(node_indices_1))?
-                    .collect::<Vec<_>>();
+                    .collect();
 
                 Box::new(node_indices_2.map(move |(key, node_indices)| {
-                    let node_indices = node_indices
+                    let node_indices: Vec<_> = node_indices
                         .filter(|node_index| node_indinces_1.contains(node_index))
-                        .collect::<Vec<_>>();
+                        .collect();
 
                     let node_indices: BoxedIterator<_> = Box::new(node_indices.into_iter());
 
@@ -1523,7 +1525,7 @@ impl NodeIndicesOperation {
                 .position(|(k, _)| k == &key)
                 .expect("Entry must exist");
 
-            let mut excluded_indices = result.remove(indices_position).1;
+            let excluded_indices: MrHashSet<_> = result.remove(indices_position).1.collect();
 
             let node_indices: BoxedIterator<_> =
                 Box::new(values.filter(move |node_index| !excluded_indices.contains(node_index)));
@@ -1889,9 +1891,9 @@ impl NodeIndexOperation {
 
                 let node_indices_1 = node_indices_1.filter_map(|(_, node_index)| node_index);
 
-                let node_indices_1 = operand
+                let node_indices_1: MrHashSet<_> = operand
                     .evaluate_forward(medrecord, Box::new(node_indices_1))?
-                    .collect::<Vec<_>>();
+                    .collect();
 
                 Box::new(node_indices_2.map(move |(key, node_index)| {
                     let node_index =

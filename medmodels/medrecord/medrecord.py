@@ -108,6 +108,7 @@ from medmodels.medrecord.querying import (
     NodeSingleValueWithIndexOperand,
     NodeSingleValueWithIndexQueryResult,
     NodeSingleValueWithoutIndexGroupOperand,
+    NodeSingleValueWithoutIndexGroupQueryResult,
     NodeSingleValueWithoutIndexOperand,
     NodeSingleValueWithoutIndexQueryResult,
     PyQueryReturnOperand,
@@ -1725,7 +1726,7 @@ class MedRecord:
     @overload
     def query_nodes(
         self, query: Callable[[NodeOperand], NodeSingleValueWithoutIndexGroupOperand]
-    ) -> NodeSingleValueWithIndexGroupQueryResult: ...
+    ) -> NodeSingleValueWithoutIndexGroupQueryResult: ...
     @overload
     def query_nodes(
         self, query: Callable[[NodeOperand], EdgeSingleValueWithIndexOperand]
@@ -1914,7 +1915,7 @@ class MedRecord:
     @overload
     def query_edges(
         self, query: Callable[[EdgeOperand], NodeSingleValueWithoutIndexGroupOperand]
-    ) -> NodeSingleValueWithIndexGroupQueryResult: ...
+    ) -> NodeSingleValueWithoutIndexGroupQueryResult: ...
     @overload
     def query_edges(
         self, query: Callable[[EdgeOperand], EdgeSingleValueWithIndexOperand]
