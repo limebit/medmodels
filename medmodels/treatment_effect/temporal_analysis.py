@@ -108,11 +108,7 @@ def find_reference_edge(
         f"{node_index} in this MedRecord"
     )
 
-    try:
-        reference_edge = medrecord.query_edges(query)
-
-    except RuntimeError as err:
-        raise ValueError(error_message) from err
+    reference_edge = medrecord.query_edges(query)
 
     if not len(reference_edge) > 0:
         raise ValueError(error_message)
