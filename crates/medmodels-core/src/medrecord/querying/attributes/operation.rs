@@ -872,14 +872,14 @@ impl<O: RootOperand> AttributesTreeOperation<O> {
 
                 let attributes_1 = attributes_1.flat_map(|(_, attribute)| attribute);
 
-                let attributes_1 = operand
+                let attributes_1: MrHashSet<_> = operand
                     .evaluate_forward(medrecord, Box::new(attributes_1))?
-                    .collect::<Vec<_>>();
+                    .collect();
 
                 Box::new(attributes_2.map(move |(key, attributes)| {
-                    let attributes = attributes
+                    let attributes: Vec<_> = attributes
                         .filter(|attributes| attributes_1.contains(attributes))
-                        .collect::<Vec<_>>();
+                        .collect();
 
                     let attributes: BoxedIterator<_> = Box::new(attributes.into_iter());
 
@@ -1027,7 +1027,7 @@ impl<O: RootOperand> AttributesTreeOperation<O> {
                 .position(|(k, _)| k == &key)
                 .expect("Entry must exist");
 
-            let mut excluded_attributes = result.remove(attributes_position).1;
+            let excluded_attributes: MrHashSet<_> = result.remove(attributes_position).1.collect();
 
             let attributes: BoxedIterator<_> = Box::new(
                 attributes.filter(move |attributes| !excluded_attributes.contains(attributes)),
@@ -1767,14 +1767,14 @@ impl<O: RootOperand> MultipleAttributesWithIndexOperation<O> {
 
                 let attributes_1 = attributes_1.flat_map(|(_, attribute)| attribute);
 
-                let attributes_1 = operand
+                let attributes_1: MrHashSet<_> = operand
                     .evaluate_forward(medrecord, Box::new(attributes_1))?
-                    .collect::<Vec<_>>();
+                    .collect();
 
                 Box::new(attributes_2.map(move |(key, attributes)| {
-                    let attributes = attributes
+                    let attributes: Vec<_> = attributes
                         .filter(|attribute| attributes_1.contains(attribute))
-                        .collect::<Vec<_>>();
+                        .collect();
 
                     let attributes: BoxedIterator<_> = Box::new(attributes.into_iter());
 
@@ -2001,7 +2001,7 @@ impl<O: RootOperand> MultipleAttributesWithIndexOperation<O> {
                 .position(|(k, _)| k == &key)
                 .expect("Entry must exist");
 
-            let mut excluded_attributes = result.remove(attributes_position).1;
+            let excluded_attributes: MrHashSet<_> = result.remove(attributes_position).1.collect();
 
             let attributes: BoxedIterator<_> = Box::new(
                 attributes.filter(move |attributes| !excluded_attributes.contains(attributes)),
@@ -2848,9 +2848,9 @@ impl<O: RootOperand> SingleAttributeWithIndexOperation<O> {
 
                 let attributes_1 = attributes_1.filter_map(|(_, value)| value);
 
-                let attributes_1 = operand
+                let attributes_1: MrHashSet<_> = operand
                     .evaluate_forward(medrecord, Box::new(attributes_1))?
-                    .collect::<Vec<_>>();
+                    .collect();
 
                 Box::new(attributes_2.map(move |(key, attribute)| {
                     let attribute = attribute.filter(|value| attributes_1.contains(value));
@@ -3303,9 +3303,9 @@ impl<O: RootOperand> SingleAttributeWithoutIndexOperation<O> {
 
                 let attributes_1 = attributes_1.filter_map(|(_, attribute)| attribute);
 
-                let attributes_1 = operand
+                let attributes_1: MrHashSet<_> = operand
                     .evaluate_forward(medrecord, Box::new(attributes_1))?
-                    .collect::<Vec<_>>();
+                    .collect();
 
                 Box::new(attributes_2.map(move |(key, attribute)| {
                     let attribute = attribute.filter(|attribute| attributes_1.contains(attribute));
