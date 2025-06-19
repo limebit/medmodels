@@ -8,7 +8,8 @@ use super::{
 use medmodels_core::{
     errors::GraphError,
     medrecord::{
-        AttributeDataType, AttributeType, EdgeIndex, Group, GroupSchema, Schema, SchemaType,
+        schema::{AttributeDataType, AttributeType, GroupSchema, Schema, SchemaType},
+        EdgeIndex, Group,
     },
 };
 use pyo3::prelude::*;
