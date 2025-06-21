@@ -994,7 +994,12 @@ impl<O: RootOperand> AttributesTreeOperation<O> {
             let attributes: BoxedIterator<_> = Box::new(
                 either_attributes
                     .chain(or_attributes)
-                    .unique_by(|attributes| attributes.0.clone()),
+                    .into_group_map_by(|(k, _)| *k)
+                    .into_iter()
+                    .map(|(idx, group)| {
+                        let attrs = group.into_iter().flat_map(|(_, v)| v).unique().collect();
+                        (idx, attrs)
+                    }),
             );
 
             (key, attributes)
@@ -1027,11 +1032,21 @@ impl<O: RootOperand> AttributesTreeOperation<O> {
                 .position(|(k, _)| k == &key)
                 .expect("Entry must exist");
 
-            let excluded_attributes: MrHashSet<_> = result.remove(attributes_position).1.collect();
+            let mut excluded_attributes: MrHashMap<_, _> =
+                result.remove(attributes_position).1.collect();
 
-            let attributes: BoxedIterator<_> = Box::new(
-                attributes.filter(move |attributes| !excluded_attributes.contains(attributes)),
-            );
+            let attributes: BoxedIterator<_> =
+                Box::new(attributes.map(move |(index, attributes)| {
+                    let entry = excluded_attributes.remove(&index).unwrap_or(Vec::new());
+
+                    (
+                        index,
+                        attributes
+                            .into_iter()
+                            .filter(|attr| !entry.contains(attr))
+                            .collect(),
+                    )
+                }));
 
             (key, attributes)
         });
