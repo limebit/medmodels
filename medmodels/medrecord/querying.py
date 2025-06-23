@@ -5437,8 +5437,8 @@ class NodeMultipleAttributesWithIndexGroupOperand:
     def uppercase(self) -> None:
         self._multiple_attributes_operand.uppercase()
 
-    def to_values(self) -> NodeMultipleValuesWithIndexOperand:
-        return NodeMultipleValuesWithIndexOperand._from_py_multiple_values_operand(
+    def to_values(self) -> NodeMultipleValuesWithIndexGroupOperand:
+        return NodeMultipleValuesWithIndexGroupOperand._from_py_multiple_values_operand(
             self._multiple_attributes_operand.to_values()
         )
 
@@ -6129,8 +6129,8 @@ class EdgeMultipleAttributesWithIndexGroupOperand:
     def uppercase(self) -> None:
         self._multiple_attributes_operand.uppercase()
 
-    def to_values(self) -> EdgeMultipleValuesWithIndexOperand:
-        return EdgeMultipleValuesWithIndexOperand._from_py_multiple_values_operand(
+    def to_values(self) -> EdgeMultipleValuesWithIndexGroupOperand:
+        return EdgeMultipleValuesWithIndexGroupOperand._from_py_multiple_values_operand(
             self._multiple_attributes_operand.to_values()
         )
 
