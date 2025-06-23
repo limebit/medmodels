@@ -10,6 +10,10 @@ use super::{
 use crate::{
     gil_hash_map::GILHashMap,
     medrecord::querying::{
+        attributes::{
+            PyEdgeSingleAttributeWithoutIndexGroupOperand,
+            PyNodeSingleAttributeWithoutIndexGroupOperand,
+        },
         edges::{PyEdgeIndexGroupOperand, PyEdgeIndicesGroupOperand},
         nodes::{PyNodeIndexGroupOperand, PyNodeIndicesGroupOperand},
         values::{
@@ -127,9 +131,11 @@ pub enum PyReturnOperand {
     NodeSingleAttributeWithIndex(PyNodeSingleAttributeWithIndexOperand),
     NodeSingleAttributeWithIndexGroup(PyNodeSingleAttributeWithIndexGroupOperand),
     NodeSingleAttributeWithoutIndex(PyNodeSingleAttributeWithoutIndexOperand),
+    NodeSingleAttributeWithoutIndexGroup(PyNodeSingleAttributeWithoutIndexGroupOperand),
     EdgeSingleAttributeWithIndex(PyEdgeSingleAttributeWithIndexOperand),
     EdgeSingleAttributeWithIndexGroup(PyEdgeSingleAttributeWithIndexGroupOperand),
     EdgeSingleAttributeWithoutIndex(PyEdgeSingleAttributeWithoutIndexOperand),
+    EdgeSingleAttributeWithoutIndexGroup(PyEdgeSingleAttributeWithoutIndexGroupOperand),
     EdgeIndices(PyEdgeIndicesOperand),
     EdgeIndicesGroup(PyEdgeIndicesGroupOperand),
     EdgeIndex(PyEdgeIndexOperand),
@@ -199,6 +205,9 @@ impl<'a> ReturnOperand<'a> for PyReturnOperand {
             PyReturnOperand::NodeSingleAttributeWithoutIndex(operand) => operand
                 .evaluate(medrecord)
                 .map(PyReturnValue::NodeSingleAttributeWithoutIndex),
+            PyReturnOperand::NodeSingleAttributeWithoutIndexGroup(operand) => operand
+                .evaluate(medrecord)
+                .map(PyReturnValue::NodeSingleAttributeWithoutIndexGroup),
             PyReturnOperand::EdgeSingleAttributeWithIndex(operand) => operand
                 .evaluate(medrecord)
                 .map(PyReturnValue::EdgeSingleAttributeWithIndex),
@@ -208,6 +217,9 @@ impl<'a> ReturnOperand<'a> for PyReturnOperand {
             PyReturnOperand::EdgeSingleAttributeWithoutIndex(operand) => operand
                 .evaluate(medrecord)
                 .map(PyReturnValue::EdgeSingleAttributeWithoutIndex),
+            PyReturnOperand::EdgeSingleAttributeWithoutIndexGroup(operand) => operand
+                .evaluate(medrecord)
+                .map(PyReturnValue::EdgeSingleAttributeWithoutIndexGroup),
             PyReturnOperand::EdgeIndices(operand) => {
                 operand.evaluate(medrecord).map(PyReturnValue::EdgeIndices)
             }
@@ -400,6 +412,15 @@ pub(crate) fn convert_pyobject_to_pyreturnoperand(
         ))
     }
 
+    fn convert_py_node_single_attribute_without_index_group_operand(
+        ob: &Bound<'_, PyAny>,
+    ) -> PyResult<PyReturnOperand> {
+        Ok(PyReturnOperand::NodeSingleAttributeWithoutIndexGroup(
+            ob.extract::<PyNodeSingleAttributeWithoutIndexGroupOperand>()
+                .expect("Extraction must succeed"),
+        ))
+    }
+
     fn convert_py_edge_single_attribute_with_index_operand(
         ob: &Bound<'_, PyAny>,
     ) -> PyResult<PyReturnOperand> {
@@ -423,6 +444,15 @@ pub(crate) fn convert_pyobject_to_pyreturnoperand(
     ) -> PyResult<PyReturnOperand> {
         Ok(PyReturnOperand::EdgeSingleAttributeWithoutIndex(
             ob.extract::<PyEdgeSingleAttributeWithoutIndexOperand>()
+                .expect("Extraction must succeed"),
+        ))
+    }
+
+    fn convert_py_edge_single_attribute_without_index_group_operand(
+        ob: &Bound<'_, PyAny>,
+    ) -> PyResult<PyReturnOperand> {
+        Ok(PyReturnOperand::EdgeSingleAttributeWithoutIndexGroup(
+            ob.extract::<PyEdgeSingleAttributeWithoutIndexGroupOperand>()
                 .expect("Extraction must succeed"),
         ))
     }
@@ -656,12 +686,16 @@ pub(crate) fn convert_pyobject_to_pyreturnoperand(
                     convert_py_node_single_attribute_with_index_group_operand
                 } else if ob.is_instance_of::<PyNodeSingleAttributeWithoutIndexOperand>() {
                     convert_py_node_single_attribute_without_index_operand
+                } else if ob.is_instance_of::<PyNodeSingleAttributeWithoutIndexGroupOperand>() {
+                    convert_py_node_single_attribute_without_index_group_operand
                 } else if ob.is_instance_of::<PyEdgeSingleAttributeWithIndexOperand>() {
                     convert_py_edge_single_attribute_with_index_operand
                 } else if ob.is_instance_of::<PyEdgeSingleAttributeWithIndexGroupOperand>() {
                     convert_py_edge_single_attribute_with_index_group_operand
                 } else if ob.is_instance_of::<PyEdgeSingleAttributeWithoutIndexOperand>() {
                     convert_py_edge_single_attribute_without_index_operand
+                } else if ob.is_instance_of::<PyEdgeSingleAttributeWithoutIndexGroupOperand>() {
+                    convert_py_edge_single_attribute_without_index_group_operand
                 } else if ob.is_instance_of::<PyEdgeIndicesOperand>() {
                     convert_py_edge_indices_operand
                 } else if ob.is_instance_of::<PyEdgeIndicesGroupOperand>() {
@@ -756,6 +790,9 @@ pub enum PyReturnValue<'a> {
     NodeSingleAttributeWithoutIndex(
         <Wrapper<NodeSingleAttributeWithoutIndexOperand> as ReturnOperand<'a>>::ReturnValue,
     ),
+    NodeSingleAttributeWithoutIndexGroup(
+        <Wrapper<GroupOperand<NodeSingleAttributeWithoutIndexOperand>> as ReturnOperand<'a>>::ReturnValue,
+    ),
     EdgeSingleAttributeWithIndex(
         <Wrapper<EdgeSingleAttributeWithIndexOperand> as ReturnOperand<'a>>::ReturnValue,
     ),
@@ -764,6 +801,9 @@ pub enum PyReturnValue<'a> {
     ),
     EdgeSingleAttributeWithoutIndex(
         <Wrapper<EdgeSingleAttributeWithoutIndexOperand> as ReturnOperand<'a>>::ReturnValue,
+    ),
+    EdgeSingleAttributeWithoutIndexGroup(
+        <Wrapper<GroupOperand<EdgeSingleAttributeWithoutIndexOperand>> as ReturnOperand<'a>>::ReturnValue,
     ),
     EdgeIndices(<Wrapper<EdgeIndicesOperand> as ReturnOperand<'a>>::ReturnValue),
     EdgeIndicesGroup(<Wrapper<GroupOperand<EdgeIndicesOperand>> as ReturnOperand<'a>>::ReturnValue),
@@ -938,6 +978,10 @@ impl<'py> IntoPyObject<'py> for PyReturnValue<'_> {
             PyReturnValue::NodeSingleAttributeWithoutIndex(attribute) => attribute
                 .map(PyMedRecordAttribute::from)
                 .into_bound_py_any(py),
+            PyReturnValue::NodeSingleAttributeWithoutIndexGroup(attribute) => attribute
+                .map(|(key, item)| (PyGroupKey::from(key), item.map(PyMedRecordAttribute::from)))
+                .collect::<Vec<_>>()
+                .into_bound_py_any(py),
             PyReturnValue::EdgeSingleAttributeWithIndex(attribute) => attribute
                 .map(|item| (item.0, PyMedRecordAttribute::from(item.1)))
                 .into_bound_py_any(py),
@@ -952,6 +996,10 @@ impl<'py> IntoPyObject<'py> for PyReturnValue<'_> {
                 .into_bound_py_any(py),
             PyReturnValue::EdgeSingleAttributeWithoutIndex(attribute) => attribute
                 .map(PyMedRecordAttribute::from)
+                .into_bound_py_any(py),
+            PyReturnValue::EdgeSingleAttributeWithoutIndexGroup(attribute) => attribute
+                .map(|(key, item)| (PyGroupKey::from(key), item.map(PyMedRecordAttribute::from)))
+                .collect::<Vec<_>>()
                 .into_bound_py_any(py),
             PyReturnValue::EdgeIndices(iterator) => {
                 iterator.collect::<Vec<_>>().into_bound_py_any(py)
