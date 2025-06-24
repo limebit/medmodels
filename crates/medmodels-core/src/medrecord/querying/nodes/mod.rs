@@ -1,7 +1,15 @@
+mod group_by;
 mod operand;
 mod operation;
 
 use super::edges::EdgeOperand;
+use crate::{
+    errors::MedRecordResult,
+    medrecord::querying::{group_by::GroupOperand, BoxedIterator, DeepClone, EvaluateBackward},
+    prelude::NodeIndex,
+    MedRecord,
+};
+pub use group_by::NodeOperandGroupDiscriminator;
 pub use operand::{
     NodeIndexComparisonOperand, NodeIndexOperand, NodeIndicesComparisonOperand, NodeIndicesOperand,
     NodeOperand,
@@ -10,7 +18,7 @@ pub use operation::{EdgeDirection, NodeOperation};
 use std::fmt::Display;
 
 #[derive(Debug, Clone)]
-pub enum Context {
+pub enum NodeOperandContext {
     Neighbors {
         operand: Box<NodeOperand>,
         direction: EdgeDirection,
@@ -21,6 +29,70 @@ pub enum Context {
     TargetNode {
         operand: EdgeOperand,
     },
+    GroupBy {
+        operand: Box<NodeOperand>,
+    },
+}
+
+impl DeepClone for NodeOperandContext {
+    fn deep_clone(&self) -> Self {
+        match self {
+            Self::Neighbors { operand, direction } => Self::Neighbors {
+                operand: operand.deep_clone(),
+                direction: direction.clone(),
+            },
+            Self::SourceNode { operand } => Self::SourceNode {
+                operand: operand.deep_clone(),
+            },
+            Self::TargetNode { operand } => Self::TargetNode {
+                operand: operand.deep_clone(),
+            },
+            Self::GroupBy { operand } => Self::GroupBy {
+                operand: operand.deep_clone(),
+            },
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub enum NodeIndicesOperandContext {
+    NodeOperand(NodeOperand),
+    NodeIndexGroupByOperand(GroupOperand<NodeIndexOperand>),
+    NodeIndicesGroupByOperand(GroupOperand<NodeIndicesOperand>),
+}
+
+impl DeepClone for NodeIndicesOperandContext {
+    fn deep_clone(&self) -> Self {
+        match self {
+            Self::NodeOperand(operand) => Self::NodeOperand(operand.deep_clone()),
+            Self::NodeIndexGroupByOperand(operand) => {
+                Self::NodeIndexGroupByOperand(operand.deep_clone())
+            }
+            Self::NodeIndicesGroupByOperand(operand) => {
+                Self::NodeIndicesGroupByOperand(operand.deep_clone())
+            }
+        }
+    }
+}
+
+impl<'a> EvaluateBackward<'a> for NodeIndicesOperandContext {
+    type ReturnValue = BoxedIterator<'a, NodeIndex>;
+
+    fn evaluate_backward(&self, medrecord: &'a MedRecord) -> MedRecordResult<Self::ReturnValue> {
+        Ok(match self {
+            Self::NodeOperand(operand) => Box::new(operand.evaluate_backward(medrecord)?.cloned()),
+            Self::NodeIndexGroupByOperand(operand) => Box::new(
+                operand
+                    .evaluate_backward(medrecord)?
+                    .filter_map(|(_, index)| index),
+            ),
+            Self::NodeIndicesGroupByOperand(operand) => Box::new(
+                operand
+                    .evaluate_backward(medrecord)?
+                    .flat_map(|(_, index)| index),
+            ),
+        })
+    }
 }
 
 #[derive(Debug, Clone)]
