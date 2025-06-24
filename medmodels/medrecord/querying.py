@@ -536,7 +536,7 @@ class NodeOperand:
         )
 
     def neighbors(
-        self, edge_direction: EdgeDirection = EdgeDirection.OUTGOING
+        self, edge_direction: EdgeDirection = EdgeDirection.BOTH
     ) -> NodeOperand:
         return NodeOperand._from_py_node_operand(
             self._node_operand.neighbors(edge_direction._into_py_edge_direction())
@@ -608,7 +608,7 @@ class NodeGroupOperand:
         )
 
     def neighbors(
-        self, edge_direction: EdgeDirection = EdgeDirection.OUTGOING
+        self, edge_direction: EdgeDirection = EdgeDirection.BOTH
     ) -> NodeGroupOperand:
         return NodeGroupOperand._from_py_node_group_operand(
             self._node_operand.neighbors(edge_direction._into_py_edge_direction())
