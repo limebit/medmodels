@@ -804,7 +804,7 @@ class TestNodeGroupOperand(unittest.TestCase):
         def query(node: NodeOperand) -> NodeIndicesGroupOperand:
             node.has_attribute("gender")
             group = node.group_by(NodeOperandGroupDiscriminator.Attribute("gender"))
-            group.neighbors(EdgeDirection.BOTH).in_group("patient")
+            group.neighbors().in_group("patient")
 
             return group.index()
 

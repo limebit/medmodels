@@ -19,12 +19,6 @@ from datetime import timedelta
 from typing import TYPE_CHECKING, Any, Dict, Literal, Optional, Set, Tuple
 
 from medmodels import MedRecord
-from medmodels.medrecord.querying import (
-    EdgeDirection,
-    NodeIndicesOperand,
-    NodeIndicesQuery,
-    NodeOperand,
-)
 from medmodels.medrecord.types import (
     Group,
     MedRecordAttribute,
@@ -37,6 +31,11 @@ from medmodels.treatment_effect.report import Report
 
 if TYPE_CHECKING:
     from medmodels import MedRecord
+    from medmodels.medrecord.querying import (
+        NodeIndicesOperand,
+        NodeIndicesQuery,
+        NodeOperand,
+    )
     from medmodels.medrecord.types import (
         Group,
         MedRecordAttribute,
@@ -300,9 +299,7 @@ class TreatmentEffect:
 
         def query(node: NodeOperand) -> NodeIndicesOperand:
             node.in_group(self._patients_group)
-            node.neighbors(edge_direction=EdgeDirection.BOTH).in_group(
-                self._treatments_group
-            )
+            node.neighbors().in_group(self._treatments_group)
 
             return node.index()
 
@@ -527,7 +524,7 @@ class TreatmentEffect:
             NodeIndicesOperand: The node indices of the queried node.
         """
         node.index().is_in(list(set))
-        node.neighbors(edge_direction=EdgeDirection.BOTH).in_group(self._outcomes_group)
+        node.neighbors().in_group(self._outcomes_group)
 
         return node.index()
 
