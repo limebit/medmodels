@@ -28,10 +28,13 @@ from medmodels.medrecord.types import (
 from medmodels.treatment_effect.builder import TreatmentEffectBuilder
 from medmodels.treatment_effect.estimate import Estimate
 from medmodels.treatment_effect.report import Report
+from medmodels.medrecord.querying import EdgeOperandGroupDiscriminator
 
 if TYPE_CHECKING:
     from medmodels import MedRecord
     from medmodels.medrecord.querying import (
+        EdgeSingleValueWithIndexGroupOperand,
+        EdgeMultipleValuesWithIndexGroupOperand,
         NodeIndicesOperand,
         NodeIndicesQuery,
         NodeOperand,
@@ -110,7 +113,7 @@ class TreatmentEffect:
         *,
         treatment: Group,
         outcome: Group,
-        patients_group: Group = "patients",
+        patients_group: Group = "patient",
         time_attribute: Optional[MedRecordAttribute] = None,
         washout_period_days: Optional[Dict[Group, int]] = None,
         washout_period_reference: Literal["first", "last"] = "first",
@@ -139,7 +142,7 @@ class TreatmentEffect:
             treatment (Group): The group of treatments to analyze.
             outcome (Group): The group of outcomes to analyze.
             patients_group (Group, optional): The group of patients to analyze.
-                Defaults to "patients".
+                Defaults to "patient".
             time_attribute (Optional[MedRecordAttribute], optional):  The time
                 attribute. If None, the treatment effect analysis is performed in an
                 static way (without considering time). Defaults to None.
@@ -346,17 +349,13 @@ class TreatmentEffect:
             raise ValueError(msg)
 
         if outcome_before_treatment_days and self._time_attribute:
-            outcome_before_treatment_nodes = set(
-                medrecord.query_nodes(
-                    lambda node: self._query_node_within_time_window(
-                        node,
-                        treated_set,
-                        self._outcomes_group,
-                        start_days=-outcome_before_treatment_days,
-                        end_days=0,
-                        reference="first",
-                    )
-                )
+            outcome_before_treatment_nodes = self._find_nodes_within_time_window(
+                medrecord,
+                treated_set,
+                self._outcomes_group,
+                start_days=-outcome_before_treatment_days,
+                end_days=0,
+                reference="first",
             )
             treated_set -= outcome_before_treatment_nodes
 
@@ -368,17 +367,13 @@ class TreatmentEffect:
             logger.warning(msg)
 
         if self._time_attribute:
-            treated_outcome_true = set(
-                medrecord.query_nodes(
-                    lambda node: self._query_node_within_time_window(
-                        node,
-                        treated_set,
-                        self._outcomes_group,
-                        start_days=self._grace_period_days,
-                        end_days=self._follow_up_period_days,
-                        reference=self._follow_up_period_reference,
-                    )
-                )
+            treated_outcome_true = self._find_nodes_within_time_window(
+                medrecord,
+                treated_set,
+                self._outcomes_group,
+                start_days=self._grace_period_days,
+                end_days=self._follow_up_period_days,
+                reference=self._follow_up_period_reference,
             )
         else:
             treated_outcome_true = set(
@@ -413,18 +408,13 @@ class TreatmentEffect:
         # TODO: washout in both directions? We need a List then  # noqa: TD003, TD002
         for washout_group_id, washout_days in self._washout_period_days.items():
             washout_nodes.update(
-                medrecord.query_nodes(
-                    lambda node,
-                    group_id=washout_group_id,
-                    days=washout_days,
-                    treated=treated_set: self._query_node_within_time_window(
-                        node,
-                        treated,
-                        group_id,
-                        start_days=-days,
-                        end_days=0,
-                        reference=self._washout_period_reference,
-                    )
+                self._find_nodes_within_time_window(
+                    medrecord,
+                    treated_set,
+                    washout_group_id,
+                    start_days=-washout_days,
+                    end_days=0,
+                    reference=self._washout_period_reference,
                 )
             )
             treated_set -= washout_nodes
@@ -528,36 +518,28 @@ class TreatmentEffect:
 
         return node.index()
 
-    def _query_node_within_time_window(
+    def _query_treatment_and_outcome_times(
         self,
         node: NodeOperand,
         treated_set: Set[NodeIndex],
         outcome_group: Group,
-        start_days: int,
-        end_days: int,
         reference: Literal["first", "last"],
-    ) -> NodeIndicesOperand:
-        """Queries for nodes with edges containing time info within a time window.
+    ) -> tuple[EdgeSingleValueWithIndexGroupOperand, EdgeMultipleValuesWithIndexGroupOperand]:
+        """Queries for time of treatment and outcome for nodes.
 
-        It queries for nodes that:
-            - Are in the treated group.
-            - Have edges with time information.
-            - Have edges that connect to the treatment group.
-            - Have edges that connect to the outcome group.
-            - The time of the outcome is within the specified time window: it being
-                greater or equal than the first or last time of treatment (depending on
-                the `reference`) and less or equal than the time of treatment plus the
-                `end_days` specified.
+        Finds the time of treatment and outcome for the given node, based on the
+        specified treatment and outcome groups. It checks the edges of the node to find
+        the treatment and outcome times, ensuring that the edges are connected to the
+        specified treatment and outcome groups. The time of treatment is determined
+        based on the specified reference point (either the first or last time of
+        treatment), and the time of outcome is extracted from the edges connected to the
+        outcome group.
 
         Args:
             node (NodeOperand): The node to query.
             treated_set (Set[NodeIndex]): A set of patient nodes that underwent the
                 treatment.
             outcome_group (Group): The group of outcomes to analyze.
-            start_days (int): The start of the time window in days relative to the
-                reference event.
-            end_days (int): The end of the time window in days relative to the reference
-                event.
             reference (Literal["first", "last"]): The reference point for the time
                 window.
 
@@ -569,14 +551,14 @@ class TreatmentEffect:
             msg = "Should never be reached"
             raise NotImplementedError(msg)
 
-        edges_to_treatment = node.edges()
+        edges_to_treatment = node.edges().group_by(EdgeOperandGroupDiscriminator.SourceNode())
         edges_to_treatment.attribute(self._time_attribute).is_datetime()
         edges_to_treatment.either_or(
             lambda edge: edge.source_node().in_group(self._treatments_group),
             lambda edge: edge.target_node().in_group(self._treatments_group),
         )
 
-        edges_to_outcome = node.edges()
+        edges_to_outcome = node.edges().group_by(EdgeOperandGroupDiscriminator.SourceNode())
         edges_to_outcome.attribute(self._time_attribute).is_datetime()
         edges_to_outcome.either_or(
             lambda edge: edge.source_node().in_group(outcome_group),
@@ -590,22 +572,63 @@ class TreatmentEffect:
 
         time_of_outcome = edges_to_outcome.attribute(self._time_attribute)
 
-        min_time_window = time_of_treatment.clone()
+        return time_of_treatment, time_of_outcome
 
-        if start_days < 0:
-            min_time_window.subtract(timedelta(-start_days))
-        else:
-            min_time_window.add(timedelta(start_days))
+    def _find_nodes_within_time_window(
+        self,
+        medrecord: MedRecord,
+        treated_set: set[NodeIndex],
+        outcome_group: Group,
+        start_days: int,
+        end_days: int,
+        reference: Literal["first", "last"],
+    ) -> set[NodeIndex]:
+        """Find nodes with edges containing time info within a time window.
 
-        max_time_window = time_of_treatment.clone()
+        It queries for nodes that:
+            - Are in the treated group.
+            - Have edges with time information.
+            - Have edges that connect to the treatment group.
+            - Have edges that connect to the outcome group.
+            - The time of the outcome is within the specified time window: it being
+                greater or equal than the first or last time of treatment (depending on
+                the `reference`) and less or equal than the time of treatment plus the
+                `end_days` specified.
 
-        # end_days should always be positive
-        max_time_window.add(timedelta(end_days))
+        Args:
+            medrecord (MedRecord): An instance of the MedRecord class containing patient
+                medical data.
+            treated_set (Set[NodeIndex]): A set of patient nodes that underwent the
+                treatment.
+            outcome_group (Group): The group of outcomes to analyze.
+            start_days (int): The start of the time window in days relative to the
+                reference event.
+            end_days (int): The end of the time window in days relative to the reference
+                event.
+            reference (Literal["first", "last"]): The reference point for the time
+                window.
 
-        time_of_outcome.greater_than_or_equal_to(min_time_window)
-        time_of_outcome.less_than_or_equal_to(max_time_window)
+        Returns:
+            set[NodeIndex]: A set of node indices that match the query criteria.
+        """
+        time_of_treatment, time_of_outcome = medrecord.query_nodes(
+            lambda node: self._query_treatment_and_outcome_times(
+                node, treated_set, outcome_group, reference
+            )
+        )
+        treatment_dictionary = dict(time_of_treatment)
+        outcome_dictionary = dict(time_of_outcome)
+        nodes_within_time_window = set()
 
-        return node.index()
+        for pat_id, (_, treat_date) in treatment_dictionary.items():
+            if pat_id in outcome_dictionary:
+                for _, outcome_date in outcome_dictionary[pat_id].items():
+                    if outcome_date >= treat_date + timedelta(
+                        days=start_days
+                    ) and outcome_date <= treat_date + timedelta(days=end_days):
+                        nodes_within_time_window.add(pat_id)
+                        break
+        return nodes_within_time_window
 
     @property
     def estimate(self) -> Estimate:

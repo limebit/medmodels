@@ -62,7 +62,7 @@ def create_medrecord(patients_list: Optional[List[NodeIndex]] = None) -> MedReco
         ]
     patients = create_patients(patients_list=patients_list)
     medrecord = MedRecord.from_pandas(nodes=[(patients, "index")])
-    medrecord.add_group(group="patients", nodes=patients["index"].to_list())
-    medrecord.add_nodes(("P10", {}), "patients")
+    medrecord.add_group(group="patient", nodes=patients["index"].to_list())
+    medrecord.add_nodes(("P10", {}), "patient")
 
     return medrecord

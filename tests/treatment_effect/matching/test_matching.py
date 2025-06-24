@@ -34,7 +34,7 @@ class TestMatching(unittest.TestCase):
             medrecord=self.medrecord,
             control_set=control_set,
             treated_set=treated_set,
-            patients_group="patients",
+            patients_group="patient",
             essential_covariates=["age", "gender"],
             one_hot_covariates=["gender"],
         )
@@ -60,7 +60,7 @@ class TestMatching(unittest.TestCase):
             medrecord=self.medrecord,
             control_set=control_set,
             treated_set=treated_set,
-            patients_group="patients",
+            patients_group="patient",
         )
 
         # Assert that the treated and control dataframes have the correct columns
@@ -93,7 +93,7 @@ class TestMatching(unittest.TestCase):
                 medrecord=self.medrecord,
                 control_set=control_set,
                 treated_set=treated_set,
-                patients_group="patients",
+                patients_group="patient",
                 essential_covariates=["age"],
                 one_hot_covariates=["gender"],
             )

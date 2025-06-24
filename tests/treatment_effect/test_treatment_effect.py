@@ -125,7 +125,7 @@ class TestTreatmentEffect:
             TreatmentEffect.builder()
             .with_treatment("Rivaroxaban")
             .with_outcome("Stroke")
-            .with_patients_group("patients")
+            .with_patients_group("patient")
             .with_washout_period(reference="first")
             .with_grace_period(days=0, reference="last")
             .with_follow_up_period(365000, reference="last")
@@ -165,7 +165,7 @@ class TestTreatmentEffect:
             + "treatment effect analysis is performed in a static way."
         ) in caplog.records[0].message
 
-    def test_query_node_within_time_window(self, medrecord: MedRecord) -> None:
+    def test_find_nodes_within_time_window(self, medrecord: MedRecord) -> None:
         # check if patient has outcome a year after treatment
         tee = (
             TreatmentEffect.builder()
@@ -176,11 +176,9 @@ class TestTreatmentEffect:
         )
         treated_set = tee._find_treated_patients(medrecord)
 
-        nodes = medrecord.query_nodes(
-            lambda node: tee._query_node_within_time_window(
-                node, treated_set, "Stroke", 0, 365, "last"
+        nodes = tee._find_nodes_within_time_window(
+                medrecord, treated_set, "Stroke", 0, 365, "last"
             )
-        )
         assert "P3" in nodes
         assert "P2" in nodes
 
@@ -189,22 +187,19 @@ class TestTreatmentEffect:
         assert "P6" in treated_set
 
         # check which patients have outcome within 30 days after treatment
-        nodes = medrecord.query_nodes(
-            lambda node: tee._query_node_within_time_window(
-                node, treated_set, "Stroke", 0, 30, "last"
+        nodes = tee._find_nodes_within_time_window(
+                medrecord, treated_set, "Stroke", 0, 30, "last"
             )
-        )
         assert "P3" in nodes
         assert (
             "P2" not in nodes
         )  # P2 has no outcome in the 30 days window after treatment
 
         # If we reduce the window to 3 days, no patients with outcome in that window
-        nodes = medrecord.query_nodes(
-            lambda node: tee._query_node_within_time_window(
-                node, treated_set, "Stroke", 0, 3, "last"
+        nodes = tee._find_nodes_within_time_window(
+                medrecord, treated_set, "Stroke", 0, 3, "last"
             )
-        )
+
         assert "P3" not in nodes
         assert "P2" not in nodes
 
@@ -220,7 +215,7 @@ class TestTreatmentEffect:
         assert treated_set == set({"P2", "P3", "P6"})
 
         # no treatment_group
-        patients = set(medrecord.nodes_in_group("patients"))
+        patients = set(medrecord.nodes_in_group("patient"))
         medrecord2 = create_medrecord(list(patients - treated_set))
 
         with pytest.raises(
@@ -526,7 +521,7 @@ class TestTreatmentEffect:
             .build()
         )
 
-        patients = set(medrecord.nodes_in_group("patients"))
+        patients = set(medrecord.nodes_in_group("patient"))
         treated_set = {"P2", "P3", "P6"}
 
         control_outcome_true, control_outcome_false = tee._find_controls(

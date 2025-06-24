@@ -115,7 +115,7 @@ def create_medrecord(
         nodes=[(patients, "index"), (diagnoses, "index"), (prescriptions, "index")],
         edges=[(edges, "source", "target")],
     )
-    medrecord.add_group(group="patients", nodes=patients["index"].to_list())
+    medrecord.add_group(group="patient", nodes=patients["index"].to_list())
     medrecord.add_group(
         "Stroke",
         ["D1"],

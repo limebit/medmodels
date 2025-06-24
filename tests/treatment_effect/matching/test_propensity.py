@@ -30,7 +30,7 @@ class TestPropensityMatching(unittest.TestCase):
             medrecord=self.medrecord,
             control_set=control_set,
             treated_set=treated_set,
-            patients_group="patients",
+            patients_group="patient",
             essential_covariates=["age", "gender"],
             one_hot_covariates=["gender"],
         )
@@ -46,7 +46,7 @@ class TestPropensityMatching(unittest.TestCase):
             medrecord=self.medrecord,
             control_set=control_set,
             treated_set=treated_set,
-            patients_group="patients",
+            patients_group="patient",
         )
 
         assert matched_controls_no_covariates_specified == matched_controls
