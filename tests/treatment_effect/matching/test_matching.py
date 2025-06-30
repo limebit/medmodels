@@ -12,7 +12,10 @@ from typing import TYPE_CHECKING, Set
 import pytest
 
 from medmodels.treatment_effect.matching.neighbors import NeighborsMatching
-from tests.treatment_effect.matching.helper import create_medrecord
+from tests.treatment_effect.matching.helper import (
+    create_medrecord,
+    create_medrecord_with_inferred_schema,
+)
 
 if TYPE_CHECKING:
     from medmodels.medrecord.types import NodeIndex
@@ -29,6 +32,32 @@ class TestMatching(unittest.TestCase):
 
         control_set: Set[NodeIndex] = {"P1", "P3", "P5", "P7", "P9"}
         treated_set: Set[NodeIndex] = {"P2", "P4", "P6"}
+
+        # Preprocess the data with default values
+        data_treated, data_control = neighbors_matching._preprocess_data(
+            medrecord=self.medrecord,
+            control_set=control_set,
+            treated_set=treated_set,
+            patients_group="patients",
+        )
+
+        assert "age" in data_treated.columns
+        assert "age" in data_control.columns
+        assert (
+            "gender_female" in data_treated.columns
+            or "gender_male" in data_treated.columns
+        )
+        assert (
+            "gender_female" in data_control.columns
+            or "gender_male" in data_control.columns
+        )
+
+        # Assert that the treated and control dataframes have the correct number of rows
+        assert len(data_treated) == len(treated_set)
+        assert len(data_control) == len(control_set)
+        # Assert that the treated and control dataframes have the correct number of rows
+        assert len(data_treated) == len(treated_set)
+        assert len(data_control) == len(control_set)
 
         data_treated, data_control = neighbors_matching._preprocess_data(
             medrecord=self.medrecord,
@@ -54,27 +83,6 @@ class TestMatching(unittest.TestCase):
         # Assert that the treated and control dataframes have the correct number of rows
         assert len(data_treated) == len(treated_set)
         assert len(data_control) == len(control_set)
-
-        # Try automatic detection of attributes
-        data_treated, data_control = neighbors_matching._preprocess_data(
-            medrecord=self.medrecord,
-            control_set=control_set,
-            treated_set=treated_set,
-            patients_group="patients",
-        )
-
-        # Assert that the treated and control dataframes have the correct columns
-        assert "age" in data_treated.columns
-        assert "age" in data_control.columns
-        assert (
-            "gender_female" in data_treated.columns
-            or "gender_male" in data_treated.columns
-        )
-        assert (
-            "gender_female" in data_control.columns
-            or "gender_male" in data_control.columns
-        )
-
         # Assert that the treated and control dataframes have the correct number of rows
         assert len(data_treated) == len(treated_set)
         assert len(data_control) == len(control_set)
@@ -96,6 +104,22 @@ class TestMatching(unittest.TestCase):
                 patients_group="patients",
                 essential_covariates=["age"],
                 one_hot_covariates=["gender"],
+            )
+
+        # The inferred schema does not recognize "gender" as a categorical variable.
+        # Thus, it will not be able to one-hot encode it.
+        # This will raise an error (values in the column are not numeric).
+        medrecord_2 = create_medrecord_with_inferred_schema()
+
+        with pytest.raises(
+            ValueError,
+            match="All covariates must be numeric",
+        ):
+            neighbors_matching.match_controls(
+                medrecord=medrecord_2,
+                control_set=control_set,
+                treated_set=treated_set,
+                patients_group="patients",
             )
 
     def test_check_nodes(self) -> None:
