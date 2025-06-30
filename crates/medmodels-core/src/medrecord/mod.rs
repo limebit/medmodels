@@ -599,8 +599,7 @@ impl MedRecord {
     ) -> Result<(), MedRecordError> {
         if self.group_mapping.contains_group(&group) {
             return Err(MedRecordError::AssertionError(format!(
-                "Group {} already exists",
-                group
+                "Group {group} already exists"
             )));
         }
 
@@ -608,8 +607,7 @@ impl MedRecord {
             for node_index in node_indices {
                 if !self.graph.contains_node(node_index) {
                     return Err(MedRecordError::IndexError(format!(
-                        "Cannot find node with index {}",
-                        node_index,
+                        "Cannot find node with index {node_index}",
                     )));
                 }
             }
@@ -619,8 +617,7 @@ impl MedRecord {
             for edge_index in edge_indices {
                 if !self.graph.contains_edge(edge_index) {
                     return Err(MedRecordError::IndexError(format!(
-                        "Cannot find edge with index {}",
-                        edge_index,
+                        "Cannot find edge with index {edge_index}",
                     )));
                 }
             }
@@ -662,8 +659,7 @@ impl MedRecord {
             SchemaType::Provided => {
                 if !self.schema.groups().contains_key(&group) {
                     return Err(MedRecordError::SchemaError(format!(
-                        "Group {} is not defined in the schema",
-                        group
+                        "Group {group} is not defined in the schema"
                     )));
                 }
 
@@ -761,8 +757,7 @@ impl MedRecord {
     ) -> Result<(), MedRecordError> {
         if !self.graph.contains_node(node_index) {
             return Err(MedRecordError::IndexError(format!(
-                "Cannot find node with index {}",
-                node_index,
+                "Cannot find node with index {node_index}",
             )));
         }
 
@@ -776,8 +771,7 @@ impl MedRecord {
     ) -> Result<(), MedRecordError> {
         if !self.graph.contains_edge(edge_index) {
             return Err(MedRecordError::IndexError(format!(
-                "Cannot find edge with index {}",
-                edge_index,
+                "Cannot find edge with index {edge_index}",
             )));
         }
 
@@ -808,8 +802,7 @@ impl MedRecord {
     ) -> Result<impl Iterator<Item = &Group>, MedRecordError> {
         if !self.graph.contains_node(node_index) {
             return Err(MedRecordError::IndexError(format!(
-                "Cannot find node with index {}",
-                node_index,
+                "Cannot find node with index {node_index}",
             )));
         }
 
@@ -822,8 +815,7 @@ impl MedRecord {
     ) -> Result<impl Iterator<Item = &Group>, MedRecordError> {
         if !self.graph.contains_edge(edge_index) {
             return Err(MedRecordError::IndexError(format!(
-                "Cannot find edge with index {}",
-                edge_index,
+                "Cannot find edge with index {edge_index}",
             )));
         }
 

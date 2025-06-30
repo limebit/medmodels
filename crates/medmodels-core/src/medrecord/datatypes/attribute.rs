@@ -44,8 +44,7 @@ impl TryFrom<MedRecordValue> for MedRecordAttribute {
             MedRecordValue::String(value) => Ok(MedRecordAttribute::String(value)),
             MedRecordValue::Int(value) => Ok(MedRecordAttribute::Int(value)),
             _ => Err(MedRecordError::ConversionError(format!(
-                "Cannot convert {} into MedRecordAttribute",
-                value
+                "Cannot convert {value} into MedRecordAttribute"
             ))),
         }
     }
@@ -82,8 +81,8 @@ impl PartialOrd for MedRecordAttribute {
 impl Display for MedRecordAttribute {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::String(value) => write!(f, "{}", value),
-            Self::Int(value) => write!(f, "{}", value),
+            Self::String(value) => write!(f, "{value}"),
+            Self::Int(value) => write!(f, "{value}"),
         }
     }
 }
@@ -98,10 +97,10 @@ impl Add for MedRecordAttribute {
                 Ok(MedRecordAttribute::String(value + rhs.as_str()))
             }
             (MedRecordAttribute::String(value), MedRecordAttribute::Int(rhs)) => Err(
-                MedRecordError::AssertionError(format!("Cannot add {} to {}", rhs, value)),
+                MedRecordError::AssertionError(format!("Cannot add {rhs} to {value}")),
             ),
             (MedRecordAttribute::Int(value), MedRecordAttribute::String(rhs)) => Err(
-                MedRecordError::AssertionError(format!("Cannot add {} to {}", rhs, value)),
+                MedRecordError::AssertionError(format!("Cannot add {rhs} to {value}")),
             ),
             (MedRecordAttribute::Int(value), MedRecordAttribute::Int(rhs)) => {
                 Ok(MedRecordAttribute::Int(value + rhs))
@@ -117,13 +116,13 @@ impl Sub for MedRecordAttribute {
     fn sub(self, rhs: Self) -> Self::Output {
         match (self, rhs) {
             (MedRecordAttribute::String(value), MedRecordAttribute::String(rhs)) => Err(
-                MedRecordError::AssertionError(format!("Cannot subtract {} from {}", rhs, value)),
+                MedRecordError::AssertionError(format!("Cannot subtract {rhs} from {value}")),
             ),
             (MedRecordAttribute::String(value), MedRecordAttribute::Int(rhs)) => Err(
-                MedRecordError::AssertionError(format!("Cannot subtract {} from {}", rhs, value)),
+                MedRecordError::AssertionError(format!("Cannot subtract {rhs} from {value}")),
             ),
             (MedRecordAttribute::Int(value), MedRecordAttribute::String(rhs)) => Err(
-                MedRecordError::AssertionError(format!("Cannot subtract {} from {}", rhs, value)),
+                MedRecordError::AssertionError(format!("Cannot subtract {rhs} from {value}")),
             ),
             (MedRecordAttribute::Int(value), MedRecordAttribute::Int(rhs)) => {
                 Ok(MedRecordAttribute::Int(value - rhs))
@@ -139,13 +138,13 @@ impl Mul for MedRecordAttribute {
     fn mul(self, rhs: Self) -> Self::Output {
         match (self, rhs) {
             (MedRecordAttribute::String(value), MedRecordAttribute::String(rhs)) => Err(
-                MedRecordError::AssertionError(format!("Cannot multiply {} by {}", value, rhs)),
+                MedRecordError::AssertionError(format!("Cannot multiply {value} by {rhs}")),
             ),
             (MedRecordAttribute::String(value), MedRecordAttribute::Int(rhs)) => Err(
-                MedRecordError::AssertionError(format!("Cannot multiply {} by {}", value, rhs)),
+                MedRecordError::AssertionError(format!("Cannot multiply {value} by {rhs}")),
             ),
             (MedRecordAttribute::Int(value), MedRecordAttribute::String(rhs)) => Err(
-                MedRecordError::AssertionError(format!("Cannot multiply {} by {}", value, rhs)),
+                MedRecordError::AssertionError(format!("Cannot multiply {value} by {rhs}")),
             ),
             (MedRecordAttribute::Int(value), MedRecordAttribute::Int(rhs)) => {
                 Ok(MedRecordAttribute::Int(value * rhs))
@@ -160,20 +159,17 @@ impl Pow for MedRecordAttribute {
         match (self, rhs) {
             (MedRecordAttribute::String(value), MedRecordAttribute::String(rhs)) => {
                 Err(MedRecordError::AssertionError(format!(
-                    "Cannot raise {} to the power of {}",
-                    value, rhs
+                    "Cannot raise {value} to the power of {rhs}"
                 )))
             }
             (MedRecordAttribute::String(value), MedRecordAttribute::Int(rhs)) => {
                 Err(MedRecordError::AssertionError(format!(
-                    "Cannot raise {} to the power of {}",
-                    value, rhs
+                    "Cannot raise {value} to the power of {rhs}"
                 )))
             }
             (MedRecordAttribute::Int(value), MedRecordAttribute::String(rhs)) => {
                 Err(MedRecordError::AssertionError(format!(
-                    "Cannot raise {} to the power of {}",
-                    value, rhs
+                    "Cannot raise {value} to the power of {rhs}"
                 )))
             }
             (MedRecordAttribute::Int(value), MedRecordAttribute::Int(rhs)) => {
@@ -188,13 +184,13 @@ impl Mod for MedRecordAttribute {
     fn r#mod(self, rhs: Self) -> MedRecordResult<Self> {
         match (self, rhs) {
             (MedRecordAttribute::String(value), MedRecordAttribute::String(rhs)) => Err(
-                MedRecordError::AssertionError(format!("Cannot mod {} by {}", value, rhs)),
+                MedRecordError::AssertionError(format!("Cannot mod {value} by {rhs}")),
             ),
             (MedRecordAttribute::String(value), MedRecordAttribute::Int(rhs)) => Err(
-                MedRecordError::AssertionError(format!("Cannot mod {} by {}", value, rhs)),
+                MedRecordError::AssertionError(format!("Cannot mod {value} by {rhs}")),
             ),
             (MedRecordAttribute::Int(value), MedRecordAttribute::String(rhs)) => Err(
-                MedRecordError::AssertionError(format!("Cannot mod {} by {}", value, rhs)),
+                MedRecordError::AssertionError(format!("Cannot mod {value} by {rhs}")),
             ),
             (MedRecordAttribute::Int(value), MedRecordAttribute::Int(rhs)) => {
                 Ok(MedRecordAttribute::Int(value % rhs))

@@ -258,8 +258,7 @@ impl FromPyObject<'_> for PyNodeIndexComparisonOperand {
         } else {
             Err(
                 PyMedRecordError::from(MedRecordError::ConversionError(format!(
-                    "Failed to convert {} into NodeIndex or NodeIndexOperand",
-                    ob,
+                    "Failed to convert {ob} into NodeIndex or NodeIndexOperand",
                 )))
                 .into(),
             )
@@ -294,8 +293,7 @@ impl FromPyObject<'_> for PyNodeIndicesComparisonOperand {
         } else {
             Err(
                 PyMedRecordError::from(MedRecordError::ConversionError(format!(
-                    "Failed to convert {} into List[NodeIndex] or NodeIndicesOperand",
-                    ob,
+                    "Failed to convert {ob} into List[NodeIndex] or NodeIndicesOperand",
                 )))
                 .into(),
             )

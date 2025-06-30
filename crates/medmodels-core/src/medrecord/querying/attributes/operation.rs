@@ -186,8 +186,7 @@ impl<O: RootOperand> AttributesTreeOperation<O> {
                         let second_dtype = DataType::from(max);
 
                         Err(MedRecordError::QueryError(format!(
-                            "Cannot compare attributes of data types {} and {}. Consider narrowing down the attributes using .is_string() or .is_int()",
-                            first_dtype, second_dtype
+                            "Cannot compare attributes of data types {first_dtype} and {second_dtype}. Consider narrowing down the attributes using .is_string() or .is_int()"
                         )))
                     }
                     _ => Ok(max),
@@ -220,8 +219,7 @@ impl<O: RootOperand> AttributesTreeOperation<O> {
                         let second_dtype = DataType::from(max);
 
                         Err(MedRecordError::QueryError(format!(
-                            "Cannot compare attributes of data types {} and {}. Consider narrowing down the attributes using .is_string() or .is_int()",
-                            first_dtype, second_dtype
+                            "Cannot compare attributes of data types {first_dtype} and {second_dtype}. Consider narrowing down the attributes using .is_string() or .is_int()"
                         )))
                     }
                     _ => Ok(max),
@@ -263,8 +261,7 @@ impl<O: RootOperand> AttributesTreeOperation<O> {
 
                 sum.add(attribute).map_err(|_| {
                     MedRecordError::QueryError(format!(
-                        "Cannot add attributes of data types {} and {}. Consider narrowing down the attributes using .is_string() or .is_int()",
-                        first_dtype, second_dtype
+                        "Cannot add attributes of data types {first_dtype} and {second_dtype}. Consider narrowing down the attributes using .is_string() or .is_int()"
                     ))
                 })
             })?;
@@ -1222,8 +1219,7 @@ impl<O: RootOperand> MultipleAttributesWithIndexOperation<O> {
                     let second_dtype = DataType::from(max_attribute.1);
 
                     Err(MedRecordError::QueryError(format!(
-                        "Cannot compare attributes of data types {} and {}. Consider narrowing down the attributes using .is_string() or .is_int()",
-                        first_dtype, second_dtype
+                        "Cannot compare attributes of data types {first_dtype} and {second_dtype}. Consider narrowing down the attributes using .is_string() or .is_int()"
                     )))
                 }
                 _ => Ok(max_attribute),
@@ -1251,8 +1247,7 @@ impl<O: RootOperand> MultipleAttributesWithIndexOperation<O> {
                     let second_dtype = DataType::from(min_attribute.1);
 
                     Err(MedRecordError::QueryError(format!(
-                        "Cannot compare attributes of data types {} and {}. Consider narrowing down the attributes using .is_string() or .is_int()",
-                        first_dtype, second_dtype
+                        "Cannot compare attributes of data types {first_dtype} and {second_dtype}. Consider narrowing down the attributes using .is_string() or .is_int()"
                     )))
                 }
                 _ => Ok(min_attribute),
@@ -1458,8 +1453,7 @@ impl<O: RootOperand> MultipleAttributesWithIndexOperation<O> {
                 }
                 .map_err(|_| {
                     MedRecordError::QueryError(format!(
-                        "Failed arithmetic operation {}. Consider narrowing down the attributes using .is_int() or .is_float()",
-                        kind,
+                        "Failed arithmetic operation {kind}. Consider narrowing down the attributes using .is_int() or .is_float()",
                     ))
                 }).map(|result| (t, result))
             });
@@ -1499,8 +1493,7 @@ impl<O: RootOperand> MultipleAttributesWithIndexOperation<O> {
             .map(|(index, attribute)| {
                 let value = index.get_attributes(medrecord)?.get(&attribute).ok_or(
                     MedRecordError::QueryError(format!(
-                        "Cannot find attribute {} for index {}",
-                        attribute, index
+                        "Cannot find attribute {attribute} for index {index}"
                     )),
                 )?;
 
@@ -2190,8 +2183,7 @@ impl<O: RootOperand> MultipleAttributesWithoutIndexOperation<O> {
                     let second_dtype = DataType::from(max_attribute);
 
                     Err(MedRecordError::QueryError(format!(
-                        "Cannot compare attributes of data types {} and {}. Consider narrowing down the attributes using .is_string() or .is_int()",
-                        first_dtype, second_dtype
+                        "Cannot compare attributes of data types {first_dtype} and {second_dtype}. Consider narrowing down the attributes using .is_string() or .is_int()"
                     )))
                 }
                 _ => Ok(max_attribute),
@@ -2219,8 +2211,7 @@ impl<O: RootOperand> MultipleAttributesWithoutIndexOperation<O> {
                     let second_dtype = DataType::from(min_attribute);
 
                     Err(MedRecordError::QueryError(format!(
-                        "Cannot compare attributes of data types {} and {}. Consider narrowing down the attributes using .is_string() or .is_int()",
-                        first_dtype, second_dtype
+                        "Cannot compare attributes of data types {first_dtype} and {second_dtype}. Consider narrowing down the attributes using .is_string() or .is_int()"
                     )))
                 }
                 _ => Ok(min_attribute),
@@ -2254,8 +2245,7 @@ impl<O: RootOperand> MultipleAttributesWithoutIndexOperation<O> {
 
             sum.add(attribute).map_err(|_| {
                 MedRecordError::QueryError(format!(
-                    "Cannot add attributes of data types {} and {}. Consider narrowing down the attributes using .is_string() or .is_int()",
-                    first_dtype, second_dtype
+                    "Cannot add attributes of data types {first_dtype} and {second_dtype}. Consider narrowing down the attributes using .is_string() or .is_int()"
                 ))
             })
         })?;
@@ -2414,8 +2404,7 @@ impl<O: RootOperand> MultipleAttributesWithoutIndexOperation<O> {
                 }
                 .map_err(|_| {
                     MedRecordError::QueryError(format!(
-                        "Failed arithmetic operation {}. Consider narrowing down the attributes using .is_int() or .is_float()",
-                        kind,
+                        "Failed arithmetic operation {kind}. Consider narrowing down the attributes using .is_int() or .is_float()",
                     ))
                 })
             });

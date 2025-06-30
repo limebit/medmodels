@@ -102,14 +102,12 @@ impl GroupMapping {
             self.nodes_in_group
                 .get_mut(&group)
                 .ok_or(MedRecordError::IndexError(format!(
-                    "Cannot find group {}",
-                    group
+                    "Cannot find group {group}"
                 )))?;
 
         if !nodes_in_group.insert(node_index.clone()) {
             return Err(MedRecordError::AssertionError(format!(
-                "Node with index {} already in group {}",
-                node_index, group
+                "Node with index {node_index} already in group {group}"
             )));
         }
 
@@ -130,14 +128,12 @@ impl GroupMapping {
             self.edges_in_group
                 .get_mut(&group)
                 .ok_or(MedRecordError::IndexError(format!(
-                    "Cannot find group {}",
-                    group
+                    "Cannot find group {group}"
                 )))?;
 
         if !edges_in_group.insert(edge_index) {
             return Err(MedRecordError::AssertionError(format!(
-                "Edge with index {} already in group {}",
-                edge_index, group
+                "Edge with index {edge_index} already in group {group}"
             )));
         }
 
@@ -154,8 +150,7 @@ impl GroupMapping {
             self.nodes_in_group
                 .remove(group)
                 .ok_or(MedRecordError::IndexError(format!(
-                    "Cannot find group {}",
-                    group
+                    "Cannot find group {group}"
                 )))?;
 
         for node in nodes_in_group {
@@ -169,8 +164,7 @@ impl GroupMapping {
             self.edges_in_group
                 .remove(group)
                 .ok_or(MedRecordError::IndexError(format!(
-                    "Cannot find group {}",
-                    group
+                    "Cannot find group {group}"
                 )))?;
 
         for edge in edges_in_group {
@@ -222,16 +216,14 @@ impl GroupMapping {
             self.nodes_in_group
                 .get_mut(group)
                 .ok_or(MedRecordError::IndexError(format!(
-                    "Cannot find group {}",
-                    group
+                    "Cannot find group {group}"
                 )))?;
 
         nodes_in_group
             .remove(node_index)
             .then_some(())
             .ok_or(MedRecordError::AssertionError(format!(
-                "Node with index {} not in group {}",
-                node_index, group
+                "Node with index {node_index} not in group {group}"
             )))
     }
 
@@ -244,16 +236,14 @@ impl GroupMapping {
             self.edges_in_group
                 .get_mut(group)
                 .ok_or(MedRecordError::IndexError(format!(
-                    "Cannot find group {}",
-                    group
+                    "Cannot find group {group}"
                 )))?;
 
         edges_in_group
             .remove(edge_index)
             .then_some(())
             .ok_or(MedRecordError::AssertionError(format!(
-                "Edge with index {} not in group {}",
-                edge_index, group
+                "Edge with index {edge_index} not in group {group}"
             )))
     }
 
@@ -269,8 +259,7 @@ impl GroupMapping {
             .nodes_in_group
             .get(group)
             .ok_or(MedRecordError::IndexError(format!(
-                "Cannot find group {}",
-                group
+                "Cannot find group {group}"
             )))?
             .iter())
     }
@@ -283,8 +272,7 @@ impl GroupMapping {
             .edges_in_group
             .get(group)
             .ok_or(MedRecordError::IndexError(format!(
-                "Cannot find group {}",
-                group
+                "Cannot find group {group}"
             )))?
             .iter())
     }

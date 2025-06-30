@@ -224,8 +224,7 @@ impl<O: RootOperand> MultipleValuesWithIndexOperation<O> {
                     let second_dtype = DataType::from(max_value.1);
 
                     Err(MedRecordError::QueryError(format!(
-                        "Cannot compare values of data types {} and {}. Consider narrowing down the values using .is_string(), .is_int(), .is_float(), .is_bool(), .is_datetime() or .is_duration()",
-                        first_dtype, second_dtype
+                        "Cannot compare values of data types {first_dtype} and {second_dtype}. Consider narrowing down the values using .is_string(), .is_int(), .is_float(), .is_bool(), .is_datetime() or .is_duration()"
                     )))
                 }
                 _ => Ok(max_value),
@@ -253,8 +252,7 @@ impl<O: RootOperand> MultipleValuesWithIndexOperation<O> {
                     let second_dtype = DataType::from(min_value.1);
 
                     Err(MedRecordError::QueryError(format!(
-                        "Cannot compare values of data types {} and {}. Consider narrowing down the values using .is_string(), .is_int(), .is_float(), .is_bool(), .is_datetime() or .is_duration()",
-                        first_dtype, second_dtype
+                        "Cannot compare values of data types {first_dtype} and {second_dtype}. Consider narrowing down the values using .is_string(), .is_int(), .is_float(), .is_bool(), .is_datetime() or .is_duration()"
                     )))
                 }
                 _ => Ok(min_value),
@@ -462,8 +460,7 @@ impl<O: RootOperand> MultipleValuesWithIndexOperation<O> {
                 }
                 .map_err(|_| {
                     MedRecordError::QueryError(format!(
-                        "Failed arithmetic operation {}. Consider narrowing down the values using .is_int() or .is_float()",
-                        kind,
+                        "Failed arithmetic operation {kind}. Consider narrowing down the values using .is_int() or .is_float()",
                     ))
                 }).map(|result| (t, result))
             });
@@ -1170,8 +1167,7 @@ impl<O: RootOperand> MultipleValuesWithoutIndexOperation<O> {
                     let second_dtype = DataType::from(max_value);
 
                     Err(MedRecordError::QueryError(format!(
-                        "Cannot compare values of data types {} and {}. Consider narrowing down the values using .is_string(), .is_int(), .is_float(), .is_bool(), .is_datetime() or .is_duration()",
-                        first_dtype, second_dtype
+                        "Cannot compare values of data types {first_dtype} and {second_dtype}. Consider narrowing down the values using .is_string(), .is_int(), .is_float(), .is_bool(), .is_datetime() or .is_duration()"
                     )))
                 }
                 _ => Ok(max_value),
@@ -1199,8 +1195,7 @@ impl<O: RootOperand> MultipleValuesWithoutIndexOperation<O> {
                     let second_dtype = DataType::from(min_value);
 
                     Err(MedRecordError::QueryError(format!(
-                        "Cannot compare values of data types {} and {}. Consider narrowing down the values using .is_string(), .is_int(), .is_float(), .is_bool(), .is_datetime() or .is_duration()",
-                        first_dtype, second_dtype
+                        "Cannot compare values of data types {first_dtype} and {second_dtype}. Consider narrowing down the values using .is_string(), .is_int(), .is_float(), .is_bool(), .is_datetime() or .is_duration()"
                     )))
                 }
                 _ => Ok(min_value),
@@ -1227,8 +1222,7 @@ impl<O: RootOperand> MultipleValuesWithoutIndexOperation<O> {
             match sum.add(value) {
                 Ok(sum) => Ok((sum, count + 1)),
                 Err(_) => Err(MedRecordError::QueryError(format!(
-                    "Cannot add values of data types {} and {}. Consider narrowing down the values using .is_int(), .is_float(), .is_datetime() or .is_duration()",
-                    first_dtype, second_dtype
+                    "Cannot add values of data types {first_dtype} and {second_dtype}. Consider narrowing down the values using .is_int(), .is_float(), .is_datetime() or .is_duration()"
                 ))),
             }
         })?;
@@ -1258,8 +1252,7 @@ impl<O: RootOperand> MultipleValuesWithoutIndexOperation<O> {
                         MedRecordValue::Int(value) => Ok(value as f64),
                         MedRecordValue::Float(value) => Ok(value),
                         _ => Err(MedRecordError::QueryError(format!(
-                            "Cannot calculate median of mixed data types {} and {}. Consider narrowing down the values using .is_int(), .is_float() , .is_datetime() or .is_duration()",
-                            first_data_type, data_type
+                            "Cannot calculate median of mixed data types {first_data_type} and {data_type}. Consider narrowing down the values using .is_int(), .is_float() , .is_datetime() or .is_duration()"
                         ))),
                     }
                 }).collect::<MedRecordResult<_>>()?;
@@ -1276,8 +1269,7 @@ impl<O: RootOperand> MultipleValuesWithoutIndexOperation<O> {
                         MedRecordValue::Int(value) => Ok(value as f64),
                         MedRecordValue::Float(value) => Ok(value),
                         _ => Err(MedRecordError::QueryError(format!(
-                            "Cannot calculate median of mixed data types {} and {}. Consider narrowing down the values using .is_int(), .is_float(), .is_datetime() or .is_duration()",
-                            first_data_type, data_type
+                            "Cannot calculate median of mixed data types {first_data_type} and {data_type}. Consider narrowing down the values using .is_int(), .is_float(), .is_datetime() or .is_duration()"
                         ))),
                     }
                 }).collect::<MedRecordResult<_>>()?;
@@ -1293,8 +1285,7 @@ impl<O: RootOperand> MultipleValuesWithoutIndexOperation<O> {
                     match value {
                         MedRecordValue::DateTime(naive_date_time) => Ok(naive_date_time),
                         _ => Err(MedRecordError::QueryError(format!(
-                            "Cannot calculate median of mixed data types {} and {}. Consider narrowing down the values using .is_int(), .is_float(), .is_datetime() or .is_duration()",
-                            first_data_type, data_type
+                            "Cannot calculate median of mixed data types {first_data_type} and {data_type}. Consider narrowing down the values using .is_int(), .is_float(), .is_datetime() or .is_duration()"
                         ))),
                     }
                 }).collect::<MedRecordResult<_>>()?;
@@ -1310,8 +1301,7 @@ impl<O: RootOperand> MultipleValuesWithoutIndexOperation<O> {
                     match value {
                         MedRecordValue::Duration(naive_date_time) => Ok(naive_date_time),
                         _ => Err(MedRecordError::QueryError(format!(
-                            "Cannot calculate median of mixed data types {} and {}. Consider narrowing down the values using .is_int(), .is_float(), .is_datetime() or .is_duration()",
-                            first_data_type, data_type
+                            "Cannot calculate median of mixed data types {first_data_type} and {data_type}. Consider narrowing down the values using .is_int(), .is_float(), .is_datetime() or .is_duration()"
                         ))),
                     }
                 }).collect::<MedRecordResult<_>>()?;
@@ -1321,8 +1311,7 @@ impl<O: RootOperand> MultipleValuesWithoutIndexOperation<O> {
                 get_median!(values, Duration)
             }
             _ => Err(MedRecordError::QueryError(format!(
-                "Cannot calculate median of data type {}",
-                first_data_type
+                "Cannot calculate median of data type {first_data_type}"
             )))?,
         }?;
 
@@ -1400,7 +1389,7 @@ impl<O: RootOperand> MultipleValuesWithoutIndexOperation<O> {
             let data_type = DataType::from(mean);
 
             return Err(MedRecordError::QueryError(
-                format!("Cannot calculate variance of data type {}. Consider narrowing down the values using .is_int() or .is_float()", data_type),
+                format!("Cannot calculate variance of data type {data_type}. Consider narrowing down the values using .is_int() or .is_float()"),
             ));
         };
 
@@ -1413,7 +1402,7 @@ impl<O: RootOperand> MultipleValuesWithoutIndexOperation<O> {
                 MedRecordValue::Int(value) => Ok(value as f64),
                 MedRecordValue::Float(value) => Ok(value),
                 _ => Err(MedRecordError::QueryError(
-                    format!("Cannot calculate variance of data type {}. Consider narrowing down the values using .is_int() or .is_float()", data_type),
+                    format!("Cannot calculate variance of data type {data_type}. Consider narrowing down the values using .is_int() or .is_float()"),
                 )),
             }})
             .collect::<MedRecordResult<Vec<_>>>()?;
@@ -1451,8 +1440,7 @@ impl<O: RootOperand> MultipleValuesWithoutIndexOperation<O> {
 
             sum.add(value).map_err(|_| {
                 MedRecordError::QueryError(format!(
-                    "Cannot add values of data types {} and {}. Consider narrowing down the values using .is_string(), .is_int(), .is_float(), .is_bool(), .is_datetime() or .is_duration()",
-                    first_dtype, second_dtype
+                    "Cannot add values of data types {first_dtype} and {second_dtype}. Consider narrowing down the values using .is_string(), .is_int(), .is_float(), .is_bool(), .is_datetime() or .is_duration()"
                 ))
             })
         })?;
@@ -1614,8 +1602,7 @@ impl<O: RootOperand> MultipleValuesWithoutIndexOperation<O> {
                 }
                 .map_err(|_| {
                     MedRecordError::QueryError(format!(
-                        "Failed arithmetic operation {}. Consider narrowing down the values using .is_int() or .is_float()",
-                        kind,
+                        "Failed arithmetic operation {kind}. Consider narrowing down the values using .is_int() or .is_float()",
                     ))
                 })
             });
