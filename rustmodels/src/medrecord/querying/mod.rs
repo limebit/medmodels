@@ -1168,7 +1168,7 @@ impl FromPyObject<'_> for PyMedRecordAttributeCardinalityWrapper {
         } else {
             Err(
                 PyMedRecordError::from(MedRecordError::ConversionError(format!(
-                    "Failed to convert {ob} into MedRecordAttribute or List[MedREcordAttribute]",
+                    "Failed to convert {ob} into MedRecordAttribute or List[MedRecordAttribute]",
                 )))
                 .into(),
             )
