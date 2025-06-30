@@ -16,19 +16,19 @@ from medmodels.medrecord.querying import (
     EdgeAttributesTreeOperand,
     EdgeIndexOperand,
     EdgeIndicesOperand,
-    EdgeMultipleAttributesOperand,
-    EdgeMultipleValuesOperand,
+    EdgeMultipleAttributesWithIndexOperand,
+    EdgeMultipleValuesWithIndexOperand,
     EdgeOperand,
-    EdgeSingleAttributeOperand,
-    EdgeSingleValueOperand,
+    EdgeSingleAttributeWithIndexOperand,
+    EdgeSingleValueWithIndexOperand,
     NodeAttributesTreeOperand,
     NodeIndexOperand,
     NodeIndicesOperand,
-    NodeMultipleAttributesOperand,
-    NodeMultipleValuesOperand,
+    NodeMultipleAttributesWithIndexOperand,
+    NodeMultipleValuesWithIndexOperand,
     NodeOperand,
-    NodeSingleAttributeOperand,
-    NodeSingleValueOperand,
+    NodeSingleAttributeWithIndexOperand,
+    NodeSingleValueWithIndexOperand,
     QueryReturnOperand,
 )
 from medmodels.medrecord.schema import AttributeType, GroupSchema, Schema, SchemaType
@@ -2308,12 +2308,12 @@ class TestMedRecord(unittest.TestCase):
 
         assert medrecord.query_nodes(query2) == "0"
 
-        def query3(node: NodeOperand) -> NodeMultipleValuesOperand:
+        def query3(node: NodeOperand) -> NodeMultipleValuesWithIndexOperand:
             return node.attribute("lorem")
 
         assert medrecord.query_nodes(query3) == {"0": "ipsum"}
 
-        def query4(node: NodeOperand) -> NodeSingleValueOperand:
+        def query4(node: NodeOperand) -> NodeSingleValueWithIndexOperand:
             return node.attribute("lorem").max()
 
         assert medrecord.query_nodes(query4) == ("0", "ipsum")
@@ -2326,13 +2326,13 @@ class TestMedRecord(unittest.TestCase):
 
         assert actual == {"0": ["dolor", "lorem"]}
 
-        def query6(node: NodeOperand) -> NodeMultipleAttributesOperand:
+        def query6(node: NodeOperand) -> NodeMultipleAttributesWithIndexOperand:
             attributes_tree = query5(node)
             return attributes_tree.max()
 
         assert medrecord.query_nodes(query6) == {"0": "lorem"}
 
-        def query7(node: NodeOperand) -> NodeSingleAttributeOperand:
+        def query7(node: NodeOperand) -> NodeSingleAttributeWithIndexOperand:
             multiple_attributes = query6(node)
             return multiple_attributes.max()
 
@@ -2376,12 +2376,12 @@ class TestMedRecord(unittest.TestCase):
 
         assert medrecord.query_edges(query2) == 0
 
-        def query3(edge: EdgeOperand) -> EdgeMultipleValuesOperand:
+        def query3(edge: EdgeOperand) -> EdgeMultipleValuesWithIndexOperand:
             return edge.attribute("eiusmod")
 
         assert medrecord.query_edges(query3) == {0: "tempor", 1: "tempor"}
 
-        def query4(edge: EdgeOperand) -> EdgeSingleValueOperand:
+        def query4(edge: EdgeOperand) -> EdgeSingleValueWithIndexOperand:
             edge.index().equal_to(0)
             return edge.attribute("eiusmod").max()
 
@@ -2395,13 +2395,13 @@ class TestMedRecord(unittest.TestCase):
 
         assert actual == {0: ["eiusmod", "sed"]}
 
-        def query6(edge: EdgeOperand) -> EdgeMultipleAttributesOperand:
+        def query6(edge: EdgeOperand) -> EdgeMultipleAttributesWithIndexOperand:
             attributes_tree = query5(edge)
             return attributes_tree.max()
 
         assert medrecord.query_edges(query6) == {0: "sed"}
 
-        def query7(edge: EdgeOperand) -> EdgeSingleAttributeOperand:
+        def query7(edge: EdgeOperand) -> EdgeSingleAttributeWithIndexOperand:
             multiple_attributes = query6(edge)
             return multiple_attributes.max()
 

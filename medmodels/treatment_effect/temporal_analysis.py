@@ -103,14 +103,14 @@ def find_reference_edge(
 
         return edge.index()
 
-    try:
-        reference_edge = medrecord.query_edges(query)
+    error_message = (
+        f"No edge with that time attribute or with a datetime data type was found for node "
+        f"{node_index} in this MedRecord"
+    )
 
-    except RuntimeError as err:
-        msg = (
-            f"No edge with that time attribute or with a datetime data type was found for node "
-            f"{node_index} in this MedRecord"
-        )
-        raise ValueError(msg) from err
+    reference_edge = medrecord.query_edges(query)
+
+    if not len(reference_edge) > 0:
+        raise ValueError(error_message)
 
     return reference_edge[0]

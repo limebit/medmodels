@@ -5,12 +5,12 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from medmodels.medrecord.querying import EdgeDirection, NodeIndicesOperand, NodeOperand
 from medmodels.treatment_effect.treatment_effect import TreatmentEffect
 from tests.treatment_effect.helper import create_medrecord
 
 if TYPE_CHECKING:
     from medmodels import MedRecord
+    from medmodels.medrecord.querying import NodeIndicesOperand, NodeOperand
 
 
 @pytest.fixture
@@ -452,7 +452,7 @@ class TestTreatmentEffect:
 
     def test_filter_controls(self, medrecord: MedRecord) -> None:
         def query_neighbors_to_m2(node: NodeOperand) -> NodeIndicesOperand:
-            node.neighbors(EdgeDirection.BOTH).index().equal_to("M2")
+            node.neighbors().index().equal_to("M2")
 
             return node.index()
 
