@@ -255,12 +255,12 @@ lines: 136-145
 :::{dropdown} Methods used in the snippet
 
 - [`in_group()`](medmodels.medrecord.querying.EdgeOperand.in_group){target="_blank"} : Query edges that belong to that group.
-- [`attribute()`](medmodels.medrecord.querying.EdgeOperand.attribute){target="_blank"} : Returns a [`NodeMultipleValuesWithIndexOperand()`](medmodels.medrecord.querying.NodeMultipleValuesWithIndexOperand){target="_blank"} to query on the values of the edges for that attribute.
-- [`less_than()`](medmodels.medrecord.querying.NodeMultipleValuesWithIndexOperand.less_than){target="_blank"} : Query values that are less than that value.
+- [`attribute()`](medmodels.medrecord.querying.EdgeOperand.attribute){target="_blank"} : Returns a [`EdgeMultipleValuesWithIndexOperand()`](medmodels.medrecord.querying.EdgeMultipleValuesWithIndexOperand){target="_blank"} to query on the values of the edges for that attribute.
+- [`less_than()`](medmodels.medrecord.querying.EdgeMultipleValuesWithIndexOperand.less_than){target="_blank"} : Query values that are less than that value.
 - [`source_node()`](medmodels.medrecord.querying.EdgeOperand.source_node){target="_blank"} : Returns a [`NodeOperand()`](medmodels.medrecord.querying.NodeOperand) to query on the source nodes for those edges.
 - [`is_max()`](medmodels.medrecord.querying.NodeMultipleValuesWithIndexOperand.is_max){target="_blank"} : Query on the values that hold the maximum value. 
 - [`target_node()`](medmodels.medrecord.querying.EdgeOperand.target_node){target="_blank"} : Returns a [`NodeOperand()`](medmodels.medrecord.querying.NodeOperand){target="_blank"} to query on the target nodes for those edges.
-- [`contains()`](medmodels.medrecord.querying.NodeIndexOperand.contains){target="_blank"} : Query node indices containing that argument.
+- [`contains()`](medmodels.medrecord.querying.NodeMultipleValuesWithIndexOperand.contains){target="_blank"} : Query values containing that argument.
 - [`index()`](medmodels.medrecord.querying.EdgeOperand.index){target="_blank"}: Returns a [`EdgeIndicesOperand`](medmodels.medrecord.querying.EdgeIndicesOperand){target="_blank"} representing the indices of the edges queried.
 - [`query_edges()`](medmodels.medrecord.medrecord.MedRecord.query_edges){target="_blank"} :  Retrieves information on the edges from the MedRecord given the query.
 

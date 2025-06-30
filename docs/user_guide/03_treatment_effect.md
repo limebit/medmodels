@@ -113,7 +113,7 @@ With this instance of a treatment effect class, we can test in which groups the 
 - *Treated with outcome*: Patients who received the treatment and experienced the outcome.
 - *Treated with no outcome*: Patients who received the treatment but did not experience the outcome.
 - *Control with outcome*: Patients who did not receive the treatment but experienced the outcome.
-- *Control with outcome*: Patients who neither received the treatment nor experienced the outcome.
+- *Control with no outcome*: Patients who neither received the treatment nor experienced the outcome.
 
 ```{exec-literalinclude} scripts/03_treatment_effect.py
 ---
@@ -192,7 +192,7 @@ lines: 65-82
 - [`builder()`](medmodels.treatment_effect.treatment_effect.TreatmentEffect.builder){target="_blank"}: Creates a TreatmentEffectBuilder instance for the TreatmentEffect class.
 - [`with_treatment()`](medmodels.treatment_effect.builder.TreatmentEffectBuilder.with_treatment){target="_blank"}: Sets the treatment group for the treatment effect estimation.
 - [`with_outcome()`](medmodels.treatment_effect.builder.TreatmentEffectBuilder.with_outcome){target="_blank"}: Sets the outcome group for the treatment effect estimation.
-- [`with_washout_period()`](medmodels.treatment_effect.builder.TreatmentEffectBuilder.with_washout_period_attribute){target="_blank"}: Sets the washout period for the treatment effect estimation.
+- [`with_washout_period()`](medmodels.treatment_effect.builder.TreatmentEffectBuilder.with_washout_period){target="_blank"}: Sets the washout period for the treatment effect estimation.
 - [`build()`](medmodels.treatment_effect.builder.TreatmentEffectBuilder.build){target="_blank"}: Builds the treatment effect with all the provided configurations.
 
 :::
