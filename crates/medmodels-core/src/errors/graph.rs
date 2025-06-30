@@ -23,9 +23,9 @@ impl Error for GraphError {
 impl Display for GraphError {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         match self {
-            GraphError::IndexError(message) => write!(f, "IndexError: {}", message),
-            GraphError::AssertionError(message) => write!(f, "AssertionError: {}", message),
-            GraphError::SchemaError(message) => write!(f, "SchemaError: {}", message),
+            GraphError::IndexError(message) => write!(f, "IndexError: {message}"),
+            GraphError::AssertionError(message) => write!(f, "AssertionError: {message}"),
+            GraphError::SchemaError(message) => write!(f, "SchemaError: {message}"),
         }
     }
 }

@@ -29,12 +29,12 @@ impl Error for MedRecordError {
 impl Display for MedRecordError {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         match self {
-            Self::IndexError(message) => write!(f, "IndexError: {}", message),
-            Self::KeyError(message) => write!(f, "KeyError: {}", message),
-            Self::ConversionError(message) => write!(f, "ConversionError: {}", message),
-            Self::AssertionError(message) => write!(f, "AssertionError: {}", message),
-            Self::SchemaError(message) => write!(f, "SchemaError: {}", message),
-            Self::QueryError(message) => write!(f, "QueryError: {}", message),
+            Self::IndexError(message) => write!(f, "IndexError: {message}"),
+            Self::KeyError(message) => write!(f, "KeyError: {message}"),
+            Self::ConversionError(message) => write!(f, "ConversionError: {message}"),
+            Self::AssertionError(message) => write!(f, "AssertionError: {message}"),
+            Self::SchemaError(message) => write!(f, "SchemaError: {message}"),
+            Self::QueryError(message) => write!(f, "QueryError: {message}"),
         }
     }
 }

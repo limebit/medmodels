@@ -648,8 +648,7 @@ pub(crate) fn convert_pyobject_to_pyreturnoperand(
     fn throw_error(ob: &Bound<'_, PyAny>) -> PyResult<PyReturnOperand> {
         Err(
             PyMedRecordError::from(MedRecordError::ConversionError(format!(
-                "Failed to convert {} into query ReturnOperand",
-                ob,
+                "Failed to convert {ob} into query ReturnOperand",
             )))
             .into(),
         )
@@ -1169,8 +1168,7 @@ impl FromPyObject<'_> for PyMedRecordAttributeCardinalityWrapper {
         } else {
             Err(
                 PyMedRecordError::from(MedRecordError::ConversionError(format!(
-                    "Failed to convert {} into MedRecordAttribute or List[MedREcordAttribute]",
-                    ob,
+                    "Failed to convert {ob} into MedRecordAttribute or List[MedREcordAttribute]",
                 )))
                 .into(),
             )

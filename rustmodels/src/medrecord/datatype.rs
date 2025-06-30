@@ -104,8 +104,7 @@ pub(crate) fn convert_pyobject_to_datatype(ob: &Bound<'_, pyo3::PyAny>) -> PyRes
     fn throw_error(ob: &Bound<'_, pyo3::PyAny>) -> PyResult<DataType> {
         Err(
             PyMedRecordError::from(MedRecordError::ConversionError(format!(
-                "Failed to convert {} into DataType",
-                ob,
+                "Failed to convert {ob} into DataType",
             )))
             .into(),
         )

@@ -980,8 +980,7 @@ impl NodeIndicesOperation {
                     let second_dtype = DataType::from(max_index);
 
                     Err(MedRecordError::QueryError(format!(
-                        "Cannot compare indices of data types {} and {}. Consider narrowing down the indices using .is_string() or .is_int()",
-                        first_dtype, second_dtype
+                        "Cannot compare indices of data types {first_dtype} and {second_dtype}. Consider narrowing down the indices using .is_string() or .is_int()"
                     )))
                 }
                 _ => Ok(max_index),
@@ -1009,8 +1008,7 @@ impl NodeIndicesOperation {
                     let second_dtype = DataType::from(min_index);
 
                     Err(MedRecordError::QueryError(format!(
-                        "Cannot compare indices of data types {} and {}. Consider narrowing down the indices using .is_string() or .is_int()",
-                        first_dtype, second_dtype
+                        "Cannot compare indices of data types {first_dtype} and {second_dtype}. Consider narrowing down the indices using .is_string() or .is_int()"
                     )))
                 }
                 _ => Ok(min_index),
@@ -1041,8 +1039,7 @@ impl NodeIndicesOperation {
 
             sum.add(index).map_err(|_| {
                 MedRecordError::QueryError(format!(
-                    "Cannot add indices of data types {} and {}. Consider narrowing down the indices using .is_string() or .is_int()",
-                    first_dtype, second_dtype
+                    "Cannot add indices of data types {first_dtype} and {second_dtype}. Consider narrowing down the indices using .is_string() or .is_int()"
                 ))
             })
         })?;
@@ -1174,8 +1171,7 @@ impl NodeIndicesOperation {
                 }
                 .map_err(|_| {
                     MedRecordError::QueryError(format!(
-                        "Failed arithmetic operation {}. Consider narrowing down the indices using .is_string() or .is_int()",
-                        kind,
+                        "Failed arithmetic operation {kind}. Consider narrowing down the indices using .is_string() or .is_int()",
                     ))
                 })
             });

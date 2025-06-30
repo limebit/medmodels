@@ -235,8 +235,7 @@ impl FromPyObject<'_> for PyEdgeIndexComparisonOperand {
         } else {
             Err(
                 PyMedRecordError::from(MedRecordError::ConversionError(format!(
-                    "Failed to convert {} into EdgeIndex or EdgeIndexOperand",
-                    ob,
+                    "Failed to convert {ob} into EdgeIndex or EdgeIndexOperand",
                 )))
                 .into(),
             )
@@ -268,8 +267,7 @@ impl FromPyObject<'_> for PyEdgeIndicesComparisonOperand {
         } else {
             Err(
                 PyMedRecordError::from(MedRecordError::ConversionError(format!(
-                    "Failed to convert {} into List[EdgeIndex] or EdgeIndicesOperand",
-                    ob,
+                    "Failed to convert {ob} into List[EdgeIndex] or EdgeIndicesOperand",
                 )))
                 .into(),
             )
