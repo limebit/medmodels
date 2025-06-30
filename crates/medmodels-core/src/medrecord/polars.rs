@@ -32,16 +32,14 @@ impl<'a> TryFrom<AnyValue<'a>> for MedRecordValue {
                     polars::prelude::TimeUnit::Microseconds => MedRecordValue::DateTime(
                         DateTime::from_timestamp_micros(value)
                             .ok_or(MedRecordError::ConversionError(format!(
-                                "Cannot convert {}ms into MedRecordValue",
-                                value
+                                "Cannot convert {value}ms into MedRecordValue"
                             )))?
                             .naive_utc(),
                     ),
                     polars::prelude::TimeUnit::Milliseconds => MedRecordValue::DateTime(
                         DateTime::from_timestamp_millis(value)
                             .ok_or(MedRecordError::ConversionError(format!(
-                                "Cannot convert {}ms into MedRecordValue",
-                                value
+                                "Cannot convert {value}ms into MedRecordValue"
                             )))?
                             .naive_utc(),
                     ),
@@ -51,32 +49,28 @@ impl<'a> TryFrom<AnyValue<'a>> for MedRecordValue {
                 polars::prelude::TimeUnit::Nanoseconds => MedRecordValue::Duration(
                     std::time::Duration::from_nanos(value.try_into().map_err(|_| {
                         MedRecordError::ConversionError(format!(
-                            "Cannot convert {} into MedRecordValue",
-                            value
+                            "Cannot convert {value} into MedRecordValue"
                         ))
                     })?),
                 ),
                 polars::prelude::TimeUnit::Microseconds => MedRecordValue::Duration(
                     std::time::Duration::from_micros(value.try_into().map_err(|_| {
                         MedRecordError::ConversionError(format!(
-                            "Cannot convert {} into MedRecordValue",
-                            value
+                            "Cannot convert {value} into MedRecordValue"
                         ))
                     })?),
                 ),
                 polars::prelude::TimeUnit::Milliseconds => MedRecordValue::Duration(
                     std::time::Duration::from_millis(value.try_into().map_err(|_| {
                         MedRecordError::ConversionError(format!(
-                            "Cannot convert {} into MedRecordValue",
-                            value
+                            "Cannot convert {value} into MedRecordValue"
                         ))
                     })?),
                 ),
             }),
             AnyValue::Null => Ok(MedRecordValue::Null),
             _ => Err(MedRecordError::ConversionError(format!(
-                "Cannot convert {} into MedRecordValue",
-                value
+                "Cannot convert {value} into MedRecordValue"
             ))),
         }
     }
@@ -97,8 +91,7 @@ impl<'a> TryFrom<AnyValue<'a>> for MedRecordAttribute {
             AnyValue::UInt16(value) => Ok(MedRecordAttribute::Int(value.into())),
             AnyValue::UInt32(value) => Ok(MedRecordAttribute::Int(value.into())),
             _ => Err(MedRecordError::ConversionError(format!(
-                "Cannot convert {} into MedRecordAttribute",
-                value
+                "Cannot convert {value} into MedRecordAttribute"
             ))),
         }
     }
@@ -122,8 +115,7 @@ pub(crate) fn dataframe_to_nodes(
         .column(index_column_name)
         .map_err(|_| {
             MedRecordError::ConversionError(format!(
-                "Cannot find column with name {} in dataframe",
-                index_column_name
+                "Cannot find column with name {index_column_name} in dataframe"
             ))
         })?
         .as_materialized_series()
@@ -174,8 +166,7 @@ pub(crate) fn dataframe_to_edges(
         .column(source_index_column_name)
         .map_err(|_| {
             MedRecordError::ConversionError(format!(
-                "Cannot find column with name {} in dataframe",
-                source_index_column_name
+                "Cannot find column with name {source_index_column_name} in dataframe"
             ))
         })?
         .as_materialized_series()
@@ -184,8 +175,7 @@ pub(crate) fn dataframe_to_edges(
         .column(target_index_column_name)
         .map_err(|_| {
             MedRecordError::ConversionError(format!(
-                "Cannot find column with name {} in dataframe",
-                target_index_column_name
+                "Cannot find column with name {target_index_column_name} in dataframe"
             ))
         })?
         .as_materialized_series()

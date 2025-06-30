@@ -82,8 +82,7 @@ impl Graph {
     ) -> Result<(), GraphError> {
         if self.nodes.contains_key(&node_index) {
             return Err(GraphError::AssertionError(format!(
-                "Node with index {} already exists",
-                node_index
+                "Node with index {node_index} already exists"
             )));
         }
 
@@ -103,8 +102,7 @@ impl Graph {
             .nodes
             .remove(node_index)
             .ok_or(GraphError::IndexError(format!(
-                "Cannot find node with index {}",
-                node_index
+                "Cannot find node with index {node_index}"
             )))?;
 
         let edge_indices = node
@@ -161,8 +159,7 @@ impl Graph {
     ) -> Result<EdgeIndex, GraphError> {
         if !self.nodes.contains_key(&target_node_index) {
             return Err(GraphError::IndexError(format!(
-                "Cannot find node with index {}",
-                target_node_index
+                "Cannot find node with index {target_node_index}"
             )));
         }
 
@@ -172,8 +169,7 @@ impl Graph {
             self.nodes
                 .get_mut(&source_node_index)
                 .ok_or(GraphError::IndexError(format!(
-                    "Cannot find node with index {}",
-                    source_node_index
+                    "Cannot find node with index {source_node_index}"
                 )))?;
 
         outgoing_node.outgoing_edge_indices.insert(edge_index);
@@ -197,8 +193,7 @@ impl Graph {
             .edges
             .remove(edge_index)
             .ok_or(GraphError::IndexError(format!(
-                "Cannot find edge with index {}",
-                edge_index
+                "Cannot find edge with index {edge_index}"
             )))?;
 
         self.nodes
@@ -221,8 +216,7 @@ impl Graph {
             .nodes
             .get(node_index)
             .ok_or(GraphError::IndexError(format!(
-                "Cannot find node with index {}",
-                node_index
+                "Cannot find node with index {node_index}"
             )))?
             .attributes)
     }
@@ -235,8 +229,7 @@ impl Graph {
             .nodes
             .get_mut(node_index)
             .ok_or(GraphError::IndexError(format!(
-                "Cannot find node with index {}",
-                node_index
+                "Cannot find node with index {node_index}"
             )))?
             .attributes)
     }
@@ -258,8 +251,7 @@ impl Graph {
             .edges
             .get(edge_index)
             .ok_or(GraphError::IndexError(format!(
-                "Cannot find edge with index {}",
-                edge_index
+                "Cannot find edge with index {edge_index}"
             )))?
             .attributes)
     }
@@ -272,8 +264,7 @@ impl Graph {
             .edges
             .get_mut(edge_index)
             .ok_or(GraphError::IndexError(format!(
-                "Cannot find edge with index {}",
-                edge_index
+                "Cannot find edge with index {edge_index}"
             )))?
             .attributes)
     }
@@ -294,8 +285,7 @@ impl Graph {
             .edges
             .get(edge_index)
             .ok_or(GraphError::IndexError(format!(
-                "Cannot find edge with index {}",
-                edge_index
+                "Cannot find edge with index {edge_index}"
             )))?;
 
         Ok((&edge.source_node_index, &edge.target_node_index))
@@ -309,8 +299,7 @@ impl Graph {
             .nodes
             .get(node_index)
             .ok_or(GraphError::IndexError(format!(
-                "Cannot find node with index {}",
-                node_index
+                "Cannot find node with index {node_index}"
             )))?
             .outgoing_edge_indices
             .iter())
@@ -324,8 +313,7 @@ impl Graph {
             .nodes
             .get(node_index)
             .ok_or(GraphError::IndexError(format!(
-                "Cannot find node with index {}",
-                node_index
+                "Cannot find node with index {node_index}"
             )))?
             .incoming_edge_indices
             .iter())
@@ -377,8 +365,7 @@ impl Graph {
             .nodes
             .get(node_index)
             .ok_or(GraphError::IndexError(format!(
-                "Cannot find node with index {}",
-                node_index
+                "Cannot find node with index {node_index}"
             )))?
             .outgoing_edge_indices
             .iter()
@@ -400,8 +387,7 @@ impl Graph {
             .nodes
             .get(node_index)
             .ok_or(GraphError::IndexError(format!(
-                "Cannot find node with index {}",
-                node_index
+                "Cannot find node with index {node_index}"
             )))?
             .incoming_edge_indices
             .iter()
@@ -422,8 +408,7 @@ impl Graph {
             .nodes
             .get(node_index)
             .ok_or(GraphError::IndexError(format!(
-                "Cannot find node with index {}",
-                node_index
+                "Cannot find node with index {node_index}"
             )))?;
 
         Ok(node

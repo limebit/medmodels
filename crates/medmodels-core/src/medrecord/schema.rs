@@ -163,14 +163,12 @@ enum AttributeSchemaKind<'a> {
 impl AttributeSchemaKind<'_> {
     fn error_message(&self, key: &MedRecordAttribute, data_type: &DataType) -> String {
         match self {
-            Self::Node(index) => format!(
-                "Attribute {} of type {} not found on node with index {}",
-                key, data_type, index
-            ),
-            Self::Edge(index) => format!(
-                "Attribute {} of type {} not found on edge with index {}",
-                key, data_type, index
-            ),
+            Self::Node(index) => {
+                format!("Attribute {key} of type {data_type} not found on node with index {index}")
+            }
+            Self::Edge(index) => {
+                format!("Attribute {key} of type {data_type} not found on edge with index {index}")
+            }
         }
     }
 
@@ -182,12 +180,10 @@ impl AttributeSchemaKind<'_> {
     ) -> String {
         match self {
             Self::Node(index) => format!(
-                "Attribute {} of node with index {} is of type {}. Expected {}.",
-                key, index, data_type, expected_data_type
+                "Attribute {key} of node with index {index} is of type {data_type}. Expected {expected_data_type}."
             ),
             Self::Edge(index) => format!(
-                "Attribute {} of edge with index {} is of type {}. Expected {}.",
-                key, index, data_type, expected_data_type
+                "Attribute {key} of edge with index {index} is of type {data_type}. Expected {expected_data_type}."
             ),
         }
     }
@@ -501,8 +497,7 @@ impl Schema {
         self.groups
             .get(group)
             .ok_or(GraphError::SchemaError(format!(
-                "Group {} not found in schema.",
-                group
+                "Group {group} not found in schema."
             )))
     }
 
@@ -526,8 +521,7 @@ impl Schema {
                     .groups
                     .get(group)
                     .ok_or(GraphError::SchemaError(format!(
-                        "Group {} not found in schema.",
-                        group
+                        "Group {group} not found in schema."
                     )))?;
 
                 schema.validate_node(index, attributes)
@@ -548,8 +542,7 @@ impl Schema {
                     .groups
                     .get(group)
                     .ok_or(GraphError::SchemaError(format!(
-                        "Group {} not found in schema.",
-                        group
+                        "Group {group} not found in schema."
                     )))?;
 
                 schema.validate_edge(index, attributes)
@@ -741,8 +734,7 @@ impl Schema {
     pub fn add_group(&mut self, group: Group, schema: GroupSchema) -> Result<(), GraphError> {
         if self.groups.contains_key(&group) {
             return Err(GraphError::SchemaError(format!(
-                "Group {} already exists in schema.",
-                group
+                "Group {group} already exists in schema."
             )));
         }
 

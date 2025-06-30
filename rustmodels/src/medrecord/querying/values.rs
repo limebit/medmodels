@@ -54,8 +54,7 @@ impl FromPyObject<'_> for PySingleValueComparisonOperand {
         } else {
             Err(
                 PyMedRecordError::from(MedRecordError::ConversionError(format!(
-                    "Failed to convert {} into MedRecordValue or SingleValueOperand",
-                    ob,
+                    "Failed to convert {ob} into MedRecordValue or SingleValueOperand",
                 )))
                 .into(),
             )
@@ -96,8 +95,7 @@ impl FromPyObject<'_> for PyMultipleValuesComparisonOperand {
         } else {
             Err(
                 PyMedRecordError::from(MedRecordError::ConversionError(format!(
-                    "Failed to convert {} into List[MedRecordValue] or MultipleValuesOperand",
-                    ob,
+                    "Failed to convert {ob} into List[MedRecordValue] or MultipleValuesOperand",
                 )))
                 .into(),
             )

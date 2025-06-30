@@ -93,8 +93,7 @@ pub(crate) fn convert_pyobject_to_medrecordvalue(
     fn throw_error(ob: &Bound<'_, PyAny>) -> PyResult<MedRecordValue> {
         Err(
             PyMedRecordError::from(MedRecordError::ConversionError(format!(
-                "Failed to convert {} into MedRecordValue",
-                ob,
+                "Failed to convert {ob} into MedRecordValue",
             )))
             .into(),
         )
