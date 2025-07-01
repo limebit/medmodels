@@ -256,7 +256,7 @@ lines: 103
 :::
 
 
-- *Average treament effect*, where we calculate the difference between the outcome means of the treated and control sets for an outcome variable (e.g., _duration_days_).
+- *Average treatment effect*, where we calculate the difference between the outcome means of the treated and control sets for an outcome variable (e.g., _duration_days_).
 
 ```{exec-literalinclude} scripts/03_treatment_effect.py
 ---
