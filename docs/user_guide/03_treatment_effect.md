@@ -64,7 +64,7 @@ lines: 71
 
 As with other modules in *MedModels*, the [`TreatmentEffect`](medmodels.treatment_effect.treatment_effect.TreatmentEffect){target="_blank"} class is meant to be instantiated using a builder pattern, thanks to its [`builder()`](medmodels.treatment_effect.treatment_effect.TreatmentEffect.builder){target="_blank"} method.
 
-This instantiation requires a minimum of two arguments: a `treatment` and an `outcome`. These have to be the names of the MedRecord's `Groups` that contain the respective nodes. Here, we can see how we can create these groups by using the Query Engine. More information on how to use this powerful and efficient tool here: [Query Engine](02a_query_engine.md).
+This instantiation requires a minimum of two arguments: a `treatment` and an `outcome`. These have to be the names of the MedRecord's `Groups` that contain the respective nodes. Also, the patient group needs to be specified if it does not correspond to the default `patient`. Here, we can see how we can create these groups by using the Query Engine. More information on how to use this powerful and efficient tool here: [Query Engine](02a_query_engine.md).
 
 ```{literalinclude} scripts/03_treatment_effect.py
 ---
@@ -95,7 +95,7 @@ Once we have the required `treatment` and `outcome` groups (_insulin_ and _diabe
 ```{literalinclude} scripts/03_treatment_effect.py
 ---
 language: python
-lines: 34-36
+lines: 34-40
 ---
 ```
 
@@ -118,8 +118,8 @@ With this instance of a treatment effect class, we can test in which groups the 
 ```{exec-literalinclude} scripts/03_treatment_effect.py
 ---
 language: python
-setup-lines: 1-36
-lines: 38
+setup-lines: 1-40
+lines: 42
 ---
 ```
 
@@ -138,8 +138,8 @@ One important property is *time*. By default, treatment and outcome groups are f
 ```{exec-literalinclude} scripts/03_treatment_effect.py
 ---
 language: python
-setup-lines: 1-36
-lines: 41-49
+setup-lines: 1-40
+lines: 45-53
 ---
 ```
 
@@ -154,12 +154,12 @@ lines: 41-49
 
 :::
 
-You can also further customize the time-related properties, such as the *grace period*, the *follow-up period*, or whether we should exclude the patients in which there was an outcome before the treatment:
+You can also further customize the time-related properties, such as the *grace period*, the *follow-up period*, or whether we should exclude the patients in which there was an outcome before the treatment. These can only be used once a time attribute is set.
 
 ```{literalinclude} scripts/03_treatment_effect.py
 ---
 language: python
-lines: 52-61
+lines: 56-65
 ---
 ```
 
@@ -182,7 +182,7 @@ lines: 52-61
 ```{literalinclude} scripts/03_treatment_effect.py
 ---
 language: python
-lines: 65-82
+lines: 69-86
 ---
 ```
 
@@ -202,7 +202,7 @@ And we have also integrated matching algorithms, like *nearest neighbors* or *pr
 ```{literalinclude} scripts/03_treatment_effect.py
 ---
 language: python
-lines: 85-93
+lines: 89-97
 ---
 ```
 
@@ -227,8 +227,8 @@ Once we have instantiated the Treatment Effect class with the desired properties
 ```{exec-literalinclude} scripts/03_treatment_effect.py
 ---
 language: python
-setup-lines: 1-36
-lines: 96
+setup-lines: 1-40
+lines: 100
 ---
 ```
 
@@ -244,8 +244,8 @@ lines: 96
 ```{exec-literalinclude} scripts/03_treatment_effect.py
 ---
 language: python
-setup-lines: 1-36
-lines: 99
+setup-lines: 1-40
+lines: 103
 ---
 ```
 
@@ -261,8 +261,8 @@ lines: 99
 ```{exec-literalinclude} scripts/03_treatment_effect.py
 ---
 language: python
-setup-lines: 1-36
-lines: 102
+setup-lines: 1-40
+lines: 106
 ---
 ```
 
@@ -279,8 +279,8 @@ You can also create a report with all the possible metrics in the treatment effe
 ```{exec-literalinclude} scripts/03_treatment_effect.py
 ---
 language: python
-setup-lines: 1-36
-lines: 105
+setup-lines: 1-40
+lines: 109
 ---
 ```
 
@@ -289,8 +289,8 @@ And also another report with all the continuous estimators.
 ```{exec-literalinclude} scripts/03_treatment_effect.py
 ---
 language: python
-setup-lines: 1-36
-lines: 108
+setup-lines: 1-40
+lines: 112
 ---
 ```
 
@@ -301,6 +301,6 @@ The full code examples for this chapter can be found here:
 ```{literalinclude}  scripts/03_treatment_effect.py
 ---
 language: python
-lines: 3-108
+lines: 3-112
 ---
 ```

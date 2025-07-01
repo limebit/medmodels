@@ -32,7 +32,11 @@ medrecord.add_group("insulin", find_insulin_drugs)
 medrecord.add_group("diabetes", find_diabetes_diagnoses)
 
 treatment_effect_basic = (
-    TreatmentEffect.builder().with_treatment("insulin").with_outcome("diabetes").build()
+    TreatmentEffect.builder()
+    .with_treatment("insulin")
+    .with_outcome("diabetes")
+    .with_patients_group("patient")
+    .build()
 )
 
 treatment_effect_basic.estimate.subject_counts(medrecord)
