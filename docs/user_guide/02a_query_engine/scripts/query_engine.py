@@ -1,5 +1,4 @@
-# pyright: reportAttributeAccessIssue=false
-# ruff: noqa: D100, D103, B018
+# ruff: noqa: B018, D100, D103
 from medmodels import MedRecord
 from medmodels.medrecord.querying import (
     EdgeIndicesOperand,
@@ -47,65 +46,6 @@ def query_node_reused(node: NodeOperand) -> NodeIndicesOperand:
 
 
 medrecord.query_nodes(query_node_reused)
-
-
-# Advanced node query
-def query_node_male_patient_under_mean(node: NodeOperand) -> NodeIndicesOperand:
-    node.in_group("patient")
-    node.index().contains("pat")
-
-    gender = node.attribute("gender")
-    gender.lowercase()  # Converts the string to lowercase
-    gender.trim()  # Removes leading and trailing whitespaces
-    gender.equal_to("m")
-
-    node.has_attribute("age")
-    mean_age = node.attribute("age").mean()
-    mean_age.subtract(5)  # Subtract 5 from the mean age
-    node.attribute("age").less_than(mean_age)
-
-    return node.index()
-
-
-medrecord.query_nodes(query_node_male_patient_under_mean)
-
-
-# Incorrect implementation because the querying methods are assigned to a variable
-def query_operand_assigned(node: NodeOperand) -> NodeIndicesOperand:
-    gender_lowercase = node.attribute(
-        "gender"
-    ).lowercase()  # Assigning the querying method to a variable
-    gender_lowercase.equal_to("m")
-
-    return node.index()
-
-
-medrecord.query_nodes(query_operand_assigned)
-
-
-# Incorrect implementation because the querying methods are concatenated
-def query_operands_concatenated(node: NodeOperand) -> NodeIndicesOperand:
-    gender = node.attribute("gender")
-    gender.lowercase().trim()  # Concatenating the querying methods
-    gender.equal_to("m")
-
-    return node.index()
-
-
-medrecord.query_nodes(query_operands_concatenated)
-
-
-# Correct implementation
-def query_correct_implementation(node: NodeOperand) -> NodeIndicesOperand:
-    gender = node.attribute("gender")
-    gender.lowercase()
-    gender.trim()
-    gender.equal_to("m")
-
-    return node.index()
-
-
-medrecord.query_nodes(query_correct_implementation)
 
 
 # Node query with neighbors function
