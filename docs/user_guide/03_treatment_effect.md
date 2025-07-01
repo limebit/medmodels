@@ -66,6 +66,8 @@ As with other modules in *MedModels*, the [`TreatmentEffect`](medmodels.treatmen
 
 This instantiation requires a minimum of two arguments: a `treatment` and an `outcome`. These have to be the names of the MedRecord's `Groups` that contain the respective nodes. Also, the patient group needs to be specified if it does not correspond to the default `patient`. Here, we can see how we can create these groups by using the Query Engine. More information on how to use this powerful and efficient tool here: [Query Engine](02a_query_engine.md).
 
+In this example case study, we will use as treatment group "_Alendronic acid_", a primary treatment for osteoporosis, and "_Fractures_" as outcomes. We expect the treated patients to have less fractures than the control ones.
+
 ```{literalinclude} scripts/03_treatment_effect.py
 ---
 language: python
@@ -76,9 +78,9 @@ lines: 12-32
 :::{dropdown} Methods used in the snippet
 
 - [`in_group()`](medmodels.medrecord.querying.NodeOperand.in_group){target="_blank"} : Query nodes that belong to that group.
-- [`attribute()`](medmodels.medrecord.querying.NodeOperand.attribute){target="_blank"} : Returns a [`NodeMultipleValuesOperand`](medmodels.medrecord.querying.NodeMultipleValuesOperand){target="_blank"} representing the values of that attribute for the nodes.
-- [`lowercase()`](medmodels.medrecord.querying.NodeMultipleValuesOperand.lowercase){target="_blank"} : Convert the multiple values to lowercase.
-- [`contains()`](medmodels.medrecord.querying.NodeMultipleValuesOperand.contains){target="_blank"} : Query which multiple values contain a value.
+- [`attribute()`](medmodels.medrecord.querying.NodeOperand.attribute){target="_blank"} : Returns a [`NodeMultipleValuesWithIndexOperand`](medmodels.medrecord.querying.NodeMultipleValuesWithIndexOperand){target="_blank"} representing the values of that attribute for the nodes.
+- [`lowercase()`](medmodels.medrecord.querying.NodeMultipleValuesWithIndexOperand.lowercase){target="_blank"} : Convert the multiple values to lowercase.
+- [`contains()`](medmodels.medrecord.querying.NodeMultipleValuesWithIndexOperand.contains){target="_blank"} : Query which multiple values contain a value.
 - [`index()`](medmodels.medrecord.querying.NodeOperand.index){target="_blank"} : Returns a [`NodeIndicesOperand`](medmodels.medrecord.querying.NodeIndicesOperand){target="_blank"} representing the indices of the nodes queried.
 - [`unfreeze_schema()`](medmodels.medrecord.medrecord.MedRecord.unfreeze_schema){target="_blank"}: Unfreezes the schema. Changes in the schema are automatically inferred.
 - [`add_group()`](medmodels.medrecord.medrecord.MedRecord.add_group){target="_blank"}: Adds a group to the MedRecord, optionally with node and edge indices.
@@ -89,7 +91,7 @@ lines: 12-32
 Since the MedRecord we are using has a [`Provided`](medmodels.medrecord.schema.SchemaType.Provided){target="_blank"} schema, we need to use [`unfreeze_schema()`](medmodels.medrecord.medrecord.MedRecord.unfreeze_schema){target="_blank"} in order to add new groups to the MedRecord.
 :::
 
-Once we have the required `treatment` and `outcome` groups (_insulin_ and _diabetes_), we can go forward and create a treatment effect instance.
+Once we have the required `treatment` and `outcome` groups (_alendronic_ and _fracture_), we can go forward and create a treatment effect instance.
 
 
 ```{literalinclude} scripts/03_treatment_effect.py
@@ -129,7 +131,7 @@ lines: 42
 
 :::
 
-### Customizing the Treatment Effect Properties
+### Adding a Time Component
 
 In the previous section, we saw how to instantiate a TreatmentEffect class with default settings. Using the builder pattern, however, we can customize key properties that influence how treatment effect metrics are calculated.
 
@@ -197,12 +199,15 @@ lines: 69-86
 
 :::
 
-And we have also integrated matching algorithms, like *nearest neighbors* or *propensity matching* to conform control groups that can clearly resemble the treated population.
+### Implement Control Group Matching
 
-```{literalinclude} scripts/03_treatment_effect.py
+And we have also integrated matching algorithms, like *nearest neighbors* or *propensity matching* to conform control groups that can clearly resemble the treated population. For that, we can use variables like _age_ or _gender_.
+
+```{exec-literalinclude} scripts/03_treatment_effect.py
 ---
 language: python
-lines: 89-97
+setup-lines: 1-32
+lines: 89-99
 ---
 ```
 
@@ -214,9 +219,39 @@ lines: 89-97
 - [`with_outcome()`](medmodels.treatment_effect.builder.TreatmentEffectBuilder.with_outcome){target="_blank"}: Sets the outcome group for the treatment effect estimation.
 - [`with_nearest_neighbors_matching()`](medmodels.treatment_effect.builder.TreatmentEffectBuilder.with_nearest_neighbors_matching){target="_blank"}: Adjust the treatment effect estimate using nearest neighbors matching.
 - [`build()`](medmodels.treatment_effect.builder.TreatmentEffectBuilder.build){target="_blank"}: Builds the treatment effect with all the provided configurations.
+- [`subject_counts`](medmodels.treatment_effect.estimate.Estimate.subject_counts){target="_blank"}: Overview of how many subjects are in which group from the contingency table.
 
 :::
 
+As we can see, the distribution of the groups makes much more sense when matching the controls to the treated patients than when running a basic analysis. That is because the treatment is normally prescribed to patients with a high rish of getting a fracture, and the control group in the previous instances did not show a close representation of the treated one.
+
+### Using Queries to Filter Controls
+
+We can also use the aforementioned [Query Engine](02a_query_engine.md) to filter which patients we want to include in the control groups:
+
+```{exec-literalinclude} scripts/03_treatment_effect.py
+---
+language: python
+setup-lines: 1-32
+lines: 103-118
+---
+```
+
+:::{dropdown} Methods used in the snippet
+
+- [`in_group()`](medmodels.medrecord.querying.NodeOperand.in_group){target="_blank"} : Query nodes that belong to that group.
+- [`attribute()`](medmodels.medrecord.querying.NodeOperand.attribute){target="_blank"} : Returns a [`NodeMultipleValuesWithIndexOperand`](medmodels.medrecord.querying.NodeMultipleValuesWithIndexOperand){target="_blank"} to query on the values of the nodes for that attribute.
+- [`greater_than()`](medmodels.medrecord.querying.NodeMultipleValuesWithIndexOperand.greater_than){target="_blank"} : Query values that are greater than that value.
+- [`index()`](medmodels.medrecord.querying.NodeOperand.index){target="_blank"}: Returns a [`NodeIndicesOperand`](medmodels.medrecord.querying.NodeIndicesOperand){target="_blank"} representing the indices of the nodes queried.
+- [`TreatmentEffect`](medmodels.treatment_effect.treatment_effect.TreatmentEffect){target="_blank"}: The TreatmentEffect class for analyzing treatment effects in medical records.
+- [`builder()`](medmodels.treatment_effect.treatment_effect.TreatmentEffect.builder){target="_blank"}: Creates a TreatmentEffectBuilder instance for the TreatmentEffect class.
+- [`with_treatment()`](medmodels.treatment_effect.builder.TreatmentEffectBuilder.with_treatment){target="_blank"}: Sets the treatment group for the treatment effect estimation.
+- [`with_outcome()`](medmodels.treatment_effect.builder.TreatmentEffectBuilder.with_outcome){target="_blank"}: Sets the outcome group for the treatment effect estimation.
+- [`filter_controls()`](medmodels.treatment_effect.builder.TreatmentEffectBuilder.filter_controls){target="_blank"}: Filter the control group based on the provided query.
+- [`build()`](medmodels.treatment_effect.builder.TreatmentEffectBuilder.build){target="_blank"}: Builds the treatment effect with all the provided configurations.
+- [`subject_counts`](medmodels.treatment_effect.estimate.Estimate.subject_counts){target="_blank"}: Overview of how many subjects are in which group from the contingency table.
+
+:::
 
 ## Estimating metrics
 
@@ -227,8 +262,8 @@ Once we have instantiated the Treatment Effect class with the desired properties
 ```{exec-literalinclude} scripts/03_treatment_effect.py
 ---
 language: python
-setup-lines: 1-40
-lines: 100
+setup-lines: 1-32, 103-116
+lines: 121
 ---
 ```
 
@@ -244,8 +279,8 @@ lines: 100
 ```{exec-literalinclude} scripts/03_treatment_effect.py
 ---
 language: python
-setup-lines: 1-40
-lines: 103
+setup-lines: 1-32, 103-116
+lines: 124
 ---
 ```
 
@@ -258,11 +293,12 @@ lines: 103
 
 - *Average treatment effect*, where we calculate the difference between the outcome means of the treated and control sets for an outcome variable (e.g., _duration_days_).
 
+
 ```{exec-literalinclude} scripts/03_treatment_effect.py
 ---
 language: python
-setup-lines: 1-40
-lines: 106
+setup-lines: 1-32, 103-116
+lines: 127
 ---
 ```
 
@@ -272,6 +308,9 @@ lines: 106
 
 :::
 
+_Disclaimer: the values of the outcome variables used in this report are randomly sampled and unexpected results can be obtained._
+
+
 ## Generating a full metrics report
 
 You can also create a report with all the possible metrics in the treatment effect class:
@@ -279,8 +318,8 @@ You can also create a report with all the possible metrics in the treatment effe
 ```{exec-literalinclude} scripts/03_treatment_effect.py
 ---
 language: python
-setup-lines: 1-40
-lines: 109
+setup-lines: 1-32, 103-116
+lines: 130
 ---
 ```
 
@@ -289,8 +328,8 @@ And also another report with all the continuous estimators.
 ```{exec-literalinclude} scripts/03_treatment_effect.py
 ---
 language: python
-setup-lines: 1-40
-lines: 112
+setup-lines: 1-32, 103-116
+lines: 133
 ---
 ```
 
@@ -301,6 +340,6 @@ The full code examples for this chapter can be found here:
 ```{literalinclude}  scripts/03_treatment_effect.py
 ---
 language: python
-lines: 3-112
+lines: 2-133
 ---
 ```

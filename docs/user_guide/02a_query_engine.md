@@ -363,9 +363,9 @@ lines: 215-231
 - [`index()`](medmodels.medrecord.querying.NodeOperand.index){target="_blank"}: Returns a [`NodeIndexOperand`](medmodels.medrecord.querying.NodeIndexOperand){target="_blank"} to query on the indices.
 - [`contains()`](medmodels.medrecord.querying.NodeIndexOperand.contains){target="_blank"} : Query node indices containing that argument.
 - [`attribute()`](medmodels.medrecord.querying.NodeOperand.attribute){target="_blank"} : Returns a [`NodeMultipleValuesWithIndexOperand()`](medmodels.medrecord.querying.NodeMultipleValuesWithIndexOperand){target="_blank"} to query on the values of the edges for that attribute.
-- [`mean()`](medmodels.medrecord.querying.NodeMultipleValuesWithIndexOperand.mean){target="_blank"}: Returns a [`NodeSingleValueOperandWithoutIndexOperand`](medmodels.medrecord.querying.NodeSingleValueOperandWithoutIndexOperand){target="_blank"} containing the mean of those values.
-- [`clone()`](medmodels.medrecord.querying.NodeSingleValueOperandWithoutIndexOperand.clone){target="_blank"} : Returns a clone of the operand.
-- [`subtract()`](medmodels.medrecord.querying.NodeSingleValueOperandWithoutIndexOperand.subtract){target="_blank"} : Subtract the argument from the single value operand.
+- [`mean()`](medmodels.medrecord.querying.NodeMultipleValuesWithIndexOperand.mean){target="_blank"}: Returns a [`NodeSingleValueWithoutIndexOperand`](medmodels.medrecord.querying.NodeSingleValueWithoutIndexOperand){target="_blank"} containing the mean of those values.
+- [`clone()`](medmodels.medrecord.querying.NodeSingleValueWithoutIndexOperand.clone){target="_blank"} : Returns a clone of the operand.
+- [`subtract()`](medmodels.medrecord.querying.NodeSingleValueWithoutIndexOperand.subtract){target="_blank"} : Subtract the argument from the single value operand.
 - [`greater_than()`](medmodels.medrecord.querying.NodeMultipleValuesWithIndexOperand.greater_than){target="_blank"} : Query values that are greater than that value.
 - [`less_than()`](medmodels.medrecord.querying.NodeMultipleValuesWithIndexOperand.less_than){target="_blank"} : Query values that are less than that value.
 - [`index()`](medmodels.medrecord.querying.NodeOperand.index){target="_blank"}: Returns a [`NodeIndicesOperand`](medmodels.medrecord.querying.NodeIndicesOperand){target="_blank"} representing the indices of the edges queried.
