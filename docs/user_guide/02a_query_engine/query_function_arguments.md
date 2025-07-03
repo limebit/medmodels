@@ -2,7 +2,7 @@
 
 In all other sections, we have used queries with the method [`query_nodes()`](medmodels.medrecord.medrecord.MedRecord.query_nodes){target="_blank"} for representation purposes of its capacities. However, queries can also be used as function arguments to other methods or indexers from the [`MedRecord`](medmodels.medrecord.medrecord.MedRecord){target="_blank"} that take edge/node indices or the queries that result on those indices as arguments. Here are some examples of those functions:
 
-- Using the [`add_group()`](medmodels.medrecord.medrecord.MedRecord.add_group){target="_blank"} to create groups in the MedRecord out of chosen subset of patients. We need to [`unfreeze_schema()`](medmodels.medrecord.medrecord.MedRecord.unfreeze_schema){target="_blank"} first, since this new group does not exist in the schema and we have a provided schema in the example dataset.
+- Using the [`add_group()`](medmodels.medrecord.medrecord.MedRecord.add_group){target="_blank"} to create groups in the MedRecord out of a chosen subset of patients. We need to [`unfreeze_schema()`](medmodels.medrecord.medrecord.MedRecord.unfreeze_schema){target="_blank"} first, since this new group does not exist in the schema and we have a provided schema in the example dataset.
 
 ```{exec-literalinclude} scripts/query_engine.py
 ---

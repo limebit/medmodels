@@ -1,6 +1,6 @@
 # Attributes & Values
 
-One of the main strengths of the query engine is the possibility of diving deeper into the MedRecords's attributes and values. We can access them by using different return types - in the Introduction, we mainly used *indices* as the return type for each query.
+One of the main strengths of the query engine is the possibility of diving deeper into the MedRecords' attributes and values. We can access them by using different return types - in the [Query Engine Introduction](index.md), we mainly used *indices* as the return type for each query.
 
 ## Inspecting Attributes Names
 
@@ -17,7 +17,7 @@ lines: 17-23
 :::{dropdown} Methods used in the snippet
 
 - [`in_group()`](medmodels.medrecord.querying.NodeOperand.in_group){target="_blank"} : Query nodes that belong to that group.
-- [`attributes()`](medmodels.medrecord.querying.NodeOperand.attributes){target="_blank"} : Query the attribute names if each node.
+- [`attributes()`](medmodels.medrecord.querying.NodeOperand.attributes){target="_blank"} : Query the attribute names of each node.
 - [`query_nodes()`](medmodels.medrecord.medrecord.MedRecord.query_nodes){target="_blank"} : Retrieves information on the nodes from the MedRecord given the query.
 
 :::
@@ -35,7 +35,7 @@ lines: 26-35
 :::{dropdown} Methods used in the snippet
 
 - [`in_group()`](medmodels.medrecord.querying.NodeOperand.in_group){target="_blank"} : Query nodes that belong to that group.
-- [`attributes()`](medmodels.medrecord.querying.NodeOperand.attributes){target="_blank"} : Query the attribute names if each node.
+- [`attributes()`](medmodels.medrecord.querying.NodeOperand.attributes){target="_blank"} : Query the attribute names of each node.
 - [`count()`](medmodels.medrecord.querying.NodeMultipleAttributesWithIndexOperand.count){target="_blank"} : Query how many attributes each node has.
 - [`query_nodes()`](medmodels.medrecord.medrecord.MedRecord.query_nodes){target="_blank"} : Retrieves information on the nodes from the MedRecord given the query.
 
@@ -74,7 +74,7 @@ It is important to note that modifying these values **does not** change the actu
 
 You can also perform mathematical calculations like [`mean()`](medmodels.medrecord.querying.NodeMultipleValuesWithIndexOperand.mean){target="_blank"}, [`median()`](medmodels.medrecord.querying.NodeMultipleValuesWithIndexOperand.median){target="_blank"} or [`min()`](medmodels.medrecord.querying.NodeMultipleValuesWithIndexOperand.min){target="_blank"} and assign them to a variable. Also, you can keep manipulating the operand, like in the following example, where we are subtracting _5_ years from the `mean_age` to query on that value.
 
-In the result, we can see the only patient whose age is lower than the mean age - 5 and what that value is.
+In the result, we can see the only patient whose age is less than five years under the mean age and what that value is.
 
 
 ```{exec-literalinclude} scripts/attributes_and_values.py
@@ -114,7 +114,7 @@ expect-error: PanicException
 ---
 ```
 
-Nor does the concatenation of querying methods:
+The concatenation of querying methods also throws an error:
 
 ```{exec-literalinclude} scripts/attributes_and_values.py
 ---
