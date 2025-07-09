@@ -110,7 +110,7 @@ class TreatmentEffect:
         *,
         treatment: Group,
         outcome: Group,
-        patients_group: Group = "patients",
+        patients_group: Group = "patient",
         time_attribute: Optional[MedRecordAttribute] = None,
         washout_period_days: Optional[Dict[Group, int]] = None,
         washout_period_reference: Literal["first", "last"] = "first",
@@ -139,7 +139,7 @@ class TreatmentEffect:
             treatment (Group): The group of treatments to analyze.
             outcome (Group): The group of outcomes to analyze.
             patients_group (Group, optional): The group of patients to analyze.
-                Defaults to "patients".
+                Defaults to "patient".
             time_attribute (Optional[MedRecordAttribute], optional):  The time
                 attribute. If None, the treatment effect analysis is performed in an
                 static way (without considering time). Defaults to None.
