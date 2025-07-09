@@ -64,7 +64,7 @@ lines: 71
 
 As with other modules in *MedModels*, the [`TreatmentEffect`](medmodels.treatment_effect.treatment_effect.TreatmentEffect){target="_blank"} class is meant to be instantiated using a builder pattern, thanks to its [`builder()`](medmodels.treatment_effect.treatment_effect.TreatmentEffect.builder){target="_blank"} method.
 
-This instantiation requires a minimum of two arguments: a `treatment` and an `outcome`. These have to be the names of the MedRecord's `Groups` that contain the respective nodes. Also, the patient group needs to be specified if it does not correspond to the default `patient`. Here, we can see how we can create these groups by using the Query Engine. More information on how to use this powerful and efficient tool here: [Query Engine](02a_query_engine.md).
+This instantiation requires a minimum of two arguments: a `treatment` and an `outcome`. These have to be the names of the MedRecord's `Groups` that contain the respective nodes. Also, the patient group needs to be specified if it does not correspond to the default `patient`. Here, we can see how we can create these groups by using the Query Engine. More information on how to use this powerful and efficient tool here: [Query Engine](02a_query_engine/index.md).
 
 In this example case study, we will use as treatment group "_Alendronic acid_", a primary treatment for osteoporosis, and "_Fractures_" as outcomes. We expect the treated patients to have less fractures than the control ones.
 
@@ -227,7 +227,7 @@ As we can see, the distribution of the groups makes much more sense when matchin
 
 ### Using Queries to Filter Controls
 
-We can also use the aforementioned [Query Engine](02a_query_engine.md) to filter which patients we want to include in the control groups:
+We can also use the aforementioned [Query Engine](02a_query_engine/index.md) to filter which patients we want to include in the control groups:
 
 ```{exec-literalinclude} scripts/03_treatment_effect.py
 ---
