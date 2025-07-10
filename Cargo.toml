@@ -3,7 +3,7 @@ members = ["crates/*", "rustmodels"]
 resolver = "2"
 
 [workspace.package]
-version = "0.3.1"
+version = "0.3.2"
 edition = "2021"
 repository = "https://github.com/limebit/medmodels"
 license = "BSD-3-Clause"
@@ -16,6 +16,6 @@ serde = { version = "1.0.203", features = ["derive"] }
 polars = { version = "0.46.0", features = ["polars-io", "dtype-full"] }
 chrono = { version = "0.4.38", features = ["serde"] }
 
-medmodels = { version = "0.3.1", path = "crates/medmodels" }
-medmodels-core = { version = "0.3.1", path = "crates/medmodels-core" }
-medmodels-utils = { version = "0.3.1", path = "crates/medmodels-utils" }
+medmodels = { version = "0.3.2", path = "crates/medmodels" }
+medmodels-core = { version = "0.3.2", path = "crates/medmodels-core" }
+medmodels-utils = { version = "0.3.2", path = "crates/medmodels-utils" }
