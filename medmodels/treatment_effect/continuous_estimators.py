@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import logging
+from enum import Enum
 from math import sqrt
 from typing import TYPE_CHECKING, Literal, Optional, Set
 
 import numpy as np
+from scipy.stats import ttest_ind
 
 from medmodels.treatment_effect.temporal_analysis import find_reference_edge
 
@@ -378,10 +380,125 @@ def hedges_g(
     return float(correction_factor_j * cohen_d)
 
 
+class EqualVariance(Enum):
+    """Enum to represent the equal variance option for t-test."""
+
+    TRUE = True
+    FALSE = False
+
+
+def t_test(
+    medrecord: MedRecord,
+    treatment_outcome_true_set: Set[NodeIndex],
+    control_outcome_true_set: Set[NodeIndex],
+    outcome_group: Group,
+    outcome_variable: MedRecordAttribute,
+    reference: Literal["first", "last"] = "last",
+    time_attribute: Optional[MedRecordAttribute] = "time",
+    equal_variance: EqualVariance = EqualVariance.FALSE,
+) -> tuple[float, float]:
+    """Performs a two-sample t-test to compare the means of treated and control groups.
+
+    The t-test evaluates whether the means of two groups are statistically different.
+
+    Args:
+        medrecord (MedRecord): An instance of the MedRecord class containing medical
+            data.
+        treatment_outcome_true_set (Set[NodeIndex]): A set of node indices representing
+            the treated group that also have the outcome.
+        control_outcome_true_set (Set[NodeIndex]): A set of node indices representing
+            the control group that have the outcome.
+        outcome_group (Group): The group of nodes that contain the outcome variable.
+        outcome_variable (MedRecordAttribute): The attribute in the edge that contains
+            the outcome variable. It must be numeric and continuous.
+        reference (Literal["first", "last"], optional): The reference point for the
+            exposure time. Options include "first" and "last". Defaults to "last".
+        time_attribute (MedRecordAttribute, optional): The attribute in the edge that
+            contains the time information. Defaults to "time".
+        equal_variance (EqualVariance, optional): Assumes equal variance if
+            EqualVariance.TRUE, otherwise assumes unequal variance. Defaults to
+            EqualVariance.FALSE.
+
+    Returns:
+        tuple[float, float]: The t-statistic and the p-value.
+
+    Raises:
+        ValueError: If the outcome variable is not numeric.
+    """
+    if time_attribute is not None:
+        treated_outcomes = np.array(
+            [
+                medrecord.edge[
+                    find_reference_edge(
+                        medrecord,
+                        node_index,
+                        outcome_group,
+                        time_attribute=time_attribute,
+                        reference=reference,
+                    )
+                ][outcome_variable]
+                for node_index in treatment_outcome_true_set
+            ]
+        )
+        control_outcomes = np.array(
+            [
+                medrecord.edge[
+                    find_reference_edge(
+                        medrecord,
+                        node_index,
+                        outcome_group,
+                        time_attribute="time",
+                        reference=reference,
+                    )
+                ][outcome_variable]
+                for node_index in control_outcome_true_set
+            ]
+        )
+    else:
+        edges_treated_outcomes = medrecord.query_edges(
+            lambda edge: query_edges_between_set_outcome(
+                edge, treatment_outcome_true_set, outcome_group
+            )
+        )
+        treated_outcomes = np.array(
+            [
+                medrecord.edge[edge_id][outcome_variable]
+                for edge_id in edges_treated_outcomes
+            ]
+        )
+
+        edges_control_outcomes = medrecord.query_edges(
+            lambda edge: query_edges_between_set_outcome(
+                edge, control_outcome_true_set, outcome_group
+            )
+        )
+        control_outcomes = np.array(
+            [
+                medrecord.edge[edge_id][outcome_variable]
+                for edge_id in edges_control_outcomes
+            ]
+        )
+
+    msg = "Outcome variable must be numeric"
+
+    if not all(isinstance(i, (int, float)) for i in treated_outcomes) or not all(
+        isinstance(i, (int, float)) for i in control_outcomes
+    ):
+        raise ValueError(msg)
+
+    # Perform the two-sample t-test
+    t_stat, p_value = ttest_ind(
+        treated_outcomes, control_outcomes, equal_var=equal_variance.value
+    )
+
+    return float(t_stat), float(p_value)
+
+
 CONTINUOUS_ESTIMATOR = {
     "average_te": average_treatment_effect,
     "cohens_d": cohens_d,
     "hedges_g": hedges_g,
+    "t_test": t_test,
 }
 
 
