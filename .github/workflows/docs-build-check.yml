@@ -1,6 +1,7 @@
+---
 name: Documentation Build Check
 
-on:
+"on":
   pull_request:
   push:
     branches: [main]
@@ -26,4 +27,4 @@ jobs:
 
       - name: Build documentation
         run: |
-          make -C docs html
+          make -C docs html SPHINXOPTS="-W --keep-going"
