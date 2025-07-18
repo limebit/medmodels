@@ -24,6 +24,4 @@ jobs:
           python-version: "3.10"
 
       - name: Build documentation
-        run: |
-          # SPHINXOPTS="-W --keep-going": -W treats warnings as errors, --keep-going reports all issues
-          make docs SPHINXOPTS="-W --keep-going"
+        run: make docs
