@@ -3,6 +3,7 @@
 mod gil_hash_map;
 mod medrecord;
 
+use crate::medrecord::querying::PyMatchMode;
 use medrecord::{
     datatype::{
         PyAny, PyBool, PyDateTime, PyDuration, PyFloat, PyInt, PyNull, PyOption, PyString, PyUnion,
@@ -67,6 +68,8 @@ fn _medmodels(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PySchema>()?;
 
     m.add_class::<PyEdgeDirection>()?;
+
+    m.add_class::<PyMatchMode>()?;
 
     m.add_class::<NodeOperandGroupDiscriminator>()?;
     m.add_class::<PyNodeOperand>()?;

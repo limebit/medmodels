@@ -24,13 +24,14 @@ use crate::{
             values::{self, MultipleValuesWithIndexOperand},
             wrapper::{CardinalityWrapper, Wrapper},
             BoxedIterator, DeepClone, EvaluateBackward, EvaluateForward, EvaluateForwardGrouped,
-            GroupedIterator, ReadWriteOrPanic, ReduceInput, RootOperand,
+            GroupedIterator, ReduceInput, RootOperand,
         },
         Group, MedRecordAttribute, NodeIndex,
     },
     prelude::MedRecordValue,
     MedRecord,
 };
+use medmodels_utils::traits::ReadWriteOrPanic;
 use std::{collections::HashSet, fmt::Debug};
 
 #[derive(Debug, Clone)]

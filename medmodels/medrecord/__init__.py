@@ -17,7 +17,7 @@ from medmodels.medrecord.medrecord import (
     NodeIndex,
     NodeQuery,
 )
-from medmodels.medrecord.querying import EdgeOperand, NodeOperand
+from medmodels.medrecord.querying import EdgeOperand, MatchMode, NodeOperand
 from medmodels.medrecord.schema import AttributeType, GroupSchema, Schema, SchemaType
 
 __all__ = [
@@ -34,6 +34,7 @@ __all__ = [
     "GroupSchema",
     "GroupSchema",
     "Int",
+    "MatchMode",
     "MedRecord",
     "NodeIndex",
     "NodeIndex",

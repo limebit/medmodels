@@ -1,17 +1,21 @@
 [package]
 name = "py-medmodels"
 version = "0.3.2"
-edition = "2021"
+edition = { workspace = true }
 
 [lib]
 name = "medmodels"
 crate-type = ["cdylib"]
 
 [dependencies]
-medmodels-core = { workspace = true }
-medmodels-utils = { workspace = true }
+medmodels = { workspace = true }
 
-pyo3 = { version = "0.23", features = ["chrono", "extension-module"] }
-pyo3-polars = "0.20.0"
 polars = { workspace = true }
 chrono = { workspace = true }
+serde = { workspace = true }
+
+pyo3 = { version = "0.24", features = ["chrono", "extension-module"] }
+pyo3-polars = "0.21.0"
+rayon = "1.10.0"
+numpy = "0.24.0"
+bincode = "1.3.3"

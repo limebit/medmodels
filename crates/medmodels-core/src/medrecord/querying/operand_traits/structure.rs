@@ -2,10 +2,11 @@ use crate::{
     medrecord::querying::{
         group_by::{GroupOperand, GroupedOperand},
         wrapper::{CardinalityWrapper, Wrapper},
-        DeepClone, ReadWriteOrPanic,
+        DeepClone,
     },
     prelude::{EdgeDirection, Group, MedRecordAttribute},
 };
+use medmodels_utils::traits::ReadWriteOrPanic;
 
 pub trait Attribute {
     type ReturnOperand;

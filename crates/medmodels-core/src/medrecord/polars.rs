@@ -2,7 +2,7 @@ use crate::{
     errors::MedRecordError,
     medrecord::{Attributes, MedRecordAttribute, MedRecordValue, NodeIndex},
 };
-use chrono::DateTime;
+use chrono::{DateTime, TimeDelta};
 use polars::{datatypes::AnyValue, frame::DataFrame};
 
 // TODO: Add tests for Duration
@@ -46,27 +46,15 @@ impl<'a> TryFrom<AnyValue<'a>> for MedRecordValue {
                 })
             }
             AnyValue::Duration(value, unit) => Ok(match unit {
-                polars::prelude::TimeUnit::Nanoseconds => MedRecordValue::Duration(
-                    std::time::Duration::from_nanos(value.try_into().map_err(|_| {
-                        MedRecordError::ConversionError(format!(
-                            "Cannot convert {value} into MedRecordValue"
-                        ))
-                    })?),
-                ),
-                polars::prelude::TimeUnit::Microseconds => MedRecordValue::Duration(
-                    std::time::Duration::from_micros(value.try_into().map_err(|_| {
-                        MedRecordError::ConversionError(format!(
-                            "Cannot convert {value} into MedRecordValue"
-                        ))
-                    })?),
-                ),
-                polars::prelude::TimeUnit::Milliseconds => MedRecordValue::Duration(
-                    std::time::Duration::from_millis(value.try_into().map_err(|_| {
-                        MedRecordError::ConversionError(format!(
-                            "Cannot convert {value} into MedRecordValue"
-                        ))
-                    })?),
-                ),
+                polars::prelude::TimeUnit::Nanoseconds => {
+                    MedRecordValue::Duration(TimeDelta::nanoseconds(value))
+                }
+                polars::prelude::TimeUnit::Microseconds => {
+                    MedRecordValue::Duration(TimeDelta::microseconds(value))
+                }
+                polars::prelude::TimeUnit::Milliseconds => {
+                    MedRecordValue::Duration(TimeDelta::milliseconds(value))
+                }
             }),
             AnyValue::Null => Ok(MedRecordValue::Null),
             _ => Err(MedRecordError::ConversionError(format!(

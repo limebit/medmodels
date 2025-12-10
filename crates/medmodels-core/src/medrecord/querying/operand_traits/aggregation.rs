@@ -1,8 +1,9 @@
 use crate::medrecord::querying::{
     group_by::{GroupOperand, GroupedOperand},
     wrapper::Wrapper,
-    DeepClone, ReadWriteOrPanic,
+    DeepClone,
 };
+use medmodels_utils::traits::ReadWriteOrPanic;
 
 pub trait Max {
     type ReturnOperand;

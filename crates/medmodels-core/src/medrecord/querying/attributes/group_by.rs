@@ -12,10 +12,11 @@ use crate::{
         group_by::{GroupOperand, GroupedOperand, Ungroup},
         wrapper::Wrapper,
         BoxedIterator, DeepClone, EvaluateBackward, EvaluateForwardGrouped, GroupedIterator,
-        ReadWriteOrPanic, RootOperand,
+        RootOperand,
     },
     MedRecord,
 };
+use medmodels_utils::traits::ReadWriteOrPanic;
 
 impl<O: RootOperand> GroupedOperand for AttributesTreeOperand<O> {
     type Context = GroupOperand<O>;

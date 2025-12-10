@@ -8,7 +8,7 @@ use crate::medrecord::{
         PyNodeMultipleValuesWithIndexGroupOperand, PyNodeMultipleValuesWithIndexOperand,
     },
 };
-use medmodels_core::{
+use medmodels::core::{
     errors::MedRecordError,
     medrecord::{
         querying::{

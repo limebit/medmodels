@@ -32,7 +32,7 @@ use attributes::{
     PyNodeSingleAttributeWithIndexOperand, PyNodeSingleAttributeWithoutIndexOperand,
 };
 use edges::{PyEdgeIndexOperand, PyEdgeIndicesOperand};
-use medmodels_core::{
+use medmodels::core::{
     errors::{MedRecordError, MedRecordResult},
     medrecord::{
         querying::{
@@ -52,7 +52,7 @@ use medmodels_core::{
                 NodeMultipleValuesWithIndexOperand, NodeMultipleValuesWithoutIndexOperand,
                 NodeSingleValueWithIndexOperand, NodeSingleValueWithoutIndexOperand,
             },
-            wrapper::{CardinalityWrapper, Wrapper},
+            wrapper::{CardinalityWrapper, MatchMode, Wrapper},
             ReturnOperand,
         },
         MedRecordAttribute,
@@ -61,6 +61,7 @@ use medmodels_core::{
 };
 use nodes::{PyNodeIndexOperand, PyNodeIndicesOperand};
 use pyo3::{
+    pyclass,
     types::{PyAnyMethods, PyList},
     Bound, FromPyObject, IntoPyObject, IntoPyObjectExt, PyAny, PyErr, PyResult, Python,
 };
@@ -73,6 +74,31 @@ use values::{
     PyNodeMultipleValuesWithoutIndexOperand, PyNodeSingleValueWithIndexGroupOperand,
     PyNodeSingleValueWithIndexOperand, PyNodeSingleValueWithoutIndexOperand,
 };
+
+#[pyclass]
+#[derive(Debug, Clone, Copy)]
+pub enum PyMatchMode {
+    Any,
+    All,
+}
+
+impl From<MatchMode> for PyMatchMode {
+    fn from(mode: MatchMode) -> Self {
+        match mode {
+            MatchMode::Any => PyMatchMode::Any,
+            MatchMode::All => PyMatchMode::All,
+        }
+    }
+}
+
+impl From<PyMatchMode> for MatchMode {
+    fn from(mode: PyMatchMode) -> Self {
+        match mode {
+            PyMatchMode::Any => MatchMode::Any,
+            PyMatchMode::All => MatchMode::All,
+        }
+    }
+}
 
 #[derive(Debug, Clone)]
 pub enum PyGroupKey {
@@ -656,98 +682,98 @@ pub(crate) fn convert_pyobject_to_pyreturnoperand(
 
     let type_pointer = ob.get_type_ptr() as usize;
 
-    Python::with_gil(|py| {
-        RETURNOPERAND_CONVERSION_LUT.map(py, |lut| {
-            let conversion_function = lut.entry(type_pointer).or_insert_with(|| {
-                if ob.is_instance_of::<PyNodeAttributesTreeOperand>() {
-                    convert_py_node_attributes_tree_operand
-                } else if ob.is_instance_of::<PyNodeAttributesTreeGroupOperand>() {
-                    convert_py_node_attributes_tree_group_operand
-                } else if ob.is_instance_of::<PyEdgeAttributesTreeOperand>() {
-                    convert_py_edge_attributes_tree_operand
-                } else if ob.is_instance_of::<PyEdgeAttributesTreeGroupOperand>() {
-                    convert_py_edge_attributes_tree_group_operand
-                } else if ob.is_instance_of::<PyNodeMultipleAttributesWithIndexOperand>() {
-                    convert_py_node_multiple_attributes_with_index_operand
-                } else if ob.is_instance_of::<PyNodeMultipleAttributesWithIndexGroupOperand>() {
-                    convert_py_node_multiple_attributes_with_index_group_operand
-                } else if ob.is_instance_of::<PyNodeMultipleAttributesWithoutIndexOperand>() {
-                    convert_py_node_multiple_attributes_without_index_operand
-                } else if ob.is_instance_of::<PyEdgeMultipleAttributesWithIndexOperand>() {
-                    convert_py_edge_multiple_attributes_with_index_operand
-                } else if ob.is_instance_of::<PyEdgeMultipleAttributesWithIndexGroupOperand>() {
-                    convert_py_edge_multiple_attributes_with_index_group_operand
-                } else if ob.is_instance_of::<PyEdgeMultipleAttributesWithoutIndexOperand>() {
-                    convert_py_edge_multiple_attributes_without_index_operand
-                } else if ob.is_instance_of::<PyNodeSingleAttributeWithIndexOperand>() {
-                    convert_py_node_single_attribute_with_index_operand
-                } else if ob.is_instance_of::<PyNodeSingleAttributeWithIndexGroupOperand>() {
-                    convert_py_node_single_attribute_with_index_group_operand
-                } else if ob.is_instance_of::<PyNodeSingleAttributeWithoutIndexOperand>() {
-                    convert_py_node_single_attribute_without_index_operand
-                } else if ob.is_instance_of::<PyNodeSingleAttributeWithoutIndexGroupOperand>() {
-                    convert_py_node_single_attribute_without_index_group_operand
-                } else if ob.is_instance_of::<PyEdgeSingleAttributeWithIndexOperand>() {
-                    convert_py_edge_single_attribute_with_index_operand
-                } else if ob.is_instance_of::<PyEdgeSingleAttributeWithIndexGroupOperand>() {
-                    convert_py_edge_single_attribute_with_index_group_operand
-                } else if ob.is_instance_of::<PyEdgeSingleAttributeWithoutIndexOperand>() {
-                    convert_py_edge_single_attribute_without_index_operand
-                } else if ob.is_instance_of::<PyEdgeSingleAttributeWithoutIndexGroupOperand>() {
-                    convert_py_edge_single_attribute_without_index_group_operand
-                } else if ob.is_instance_of::<PyEdgeIndicesOperand>() {
-                    convert_py_edge_indices_operand
-                } else if ob.is_instance_of::<PyEdgeIndicesGroupOperand>() {
-                    convert_py_edge_indices_group_operand
-                } else if ob.is_instance_of::<PyEdgeIndexOperand>() {
-                    convert_py_edge_index_operand
-                } else if ob.is_instance_of::<PyEdgeIndexGroupOperand>() {
-                    convert_py_edge_index_group_operand
-                } else if ob.is_instance_of::<PyNodeIndicesOperand>() {
-                    convert_py_node_indices_operand
-                } else if ob.is_instance_of::<PyNodeIndicesGroupOperand>() {
-                    convert_py_node_indices_group_operand
-                } else if ob.is_instance_of::<PyNodeIndexOperand>() {
-                    convert_py_node_index_operand
-                } else if ob.is_instance_of::<PyNodeIndexGroupOperand>() {
-                    convert_py_node_index_group_operand
-                } else if ob.is_instance_of::<PyNodeMultipleValuesWithIndexOperand>() {
-                    convert_py_node_multiple_values_with_index_operand
-                } else if ob.is_instance_of::<PyNodeMultipleValuesWithIndexGroupOperand>() {
-                    convert_py_node_multiple_values_with_index_group_operand
-                } else if ob.is_instance_of::<PyNodeMultipleValuesWithoutIndexOperand>() {
-                    convert_py_node_multiple_values_without_index_operand
-                } else if ob.is_instance_of::<PyEdgeMultipleValuesWithIndexOperand>() {
-                    convert_py_edge_multiple_values_with_index_operand
-                } else if ob.is_instance_of::<PyEdgeMultipleValuesWithIndexGroupOperand>() {
-                    convert_py_edge_multiple_values_with_index_group_operand
-                } else if ob.is_instance_of::<PyEdgeMultipleValuesWithoutIndexOperand>() {
-                    convert_py_edge_multiple_values_without_index_operand
-                } else if ob.is_instance_of::<PyNodeSingleValueWithIndexOperand>() {
-                    convert_py_node_single_value_with_index_operand
-                } else if ob.is_instance_of::<PyNodeSingleValueWithIndexGroupOperand>() {
-                    convert_py_node_single_value_with_index_group_operand
-                } else if ob.is_instance_of::<PyNodeSingleValueWithoutIndexOperand>() {
-                    convert_py_node_single_value_without_index_operand
-                } else if ob.is_instance_of::<PyNodeSingleValueWithoutIndexGroupOperand>() {
-                    convert_py_node_single_value_without_index_group_operand
-                } else if ob.is_instance_of::<PyEdgeSingleValueWithIndexOperand>() {
-                    convert_py_edge_single_value_with_index_operand
-                } else if ob.is_instance_of::<PyEdgeSingleValueWithIndexGroupOperand>() {
-                    convert_py_edge_single_value_with_index_group_operand
-                } else if ob.is_instance_of::<PyEdgeSingleValueWithoutIndexOperand>() {
-                    convert_py_edge_single_value_without_index_operand
-                } else if ob.is_instance_of::<PyEdgeSingleValueWithoutIndexGroupOperand>() {
-                    convert_py_edge_single_value_without_index_group_operand
-                } else if ob.is_instance_of::<PyList>() {
-                    convert_py_list
-                } else {
-                    throw_error
-                }
-            });
+    let py = ob.py();
 
-            conversion_function(ob)
-        })
+    RETURNOPERAND_CONVERSION_LUT.map(py, |lut| {
+        let conversion_function = lut.entry(type_pointer).or_insert_with(|| {
+            if ob.is_instance_of::<PyNodeAttributesTreeOperand>() {
+                convert_py_node_attributes_tree_operand
+            } else if ob.is_instance_of::<PyNodeAttributesTreeGroupOperand>() {
+                convert_py_node_attributes_tree_group_operand
+            } else if ob.is_instance_of::<PyEdgeAttributesTreeOperand>() {
+                convert_py_edge_attributes_tree_operand
+            } else if ob.is_instance_of::<PyEdgeAttributesTreeGroupOperand>() {
+                convert_py_edge_attributes_tree_group_operand
+            } else if ob.is_instance_of::<PyNodeMultipleAttributesWithIndexOperand>() {
+                convert_py_node_multiple_attributes_with_index_operand
+            } else if ob.is_instance_of::<PyNodeMultipleAttributesWithIndexGroupOperand>() {
+                convert_py_node_multiple_attributes_with_index_group_operand
+            } else if ob.is_instance_of::<PyNodeMultipleAttributesWithoutIndexOperand>() {
+                convert_py_node_multiple_attributes_without_index_operand
+            } else if ob.is_instance_of::<PyEdgeMultipleAttributesWithIndexOperand>() {
+                convert_py_edge_multiple_attributes_with_index_operand
+            } else if ob.is_instance_of::<PyEdgeMultipleAttributesWithIndexGroupOperand>() {
+                convert_py_edge_multiple_attributes_with_index_group_operand
+            } else if ob.is_instance_of::<PyEdgeMultipleAttributesWithoutIndexOperand>() {
+                convert_py_edge_multiple_attributes_without_index_operand
+            } else if ob.is_instance_of::<PyNodeSingleAttributeWithIndexOperand>() {
+                convert_py_node_single_attribute_with_index_operand
+            } else if ob.is_instance_of::<PyNodeSingleAttributeWithIndexGroupOperand>() {
+                convert_py_node_single_attribute_with_index_group_operand
+            } else if ob.is_instance_of::<PyNodeSingleAttributeWithoutIndexOperand>() {
+                convert_py_node_single_attribute_without_index_operand
+            } else if ob.is_instance_of::<PyNodeSingleAttributeWithoutIndexGroupOperand>() {
+                convert_py_node_single_attribute_without_index_group_operand
+            } else if ob.is_instance_of::<PyEdgeSingleAttributeWithIndexOperand>() {
+                convert_py_edge_single_attribute_with_index_operand
+            } else if ob.is_instance_of::<PyEdgeSingleAttributeWithIndexGroupOperand>() {
+                convert_py_edge_single_attribute_with_index_group_operand
+            } else if ob.is_instance_of::<PyEdgeSingleAttributeWithoutIndexOperand>() {
+                convert_py_edge_single_attribute_without_index_operand
+            } else if ob.is_instance_of::<PyEdgeSingleAttributeWithoutIndexGroupOperand>() {
+                convert_py_edge_single_attribute_without_index_group_operand
+            } else if ob.is_instance_of::<PyEdgeIndicesOperand>() {
+                convert_py_edge_indices_operand
+            } else if ob.is_instance_of::<PyEdgeIndicesGroupOperand>() {
+                convert_py_edge_indices_group_operand
+            } else if ob.is_instance_of::<PyEdgeIndexOperand>() {
+                convert_py_edge_index_operand
+            } else if ob.is_instance_of::<PyEdgeIndexGroupOperand>() {
+                convert_py_edge_index_group_operand
+            } else if ob.is_instance_of::<PyNodeIndicesOperand>() {
+                convert_py_node_indices_operand
+            } else if ob.is_instance_of::<PyNodeIndicesGroupOperand>() {
+                convert_py_node_indices_group_operand
+            } else if ob.is_instance_of::<PyNodeIndexOperand>() {
+                convert_py_node_index_operand
+            } else if ob.is_instance_of::<PyNodeIndexGroupOperand>() {
+                convert_py_node_index_group_operand
+            } else if ob.is_instance_of::<PyNodeMultipleValuesWithIndexOperand>() {
+                convert_py_node_multiple_values_with_index_operand
+            } else if ob.is_instance_of::<PyNodeMultipleValuesWithIndexGroupOperand>() {
+                convert_py_node_multiple_values_with_index_group_operand
+            } else if ob.is_instance_of::<PyNodeMultipleValuesWithoutIndexOperand>() {
+                convert_py_node_multiple_values_without_index_operand
+            } else if ob.is_instance_of::<PyEdgeMultipleValuesWithIndexOperand>() {
+                convert_py_edge_multiple_values_with_index_operand
+            } else if ob.is_instance_of::<PyEdgeMultipleValuesWithIndexGroupOperand>() {
+                convert_py_edge_multiple_values_with_index_group_operand
+            } else if ob.is_instance_of::<PyEdgeMultipleValuesWithoutIndexOperand>() {
+                convert_py_edge_multiple_values_without_index_operand
+            } else if ob.is_instance_of::<PyNodeSingleValueWithIndexOperand>() {
+                convert_py_node_single_value_with_index_operand
+            } else if ob.is_instance_of::<PyNodeSingleValueWithIndexGroupOperand>() {
+                convert_py_node_single_value_with_index_group_operand
+            } else if ob.is_instance_of::<PyNodeSingleValueWithoutIndexOperand>() {
+                convert_py_node_single_value_without_index_operand
+            } else if ob.is_instance_of::<PyNodeSingleValueWithoutIndexGroupOperand>() {
+                convert_py_node_single_value_without_index_group_operand
+            } else if ob.is_instance_of::<PyEdgeSingleValueWithIndexOperand>() {
+                convert_py_edge_single_value_with_index_operand
+            } else if ob.is_instance_of::<PyEdgeSingleValueWithIndexGroupOperand>() {
+                convert_py_edge_single_value_with_index_group_operand
+            } else if ob.is_instance_of::<PyEdgeSingleValueWithoutIndexOperand>() {
+                convert_py_edge_single_value_without_index_operand
+            } else if ob.is_instance_of::<PyEdgeSingleValueWithoutIndexGroupOperand>() {
+                convert_py_edge_single_value_without_index_group_operand
+            } else if ob.is_instance_of::<PyList>() {
+                convert_py_list
+            } else {
+                throw_error
+            }
+        });
+
+        conversion_function(ob)
     })
 }
 
@@ -1158,17 +1184,27 @@ impl FromPyObject<'_> for PyMedRecordAttributeCardinalityWrapper {
         if let Ok(attribute) = ob.extract::<PyMedRecordAttribute>() {
             Ok(CardinalityWrapper::Single(MedRecordAttribute::from(attribute)).into())
         } else if let Ok(attributes) = ob.extract::<Vec<PyMedRecordAttribute>>() {
-            Ok(CardinalityWrapper::Multiple(
+            Ok(CardinalityWrapper::from(
                 attributes
                     .into_iter()
                     .map(MedRecordAttribute::from)
-                    .collect(),
+                    .collect::<Vec<_>>(),
             )
+            .into())
+        } else if let Ok(attributes) = ob.extract::<(Vec<PyMedRecordAttribute>, PyMatchMode)>() {
+            Ok(CardinalityWrapper::from((
+                attributes
+                    .0
+                    .into_iter()
+                    .map(MedRecordAttribute::from)
+                    .collect::<Vec<_>>(),
+                attributes.1.into(),
+            ))
             .into())
         } else {
             Err(
                 PyMedRecordError::from(MedRecordError::ConversionError(format!(
-                    "Failed to convert {ob} into MedRecordAttribute or List[MedRecordAttribute]",
+                    "Failed to convert {ob} into MedRecordAttribute, List[MedRecordAttribute] or (List[MedRecordAttribute], MatchMode)",
                 )))
                 .into(),
             )

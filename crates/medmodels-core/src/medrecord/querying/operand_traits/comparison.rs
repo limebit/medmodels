@@ -1,8 +1,8 @@
 use crate::medrecord::querying::{
     group_by::{GroupOperand, GroupedOperand},
     wrapper::Wrapper,
-    ReadWriteOrPanic,
 };
+use medmodels_utils::traits::ReadWriteOrPanic;
 
 pub trait GreaterThan {
     type ComparisonOperand;

@@ -5,7 +5,7 @@ use super::{
     traits::{DeepFrom, DeepInto},
     PyAttributes, PyGroup, PyMedRecord, PyNodeIndex,
 };
-use medmodels_core::{
+use medmodels::core::{
     errors::GraphError,
     medrecord::{
         schema::{AttributeDataType, AttributeType, GroupSchema, Schema, SchemaType},
@@ -245,8 +245,10 @@ impl PySchema {
     }
 
     #[staticmethod]
-    pub fn infer(medrecord: PyMedRecord) -> Self {
-        Self(Schema::infer(&medrecord.into()))
+    pub fn infer(medrecord: Bound<'_, PyMedRecord>) -> Self {
+        let medrecord_borrowed = medrecord.borrow();
+
+        Self(Schema::infer(medrecord_borrowed.as_ref()))
     }
 
     #[getter]

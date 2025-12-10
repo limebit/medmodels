@@ -1,9 +1,10 @@
-use super::{wrapper::Wrapper, DeepClone, ReadWriteOrPanic};
+use super::{wrapper::Wrapper, DeepClone};
 use crate::{
     medrecord::querying::GroupedIterator,
     prelude::{MedRecordValue, NodeIndex},
     MedRecord,
 };
+use medmodels_utils::traits::ReadWriteOrPanic;
 use std::fmt::Debug;
 
 pub trait GroupedOperand {

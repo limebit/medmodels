@@ -8,6 +8,7 @@ import polars as pl
 import pytest
 
 from medmodels import MedRecord
+from medmodels._medmodels import PyMedRecord
 from medmodels.medrecord.builder import MedRecordBuilder
 from medmodels.medrecord.datatype import Int
 from medmodels.medrecord.medrecord import EdgesDirected
@@ -102,6 +103,14 @@ def create_medrecord() -> MedRecord:
 
 
 class TestMedRecord(unittest.TestCase):
+    def test_from_py_medrecord(self) -> None:
+        py_medrecord = PyMedRecord()
+
+        medrecord = MedRecord._from_py_medrecord(py_medrecord)
+        assert isinstance(medrecord, MedRecord)
+        assert medrecord.node_count() == 0
+        assert medrecord.edge_count() == 0
+
     def test_builder(self) -> None:
         medrecord_builder = MedRecord().builder()
 

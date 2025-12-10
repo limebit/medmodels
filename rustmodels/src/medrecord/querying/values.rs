@@ -1,5 +1,5 @@
 use crate::medrecord::{errors::PyMedRecordError, value::PyMedRecordValue};
-use medmodels_core::{
+use medmodels::core::{
     errors::MedRecordError,
     medrecord::{
         querying::{

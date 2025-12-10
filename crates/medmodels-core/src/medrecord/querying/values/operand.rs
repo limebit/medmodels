@@ -22,12 +22,13 @@ use crate::{
                 SingleValueWithoutIndexContext,
             },
             BoxedIterator, DeepClone, EvaluateBackward, EvaluateForward, EvaluateForwardGrouped,
-            GroupedIterator, ReadWriteOrPanic, ReduceInput, RootOperand,
+            GroupedIterator, ReduceInput, RootOperand,
         },
         EdgeOperand, MedRecordValue, NodeOperand, Wrapper,
     },
     MedRecord,
 };
+use medmodels_utils::traits::ReadWriteOrPanic;
 
 #[derive(Debug, Clone)]
 pub enum SingleValueComparisonOperand {

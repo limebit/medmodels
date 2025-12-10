@@ -20,14 +20,14 @@ use crate::{
                 SingleKindWithoutIndex,
             },
             BoxedIterator, DeepClone, EvaluateForward, EvaluateForwardGrouped, GroupedIterator,
-            ReadWriteOrPanic, RootOperand,
+            RootOperand,
         },
         MedRecordValue, Wrapper,
     },
     MedRecord,
 };
 use itertools::Itertools;
-use medmodels_utils::aliases::MrHashSet;
+use medmodels_utils::{aliases::MrHashSet, traits::ReadWriteOrPanic};
 use rand::{rng, seq::IteratorRandom};
 use std::{
     cmp::Ordering,

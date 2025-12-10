@@ -1,12 +1,12 @@
 use super::{traits::DeepFrom, Lut};
 use crate::{gil_hash_map::GILHashMap, medrecord::errors::PyMedRecordError};
-use chrono::NaiveDateTime;
-use medmodels_core::{errors::MedRecordError, medrecord::MedRecordValue};
+use chrono::{NaiveDateTime, TimeDelta};
+use medmodels::core::{errors::MedRecordError, medrecord::MedRecordValue};
 use pyo3::{
     types::{PyAnyMethods, PyBool, PyDateTime, PyDelta, PyFloat, PyInt, PyString},
     Bound, FromPyObject, IntoPyObject, IntoPyObjectExt, PyAny, PyErr, PyResult, Python,
 };
-use std::{ops::Deref, time::Duration};
+use std::ops::Deref;
 
 #[repr(transparent)]
 #[derive(Clone, Debug)]
@@ -82,7 +82,7 @@ pub(crate) fn convert_pyobject_to_medrecordvalue(
 
     fn convert_duration(ob: &Bound<'_, PyAny>) -> PyResult<MedRecordValue> {
         Ok(MedRecordValue::Duration(
-            ob.extract::<Duration>().expect("Extraction must succeed"),
+            ob.extract::<TimeDelta>().expect("Extraction must succeed"),
         ))
     }
 
@@ -101,30 +101,30 @@ pub(crate) fn convert_pyobject_to_medrecordvalue(
 
     let type_pointer = ob.get_type_ptr() as usize;
 
-    Python::with_gil(|py| {
-        MEDRECORDVALUE_CONVERSION_LUT.map(py, |lut| {
-            let conversion_function = lut.entry(type_pointer).or_insert_with(|| {
-                if ob.is_instance_of::<PyString>() {
-                    convert_string
-                } else if ob.is_instance_of::<PyBool>() {
-                    convert_bool
-                } else if ob.is_instance_of::<PyInt>() {
-                    convert_int
-                } else if ob.is_instance_of::<PyFloat>() {
-                    convert_float
-                } else if ob.is_instance_of::<PyDateTime>() {
-                    convert_datetime
-                } else if ob.is_instance_of::<PyDelta>() {
-                    convert_duration
-                } else if ob.is_none() {
-                    convert_null
-                } else {
-                    throw_error
-                }
-            });
+    let py = ob.py();
 
-            conversion_function(ob)
-        })
+    MEDRECORDVALUE_CONVERSION_LUT.map(py, |lut| {
+        let conversion_function = lut.entry(type_pointer).or_insert_with(|| {
+            if ob.is_instance_of::<PyString>() {
+                convert_string
+            } else if ob.is_instance_of::<PyBool>() {
+                convert_bool
+            } else if ob.is_instance_of::<PyInt>() {
+                convert_int
+            } else if ob.is_instance_of::<PyFloat>() {
+                convert_float
+            } else if ob.is_instance_of::<PyDateTime>() {
+                convert_datetime
+            } else if ob.is_instance_of::<PyDelta>() {
+                convert_duration
+            } else if ob.is_none() {
+                convert_null
+            } else {
+                throw_error
+            }
+        });
+
+        conversion_function(ob)
     })
 }
 

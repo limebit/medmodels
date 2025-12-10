@@ -300,6 +300,20 @@ class MedRecord:
         """Initializes a MedRecord instance with an underlying PyMedRecord object."""
         self._medrecord = PyMedRecord()
 
+    @classmethod
+    def _from_py_medrecord(cls, medrecord: PyMedRecord) -> MedRecord:
+        """Creates a MedRecord instance from a PyMedRecord object.
+
+        Args:
+            medrecord (PyMedRecord): The underlying PyMedRecord object.
+
+        Returns:
+            MedRecord: A new MedRecord instance.
+        """
+        new_medrecord = cls.__new__(cls)
+        new_medrecord._medrecord = medrecord
+        return new_medrecord
+
     @staticmethod
     def builder() -> MedRecordBuilder:
         """Creates a MedRecordBuilder instance to build a MedRecord.
