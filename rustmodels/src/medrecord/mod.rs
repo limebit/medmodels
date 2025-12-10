@@ -1,17 +1,17 @@
 #![allow(clippy::new_without_default)]
 
-mod attribute;
+pub mod attribute;
 pub mod datatype;
-mod errors;
+pub mod errors;
 pub mod querying;
 pub mod schema;
-mod traits;
-mod value;
+pub mod traits;
+pub mod value;
 
 use crate::gil_hash_map::GILHashMap;
 use attribute::PyMedRecordAttribute;
 use errors::PyMedRecordError;
-use medmodels_core::{
+use medmodels::core::{
     errors::MedRecordError,
     medrecord::{Attributes, EdgeIndex, MedRecord, MedRecordAttribute, MedRecordValue},
 };
@@ -23,9 +23,9 @@ use std::collections::HashMap;
 use traits::DeepInto;
 use value::PyMedRecordValue;
 
-type PyAttributes = HashMap<PyMedRecordAttribute, PyMedRecordValue>;
-type PyGroup = PyMedRecordAttribute;
-type PyNodeIndex = PyMedRecordAttribute;
+pub(crate) type PyAttributes = HashMap<PyMedRecordAttribute, PyMedRecordValue>;
+pub(crate) type PyGroup = PyMedRecordAttribute;
+pub(crate) type PyNodeIndex = PyMedRecordAttribute;
 type Lut<T> = GILHashMap<usize, fn(&Bound<'_, PyAny>) -> PyResult<T>>;
 
 #[pyclass]
@@ -42,6 +42,12 @@ impl From<MedRecord> for PyMedRecord {
 impl From<PyMedRecord> for MedRecord {
     fn from(value: PyMedRecord) -> Self {
         value.0
+    }
+}
+
+impl AsRef<MedRecord> for PyMedRecord {
+    fn as_ref(&self) -> &MedRecord {
+        &self.0
     }
 }
 
@@ -698,12 +704,12 @@ impl PyMedRecord {
         self.0.clear();
     }
 
-    pub fn query_nodes(&self, query: &Bound<'_, PyFunction>) -> PyResult<PyReturnValue> {
+    pub fn query_nodes(&self, query: &Bound<'_, PyFunction>) -> PyResult<PyReturnValue<'_>> {
         Ok(self
             .0
-            .query_nodes(|node| {
+            .query_nodes(|nodes| {
                 let result = query
-                    .call1((PyNodeOperand::from(node.clone()),))
+                    .call1((PyNodeOperand::from(nodes.clone()),))
                     .expect("Call must succeed");
 
                 result
@@ -714,12 +720,12 @@ impl PyMedRecord {
             .map_err(PyMedRecordError::from)?)
     }
 
-    pub fn query_edges(&self, query: &Bound<'_, PyFunction>) -> PyResult<PyReturnValue> {
+    pub fn query_edges(&self, query: &Bound<'_, PyFunction>) -> PyResult<PyReturnValue<'_>> {
         Ok(self
             .0
-            .query_edges(|edge| {
+            .query_edges(|edges| {
                 let result = query
-                    .call1((PyEdgeOperand::from(edge.clone()),))
+                    .call1((PyEdgeOperand::from(edges.clone()),))
                     .expect("Call must succeed");
 
                 result

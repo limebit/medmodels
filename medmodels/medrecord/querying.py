@@ -33,6 +33,7 @@ from medmodels._medmodels import (
     PyEdgeSingleValueWithIndexOperand,
     PyEdgeSingleValueWithoutIndexGroupOperand,
     PyEdgeSingleValueWithoutIndexOperand,
+    PyMatchMode,
     PyNodeAttributesTreeGroupOperand,
     PyNodeAttributesTreeOperand,
     PyNodeGroupOperand,
@@ -502,6 +503,16 @@ class EdgeDirection(Enum):
         )
 
 
+class MatchMode(Enum):
+    """Enumeration of match modes for query operands."""
+
+    ALL = 0
+    ANY = 1
+
+    def _into_py_match_mode(self) -> PyMatchMode:
+        return PyMatchMode.All if self == MatchMode.ALL else PyMatchMode.Any
+
+
 class NodeOperand:
     _node_operand: PyNodeOperand
 
@@ -522,13 +533,28 @@ class NodeOperand:
             self._node_operand.index()
         )
 
-    def in_group(self, group: Union[Group, List[Group]]) -> None:
-        self._node_operand.in_group(group)
+    def in_group(
+        self, group: Union[Group, List[Group], Tuple[List[Group], MatchMode]]
+    ) -> None:
+        if isinstance(group, tuple):
+            self._node_operand.in_group((group[0], group[1]._into_py_match_mode()))
+        else:
+            self._node_operand.in_group(group)
 
     def has_attribute(
-        self, attribute: Union[MedRecordAttribute, List[MedRecordAttribute]]
+        self,
+        attribute: Union[
+            MedRecordAttribute,
+            List[MedRecordAttribute],
+            Tuple[List[MedRecordAttribute], MatchMode],
+        ],
     ) -> None:
-        self._node_operand.has_attribute(attribute)
+        if isinstance(attribute, tuple):
+            self._node_operand.has_attribute(
+                (attribute[0], attribute[1]._into_py_match_mode())
+            )
+        else:
+            self._node_operand.has_attribute(attribute)
 
     def edges(self, direction: EdgeDirection = EdgeDirection.BOTH) -> EdgeOperand:
         return EdgeOperand._from_py_edge_operand(
@@ -594,13 +620,28 @@ class NodeGroupOperand:
             self._node_operand.index()
         )
 
-    def in_group(self, group: Union[Group, List[Group]]) -> None:
-        self._node_operand.in_group(group)
+    def in_group(
+        self, group: Union[Group, List[Group], Tuple[List[Group], MatchMode]]
+    ) -> None:
+        if isinstance(group, tuple):
+            self._node_operand.in_group((group[0], group[1]._into_py_match_mode()))
+        else:
+            self._node_operand.in_group(group)
 
     def has_attribute(
-        self, attribute: Union[MedRecordAttribute, List[MedRecordAttribute]]
+        self,
+        attribute: Union[
+            MedRecordAttribute,
+            List[MedRecordAttribute],
+            Tuple[List[MedRecordAttribute], MatchMode],
+        ],
     ) -> None:
-        self._node_operand.has_attribute(attribute)
+        if isinstance(attribute, tuple):
+            self._node_operand.has_attribute(
+                (attribute[0], attribute[1]._into_py_match_mode())
+            )
+        else:
+            self._node_operand.has_attribute(attribute)
 
     def edges(self, direction: EdgeDirection = EdgeDirection.BOTH) -> EdgeGroupOperand:
         return EdgeGroupOperand._from_py_edge_group_operand(
@@ -661,13 +702,28 @@ class EdgeOperand:
     def index(self) -> EdgeIndicesOperand:
         return EdgeIndicesOperand._from_edge_indices_operand(self._edge_operand.index())
 
-    def in_group(self, group: Union[Group, List[Group]]) -> None:
-        self._edge_operand.in_group(group)
+    def in_group(
+        self, group: Union[Group, List[Group], Tuple[List[Group], MatchMode]]
+    ) -> None:
+        if isinstance(group, tuple):
+            self._edge_operand.in_group((group[0], group[1]._into_py_match_mode()))
+        else:
+            self._edge_operand.in_group(group)
 
     def has_attribute(
-        self, attribute: Union[MedRecordAttribute, List[MedRecordAttribute]]
+        self,
+        attribute: Union[
+            MedRecordAttribute,
+            List[MedRecordAttribute],
+            Tuple[List[MedRecordAttribute], MatchMode],
+        ],
     ) -> None:
-        self._edge_operand.has_attribute(attribute)
+        if isinstance(attribute, tuple):
+            self._edge_operand.has_attribute(
+                (attribute[0], attribute[1]._into_py_match_mode())
+            )
+        else:
+            self._edge_operand.has_attribute(attribute)
 
     def source_node(self) -> NodeOperand:
         return NodeOperand._from_py_node_operand(self._edge_operand.source_node())
@@ -727,13 +783,28 @@ class EdgeGroupOperand:
             self._edge_operand.index()
         )
 
-    def in_group(self, group: Union[Group, List[Group]]) -> None:
-        self._edge_operand.in_group(group)
+    def in_group(
+        self, group: Union[Group, List[Group], Tuple[List[Group], MatchMode]]
+    ) -> None:
+        if isinstance(group, tuple):
+            self._edge_operand.in_group((group[0], group[1]._into_py_match_mode()))
+        else:
+            self._edge_operand.in_group(group)
 
     def has_attribute(
-        self, attribute: Union[MedRecordAttribute, List[MedRecordAttribute]]
+        self,
+        attribute: Union[
+            MedRecordAttribute,
+            List[MedRecordAttribute],
+            Tuple[List[MedRecordAttribute], MatchMode],
+        ],
     ) -> None:
-        self._edge_operand.has_attribute(attribute)
+        if isinstance(attribute, tuple):
+            self._edge_operand.has_attribute(
+                (attribute[0], attribute[1]._into_py_match_mode())
+            )
+        else:
+            self._edge_operand.has_attribute(attribute)
 
     def source_node(self) -> NodeGroupOperand:
         return NodeGroupOperand._from_py_node_group_operand(

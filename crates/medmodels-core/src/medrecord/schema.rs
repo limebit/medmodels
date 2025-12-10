@@ -303,7 +303,7 @@ impl AttributeSchema {
         }
     }
 
-    fn infer(attributes: Vec<&Attributes>) -> Self {
+    pub fn infer(attributes: Vec<&Attributes>) -> Self {
         let mut schema = Self::default();
 
         let mut empty = true;
@@ -355,7 +355,7 @@ impl GroupSchema {
             .validate(attributes, AttributeSchemaKind::Edge(index))
     }
 
-    pub(crate) fn infer(nodes: Vec<&Attributes>, edges: Vec<&Attributes>) -> Self {
+    pub fn infer(nodes: Vec<&Attributes>, edges: Vec<&Attributes>) -> Self {
         Self {
             nodes: AttributeSchema::infer(nodes),
             edges: AttributeSchema::infer(edges),
@@ -371,16 +371,11 @@ impl GroupSchema {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Default)]
 pub enum SchemaType {
+    #[default]
     Inferred,
     Provided,
-}
-
-impl Default for SchemaType {
-    fn default() -> Self {
-        Self::Inferred
-    }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Default)]

@@ -1,4 +1,4 @@
-use medmodels_utils::aliases::MrHashMap;
+use medmodels::utils::aliases::MrHashMap;
 use pyo3::Python;
 use std::cell::UnsafeCell;
 

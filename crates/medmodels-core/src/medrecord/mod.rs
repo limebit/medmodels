@@ -881,7 +881,7 @@ impl MedRecord {
 
     pub fn query_nodes<'a, Q, R>(&'a self, query: Q) -> Selection<'a, R>
     where
-        Q: FnOnce(&mut Wrapper<NodeOperand>) -> R,
+        Q: FnOnce(&Wrapper<NodeOperand>) -> R,
         R: ReturnOperand<'a>,
     {
         Selection::new_node(self, query)
@@ -889,7 +889,7 @@ impl MedRecord {
 
     pub fn query_edges<'a, Q, R>(&'a self, query: Q) -> Selection<'a, R>
     where
-        Q: FnOnce(&mut Wrapper<EdgeOperand>) -> R,
+        Q: FnOnce(&Wrapper<EdgeOperand>) -> R,
         R: ReturnOperand<'a>,
     {
         Selection::new_edge(self, query)

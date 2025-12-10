@@ -2,7 +2,7 @@
 
 use super::{traits::DeepFrom, Lut};
 use crate::{gil_hash_map::GILHashMap, medrecord::errors::PyMedRecordError};
-use medmodels_core::{errors::MedRecordError, medrecord::datatypes::DataType};
+use medmodels::core::{errors::MedRecordError, medrecord::datatypes::DataType};
 use pyo3::{prelude::*, IntoPyObjectExt};
 
 macro_rules! implement_pymethods {
@@ -112,36 +112,36 @@ pub(crate) fn convert_pyobject_to_datatype(ob: &Bound<'_, pyo3::PyAny>) -> PyRes
 
     let type_pointer = ob.get_type_ptr() as usize;
 
-    Python::with_gil(|py| {
-        DATATYPE_CONVERSION_LUT.map(py, |lut| {
-            let conversion_function = lut.entry(type_pointer).or_insert_with(|| {
-                if ob.is_instance_of::<PyString>() {
-                    convert_string
-                } else if ob.is_instance_of::<PyInt>() {
-                    convert_int
-                } else if ob.is_instance_of::<PyFloat>() {
-                    convert_float
-                } else if ob.is_instance_of::<PyBool>() {
-                    convert_bool
-                } else if ob.is_instance_of::<PyDateTime>() {
-                    convert_datetime
-                } else if ob.is_instance_of::<PyDuration>() {
-                    convert_duration
-                } else if ob.is_instance_of::<PyNull>() {
-                    convert_null
-                } else if ob.is_instance_of::<PyAny>() {
-                    convert_any
-                } else if ob.is_instance_of::<PyUnion>() {
-                    convert_union
-                } else if ob.is_instance_of::<PyOption>() {
-                    convert_option
-                } else {
-                    throw_error
-                }
-            });
+    let py = ob.py();
 
-            conversion_function(ob)
-        })
+    DATATYPE_CONVERSION_LUT.map(py, |lut| {
+        let conversion_function = lut.entry(type_pointer).or_insert_with(|| {
+            if ob.is_instance_of::<PyString>() {
+                convert_string
+            } else if ob.is_instance_of::<PyInt>() {
+                convert_int
+            } else if ob.is_instance_of::<PyFloat>() {
+                convert_float
+            } else if ob.is_instance_of::<PyBool>() {
+                convert_bool
+            } else if ob.is_instance_of::<PyDateTime>() {
+                convert_datetime
+            } else if ob.is_instance_of::<PyDuration>() {
+                convert_duration
+            } else if ob.is_instance_of::<PyNull>() {
+                convert_null
+            } else if ob.is_instance_of::<PyAny>() {
+                convert_any
+            } else if ob.is_instance_of::<PyUnion>() {
+                convert_union
+            } else if ob.is_instance_of::<PyOption>() {
+                convert_option
+            } else {
+                throw_error
+            }
+        });
+
+        conversion_function(ob)
     })
 }
 

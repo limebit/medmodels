@@ -1,4 +1,4 @@
-use medmodels_core::errors::{GraphError, MedRecordError};
+use medmodels::core::errors::{GraphError, MedRecordError};
 use pyo3::{
     exceptions::{PyAssertionError, PyIndexError, PyKeyError, PyRuntimeError, PyValueError},
     PyErr,

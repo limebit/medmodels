@@ -11,7 +11,7 @@ use crate::medrecord::{
         values::{PyEdgeMultipleValuesWithIndexGroupOperand, PyEdgeMultipleValuesWithIndexOperand},
     },
 };
-use medmodels_core::{
+use medmodels::core::{
     errors::MedRecordError,
     medrecord::{
         querying::{

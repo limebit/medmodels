@@ -27,11 +27,11 @@ use attributes::{
 use edges::{EdgeIndexOperand, EdgeIndicesOperand, EdgeOperand};
 use group_by::{GroupOperand, GroupedOperand};
 use itertools::Itertools;
+use medmodels_utils::traits::ReadWriteOrPanic;
 use nodes::{NodeIndexOperand, NodeIndicesOperand, NodeOperand};
 use std::{
     fmt::{Debug, Display},
     hash::Hash,
-    sync::{RwLock, RwLockReadGuard, RwLockWriteGuard},
 };
 use values::{
     EdgeMultipleValuesWithIndexOperand, EdgeMultipleValuesWithoutIndexOperand,
@@ -342,22 +342,6 @@ impl<T: DeepClone> DeepClone for Vec<T> {
     }
 }
 
-pub(crate) trait ReadWriteOrPanic<T> {
-    fn read_or_panic(&self) -> RwLockReadGuard<'_, T>;
-
-    fn write_or_panic(&self) -> RwLockWriteGuard<'_, T>;
-}
-
-impl<T> ReadWriteOrPanic<T> for RwLock<T> {
-    fn read_or_panic(&self) -> RwLockReadGuard<'_, T> {
-        self.read().unwrap()
-    }
-
-    fn write_or_panic(&self) -> RwLockWriteGuard<'_, T> {
-        self.write().unwrap()
-    }
-}
-
 pub(crate) type BoxedIterator<'a, T> = Box<dyn Iterator<Item = T> + 'a>;
 
 #[derive(Debug, Clone)]
@@ -369,25 +353,25 @@ pub struct Selection<'a, R: ReturnOperand<'a>> {
 impl<'a, R: ReturnOperand<'a>> Selection<'a, R> {
     pub fn new_node<Q>(medrecord: &'a MedRecord, query: Q) -> Self
     where
-        Q: FnOnce(&mut Wrapper<NodeOperand>) -> R,
+        Q: FnOnce(&Wrapper<NodeOperand>) -> R,
     {
-        let mut operand = Wrapper::<NodeOperand>::new(None);
+        let operand = Wrapper::<NodeOperand>::new(None);
 
         Self {
             medrecord,
-            return_operand: query(&mut operand),
+            return_operand: query(&operand),
         }
     }
 
     pub fn new_edge<Q>(medrecord: &'a MedRecord, query: Q) -> Self
     where
-        Q: FnOnce(&mut Wrapper<EdgeOperand>) -> R,
+        Q: FnOnce(&Wrapper<EdgeOperand>) -> R,
     {
-        let mut operand = Wrapper::<EdgeOperand>::new(None);
+        let operand = Wrapper::<EdgeOperand>::new(None);
 
         Self {
             medrecord,
-            return_operand: query(&mut operand),
+            return_operand: query(&operand),
         }
     }
 

@@ -19,15 +19,14 @@ use crate::{
             group_by::{GroupOperand, PartitionGroups},
             tee_grouped_iterator,
             values::{MultipleValuesWithIndexContext, MultipleValuesWithIndexOperand},
-            wrapper::{CardinalityWrapper, Wrapper},
+            wrapper::{CardinalityWrapper, MatchMode, Wrapper},
             BoxedIterator, DeepClone, EvaluateForward, EvaluateForwardGrouped, GroupedIterator,
-            ReadWriteOrPanic,
         },
         Group, MedRecord, MedRecordAttribute, MedRecordValue, NodeIndex,
     },
 };
 use itertools::Itertools;
-use medmodels_utils::aliases::MrHashSet;
+use medmodels_utils::{aliases::MrHashSet, traits::ReadWriteOrPanic};
 use rand::{rng, seq::IteratorRandom};
 use roaring::RoaringBitmap;
 use std::{
@@ -297,8 +296,15 @@ impl NodeOperation {
 
             match &group {
                 CardinalityWrapper::Single(group) => groups_of_node.contains(&group),
-                CardinalityWrapper::Multiple(groups) => {
-                    groups.iter().all(|group| groups_of_node.contains(&group))
+                CardinalityWrapper::Multiple(groups, match_mode) => {
+                    if groups.is_empty() {
+                        return false;
+                    }
+
+                    match match_mode {
+                        MatchMode::Any => groups.iter().any(|group| groups_of_node.contains(group)),
+                        MatchMode::All => groups.iter().all(|group| groups_of_node.contains(group)),
+                    }
                 }
             }
         })
@@ -320,9 +326,20 @@ impl NodeOperation {
 
             match &attribute {
                 CardinalityWrapper::Single(attribute) => attributes_of_node.contains(&attribute),
-                CardinalityWrapper::Multiple(attributes) => attributes
-                    .iter()
-                    .all(|attribute| attributes_of_node.contains(&attribute)),
+                CardinalityWrapper::Multiple(attributes, match_mode) => {
+                    if attributes.is_empty() {
+                        return false;
+                    }
+
+                    match match_mode {
+                        MatchMode::Any => attributes
+                            .iter()
+                            .any(|attribute| attributes_of_node.contains(&attribute)),
+                        MatchMode::All => attributes
+                            .iter()
+                            .all(|attribute| attributes_of_node.contains(&attribute)),
+                    }
+                }
             }
         })
     }

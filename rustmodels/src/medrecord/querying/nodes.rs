@@ -12,7 +12,7 @@ use crate::medrecord::{
     },
     PyNodeIndex,
 };
-use medmodels_core::{
+use medmodels::core::{
     errors::MedRecordError,
     medrecord::{
         querying::{

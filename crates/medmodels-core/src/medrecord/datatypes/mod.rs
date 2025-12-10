@@ -7,7 +7,7 @@ use crate::errors::MedRecordError;
 use serde::{Deserialize, Serialize};
 use std::{fmt::Display, ops::Range};
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, Default)]
 pub enum DataType {
     String,
     Int,
@@ -16,15 +16,10 @@ pub enum DataType {
     DateTime,
     Duration,
     Null,
+    #[default]
     Any,
     Union((Box<DataType>, Box<DataType>)),
     Option(Box<DataType>),
-}
-
-impl Default for DataType {
-    fn default() -> Self {
-        Self::Any
-    }
 }
 
 // TODO: Add tests for Duration

@@ -1,1 +1,1 @@
-pub use core::prelude::*;
+pub use medmodels_core::prelude::*;

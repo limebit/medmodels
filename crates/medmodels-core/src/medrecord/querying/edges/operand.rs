@@ -20,14 +20,14 @@ use crate::{
             values::{self, MultipleValuesWithIndexOperand},
             wrapper::{CardinalityWrapper, Wrapper},
             BoxedIterator, DeepClone, EvaluateBackward, EvaluateForward, EvaluateForwardGrouped,
-            GroupedIterator, ReadWriteOrPanic, ReduceInput, RootOperand,
+            GroupedIterator, ReduceInput, RootOperand,
         },
         EdgeIndex, Group, MedRecordAttribute,
     },
     prelude::MedRecordValue,
     MedRecord,
 };
-use medmodels_utils::aliases::MrHashSet;
+use medmodels_utils::{aliases::MrHashSet, traits::ReadWriteOrPanic};
 use std::{
     collections::{HashMap, HashSet},
     fmt::Debug,

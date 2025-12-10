@@ -1,4 +1,4 @@
-"""Type aliases and type checking functions for medical record data."""
+"""Type aliases and type checking functions for the medrecord module."""
 
 from __future__ import annotations
 
@@ -21,6 +21,7 @@ import polars as pl
 
 if TYPE_CHECKING:
     from typing_extensions import TypeIs
+
 
 #: A type alias for attributes of a medical record.
 MedRecordAttribute: TypeAlias = Union[str, int]
@@ -94,7 +95,7 @@ PandasNodeDataFrameInput: TypeAlias = Tuple[pd.DataFrame, str]
 PandasEdgeDataFrameInput: TypeAlias = Tuple[pd.DataFrame, str, str]
 
 #: A type alias for input to a node.
-NodeInput = Union[
+NodeInput: TypeAlias = Union[
     NodeTuple,
     Sequence[NodeTuple],
     PandasNodeDataFrameInput,
@@ -104,7 +105,7 @@ NodeInput = Union[
 ]
 
 #: A type alias for input to an edge.
-EdgeInput = Union[
+EdgeInput: TypeAlias = Union[
     EdgeTuple,
     Sequence[EdgeTuple],
     PandasEdgeDataFrameInput,
@@ -165,7 +166,7 @@ def is_medrecord_attribute(value: object) -> TypeIs[MedRecordAttribute]:
         TypeIs[MedRecordAttribute]: True if the value is a MedRecord attribute,
             otherwise False.
     """
-    return isinstance(value, (str, int))
+    return isinstance(value, (str, int)) and not isinstance(value, bool)
 
 
 def is_medrecord_value(value: object) -> TypeIs[MedRecordValue]:

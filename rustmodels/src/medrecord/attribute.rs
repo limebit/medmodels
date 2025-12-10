@@ -1,6 +1,6 @@
 use super::{traits::DeepFrom, value::convert_pyobject_to_medrecordvalue};
 use crate::medrecord::errors::PyMedRecordError;
-use medmodels_core::medrecord::MedRecordAttribute;
+use medmodels::core::medrecord::MedRecordAttribute;
 use pyo3::{Bound, FromPyObject, IntoPyObject, IntoPyObjectExt, PyAny, PyErr, PyResult, Python};
 use std::{hash::Hash, ops::Deref};
 
@@ -40,12 +40,17 @@ impl Deref for PyMedRecordAttribute {
     }
 }
 
+pub(crate) fn convert_pyobject_to_medrecordattribute(
+    ob: &Bound<'_, PyAny>,
+) -> PyResult<MedRecordAttribute> {
+    Ok(convert_pyobject_to_medrecordvalue(ob)?
+        .try_into()
+        .map_err(PyMedRecordError::from)?)
+}
+
 impl FromPyObject<'_> for PyMedRecordAttribute {
     fn extract_bound(ob: &Bound<'_, PyAny>) -> PyResult<Self> {
-        Ok(convert_pyobject_to_medrecordvalue(ob)?
-            .try_into()
-            .map(|value: MedRecordAttribute| value.into())
-            .map_err(PyMedRecordError::from)?)
+        convert_pyobject_to_medrecordattribute(ob).map(PyMedRecordAttribute::from)
     }
 }
 

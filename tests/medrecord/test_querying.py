@@ -37,6 +37,7 @@ from medmodels.medrecord.querying import (
     EdgeSingleValueWithoutIndexGroupQueryResult,
     EdgeSingleValueWithoutIndexOperand,
     GroupKey,
+    MatchMode,
     NodeAttributesTreeGroupOperand,
     NodeAttributesTreeOperand,
     NodeAttributesTreeQueryResult,
@@ -101,8 +102,8 @@ def query_node(node: NodeOperand) -> None:
     node.index().equal_to("pat_1")
 
 
-def query_edge(edge: EdgeOperand) -> None:
-    edge.index().equal_to(0)
+def query_edge(edge: EdgeOperand, index: EdgeIndex = 0) -> None:
+    edge.index().equal_to(index)
 
 
 def query_specific_edge(
@@ -557,6 +558,21 @@ class TestNodeOperand(unittest.TestCase):
 
         assert sorted(self.medrecord.query_nodes(query2)) == ["pat_1"]
 
+        self.medrecord.add_group("test_group", "diagnosis_10509002")
+
+        def query3(node: NodeOperand) -> NodeIndicesOperand:
+            node.in_group((["patient", "test_group"], MatchMode.ANY))  # Must be in ANY
+            return node.index()
+
+        assert sorted(self.medrecord.query_nodes(query3)) == [
+            "diagnosis_10509002",
+            "pat_1",
+            "pat_2",
+            "pat_3",
+            "pat_4",
+            "pat_5",
+        ]
+
     def test_node_operand_has_attribute(self) -> None:
         def query1(node: NodeOperand) -> NodeIndicesOperand:
             query_node(node)
@@ -571,6 +587,13 @@ class TestNodeOperand(unittest.TestCase):
             return node.index()
 
         assert self.medrecord.query_nodes(query2) == ["pat_1"]
+
+        def query3(node: NodeOperand) -> NodeIndicesOperand:
+            query_node(node)
+            node.has_attribute((["gender", "age"], MatchMode.ANY))
+            return node.index()
+
+        assert self.medrecord.query_nodes(query3) == ["pat_1"]
 
     def test_node_operand_edges(self) -> None:
         def query1(node: NodeOperand) -> EdgeIndicesOperand:
@@ -763,6 +786,22 @@ class TestNodeGroupOperand(unittest.TestCase):
             ("M", ["pat_1", "pat_4", "pat_5"]),
         ]
 
+        self.medrecord.unfreeze_schema()
+        self.medrecord.add_nodes_to_group("diagnosis", "pat_1")
+
+        def query2(node: NodeOperand) -> NodeIndicesGroupOperand:
+            group = node.group_by(NodeOperandGroupDiscriminator.Attribute("gender"))
+            group.in_group((["patient", "diagnosis"], MatchMode.ALL))  # BOTH groups
+            return group.index()
+
+        result2 = sorted(
+            (sort_tuple(item) for item in self.medrecord.query_nodes(query2)),
+            key=operator.itemgetter(0),
+        )
+        assert result2 == [
+            ("M", ["pat_1"]),
+        ]
+
     def test_group_operand_has_attribute(self) -> None:
         def query(node: NodeOperand) -> NodeIndicesGroupOperand:
             group = node.group_by(NodeOperandGroupDiscriminator.Attribute("gender"))
@@ -778,6 +817,21 @@ class TestNodeGroupOperand(unittest.TestCase):
 
         result = sorted(
             (sort_tuple(item) for item in self.medrecord.query_nodes(query)),
+            key=operator.itemgetter(0),
+        )
+        assert result == [
+            ("F", ["pat_2", "pat_3"]),
+            ("M", ["pat_1", "pat_4", "pat_5"]),
+        ]
+
+        def query2(node: NodeOperand) -> NodeIndicesGroupOperand:
+            group = node.group_by(NodeOperandGroupDiscriminator.Attribute("gender"))
+            group.has_attribute((["gender", "age"], MatchMode.ANY))
+
+            return group.index()
+
+        result = sorted(
+            (sort_tuple(item) for item in self.medrecord.query_nodes(query2)),
             key=operator.itemgetter(0),
         )
         assert result == [
@@ -914,6 +968,17 @@ class TestEdgeOperand(unittest.TestCase):
 
         assert self.medrecord.query_edges(query2) == [0]
 
+        self.medrecord.add_group("test_group", None, 1)
+
+        def query3(edge: EdgeOperand) -> EdgeIndicesOperand:
+            edge.either_or(query_edge, lambda edge: edge.index().equal_to(1))
+            edge.in_group(
+                (["patient_diagnosis", "test_group"], MatchMode.ANY)
+            )  # Must be in ANY
+            return edge.index()
+
+        assert sorted(self.medrecord.query_edges(query3)) == [0, 1]
+
     def test_edge_operand_has_attribute(self) -> None:
         def query(edge: EdgeOperand) -> EdgeIndicesOperand:
             query_edge(edge)
@@ -921,6 +986,13 @@ class TestEdgeOperand(unittest.TestCase):
             return edge.index()
 
         assert self.medrecord.query_edges(query) == [0]
+
+        def query2(edge: EdgeOperand) -> EdgeIndicesOperand:
+            query_edge(edge)
+            edge.has_attribute((["time"], MatchMode.ANY))
+            return edge.index()
+
+        assert self.medrecord.query_edges(query2) == [0]
 
     def test_edge_operand_source_node(self) -> None:
         def query(edge: EdgeOperand) -> NodeIndicesOperand:
@@ -1075,6 +1147,24 @@ class TestEdgeGroupOperand(unittest.TestCase):
             ("pat_1", [0, 1, 2, 3, 4]),
         ]
 
+        self.medrecord.unfreeze_schema()
+        self.medrecord.add_group("temp_group", None, 0)
+
+        def query2(edge: EdgeOperand) -> EdgeIndicesGroupOperand:
+            group = edge.group_by(EdgeOperandGroupDiscriminator.SourceNode())
+            group.in_group(
+                (["patient_diagnosis", "temp_group"], MatchMode.ALL)
+            )  # BOTH groups
+            return group.index()
+
+        result2 = sorted(
+            (sort_tuple(item) for item in self.medrecord.query_edges(query2)),
+            key=operator.itemgetter(0),
+        )
+        assert result2 == [
+            ("pat_1", [0]),
+        ]
+
     def test_edge_group_operand_has_attribute(self) -> None:
         def query(edge: EdgeOperand) -> EdgeIndicesGroupOperand:
             group = edge.group_by(EdgeOperandGroupDiscriminator.SourceNode())
@@ -1090,6 +1180,20 @@ class TestEdgeGroupOperand(unittest.TestCase):
 
         result = sorted(
             (sort_tuple(item) for item in self.medrecord.query_edges(query)),
+            key=operator.itemgetter(0),
+        )
+        assert result == [
+            ("pat_1", [0, 1, 2, 3, 4]),
+        ]
+
+        def query2(edge: EdgeOperand) -> EdgeIndicesGroupOperand:
+            group = edge.group_by(EdgeOperandGroupDiscriminator.SourceNode())
+            group.has_attribute((["time", "duration_days"], MatchMode.ANY))
+            group.index().less_than(5)
+            return group.index()
+
+        result = sorted(
+            (sort_tuple(item) for item in self.medrecord.query_edges(query2)),
             key=operator.itemgetter(0),
         )
         assert result == [

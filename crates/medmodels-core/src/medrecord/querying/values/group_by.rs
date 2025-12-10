@@ -12,10 +12,11 @@ use crate::{
         },
         wrapper::Wrapper,
         BoxedIterator, DeepClone, EvaluateBackward, EvaluateForwardGrouped, GroupedIterator,
-        ReadWriteOrPanic, RootOperand,
+        RootOperand,
     },
     MedRecord,
 };
+use medmodels_utils::traits::ReadWriteOrPanic;
 use std::fmt::Debug;
 
 #[derive(Debug, Clone)]

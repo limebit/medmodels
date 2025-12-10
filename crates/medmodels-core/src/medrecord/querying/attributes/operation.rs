@@ -21,14 +21,17 @@ use crate::{
             tee_grouped_iterator,
             values::MultipleValuesWithIndexOperand,
             BoxedIterator, DeepClone, EvaluateForward, EvaluateForwardGrouped, GroupedIterator,
-            ReadWriteOrPanic, RootOperand,
+            RootOperand,
         },
         MedRecordAttribute, MedRecordValue, Wrapper,
     },
     MedRecord,
 };
 use itertools::Itertools;
-use medmodels_utils::aliases::{MrHashMap, MrHashSet};
+use medmodels_utils::{
+    aliases::{MrHashMap, MrHashSet},
+    traits::ReadWriteOrPanic,
+};
 use rand::{rng, seq::IteratorRandom};
 use std::{
     cmp::Ordering,

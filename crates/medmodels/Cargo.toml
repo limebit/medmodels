@@ -9,3 +9,4 @@ readme = "../../README.md"
 
 [dependencies]
 medmodels-core = { workspace = true }
+medmodels-utils = { workspace = true }
