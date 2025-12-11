@@ -4,21 +4,16 @@ mod tabled_modifiers;
 
 use crate::{
     errors::MedRecordError,
-    medrecord::{
-        overview::tabled_modifiers::MergeDuplicatesVerticalByColumn,
-        querying::{
-            edges::EdgeOperand,
-            nodes::NodeOperand,
-            wrapper::{MatchMode, Wrapper},
-        },
-    },
+    medrecord::overview::tabled_modifiers::MergeDuplicatesVerticalByColumn,
     prelude::{AttributeType, DataType, Group, GroupSchema, MedRecordAttribute, MedRecordValue},
     MedRecord,
 };
 use itertools::Itertools;
 use medmodels_utils::aliases::MrHashMap;
+use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use std::{
     cmp::Ordering,
+    collections::HashSet,
     fmt::{Display, Formatter},
 };
 use tabled::{
@@ -112,6 +107,10 @@ impl Display for NodeGroupOverview {
             ]);
         }
 
+        if self.attributes.is_empty() && self.count > 0 {
+            builder.push_record([&self.count.to_string(), "-", "-", "-", "-"]);
+        }
+
         let mut table = builder.build();
         table.with(Style::modern());
         table.with(Panel::header("Node Overview"));
@@ -129,36 +128,15 @@ impl NodeGroupOverview {
         group_schema: &GroupSchema,
         group: Option<&Group>,
     ) -> Result<Self, MedRecordError> {
-        let node_selection_query: Box<dyn Fn(&Wrapper<NodeOperand>)> = match group {
-            Some(group) => Box::new(|nodes| {
-                nodes.in_group(group.clone());
-            }),
-            None => Box::new(|nodes| {
-                nodes.exclude(|nodes| {
-                    let groups: Vec<_> = medrecord.groups().cloned().collect();
-
-                    nodes.in_group((groups, MatchMode::Any));
-                });
-            }),
+        let nodes_in_group: HashSet<_> = match group {
+            Some(group) => medrecord.nodes_in_group(group)?.cloned().collect(),
+            None => medrecord.ungrouped_nodes().cloned().collect(),
         };
-
-        let count = medrecord
-            .query_nodes(|nodes| {
-                node_selection_query(nodes);
-
-                nodes.index().count()
-            })
-            .evaluate()?
-            .unwrap_or(MedRecordAttribute::Int(0));
-
-        let count = match count {
-            MedRecordAttribute::Int(c) => c as usize,
-            _ => unreachable!(),
-        };
+        let count = nodes_in_group.len();
 
         let attributes: MrHashMap<_, _> = group_schema
             .nodes()
-            .iter()
+            .par_iter()
             .map(|(key, attribute_data_type)| {
                 let attribute_type = attribute_data_type.attribute_type();
                 let data_type = attribute_data_type.data_type().clone();
@@ -167,7 +145,7 @@ impl NodeGroupOverview {
                     AttributeType::Categorical => {
                         let values = medrecord
                             .query_nodes(|nodes| {
-                                node_selection_query(nodes);
+                                nodes.index().is_in(nodes_in_group.clone());
 
                                 nodes.attribute(key.clone())
                             })
@@ -187,9 +165,13 @@ impl NodeGroupOverview {
                     AttributeType::Continuous => {
                         let (min, mean, max) = medrecord
                             .query_nodes(|nodes| {
-                                node_selection_query(nodes);
+                                nodes.index().is_in(nodes_in_group.clone());
 
                                 let values = nodes.attribute(key.clone());
+
+                                values.exclude(|values| {
+                                    values.is_null();
+                                });
 
                                 (values.min(), values.mean(), values.max())
                             })
@@ -207,13 +189,18 @@ impl NodeGroupOverview {
                     AttributeType::Temporal => {
                         let (min, max) = medrecord
                             .query_nodes(|nodes| {
-                                node_selection_query(nodes);
+                                nodes.index().is_in(nodes_in_group.clone());
 
                                 let values = nodes.attribute(key.clone());
 
+                                values.exclude(|values| {
+                                    values.is_null();
+                                });
+
                                 (values.min(), values.max())
                             })
-                            .evaluate()?;
+                            .evaluate()
+                            .unwrap();
 
                         let min = min.map(|min| min.1).unwrap_or(MedRecordValue::Null);
                         let max = max.map(|max| max.1).unwrap_or(MedRecordValue::Null);
@@ -226,11 +213,12 @@ impl NodeGroupOverview {
                     AttributeType::Unstructured => {
                         let values: Vec<_> = medrecord
                             .query_nodes(|nodes| {
-                                node_selection_query(nodes);
+                                nodes.index().is_in(nodes_in_group.clone());
 
                                 nodes.attribute(key.clone())
                             })
-                            .evaluate()?
+                            .evaluate()
+                            .unwrap()
                             .map(|(_, value)| value)
                             .sorted_by(|a, b| a.partial_cmp(b).unwrap_or(Ordering::Equal))
                             .dedup_by(|a, b| a == b)
@@ -300,31 +288,15 @@ impl EdgeGroupOverview {
         group_schema: &GroupSchema,
         group: Option<&Group>,
     ) -> Result<Self, MedRecordError> {
-        let edge_selection_query: Box<dyn Fn(&Wrapper<EdgeOperand>)> = match group {
-            Some(group) => Box::new(|edges| {
-                edges.in_group(group.clone());
-            }),
-            None => Box::new(|edges| {
-                edges.exclude(|edges| {
-                    let groups: Vec<_> = medrecord.groups().cloned().collect();
-
-                    edges.in_group((groups, MatchMode::Any));
-                });
-            }),
+        let edges_in_group: HashSet<_> = match group {
+            Some(group) => medrecord.edges_in_group(group)?.cloned().collect(),
+            None => medrecord.ungrouped_edges().cloned().collect(),
         };
-
-        let count = medrecord
-            .query_edges(|edges| {
-                edge_selection_query(edges);
-
-                edges.index().count()
-            })
-            .evaluate()?
-            .unwrap_or(0) as usize;
+        let count = edges_in_group.len();
 
         let attributes: MrHashMap<_, _> = group_schema
             .edges()
-            .iter()
+            .par_iter()
             .map(|(key, attribute_data_type)| {
                 let attribute_type = attribute_data_type.attribute_type();
                 let data_type = attribute_data_type.data_type().clone();
@@ -333,7 +305,7 @@ impl EdgeGroupOverview {
                     AttributeType::Categorical => {
                         let values = medrecord
                             .query_edges(|edges| {
-                                edge_selection_query(edges);
+                                edges.index().is_in(edges_in_group.clone());
 
                                 edges.attribute(key.clone())
                             })
@@ -353,9 +325,13 @@ impl EdgeGroupOverview {
                     AttributeType::Continuous => {
                         let (min, mean, max) = medrecord
                             .query_edges(|edges| {
-                                edge_selection_query(edges);
+                                edges.index().is_in(edges_in_group.clone());
 
                                 let values = edges.attribute(key.clone());
+
+                                values.exclude(|values| {
+                                    values.is_null();
+                                });
 
                                 (values.min(), values.mean(), values.max())
                             })
@@ -373,9 +349,13 @@ impl EdgeGroupOverview {
                     AttributeType::Temporal => {
                         let (min, max) = medrecord
                             .query_edges(|edges| {
-                                edge_selection_query(edges);
+                                edges.index().is_in(edges_in_group.clone());
 
                                 let values = edges.attribute(key.clone());
+
+                                values.exclude(|values| {
+                                    values.is_null();
+                                });
 
                                 (values.min(), values.max())
                             })
@@ -392,7 +372,7 @@ impl EdgeGroupOverview {
                     AttributeType::Unstructured => {
                         let values: Vec<_> = medrecord
                             .query_edges(|edges| {
-                                edge_selection_query(edges);
+                                edges.index().is_in(edges_in_group.clone());
 
                                 edges.attribute(key.clone())
                             })
@@ -473,20 +453,26 @@ impl Display for Overview {
         for (group, group_overview) in std::iter::once((None, &self.ungrouped_overview))
             .chain(self.grouped_overviews.iter().map(|(g, o)| (Some(g), o)))
         {
+            let group_name = group
+                .map(|g| g.to_string())
+                .unwrap_or_else(|| "Ungrouped".to_string());
+            let count = group_overview.node_overview.count;
+
             for (attribute, overview) in &group_overview.node_overview.attributes {
-                let group_name = group
-                    .map(|g| g.to_string())
-                    .unwrap_or_else(|| "Ungrouped".to_string());
                 let details = overview.data.details();
 
                 builder.push_record([
                     &group_name,
-                    &group_overview.node_overview.count.to_string(),
+                    &count.to_string(),
                     &attribute.to_string(),
                     overview.data.attribute_type_name(),
                     &overview.data_type.to_string(),
                     &details,
                 ]);
+            }
+
+            if group_overview.node_overview.attributes.is_empty() && count > 0 {
+                builder.push_record([&group_name, &count.to_string(), "-", "-", "-", "-"]);
             }
         }
 
@@ -504,8 +490,8 @@ impl Display for Overview {
         builder.push_record([
             "Group",
             "Edge Count",
-            "Type",
             "Attribute",
+            "Attribute Type",
             "Data Type",
             "Details",
         ]);
@@ -513,20 +499,26 @@ impl Display for Overview {
         for (group, group_overview) in std::iter::once((None, &self.ungrouped_overview))
             .chain(self.grouped_overviews.iter().map(|(g, o)| (Some(g), o)))
         {
+            let group_name = group
+                .map(|g| g.to_string())
+                .unwrap_or_else(|| "Ungrouped".to_string());
+            let count = group_overview.edge_overview.count;
+
             for (attribute, overview) in &group_overview.edge_overview.attributes {
-                let group_name = group
-                    .map(|g| g.to_string())
-                    .unwrap_or_else(|| "Ungrouped".to_string());
                 let details = overview.data.details();
 
                 builder.push_record([
                     &group_name,
-                    &group_overview.edge_overview.count.to_string(),
+                    &count.to_string(),
                     &attribute.to_string(),
                     overview.data.attribute_type_name(),
                     &overview.data_type.to_string(),
                     &details,
                 ]);
+            }
+
+            if group_overview.edge_overview.attributes.is_empty() && count > 0 {
+                builder.push_record([&group_name, &count.to_string(), "-", "-", "-", "-"]);
             }
         }
 

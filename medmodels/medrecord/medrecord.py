@@ -1315,6 +1315,14 @@ class MedRecord:
 
         return nodes[group]
 
+    def ungrouped_nodes(self) -> List[NodeIndex]:
+        """Retrieves the node indices that are not associated with any group.
+
+        Returns:
+            List[NodeIndex]: Node indices that are ungrouped.
+        """
+        return self._medrecord.ungrouped_nodes()
+
     @overload
     def edges_in_group(self, group: Group) -> List[EdgeIndex]: ...
 
@@ -1345,6 +1353,14 @@ class MedRecord:
             return edges
 
         return edges[group]
+
+    def ungrouped_edges(self) -> List[EdgeIndex]:
+        """Retrieves the edge indices that are not associated with any group.
+
+        Returns:
+            List[EdgeIndex]: Edge indices that are ungrouped.
+        """
+        return self._medrecord.ungrouped_edges()
 
     @overload
     def groups_of_node(self, node: Union[NodeIndex, NodeIndexQuery]) -> List[Group]: ...

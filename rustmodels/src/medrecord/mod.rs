@@ -585,6 +585,13 @@ impl PyMedRecord {
             .collect()
     }
 
+    pub fn ungrouped_nodes(&self) -> Vec<PyNodeIndex> {
+        self.0
+            .ungrouped_nodes()
+            .map(|node_index| node_index.clone().into())
+            .collect()
+    }
+
     pub fn edges_in_group(
         &self,
         group: Vec<PyGroup>,
@@ -602,6 +609,10 @@ impl PyMedRecord {
                 Ok((group, edges))
             })
             .collect()
+    }
+
+    pub fn ungrouped_edges(&self) -> Vec<EdgeIndex> {
+        self.0.ungrouped_edges().copied().collect()
     }
 
     pub fn groups_of_node(

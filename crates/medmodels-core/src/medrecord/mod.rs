@@ -19,6 +19,7 @@ use crate::{
 use ::polars::frame::DataFrame;
 use graph::Graph;
 use group_mapping::GroupMapping;
+use medmodels_utils::aliases::MrHashSet;
 use polars::{dataframe_to_edges, dataframe_to_nodes};
 use querying::{
     edges::EdgeOperand, nodes::NodeOperand, wrapper::Wrapper, ReturnOperand, Selection,
@@ -804,11 +805,33 @@ impl MedRecord {
         self.group_mapping.nodes_in_group(group)
     }
 
+    pub fn ungrouped_nodes(&self) -> impl Iterator<Item = &NodeIndex> {
+        let nodes_in_groups: MrHashSet<_> = self
+            .groups()
+            .flat_map(|group| self.nodes_in_group(group).expect("Group must exist"))
+            .collect();
+
+        self.graph
+            .node_indices()
+            .filter(move |node_index| !nodes_in_groups.contains(*node_index))
+    }
+
     pub fn edges_in_group(
         &self,
         group: &Group,
     ) -> Result<impl Iterator<Item = &EdgeIndex>, MedRecordError> {
         self.group_mapping.edges_in_group(group)
+    }
+
+    pub fn ungrouped_edges(&self) -> impl Iterator<Item = &EdgeIndex> {
+        let edges_in_groups: MrHashSet<_> = self
+            .groups()
+            .flat_map(|group| self.edges_in_group(group).expect("Group must exist"))
+            .collect();
+
+        self.graph
+            .edge_indices()
+            .filter(move |edge_index| !edges_in_groups.contains(*edge_index))
     }
 
     pub fn groups_of_node(
