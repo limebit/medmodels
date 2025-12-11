@@ -3,12 +3,16 @@
 pub mod attribute;
 pub mod datatype;
 pub mod errors;
+pub mod overview;
 pub mod querying;
 pub mod schema;
 pub mod traits;
 pub mod value;
 
-use crate::gil_hash_map::GILHashMap;
+use crate::{
+    gil_hash_map::GILHashMap,
+    medrecord::overview::{PyGroupOverview, PyOverview},
+};
 use attribute::PyMedRecordAttribute;
 use errors::PyMedRecordError;
 use medmodels::core::{
@@ -738,5 +742,17 @@ impl PyMedRecord {
 
     pub fn clone(&self) -> Self {
         Self(self.0.clone())
+    }
+
+    pub fn overview(&self) -> PyResult<PyOverview> {
+        Ok(self.0.overview().map_err(PyMedRecordError::from)?.into())
+    }
+
+    pub fn group_overview(&self, group: PyGroup) -> PyResult<PyGroupOverview> {
+        Ok(self
+            .0
+            .group_overview(&group.into())
+            .map_err(PyMedRecordError::from)?
+            .into())
     }
 }

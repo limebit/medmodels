@@ -26,6 +26,10 @@ from medmodels.medrecord.types import (
     NodeTuple,
     PolarsEdgeDataFrameInput,
     PolarsNodeDataFrameInput,
+    PyCategoricalAttributeOverview,
+    PyContinuousAttributeOverview,
+    PyTemporalAttributeOverview,
+    PyUnstructuredAttributeOverview,
 )
 
 PyDataType: TypeAlias = Union[
@@ -296,6 +300,8 @@ class PyMedRecord:
         self, query: Callable[[PyEdgeOperand], PyQueryReturnOperand]
     ) -> QueryResult: ...
     def clone(self) -> PyMedRecord: ...
+    def overview(self) -> PyOverview: ...
+    def group_overview(self, group: Group) -> PyGroupOverview: ...
 
 class PyEdgeDirection(Enum):
     Incoming = ...
@@ -2288,3 +2294,28 @@ class PyEdgeSingleAttributeWithoutIndexGroupOperand:
     ) -> None: ...
     def ungroup(self) -> PyEdgeMultipleAttributesWithoutIndexOperand: ...
     def deep_clone(self) -> PyEdgeSingleAttributeWithoutIndexGroupOperand: ...
+
+class PyAttributeOverview:
+    data_type: PyDataType
+    data: Union[
+        PyCategoricalAttributeOverview,
+        PyContinuousAttributeOverview,
+        PyTemporalAttributeOverview,
+        PyUnstructuredAttributeOverview,
+    ]
+
+class PyNodeGroupOverview:
+    count: int
+    attributes: Dict[MedRecordAttribute, PyAttributeOverview]
+
+class PyEdgeGroupOverview:
+    count: int
+    attributes: Dict[MedRecordAttribute, PyAttributeOverview]
+
+class PyGroupOverview:
+    node_overview: PyNodeGroupOverview
+    edge_overview: PyEdgeGroupOverview
+
+class PyOverview:
+    ungrouped_overview: PyGroupOverview
+    grouped_overviews: Dict[MedRecordAttribute, PyGroupOverview]

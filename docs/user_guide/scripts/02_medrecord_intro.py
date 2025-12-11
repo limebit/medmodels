@@ -63,14 +63,10 @@ record.add_nodes(
     ),
 )
 
-record.overview_nodes()
+record.overview()
 
-record.overview_edges()
-
-# Adding edges to a certain group so that they are shown in the overview
+# Adding edges to a certain group
 record.add_group("Patient-Medication", edges=record.edges)
-
-record.overview_edges()
 
 # Getting all available nodes
 record.nodes
