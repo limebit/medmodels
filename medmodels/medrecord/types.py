@@ -22,6 +22,9 @@ import polars as pl
 if TYPE_CHECKING:
     from typing_extensions import TypeIs
 
+    from medmodels._medmodels import PyAttributeType
+    from medmodels.medrecord.schema import AttributeType
+
 
 #: A type alias for attributes of a medical record.
 MedRecordAttribute: TypeAlias = Union[str, int]
@@ -122,38 +125,66 @@ class GroupInfo(TypedDict):
     edges: List[EdgeIndex]
 
 
-class AttributeInfo(TypedDict):
-    """A dictionary containing info about nodes/edges and their attributes."""
+class PyCategoricalAttributeOverview(TypedDict):
+    """Dictionary for a categorical attribute overview."""
 
-    count: int
-    attribute: Dict[
-        MedRecordAttribute,
-        Union[TemporalAttributeInfo, NumericAttributeInfo, StringAttributeInfo],
-    ]
+    attribute_type: Literal[PyAttributeType.Categorical]
+    distinct_values: List[MedRecordValue]
 
 
-class TemporalAttributeInfo(TypedDict):
-    """Dictionary for a temporal attribute and its metrics."""
+class PyContinuousAttributeOverview(TypedDict):
+    """Dictionary for a continuous attribute overview."""
 
-    type: Literal["Temporal"]
-    min: datetime
-    max: datetime
-
-
-class NumericAttributeInfo(TypedDict):
-    """Dictionary for a numeric attribute and its metrics."""
-
-    type: Literal["Continuous"]
-    min: Union[int, float]
-    max: Union[int, float]
-    mean: Union[int, float]
+    attribute_type: Literal[PyAttributeType.Continuous]
+    min: MedRecordValue
+    mean: MedRecordValue
+    max: MedRecordValue
 
 
-class StringAttributeInfo(TypedDict):
-    """Dictionary for a string attribute and its values."""
+class PyTemporalAttributeOverview(TypedDict):
+    """Dictionary for a temporal attribute overview."""
 
-    type: Literal["Categorical"]
-    values: str
+    attribute_type: Literal[PyAttributeType.Temporal]
+    min: MedRecordValue
+    max: MedRecordValue
+
+
+class PyUnstructuredAttributeOverview(TypedDict):
+    """Dictionary for an unstructured attribute overview."""
+
+    attribute_type: Literal[PyAttributeType.Unstructured]
+    distinct_count: int
+
+
+class CategoricalAttributeOverview(TypedDict):
+    """Dictionary for a categorical attribute overview."""
+
+    attribute_type: Literal[AttributeType.Categorical]
+    distinct_values: List[MedRecordValue]
+
+
+class ContinuousAttributeOverview(TypedDict):
+    """Dictionary for a continuous attribute overview."""
+
+    attribute_type: Literal[AttributeType.Continuous]
+    min: MedRecordValue
+    mean: MedRecordValue
+    max: MedRecordValue
+
+
+class TemporalAttributeOverview(TypedDict):
+    """Dictionary for a temporal attribute overview."""
+
+    attribute_type: Literal[AttributeType.Temporal]
+    min: MedRecordValue
+    max: MedRecordValue
+
+
+class UnstructuredAttributeOverview(TypedDict):
+    """Dictionary for an unstructured attribute overview."""
+
+    attribute_type: Literal[AttributeType.Unstructured]
+    distinct_count: int
 
 
 def is_medrecord_attribute(value: object) -> TypeIs[MedRecordAttribute]:

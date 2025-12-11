@@ -3,7 +3,12 @@
 mod gil_hash_map;
 mod medrecord;
 
-use crate::medrecord::querying::PyMatchMode;
+use crate::medrecord::{
+    overview::{
+        PyAttributeOverview, PyEdgeGroupOverview, PyGroupOverview, PyNodeGroupOverview, PyOverview,
+    },
+    querying::PyMatchMode,
+};
 use medrecord::{
     datatype::{
         PyAny, PyBool, PyDateTime, PyDuration, PyFloat, PyInt, PyNull, PyOption, PyString, PyUnion,
@@ -120,6 +125,12 @@ fn _medmodels(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyEdgeSingleAttributeWithIndexGroupOperand>()?;
     m.add_class::<PyEdgeSingleAttributeWithoutIndexOperand>()?;
     m.add_class::<PyEdgeSingleAttributeWithoutIndexGroupOperand>()?;
+
+    m.add_class::<PyAttributeOverview>()?;
+    m.add_class::<PyNodeGroupOverview>()?;
+    m.add_class::<PyEdgeGroupOverview>()?;
+    m.add_class::<PyGroupOverview>()?;
+    m.add_class::<PyOverview>()?;
 
     Ok(())
 }

@@ -2,6 +2,7 @@ pub mod datatypes;
 mod example_dataset;
 mod graph;
 mod group_mapping;
+pub mod overview;
 mod polars;
 pub mod querying;
 pub mod schema;
@@ -11,7 +12,10 @@ pub use self::{
     graph::{Attributes, EdgeIndex, NodeIndex},
     group_mapping::Group,
 };
-use crate::errors::MedRecordError;
+use crate::{
+    errors::MedRecordError,
+    medrecord::overview::{GroupOverview, Overview},
+};
 use ::polars::frame::DataFrame;
 use graph::Graph;
 use group_mapping::GroupMapping;
@@ -23,6 +27,7 @@ use schema::{GroupSchema, Schema, SchemaType};
 use serde::{Deserialize, Serialize};
 use std::{
     collections::{hash_map::Entry, HashMap},
+    fmt::{Display, Formatter},
     fs, mem,
     path::Path,
 };
@@ -120,6 +125,16 @@ pub struct MedRecord {
     graph: Graph,
     group_mapping: GroupMapping,
     schema: Schema,
+}
+
+impl Display for MedRecord {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let overview = Overview::new(self)
+            .map_err(|_| std::fmt::Error)?
+            .to_string();
+
+        write!(f, "{overview}")
+    }
 }
 
 impl MedRecord {
@@ -893,6 +908,14 @@ impl MedRecord {
         R: ReturnOperand<'a>,
     {
         Selection::new_edge(self, query)
+    }
+
+    pub fn overview(&self) -> Result<Overview, MedRecordError> {
+        Overview::new(self)
+    }
+
+    pub fn group_overview(&self, group: &Group) -> Result<GroupOverview, MedRecordError> {
+        GroupOverview::new(self, Some(group))
     }
 }
 

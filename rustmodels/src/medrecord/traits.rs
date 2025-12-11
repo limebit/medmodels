@@ -1,5 +1,7 @@
 use std::{collections::HashMap, hash::Hash};
 
+use medmodels::utils::aliases::MrHashMap;
+
 pub trait DeepFrom<T> {
     fn deep_from(value: T) -> Self;
 }
@@ -23,6 +25,19 @@ where
     VF: DeepFrom<V>,
 {
     fn deep_from(value: HashMap<K, V>) -> Self {
+        value
+            .into_iter()
+            .map(|(key, value)| (key.deep_into(), value.deep_into()))
+            .collect()
+    }
+}
+
+impl<K, KF, V, VF> DeepFrom<MrHashMap<K, V>> for HashMap<KF, VF>
+where
+    KF: Hash + Eq + DeepFrom<K>,
+    VF: DeepFrom<V>,
+{
+    fn deep_from(value: MrHashMap<K, V>) -> Self {
         value
             .into_iter()
             .map(|(key, value)| (key.deep_into(), value.deep_into()))

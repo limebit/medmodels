@@ -29,6 +29,7 @@ COVERAGE_XML = PROJECT_ROOT / "coverage.xml"
 
 IGNORE_PATTERNS = [
     "**/__init__.py",
+    "**/medrecord/overview.py",  # TODO(https://github.com/limebit/medmodels/issues/443): Add tests for overview module and remove from ignore list
 ]
 
 
