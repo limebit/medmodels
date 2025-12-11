@@ -14,7 +14,7 @@ pub use self::{
 };
 use crate::{
     errors::MedRecordError,
-    medrecord::overview::{GroupOverview, Overview},
+    medrecord::overview::{GroupOverview, Overview, DEFAULT_TRUNCATE_DETAILS},
 };
 use ::polars::frame::DataFrame;
 use graph::Graph;
@@ -130,7 +130,7 @@ pub struct MedRecord {
 
 impl Display for MedRecord {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let overview = Overview::new(self)
+        let overview = Overview::new(self, Some(DEFAULT_TRUNCATE_DETAILS))
             .map_err(|_| std::fmt::Error)?
             .to_string();
 
@@ -933,12 +933,16 @@ impl MedRecord {
         Selection::new_edge(self, query)
     }
 
-    pub fn overview(&self) -> Result<Overview, MedRecordError> {
-        Overview::new(self)
+    pub fn overview(&self, truncate_details: Option<usize>) -> Result<Overview, MedRecordError> {
+        Overview::new(self, truncate_details)
     }
 
-    pub fn group_overview(&self, group: &Group) -> Result<GroupOverview, MedRecordError> {
-        GroupOverview::new(self, Some(group))
+    pub fn group_overview(
+        &self,
+        group: &Group,
+        truncate_details: Option<usize>,
+    ) -> Result<GroupOverview, MedRecordError> {
+        GroupOverview::new(self, Some(group), truncate_details)
     }
 }
 

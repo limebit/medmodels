@@ -9,6 +9,7 @@ use crate::medrecord::{
     },
     querying::PyMatchMode,
 };
+use medmodels::core::medrecord::overview::DEFAULT_TRUNCATE_DETAILS;
 use medrecord::{
     datatype::{
         PyAny, PyBool, PyDateTime, PyDuration, PyFloat, PyInt, PyNull, PyOption, PyString, PyUnion,
@@ -126,6 +127,7 @@ fn _medmodels(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyEdgeSingleAttributeWithoutIndexOperand>()?;
     m.add_class::<PyEdgeSingleAttributeWithoutIndexGroupOperand>()?;
 
+    m.add("PY_DEFAULT_TRUNCATE_DETAILS", DEFAULT_TRUNCATE_DETAILS)?;
     m.add_class::<PyAttributeOverview>()?;
     m.add_class::<PyNodeGroupOverview>()?;
     m.add_class::<PyEdgeGroupOverview>()?;

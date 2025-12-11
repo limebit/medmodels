@@ -755,14 +755,22 @@ impl PyMedRecord {
         Self(self.0.clone())
     }
 
-    pub fn overview(&self) -> PyResult<PyOverview> {
-        Ok(self.0.overview().map_err(PyMedRecordError::from)?.into())
-    }
-
-    pub fn group_overview(&self, group: PyGroup) -> PyResult<PyGroupOverview> {
+    pub fn overview(&self, truncate_details: Option<usize>) -> PyResult<PyOverview> {
         Ok(self
             .0
-            .group_overview(&group.into())
+            .overview(truncate_details)
+            .map_err(PyMedRecordError::from)?
+            .into())
+    }
+
+    pub fn group_overview(
+        &self,
+        group: PyGroup,
+        truncate_details: Option<usize>,
+    ) -> PyResult<PyGroupOverview> {
+        Ok(self
+            .0
+            .group_overview(&group.into(), truncate_details)
             .map_err(PyMedRecordError::from)?
             .into())
     }

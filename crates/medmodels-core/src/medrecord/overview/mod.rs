@@ -18,8 +18,10 @@ use std::{
 };
 use tabled::{
     builder::Builder,
-    settings::{themes::BorderCorrection, Alignment, Panel, Style},
+    settings::{object::Columns, themes::BorderCorrection, Alignment, Panel, Style, Width},
 };
+
+pub const DEFAULT_TRUNCATE_DETAILS: usize = 80;
 
 #[derive(Debug, Clone)]
 pub enum AttributeOverviewData {
@@ -81,6 +83,8 @@ pub struct AttributeOverview {
 pub struct NodeGroupOverview {
     pub count: usize,
     pub attributes: MrHashMap<MedRecordAttribute, AttributeOverview>,
+
+    truncate_details: Option<usize>,
 }
 
 impl Display for NodeGroupOverview {
@@ -118,6 +122,10 @@ impl Display for NodeGroupOverview {
         table.with(Alignment::center_vertical());
         table.with(BorderCorrection {});
 
+        if let Some(truncate_details) = self.truncate_details {
+            table.modify(Columns::last(), Width::truncate(truncate_details));
+        }
+
         writeln!(f, "{table}")
     }
 }
@@ -127,6 +135,7 @@ impl NodeGroupOverview {
         medrecord: &MedRecord,
         group_schema: &GroupSchema,
         group: Option<&Group>,
+        truncate_details: Option<usize>,
     ) -> Result<Self, MedRecordError> {
         let nodes_in_group: HashSet<_> = match group {
             Some(group) => medrecord.nodes_in_group(group)?.cloned().collect(),
@@ -237,7 +246,11 @@ impl NodeGroupOverview {
             })
             .collect::<Result<_, _>>()?;
 
-        Ok(Self { count, attributes })
+        Ok(Self {
+            count,
+            attributes,
+            truncate_details,
+        })
     }
 }
 
@@ -245,6 +258,8 @@ impl NodeGroupOverview {
 pub struct EdgeGroupOverview {
     pub count: usize,
     pub attributes: MrHashMap<MedRecordAttribute, AttributeOverview>,
+
+    truncate_details: Option<usize>,
 }
 
 impl Display for EdgeGroupOverview {
@@ -278,6 +293,10 @@ impl Display for EdgeGroupOverview {
         table.with(Alignment::center_vertical());
         table.with(BorderCorrection {});
 
+        if let Some(truncate_details) = self.truncate_details {
+            table.modify(Columns::last(), Width::truncate(truncate_details));
+        }
+
         writeln!(f, "{table}")
     }
 }
@@ -287,6 +306,7 @@ impl EdgeGroupOverview {
         medrecord: &MedRecord,
         group_schema: &GroupSchema,
         group: Option<&Group>,
+        truncate_details: Option<usize>,
     ) -> Result<Self, MedRecordError> {
         let edges_in_group: HashSet<_> = match group {
             Some(group) => medrecord.edges_in_group(group)?.cloned().collect(),
@@ -395,7 +415,11 @@ impl EdgeGroupOverview {
             })
             .collect::<Result<_, _>>()?;
 
-        Ok(Self { count, attributes })
+        Ok(Self {
+            count,
+            attributes,
+            truncate_details,
+        })
     }
 }
 
@@ -409,6 +433,7 @@ impl GroupOverview {
     pub(crate) fn new(
         medrecord: &MedRecord,
         group: Option<&Group>,
+        truncate_details: Option<usize>,
     ) -> Result<Self, MedRecordError> {
         let schema = &medrecord.schema;
 
@@ -418,8 +443,18 @@ impl GroupOverview {
         };
 
         Ok(Self {
-            node_overview: NodeGroupOverview::new(medrecord, group_schema, group)?,
-            edge_overview: EdgeGroupOverview::new(medrecord, group_schema, group)?,
+            node_overview: NodeGroupOverview::new(
+                medrecord,
+                group_schema,
+                group,
+                truncate_details,
+            )?,
+            edge_overview: EdgeGroupOverview::new(
+                medrecord,
+                group_schema,
+                group,
+                truncate_details,
+            )?,
         })
     }
 }
@@ -435,6 +470,8 @@ impl Display for GroupOverview {
 pub struct Overview {
     pub ungrouped_overview: GroupOverview,
     pub grouped_overviews: MrHashMap<Group, GroupOverview>,
+
+    truncate_details: Option<usize>,
 }
 
 impl Display for Overview {
@@ -483,6 +520,10 @@ impl Display for Overview {
         table.with(Alignment::center_vertical());
         table.with(BorderCorrection {});
 
+        if let Some(truncate_details) = self.truncate_details {
+            table.modify(Columns::last(), Width::truncate(truncate_details));
+        }
+
         writeln!(f, "{table}")?;
 
         let mut builder = Builder::new();
@@ -529,23 +570,31 @@ impl Display for Overview {
         table.with(Alignment::center_vertical());
         table.with(BorderCorrection {});
 
+        if let Some(truncate_details) = self.truncate_details {
+            table.modify(Columns::last(), Width::truncate(truncate_details));
+        }
+
         writeln!(f, "{table}")
     }
 }
 
 impl Overview {
-    pub(crate) fn new(medrecord: &MedRecord) -> Result<Self, MedRecordError> {
+    pub(crate) fn new(
+        medrecord: &MedRecord,
+        truncate_details: Option<usize>,
+    ) -> Result<Self, MedRecordError> {
         Ok(Self {
-            ungrouped_overview: GroupOverview::new(medrecord, None)?,
+            ungrouped_overview: GroupOverview::new(medrecord, None, truncate_details)?,
             grouped_overviews: medrecord
                 .groups()
                 .map(|group| {
                     Ok::<_, MedRecordError>((
                         group.clone(),
-                        GroupOverview::new(medrecord, Some(group))?,
+                        GroupOverview::new(medrecord, Some(group), truncate_details)?,
                     ))
                 })
                 .collect::<Result<_, _>>()?,
+            truncate_details,
         })
     }
 }
