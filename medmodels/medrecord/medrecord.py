@@ -20,7 +20,11 @@ import polars as pl
 from medmodels._medmodels import PyEdgeOperand, PyMedRecord, PyNodeOperand
 from medmodels.medrecord.builder import MedRecordBuilder
 from medmodels.medrecord.indexers import EdgeIndexer, NodeIndexer
-from medmodels.medrecord.overview import GroupOverview, Overview
+from medmodels.medrecord.overview import (
+    DEFAULT_TRUNCATE_DETAILS,
+    GroupOverview,
+    Overview,
+)
 from medmodels.medrecord.querying import (
     EdgeAttributesTreeGroupOperand,
     EdgeAttributesTreeGroupQueryResult,
@@ -1315,6 +1319,14 @@ class MedRecord:
 
         return nodes[group]
 
+    def ungrouped_nodes(self) -> List[NodeIndex]:
+        """Retrieves the node indices that are not associated with any group.
+
+        Returns:
+            List[NodeIndex]: Node indices that are ungrouped.
+        """
+        return self._medrecord.ungrouped_nodes()
+
     @overload
     def edges_in_group(self, group: Group) -> List[EdgeIndex]: ...
 
@@ -1345,6 +1357,14 @@ class MedRecord:
             return edges
 
         return edges[group]
+
+    def ungrouped_edges(self) -> List[EdgeIndex]:
+        """Retrieves the edge indices that are not associated with any group.
+
+        Returns:
+            List[EdgeIndex]: Edge indices that are ungrouped.
+        """
+        return self._medrecord.ungrouped_edges()
 
     @overload
     def groups_of_node(self, node: Union[NodeIndex, NodeIndexQuery]) -> List[Group]: ...
@@ -1948,27 +1968,39 @@ class MedRecord:
 
         return medrecord
 
-    def overview(self) -> Overview:
+    def overview(
+        self, truncate_details: Optional[int] = DEFAULT_TRUNCATE_DETAILS
+    ) -> Overview:
         """Generates an overview of the MedRecord instance.
+
+        Args:
+            truncate_details (int, optional): The maximum number of detail characters
+                to include in the overview. No truncation if None.
+                Defaults to DEFAULT_TRUNCATE_DETAILS.
 
         Returns:
             Overview: An overview of the MedRecord instance.
         """
         return Overview._from_py_overview(
-            self._medrecord.overview()
+            self._medrecord.overview(truncate_details)
         )  # pragma: no cover
 
-    def group_overview(self, group: Group) -> GroupOverview:
+    def group_overview(
+        self, group: Group, truncate_details: Optional[int] = DEFAULT_TRUNCATE_DETAILS
+    ) -> GroupOverview:
         """Generates an overview of a specific group in the MedRecord instance.
 
         Args:
             group (Group): The name of the group to generate an overview for.
+            truncate_details (int, optional): The maximum number of detail characters
+                to include in the overview. No truncation if None.
+                Defaults to DEFAULT_TRUNCATE_DETAILS.
 
         Returns:
             GroupOverview: An overview of the specified group.
         """
         return GroupOverview._from_py_group_overview(  # pragma: no cover
-            self._medrecord.group_overview(group)
+            self._medrecord.group_overview(group, truncate_details)
         )
 
     def __repr__(self) -> str:

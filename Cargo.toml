@@ -15,6 +15,7 @@ hashbrown = { version = "0.14.5", features = ["serde"] }
 serde = { version = "1.0.203", features = ["derive"] }
 polars = { version = "0.48.1", features = ["polars-io", "dtype-full"] }
 chrono = { version = "0.4.38", features = ["serde"] }
+rayon = "1.10.0"
 
 medmodels = { version = "0.4.0", path = "crates/medmodels" }
 medmodels-core = { version = "0.4.0", path = "crates/medmodels-core" }

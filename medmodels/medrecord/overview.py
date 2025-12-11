@@ -1,8 +1,9 @@
 """Overview functions and classes for the medrecord module."""
 
-from typing import TYPE_CHECKING, Dict, Union
+from typing import TYPE_CHECKING, Dict, Final, Union
 
 from medmodels._medmodels import (
+    PY_DEFAULT_TRUNCATE_DETAILS,
     PyAttributeType,
     PyEdgeGroupOverview,
     PyGroupOverview,
@@ -21,6 +22,8 @@ if TYPE_CHECKING:
         TemporalAttributeOverview,
         UnstructuredAttributeOverview,
     )
+
+DEFAULT_TRUNCATE_DETAILS: Final[int] = PY_DEFAULT_TRUNCATE_DETAILS
 
 
 class AttributeOverview:

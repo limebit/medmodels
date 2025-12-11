@@ -92,6 +92,7 @@ impl PartialOrd for MedRecordValue {
             (MedRecordValue::Duration(value), MedRecordValue::Duration(other)) => {
                 Some(value.cmp(other))
             }
+            (MedRecordValue::Null, MedRecordValue::Null) => Some(Ordering::Equal),
             _ => None,
         }
     }
@@ -1579,6 +1580,9 @@ mod test {
                 <= MedRecordValue::DateTime(NaiveDateTime::MIN)
         );
 
+        assert!(MedRecordValue::Null <= MedRecordValue::Null);
+        assert!(MedRecordValue::Null >= MedRecordValue::Null);
+
         assert!(!(MedRecordValue::String("a".to_string()) > MedRecordValue::Int(1)));
         assert!(!(MedRecordValue::String("a".to_string()) >= MedRecordValue::Int(1)));
         assert!(!(MedRecordValue::String("a".to_string()) < MedRecordValue::Int(1)));
@@ -1744,9 +1748,7 @@ mod test {
         assert!(!(MedRecordValue::Null <= MedRecordValue::DateTime(NaiveDateTime::MAX)));
 
         assert!(!(MedRecordValue::Null > MedRecordValue::Null));
-        assert!(!(MedRecordValue::Null >= MedRecordValue::Null));
         assert!(!(MedRecordValue::Null < MedRecordValue::Null));
-        assert!(!(MedRecordValue::Null <= MedRecordValue::Null));
     }
 
     #[test]

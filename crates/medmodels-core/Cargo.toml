@@ -13,6 +13,8 @@ medmodels-utils = { workspace = true }
 polars = { workspace = true }
 serde = { workspace = true }
 chrono = { workspace = true }
+rayon = { workspace = true }
+
 rand = "0.9.1"
 ron = "0.8.1"
 roaring = "0.10.6"

@@ -1992,6 +1992,13 @@ class TestMedRecord(unittest.TestCase):
         with pytest.raises(IndexError):
             medrecord.nodes_in_group("50")
 
+    def test_ungrouped_nodes(self) -> None:
+        medrecord = create_medrecord()
+
+        medrecord.add_group("0", ["0", "1"])
+
+        assert sorted(["2", "3"]) == sorted(medrecord.ungrouped_nodes())
+
     def test_edges_in_group(self) -> None:
         medrecord = create_medrecord()
 
@@ -2011,6 +2018,13 @@ class TestMedRecord(unittest.TestCase):
         # Querying edges in a non-existing group should fail
         with pytest.raises(IndexError):
             medrecord.edges_in_group("50")
+
+    def test_ungrouped_edges(self) -> None:
+        medrecord = create_medrecord()
+
+        medrecord.add_group("0", edges=[0, 1])
+
+        assert sorted([2, 3]) == sorted(medrecord.ungrouped_edges())
 
     def test_groups_of_node(self) -> None:
         medrecord = create_medrecord()
