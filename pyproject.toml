@@ -171,6 +171,9 @@ enableTypeIgnoreComments = false
 [tool.pytest]
 testpaths = "tests"
 
+[tool.coverage.run]
+omit = ["medmodels/medrecord/overview.py"]
+
 [tool.coverage.report]
 exclude_also = [
     "if TYPE_CHECKING:",

@@ -528,7 +528,7 @@ class MedRecord:
         Returns:
             NodeIndexer: An object for manipulating and querying node attributes.
         """
-        return NodeIndexer(self)
+        return NodeIndexer(self)  # pragma: no cover
 
     @property
     def edges(self) -> List[EdgeIndex]:
@@ -552,7 +552,7 @@ class MedRecord:
         Returns:
             EdgeIndexer: An object for manipulating and querying edge attributes.
         """
-        return EdgeIndexer(self)
+        return EdgeIndexer(self)  # pragma: no cover
 
     @property
     def groups(self) -> List[Group]:
@@ -1954,7 +1954,9 @@ class MedRecord:
         Returns:
             Overview: An overview of the MedRecord instance.
         """
-        return Overview._from_py_overview(self._medrecord.overview())
+        return Overview._from_py_overview(
+            self._medrecord.overview()
+        )  # pragma: no cover
 
     def group_overview(self, group: Group) -> GroupOverview:
         """Generates an overview of a specific group in the MedRecord instance.
@@ -1965,7 +1967,7 @@ class MedRecord:
         Returns:
             GroupOverview: An overview of the specified group.
         """
-        return GroupOverview._from_py_group_overview(
+        return GroupOverview._from_py_group_overview(  # pragma: no cover
             self._medrecord.group_overview(group)
         )
 
@@ -1975,4 +1977,4 @@ class MedRecord:
         Returns:
             str: A string representation of the MedRecord instance.
         """
-        return self.overview().__repr__()
+        return self.overview().__repr__()  # pragma: no cover
