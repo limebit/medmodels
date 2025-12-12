@@ -343,6 +343,42 @@ class TestMedRecord(unittest.TestCase):
         assert medrecord.node_count() == loaded_medrecord.node_count()
         assert medrecord.edge_count() == loaded_medrecord.edge_count()
 
+    def test_to_polars(self) -> None:
+        medrecord = create_medrecord()
+
+        export = medrecord.to_polars()
+
+        assert "ungrouped" in export
+        assert "nodes" in export["ungrouped"]
+        assert "edges" in export["ungrouped"]
+
+        nodes_df = export["ungrouped"]["nodes"]
+        edges_df = export["ungrouped"]["edges"]
+
+        assert isinstance(nodes_df, pl.DataFrame)
+        assert isinstance(edges_df, pl.DataFrame)
+
+        assert nodes_df.shape[0] == medrecord.node_count()
+        assert edges_df.shape[0] == medrecord.edge_count()
+
+    def test_to_pandas(self) -> None:
+        medrecord = create_medrecord()
+
+        export = medrecord.to_pandas()
+
+        assert "ungrouped" in export
+        assert "nodes" in export["ungrouped"]
+        assert "edges" in export["ungrouped"]
+
+        nodes_df = export["ungrouped"]["nodes"]
+        edges_df = export["ungrouped"]["edges"]
+
+        assert isinstance(nodes_df, pd.DataFrame)
+        assert isinstance(edges_df, pd.DataFrame)
+
+        assert nodes_df.shape[0] == medrecord.node_count()
+        assert edges_df.shape[0] == medrecord.edge_count()
+
     def test_schema(self) -> None:
         medrecord = MedRecord()
 

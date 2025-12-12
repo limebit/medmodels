@@ -1,9 +1,13 @@
 use crate::{
     errors::MedRecordError,
     medrecord::{Attributes, MedRecordAttribute, MedRecordValue, NodeIndex},
+    prelude::{EdgeIndex, Group},
+    MedRecord,
 };
 use chrono::{DateTime, TimeDelta};
-use polars::{datatypes::AnyValue, frame::DataFrame};
+use medmodels_utils::aliases::MrHashMap;
+use polars::{datatypes::AnyValue, frame::DataFrame, prelude::Column};
+use std::collections::HashMap;
 
 // TODO: Add tests for Duration
 impl<'a> TryFrom<AnyValue<'a>> for MedRecordValue {
@@ -81,6 +85,37 @@ impl<'a> TryFrom<AnyValue<'a>> for MedRecordAttribute {
             _ => Err(MedRecordError::ConversionError(format!(
                 "Cannot convert {value} into MedRecordAttribute"
             ))),
+        }
+    }
+}
+
+impl<'a> From<MedRecordValue> for AnyValue<'a> {
+    fn from(value: MedRecordValue) -> Self {
+        match value {
+            MedRecordValue::String(value) => AnyValue::StringOwned(value.into()),
+            MedRecordValue::Int(value) => AnyValue::Int64(value),
+            MedRecordValue::Float(value) => AnyValue::Float64(value),
+            MedRecordValue::Bool(value) => AnyValue::Boolean(value),
+            MedRecordValue::DateTime(value) => {
+                let timestamp = value.and_utc().timestamp_millis();
+
+                AnyValue::Datetime(timestamp, polars::prelude::TimeUnit::Milliseconds, None)
+            }
+            MedRecordValue::Duration(value) => {
+                let duration_ms = value.num_milliseconds();
+
+                AnyValue::Duration(duration_ms, polars::prelude::TimeUnit::Milliseconds)
+            }
+            MedRecordValue::Null => AnyValue::Null,
+        }
+    }
+}
+
+impl<'a> From<MedRecordAttribute> for AnyValue<'a> {
+    fn from(value: MedRecordAttribute) -> Self {
+        match value {
+            MedRecordAttribute::String(value) => AnyValue::StringOwned(value.into()),
+            MedRecordAttribute::Int(value) => AnyValue::Int64(value),
         }
     }
 }
@@ -198,6 +233,201 @@ pub(crate) fn dataframe_to_edges(
             ))
         })
         .collect()
+}
+
+pub struct DataFramesGroupExport {
+    pub nodes: DataFrame,
+    pub edges: DataFrame,
+}
+
+impl DataFramesGroupExport {
+    fn new(medrecord: &MedRecord, group: Option<&Group>) -> Result<Self, MedRecordError> {
+        let group_schema = match group {
+            Some(group) => medrecord.get_schema().group(group)?,
+            None => medrecord.get_schema().ungrouped(),
+        };
+        let group_string = match group {
+            Some(group) => format!("{group}"),
+            None => "ungrouped".to_string(),
+        };
+
+        let node_indices: Box<dyn Iterator<Item = &NodeIndex>> = match group {
+            Some(group) => Box::new(medrecord.nodes_in_group(group)?),
+            None => Box::new(medrecord.ungrouped_nodes()),
+        };
+
+        let group_node_attributes = node_indices.map(|node_index| {
+            (
+                node_index,
+                medrecord
+                    .node_attributes(node_index)
+                    .expect("Node index must exist"),
+            )
+        });
+
+        let node_attributes: Vec<_> = group_schema.nodes().keys().collect();
+
+        let mut node_columns: MrHashMap<MedRecordAttribute, Vec<AnyValue>> = node_attributes
+            .iter()
+            .map(|attribute_name| ((*attribute_name).clone(), Vec::new()))
+            .collect();
+
+        let node_index_attribute = MedRecordAttribute::String("node_index".into());
+
+        if node_columns.contains_key(&node_index_attribute) {
+            return Err(MedRecordError::ConversionError(
+                "Node attribute name 'node_index' is reserved".into(),
+            ));
+        }
+
+        node_columns.insert(node_index_attribute.clone(), Vec::new());
+
+        for (node_index, attributes) in group_node_attributes {
+            node_columns
+                .get_mut(&node_index_attribute)
+                .expect("Attribute must exist in columns")
+                .push(node_index.clone().into());
+
+            for attribute_name in node_attributes.iter() {
+                let attribute_value = attributes
+                    .get(attribute_name)
+                    .cloned()
+                    .unwrap_or(MedRecordValue::Null);
+
+                node_columns
+                    .get_mut(*attribute_name)
+                    .expect("Attribute must exist in columns")
+                    .push(attribute_value.into());
+            }
+        }
+
+        let node_columns: Vec<_> = node_columns
+            .into_iter()
+            .map(|(attribute_name, values)| Column::new(attribute_name.to_string().into(), values))
+            .collect();
+
+        let node_dataframe = DataFrame::new(node_columns).map_err(|_| {
+            MedRecordError::ConversionError(format!(
+                "Failed to create node DataFrame for group {group_string}"
+            ))
+        })?;
+
+        let edge_indices: Box<dyn Iterator<Item = &EdgeIndex>> = match group {
+            Some(group) => Box::new(medrecord.edges_in_group(group)?),
+            None => Box::new(medrecord.ungrouped_edges()),
+        };
+
+        let group_edge_attributes = edge_indices.map(|edge_index| {
+            let edge_endpoints = medrecord
+                .edge_endpoints(edge_index)
+                .expect("Edge index must exist");
+
+            (
+                edge_index,
+                edge_endpoints,
+                medrecord
+                    .edge_attributes(edge_index)
+                    .expect("Edge index must exist"),
+            )
+        });
+
+        let edge_attributes: Vec<_> = group_schema.edges().keys().collect();
+
+        let mut edge_columns: MrHashMap<MedRecordAttribute, Vec<AnyValue>> = edge_attributes
+            .iter()
+            .map(|attribute_name| ((*attribute_name).clone(), Vec::new()))
+            .collect();
+
+        let edge_index_attribute = MedRecordAttribute::String("edge_index".into());
+        let source_node_index_attribute = MedRecordAttribute::String("source_node_index".into());
+        let target_node_index_attribute = MedRecordAttribute::String("target_node_index".into());
+
+        if edge_columns.contains_key(&edge_index_attribute) {
+            return Err(MedRecordError::ConversionError(
+                "Edge attribute name 'edge_index' is reserved".into(),
+            ));
+        }
+        if edge_columns.contains_key(&source_node_index_attribute) {
+            return Err(MedRecordError::ConversionError(
+                "Edge attribute name 'source_node_index' is reserved".into(),
+            ));
+        }
+        if edge_columns.contains_key(&target_node_index_attribute) {
+            return Err(MedRecordError::ConversionError(
+                "Edge attribute name 'target_node_index' is reserved".into(),
+            ));
+        }
+
+        edge_columns.insert(edge_index_attribute.clone(), Vec::new());
+        edge_columns.insert(source_node_index_attribute.clone(), Vec::new());
+        edge_columns.insert(target_node_index_attribute.clone(), Vec::new());
+
+        for (edge_index, edge_endpoints, attributes) in group_edge_attributes {
+            edge_columns
+                .get_mut(&edge_index_attribute)
+                .expect("Attribute must exist in columns")
+                .push((*edge_index).into());
+            edge_columns
+                .get_mut(&source_node_index_attribute)
+                .expect("Attribute must exist in columns")
+                .push(edge_endpoints.0.clone().into());
+            edge_columns
+                .get_mut(&target_node_index_attribute)
+                .expect("Attribute must exist in columns")
+                .push(edge_endpoints.1.clone().into());
+
+            for attribute_name in edge_attributes.iter() {
+                let attribute_value = attributes
+                    .get(attribute_name)
+                    .cloned()
+                    .unwrap_or(MedRecordValue::Null);
+
+                edge_columns
+                    .get_mut(*attribute_name)
+                    .expect("Attribute must exist in columns")
+                    .push(attribute_value.into());
+            }
+        }
+
+        let edge_columns: Vec<_> = edge_columns
+            .into_iter()
+            .map(|(attribute_name, values)| Column::new(attribute_name.to_string().into(), values))
+            .collect();
+
+        let edge_dataframe = DataFrame::new(edge_columns).map_err(|_| {
+            MedRecordError::ConversionError(format!(
+                "Failed to create edge DataFrame for group {group_string}"
+            ))
+        })?;
+
+        Ok(DataFramesGroupExport {
+            nodes: node_dataframe,
+            edges: edge_dataframe,
+        })
+    }
+}
+
+pub struct DataFramesExport {
+    pub ungrouped: DataFramesGroupExport,
+    pub groups: HashMap<Group, DataFramesGroupExport>,
+}
+
+impl DataFramesExport {
+    pub fn new(medrecord: &MedRecord) -> Result<Self, MedRecordError> {
+        let ungrouped = DataFramesGroupExport::new(medrecord, None)?;
+
+        let groups = medrecord
+            .groups()
+            .map(|group| {
+                Ok::<_, MedRecordError>((
+                    group.clone(),
+                    DataFramesGroupExport::new(medrecord, Some(group))?,
+                ))
+            })
+            .collect::<Result<_, _>>()?;
+
+        Ok(DataFramesExport { ungrouped, groups })
+    }
 }
 
 #[cfg(test)]

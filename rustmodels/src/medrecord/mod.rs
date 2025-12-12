@@ -19,7 +19,10 @@ use medmodels::core::{
     errors::MedRecordError,
     medrecord::{Attributes, EdgeIndex, MedRecord, MedRecordAttribute, MedRecordValue},
 };
-use pyo3::{prelude::*, types::PyFunction};
+use pyo3::{
+    prelude::*,
+    types::{PyDict, PyFunction},
+};
 use pyo3_polars::PyDataFrame;
 use querying::{edges::PyEdgeOperand, nodes::PyNodeOperand, PyReturnOperand, PyReturnValue};
 use schema::PySchema;
@@ -122,6 +125,53 @@ impl PyMedRecord {
 
     pub fn to_ron(&self, path: &str) -> PyResult<()> {
         Ok(self.0.to_ron(path).map_err(PyMedRecordError::from)?)
+    }
+
+    pub fn to_dataframes(&self, py: Python<'_>) -> PyResult<PyObject> {
+        let export = self.0.to_dataframes().map_err(PyMedRecordError::from)?;
+
+        let outer_dict = PyDict::new(py);
+        let inner_dict = PyDict::new(py);
+
+        for (group, group_export) in export.groups {
+            let group_dict = PyDict::new(py);
+
+            let nodes_df = PyDataFrame(group_export.nodes);
+            group_dict
+                .set_item("nodes", nodes_df)
+                .expect("Setting item must succeed");
+
+            let edges_df = PyDataFrame(group_export.edges);
+            group_dict
+                .set_item("edges", edges_df)
+                .expect("Setting item must succeed");
+
+            inner_dict
+                .set_item(PyMedRecordAttribute::from(group), group_dict)
+                .expect("Setting item must succeed");
+        }
+
+        outer_dict
+            .set_item("groups", inner_dict)
+            .expect("Setting item must succeed");
+
+        let ungrouped_dict = PyDict::new(py);
+
+        let nodes_df = PyDataFrame(export.ungrouped.nodes);
+        ungrouped_dict
+            .set_item("nodes", nodes_df)
+            .expect("Setting item must succeed");
+
+        let edges_df = PyDataFrame(export.ungrouped.edges);
+        ungrouped_dict
+            .set_item("edges", edges_df)
+            .expect("Setting item must succeed");
+
+        outer_dict
+            .set_item("ungrouped", ungrouped_dict)
+            .expect("Setting item must succeed");
+
+        Ok(outer_dict.into())
     }
 
     pub fn get_schema(&self) -> PySchema {

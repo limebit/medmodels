@@ -14,7 +14,10 @@ pub use self::{
 };
 use crate::{
     errors::MedRecordError,
-    medrecord::overview::{GroupOverview, Overview, DEFAULT_TRUNCATE_DETAILS},
+    medrecord::{
+        overview::{GroupOverview, Overview, DEFAULT_TRUNCATE_DETAILS},
+        polars::DataFramesExport,
+    },
 };
 use ::polars::frame::DataFrame;
 use graph::Graph;
@@ -241,6 +244,10 @@ impl MedRecord {
                 "Failed to save MedRecord due to file error".to_string(),
             )
         })
+    }
+
+    pub fn to_dataframes(&self) -> Result<DataFramesExport, MedRecordError> {
+        DataFramesExport::new(self)
     }
 
     pub fn set_schema(&mut self, mut schema: Schema) -> Result<(), MedRecordError> {
