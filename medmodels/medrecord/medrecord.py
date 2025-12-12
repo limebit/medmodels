@@ -132,8 +132,12 @@ from medmodels.medrecord.types import (
     NodeIndexInputList,
     NodeInput,
     NodeTuple,
+    PandasDataFramesExport,
+    PandasDataFramesGroupExport,
     PandasEdgeDataFrameInput,
     PandasNodeDataFrameInput,
+    PolarsDataFramesExport,
+    PolarsDataFramesGroupExport,
     PolarsEdgeDataFrameInput,
     PolarsNodeDataFrameInput,
     is_edge_tuple,
@@ -485,6 +489,40 @@ class MedRecord:
             path (str): Path where the RON file will be written.
         """
         self._medrecord.to_ron(path)
+
+    def to_pandas(self) -> PandasDataFramesExport:
+        """Exports the MedRecord instance to Pandas DataFrames.
+
+        Returns:
+            PandasDataFramesExport: A dictionary containing 'ungrouped' and
+                'groups' DataFrames.
+        """
+        export = self._medrecord.to_dataframes()
+
+        def _convert_group_export(
+            group_export: PolarsDataFramesGroupExport,
+        ) -> PandasDataFramesGroupExport:
+            return {
+                "nodes": group_export["nodes"].to_pandas(),
+                "edges": group_export["edges"].to_pandas(),
+            }
+
+        return {
+            "ungrouped": _convert_group_export(export["ungrouped"]),
+            "groups": {
+                group: _convert_group_export(group_export)
+                for group, group_export in export["groups"].items()
+            },
+        }
+
+    def to_polars(self) -> PolarsDataFramesExport:
+        """Exports the MedRecord instance to Polars DataFrames.
+
+        Returns:
+            PolarsDataFramesExport: A dictionary containing 'ungrouped' and
+                'groups' DataFrames.
+        """
+        return self._medrecord.to_dataframes()
 
     def get_schema(self) -> Schema:
         """Returns a copy of the MedRecords schema.

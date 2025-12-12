@@ -187,6 +187,34 @@ class UnstructuredAttributeOverview(TypedDict):
     distinct_count: int
 
 
+class PolarsDataFramesGroupExport(TypedDict):
+    """Dictionary for Polars DataFrames export for a group."""
+
+    nodes: pl.DataFrame
+    edges: pl.DataFrame
+
+
+class PolarsDataFramesExport(TypedDict):
+    """Dictionary for Polars DataFrame export."""
+
+    ungrouped: PolarsDataFramesGroupExport
+    groups: Dict[Group, PolarsDataFramesGroupExport]
+
+
+class PandasDataFramesGroupExport(TypedDict):
+    """Dictionary for Pandas DataFrames export for a group."""
+
+    nodes: pd.DataFrame
+    edges: pd.DataFrame
+
+
+class PandasDataFramesExport(TypedDict):
+    """Dictionary for Pandas DataFrame export."""
+
+    ungrouped: PandasDataFramesGroupExport
+    groups: Dict[Group, PandasDataFramesGroupExport]
+
+
 def is_medrecord_attribute(value: object) -> TypeIs[MedRecordAttribute]:
     """Check if a value is a MedRecord attribute.
 

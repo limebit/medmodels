@@ -57,10 +57,10 @@ impl PyAttributeOverview {
 
     #[getter]
     pub fn data(&self, py: Python<'_>) -> PyObject {
+        let dict = PyDict::new(py);
+
         match &self.0.data {
             AttributeOverviewData::Categorical { distinct_values } => {
-                let dict = PyDict::new(py);
-
                 let distinct_values: Vec<PyMedRecordValue> = distinct_values.clone().deep_into();
 
                 dict.set_item("distinct_values", distinct_values)
@@ -73,8 +73,6 @@ impl PyAttributeOverview {
                     .into()
             }
             AttributeOverviewData::Continuous { min, mean, max } => {
-                let dict = PyDict::new(py);
-
                 dict.set_item("min", PyMedRecordValue::from(min.clone()))
                     .expect("Setting item must succeed");
                 dict.set_item("mean", PyMedRecordValue::from(mean.clone()))
@@ -84,13 +82,9 @@ impl PyAttributeOverview {
                 dict.set_item("attribute_type", PyAttributeType::Continuous)
                     .expect("Setting item must succeed");
 
-                dict.into_pyobject(py)
-                    .expect("Conversion must succeed")
-                    .into()
+                dict.into()
             }
             AttributeOverviewData::Temporal { min, max } => {
-                let dict = PyDict::new(py);
-
                 dict.set_item("min", PyMedRecordValue::from(min.clone()))
                     .expect("Setting item must succeed");
                 dict.set_item("max", PyMedRecordValue::from(max.clone()))
@@ -98,21 +92,15 @@ impl PyAttributeOverview {
                 dict.set_item("attribute_type", PyAttributeType::Temporal)
                     .expect("Setting item must succeed");
 
-                dict.into_pyobject(py)
-                    .expect("Conversion must succeed")
-                    .into()
+                dict.into()
             }
             AttributeOverviewData::Unstructured { distinct_count } => {
-                let dict = PyDict::new(py);
-
                 dict.set_item("distinct_count", *distinct_count)
                     .expect("Setting item must succeed");
                 dict.set_item("attribute_type", PyAttributeType::Unstructured)
                     .expect("Setting item must succeed");
 
-                dict.into_pyobject(py)
-                    .expect("Conversion must succeed")
-                    .into()
+                dict.into()
             }
         }
     }
