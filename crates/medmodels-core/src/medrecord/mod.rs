@@ -1,3 +1,4 @@
+pub mod attributes;
 pub mod datatypes;
 mod example_dataset;
 mod graph;
@@ -15,6 +16,7 @@ pub use self::{
 use crate::{
     errors::MedRecordError,
     medrecord::{
+        attributes::{EdgeAttributesMut, NodeAttributesMut},
         overview::{GroupOverview, Overview, DEFAULT_TRUNCATE_DETAILS},
         polars::DataFramesExport,
     },
@@ -402,13 +404,11 @@ impl MedRecord {
             .map_err(MedRecordError::from)
     }
 
-    pub fn node_attributes_mut(
-        &mut self,
-        node_index: &NodeIndex,
-    ) -> Result<&mut Attributes, MedRecordError> {
-        self.graph
-            .node_attributes_mut(node_index)
-            .map_err(MedRecordError::from)
+    pub fn node_attributes_mut<'a>(
+        &'a mut self,
+        node_index: &'a NodeIndex,
+    ) -> Result<NodeAttributesMut<'a>, MedRecordError> {
+        NodeAttributesMut::new(node_index, self)
     }
 
     pub fn outgoing_edges(
@@ -439,13 +439,11 @@ impl MedRecord {
             .map_err(MedRecordError::from)
     }
 
-    pub fn edge_attributes_mut(
-        &mut self,
-        edge_index: &EdgeIndex,
-    ) -> Result<&mut Attributes, MedRecordError> {
-        self.graph
-            .edge_attributes_mut(edge_index)
-            .map_err(MedRecordError::from)
+    pub fn edge_attributes_mut<'a>(
+        &'a mut self,
+        edge_index: &'a EdgeIndex,
+    ) -> Result<EdgeAttributesMut<'a>, MedRecordError> {
+        EdgeAttributesMut::new(edge_index, self)
     }
 
     pub fn edge_endpoints(
@@ -1314,17 +1312,18 @@ mod test {
     fn test_node_attributes_mut() {
         let mut medrecord = create_medrecord();
 
-        let attributes = medrecord.node_attributes_mut(&"0".into()).unwrap();
-
-        assert_eq!(&create_nodes()[0].1, attributes);
+        let node_index = "0".into();
+        let mut attributes = medrecord.node_attributes_mut(&node_index).unwrap();
 
         let new_attributes = HashMap::from([("0".into(), "1".into()), ("2".into(), "3".into())]);
 
-        attributes.clone_from(&new_attributes);
+        attributes
+            .replace_attributes(new_attributes.clone())
+            .unwrap();
 
         assert_eq!(
             &new_attributes,
-            medrecord.node_attributes(&"0".into()).unwrap()
+            medrecord.node_attributes(&node_index).unwrap()
         );
     }
 
@@ -1407,13 +1406,13 @@ mod test {
     fn test_edge_attributes_mut() {
         let mut medrecord = create_medrecord();
 
-        let attributes = medrecord.edge_attributes_mut(&0).unwrap();
-
-        assert_eq!(&create_edges()[0].2, attributes);
+        let mut attributes = medrecord.edge_attributes_mut(&0).unwrap();
 
         let new_attributes = HashMap::from([("0".into(), "1".into()), ("2".into(), "3".into())]);
 
-        attributes.clone_from(&new_attributes);
+        attributes
+            .replace_attributes(new_attributes.clone())
+            .unwrap();
 
         assert_eq!(&new_attributes, medrecord.edge_attributes(&0).unwrap());
     }

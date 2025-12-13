@@ -15,9 +15,8 @@ use crate::{
 };
 use attribute::PyMedRecordAttribute;
 use errors::PyMedRecordError;
-use medmodels::core::{
-    errors::MedRecordError,
-    medrecord::{Attributes, EdgeIndex, MedRecord, MedRecordAttribute, MedRecordValue},
+use medmodels::core::medrecord::{
+    Attributes, EdgeIndex, MedRecord, MedRecordAttribute, MedRecordValue,
 };
 use pyo3::{
     prelude::*,
@@ -339,9 +338,9 @@ impl PyMedRecord {
 
     pub fn remove_nodes(
         &mut self,
-        node_index: Vec<PyNodeIndex>,
+        node_indices: Vec<PyNodeIndex>,
     ) -> PyResult<HashMap<PyNodeIndex, PyAttributes>> {
-        node_index
+        node_indices
             .into_iter()
             .map(|node_index| {
                 let attributes = self
@@ -356,18 +355,20 @@ impl PyMedRecord {
 
     pub fn replace_node_attributes(
         &mut self,
-        node_index: Vec<PyNodeIndex>,
+        node_indices: Vec<PyNodeIndex>,
         attributes: PyAttributes,
     ) -> PyResult<()> {
         let attributes: Attributes = attributes.deep_into();
 
-        for node_index in node_index {
-            let current_attributes = self
+        for node_index in node_indices {
+            let mut current_attributes = self
                 .0
                 .node_attributes_mut(&node_index)
                 .map_err(PyMedRecordError::from)?;
 
-            current_attributes.clone_from(&attributes);
+            current_attributes
+                .replace_attributes(attributes.clone())
+                .map_err(PyMedRecordError::from)?;
         }
 
         Ok(())
@@ -375,23 +376,22 @@ impl PyMedRecord {
 
     pub fn update_node_attribute(
         &mut self,
-        node_index: Vec<PyNodeIndex>,
+        node_indices: Vec<PyNodeIndex>,
         attribute: PyMedRecordAttribute,
         value: PyMedRecordValue,
     ) -> PyResult<()> {
         let attribute: MedRecordAttribute = attribute.into();
         let value: MedRecordValue = value.into();
 
-        for node_index in node_index {
-            let node_attributes = self
+        for node_index in node_indices {
+            let mut node_attributes = self
                 .0
                 .node_attributes_mut(&node_index)
                 .map_err(PyMedRecordError::from)?;
 
             node_attributes
-                .entry(attribute.clone())
-                .or_default()
-                .clone_from(&value)
+                .update_attribute(&attribute, value.clone())
+                .map_err(PyMedRecordError::from)?;
         }
 
         Ok(())
@@ -399,23 +399,20 @@ impl PyMedRecord {
 
     pub fn remove_node_attribute(
         &mut self,
-        node_index: Vec<PyNodeIndex>,
+        node_indices: Vec<PyNodeIndex>,
         attribute: PyMedRecordAttribute,
     ) -> PyResult<()> {
         let attribute: MedRecordAttribute = attribute.into();
 
-        for node_index in node_index {
-            let node_attributes = self
+        for node_index in node_indices {
+            let mut node_attributes = self
                 .0
                 .node_attributes_mut(&node_index)
                 .map_err(PyMedRecordError::from)?;
 
             node_attributes
-                .remove(&attribute)
-                .ok_or(PyMedRecordError::from(MedRecordError::KeyError(format!(
-                    "Cannot find attribute {} in node {}",
-                    attribute, *node_index
-                ))))?;
+                .remove_attribute(&attribute)
+                .map_err(PyMedRecordError::from)?;
         }
 
         Ok(())
@@ -440,9 +437,9 @@ impl PyMedRecord {
 
     pub fn remove_edges(
         &mut self,
-        edge_index: Vec<EdgeIndex>,
+        edge_indices: Vec<EdgeIndex>,
     ) -> PyResult<HashMap<EdgeIndex, PyAttributes>> {
-        edge_index
+        edge_indices
             .into_iter()
             .map(|edge_index| {
                 let attributes = self
@@ -457,18 +454,20 @@ impl PyMedRecord {
 
     pub fn replace_edge_attributes(
         &mut self,
-        edge_index: Vec<EdgeIndex>,
+        edge_indices: Vec<EdgeIndex>,
         attributes: PyAttributes,
     ) -> PyResult<()> {
         let attributes: Attributes = attributes.deep_into();
 
-        for edge_index in edge_index {
-            let current_attributes = self
+        for edge_index in edge_indices {
+            let mut current_attributes = self
                 .0
                 .edge_attributes_mut(&edge_index)
                 .map_err(PyMedRecordError::from)?;
 
-            current_attributes.clone_from(&attributes);
+            current_attributes
+                .replace_attributes(attributes.clone())
+                .map_err(PyMedRecordError::from)?;
         }
 
         Ok(())
@@ -476,20 +475,22 @@ impl PyMedRecord {
 
     pub fn update_edge_attribute(
         &mut self,
-        edge_index: Vec<EdgeIndex>,
+        edge_indices: Vec<EdgeIndex>,
         attribute: PyMedRecordAttribute,
         value: PyMedRecordValue,
     ) -> PyResult<()> {
-        for edge_index in edge_index {
-            let edge_attributes = self
+        let attribute: MedRecordAttribute = attribute.into();
+        let value: MedRecordValue = value.into();
+
+        for edge_index in edge_indices {
+            let mut edge_attributes = self
                 .0
                 .edge_attributes_mut(&edge_index)
                 .map_err(PyMedRecordError::from)?;
 
             edge_attributes
-                .entry((*attribute).clone())
-                .or_default()
-                .clone_from(&value);
+                .update_attribute(&attribute, value.clone())
+                .map_err(PyMedRecordError::from)?;
         }
 
         Ok(())
@@ -497,21 +498,20 @@ impl PyMedRecord {
 
     pub fn remove_edge_attribute(
         &mut self,
-        edge_index: Vec<EdgeIndex>,
+        edge_indices: Vec<EdgeIndex>,
         attribute: PyMedRecordAttribute,
     ) -> PyResult<()> {
-        for edge_index in edge_index {
-            let edge_attributes = self
+        let attribute: MedRecordAttribute = attribute.into();
+
+        for edge_index in edge_indices {
+            let mut edge_attributes = self
                 .0
                 .edge_attributes_mut(&edge_index)
                 .map_err(PyMedRecordError::from)?;
 
             edge_attributes
-                .remove(&attribute)
-                .ok_or(PyMedRecordError::from(MedRecordError::KeyError(format!(
-                    "Cannot find attribute {} in edge {}",
-                    *attribute, edge_index
-                ))))?;
+                .remove_attribute(&attribute)
+                .map_err(PyMedRecordError::from)?;
         }
 
         Ok(())
