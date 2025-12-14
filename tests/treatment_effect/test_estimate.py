@@ -251,10 +251,15 @@ class TestEstimate:
             medrecord,
             outcome_variable="intensity",
         )
+        t_test = tee.estimate.t_test(
+            medrecord,
+            outcome_variable="intensity",
+        )
 
         assert average_treatment_effect == pytest.approx(-0.1)
         assert cohens_d == pytest.approx(-0.5)
         assert hedges_g == pytest.approx(-0.4)
+        assert t_test == (pytest.approx(-0.61, 2), pytest.approx(0.59, 2))
 
 
 if __name__ == "__main__":
