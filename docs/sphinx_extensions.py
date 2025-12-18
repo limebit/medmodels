@@ -26,6 +26,70 @@ from sphinx.application import Sphinx
 from sphinx.util import parselinenos
 from sphinx.util.docutils import SphinxDirective
 
+# Modules to scan for type alias discovery
+MODULES_TO_SCAN = [
+    "medmodels.medrecord.types",
+    "medmodels.medrecord.querying",
+    "medmodels.medrecord.schema",
+    "medmodels.medrecord.datatype",
+]
+
+# Mutable cache for discovered type names (populated on first use)
+_type_names: Dict[str, str] = {}
+_type_names_initialized = False
+
+
+def _get_typing_links() -> Dict[str, str]:
+    """Generate links to Python docs for typing module types.
+
+    Returns:
+        Dict[str, str]: Mapping of type name to Python docs URL.
+    """
+    import typing
+
+    base_url = "https://docs.python.org/3/library/typing.html#typing."
+    links: Dict[str, str] = {}
+
+    # Skip internal type variables and constants
+    skip_names = {
+        # Type variables used internally
+        "T", "T_co", "T_contra", "KT", "VT", "VT_co", "V_co", "CT_co", "AnyStr",
+        # Constants
+        "TYPE_CHECKING", "EXCLUDED_ATTRIBUTES",
+        # Internal/meta classes
+        "ABCMeta", "GenericAlias", "NamedTupleMeta", "ForwardRef",
+        # Param spec internals
+        "ParamSpecArgs", "ParamSpecKwargs",
+    }
+
+    for name in dir(typing):
+        # Skip private names
+        if name.startswith("_"):
+            continue
+
+        # Skip known internal names
+        if name in skip_names:
+            continue
+
+        # Only include PascalCase names (skip ALL_CAPS constants)
+        if not name[0].isupper() or name.isupper():
+            continue
+
+        obj = getattr(typing, name, None)
+        if obj is None:
+            continue
+
+        # Skip basic types that are just re-exports (like int, str)
+        if hasattr(obj, "__module__") and obj.__module__ == "builtins":
+            continue
+
+        links[name] = f"{base_url}{name}"
+
+    return links
+
+
+TYPING_LINKS = _get_typing_links()
+
 
 class ErrorMessageNode(nodes.General, nodes.Element):
     """A custom node to represent a formatted error message."""
@@ -204,14 +268,244 @@ class ExecLiteralInclude(SphinxDirective):
         return parselinenos(line_range_str, total_lines)
 
 
+def discover_type_names() -> Dict[str, str]:
+    """Discover type alias and class names from medmodels modules.
+
+    Only includes types that are unique to medmodels (not in typing module).
+
+    Returns:
+        Dict[str, str]: Mapping of type name to module name.
+    """
+    import importlib
+    import inspect
+    import typing
+
+    types: Dict[str, str] = {}
+
+    # Get all names from the typing module to avoid conflicts
+    typing_names = set(dir(typing))
+
+    for module_name in MODULES_TO_SCAN:
+        module = importlib.import_module(module_name)
+
+        for name in dir(module):
+            if name.startswith("_"):
+                continue
+
+            # Skip names that exist in the typing module to avoid conflicts
+            if name in typing_names:
+                continue
+
+            obj = getattr(module, name, None)
+            if obj is None:
+                continue
+
+            obj_module = getattr(obj, "__module__", None)
+
+            # Classes defined in this module
+            if inspect.isclass(obj) and obj_module == module_name:
+                types[name] = module_name
+                continue
+
+            # Type aliases (annotated names)
+            annotations = getattr(module, "__annotations__", {})
+            if name in annotations:
+                types[name] = module_name
+
+    return types
+
+
+def get_autodoc_type_aliases() -> Dict[str, str]:
+    """Get autodoc_type_aliases config from discovered types.
+
+    Returns:
+        Dict[str, str]: Mapping of type name to itself for autodoc.
+    """
+    return {name: name for name in discover_type_names()}
+
+
+def _fix_typing_references(doctree: nodes.document) -> None:
+    """Fix references to typing module types that were incorrectly resolved.
+
+    sphinx_autodoc_typehints sometimes resolves typing.Union, typing.Optional, etc.
+    to local classes with the same name. This function fixes those references
+    to point to Python docs instead.
+    """
+    # Mapping of incorrectly resolved refs to correct Python docs URLs
+    typing_fixes = {
+        "medmodels.medrecord.datatype.Union": "https://docs.python.org/3/library/typing.html#typing.Union",
+        "medmodels.medrecord.datatype.Optional": "https://docs.python.org/3/library/typing.html#typing.Optional",
+    }
+
+    for ref in list(doctree.findall(nodes.reference)):
+        refuri = ref.get("refuri", "")
+        reftitle = ref.get("reftitle", "")
+
+        # Check if this reference points to a wrongly resolved typing type
+        for wrong_target, correct_url in typing_fixes.items():
+            if wrong_target in refuri or wrong_target in reftitle:
+                # Convert to external reference pointing to Python docs
+                ref["refuri"] = correct_url
+                ref["internal"] = False
+                ref["classes"] = ["reference", "external"]
+                if "reftitle" in ref.attributes:
+                    del ref.attributes["reftitle"]
+                break
+
+
+def _get_doc_target(app: Sphinx, type_name: str, module_name: str) -> str:
+    """Get the documentation target for a type, checking if the page exists.
+
+    Args:
+        app: The Sphinx application instance.
+        type_name: The name of the type.
+        module_name: The module where the type is defined.
+
+    Returns:
+        The documentation path (without .html extension).
+    """
+    # Check the autosummary RST source files (generated before doctree processing)
+    srcdir = Path(app.srcdir) / "api" / "_autosummary"
+
+    # First try the specific type page
+    specific_path = f"{module_name}.{type_name}"
+    if (srcdir / f"{specific_path}.rst").exists():
+        return specific_path
+
+    # Fall back to module page
+    if (srcdir / f"{module_name}.rst").exists():
+        return module_name
+
+    # Last resort: return the module path (safer than broken specific link)
+    return module_name
+
+
+def link_type_aliases(app: Sphinx, doctree: nodes.document, docname: str) -> None:
+    """Link type alias names to their documentation pages.
+
+    This function processes the doctree and replaces type alias names
+    with cross-reference links to their documentation. Also links typing
+    module types (List, Optional, etc.) to Python docs.
+
+    Args:
+        app: The Sphinx application instance.
+        doctree: The document tree.
+        docname: The name of the document being processed.
+    """
+    import re
+
+    global _type_names, _type_names_initialized
+
+    # Initialize type names on first call
+    if not _type_names_initialized:
+        _type_names.update(discover_type_names())
+        _type_names_initialized = True
+
+    # Fix incorrectly resolved typing module references
+    # sphinx_autodoc_typehints sometimes resolves typing.Union to local Union classes
+    _fix_typing_references(doctree)
+
+    # Combine medmodels types and typing module types for pattern matching
+    all_type_names = set(_type_names.keys()) | set(TYPING_LINKS.keys())
+
+    if not all_type_names:
+        return
+
+    # Calculate the relative path prefix based on document depth
+    depth = docname.count("/")
+    prefix = "../" * depth + "api/_autosummary/"
+
+    # Build regex pattern to match type aliases (whole words only)
+    pattern = re.compile(
+        r"\b(" + "|".join(re.escape(t) for t in all_type_names) + r")\b"
+    )
+
+    # Find all Text nodes and check for type aliases
+    for node in list(doctree.findall(nodes.Text)):
+        parent = node.parent
+        if parent is None:
+            continue
+
+        # Skip if already inside a reference (check all ancestors)
+        ancestor = parent
+        skip = False
+        while ancestor is not None:
+            if isinstance(ancestor, nodes.reference):
+                skip = True
+                break
+            if isinstance(ancestor, (nodes.literal_block, nodes.raw, nodes.comment)):
+                skip = True
+                break
+            ancestor = ancestor.parent
+        if skip:
+            continue
+
+        text = str(node)
+        matches = list(pattern.finditer(text))
+
+        if not matches:
+            continue
+
+        # Build new nodes with links
+        new_nodes: List[nodes.Node] = []
+        last_end = 0
+
+        for match in matches:
+            # Add text before match
+            if match.start() > last_end:
+                new_nodes.append(nodes.Text(text[last_end : match.start()]))
+
+            # Create reference node for the type
+            type_name = match.group(1)
+
+            if type_name in TYPING_LINKS:
+                # Link to Python docs for typing module types
+                ref_node = nodes.reference(
+                    "",
+                    type_name,
+                    internal=False,
+                    refuri=TYPING_LINKS[type_name],
+                    classes=["reference", "external"],
+                )
+            else:
+                # Link to medmodels docs for custom types
+                module_name = _type_names[type_name]
+                target = _get_doc_target(app, type_name, module_name)
+                ref_uri = f"{prefix}{target}.html"
+
+                ref_node = nodes.reference(
+                    "",
+                    type_name,
+                    internal=True,
+                    refuri=ref_uri,
+                    classes=["reference", "internal"],
+                )
+            new_nodes.append(ref_node)
+            last_end = match.end()
+
+        # Add remaining text
+        if last_end < len(text):
+            new_nodes.append(nodes.Text(text[last_end:]))
+
+        # Replace the original text node with new nodes
+        if new_nodes:
+            parent_index = parent.index(node)
+            parent.remove(node)
+            for i, new_node in enumerate(new_nodes):
+                parent.insert(parent_index + i, new_node)
+
+
 def setup(app: Sphinx) -> None:
     """Set up the Sphinx extension.
 
     Args:
-        app (Sphinx): The Sphinx application instance.
+        app: The Sphinx application instance.
     """
     app.add_directive("exec-literalinclude", ExecLiteralInclude)
     app.add_node(
         ErrorMessageNode, html=(visit_error_message_node, depart_error_message_node)
     )
     app.add_css_file("exec_literalinclude.css")
+
+    # Register the type alias linker
+    app.connect("doctree-resolved", link_type_aliases)

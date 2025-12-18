@@ -1,6 +1,5 @@
 # pyright: reportPrivateImportUsage=false
-
-"""Sphinx configuration."""
+"""Sphinx configuration for MedModels documentation."""
 
 import importlib.metadata
 import sys
@@ -13,46 +12,67 @@ from sphinx.application import Sphinx
 sys.path.insert(0, str(Path(__file__).parent.parent))
 sys.path.insert(0, str(Path(__file__).parent))
 
-# Project information
+
+# -- Project information -----------------------------------------------------
 project = "MedModels"
 author = "Limebit GmbH"
 copyright = f"{date.today().year}, {author}"
 version = f"v{importlib.metadata.version(project)}"
 
-# General configuration
+# -- General configuration ---------------------------------------------------
+language = "en"
+root_doc = "index"
+source_suffix = {".rst": "restructuredtext", ".md": "markdown"}
+exclude_patterns = ["_build"]
+templates_path = ["_templates"]
+
 extensions = [
-    "sphinx.ext.napoleon",
-    "myst_parser",
-    "sphinx.ext.viewcode",
+    # Sphinx built-in extensions
     "sphinx.ext.autodoc",
     "sphinx.ext.autosummary",
+    "sphinx.ext.intersphinx",
+    "sphinx.ext.napoleon",
+    "sphinx.ext.viewcode",
+    "sphinx.ext.extlinks",
+    # Third-party extensions
+    "myst_parser",
     "sphinx_autodoc_typehints",
-    "sphinx_design",
-    "sphinx_extensions",
     "sphinx_copybutton",
+    "sphinx_design",
     "sphinx_pyscript",
     "sphinx_tippy",
     "sphinx_togglebutton",
-    "sphinx.ext.extlinks",
+    # Local extensions
+    "sphinx_extensions",
 ]
 
-exclude_patterns = ["_build"]
+# -- Extension configuration -------------------------------------------------
+
+# sphinx.ext.extlinks
 extlinks = {
     "doi": ("https://doi.org/%s", "DOI: %s"),
     "gh-issue": ("https://github.com/limebit/medmodels/issues/%s", "issue #%s"),
     "gh-user": ("https://github.com/%s", "@%s"),
 }
 
+# sphinx.ext.intersphinx
+intersphinx_mapping = {
+    "python": ("https://docs.python.org/3", None),
+    "numpy": ("https://numpy.org/doc/stable/", None),
+    "pandas": ("https://pandas.pydata.org/docs/", None),
+    "polars": ("https://docs.pola.rs/api/python/stable/", None),
+    "sklearn": ("https://scikit-learn.org/stable/", None),
+    "scipy": ("https://docs.scipy.org/doc/scipy/", None),
+}
+
 suppress_warnings = ["myst.strikethrough"]
 overloads_location = ["bottom"]  # Hide overload type signatures
 
-# Extension settings
+# sphinx_copybutton
 copybutton_prompt_text = r">>> |\.\.\. "
 copybutton_prompt_is_regexp = True
 
-source_suffix = {".rst": "restructuredtext", ".md": "markdown"}
-
-# Napoleon settings
+# sphinx.ext.napoleon
 napoleon_google_docstring = True
 napoleon_numpy_docstring = False
 napoleon_include_init_with_doc = False
@@ -67,7 +87,7 @@ napoleon_use_rtype = False
 napoleon_preprocess_types = False
 napoleon_attr_annotations = True
 
-# AutoDoc settings
+# sphinx.ext.autodoc and sphinx.ext.autosummary
 autodoc_default_options = {
     "members": True,
     "undoc-members": False,
@@ -82,8 +102,18 @@ autosummary_imported_members = False
 add_module_names = False
 autodoc_typehints = "signature"
 autodoc_typehints_format = "short"
+maximum_signature_line_length = 88
 
-# MyST settings
+# Auto-generate Type Aliases from medmodels modules (see sphinx_extensions.py)
+autodoc_type_aliases = importlib.import_module(
+    "sphinx_extensions"
+).get_autodoc_type_aliases()
+
+# sphinx_autodoc_typehints settings for cross-reference linking
+typehints_fully_qualified = False
+always_use_bars_union = False
+
+# myst_parser
 myst_enable_extensions = [
     "dollarmath",
     "amsmath",
@@ -136,7 +166,7 @@ myst_substitutions = {
     "directive": "[directive](#syntax/directives)",
 }
 
-# HTML output options
+# -- HTML output -------------------------------------------------------------
 html_theme = "pydata_sphinx_theme"
 html_logo = "https://raw.githubusercontent.com/limebit/medmodels-static/main/logos/logo_color.svg"
 html_favicon = "https://raw.githubusercontent.com/limebit/medmodels-static/main/icons/favicon-32x32.png"
@@ -176,11 +206,11 @@ html_css_files = ["local.css"]
 tippy_skip_anchor_classes = ("headerlink", "sd-stretched-link", "sd-rounded-pill")
 tippy_anchor_parent_selector = "article.bd-article"
 
-# LaTeX output
+# -- Other output formats ----------------------------------------------------
 latex_engine = "xelatex"
 
 
-# Local Sphinx extensions
+# -- Custom setup ------------------------------------------------------------
 def setup(app: Sphinx) -> None:
     """Add custom directives and transformations to Sphinx."""
     from myst_parser._docs import (
