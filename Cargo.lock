@@ -1183,6 +1183,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "medmodels-python"
+version = "0.4.4"
+dependencies = [
+ "bincode",
+ "chrono",
+ "medmodels",
+ "numpy",
+ "polars",
+ "pyo3",
+ "pyo3-polars",
+ "rayon",
+ "serde",
+]
+
+[[package]]
 name = "medmodels-utils"
 version = "0.4.4"
 dependencies = [
@@ -2091,15 +2106,9 @@ dependencies = [
 name = "py-medmodels"
 version = "0.4.4"
 dependencies = [
- "bincode",
- "chrono",
  "medmodels",
- "numpy",
- "polars",
+ "medmodels-python",
  "pyo3",
- "pyo3-polars",
- "rayon",
- "serde",
 ]
 
 [[package]]

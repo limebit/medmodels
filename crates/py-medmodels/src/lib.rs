@@ -1,56 +1,7 @@
 #![recursion_limit = "256"]
 
-pub mod gil_hash_map;
-pub mod medrecord;
-pub mod prelude;
-
-use crate::medrecord::{
-    overview::{
-        PyAttributeOverview, PyEdgeGroupOverview, PyGroupOverview, PyNodeGroupOverview, PyOverview,
-    },
-    querying::PyMatchMode,
-};
 use medmodels::core::medrecord::overview::DEFAULT_TRUNCATE_DETAILS;
-use medrecord::{
-    datatype::{
-        PyAny, PyBool, PyDateTime, PyDuration, PyFloat, PyInt, PyNull, PyOption, PyString, PyUnion,
-    },
-    querying::{
-        attributes::{
-            PyEdgeAttributesTreeGroupOperand, PyEdgeAttributesTreeOperand,
-            PyEdgeMultipleAttributesWithIndexGroupOperand,
-            PyEdgeMultipleAttributesWithIndexOperand, PyEdgeMultipleAttributesWithoutIndexOperand,
-            PyEdgeSingleAttributeWithIndexGroupOperand, PyEdgeSingleAttributeWithIndexOperand,
-            PyEdgeSingleAttributeWithoutIndexGroupOperand,
-            PyEdgeSingleAttributeWithoutIndexOperand, PyNodeAttributesTreeGroupOperand,
-            PyNodeAttributesTreeOperand, PyNodeMultipleAttributesWithIndexGroupOperand,
-            PyNodeMultipleAttributesWithIndexOperand, PyNodeMultipleAttributesWithoutIndexOperand,
-            PyNodeSingleAttributeWithIndexGroupOperand, PyNodeSingleAttributeWithIndexOperand,
-            PyNodeSingleAttributeWithoutIndexGroupOperand,
-            PyNodeSingleAttributeWithoutIndexOperand,
-        },
-        edges::{
-            EdgeOperandGroupDiscriminator, PyEdgeGroupOperand, PyEdgeIndexGroupOperand,
-            PyEdgeIndexOperand, PyEdgeIndicesGroupOperand, PyEdgeIndicesOperand, PyEdgeOperand,
-        },
-        nodes::{
-            NodeOperandGroupDiscriminator, PyEdgeDirection, PyNodeGroupOperand,
-            PyNodeIndexGroupOperand, PyNodeIndexOperand, PyNodeIndicesGroupOperand,
-            PyNodeIndicesOperand, PyNodeOperand,
-        },
-        values::{
-            PyEdgeMultipleValuesWithIndexGroupOperand, PyEdgeMultipleValuesWithIndexOperand,
-            PyEdgeMultipleValuesWithoutIndexOperand, PyEdgeSingleValueWithIndexGroupOperand,
-            PyEdgeSingleValueWithIndexOperand, PyEdgeSingleValueWithoutIndexGroupOperand,
-            PyEdgeSingleValueWithoutIndexOperand, PyNodeMultipleValuesWithIndexGroupOperand,
-            PyNodeMultipleValuesWithIndexOperand, PyNodeMultipleValuesWithoutIndexOperand,
-            PyNodeSingleValueWithIndexGroupOperand, PyNodeSingleValueWithIndexOperand,
-            PyNodeSingleValueWithoutIndexGroupOperand, PyNodeSingleValueWithoutIndexOperand,
-        },
-    },
-    schema::{PyAttributeDataType, PyAttributeType, PyGroupSchema, PySchema, PySchemaType},
-    PyMedRecord,
-};
+use medmodels_python::prelude::*;
 use pyo3::prelude::*;
 
 #[pymodule]
@@ -64,7 +15,7 @@ fn _medmodels(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyDateTime>()?;
     m.add_class::<PyDuration>()?;
     m.add_class::<PyNull>()?;
-    m.add_class::<PyAny>()?;
+    m.add_class::<medmodels_python::prelude::PyAny>()?;
     m.add_class::<PyUnion>()?;
     m.add_class::<PyOption>()?;
 
