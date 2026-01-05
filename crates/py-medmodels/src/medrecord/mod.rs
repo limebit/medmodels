@@ -801,6 +801,7 @@ impl PyMedRecord {
             .map_err(PyMedRecordError::from)?)
     }
 
+    #[allow(clippy::should_implement_trait)]
     pub fn clone(&self) -> Self {
         Self(self.0.clone())
     }
