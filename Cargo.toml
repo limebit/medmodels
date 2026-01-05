@@ -3,7 +3,7 @@ members = ["crates/*"]
 resolver = "2"
 
 [workspace.package]
-version = "0.4.3"
+version = "0.4.4"
 edition = "2021"
 repository = "https://github.com/limebit/medmodels"
 license = "BSD-3-Clause"
@@ -17,7 +17,7 @@ polars = { version = "0.48.1", features = ["polars-io", "dtype-full"] }
 chrono = { version = "0.4.38", features = ["serde"] }
 rayon = "1.10.0"
 
-medmodels = { version = "0.4.3", path = "crates/medmodels" }
-medmodels-core = { version = "0.4.3", path = "crates/medmodels-core" }
-medmodels-utils = { version = "0.4.3", path = "crates/medmodels-utils" }
-py-medmodels = { version = "0.4.3", path = "crates/py-medmodels" }
+medmodels = { version = "0.4.4", path = "crates/medmodels" }
+medmodels-core = { version = "0.4.4", path = "crates/medmodels-core" }
+medmodels-utils = { version = "0.4.4", path = "crates/medmodels-utils" }
+py-medmodels = { version = "0.4.4", path = "crates/py-medmodels" }
