@@ -29,9 +29,9 @@ use std::collections::HashMap;
 use traits::DeepInto;
 use value::PyMedRecordValue;
 
-pub(crate) type PyAttributes = HashMap<PyMedRecordAttribute, PyMedRecordValue>;
-pub(crate) type PyGroup = PyMedRecordAttribute;
-pub(crate) type PyNodeIndex = PyMedRecordAttribute;
+pub type PyAttributes = HashMap<PyMedRecordAttribute, PyMedRecordValue>;
+pub type PyGroup = PyMedRecordAttribute;
+pub type PyNodeIndex = PyMedRecordAttribute;
 type Lut<T> = GILHashMap<usize, fn(&Bound<'_, PyAny>) -> PyResult<T>>;
 
 #[pyclass]
