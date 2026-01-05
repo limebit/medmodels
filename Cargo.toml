@@ -1,5 +1,5 @@
 [workspace]
-members = ["crates/*", "rustmodels"]
+members = ["crates/*"]
 resolver = "2"
 
 [workspace.package]
@@ -20,3 +20,4 @@ rayon = "1.10.0"
 medmodels = { version = "0.4.3", path = "crates/medmodels" }
 medmodels-core = { version = "0.4.3", path = "crates/medmodels-core" }
 medmodels-utils = { version = "0.4.3", path = "crates/medmodels-utils" }
+py-medmodels = { version = "0.4.3", path = "crates/py-medmodels" }

@@ -75,7 +75,7 @@ build-backend = "maturin"
 [tool.maturin]
 features = ["pyo3/extension-module"]
 exclude = ["tests", "examples"]
-manifest-path = "rustmodels/Cargo.toml"
+manifest-path = "crates/py-medmodels/Cargo.toml"
 module-name = "medmodels._medmodels"
 
 [tool.ruff]
@@ -189,5 +189,4 @@ cache-keys = [
     { file = "pyproject.toml" },
     { file = "rust/Cargo.toml" },
     { file = "crates/**/*.rs" },
-    { file = "rustmodels/**/*.rs" },
 ]

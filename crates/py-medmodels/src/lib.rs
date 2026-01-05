@@ -1,7 +1,8 @@
 #![recursion_limit = "256"]
 
-mod gil_hash_map;
-mod medrecord;
+pub mod gil_hash_map;
+pub mod medrecord;
+pub mod prelude;
 
 use crate::medrecord::{
     overview::{
