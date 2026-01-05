@@ -15,9 +15,11 @@ hashbrown = { version = "0.14.5", features = ["serde"] }
 serde = { version = "1.0.203", features = ["derive"] }
 polars = { version = "0.48.1", features = ["polars-io", "dtype-full"] }
 chrono = { version = "0.4.38", features = ["serde"] }
+pyo3 = { version = "0.24", features = ["chrono", "extension-module"] }
 rayon = "1.10.0"
 
 medmodels = { version = "0.4.4", path = "crates/medmodels" }
 medmodels-core = { version = "0.4.4", path = "crates/medmodels-core" }
 medmodels-utils = { version = "0.4.4", path = "crates/medmodels-utils" }
+medmodels-python = { version = "0.4.4", path = "crates/medmodels-python" }
 py-medmodels = { version = "0.4.4", path = "crates/py-medmodels" }

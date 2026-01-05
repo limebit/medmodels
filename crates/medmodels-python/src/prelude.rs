@@ -2,6 +2,9 @@ pub use crate::medrecord::{
     datatype::{
         PyAny, PyBool, PyDateTime, PyDuration, PyFloat, PyInt, PyNull, PyOption, PyString, PyUnion,
     },
+    overview::{
+        PyAttributeOverview, PyEdgeGroupOverview, PyGroupOverview, PyNodeGroupOverview, PyOverview,
+    },
     querying::{
         attributes::{
             PyEdgeAttributesTreeGroupOperand, PyEdgeAttributesTreeOperand,
@@ -34,6 +37,7 @@ pub use crate::medrecord::{
             PyNodeSingleValueWithIndexGroupOperand, PyNodeSingleValueWithIndexOperand,
             PyNodeSingleValueWithoutIndexGroupOperand, PyNodeSingleValueWithoutIndexOperand,
         },
+        PyMatchMode,
     },
     schema::{PyAttributeDataType, PyAttributeType, PyGroupSchema, PySchema, PySchemaType},
     PyMedRecord,
