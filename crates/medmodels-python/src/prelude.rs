@@ -1,7 +1,9 @@
 pub use crate::medrecord::{
+    attribute::PyMedRecordAttribute,
     datatype::{
         PyAny, PyBool, PyDateTime, PyDuration, PyFloat, PyInt, PyNull, PyOption, PyString, PyUnion,
     },
+    errors::PyMedRecordError,
     overview::{
         PyAttributeOverview, PyEdgeGroupOverview, PyGroupOverview, PyNodeGroupOverview, PyOverview,
     },
@@ -40,5 +42,6 @@ pub use crate::medrecord::{
         PyMatchMode,
     },
     schema::{PyAttributeDataType, PyAttributeType, PyGroupSchema, PySchema, PySchemaType},
-    PyMedRecord,
+    value::PyMedRecordValue,
+    PyAttributes, PyEdgeIndex, PyGroup, PyMedRecord, PyNodeIndex,
 };
