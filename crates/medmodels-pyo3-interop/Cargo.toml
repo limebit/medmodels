@@ -1,21 +1,16 @@
 [package]
-name = "medmodels-python"
+name = "medmodels-pyo3-interop"
 version = { workspace = true }
 description = { workspace = true }
 edition = { workspace = true }
 repository = { workspace = true }
 license = { workspace = true }
-readme = "../../README.md"
+readme = "README.md"
+
 
 [dependencies]
 medmodels = { workspace = true }
+medmodels-python = { workspace = true }
 
-polars = { workspace = true }
-chrono = { workspace = true }
-serde = { workspace = true }
-rayon = { workspace = true }
 pyo3 = { workspace = true }
 bincode = { workspace = true }
-
-pyo3-polars = "0.21.0"
-numpy = "0.24.0"

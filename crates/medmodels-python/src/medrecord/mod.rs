@@ -15,12 +15,13 @@ use crate::{
 };
 use attribute::PyMedRecordAttribute;
 use errors::PyMedRecordError;
-use medmodels::core::medrecord::{
-    Attributes, EdgeIndex, MedRecord, MedRecordAttribute, MedRecordValue,
+use medmodels::core::{
+    errors::MedRecordError,
+    medrecord::{Attributes, EdgeIndex, MedRecord, MedRecordAttribute, MedRecordValue},
 };
 use pyo3::{
     prelude::*,
-    types::{PyDict, PyFunction},
+    types::{PyBytes, PyDict, PyFunction},
 };
 use pyo3_polars::PyDataFrame;
 use querying::{edges::PyEdgeOperand, nodes::PyNodeOperand, PyReturnOperand, PyReturnValue};
@@ -32,6 +33,7 @@ use value::PyMedRecordValue;
 pub type PyAttributes = HashMap<PyMedRecordAttribute, PyMedRecordValue>;
 pub type PyGroup = PyMedRecordAttribute;
 pub type PyNodeIndex = PyMedRecordAttribute;
+pub type PyEdgeIndex = EdgeIndex;
 type Lut<T> = GILHashMap<usize, fn(&Bound<'_, PyAny>) -> PyResult<T>>;
 
 #[pyclass]
@@ -62,6 +64,23 @@ impl PyMedRecord {
     #[new]
     pub fn new() -> Self {
         Self(MedRecord::new())
+    }
+
+    pub fn _to_bytes<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyBytes>> {
+        let bytes = bincode::serialize(&self.0)
+            .map_err(|_| MedRecordError::ConversionError("Could not serialize MedRecord".into()))
+            .map_err(PyMedRecordError::from)?;
+
+        Ok(PyBytes::new(py, &bytes))
+    }
+
+    #[staticmethod]
+    pub fn _from_bytes(data: &Bound<'_, PyBytes>) -> PyResult<Self> {
+        let medrecord = bincode::deserialize(data.as_bytes())
+            .map_err(|_| MedRecordError::ConversionError("Could not deserialize MedRecord".into()))
+            .map_err(PyMedRecordError::from)?;
+
+        Ok(Self(medrecord))
     }
 
     #[staticmethod]
