@@ -5,12 +5,15 @@ use super::{
     traits::{DeepFrom, DeepInto},
     PyAttributes, PyGroup, PyMedRecord, PyNodeIndex,
 };
-use medmodels::core::{
-    errors::GraphError,
-    medrecord::{
-        schema::{AttributeDataType, AttributeType, GroupSchema, Schema, SchemaType},
-        EdgeIndex, Group,
+use medmodels::{
+    core::{
+        errors::GraphError,
+        medrecord::{
+            schema::{AttributeDataType, AttributeType, GroupSchema, Schema, SchemaType},
+            EdgeIndex, Group,
+        },
     },
+    utils::traits::ReadWriteOrPanic,
 };
 use pyo3::prelude::*;
 use std::collections::HashMap;
@@ -245,10 +248,12 @@ impl PySchema {
     }
 
     #[staticmethod]
-    pub fn infer(medrecord: Bound<'_, PyMedRecord>) -> Self {
+    pub fn infer(medrecord: &Bound<'_, PyMedRecord>) -> Self {
         let medrecord_borrowed = medrecord.borrow();
 
-        Self(Schema::infer(medrecord_borrowed.as_ref()))
+        let medrecord_ref = medrecord_borrowed.0.read_or_panic();
+
+        Self(Schema::infer(&medrecord_ref))
     }
 
     #[getter]
