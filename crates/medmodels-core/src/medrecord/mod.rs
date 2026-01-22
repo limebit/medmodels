@@ -497,6 +497,44 @@ impl MedRecord {
             .map_err(MedRecordError::from)
     }
 
+    // TODO: Add tests
+    pub fn add_node_with_group(
+        &mut self,
+        node_index: NodeIndex,
+        attributes: Attributes,
+        group: Group,
+    ) -> Result<(), MedRecordError> {
+        match self.schema.schema_type() {
+            SchemaType::Inferred => {
+                let nodes_in_group = self
+                    .group_mapping
+                    .nodes_in_group
+                    .get(&group)
+                    .map(|nodes| nodes.len())
+                    .unwrap_or(0);
+
+                self.schema
+                    .update_node(&attributes, Some(&group), nodes_in_group == 0);
+            }
+            SchemaType::Provided => {
+                self.schema
+                    .validate_node(&node_index, &attributes, Some(&group))?;
+            }
+        }
+
+        self.graph
+            .add_node(node_index.clone(), attributes)
+            .map_err(MedRecordError::from)?;
+
+        self.group_mapping
+            .add_node_to_group(group, node_index.clone())
+            .inspect_err(|_| {
+                self.graph
+                    .remove_node(&node_index, &mut self.group_mapping)
+                    .expect("Node must exist");
+            })
+    }
+
     pub fn remove_node(&mut self, node_index: &NodeIndex) -> Result<Attributes, MedRecordError> {
         self.group_mapping.remove_node(node_index);
 
@@ -508,6 +546,23 @@ impl MedRecord {
     pub fn add_nodes(&mut self, nodes: Vec<(NodeIndex, Attributes)>) -> Result<(), MedRecordError> {
         for (node_index, attributes) in nodes.into_iter() {
             self.add_node(node_index, attributes)?;
+        }
+
+        Ok(())
+    }
+
+    // TODO: Add tests
+    pub fn add_nodes_with_group(
+        &mut self,
+        nodes: Vec<(NodeIndex, Attributes)>,
+        group: Group,
+    ) -> Result<(), MedRecordError> {
+        if !self.contains_group(&group) {
+            self.add_group(group.clone(), None, None)?;
+        }
+
+        for (node_index, attributes) in nodes.into_iter() {
+            self.add_node_with_group(node_index, attributes, group.clone())?;
         }
 
         Ok(())
@@ -530,6 +585,27 @@ impl MedRecord {
             .collect();
 
         self.add_nodes(nodes)
+    }
+
+    // TODO: Add tests
+    pub fn add_nodes_dataframes_with_group(
+        &mut self,
+        nodes_dataframes: impl IntoIterator<Item = impl Into<NodeDataFrameInput>>,
+        group: Group,
+    ) -> Result<(), MedRecordError> {
+        let nodes = nodes_dataframes
+            .into_iter()
+            .map(|dataframe_input| {
+                let dataframe_input = dataframe_input.into();
+
+                dataframe_to_nodes(dataframe_input.dataframe, &dataframe_input.index_column)
+            })
+            .collect::<Result<Vec<_>, _>>()?
+            .into_iter()
+            .flatten()
+            .collect();
+
+        self.add_nodes_with_group(nodes, group)
     }
 
     pub fn add_edge(
@@ -569,6 +645,53 @@ impl MedRecord {
         }
     }
 
+    // TODO: Add tests
+    pub fn add_edge_with_group(
+        &mut self,
+        source_node_index: NodeIndex,
+        target_node_index: NodeIndex,
+        attributes: Attributes,
+        group: Group,
+    ) -> Result<EdgeIndex, MedRecordError> {
+        let edge_index = self
+            .graph
+            .add_edge(source_node_index, target_node_index, attributes.to_owned())
+            .map_err(MedRecordError::from)?;
+
+        match self.schema.schema_type() {
+            SchemaType::Inferred => {
+                let edges_in_group = self
+                    .group_mapping
+                    .edges_in_group
+                    .get(&group)
+                    .map(|edges| edges.len())
+                    .unwrap_or(0);
+
+                self.schema
+                    .update_edge(&attributes, Some(&group), edges_in_group == 0);
+            }
+            SchemaType::Provided => {
+                self.schema
+                    .validate_edge(&edge_index, &attributes, Some(&group))
+                    .inspect_err(|_| {
+                        self.graph
+                            .remove_edge(&edge_index)
+                            .expect("Edge must exist");
+                    })?;
+            }
+        }
+
+        self.group_mapping
+            .add_edge_to_group(group, edge_index)
+            .inspect_err(|_| {
+                self.graph
+                    .remove_edge(&edge_index)
+                    .expect("Edge must exist");
+            })?;
+
+        Ok(edge_index)
+    }
+
     pub fn remove_edge(&mut self, edge_index: &EdgeIndex) -> Result<Attributes, MedRecordError> {
         self.group_mapping.remove_edge(edge_index);
 
@@ -585,6 +708,29 @@ impl MedRecord {
             .into_iter()
             .map(|(source_edge_index, target_node_index, attributes)| {
                 self.add_edge(source_edge_index, target_node_index, attributes)
+            })
+            .collect()
+    }
+
+    // TODO: Add tests
+    pub fn add_edges_with_group(
+        &mut self,
+        edges: Vec<(NodeIndex, NodeIndex, Attributes)>,
+        group: Group,
+    ) -> Result<Vec<EdgeIndex>, MedRecordError> {
+        if !self.contains_group(&group) {
+            self.add_group(group.clone(), None, None)?;
+        }
+
+        edges
+            .into_iter()
+            .map(|(source_edge_index, target_node_index, attributes)| {
+                self.add_edge_with_group(
+                    source_edge_index,
+                    target_node_index,
+                    attributes,
+                    group.clone(),
+                )
             })
             .collect()
     }
@@ -610,6 +756,31 @@ impl MedRecord {
             .collect();
 
         self.add_edges(edges)
+    }
+
+    // TODO: Add tests
+    pub fn add_edges_dataframes_with_group(
+        &mut self,
+        edges_dataframes: impl IntoIterator<Item = impl Into<EdgeDataFrameInput>>,
+        group: Group,
+    ) -> Result<Vec<EdgeIndex>, MedRecordError> {
+        let edges = edges_dataframes
+            .into_iter()
+            .map(|dataframe_input| {
+                let dataframe_input = dataframe_input.into();
+
+                dataframe_to_edges(
+                    dataframe_input.dataframe,
+                    &dataframe_input.source_index_column,
+                    &dataframe_input.target_index_column,
+                )
+            })
+            .collect::<Result<Vec<_>, _>>()?
+            .into_iter()
+            .flatten()
+            .collect();
+
+        self.add_edges_with_group(edges, group)
     }
 
     pub fn add_group(
@@ -1861,11 +2032,6 @@ mod test {
             .add_group("0".into(), Some(vec!["0".into()]), None)
             .unwrap();
 
-        // Adding to a non-existing group should fail
-        assert!(medrecord
-            .add_node_to_group("1".into(), "0".into())
-            .is_err_and(|e| matches!(e, MedRecordError::IndexError(_))));
-
         // Adding a non-existing node to a group should fail
         assert!(medrecord
             .add_node_to_group("0".into(), "50".into())
@@ -1930,11 +2096,6 @@ mod test {
         medrecord
             .add_group("0".into(), None, Some(vec![0]))
             .unwrap();
-
-        // Adding to a non-existing group should fail
-        assert!(medrecord
-            .add_edge_to_group("1".into(), 0)
-            .is_err_and(|e| matches!(e, MedRecordError::IndexError(_))));
 
         // Adding a non-existing edge to a group should fail
         assert!(medrecord

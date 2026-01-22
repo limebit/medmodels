@@ -444,6 +444,17 @@ impl PyMedRecord {
             .map_err(PyMedRecordError::from)?)
     }
 
+    pub fn add_nodes_with_group(
+        &mut self,
+        nodes: Vec<(PyNodeIndex, PyAttributes)>,
+        group: PyGroup,
+    ) -> PyResult<()> {
+        Ok(self
+            .0
+            .add_nodes_with_group(nodes.deep_into(), group.into())
+            .map_err(PyMedRecordError::from)?)
+    }
+
     pub fn add_nodes_dataframes(
         &mut self,
         nodes_dataframes: Vec<(PyDataFrame, String)>,
@@ -451,6 +462,17 @@ impl PyMedRecord {
         Ok(self
             .0
             .add_nodes_dataframes(nodes_dataframes)
+            .map_err(PyMedRecordError::from)?)
+    }
+
+    pub fn add_nodes_dataframes_with_group(
+        &mut self,
+        nodes_dataframes: Vec<(PyDataFrame, String)>,
+        group: PyGroup,
+    ) -> PyResult<()> {
+        Ok(self
+            .0
+            .add_nodes_dataframes_with_group(nodes_dataframes, group.into())
             .map_err(PyMedRecordError::from)?)
     }
 
@@ -546,6 +568,17 @@ impl PyMedRecord {
             .map_err(PyMedRecordError::from)?)
     }
 
+    pub fn add_edges_with_group(
+        &mut self,
+        relations: Vec<(PyNodeIndex, PyNodeIndex, PyAttributes)>,
+        group: PyGroup,
+    ) -> PyResult<Vec<EdgeIndex>> {
+        Ok(self
+            .0
+            .add_edges_with_group(relations.deep_into(), group.into())
+            .map_err(PyMedRecordError::from)?)
+    }
+
     pub fn add_edges_dataframes(
         &mut self,
         edges_dataframes: Vec<(PyDataFrame, String, String)>,
@@ -553,6 +586,17 @@ impl PyMedRecord {
         Ok(self
             .0
             .add_edges_dataframes(edges_dataframes)
+            .map_err(PyMedRecordError::from)?)
+    }
+
+    pub fn add_edges_dataframes_with_group(
+        &mut self,
+        edges_dataframes: Vec<(PyDataFrame, String, String)>,
+        group: PyGroup,
+    ) -> PyResult<Vec<EdgeIndex>> {
+        Ok(self
+            .0
+            .add_edges_dataframes_with_group(edges_dataframes, group.into())
             .map_err(PyMedRecordError::from)?)
     }
 

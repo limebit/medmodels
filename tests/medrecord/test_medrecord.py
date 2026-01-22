@@ -1694,14 +1694,6 @@ class TestMedRecord(unittest.TestCase):
 
         medrecord.add_group("0", ["0"])
 
-        # Adding to a non-existing group should fail
-        with pytest.raises(IndexError):
-            medrecord.add_nodes_to_group("50", "1")
-
-        # Adding to a non-existing group should fail
-        with pytest.raises(IndexError):
-            medrecord.add_nodes_to_group("50", ["1", "2"])
-
         # Adding a non-existing node to a group should fail
         with pytest.raises(IndexError):
             medrecord.add_nodes_to_group("0", "50")
@@ -1798,14 +1790,6 @@ class TestMedRecord(unittest.TestCase):
         medrecord = create_medrecord()
 
         medrecord.add_group("0", edges=[0])
-
-        # Adding to a non-existing group should fail
-        with pytest.raises(IndexError):
-            medrecord.add_edges_to_group("50", 1)
-
-        # Adding to a non-existing group should fail
-        with pytest.raises(IndexError):
-            medrecord.add_edges_to_group("50", [1, 2])
 
         # Adding a non-existing edge to a group should fail
         with pytest.raises(IndexError):

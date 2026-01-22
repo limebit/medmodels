@@ -925,15 +925,10 @@ class MedRecord:
             if is_node_tuple(nodes):
                 nodes = [nodes]
 
-            self._medrecord.add_nodes(nodes)
-
             if group is None:
-                return
-
-            if not self.contains_group(group):
-                self.add_group(group)
-
-            self.add_nodes_to_group(group, [node[0] for node in nodes])
+                self._medrecord.add_nodes(nodes)
+            else:
+                self._medrecord.add_nodes_with_group(nodes, group)
 
     def add_nodes_pandas(
         self,
@@ -976,24 +971,14 @@ class MedRecord:
             group (Optional[Group]): The name of the group to add the nodes to. If not
                 specified, the nodes are added to the MedRecord without a group.
         """
-        self._medrecord.add_nodes_dataframes(
-            nodes if isinstance(nodes, list) else [nodes]
-        )
-
         if group is None:
-            return
-
-        if not self.contains_group(group):
-            self.add_group(group)
-
-        if isinstance(nodes, list):
-            node_indices = [
-                nodes for node in nodes for nodes in node[0][node[1]].to_list()
-            ]
+            self._medrecord.add_nodes_dataframes(
+                nodes if isinstance(nodes, list) else [nodes]
+            )
         else:
-            node_indices = nodes[0][nodes[1]].to_list()
-
-        self.add_nodes_to_group(group, node_indices)
+            self._medrecord.add_nodes_dataframes_with_group(
+                nodes if isinstance(nodes, list) else [nodes], group
+            )
 
     @overload
     def remove_edges(self, edges: Union[EdgeIndex, EdgeIndexQuery]) -> Attributes: ...
@@ -1073,17 +1058,10 @@ class MedRecord:
         if is_edge_tuple(edges):
             edges = [edges]
 
-        edge_indices = self._medrecord.add_edges(edges)
-
         if group is None:
-            return edge_indices
+            return self._medrecord.add_edges(edges)
 
-        if not self.contains_group(group):
-            self.add_group(group)
-
-        self.add_edges_to_group(group, edge_indices)
-
-        return edge_indices
+        return self._medrecord.add_edges_with_group(edges, group)
 
     def add_edges_pandas(
         self,
@@ -1134,19 +1112,14 @@ class MedRecord:
         Returns:
             List[EdgeIndex]: A list of the edge indices added.
         """
-        edge_indices = self._medrecord.add_edges_dataframes(
-            edges if isinstance(edges, list) else [edges]
-        )
-
         if group is None:
-            return edge_indices
+            return self._medrecord.add_edges_dataframes(
+                edges if isinstance(edges, list) else [edges]
+            )
 
-        if not self.contains_group(group):
-            self.add_group(group)
-
-        self.add_edges_to_group(group, edge_indices)
-
-        return edge_indices
+        return self._medrecord.add_edges_dataframes_with_group(
+            edges if isinstance(edges, list) else [edges], group
+        )
 
     def add_group(
         self,
