@@ -98,12 +98,8 @@ impl GroupMapping {
         group: Group,
         node_index: NodeIndex,
     ) -> Result<(), MedRecordError> {
-        let nodes_in_group =
-            self.nodes_in_group
-                .get_mut(&group)
-                .ok_or(MedRecordError::IndexError(format!(
-                    "Cannot find group {group}"
-                )))?;
+        // TODO: This was changed. Add a test for adding to a non-existing group
+        let nodes_in_group = self.nodes_in_group.entry(group.clone()).or_default();
 
         if !nodes_in_group.insert(node_index.clone()) {
             return Err(MedRecordError::AssertionError(format!(
@@ -124,12 +120,8 @@ impl GroupMapping {
         group: Group,
         edge_index: EdgeIndex,
     ) -> Result<(), MedRecordError> {
-        let edges_in_group =
-            self.edges_in_group
-                .get_mut(&group)
-                .ok_or(MedRecordError::IndexError(format!(
-                    "Cannot find group {group}"
-                )))?;
+        // TODO: This was changed. Add a test for adding to a non-existing group
+        let edges_in_group = self.edges_in_group.entry(group.clone()).or_default();
 
         if !edges_in_group.insert(edge_index) {
             return Err(MedRecordError::AssertionError(format!(
@@ -376,11 +368,6 @@ mod test {
             .add_group("0".into(), Some(vec!["0".into()]), None)
             .unwrap();
 
-        // Adding to a non-existing group should fail
-        assert!(group_mapping
-            .add_node_to_group("50".into(), "1".into())
-            .is_err_and(|e| matches!(e, MedRecordError::IndexError(_))));
-
         // Adding a node to a group that already is in the group should fail
         assert!(group_mapping
             .add_node_to_group("0".into(), "0".into())
@@ -413,11 +400,6 @@ mod test {
         group_mapping
             .add_group("0".into(), None, Some(vec![0]))
             .unwrap();
-
-        // Adding to a non-existing group should fail
-        assert!(group_mapping
-            .add_edge_to_group("50".into(), 1)
-            .is_err_and(|e| matches!(e, MedRecordError::IndexError(_))));
 
         // Adding an edge to a group that already is in the group should fail
         assert!(group_mapping
