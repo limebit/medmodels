@@ -99,7 +99,14 @@ impl GroupMapping {
         node_index: NodeIndex,
     ) -> Result<(), MedRecordError> {
         // TODO: This was changed. Add a test for adding to a non-existing group
-        let nodes_in_group = self.nodes_in_group.entry(group.clone()).or_default();
+        let nodes_in_group = self.nodes_in_group.entry(group.clone());
+
+        if let MrHashMapEntry::Vacant(_) = nodes_in_group {
+            self.edges_in_group
+                .insert(group.clone(), Default::default());
+        }
+
+        let nodes_in_group = nodes_in_group.or_default();
 
         if !nodes_in_group.insert(node_index.clone()) {
             return Err(MedRecordError::AssertionError(format!(
@@ -121,7 +128,14 @@ impl GroupMapping {
         edge_index: EdgeIndex,
     ) -> Result<(), MedRecordError> {
         // TODO: This was changed. Add a test for adding to a non-existing group
-        let edges_in_group = self.edges_in_group.entry(group.clone()).or_default();
+        let edges_in_group = self.edges_in_group.entry(group.clone());
+
+        if let MrHashMapEntry::Vacant(_) = edges_in_group {
+            self.nodes_in_group
+                .insert(group.clone(), Default::default());
+        }
+
+        let edges_in_group = edges_in_group.or_default();
 
         if !edges_in_group.insert(edge_index) {
             return Err(MedRecordError::AssertionError(format!(
