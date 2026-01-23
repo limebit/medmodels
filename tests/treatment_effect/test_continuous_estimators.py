@@ -14,6 +14,7 @@ from medmodels.treatment_effect.continuous_estimators import (
     average_treatment_effect,
     cohens_d,
     hedges_g,
+    t_test,
 )
 
 if TYPE_CHECKING:
@@ -350,6 +351,55 @@ class TestContinuousEstimators(unittest.TestCase):
     def test_invalid_hedges_d(self) -> None:
         with pytest.raises(ValueError, match="Outcome variable must be numeric"):
             hedges_g(
+                self.medrecord,
+                treatment_outcome_true_set=set({"P2", "P3"}),
+                control_outcome_true_set=set({"P1", "P4", "P7"}),
+                outcome_group=self.outcome_group,
+                outcome_variable="type",
+                reference="last",
+                time_attribute=self.time_attribute,
+            )
+
+    def test_t_test(self) -> None:
+        t_test_result = t_test(
+            self.medrecord,
+            treatment_outcome_true_set=set({"P2", "P3"}),
+            control_outcome_true_set=set({"P1", "P4", "P7"}),
+            outcome_group=self.outcome_group,
+            outcome_variable="intensity",
+            reference="last",
+            time_attribute=self.time_attribute,
+        )
+
+        assert t_test_result == (pytest.approx(-0.55, 2), pytest.approx(0.62, 2))
+
+        t_test_result = t_test(
+            self.medrecord,
+            treatment_outcome_true_set=set({"P2", "P3"}),
+            control_outcome_true_set=set({"P1", "P4", "P7"}),
+            outcome_group=self.outcome_group,
+            outcome_variable="intensity",
+            reference="first",
+            time_attribute=self.time_attribute,
+        )
+
+        assert t_test_result == (pytest.approx(-0.93, 2), pytest.approx(0.43, 2))
+
+        t_test_result = t_test(
+            self.medrecord,
+            treatment_outcome_true_set=set({"P2", "P3"}),
+            control_outcome_true_set=set({"P1", "P4", "P7"}),
+            outcome_group=self.outcome_group,
+            outcome_variable="intensity",
+            reference="first",
+            time_attribute=None,
+        )
+
+        assert t_test_result == (pytest.approx(-0.61, 2), pytest.approx(0.59, 2))
+
+    def test_invalid_t_test(self) -> None:
+        with pytest.raises(ValueError, match="Outcome variable must be numeric"):
+            t_test(
                 self.medrecord,
                 treatment_outcome_true_set=set({"P2", "P3"}),
                 control_outcome_true_set=set({"P1", "P4", "P7"}),
